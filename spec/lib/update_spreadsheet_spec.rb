@@ -25,7 +25,7 @@ describe UpdateSpreadsheet do
   context "When spreadsheet is valid and has one sheet and has headers in rows" do
     before(:each) do
       update_spreadsheet_name = "#{ENV["DATAFILES_PATH"]}/datafiles/horizontal_update_spreadsheet.xls"
-#      update_spreadsheet_name = "/Volumes/UHEROwork/data/bea/update/inc_upd.xls"
+#      update_spreadsheet_name = "~/data/bea/update/inc_upd.xls"
       @update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_name)
       @update_spreadsheet.default_sheet = @update_spreadsheet.sheets.first
     end

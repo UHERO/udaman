@@ -9,7 +9,7 @@ class Packager
 
   	p = Packager.new
   	p.add_definitions const_q
-  	p.write_definitions_to "/Volumes/UHEROwork/data/misc/const/update/const_upd_q_NEW.xls"
+  	p.write_definitions_to "~/data/misc/const/update/const_upd_q_NEW.xls"
   	nil
   end
   
