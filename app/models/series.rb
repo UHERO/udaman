@@ -362,6 +362,16 @@ class Series < ActiveRecord::Base
     data_hash
   end
   
+  def scaled_data(round_to = 3)
+    data_hash = {}
+    self.units ||= 1
+    self.units = 1000 if name[0..2] == "TGB" #hack for the tax scaling. Should not save units
+    data_points.each do |dp|
+      data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current
+    end
+    data_hash
+  end
+  
   def Series.new_from_data(frequency, data)
     Series.new_transformation("One off data", data, frequency)
   end
@@ -393,13 +403,13 @@ class Series < ActiveRecord::Base
   
   def load_from(update_spreadsheet_path, sheet_to_load = nil)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
-    #raise SeriesReloadException if update_spreadsheet.load_error?
-    return self if update_spreadsheet.load_error?
+    raise SeriesReloadException if update_spreadsheet.load_error?
+    #return self if update_spreadsheet.load_error?
 
     default_sheet = update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
     update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load unless update_spreadsheet.class == UpdateCSV
-    #raise SeriesReloadException unless update_spreadsheet.update_formatted?
-    return self unless update_spreadsheet.update_formatted?
+    raise SeriesReloadException unless update_spreadsheet.update_formatted?
+    #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency
     new_transformation(update_spreadsheet_path, update_spreadsheet.series(self.name))
@@ -488,6 +498,17 @@ class Series < ActiveRecord::Base
     end
     Series.write_cached_files cached_files if cached_files.new_data?
     new_transformation("loaded from download #{handle} with options:#{options}", series_data)
+  end
+  
+  def Series.load_from_bea(code, region, frequency)
+    series_data = DataHtmlParser.new.get_bea_series(code, region)
+    Series.new_transformation("loaded series code: #{code} for region #{region} from bea website", series_data, Series.frequency_from_code(frequency))
+  end
+  
+  def load_from_bea(code, region)
+    frequency = Series.frequency_from_code(self.name.split(".")[1])
+    series_data = DataHtmlParser.new.get_bea_series(code, region)
+    Series.new_transformation("loaded series code: #{code} for region #{region} from bea website", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
@@ -852,6 +873,34 @@ class Series < ActiveRecord::Base
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
     name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}
     name_buckets
+  end
+  
+  
+  def Series.web_search(search_string, num_results = 10)
+    regex = /"([^"]*)"/
+    search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, "").split(" ")
+    name_where = (search_parts.map {|s| "name LIKE '%#{s}%'"}).join (" AND ")
+    name_results = Series.where(name_where).limit(num_results)
+    
+    desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (" AND ")
+    desc_results = AremosSeries.where(desc_where).limit(num_results)
+    
+    results = []
+  
+    name_results.each do |s| 
+      as = AremosSeries.get(s.name)
+      results.push({ :name => s.name, :series_id => s.id, :description => as.nil? ? "no aremos series" : as.description})
+      #puts "#{s.id} : #{s.name} - #{as.nil? ? "no aremos series" : as.description}"
+    end
+    
+    desc_results.each do |as|
+      s = as.name.ts
+      results.push({:name => as.name, :series_id => s.nil? ? "no series" : s.id, :description => as.description})
+      #puts "#{s.nil? ? "no series" : s.id}  : #{as.name} - #{as.description}"
+    end
+    
+    results
+    
   end
   
 end
