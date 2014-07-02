@@ -50,4 +50,7 @@ group :development, :test do
   gem 'watchr'
   gem 'database_cleaner'
   gem 'test-unit', '1.2.3'
+  # added for deployment process (6/5/2014) JP
+  gem 'capistrano', '~> 3.1'
+  gem 'capistrano-rails', '~> 1.1'
 end
