@@ -45,6 +45,7 @@ task :tsd_exports => :environment do
   end
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["tsd_exports", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
+<<<<<<< HEAD
 
 #redundant with prognoz diffs. Can delete, most likely
 # task :prognoz_exports => :environment do
@@ -84,3 +85,5 @@ end
 # end
 
 #23.93 | 200 | ~/eis/data/12M09Atest/Data_month1.xls21.10 | 200 | ~/eis/data/12M09Atest/Data_month2.xls20.30 | 200 | ~/eis/data/12M09Atest/Data_month3.xls18.74 | 199 | ~/eis/data/12M09Atest/Data_month4.xls11.65 | 130 | ~/eis/data/12M09Atest/Data_month5.xls10.29 | 149 | ~/eis/data/12M09Atest/Data_month6.xls14.09 | 56 | ~/eis/data/12M09Atest/Data_month7.xlsrake aborted!SeriesNameException
+=======
+>>>>>>> upstream/master
