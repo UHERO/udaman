@@ -6,6 +6,12 @@ task :test_rake => :environment do
   Series.run_all_dependencies(series_to_refresh, {}, errors, eval_statements)
 end
 
+task :run_all_dependencies => :environment do
+   puts "Running all dependencies"
+   Series.run_all_dependencies(Series.all.map {|s| s.name}, {}, [], [])
+   puts "Complete!"
+end
+
 # Definition fixes
 task :def_update => :environment do
     updated_defs = {
