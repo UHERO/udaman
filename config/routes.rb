@@ -70,6 +70,7 @@ UheroDb::Application.routes.draw do
   match 'investigate' => 'dashboards#investigate'
   match 'investigate_visual' => 'dashboards#investigate_visual'
   match 'investigate_no_source' => 'dashboards#investigate_no_source'
+  match 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
   match 'rake_report' => 'dashboards#rake_report'
   match 'construction' => 'dashboards#construction'
   match 'construction/years/:num_years' => 'dashboards#construction'
@@ -128,6 +129,7 @@ UheroDb::Application.routes.draw do
   match 'listseries/re' =>'listseries#redir'
   match 'listseries/:name' => 'listseries#get'
   
+  match 'autocomplete' => 'series#autocomplete_search'
   
   #match 'path' => 'controller#method'
   # The priority is based upon order of creation:
