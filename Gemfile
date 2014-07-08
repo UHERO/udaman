@@ -45,6 +45,9 @@ gem 'nokogiri'
 # end
 
 group :development, :test do
+  gem 'capistrano'
+  gem 'capistrano-rails', '~> 1.1', require: false
+  gem 'capistrano-bundler', '~> 1.1', require: false
   gem 'rspec-rails'
   gem 'cucumber-rails', :require => false
   gem 'watchr'
