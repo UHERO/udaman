@@ -22,7 +22,7 @@ class PackagerMailer < ActionMailer::Base
   def rake_error(e, output_path)
     @error = e
     @output_path = output_path
-    mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "Rake failed in an unexpected way")
+    mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "Rake failed in an unexpected way (Udamacmini)")
   end
 
   def visual_notification(new_dps = 0, changed_files = 0, new_downloads = 0)
@@ -54,7 +54,7 @@ class PackagerMailer < ActionMailer::Base
     path = "~/data/prognoz_export/ready_to_send_zip_files/"
     filename = send_edition + ".zip"
     attachments[filename] = File.read(path+filename) 
-    subject = "Prognoz Export"
+    subject = "Prognoz Export (Udamacmini)"
     mail(:to => recipients, :subject => subject)  
   end
 end

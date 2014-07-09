@@ -4,7 +4,7 @@ class DataLoadMailer < ActionMailer::Base
   def download_notification(update_info, update_summary)
     @update_info = update_info
     @update_summary = update_summary
-    mail(:to => "bentut@gmail.com", :subject => "A spreadsheet was updated: #{update_info}")
+    mail(:to => ["jrpage@hawaii.edu", "bentut@gmail.com"], :subject => "A spreadsheet was updated (Udamacmini): #{update_info}")
   end
   
   def series_refresh_notification(circular_series, stale_data_sources, ds_count, errors)
@@ -14,6 +14,6 @@ class DataLoadMailer < ActionMailer::Base
     #@empty_data_sources = empty_data_sources
     
     @errors = errors
-    mail(:to => "bentut@gmail.com", :subject => "[Udaman Series Reload] #{ds_count} Datasources loaded : #{@errors.count} / #{@circular_series.count} / #{@stale_data_sources.count} ")
+    mail(:to => ["jrpage@hawaii.edu", "bentut@gmail.com"], :subject => "[Udamacmini Series Reload] #{ds_count} Datasources loaded : #{@errors.count} / #{@circular_series.count} / #{@stale_data_sources.count} ")
   end
 end
