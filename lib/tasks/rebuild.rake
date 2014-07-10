@@ -15,12 +15,12 @@ task :rebuild => :environment do
         line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
         line.gsub! "japan/seasadj/sadata.xls", "rawdata/sadata/japan.xls"
         line.gsub! "bls/seasadj/sadata.xls", "rawdata/sadata/bls.xls"
-        line.gsub! "misc/hbr/seasadj/sadata.xls", "rawdata/sadata/msc_hbr.xls"
-        line.gsub! "tour/seasadj/sadata.xls", "rawdata/seasadj/tour.xls"
-        line.gsub! "tax/seasadj/sadata.xls", "rawdata/seasadj/tax.xls"
-        line.gsub! "misc/prud/seasadj/prud_sa.xls", "rawdata/seasadj/misc_prud_prud_sa.xls"
-        line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/seasadj/misc_hbr_mbr_sa.xls"
-        line.gsub! "bls/seasadj/bls_wagesa.xls", "rawdata/seasadj/bls_wages.xls"
+        line.gsub! "misc/hbr/seasadj/sadata.xls", "rawdata/sadata/misc_hbr.xls"
+        line.gsub! "tour/seasadj/sadata.xls", "rawdata/sadata/tour.xls"
+        line.gsub! "tax/seasadj/sadata.xls", "rawdata/sadata/tax.xls"
+        line.gsub! "misc/prud/seasadj/prud_sa.xls", "rawdata/sadata/misc_prud_prud_sa.xls"
+        line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/sadata/misc_hbr_mbr_sa.xls"
+        line.gsub! "bls/seasadj/bls_wagesa.xls", "rawdata/sadata/bls_wages.xls"
         begin
           eval(line)
           print "."
