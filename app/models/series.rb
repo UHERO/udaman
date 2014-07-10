@@ -386,7 +386,7 @@ class Series < ActiveRecord::Base
   
   def new_transformation(name, data)
     frequency = (self.frequency.nil? and name.split(".").count == 2 and name.split("@") == 2 and name.split(".")[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
-    #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency}"  
+    puts "NEW TRANFORMATION: #{name} - frequency: #{frequency}"  
     Series.new(
       :name => name,
       :frequency => frequency,

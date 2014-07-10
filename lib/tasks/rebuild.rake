@@ -36,6 +36,12 @@ task :rebuild => :environment do
     
 end
 
+task :test_case => :environment do
+   "CPINS@US.M".tsn.load_from_bls("CUUR0000SA0", "M")
+   "CPINS@US.Q".ts_eval= %Q|"CPINS@US.M".ts.aggregate(:quarter, :average)|
+   "CPI@US.A".ts_eval= %Q|"CPINS@US.Q".ts.aggregate(:year, :average)|
+end
+
 task :output_active_downloads => :environment do
   File.open('lib/tasks/REBUILD_DOWNLOADS.rb', 'w') do |file|
     DsdLogEntry.maximum(:time, :group => :data_source_download_id).each do |dsd_id, time|
