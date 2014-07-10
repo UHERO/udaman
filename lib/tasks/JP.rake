@@ -73,7 +73,7 @@ task :jp_upd_a => :environment do
 	
 	p = Packager.new
 	p.add_definitions jp_a
-	p.write_definitions_to "/Volumes/UHEROwork/data/japan/update/jp_upd_a_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/japan/update/jp_upd_a_NEW.xls"
 
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["jp_upd_a", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -164,7 +164,7 @@ task :jp_upd_q => :environment do
 
 p = Packager.new
 p.add_definitions jp_q
-p.write_definitions_to "/Volumes/UHEROwork/data/japan/update/jp_upd_q_NEW.xls"
+p.write_definitions_to "/Users/uhero/Documents/data/japan/update/jp_upd_q_NEW.xls"
 
 CSV.open("public/rake_time.csv", "a") {|csv| csv << ["jp_upd_q", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -212,11 +212,11 @@ task :jp_upd_m => :environment do
 	
 	p = Packager.new
 	p.add_definitions jp_m
-	p.write_definitions_to "/Volumes/UHEROwork/data/japan/update/jp_upd_m_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/japan/update/jp_upd_m_NEW.xls"
 
 	p = Packager.new
 	p.add_definitions jp_m_special
-	p.write_definitions_to "/Volumes/UHEROwork/data/japan/update/jp_upd_m2_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/japan/update/jp_upd_m2_NEW.xls"
 
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["jp_upd_m", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end

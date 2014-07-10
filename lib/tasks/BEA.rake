@@ -185,7 +185,7 @@ task :gsp_upd => :environment do
 
 	p = Packager.new
 	p.add_definitions gsp_defs
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/gsp_upd_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/gsp_upd_NEW.xls"
 
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["gsp_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -244,7 +244,7 @@ task :inc_upd_q => :environment do
 
 	p = Packager.new
 	p.add_definitions inc_defs
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/inc_upd_q_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/inc_upd_q_NEW.xls"
 	
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["inc_upd_q", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -1047,23 +1047,23 @@ task :inc_upd_a => :environment do
 	
 	p = Packager.new
 	p.add_definitions inc_hi_a
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/inc_HIa_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/inc_HIa_NEW.xls"
 	
 	p = Packager.new
 	p.add_definitions inc_haw_a
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/inc_HAWa_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/inc_HAWa_NEW.xls"
 
 	p = Packager.new
 	p.add_definitions inc_hon_a
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/inc_HONa_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/inc_HONa_NEW.xls"
 
 	p = Packager.new
 	p.add_definitions inc_kau_a
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/inc_KAUa_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/inc_KAUa_NEW.xls"
 
 	p = Packager.new
 	p.add_definitions inc_mau_a
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/inc_MAUa_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/inc_MAUa_NEW.xls"
 
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["inc_upd_a", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -1697,23 +1697,23 @@ com_haw = {
 	
 p = Packager.new
 p.add_definitions com_hi
-p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/com_upd_HI_NEW.xls"
+p.write_definitions_to "/Users/uhero/Documents/data/bea/update/com_upd_HI_NEW.xls"
 	
 p = Packager.new
 p.add_definitions com_haw
-p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/com_upd_HAW_NEW.xls"
+p.write_definitions_to "/Users/uhero/Documents/data/bea/update/com_upd_HAW_NEW.xls"
 	
 	p = Packager.new
 	p.add_definitions com_hon
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/com_upd_HON_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/com_upd_HON_NEW.xls"
 	
 	p = Packager.new
 	p.add_definitions com_kau
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/com_upd_KAU_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/com_upd_KAU_NEW.xls"
 	
 	p = Packager.new
 	p.add_definitions com_mau
-	p.write_definitions_to "/Volumes/UHEROwork/data/bea/update/com_upd_MAU_NEW.xls"
+	p.write_definitions_to "/Users/uhero/Documents/data/bea/update/com_upd_MAU_NEW.xls"
 	
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["com_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -1749,30 +1749,30 @@ task :bea_identities => :environment do
   # end  
   
   
-  "GDP_IIV_R@US.A".ts_eval= %Q|"GDP_IIV_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "YCE_R@US.A".ts_eval= %Q|"YCE_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_IFX_R@US.A".ts_eval= %Q|"GDP_IFX_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_INR_R@US.A".ts_eval= %Q|"GDP_INR_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_NX_R@US.A".ts_eval= %Q|"GDP_NX_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_IFX_R@US.Q".ts_eval= %Q|"GDP_IFX_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_NX_R@US.Q".ts_eval= %Q|"GDP_NX_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_INR_R@US.Q".ts_eval= %Q|"GDP_INR_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_CD_R@US.Q".ts_eval= %Q|"GDP_CD_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_IIV_R@US.Q".ts_eval= %Q|"GDP_IIV_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_IRS_R@US.Q".ts_eval= %Q|"GDP_IRS_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_CS_R@US.Q".ts_eval= %Q|"GDP_CS_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_IIV_R@US.A".ts_eval= %Q|"GDP_IIV_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "YCE_R@US.A".ts_eval= %Q|"YCE_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_IFX_R@US.A".ts_eval= %Q|"GDP_IFX_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_INR_R@US.A".ts_eval= %Q|"GDP_INR_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_NX_R@US.A".ts_eval= %Q|"GDP_NX_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_IFX_R@US.Q".ts_eval= %Q|"GDP_IFX_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_NX_R@US.Q".ts_eval= %Q|"GDP_NX_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_INR_R@US.Q".ts_eval= %Q|"GDP_INR_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_CD_R@US.Q".ts_eval= %Q|"GDP_CD_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_IIV_R@US.Q".ts_eval= %Q|"GDP_IIV_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_IRS_R@US.Q".ts_eval= %Q|"GDP_IRS_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_CS_R@US.Q".ts_eval= %Q|"GDP_CS_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
   
   "INFCORE@US.M".ts_eval= %Q| "CPICORE@US.M".ts.annualized_percentage_change |
-  "GDP_IRS_R@US.A".ts_eval= %Q|"GDP_IRS_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_CS_R@US.A".ts_eval= %Q|"GDP_CS_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_CN_R@US.Q".ts_eval= %Q|"GDP_CN_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_IRS_R@US.A".ts_eval= %Q|"GDP_IRS_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_CS_R@US.A".ts_eval= %Q|"GDP_CS_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_CN_R@US.Q".ts_eval= %Q|"GDP_CN_R@US.Q".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
   "INF@US.M".ts_eval= %Q| "CPI@US.M".ts.annualized_percentage_change |
-  "GDP_CD_R@US.A".ts_eval= %Q|"GDP_CD_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-  "YCE_R@US.M".ts_eval= %Q|"YCE_R@US.M".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_m.xls").trim("1900-01-01","1994-12-01")|
-  "GDP_CN_R@US.A".ts_eval= %Q|"GDP_CN_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_CD_R@US.A".ts_eval= %Q|"GDP_CD_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
+  "YCE_R@US.M".ts_eval= %Q|"YCE_R@US.M".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_m.xls").trim("1900-01-01","1994-12-01")|
+  "GDP_CN_R@US.A".ts_eval= %Q|"GDP_CN_R@US.A".tsn.load_from("/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
 
-  "YP_R@CA.A".ts_eval= %Q|"YP_R@CA.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls"|
-  "CPI@CA.A".ts_eval= %Q|"CPI@CA.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls"|
+  "YP_R@CA.A".ts_eval= %Q|"YP_R@CA.A".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls"|
+  "CPI@CA.A".ts_eval= %Q|"CPI@CA.A".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/us_upd_a.xls"|
 
   "CAPUMN@US.A".ts_eval= %Q|"CAPUMN@US.Q".ts.aggregate(:year, :average)|
 

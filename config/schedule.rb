@@ -21,7 +21,7 @@
 
 hour = "1"
 bls_hour = "4"
-set :output, "~/Documents/cronlog/udaman-download.log"
+set :output, "~/Documents/data/cronlog/udaman-download.log"
 set :environment, "development"
 #job_type :rake,    "cd :path && rake :task :output"
 job_type :rake,    "cd :path && rake :task"
