@@ -1,6 +1,8 @@
-== Udaman
+Udaman
+====
 
--- Setting up your development environment
+Setting up your development environment
+----
 
 Run the following from the terminal in the folder you want your clone of the repo:
 
