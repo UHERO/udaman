@@ -29,14 +29,14 @@ $ git push upstream master
 ```
 
 To deploy the changes to the production server:
-1) SSH into the production server
-2) cd to the udaman folder
-3) fetch changes
+1.  SSH into the production server
+2.  cd to the udaman folder
+3.  fetch changes
 ```
 $ git fetch origin master
 $ git merge origin/master
 ```
-4) Resolve any conflicts and commit the changes.
+4.  Resolve any conflicts and commit the changes.
 
 To check the names and locations of remote:
 ```
