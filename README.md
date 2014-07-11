@@ -25,7 +25,7 @@ $ git merge upstream/master
 
 To push changes to the repository:
 ```
-$ git push origin master
+$ git push upstream master
 ```
 
 To deploy the changes to the production server:
