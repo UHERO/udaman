@@ -254,14 +254,19 @@ class Series < ActiveRecord::Base
 
   def Series.eval(series_name, eval_statement)
     t = Time.now
+    #begin
     new_series = Kernel::eval eval_statement
     #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : EVAL TIME"
-    source = Series.store series_name, new_series, new_series.name, eval_statement
+    Series.store series_name, new_series, new_series.name, eval_statement
     #taking this out as well... not worth it to run
     #source.update_attributes(:runtime => (Time.now - t))
     puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement}" 
-  # rescue Exception 
-  #     puts "ERROR | #{series_name} | #{eval_statement}"
+    #rescue => e
+    #   Series.store series_name, Series.new_transformation(series_name, {}, Series.frequency_from_code(series_name[-1])), "Source Series rescued: #{e.message}", eval_statement
+    #   puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement} | Source Series rescued, #{e.message}" 
+    #end
+    # rescue Exception 
+   #     puts "ERROR | #{series_name} | #{eval_statement}"
   end
   
   def save_source(source_desc, source_eval_statement, data, last_run = Time.now)
@@ -396,7 +401,7 @@ class Series < ActiveRecord::Base
   
   def new_transformation(name, data)
     frequency = (self.frequency.nil? and name.split(".").count == 2 and name.split("@") == 2 and name.split(".")[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
-    puts "NEW TRANFORMATION: #{name} - frequency: #{frequency}"  
+    #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency}"  
     Series.new(
       :name => name,
       :frequency => frequency,

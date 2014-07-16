@@ -1,14 +1,20 @@
 # run REBUILD.rb line by line
 
 task :rebuild => :environment do
+    Rake::Task["reload_aremos"].reenable
+    Rake::Task["reload_aremos"].invoke
+
     File.open('lib/tasks/REBUILD_DOWNLOADS.rb', 'r') do |file|
       while line = file.gets
          line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
         eval(line)
       end
     end
-    
+
+    error_rounds = []
     errors = []
+    last_errors = []
+
     File.open('lib/tasks/REBUILD.rb', 'r') do |file|
       `chmod -R 777 /Users/uhero/Documents/data/*`
       while line = file.gets
@@ -31,8 +37,36 @@ task :rebuild => :environment do
         end
       end
     end
+
+   puts "done with first round\n\n\n\n\n\n\n\n"
+    puts last_errors.count
+    puts errors.count
+
+    until last_errors.count == errors.count
+      error_rounds.push(errors)
+      last_errors = errors
+      errors = []
+
+      puts "\n\n\n----------WORKING ON ROUND #{} OF ERRORS--------------\n\n\n"
+                 
+      last_errors.each do |error|
+         begin
+            eval(error[0])
+         rescue Exception => exc
+            puts error[0]
+            errors.push [error[0], exc.message]
+         end
+      end
+
+    end
+
+    # use ts_eval_force on these stubborn lines
+    errors.each {|e| eval(e[0].gsub "ts_eval", "ts_eval_force")}
     
-    CSV.open("public/rebuild_errors", "wb") {|file| errors.each {|e| file << e} }
+    error_rounds.each_index do |i|
+      error = error_rounds[i] 
+      CSV.open("public/rebuild_errors_#{i}.csv", "wb") {|file| error.each {|e| file << e} }
+    end
     
 end
 
