@@ -60,14 +60,20 @@ task :rebuild => :environment do
 
     end
 
-    # use ts_eval_force on these stubborn lines
-    errors.each {|e| eval(e[0].gsub "ts_eval", "ts_eval_force")}
-    
     error_rounds.each_index do |i|
       error = error_rounds[i] 
       CSV.open("public/rebuild_errors_#{i}.csv", "wb") {|file| error.each {|e| file << e} }
     end
     
+    # use ts_eval_force on these stubborn lines
+    errors.each do |e| 
+       begin 
+          eval(e[0].gsub "ts_eval", "ts_eval_force")
+       rescue SyntaxError => exc # this exception handles strings that are not ending
+          puts "------Syntax Error------"
+          puts exc.message
+       end
+    end
 end
 
 task :test_case => :environment do

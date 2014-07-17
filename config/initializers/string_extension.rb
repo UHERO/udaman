@@ -22,7 +22,7 @@ class String
   def ts_eval_force=(eval_statement)
      begin
         Series.eval self, eval_statement
-     rescue => e
+     rescue Exception => e # this is a little crude, could rescue just StandardError and SeriesReloadException
       Series.store self, Series.new_transformation(self, {}, Series.frequency_from_code(self[-1])), "Source Series rescued: #{e.message}", eval_statement
       puts "#{self} | #{eval_statement} | Source Series rescued, #{e.message}" 
      end
