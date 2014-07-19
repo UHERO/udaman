@@ -76,6 +76,10 @@ task :rebuild => :environment do
           puts exc.message
        end
     end
+
+    # run mark_pseudo_history task
+    Rake::Task["mark_pseudo_history"].reenable
+    Rake::Task["mark_pseudo_history"].invoke
 end
 
 task :test_case => :environment do

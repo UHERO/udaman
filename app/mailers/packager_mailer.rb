@@ -26,11 +26,10 @@ class PackagerMailer < ActionMailer::Base
   end
 
   def visual_notification(new_dps = 0, changed_files = 0, new_downloads = 0)
-    attachments.inline['photo.png'] = File.read('/Users/Shared/Dev/udaman/script/investigate_visual.png')
-    attachments['photo.png'] = File.read('/Users/Shared/Dev/udaman/script/investigate_visual.png')
+    attachments.inline['photo.png'] = File.read('/Users/uhero/Documents/udaman/script/investigate_visual.png')
+    attachments['photo.png'] = File.read('/Users/uhero/Documents/udaman/script/investigate_visual.png')
     subject = "Udamacmini Download Report: #{new_dps.to_s + " new data points / " unless new_dps == 0} #{new_downloads.to_s + " updated downloads / " unless new_downloads == 0} #{changed_files.to_s + " modified update spreadsheets" unless changed_files == 0}"
     mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => subject)
-    #mail(:to => ["bentut@gmail.com"], :subject => subject)
   end
   
   def download_link_notification(handle = nil, url = nil, save_path = nil, created = false)
