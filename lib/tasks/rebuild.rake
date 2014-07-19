@@ -28,7 +28,8 @@ task :rebuild => :environment do
         line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/sadata/misc_hbr_mbr_sa.xls"
         line.gsub! "bls/seasadj/bls_wagesa.xls", "rawdata/sadata/bls_wages.xls"
         begin
-          eval(line)
+          this_series = eval(line)
+          this_series.find_units if this_series.aremos_diff > 0
           print "."
         rescue Exception => exc
           puts line
@@ -51,7 +52,8 @@ task :rebuild => :environment do
                  
       last_errors.each do |error|
          begin
-            eval(error[0])
+            this_series = eval(error[0])
+            this_series.find_units if this_series.aremos_diff > 0
          rescue Exception => exc
             puts error[0]
             errors.push [error[0], exc.message]
