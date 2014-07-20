@@ -1,10 +1,11 @@
 
 task :gen_system_summary => :environment do
   CSV.open("public/system_summary.csv", "wb") do |csv|        
-    csv << ["series_name", "ds_id", "ds_eval", "current_data_points", "dependencies_count", "aremos_diffs", "last_run"]
+    csv << ["series_name", "ds_id", "ds_eval", "current_data_points", "dependencies_count", "aremos_diffs", "last_run", "data_point_sha1"]
     DataSource.order('series_id desc').all.each do |ds| 
-      puts ds.series.name.rjust(20, " ") + ds.id.to_s.rjust(6," ") + ds.series.current_data_points.count.to_s.rjust(5," ") + ds.dependencies.count.to_s.rjust(3, " ") + ds.series.aremos_diff.to_s.rjust(5, " ") + ds.last_run.to_s.rjust(40," ")      
-      csv << [ ds.series.name, ds.id, ds.eval, ds.series.current_data_points.count, ds.dependencies.count, ds.series.aremos_diff, ds.last_run ]
+       hash = Digest::SHA1.hexdigest(ds.series.current_data_points.sortby! {|dp| dp.date_string}.map {|dp| dp.value} * ",")
+      puts ds.series.name.rjust(20, " ") + ds.id.to_s.rjust(6," ") + ds.series.current_data_points.count.to_s.rjust(5," ") + ds.dependencies.count.to_s.rjust(3, " ") + ds.series.aremos_diff.to_s.rjust(5, " ") + ds.last_run.to_s.rjust(40," ") + " " + hash     
+      csv << [ ds.series.name, ds.id, ds.eval, ds.series.current_data_points.count, ds.dependencies.count, ds.series.aremos_diff, ds.last_run, hash]
     end
   end
 end

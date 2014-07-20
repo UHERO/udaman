@@ -4,6 +4,8 @@ task :rebuild => :environment do
     Rake::Task["reload_aremos"].reenable
     Rake::Task["reload_aremos"].invoke
 
+    t = Time.now
+
     File.open('lib/tasks/REBUILD_DOWNLOADS.rb', 'r') do |file|
       while line = file.gets
          line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
@@ -76,6 +78,8 @@ task :rebuild => :environment do
           puts exc.message
        end
     end
+
+    puts "Time: " + (Time.now - t)
 
     # run mark_pseudo_history task
     Rake::Task["mark_pseudo_history"].reenable
