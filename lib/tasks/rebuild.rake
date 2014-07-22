@@ -1,6 +1,12 @@
 # run REBUILD.rb line by line
 
 task :rebuild => :environment do
+    DataPoint.delete_all
+    DataSource.delete_all
+    Series.delete_all
+    DataSourceDownload.delete_all
+    DsdLogEntry.delete_all
+   
     Rake::Task["reload_aremos"].reenable
     Rake::Task["reload_aremos"].invoke
 
