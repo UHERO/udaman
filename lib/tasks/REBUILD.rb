@@ -6272,6 +6272,7 @@
 "VDAYUSNS@HI.M".ts_eval= %Q|"VDAYUSENS@HI.M".ts + "VDAYUSWNS@HI.M".ts|
 "VDAYUS@HI.M".ts_eval= %Q|"VDAYUS@HI.M".tsn.load_mean_corrected_sa_from "/Volumes/UHEROwork/data/tour/seasadj/sadata.xls"|
 "VDAYUS@HI.M".ts_eval= %Q|"VDAYUS@HI.M".ts.apply_ns_growth_rate_sa|
+"VDAYUS@HI.M".ts_eval= %Q|"VDAYUS@HI.M".tsn.load_mean_corrected_sa_from "/Volumes/UHEROwork/data/tour/seasadj/sadata.xls"|
 "VDAYUSENS@HAW.M".ts_eval= %Q|"VDAYUSENS@HAW.M".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/tour_upd1_hist.xls"|
 "VDAYUSENS@HAW.M".ts_eval= %Q|Series.load_from_file("/Volumes/UHEROwork/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>26, :col=>"repeat:2:13", :frequency=>"M" })/1000|
 "VDAYUSWNS@HAW.M".ts_eval= %Q|"VDAYUSWNS@HAW.M".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/tour_upd1_hist.xls"|
@@ -6347,6 +6348,9 @@
 "PPRM_WITHOUT_CR@HAW.Q".ts_eval= %Q|("VADC@HAW.Q".ts) / ("TRMS@HAW.Q".ts * "OCUP%@HAW.Q".ts / 100)|
 "PPRM@HAW.Q".ts_eval= %Q|"PPRM_WITH_CR@HAW.Q".ts|
 "PPRM@HAW.Q".ts_eval= %Q|("PPRM_WITHOUT_CR@HAW.Q".ts - ("PPRM_WITHOUT_CR@HAW.Q".ts - "PPRM_WITH_CR@HAW.Q".ts).average).trim("1990-01-01", "2000-12-01")|
+"VDAY@HI.M".ts_eval= %Q|"VDAY@HI.M".tsn.load_mean_corrected_sa_from "/Volumes/UHEROwork/data/tour/seasadj/sadata.xls"|
+"VDAY@HI.M".ts_eval= %Q|"VDAYJP@HI.M".ts + "VDAYUS@HI.M".ts + "VDAYRES@HI.M".ts|
+"VDAY@HI.Q".ts_eval= %Q|"VDAY@HI.M".ts.aggregate(:quarter, :sum)|
 "VDAY@HI.A".ts_eval= %Q|"VDAYNS@HI.M".ts.aggregate(:year, :sum)|
 "VADC@HI.A".ts_eval= %Q|"VDAY@HI.A".ts / "VDAY@HI.A".ts.days_in_period|
 "VDAYCRAIRNS@HI.M".ts_eval= %Q|"VISCRAIRNS@HI.M".ts * "VLOSCRAIRNS@HI.M".ts|
@@ -10257,6 +10261,7 @@
 "VADCUSNS@MOL.M".ts_eval= %Q|"VDAYUSNS@MOL.M".ts / "VDAYUSNS@MOL.M".ts.days_in_period|
 "VDAYUSW@HI.M".ts_eval= %Q|"VDAYUSW@HI.M".tsn.load_mean_corrected_sa_from "/Volumes/UHEROwork/data/tour/seasadj/sadata.xls"|
 "VDAYUSW@HI.M".ts_eval= %Q|"VDAYUSW@HI.M".ts.apply_ns_growth_rate_sa|
+"VDAYUSW@HI.M".ts_eval= %Q|"VDAYUSW@HI.M".tsn.load_mean_corrected_sa_from "/Volumes/UHEROwork/data/tour/seasadj/sadata.xls"|
 "VDAYUSW@HAW.M".ts_eval= %Q|"VDAYUSW@HI.M".ts.mc_ma_county_share_for("HAW","VDAYUSW")|
 "VDAYUSW@HAW.M".ts_eval= %Q|"VDAYUSW@HAW.M".ts.apply_ns_growth_rate_sa.get_last_incomplete_year|
 "VDAYUSW@HAW.A".ts_eval= %Q|"VDAYUSW@HAW.M".ts.aggregate(:year, :sum)|

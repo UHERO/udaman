@@ -24,35 +24,34 @@ task :rebuild => :environment do
     last_errors = []
 
     File.open('lib/tasks/REBUILD.rb', 'r') do |file|
-      `chmod -R 777 /Users/uhero/Documents/data/*`
-      while line = file.gets
-        line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
-        line.gsub! "japan/seasadj/sadata.xls", "rawdata/sadata/japan.xls"
-        line.gsub! "bls/seasadj/sadata.xls", "rawdata/sadata/bls.xls"
-        line.gsub! "misc/hbr/seasadj/sadata.xls", "rawdata/sadata/misc_hbr.xls"
-        line.gsub! "tour/seasadj/sadata.xls", "rawdata/sadata/tour.xls"
-        line.gsub! "tax/seasadj/sadata.xls", "rawdata/sadata/tax.xls"
-        line.gsub! "misc/prud/seasadj/prud_sa.xls", "rawdata/sadata/misc_prud_prud_sa.xls"
-        line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/sadata/misc_hbr_mbr_sa.xls"
-        line.gsub! "bls/seasadj/bls_wagesa.xls", "rawdata/sadata/bls_wages.xls"
-        begin
-          this_series = eval(line)
-          this_series.find_units if this_series.aremos_diff > 0
-          print "."
-        rescue Exception => exc
-          puts line
-          puts exc.message
-          errors.push [line,exc.message]
-        end
-      end
+       `chmod -R 777 /Users/uhero/Documents/data/*`
+       while line = file.gets
+          line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
+          line.gsub! "japan/seasadj/sadata.xls", "rawdata/sadata/japan.xls"
+          line.gsub! "bls/seasadj/sadata.xls", "rawdata/sadata/bls.xls"
+          line.gsub! "misc/hbr/seasadj/sadata.xls", "rawdata/sadata/misc_hbr.xls"
+          line.gsub! "tour/seasadj/sadata.xls", "rawdata/sadata/tour.xls"
+          line.gsub! "tax/seasadj/sadata.xls", "rawdata/sadata/tax.xls"
+          line.gsub! "misc/prud/seasadj/prud_sa.xls", "rawdata/sadata/misc_prud_prud_sa.xls"
+          line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/sadata/misc_hbr_mbr_sa.xls"
+          line.gsub! "bls/seasadj/bls_wagesa.xls", "rawdata/sadata/bls_wages.xls"
+          begin
+             this_series = eval(line)
+             this_series.find_units if this_series.aremos_diff > 0
+             print "."
+          rescue Exception => exc
+             puts line
+             errors.push [line,exc.message]
+          end
+       end
     end
 
-   puts "done with first round\n\n\n\n\n\n\n\n"
+    puts "done with first round\n\n\n\n\n\n\n\n"
     puts last_errors.count
     puts errors.count
 
     until last_errors.count == errors.count
-      error_rounds.push(errors)
+       error_rounds.push(errors)
       last_errors = errors
       errors = []
 
