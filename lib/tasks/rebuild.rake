@@ -86,6 +86,9 @@ task :rebuild => :environment do
 
     puts "Time: " + (Time.now - t)
 
+    # adjust the units field to match aremos
+    Series.all.each {|s| s.find_units}
+
     # run mark_pseudo_history task
     Rake::Task["mark_pseudo_history"].reenable
     Rake::Task["mark_pseudo_history"].invoke
