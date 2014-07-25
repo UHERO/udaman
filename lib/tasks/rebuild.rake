@@ -84,7 +84,7 @@ task :rebuild => :environment do
        end
     end
 
-    puts "Time: " + (Time.now - t)
+    puts "Time: #{(Time.now - t)}"
 
     # adjust the units field to match aremos
     Series.all.each {|s| s.find_units}
