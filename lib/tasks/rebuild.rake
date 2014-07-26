@@ -1,28 +1,43 @@
 # run REBUILD.rb line by line
 
 task :rebuild => :environment do
+    t = Time.now
+    total_t = t
+
     DataPoint.delete_all
     DataSource.delete_all
     Series.delete_all
     DataSourceDownload.delete_all
     DsdLogEntry.delete_all
    
+    puts "\n\n------LOADING UDAMAN ARCHIVE-------\n\n"
+    Series.load_all_series_from('/Users/uhero/Documents/data/udaman_archive.csv')
+    puts "Time: #{Time.now - t}"
+    t = Time.now
+
+    puts "\n\n-------RELOADING AREMOS--------\n\n"
     Rake::Task["reload_aremos"].reenable
     Rake::Task["reload_aremos"].invoke
 
+    puts "Time: #{Time.now - t}"
     t = Time.now
 
+   puts "\n\n-------REBUILDING DOWNLOADS-------\n\n"
     File.open('lib/tasks/REBUILD_DOWNLOADS.rb', 'r') do |file|
-      while line = file.gets
-         line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
-        eval(line)
-      end
+       while line = file.gets
+          line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
+          eval(line)
+       end
     end
+    puts "Time: #{Time.now - t}"
+    t = Time.now
+
 
     error_rounds = []
     errors = []
     last_errors = []
 
+    puts "\n\n--------REBUILDING DEFINITIONS--------\n\n"
     File.open('lib/tasks/REBUILD.rb', 'r') do |file|
        `chmod -R 777 /Users/uhero/Documents/data/*`
        while line = file.gets
@@ -52,28 +67,36 @@ task :rebuild => :environment do
 
     until last_errors.count == errors.count
        error_rounds.push(errors)
-      last_errors = errors
-      errors = []
+       last_errors = errors
+       errors = []
 
-      puts "\n\n\n----------WORKING ON ROUND #{} OF ERRORS--------------\n\n\n"
-                 
-      last_errors.each do |error|
-         begin
-            this_series = eval(error[0])
-            this_series.find_units if this_series.aremos_diff > 0
-         rescue Exception => exc
-            puts error[0]
-            errors.push [error[0], exc.message]
-         end
-      end
+       puts "Time: #{Time.now - t}"
+       t = Time.now
+
+       puts "\n\n\n----------WORKING ON ROUND #{} OF ERRORS--------------\n\n\n"
+
+       last_errors.each do |error|
+          begin
+             this_series = eval(error[0])
+             this_series.find_units if this_series.aremos_diff > 0
+          rescue Exception => exc
+             puts error[0]
+             errors.push [error[0], exc.message]
+          end
+       end
 
     end
 
     error_rounds.each_index do |i|
-      error = error_rounds[i] 
-      CSV.open("public/rebuild_errors_#{i}.csv", "wb") {|file| error.each {|e| file << e} }
+       error = error_rounds[i] 
+       CSV.open("public/rebuild_errors_#{i}.csv", "wb") {|file| error.each {|e| file << e} }
     end
-    
+
+    puts "Time: #{Time.now - t}"
+    t = Time.now
+
+    puts "\n\n\n----------RUNNING ts_eval_force on remaining errors--------------\n\n\n"
+
     # use ts_eval_force on these stubborn lines
     errors.each do |e| 
        begin 
@@ -85,13 +108,24 @@ task :rebuild => :environment do
     end
 
     puts "Time: #{(Time.now - t)}"
+    t = Time.now
+
+    puts "\n\n\n----------RUNNING find_units--------------\n\n\n"
 
     # adjust the units field to match aremos
     Series.all.each {|s| s.find_units}
 
+    puts "Time: #{(Time.now - t)}"
+    t = Time.now
+
+    puts "\n\n\n----------Marking Pseudo History--------------\n\n\n"
+
     # run mark_pseudo_history task
     Rake::Task["mark_pseudo_history"].reenable
     Rake::Task["mark_pseudo_history"].invoke
+
+    puts "Time: #{(Time.now - t)}"
+    puts "Total Time: #{Time.now - total_t}"
 end
 
 task :test_case => :environment do
