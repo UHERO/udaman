@@ -219,8 +219,8 @@
 "CSCFNS@JP.Q".ts_eval= %Q|Series.load_from_download "CSCFNS@esri.cao.go.jp", { :file_type => "xls", :start_date => "2004-04-01", :sheet => "sheet_num:1", :row => "increment:97:3", :col => 2, :frequency => "Q" }|
 "CSCFNS@JP.Q".ts_eval= %Q|Series.load_from_download "CSCFNS@esri.cao.go.jp", { :file_type => "xls", :start_date => "1982-04-01", :end_date=>"2004-01-01", :sheet => "sheet_num:1", :row => "increment:7:1", :col => 2, :frequency => "Q" }|
 "CSCF@JP.A".ts_eval= %Q|"CSCFNS@JP.Q".ts.aggregate(:year, :average)|
-"CSCF@JP.Q".ts_eval= %Q|Series.load_from_download "CSCF@esri.cao.go.jp", { :file_type => "xls", :start_date => "1982-04-01", :end_date=>"2004-01-01", :sheet => "sheet_num:1", :row => "increment:7:1", :col => 2, :frequency => "Q" }|
 "CSCF@JP.Q".ts_eval= %Q|Series.load_from_download "CSCF@esri.cao.go.jp", { :file_type => "xls", :start_date => "2004-04-01", :sheet => "sheet_num:1", :row => "increment:98:3", :col => 6, :frequency => "Q" }|
+"CSCF@JP.Q".ts_eval= %Q|Series.load_from_download "CSCF@esri.cao.go.jp", { :file_type => "xls", :start_date => "1982-04-01", :end_date=>"2004-01-01", :sheet => "sheet_num:1", :row => "increment:10:1", :col => 6, :frequency => "Q" }|
 "CSCFNS@JP.M".ts_eval= %Q| "CSCFNS@JP.M".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/jp_upd_m.xls" ).trim("2004-03-01","2004-03-01")|
 "CSCFNS@JP.M".ts_eval= %Q|Series.load_from_download "CSCFNS@esri.cao.go.jp", { :file_type => "xls", :start_date => "2004-04-01", :sheet => "sheet_num:1", :row => "increment:98:1", :col => 6, :frequency => "M" }|
 "DOMCONNS@HAW.Q".ts_eval= %Q|Series.load_from_file("/Volumes/UHEROwork/data/rawdata/manual/dom_prud.xls", {:file_type=>"xls", :start_date=>"1996-01-01", :sheet=>"sheet_num:1", :row=>"increment:10:1", :col=>7, :frequency=>"Q" })|
@@ -4353,10 +4353,8 @@
 "GDP_C@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:2", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_CD@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:4", :col => "increment:3:1", :frequency => "A" }|
 "GDP_CD@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:4", :col => "increment:3:1", :frequency => "Q" }|
-"GDP_CD_R@US.A".ts_eval= %Q|"GDP_CD_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_CD_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:4", :col => "increment:3:1", :frequency => "A" }|
-"GDP_CD_R@US.Q".ts_eval= %Q|"GDP_CD_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_CD_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:4", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_CD_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:4", :col => "increment:73:1", :frequency => "A" }|
+"GDP_CD_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:4", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_CG@JP.A".ts_eval= %Q|"GDP_CG@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_CG@JP.A".ts_eval= %Q|Series.load_from_fred("JPNGFCEADSMEI", "A") * 1000|
 "GDP_CG@JP.Q".ts_eval= %Q|"GDP_CG@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
@@ -4367,10 +4365,8 @@
 "GDP_CG_RNS@JP.Q".ts_eval= %Q|"GDP_CG_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_CN@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:5", :col => "increment:3:1", :frequency => "A" }|
 "GDP_CN@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:5", :col => "increment:3:1", :frequency => "Q" }|
-"GDP_CN_R@US.A".ts_eval= %Q|"GDP_CN_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_CN_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:5", :col => "increment:3:1", :frequency => "A" }|
-"GDP_CN_R@US.Q".ts_eval= %Q|"GDP_CN_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_CN_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:5", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_CN_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:5", :col => "increment:73:1", :frequency => "A" }|
+"GDP_CN_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:5", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_CP@JP.A".ts_eval= %Q|"GDP_CP@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_CP@JP.A".ts_eval= %Q|Series.load_from_fred("JPNPFCEADSMEI", "A") * 1000 |
 "GDP_CP@JP.Q".ts_eval= %Q|"GDP_CP@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
@@ -4381,10 +4377,8 @@
 "GDP_CP_RNS@JP.Q".ts_eval= %Q|"GDP_CP_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_CS@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:6", :col => "increment:3:1", :frequency => "A" }|
 "GDP_CS@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:6", :col => "increment:3:1", :frequency => "Q" }|
-"GDP_CS_R@US.A".ts_eval= %Q|"GDP_CS_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_CS_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:6", :col => "increment:3:1", :frequency => "A" }|
-"GDP_CS_R@US.Q".ts_eval= %Q|"GDP_CS_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_CS_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:6", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_CS_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:6", :col => "increment:73:1", :frequency => "A" }|
+"GDP_CS_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:6", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_C_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:2", :col => "increment:3:1", :frequency => "A" }|
 "GDP_C_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:2", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_EX@JP.A".ts_eval= %Q|"GDP_EX@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
@@ -4396,13 +4390,13 @@
 "GDP_EX_R@JP.A".ts_eval= %Q|"GDP_EX_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_EX_R@JP.Q".ts_eval= %Q|"GDP_EX_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_EX_R@JP.Q".ts_eval= %Q| Series.load_from_download  "GDP_R_Q@esri.cao.go.jp", { :file_type => "csv", :start_date => "1994-01-01", :row => "increment:8:1", :col => 13, :frequency => "Q" }|
-"GDP_EX_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:15", :col => "increment:3:1", :frequency => "A" }|
-"GDP_EX_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:15", :col => "increment:3:1", :frequency => "Q" }|
+"GDP_EX_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:16", :col => "increment:3:1", :frequency => "A" }|
+"GDP_EX_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:16", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_EX_RNS@JP.Q".ts_eval= %Q|"GDP_EX_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_G@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:21", :col => "increment:3:1", :frequency => "A" }|
 "GDP_G@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:21", :col => "increment:3:1", :frequency => "Q" }|
-"GDP_G_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:21", :col => "increment:3:1", :frequency => "A" }|
-"GDP_G_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:21", :col => "increment:3:1", :frequency => "Q" }|
+"GDP_G_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:22", :col => "increment:3:1", :frequency => "A" }|
+"GDP_G_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:22", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_I@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:7", :col => "increment:3:1", :frequency => "A" }|
 "GDP_I@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:7", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_IFX@JP.A".ts_eval= %Q|"GDP_IFX@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
@@ -4420,10 +4414,8 @@
 "GDP_IFX_R@JP.A".ts_eval= %Q|"GDP_IFX_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_IFX_R@JP.Q".ts_eval= %Q|"GDP_IFX_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_IFX_R@JP.Q".ts_eval= %Q| Series.load_from_download  "GDP_R_Q@esri.cao.go.jp", { :file_type => "csv", :start_date => "1994-01-01", :row => "increment:8:1", :col => 28, :frequency => "Q" }|
-"GDP_IFX_R@US.A".ts_eval= %Q|"GDP_IFX_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_IFX_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:8", :col => "increment:3:1", :frequency => "A" }|
-"GDP_IFX_R@US.Q".ts_eval= %Q|"GDP_IFX_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_IFX_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:8", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_IFX_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:8", :col => "increment:73:1", :frequency => "A" }|
+"GDP_IFX_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:8", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_IFX_RNS@JP.Q".ts_eval= %Q|"GDP_IFX_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_IIV@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:13", :col => "increment:3:1", :frequency => "A" }|
 "GDP_IIV@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:13", :col => "increment:3:1", :frequency => "Q" }|
@@ -4439,10 +4431,8 @@
 "GDP_IIVP_R@JP.A".ts_eval= %Q|"GDP_IIVP_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_IIVP_R@JP.Q".ts_eval= %Q|"GDP_IIVP_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_IIVP_RNS@JP.Q".ts_eval= %Q|"GDP_IIVP_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
-"GDP_IIV_R@US.A".ts_eval= %Q|"GDP_IIV_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_IIV_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:13", :col => "increment:3:1", :frequency => "A" }|
-"GDP_IIV_R@US.Q".ts_eval= %Q|"GDP_IIV_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_IIV_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:13", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_IIV_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:14", :col => "increment:73:1", :frequency => "A" }|
+"GDP_IIV_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:14", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_IM@JP.A".ts_eval= %Q|"GDP_IM@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_IM@JP.A".ts_eval= %Q|Series.load_from_fred("JPNIMPORTADSMEI", "A") * 1000 |
 "GDP_IM@JP.Q".ts_eval= %Q|"GDP_IM@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
@@ -4452,8 +4442,8 @@
 "GDP_IM_R@JP.A".ts_eval= %Q|"GDP_IM_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_IM_R@JP.Q".ts_eval= %Q|"GDP_IM_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_IM_R@JP.Q".ts_eval= %Q| Series.load_from_download  "GDP_R_Q@esri.cao.go.jp", { :file_type => "csv", :start_date => "1994-01-01", :row => "increment:8:1", :col => 14, :frequency => "Q" }|
-"GDP_IM_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:18", :col => "increment:3:1", :frequency => "A" }|
-"GDP_IM_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:18", :col => "increment:3:1", :frequency => "Q" }|
+"GDP_IM_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:19", :col => "increment:3:1", :frequency => "A" }|
+"GDP_IM_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:19", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_IM_RNS@JP.Q".ts_eval= %Q|"GDP_IM_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_INR@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:9", :col => "increment:3:1", :frequency => "A" }|
 "GDP_INR@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:9", :col => "increment:3:1", :frequency => "Q" }|
@@ -4463,10 +4453,8 @@
 "GDP_INRP_R@JP.A".ts_eval= %Q|"GDP_INRP_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_INRP_R@JP.Q".ts_eval= %Q|"GDP_INRP_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_INRP_RNS@JP.Q".ts_eval= %Q|"GDP_INRP_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
-"GDP_INR_R@US.A".ts_eval= %Q|"GDP_INR_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_INR_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:9", :col => "increment:3:1", :frequency => "A" }|
-"GDP_INR_R@US.Q".ts_eval= %Q|"GDP_INR_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_INR_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:9", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_INR_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:9", :col => "increment:73:1", :frequency => "A" }|
+"GDP_INR_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:9", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_IRS@US.A".ts_eval= %Q|Series.load_from_download  "5A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:12", :col => "increment:3:1", :frequency => "A" }|
 "GDP_IRS@US.Q".ts_eval= %Q|Series.load_from_download  "5Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:12", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_IRSP@JP.A".ts_eval= %Q|"GDP_IRSP@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
@@ -4475,10 +4463,8 @@
 "GDP_IRSP_R@JP.A".ts_eval= %Q|"GDP_IRSP_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_IRSP_R@JP.Q".ts_eval= %Q|"GDP_IRSP_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_IRSP_RNS@JP.Q".ts_eval= %Q|"GDP_IRSP_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
-"GDP_IRS_R@US.A".ts_eval= %Q|"GDP_IRS_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_IRS_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:12", :col => "increment:3:1", :frequency => "A" }|
-"GDP_IRS_R@US.Q".ts_eval= %Q|"GDP_IRS_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_IRS_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:12", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_IRS_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:13", :col => "increment:73:1", :frequency => "A" }|
+"GDP_IRS_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:13", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_I_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:7", :col => "increment:3:1", :frequency => "A" }|
 "GDP_I_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1947-01-01", :row => "header:col:1:7", :col => "increment:3:1", :frequency => "Q" }|
 "GDP_NX@JP.A".ts_eval= %Q|"GDP_NX@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
@@ -4488,10 +4474,8 @@
 "GDP_NXNS@JP.Q".ts_eval= %Q|"GDP_NXNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_NX_R@JP.A".ts_eval= %Q|"GDP_NX_R@JP.A".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_a.xls"|
 "GDP_NX_R@JP.Q".ts_eval= %Q|"GDP_NX_R@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
-"GDP_NX_R@US.A".ts_eval= %Q|"GDP_NX_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"GDP_NX_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:14", :col => "increment:3:1", :frequency => "A" }|
-"GDP_NX_R@US.Q".ts_eval= %Q|"GDP_NX_R@US.Q".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_q.xls").trim("1900-01-01","1994-12-01")|
-"GDP_NX_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:14", :col => "increment:195:1", :frequency => "Q" }|
+"GDP_NX_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:15", :col => "increment:73:1", :frequency => "A" }|
+"GDP_NX_R@US.Q".ts_eval= %Q|Series.load_from_download  "6Q@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:16", :col => "increment:211:1", :frequency => "Q" }|
 "GDP_NX_RNS@JP.Q".ts_eval= %Q|"GDP_NX_RNS@JP.Q".tsn.load_from "/Volumes/UHEROwork/data/rawdata/History/jp_upd_q.xls"|
 "GDP_R@JP.A".ts_eval= %Q|Series.load_from_download  "GDP_R_A@esri.cao.jp", { :file_type => "csv", :start_date => "1994-01-01", :row => "increment:8:1", :col => 2, :frequency => "A" }|
 "GDP_R@JP.Q".ts_eval= %Q|Series.load_from_download  "GDP_R_Q@esri.cao.go.jp", { :file_type => "csv", :start_date => "1994-01-01", :row => "increment:8:1", :col => 2, :frequency => "Q" }|
@@ -14917,10 +14901,8 @@
 "YCED_R@KAU.A".ts_eval= %Q|"YCED@KAU.A".ts / "CPI@HON.A".ts * 100|
 "YCED_R@MAU.A".ts_eval= %Q|"YCED@MAU.A".ts / "CPI@HON.A".ts * 100|
 "YCED_R@NBI.A".ts_eval= %Q|"YCED@NBI.A".ts / "CPI@HON.A".ts * 100|
-"YCE_R@US.A".ts_eval= %Q|"YCE_R@US.A".tsn.load_from("/Volumes/UHEROwork/data/rawdata/History/us_upd_a.xls").trim("1900-01-01","1994-12-01")|
-"YCE_R@US.A".ts_eval= %Q|Series.load_from_download  "66A@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:1", :col => "increment:3:1", :frequency => "A" }|
+"YCE_R@US.A".ts_eval= %Q|Series.load_from_download  "6A@bea.gov", { :file_type => "csv", :start_date => "1929-01-01", :row => "header:col:1:2", :col => "increment:3:1", :frequency => "A" }|
 "YCE_R@US.M".ts_eval= %Q| Series.load_from_download "83M@bea.gov", { :file_type => "csv", :start_date => "1999-01-01", :row => "header:col:1:1", :col => "increment:3:1", :frequency => "M" }|
-"YCE_R@US.Q".ts_eval= %Q|Series.load_from_download  "66Q@bea.gov", { :file_type => "csv", :start_date => "1995-01-01", :row => "header:col:1:1", :col => "increment:3:1", :frequency => "Q" }|
 "YCE_R@US.Q".ts_eval= %Q| "YCE_R@US.M".ts.aggregate(:quarter, :average) |
 "YCFI@HAW.A".ts_eval= %Q|Series.load_from_download "CA06N_HAW@bea.gov", { :file_type => "csv", :start_date => "2001-01-01", :row => "header_range:col:3:1000:6:126", :col => "increment:5:1", :frequency => "A" }|
 "YCFI@HI.A".ts_eval= %Q|Series.load_from_download "SA06N_HI@bea.gov", { :file_type => "csv", :start_date => "1998-01-01", :row => "header_range:col:3:1000:6:126", :col => "increment:5:1", :frequency => "A" }|
