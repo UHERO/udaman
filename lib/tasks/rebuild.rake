@@ -4,6 +4,7 @@ task :rebuild => :environment do
     t = Time.now
     total_t = t
 
+    puts "\n\n------------DELETING CONTENT---------\n\n"
     DataPoint.delete_all
     DataSource.delete_all
     Series.delete_all
@@ -11,7 +12,7 @@ task :rebuild => :environment do
     DsdLogEntry.delete_all
    
     puts "\n\n------LOADING UDAMAN ARCHIVE-------\n\n"
-    Series.load_all_series_from('/Users/uhero/Documents/data/udaman_archive.csv')
+    Series.load_all_series_from('/Users/uhero/Documents/data/udaman_archive.csv', nil, 10)
     puts "Time: #{Time.now - t}"
     t = Time.now
 

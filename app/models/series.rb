@@ -197,12 +197,16 @@ class Series < ActiveRecord::Base
     end
   end
   
-  def Series.load_all_series_from(update_spreadsheet_path, sheet_to_load = nil)
+  def Series.load_all_series_from(update_spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
+    # puts "Setting priority to #{priority}"
     each_spreadsheet_header(update_spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
-      Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?      
+      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
+      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?      
       #puts series_name
+      @data_source.update_attributes(:priority => priority)
+      # puts "Series Name: #{series_name}"
+      # puts "priority: #{priority}, ds_id: #{@data_source.id} "
       series_name
     end
     puts "#{"%.2f" % (Time.now - t)} : #{update_spreadsheet_path}"
