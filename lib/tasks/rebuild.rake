@@ -47,6 +47,7 @@ task :rebuild => :environment do
           line.gsub! "bls/seasadj/sadata.xls", "rawdata/sadata/bls.xls"
           line.gsub! "misc/hbr/seasadj/sadata.xls", "rawdata/sadata/misc_hbr.xls"
           line.gsub! "tour/seasadj/sadata.xls", "rawdata/sadata/tour.xls"
+          line.gsub! "tour/seasadj/sadata_upd.xls", "rawdata/sadata/tour_upd.xls"
           line.gsub! "tax/seasadj/sadata.xls", "rawdata/sadata/tax.xls"
           line.gsub! "misc/prud/seasadj/prud_sa.xls", "rawdata/sadata/misc_prud_prud_sa.xls"
           line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/sadata/misc_hbr_mbr_sa.xls"
