@@ -197,12 +197,16 @@ class Series < ActiveRecord::Base
     end
   end
   
-  def Series.load_all_series_from(update_spreadsheet_path, sheet_to_load = nil)
+  def Series.load_all_series_from(update_spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
+    # puts "Setting priority to #{priority}"
     each_spreadsheet_header(update_spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
-      Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?      
+      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
+      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?      
       #puts series_name
+      @data_source.update_attributes(:priority => priority)
+      # puts "Series Name: #{series_name}"
+      # puts "priority: #{priority}, ds_id: #{@data_source.id} "
       series_name
     end
     puts "#{"%.2f" % (Time.now - t)} : #{update_spreadsheet_path}"
@@ -220,9 +224,9 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_or_new(series_name)
-     frequency = (series_name.split(".").count == 2 and series_name.split("@") == 2 and series_name.split(".")[1].length == 1) ? Series.frequency_from_code(name[-1]) : nil
+    frequency = (series_name.split(".").count == 2 and series_name.split("@").count == 2 and series_name.split(".")[1].length == 1) ? Series.frequency_from_code(series_name[-1]) : nil
     series_to_store = Series.get series_name
-    series_to_store = Series.create(:name => series_name) if series_to_store.nil?
+    series_to_store = Series.create(:name => series_name, :frequency => frequency) if series_to_store.nil?
     return series_to_store
   end
 
@@ -245,14 +249,19 @@ class Series < ActiveRecord::Base
 
   def Series.eval(series_name, eval_statement)
     t = Time.now
+    #begin
     new_series = Kernel::eval eval_statement
     #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : EVAL TIME"
-    source = Series.store series_name, new_series, new_series.name, eval_statement
+    Series.store series_name, new_series, new_series.name, eval_statement
     #taking this out as well... not worth it to run
     #source.update_attributes(:runtime => (Time.now - t))
     puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement}" 
-  # rescue Exception 
-  #     puts "ERROR | #{series_name} | #{eval_statement}"
+    #rescue => e
+    #   Series.store series_name, Series.new_transformation(series_name, {}, Series.frequency_from_code(series_name[-1])), "Source Series rescued: #{e.message}", eval_statement
+    #   puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement} | Source Series rescued, #{e.message}" 
+    #end
+    # rescue Exception 
+   #     puts "ERROR | #{series_name} | #{eval_statement}"
   end
   
   def save_source(source_desc, source_eval_statement, data, last_run = Time.now)
@@ -387,7 +396,7 @@ class Series < ActiveRecord::Base
   
   def new_transformation(name, data)
     frequency = (self.frequency.nil? and name.split(".").count == 2 and name.split("@") == 2 and name.split(".")[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
-    puts "NEW TRANFORMATION: #{name} - frequency: #{frequency}"  
+    #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
     Series.new(
       :name => name,
       :frequency => frequency,

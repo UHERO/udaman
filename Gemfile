@@ -6,6 +6,7 @@ gem 'rails', '3.0.19'
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
 
 #gem 'sqlite3'
+gem  'highline', '~> 1.6.0'
 gem 'mysql2', '< 0.3'
 gem 'roo'
 #gem 'fastercsv'
@@ -45,7 +46,6 @@ gem 'nokogiri'
 # end
 
 group :development, :test do
-  gem 'capistrano'
   gem 'capistrano-rails', '~> 1.1', require: false
   gem 'capistrano-bundler', '~> 1.1', require: false
   gem 'rspec-rails'
