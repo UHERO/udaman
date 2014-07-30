@@ -105,7 +105,7 @@ task :gen_investigate_csv => :environment do
       downloads += 1 if po.last_new_data == Time.now.to_date
     end
   end
-  system 'cd /Users/uhero/Documents/udaman/script && casperjs rasterize.js'
+  system 'cd #{Rails.root}/script && casperjs rasterize.js'
   puts "finished this now sending"
   PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["gen_investigate_csv", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }

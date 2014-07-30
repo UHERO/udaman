@@ -17,8 +17,12 @@ task :rebuild => :environment do
     t = Time.now
 
     puts "\n\n-------RELOADING AREMOS--------\n\n"
-    Rake::Task["reload_aremos"].reenable
-    Rake::Task["reload_aremos"].invoke
+    begin
+        Rake::Task["reload_aremos"].reenable
+        Rake::Task["reload_aremos"].invoke
+    rescue
+        puts "Problem with AREMOS reload"
+    end
 
     puts "Time: #{Time.now - t}"
     t = Time.now

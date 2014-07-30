@@ -8,3 +8,5 @@ script/rasterize.js
 public/*
 *.log
 *.out
+config/deploy.rb
+config/deploy/*
