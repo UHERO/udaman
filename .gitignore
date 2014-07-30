@@ -6,3 +6,5 @@ config/site.yml
 script/rasterize
 script/rasterize.js
 public/*
+*.log
+*.out
