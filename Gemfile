@@ -7,6 +7,7 @@ gem 'rails', '3.0.19'
 
 #gem 'sqlite3'
 gem 'capistrano-rvm'
+gem 'rvm-capistrano'
 gem 'capistrano-rails', '~> 1.1'
 gem 'capistrano-bundler', '~> 1.1.3'
 gem 'capistrano', '~> 3.1'

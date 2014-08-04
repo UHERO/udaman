@@ -156,6 +156,8 @@ GEM
       rspec-mocks (~> 2.14.0)
     ruby-ole (1.2.11.7)
     rubyzip (1.1.0)
+    rvm-capistrano (1.5.0)
+      capistrano (>= 2.15.4)
     selenium-webdriver (2.39.0)
       childprocess (>= 0.2.5)
       multi_json (~> 1.0)
@@ -213,6 +215,7 @@ DEPENDENCIES
   roo
   rspec-rails
   rubyzip (~> 1.0)
+  rvm-capistrano
   selenium-webdriver (~> 2.39.0)
   spork (~> 0.9.0.rc)
   test-unit (= 1.2.3)
