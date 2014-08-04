@@ -7,6 +7,10 @@ gem 'rails', '3.0.19'
 
 #gem 'sqlite3'
 gem 'capistrano-rvm'
+gem 'capistrano-rails', '~> 1.1'
+gem 'capistrano-bundler', '~> 1.1'
+gem 'capistrano', '~> 3.1'
+gem 'capistrano-rails', '~> 1.1'
 gem  'highline', '~> 1.6.0'
 gem 'mysql2', '< 0.3'
 gem 'roo'
@@ -47,14 +51,10 @@ gem 'nokogiri'
 # end
 
 group :development, :test do
-  gem 'capistrano-rails', '~> 1.1', require: false
-  gem 'capistrano-bundler', '~> 1.1', require: false
   gem 'rspec-rails'
   gem 'cucumber-rails', :require => false
   gem 'watchr'
   gem 'database_cleaner'
   gem 'test-unit', '1.2.3'
   # added for deployment process (6/5/2014) JP
-  gem 'capistrano', '~> 3.1'
-  gem 'capistrano-rails', '~> 1.1'
 end
