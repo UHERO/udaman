@@ -22,7 +22,7 @@
 hour = "1"
 bls_hour = "4"
 set :output, {:standard => "~/Documents/data/cronlog/udaman-download.log", :error => "~/Documents/data/cronlog/udaman-error.log"}
-set :environment, "development"
+# set :environment, "development"
 #job_type :rake,    "cd :path && rake :task :output"
 job_type :rake,    "cd :path && rake :task"
 #job_type :rake,    "cd :path && RAILS_ENV=:environment bundle exec rake :task :output"
