@@ -24,7 +24,7 @@ gem "selenium-webdriver", "~> 2.39.0"
 #gem 'watir'
 gem 'watir-webdriver'
 #gem 'watir-webdriver-rails'
-gem 'whenever', :require => false
+gem 'whenever'
 gem 'mechanize'
 gem 'net-sftp'
 # Use unicorn as the web server
