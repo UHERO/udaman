@@ -1,5 +1,5 @@
 class DataLoadMailer < ActionMailer::Base
-  default :from => "btrevino@hawaii.edu"
+  default :from => "udaman@hawaii.edu"
   
   def download_notification(update_info, update_summary)
     @update_info = update_info
