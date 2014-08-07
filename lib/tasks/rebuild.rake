@@ -116,6 +116,18 @@ task :rebuild => :environment do
     puts "Time: #{(Time.now - t)}"
     t = Time.now
 
+    puts "\n\n\n----------UPDATING PRIORITIES-------------\n\n\n"
+
+    File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'r') do |file|
+       while line = file.gets
+          line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
+          eval(line)
+       end
+    end
+
+    puts "Time: #{(Time.now - t)}"
+    t = Time.now
+
     puts "\n\n\n----------RUNNING find_units--------------\n\n\n"
 
     # adjust the units field to match aremos
@@ -149,4 +161,13 @@ task :output_active_downloads => :environment do
       end
     end 
   end
+end
+
+task :output_priorities => :environment do
+    File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'w') do |file|
+        DataSource.where("priority != 100").each do |ds|
+            puts "wrote: #{ds.id}"
+            file.puts %Q!DataSource.where(%Q|eval LIKE '#{ds.eval}'|).first.priority = #{ds.priority}!
+        end
+    end
 end
