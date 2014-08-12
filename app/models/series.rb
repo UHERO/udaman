@@ -483,7 +483,7 @@ class Series < ActiveRecord::Base
   def Series.load_from_file(file, options, cached_files = nil)
     begin
       cached_files = Series.get_cached_files if cached_files.nil?
-      %x(chmod 766 #{file})
+      %x(chmod 766 #{file}) unless file.include? "%"
       dp = DownloadProcessor.new("manual", options.merge({ :path => file }), cached_files)
       series_data = dp.get_data
     rescue => e
