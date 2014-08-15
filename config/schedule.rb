@@ -27,9 +27,9 @@ set :output, {:standard => "~/Documents/data/cronlog/udaman-download.log", :erro
 job_type :rake,    "cd :path && bundle exec rake :task"
 #job_type :rake,    "cd :path && RAILS_ENV=:environment bundle exec rake :task :output"
 
-every 5.minutes do
-    rake "test_case"
-end
+# every 5.minutes do
+#     rake "test_case"
+# end
 
 every 1.day, :at => "10:00 pm" do
   rake "reload_aremos"
