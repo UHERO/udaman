@@ -12,3 +12,4 @@ public/**
 *.out
 config/deploy.rb
 config/deploy/*
+Capfile
