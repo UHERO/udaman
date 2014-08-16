@@ -27,6 +27,7 @@ set :output, {:standard => "~/Documents/data/cronlog/udaman-download.log", :erro
 job_type :rake,    "cd :path && bundle exec rake :task"
 #job_type :rake,    "cd :path && RAILS_ENV=:environment bundle exec rake :task :output"
 
+# this is a useful short task for testing cron
 # every 5.minutes do
 #     rake "test_case"
 # end
