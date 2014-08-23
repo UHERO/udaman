@@ -106,7 +106,7 @@ task :gen_investigate_csv => :environment do
     end
   end
   puts "cd #{Rails.root}/script && casperjs rasterize.js"
-  puts `cd #{Rails.root}/script && casperjs rasterize.js`
+  system("cd #{Rails.root}/script && casperjs rasterize.js")
   puts "dps.count = #{dps.count}, changed_files = #{changed_files}, downloads = #{downloads}"
   puts "finished this now sending"
   PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
