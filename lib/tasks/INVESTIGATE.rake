@@ -4,7 +4,7 @@ task :gen_system_summary => :environment do
       csv << ["series_name", "ds_id", "ds_eval", "current_data_points", "dependencies_count", "aremos_diffs", "last_run", "data_point_sha1", "dependencies", "first_date"]
       DataSource.order('series_id desc').all.each do |ds| 
          dps = ds.series.current_data_points.sort_by {|dp| dp.date_string}
-         hash = Digest::SHA1.hexdigest(dps.map {|dp| dp.value} * ",")
+         hash = Digest::SHA1.hexdigest(dps.map {|dp| dp.value.round(3)} * ",")
          puts ds.series.name.rjust(20, " ") + ds.id.to_s.rjust(6," ") + dps.count.to_s.rjust(5," ") + ds.dependencies.count.to_s.rjust(3, " ") + ds.series.aremos_diff.to_s.rjust(5, " ") + ds.last_run.to_s.rjust(40," ") + " " + hash + " " + (dps.count > 1 ? dps.first.date_string : "")   
          csv << [ ds.series.name, ds.id, ds.eval, dps.count, ds.dependencies.count, ds.series.aremos_diff, ds.last_run, hash, ds.dependencies.sort.join(", "), (dps.count > 0 ? dps.first.date_string : "")]
       end

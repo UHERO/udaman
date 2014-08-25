@@ -144,7 +144,7 @@ class PrognozDataFile < ActiveRecord::Base
   end
   
   def write_xls
-    #require 'Spreadsheet'
+    require 'spreadsheet'
     book = Spreadsheet::Workbook.new
     sheet1 = book.create_worksheet
     dates = output_dates

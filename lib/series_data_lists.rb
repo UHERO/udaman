@@ -63,6 +63,7 @@ module SeriesDataLists
   private
 
   def Series.prep_prognoz_xls(series_order, series_data, output_path, worksheet_name, sheet_dates)
+      require 'spreadsheet'
     xls = Spreadsheet::Workbook.new output_path
     sheet1 = xls.create_worksheet :name => worksheet_name
     dates = (get_all_dates_from_data(series_data) + sheet_dates).uniq.sort
@@ -79,6 +80,7 @@ module SeriesDataLists
   end
   
   def Series.prep_xls(series_data, output_path)
+      require 'spreadsheet'
     xls = Spreadsheet::Workbook.new output_path
     sheet1 = xls.create_worksheet
     dates = get_all_dates_from_data(series_data)
