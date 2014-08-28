@@ -144,7 +144,7 @@ task :gen_daily_summary => :environment do
       changed_files += 1 if po.last_new_data == Time.now.to_date
     end
   end
-  system 'cd /Users/uhero/Documents/udaman/public && casperjs rasterize.js'
+  system 'cd /Users/uhero/Documents/udaman/current/script && casperjs rasterize.js'
   puts "finished this now sending"
   
   PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
