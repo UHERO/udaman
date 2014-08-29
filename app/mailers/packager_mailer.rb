@@ -38,11 +38,11 @@ class PackagerMailer < ActionMailer::Base
       attachments.inline['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
       attachments['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
 
-      new_downloads_string = new_downloads == 0 ? "": new_downloads.to_s + " updated downloads / " 
       new_dps_string = new_dps == 0 ? "": new_dps.to_s + " new data points / " 
-      new_downloads_string = changed_files == 0 ? "": changed_files.to_s + " modified update spreadsheets " 
+      new_downloads_string = new_downloads == 0 ? "": new_downloads.to_s + " updated downloads / " 
+      changed_files_string = changed_files == 0 ? "": changed_files.to_s + " modified update spreadsheets " 
 
-      subject = "Udamacmini Download Report: #{new_downloads_string} #{new_dps_string} #{changed_files_string}"
+      subject = "Udamacmini Download Report: #{new_dps_string} #{new_downloads_string} #{changed_files_string}"
       mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "james29@hawaii.edu", "fuleky@hawaii.edu", "ashleysh@hawaii.edu"], :subject => subject)
     rescue => e
       mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.visual_notification error", :body => e.message, :content_type => "text/plain")
