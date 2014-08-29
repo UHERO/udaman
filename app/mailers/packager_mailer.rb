@@ -33,7 +33,7 @@ class PackagerMailer < ActionMailer::Base
     end
   end
 
-  def visual_notification(new_dps = 0, changed_files = 0, new_downloads = 0)
+  def visual_notification(changed_files = 0, new_dps = 0, new_downloads = 0)
     begin
       attachments.inline['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
       attachments['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
