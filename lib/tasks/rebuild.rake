@@ -164,7 +164,11 @@ task :output_active_downloads => :environment do
 end
 
 task :clear_visual_notification => :environment do
-  PackagerMailer.visual_notification(1, 2, 3).deliver
+    begin
+        PackagerMailer.visual_notification(1, 2, 3).deliver
+    rescue => e
+        puts e.message
+    end
 end
 
 

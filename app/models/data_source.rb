@@ -153,7 +153,7 @@ class DataSource < ActiveRecord::Base
       self.series.update_data(s.data, self)
       #self.update_attributes(:description => s.name, :last_run => Time.now, :data => s.data, :runtime => (Time.now - t))
       #runtime is only updated here. could probably leave out of schema as well
-      self.update_attributes(:description => s.name, :last_run => Time.now, :runtime => (Time.now - t))
+      self.update_attributes(:description => s.name[0,255], :last_run => Time.now, :runtime => (Time.now - t))
     end
 
     def clear_and_reload_source
@@ -161,7 +161,7 @@ class DataSource < ActiveRecord::Base
       s = Kernel::eval self.eval
       delete_data_points
       self.series.update_data(s.data, self)
-      self.update_attributes(:description => s.name, :last_run => Time.now, :runtime => (Time.now - t))
+      self.update_attributes(:description => s.name[0,255], :last_run => Time.now, :runtime => (Time.now - t))
     end
     
     # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
