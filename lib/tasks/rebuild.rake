@@ -163,6 +163,11 @@ task :output_active_downloads => :environment do
   end
 end
 
+task :clear_visual_notification => :environment do
+  PackagerMailer.visual_notification(1, 2, 3).deliver
+end
+
+
 task :output_priorities => :environment do
     File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'w') do |file|
         DataSource.where("priority != 100").each do |ds|
