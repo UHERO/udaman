@@ -11,7 +11,7 @@ Setting Up Your Development Environment
 ----
 
 ###Setup RVM
-From the console:
+From the console in the folder in which you will install Udaman:
 ```bash
 \curl -sSL https://get.rvm.io | bash -s stable
 ```
@@ -23,7 +23,7 @@ rvm install ruby-1.9.2-p290
 ```
 Install Homebrew if prompted.
 
-If it fails the first time, run `rvm install 1.9.2` a second time.
+If it fails the first time, run `rvm install ruby-1.9.2-p290` a second time.
 
 ###Create the appropriate gemset
 ```
