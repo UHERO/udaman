@@ -1,7 +1,7 @@
 Udaman: UHERO Data Manager
 ======
 
-Udaman is [UHERO](http://uhero.hawaii.edu)'s data management system. Udaman is a Ruby on Rails applciation, and will therefore require Ruby to by installed. We use [RVM](https://rvm.io/) to manage our Ruby versions. Udaman is currently running on Ruby version ruby-1.9.2.
+Udaman is [UHERO](http://uhero.hawaii.edu)'s data management system. Udaman is a Ruby on Rails applciation, and will therefore require Ruby to by installed. We use [RVM](https://rvm.io/) to manage our Ruby versions. Udaman is currently running on Ruby version ruby-1.9.2-p290.
 
 We encourage you to clone this project and take it for a spin. Fork us and contribute to the project through pull requests.
 
@@ -9,6 +9,43 @@ The following instructions assume you are using OS X.
 
 Setting Up Your Development Environment
 ----
+
+###Setup RVM
+From the console:
+```bash
+\curl -sSL https://get.rvm.io | bash -s stable
+```
+Click `yes` if prompted to install developer tools.
+
+Then
+```bash
+rvm install ruby-1.9.2-p290
+```
+Install Homebrew if prompted.
+
+If it fails the first time, run `rvm install 1.9.2` a second time.
+
+###Create the appropriate gemset
+```
+rvm use ruby-1.9.2-p290
+rvm gemset create rails3
+rvm use ruby-1.9.2-p290@rails3
+```
+
+###Setup MySQL
+1. Download the "x86, 64bit" DMG version of MySQL 5.6.x for OS X 10.7 from mysql.com and install the pkg, the startup item and the pref pane.
+2. Open the pref pane and start the MySQL Server.
+3. Update the path by editing `~/.bash_profile` and add:
+```bash
+export PATH=~/bin:/usr/local/bin:/usr/local/mysql/bin:$PATH
+```
+at top of file.
+
+###Add Library Path
+In `.bash_profile`, add the following line:
+```bash
+export DYLD_LIBRARY_PATH=/usr/local/mysql/lib:$DYLD_LIBRARY_PATH
+```
 
 ### Clone the project
 ```bash
