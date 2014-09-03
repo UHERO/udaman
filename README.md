@@ -68,14 +68,14 @@ mysqld
 ```
 If this didn't work, make sure you have MySQL and Homebrew installed (try [this tutorial](http://benjsicam.me/blog/how-to-install-mysql-on-mac-os-x-using-homebrew-tutorial/)).
 
-### Import the MySQL schema 
+### Setup the Database 
+Run the following command from the Udaman folder:
 ```bash
-mysql -u root -p uhero_db_dev < schema.sql
+rake db:setup
 ```
-Replace `root` with your MySQL username.
 
 ### Add a user
-From the udaman application folder, open the rails console:
+From the Udaman application folder, open the rails console:
 ```bash
 rails console
 ```
@@ -118,6 +118,6 @@ Type the name of the series (i.e., the series mnemonic) you've chosen into the s
 
 Click the **Analyze** link in the under the series header to the left to see a graphical display of this series.
 
-Contributing to UDAMAN
+Contributing to Udaman
 ---
 Fork this repo and submit a pull request if you would like to contribute to Udaman.
