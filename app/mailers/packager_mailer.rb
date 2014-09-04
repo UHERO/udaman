@@ -39,8 +39,8 @@ class PackagerMailer < ActionMailer::Base
       attachments.inline['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
       attachments['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
 
-      #recipients = ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "james29@hawaii.edu", "fuleky@hawaii.edu", "ashleysh@hawaii.edu"]
-      recipients = ["jrpage@hawaii.edu"]
+      recipients = ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "james29@hawaii.edu", "fuleky@hawaii.edu", "ashleysh@hawaii.edu"]
+      # recipients = ["jrpage@hawaii.edu"]
 
       # new_dps_string = new_dps == 0 ? "": new_dps.to_s + " new data points / " 
       # new_downloads_string = new_downloads == 0 ? "": new_downloads.to_s + " updated downloads / " 
