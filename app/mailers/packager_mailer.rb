@@ -47,7 +47,8 @@ class PackagerMailer < ActionMailer::Base
 
       # subject = "Udamacmini Download Report: #{new_dps_string} #{new_downloads_string} #{changed_files_string}"
       
-      subject = "Udamacmini Download Report: #{new_downloads.to_s} updated downloads / #{new_dps.to_s} new data points / #{changed_files.to_s} modified update spreadsheets"
+      # subject = "Udamacmini Download Report: #{new_downloads.to_s} updated downloads / #{new_dps.to_s} new data points / #{changed_files.to_s} modified update spreadsheets"
+      subject = "Udamacmini Download Report"
       mail(:to => recipients, :subject => subject)
     rescue => e
         puts e.message
