@@ -44,7 +44,7 @@ class PackagerMailer < ActionMailer::Base
 
       # subject = "Udamacmini Download Report: #{new_dps_string} #{new_downloads_string} #{changed_files_string}"
       
-      subject = "Udamacmini Download Report: #{new_downloads.to_s + " updated downloads / " unless new_downloads == 0} #{new_dps.to_s + " new data points / " unless new_dps == 0} #{changed_files.to_s + " modified update spreadsheets" unless changed_files == 0}"
+      subject = "Udamacmini Download Report: #{new_downloads.to_s} updated downloads / #{new_dps.to_s} new data points / #{changed_files.to_s} modified update spreadsheets"
       mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "james29@hawaii.edu", "fuleky@hawaii.edu", "ashleysh@hawaii.edu"], :subject => subject)
     rescue => e
       mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.visual_notification error", :body => e.message, :content_type => "text/plain")
