@@ -171,6 +171,17 @@ task :clear_visual_notification => :environment do
     end
 end
 
+task :test_visual_notification => :environment do
+    begin
+        first = 1
+        second = 2
+        third = 3
+        PackagerMailer.visual_notification(second, third, first).deliver
+    rescue => e
+        puts e.message
+    end
+end
+
 
 task :output_priorities => :environment do
     File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'w') do |file|
