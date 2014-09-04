@@ -20,7 +20,7 @@
 	<h3>Stale DataSources</h3>
     <p>
        <% @stale_data_sources.each do |ds| %>
-          <%= ds.id %> : <%= ds.eval %><br />
+           DataSource <%= ds.id %> for <%= ds.series.name %> : <%= ds.series_id %> : <%= ds.eval %><br />
        <% end %>
     </p>
 	<h3>Empty DataSources</h3>
