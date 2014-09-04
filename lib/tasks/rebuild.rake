@@ -165,7 +165,7 @@ end
 
 task :clear_visual_notification => :environment do
     begin
-        PackagerMailer.visual_notification(1, 2, 3).deliver
+        PackagerMailer.visual_notification.deliver
     rescue => e
         puts e.message
     end
@@ -176,7 +176,7 @@ task :test_visual_notification => :environment do
         first = 1
         second = 2
         third = 3
-        PackagerMailer.visual_notification(second, third, first).deliver
+        PackagerMailer.visual_notification.deliver
     rescue => e
         puts e.message
     end

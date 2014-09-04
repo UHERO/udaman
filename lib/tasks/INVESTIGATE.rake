@@ -111,7 +111,7 @@ task :gen_investigate_csv => :environment do
   puts "finished this now sending"
   begin
       # PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
-      PackagerMailer.visual_notification().deliver
+      PackagerMailer.visual_notification.deliver
   rescue => e
       puts e.message
     PackagerMailer.rake_error(e, "").deliver
@@ -153,7 +153,7 @@ task :gen_daily_summary => :environment do
   system 'cd /Users/uhero/Documents/udaman/current/script && casperjs rasterize.js'
   puts "finished this now sending"
   
-  PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
+  PackagerMailer.visual_notification.deliver
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["gen_daily_summary", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
