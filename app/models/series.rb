@@ -278,7 +278,7 @@ class Series < ActiveRecord::Base
        
     if source.nil?
       data_sources.create(
-        :description => source_desc, 
+        :description => source_desc[0,255], 
         :eval => source_eval_statement, 
         #:data => data,
         :last_run => last_run

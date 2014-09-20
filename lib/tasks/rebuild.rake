@@ -119,10 +119,24 @@ task :rebuild => :environment do
     puts "\n\n\n----------UPDATING PRIORITIES-------------\n\n\n"
 
     File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'r') do |file|
-       while line = file.gets
-          line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
-          eval(line)
-       end
+        while line = file.gets
+            line.gsub! "/Volumes/UHEROwork", "/Users/uhero/Documents"
+            line.gsub! "japan/seasadj/sadata.xls", "rawdata/sadata/japan.xls"
+            line.gsub! "bls/seasadj/sadata.xls", "rawdata/sadata/bls.xls"
+            line.gsub! "misc/hbr/seasadj/sadata.xls", "rawdata/sadata/misc_hbr.xls"
+            line.gsub! "tour/seasadj/sadata.xls", "rawdata/sadata/tour.xls"
+            line.gsub! "tour/seasadj/sadata_upd.xls", "rawdata/sadata/tour_upd.xls"
+            line.gsub! "tax/seasadj/sadata.xls", "rawdata/sadata/tax.xls"
+            line.gsub! "misc/prud/seasadj/prud_sa.xls", "rawdata/sadata/misc_prud_prud_sa.xls"
+            line.gsub! "misc/hbr/seasadj/mbr_sa.xls", "rawdata/sadata/misc_hbr_mbr_sa.xls"
+            line.gsub! "bls/seasadj/bls_wagesa.xls", "rawdata/sadata/bls_wages.xls"
+            begin
+                eval(line)
+            rescue => e
+                puts line
+                puts e.message
+            end
+        end
     end
 
     puts "Time: #{(Time.now - t)}"
@@ -163,11 +177,31 @@ task :output_active_downloads => :environment do
   end
 end
 
+task :clear_visual_notification => :environment do
+    begin
+        PackagerMailer.visual_notification.deliver
+    rescue => e
+        puts e.message
+    end
+end
+
+task :test_visual_notification => :environment do
+    begin
+        first = 1
+        second = 2
+        third = 3
+        PackagerMailer.visual_notification.deliver
+    rescue => e
+        puts e.message
+    end
+end
+
+
 task :output_priorities => :environment do
     File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'w') do |file|
         DataSource.where("priority != 100").each do |ds|
             puts "wrote: #{ds.id}"
-            file.puts %Q!DataSource.where(%Q|eval LIKE '#{ds.eval}'|).first.priority = #{ds.priority}!
+            file.puts %Q!DataSource.where(%Q|eval LIKE '%#{ds.eval}%'|).first.priority = #{ds.priority}!
         end
     end
 end

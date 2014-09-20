@@ -21,7 +21,7 @@
 
 hour = "1"
 bls_hour = "4"
-set :output, {:standard => "~/Documents/data/cronlog/udaman-download.log", :error => "~/Documents/data/cronlog/udaman-error.log"}
+set :output, {:standard => "~/Documents/cronlog/udaman-download.log", :error => "~/Documents/cronlog/udaman-error.log"}
 # set :environment, "development"
 #job_type :rake,    "cd :path && rake :task :output"
 job_type :rake,    "cd :path && bundle exec rake :task"
@@ -65,7 +65,7 @@ every 1.day, :at => "#{bls_hour.to_i+2}:30 am" do
 end
 
 every 1.day, :at => "#{hour.to_i+5}:30 am" do
-  rake "gen_investigate_csv", :output => "/Users/uhero/Documents/gen_investigate_csv.log"
+  rake "gen_investigate_csv"
 end
 
 every 1.day, :at => "#{hour.to_i+5}:40 am" do

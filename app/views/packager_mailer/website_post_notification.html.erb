@@ -11,7 +11,7 @@
 	<p><em>look for the data points with the "-1" superscript. These are probably at the bottom, the newest data points</em></p>
 	<ul>
 	<% @new_data_series.each do |name, id| %>
-	<li><a href="http://udaman.uhero.hawaii.edu/series/<%= id %>">http://udaman.uhero.hawaii.edu/series/<%= id %> : <%= name %></li>
+        <li><a href="http://udaman.uhero.hawaii.edu/series/<%= id %>">http://udaman.uhero.hawaii.edu/series/<%= id %> : <%= name %></a></li>
 	<% end %>
 	</ul>
   </body>

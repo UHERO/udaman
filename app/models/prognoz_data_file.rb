@@ -2,14 +2,14 @@ class PrognozDataFile < ActiveRecord::Base
   serialize :series_loaded, Hash
   
   def PrognozDataFile.send_prognoz_update(recipients = ["btrevino@hawaii.edu", "jrpage@hawaii.edu"])
-    folder = "~/data/prognoz_export/"
+    folder = "/Users/uhero/Documents/data/prognoz_export/"
     filenames = ["Agriculture.xls", "CAFRCounties.xls", "Kauai.xls", "metatable_isdi.xls", "SourceDoc.xls", "TableTemplate.xls"]
     filenames.map! {|elem| folder+elem}
     
     send_edition = Time.now.strftime("%yM%mD%d_%H%M%S")
     
     
-    retired_path = "~/data/prognoz_export/exports/retired_official_versions/" + send_edition
+    retired_path = "/Users/uhero/Documents/data/prognoz_export/exports/retired_official_versions/" + send_edition
     Dir.mkdir(retired_path) unless File.directory?(retired_path)
     
     self.all.each do |pdf| 
@@ -17,7 +17,7 @@ class PrognozDataFile < ActiveRecord::Base
       updated_file = pdf.filename.gsub("/prognoz_export/","/prognoz_export/exports/")
       original_file = pdf.filename
       FileUtils.mv(original_file, retired_path+"/"+pdf.filename.split("/")[-1])
-      FileUtils.cp(updated_file, original_file)
+      FileUtils.cp(retired_path+"/"+pdf.filename.split("/")[-1], original_file)
       filenames.push pdf.filename
     end
     
@@ -84,7 +84,7 @@ class PrognozDataFile < ActiveRecord::Base
     
   def output_path
     output_filename = filename.split("/")[-1]
-    "~/data/prognoz_export/exports/" + output_filename
+    "/Users/uhero/Documents/data/prognoz_export/exports/" + output_filename
   end
   
   def write_export
@@ -144,7 +144,7 @@ class PrognozDataFile < ActiveRecord::Base
   end
   
   def write_xls
-    #require 'Spreadsheet'
+    require 'spreadsheet'
     book = Spreadsheet::Workbook.new
     sheet1 = book.create_worksheet
     dates = output_dates
