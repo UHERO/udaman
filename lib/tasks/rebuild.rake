@@ -1,6 +1,6 @@
 # run REBUILD.rb line by line
 
-DATA_PARENT = "/Users/diliaur/udaman" #wherever data directory is stored
+DATA_PARENT = "/Users/uhero/Documents" #wherever data directory is stored, no trailing /
 
 task :rebuild => :environment do
     t = Time.now
@@ -119,9 +119,7 @@ task :rebuild => :environment do
     t = Time.now
 
     puts "\n\n\n----------UPDATING PRIORITIES-------------\n\n\n"
-    #DT: looks like it's updating a temp? file REBUILD_PRIORITIES.rb, to look at 
-    # place where data was last downloaded. Can't fild REBUILD_PRIORITIES.rb
-    # REBUILD_DOWNLOADS?
+
     File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'r') do |file|
         while line = file.gets
             line.gsub! "/Volumes/UHEROwork", DATA_PARENT
@@ -207,8 +205,6 @@ task :output_priorities => :environment do
         DataSource.where("priority != 100").each do |ds|
             puts "wrote: #{ds.id}"
             file.puts %Q!DataSource.where(%Q|eval LIKE '%#{ds.eval}%'|).first.update_attributes(:priority => #{ds.priority})!
-            #test:
-            #file.puts %Q!DataSource.where(%Q|eval LIKE '%#{ds.eval}%'|).first.update_attributes(:priority => 24)!
         end
     end
 end
