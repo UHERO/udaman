@@ -46,7 +46,7 @@ task :rebuild => :environment do
 
     puts "\n\n--------REBUILDING DEFINITIONS--------\n\n"
     File.open('lib/tasks/REBUILD.rb', 'r') do |file|
-       `chmod -R 777 DATA_PARENT + data/*`
+       `chmod -R 777 #{DATA_PARENT}/data/*`
        while line = file.gets
           line.gsub! "/Volumes/UHEROwork", DATA_PARENT
           line.gsub! "japan/seasadj/sadata.xls", "rawdata/sadata/japan.xls"
