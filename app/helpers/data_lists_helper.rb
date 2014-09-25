@@ -13,7 +13,7 @@ module DataListsHelper
       names = @data_list.series_names
       dates_array = @data_list.data_dates
        
-      csv << [""] + names
+      csv << ["date"] + names
       dates_array.each do |date|
         csv << [date] + names.map {|series_name| series_data[series_name][date]}
       end
