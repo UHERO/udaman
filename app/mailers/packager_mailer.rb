@@ -17,9 +17,9 @@ class PackagerMailer < ActionMailer::Base
       @dates = Series.get_all_dates_from_data(@series)
       subject = "UDAMacMini Error (#{rake_task})" if is_error
       subject = "UDAMacMini New Download (#{rake_task})" unless is_error
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => subject)
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => subject)
     rescue => e
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.rake_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.rake_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
 
@@ -27,9 +27,9 @@ class PackagerMailer < ActionMailer::Base
     begin
       @error = e
       @output_path = output_path
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "Rake failed in an unexpected way (Udamacmini)")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "Rake failed in an unexpected way (Udamacmini)")
     rescue => e
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.rake_error error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.rake_error error", :body => e.message, :content_type => "text/plain")
     end
   end
 
@@ -39,7 +39,7 @@ class PackagerMailer < ActionMailer::Base
       attachments.inline['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
       attachments['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
 
-      recipients = ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "james29@hawaii.edu", "fuleky@hawaii.edu", "ashleysh@hawaii.edu"]
+      recipients = ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "james29@hawaii.edu", "fuleky@hawaii.edu", "ashleysh@hawaii.edu", "diliaur@hawaii.edu"]
       # recipients = ["jrpage@hawaii.edu"]
 
       # new_dps_string = new_dps == 0 ? "": new_dps.to_s + " new data points / " 
@@ -53,7 +53,7 @@ class PackagerMailer < ActionMailer::Base
       mail(:to => recipients, :subject => subject)
     rescue => e
         puts e.message
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.visual_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.visual_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
 
@@ -64,9 +64,9 @@ class PackagerMailer < ActionMailer::Base
       @handle = handle
       @url = url
       @save_path = save_path
-      mail(:to => ["jrpage@hawaii.edu", "btrevino@hawaii.edu"], :subject => subject)
+      mail(:to => ["jrpage@hawaii.edu", "btrevino@hawaii.edu", "diliaur@hawaii.edu"], :subject => subject)
     rescue => e
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.download_link_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.download_link_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
 
@@ -76,9 +76,9 @@ class PackagerMailer < ActionMailer::Base
       subject = "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website" unless created
       @post_address = post_address
       @new_data_series = new_data_series
-      mail(:to => ["jrpage@hawaii.edu", "btrevino@hawaii.edu", "james29@hawaii.edu"], :subject => subject) #{})
+      mail(:to => ["jrpage@hawaii.edu", "btrevino@hawaii.edu", "james29@hawaii.edu", "diliaur@hawaii.edu"], :subject => subject) #{})
     rescue => e
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.website_post_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.website_post_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
 
@@ -90,7 +90,7 @@ class PackagerMailer < ActionMailer::Base
       subject = "Prognoz Export (Udamacmini)"
       mail(:to => recipients, :subject => subject)  
     rescue => e
-      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.prognoz_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ["btrevino@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.prognoz_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
 end

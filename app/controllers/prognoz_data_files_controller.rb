@@ -61,7 +61,7 @@ class PrognozDataFilesController < ApplicationController
   end
   
   def send_prognoz_export
-    @recipients = ["btrevino@hawaii.edu","icintina@hawaii.edu", "james29@hawaii.edu", "jrpage@hawaii.edu"]
+    @recipients = ["btrevino@hawaii.edu","icintina@hawaii.edu", "james29@hawaii.edu", "jrpage@hawaii.edu", "diliaur@hawaii.edu"]
     PrognozDataFile.send_prognoz_update(@recipients)
     flash[:notice] = "Zipped Export was sent to [#{@recipients.join(", ")}]. Comparison files were updated in /data/prognoz_export."
     redirect_to :action => 'index'
