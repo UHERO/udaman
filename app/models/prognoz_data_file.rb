@@ -17,7 +17,8 @@ class PrognozDataFile < ActiveRecord::Base
       updated_file = pdf.filename.gsub("/prognoz_export/","/prognoz_export/exports/")
       original_file = pdf.filename
       FileUtils.mv(original_file, retired_path+"/"+pdf.filename.split("/")[-1])
-      FileUtils.cp(retired_path+"/"+pdf.filename.split("/")[-1], original_file)
+      # this copy puts the new file in the right location to get zipped
+      FileUtils.cp(updated_file, original_file)
       filenames.push pdf.filename
     end
     
