@@ -267,9 +267,41 @@
 	}
 	
 	function calc_html(d) {
+		//DT EDITS
+		var return_rows = "";
+
+		// append value (row 1)
+		if (d.value < 0) {
+			//console.log("VALUE < 0")
+			return_rows += "<span class='level' style='color:red'>" + d.value + "</span><br />";
+		} else {
+			return_rows += "<span class='level' style='color:#1572B0'>" + d.value + "</span><br />";
+		}
+
+		// append time period (row 2)
+		return_rows += "<span class='yoy'>" + d.yoy + "</span><br />";
+
+		// append %age (row 3)
+		if (d.yoy_diff >= 0) { // not sure why this doesn't work as < 0 to catch negatives
+			//console.log("YOY_DIFF < 0")
+			console.log("yoy_diff: " + d.yoy_diff + " -- FIRE!!!!!!!!!!");
+			return_rows += "<span class='yoy_diff' style='color:#1572B0'>" + d.yoy_diff + "</span>"	;
+		} else {
+			console.log("yoy_diff: " + d.yoy_diff + " -- WATER!!!!!!!!!!");
+			return_rows += "<span class='yoy_diff' style='color:red'>" + d.yoy_diff + "</span>";
+		}
+
+		console.log(d.value);
+		console.log(d.yoy);
+		console.log(d.yoy_diff);
+
+		return return_rows
+		//END DT EDITS
+
+		/* ORIGINAL CODE:
 		return "<span class='level'>" + d.value + "</span><br />" +
 				"<span class='yoy'>" + d.yoy + "</span><br />" +
-		 		"<span class='yoy_diff'>" + d.yoy_diff + "</span>";
+		 		"<span class='yoy_diff'>" + d.yoy_diff + "</span>"; */
 	}
 	
 	//var sp_calcs = selected_point_calculations(dates[0], dates[dates.length-1]);
@@ -281,6 +313,7 @@
 		.attr("class", "calc")
 		.attr("id",function(d) {return "col_"+d.col_name})
 		.html(calc_html);
+		//.style("color",function(d) { if (d<0) {console.log("FIRE"); return "red"} else {return "blue"} }); //dt nah... try later when you're better at d3
 
 
 	// ----------------------------------------------
@@ -294,11 +327,39 @@
 		.html(cell_html);
 				
 	function cell_html(d){
+		//DT EDITS
+		// feels clumsy but works. maybe could change style .attr for each instead... [later]
+
+		var return_rows = "";
+
+		if (d.value.value < 0) {
+			//console.log("VALUE < 0")
+			return_rows += "<span class='level' style='color:red'>" + f(d.value.value) + "</span><br/>"
+		} else {
+			return_rows += "<span class='level' style='color:#1572B0'>" + f(d.value.value) + "</span><br/>"
+		}
+		if (d.value.yoy < 0) {
+			//console.log("YOY < 0")
+			return_rows += "<span class='yoy' style='color:red'>" + perc(d.value.yoy) + "</span><br/>"
+		} else {
+			return_rows += "<span class='yoy' style='color:#1572B0'>" + perc(d.value.yoy) + "</span><br/>"
+		}
+		if (d.value.yoy_diff < 0) {
+			//console.log("YOY_DIFF < 0")
+			return_rows += "<span class='yoy_diff' style='color:red'>" + f(d.value.yoy_diff) + "</span><br/>";	
+		} else {
+			return_rows += "<span class='yoy_diff' style='color:#1572B0'>" + f(d.value.yoy_diff) + "</span><br/>";
+		}
+
+		return return_rows
+		// END DT EDITS
+
+		/* ORIGINAL CODE:
 		return ""
 		+ "<span class='level'>" + f(d.value.value) + "</span><br/>"
 		+ "<span class='yoy'>" + perc(d.value.yoy) + "</span><br/>"
 		+ "<span class='yoy_diff'>" + f(d.value.yoy_diff) + "</span><br/>";
-		//+ "<span class='ytd'>" + f(d.value.ytd) + "</span><br/>"
+		//+ "<span class='ytd'>" + f(d.value.ytd) + "</span><br/>"*/
 	}
 	
 	function date_header(start_date, end_date) {
