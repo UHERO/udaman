@@ -8,10 +8,7 @@
 	#table_adjuster {width:500px; float:left; margin:0 20px 0 20px; position:relative; height:50px;}
 	td.calc,
 	td.inner {font-size:10px; line-height:13px}
-	tr#header_row th, tr#header_row_clone th {font-size:10px; font-weight:bold; border-bottom:1px solid gray}
-	tr#header_row_clone th.header_col {min-width: 175px;}
-	tr#header_row_clone th.spark_col {min-width: 120px;}
-
+	tr#header_row th {font-size:10px; font-weight:bold; border-bottom:1px solid gray}
 	span.level {font-size:11px}
 	span.yoy { color: gray}
 	span.yoy_diff { color :gray}
@@ -28,51 +25,14 @@
 	td span.s_desc {font-size:9px; line-height:12px; color:gray;}
 	td div {line-height:12px}
 	table#data_table {clear:both; table-layout:fixed; width:0px;}
-	table#data_table th.header_col {width: 175px;}
+	table#data_table th.header_col { width: 175px;}
 	table#data_table th.date_col {width: 50px;}
 	table#data_table th.spark_col {width: 120px;}
-	table#data_table th.range_col {width: 110px;}
+	table#data_table th.range_col {width: 100px;}
 	table#data_table th {width:75px}
 	
-	tr#header_row_clone th.header_col {min-width: 175px;}
-	tr#header_row_clone th.date_col {width: 50px; max-width: 50px;}
-	tr#header_row_clone th.spark_col {min-width: 120px;}
-	tr#header_row_clone th.range_col {width: 110px; min-width: 110px}
-	tr#header_row_clone th {min-width:75px}
-
-	table#data_table th.calc, table#header_table th.calc {line-height:13px;}
+	table#data_table th.calc {line-height:13px;}
 	div#frequency_selector {padding-bottom:5px;}
-
-	div#table_wrapper {
-		width:auto;
-	}
-	table#header_table {
-		background-color: white;
-	}
-	table#column_table {
-		background-color: white;
-	}
-
-	table#header_table {
-		position:absolute;
-		top:151px;
-		left:8px;
-		z-index: 10;
-	}
-
-	table#column_table {
-		position:absolute;
-		top:151px;
-		left:8px;
-		z-index:9;
-		width: 187px;
-		padding-top: 40px;
-	}
-
-	table#column_table td {
-		height:40px;
-	}
-
 </style>
 <div id="frequency_selector">
 	Try a Different Frequency: <%= link_to "A", { :freq => "A" } %> | <%= link_to "Q", { :freq => "Q" } %> | <%= link_to "M", { :freq => "M" } %> | <%= link_to "Edit this List", :action => "edit"%>
@@ -109,13 +69,9 @@
 </div>
 
 
-<div id="table_wrapper"> <!--dt-->
-	<table id = "header_table"></table>
-	<table id = "column_table"></table>
-	<table id="data_table">
-	</table>
-</div>
 
+<table id="data_table">
+</table>
 <script>
 
 // features to add
@@ -189,10 +145,6 @@
 	
 	var test_area = d3.select("#test_area");
 	var data_table = d3.select("#data_table");
-	var table_wrapper = d3.select("#table_wrapper"); //dt
-	var header_table = d3.select("#header_table"); //dt
-	var column_table = d3.select("#column_table"); //dt
-
 	var header = data_table.append("tr")	
 		.attr("id", "header_row")
 	
@@ -220,22 +172,6 @@
 			return date_h(d,frequency);
 		});
 		
-	// dt
-
-	//data_table.clone().appendTo(header_table);
-	//console.log($('#header_row'));
-
-	$('#header_row').clone().appendTo('#header_table'); // breaks the table date range -- slider targets the clone rather than the original. why
-	// want it to target both ideally
-	// need to change element ids for #header_row
-	$('#header_table #header_row').attr("id","header_row_clone"); //  ok this works. just need to add header_row_clone to CSS cuz text went crazy
-	// need to pad from the left to make up for missing series & sparkline columns (just add those values + pad)
-
-
-	// will need to write a loop to grab all header column (simply clone() first cell of ea row after header row &... append to other table?)
-
-	// end dt
-
 	var series_rows = data_table.selectAll("tr.series")
 		.data(d3.entries(all_data));
 		
@@ -347,8 +283,11 @@
 
 		// append %age (row 3)
 		if (d.yoy_diff >= 0) { // not sure why this doesn't work as < 0 to catch negatives
+			//console.log("YOY_DIFF < 0")
+			console.log("yoy_diff: " + d.yoy_diff + " -- FIRE!!!!!!!!!!");
 			return_rows += "<span class='yoy_diff' style='color:#1572B0'>" + d.yoy_diff + "</span>"	;
 		} else {
+			console.log("yoy_diff: " + d.yoy_diff + " -- WATER!!!!!!!!!!");
 			return_rows += "<span class='yoy_diff' style='color:red'>" + d.yoy_diff + "</span>";
 		}
 
@@ -374,6 +313,8 @@
 		.attr("class", "calc")
 		.attr("id",function(d) {return "col_"+d.col_name})
 		.html(calc_html);
+		//.style("color",function(d) { if (d<0) {console.log("FIRE"); return "red"} else {return "blue"} }); //dt nah... try later when you're better at d3
+
 
 	// ----------------------------------------------
 	data_cells = series_rows.selectAll("td.inner")
@@ -427,7 +368,7 @@
 		+ "<tr><td>End</td><td><span id='end_date'>" + date_h(end_date,frequency) + "</span></tr>"
 	}
 	
-	function trim_table(start_date,end_date) { //dt is this the one?
+	function trim_table(start_date,end_date) {
 		
 		// Adjust headers
 		filtered_dates = dates.filter(function(elem) {
@@ -440,15 +381,6 @@
 		header_cells.enter().append("th").attr("class", "date_col");
 		header_cells.html(function(d) {return date_h(d,frequency)});
 		header_cells.exit().remove();
-
-		// repeating for the header clone:
-		header_cells_clone = d3.select("tr#header_row_clone").selectAll("th.date_col")
-			.data(filtered_dates)
-
-		header_cells_clone.enter().append("th").attr("class", "date_col");
-		header_cells_clone.html(function(d) {return date_h(d,frequency)});
-		header_cells_clone.exit().remove();
-
 		// -------------------
 		
 		// Adjust data cells
@@ -504,7 +436,7 @@
 		min_date = dates[ui.values[0]];
 		max_date = dates[ui.values[1]];
 		trim_table(min_date, max_date);
-		$("#table_date_range").html(date_header(min_date, max_date)); // updates date range under slider
+		$("#table_date_range").html(date_header(min_date, max_date));		
 	}
 	function update_spark(event, ui) {
 		min_date = dates[ui.values[0]];
@@ -573,68 +505,5 @@
 
 	$("#spark_date_range").html(date_header(dates[0], dates[dates.length-1]));
 	$("#table_date_range").html(date_header(dates[0], dates[dates.length-1]));
-
-	/*************************************************************************/
-	/********************* FIXED HEADER AND LEFT COLUMN **********************/
-	/*************************************************************************/
-
-	// ------------ /
-	// HEADER       /
-	// ------------ /
-
-	// 1. Prev. grabbed top offset of #header_row (151px - 03/25/15)
-	// 2. Check if window is lower than this offset
-	// 3. Once the offset is less than the top of the page, header should stick
-	//    to top of window. Do this by setting "top" of header element to 
-	//    the window's current scrollTop()
-	//    - this fixes the horizontal scroll problem.
-
-	// STEP 1
-
-	header_table = $('#header_table');
-	column_table = $('#column_table');
-
-	// STEP 2 & 3
-
-	$(window).scroll( function() {
-		wi_top = $(window).scrollTop(); // how far down window is scrolled
-		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
-
-		th_top = 151; // fixed. based on #header_row (offset from top)
-
-		// HEADER ROW MOTION
-		if (wi_top >= th_top) {
-			header_table.css("top",$(window).scrollTop());
-			header_table.css("background-color","#eee");
-		} else {
-			header_table.css("top","151px");
-			header_table.css("background-color","");
-		}
-
-		// LEFT COLUMN MOTION
-		if (wi_left > 8) {
-			column_table.css("left",$(window).scrollLeft());
-			column_table.css("background-color","#ddd");
-		} else {
-			column_table.css("left","8px");
-			column_table.css("background-color","");
-		}
-
-	});
-
-	// ------------ /
-	// LEFT COLUMN  /
-	// ------------ /
-
-	// 1. Generate a copy of the left column
-	//    - Must loop through all the series on the page (in #data_table) and
-	//      grab all .series .header_col elements .. could do this in d3 but
-	//      then how to use them in jQuery? ugh
-
-	$('#data_table tr.series td.header_col').each(function() {
-		//$('tr.series_clone').appendTo("#column_table");
-		// create tr in #column_table how?
-		new_td = $(this).clone().appendTo('#column_table');
-		new_td.wrap("<tr></tr>");
-	});
+	
 </script>
