@@ -50,10 +50,10 @@
 		width:auto;
 	}
 	table#header_table {
-		background-color: white;
+		background-color: #fff;
 	}
 	table#column_table {
-		//background-color: skyblue;
+		background-color: #fff;
 	}
 
 	table#header_table {
@@ -67,22 +67,15 @@
 		position:absolute;
 		//top:151px;
 		top:150px;
-		//left:8px;
-		left: 180px;
+		left:8px;
 		z-index:9;
 		width: 179px;
 		padding-top: 41px;
-		//visibility: hidden;
 	}
 
 	table#column_table td {
 		height:40px;
 		min-height: 40px;
-		//border: 0;
-		//padding: 0;
-		background-color: #fff;
-		//border-bottom: 2px dashed red;
-		//border-color: black;
 		border-collapse: separate;
         border-spacing: 2px;
 	}
@@ -92,15 +85,15 @@
 	}
 
 	table#data_table td#header_col {
-		background-color: #999;
+		//background-color: #999;
 	}
 
 	table#data_table {
-		background-color: #FFCCFF;
+		//background-color: #FFCCFF;
 	}
 
 	table#data_table td {
-		background-color: #fff;
+		//background-color: #fff;
 	}
 
 	table#data_table td.header_col {
@@ -255,21 +248,8 @@
 			return date_h(d,frequency);
 		});
 		
-	// dt
-
-	//data_table.clone().appendTo(header_table);
-	//console.log($('#header_row'));
-
-	////////$('#header_row').clone().appendTo('#header_table'); // breaks the table date range -- slider targets the clone rather than the original. why
-	// want it to target both ideally
-	// need to change element ids for #header_row
-	////////$('#header_table #header_row').attr("id","header_row_clone"); //  ok this works. just need to add header_row_clone to CSS cuz text went crazy
-	// need to pad from the left to make up for missing series & sparkline columns (just add those values + pad)
-
-
-	// will need to write a loop to grab all header column (simply clone() first cell of ea row after header row &... append to other table?)
-
-	// end dt
+	$('#header_row').clone().appendTo('#header_table');
+	$('#header_table #header_row').attr("id","header_row_clone");
 
 	var series_rows = data_table.selectAll("tr.series")
 		.data(d3.entries(all_data));
@@ -630,7 +610,7 @@
 	column_table = $('#column_table');
 
 	// STEP 2 & 3
-/*
+
 	$(window).scroll( function() {
 		wi_top = $(window).scrollTop(); // how far down window is scrolled
 		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
@@ -649,14 +629,14 @@
 		// LEFT COLUMN MOTION
 		if (wi_left > 8) {
 			column_table.css("left",$(window).scrollLeft());
-			column_table.css("background-color","#ddd");
+			column_table.css("background-color","#eee");
 		} else {
 			column_table.css("left","8px");
 			column_table.css("background-color","");
 		}
 
 	});
-*/
+
 	// ------------ /
 	// LEFT COLUMN  /
 	// ------------ /
