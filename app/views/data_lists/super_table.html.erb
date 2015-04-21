@@ -29,16 +29,19 @@
 	td div {line-height:12px}
 	table#data_table {clear:both; table-layout:fixed; width:0px;}
 	table#data_table th.header_col {width: 175px;}
-	table#data_table th.date_col {width: 50px;}
+	table#data_table th.date_col {width: 60px;}
 	table#data_table th.spark_col {width: 120px;}
-	table#data_table th.range_col {width: 110px;}
-	table#data_table th {width:75px}
+	table#data_table th.range_col {width: 120px;}
+	table#data_table th {width:85px}
 	
 	tr#header_row_clone th.header_col {min-width: 175px;}
-	tr#header_row_clone th.date_col {width: 50px; max-width: 50px;}
 	tr#header_row_clone th.spark_col {min-width: 120px;}
-	tr#header_row_clone th.range_col {width: 110px; min-width: 110px}
-	tr#header_row_clone th {min-width:75px}
+	tr#header_row_clone th.calc {min-width:85px}
+	tr#header_row_clone th.range_col {width: 120px; min-width: 120px}
+	tr#header_row_clone th.date_col {width: 60px; min-width: 60px;}
+
+	#data_table tr#header_row th {background-color: transparent; padding: 0;}
+	tr#header_row_clone th {background-color: transparent; padding: 0;}
 
 	table#data_table th.calc, table#header_table th.calc {line-height:13px;}
 	div#frequency_selector {padding-bottom:5px;}
@@ -50,7 +53,7 @@
 		background-color: white;
 	}
 	table#column_table {
-		background-color: white;
+		//background-color: skyblue;
 	}
 
 	table#header_table {
@@ -62,15 +65,47 @@
 
 	table#column_table {
 		position:absolute;
-		top:151px;
-		left:8px;
+		//top:151px;
+		top:150px;
+		//left:8px;
+		left: 180px;
 		z-index:9;
-		width: 187px;
-		padding-top: 40px;
+		width: 179px;
+		padding-top: 41px;
+		//visibility: hidden;
 	}
 
 	table#column_table td {
 		height:40px;
+		min-height: 40px;
+		//border: 0;
+		//padding: 0;
+		background-color: #fff;
+		//border-bottom: 2px dashed red;
+		//border-color: black;
+		border-collapse: separate;
+        border-spacing: 2px;
+	}
+
+	table#column_table td div {
+		//line-height:12px;
+	}
+
+	table#data_table td#header_col {
+		background-color: #999;
+	}
+
+	table#data_table {
+		background-color: #FFCCFF;
+	}
+
+	table#data_table td {
+		background-color: #fff;
+	}
+
+	table#data_table td.header_col {
+		height:40px;
+		min-height: 40px;
 	}
 
 </style>
@@ -225,10 +260,10 @@
 	//data_table.clone().appendTo(header_table);
 	//console.log($('#header_row'));
 
-	$('#header_row').clone().appendTo('#header_table'); // breaks the table date range -- slider targets the clone rather than the original. why
+	////////$('#header_row').clone().appendTo('#header_table'); // breaks the table date range -- slider targets the clone rather than the original. why
 	// want it to target both ideally
 	// need to change element ids for #header_row
-	$('#header_table #header_row').attr("id","header_row_clone"); //  ok this works. just need to add header_row_clone to CSS cuz text went crazy
+	////////$('#header_table #header_row').attr("id","header_row_clone"); //  ok this works. just need to add header_row_clone to CSS cuz text went crazy
 	// need to pad from the left to make up for missing series & sparkline columns (just add those values + pad)
 
 
@@ -595,7 +630,7 @@
 	column_table = $('#column_table');
 
 	// STEP 2 & 3
-
+/*
 	$(window).scroll( function() {
 		wi_top = $(window).scrollTop(); // how far down window is scrolled
 		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
@@ -621,7 +656,7 @@
 		}
 
 	});
-
+*/
 	// ------------ /
 	// LEFT COLUMN  /
 	// ------------ /
