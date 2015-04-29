@@ -303,7 +303,6 @@
 	}
 	
 	function calc_html(d) {
-		//DT EDITS
 		var return_rows = "";
 
 		// append value (row 1)
@@ -324,17 +323,7 @@
 			return_rows += "<span class='yoy_diff' style='color:red'>" + d.yoy_diff + "</span>";
 		}
 
-		//console.log(d.value);
-		//console.log(d.yoy);
-		//console.log(d.yoy_diff);
-
 		return return_rows
-		//END DT EDITS
-
-		/* ORIGINAL CODE:
-		return "<span class='level'>" + d.value + "</span><br />" +
-				"<span class='yoy'>" + d.yoy + "</span><br />" +
-		 		"<span class='yoy_diff'>" + d.yoy_diff + "</span>"; */
 	}
 	
 	//var sp_calcs = selected_point_calculations(dates[0], dates[dates.length-1]);
@@ -358,9 +347,6 @@
 		.html(cell_html);
 				
 	function cell_html(d){
-		//DT EDITS
-		// feels clumsy but works. maybe could change style .attr for each instead... [later]
-
 		var return_rows = "";
 
 		if (d.value.value < 0) {
@@ -383,14 +369,6 @@
 		}
 
 		return return_rows
-		// END DT EDITS
-
-		/* ORIGINAL CODE:
-		return ""
-		+ "<span class='level'>" + f(d.value.value) + "</span><br/>"
-		+ "<span class='yoy'>" + perc(d.value.yoy) + "</span><br/>"
-		+ "<span class='yoy_diff'>" + f(d.value.yoy_diff) + "</span><br/>";
-		//+ "<span class='ytd'>" + f(d.value.ytd) + "</span><br/>"*/
 	}
 	
 	function date_header(start_date, end_date) {
@@ -399,7 +377,7 @@
 		+ "<tr><td>End</td><td><span id='end_date'>" + date_h(end_date,frequency) + "</span></tr>"
 	}
 	
-	function trim_table(start_date,end_date) { //dt is this the one?
+	function trim_table(start_date,end_date) {
 		
 		// Adjust headers
 		filtered_dates = dates.filter(function(elem) {
@@ -578,7 +556,7 @@
 		wi_top = $(window).scrollTop(); // how far down window is scrolled
 		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
 
-		th_top = 151; // fixed. based on #header_row (offset from top)
+		th_top = 151; // absolute. based on #header_row (offset from top)
 
 		// HEADER ROW MOTION
 		if (wi_top >= th_top) {
@@ -606,8 +584,7 @@
 
 	// 1. Generate a copy of the left column
 	//    - Must loop through all the series on the page (in #data_table) and
-	//      grab all .series .header_col elements .. could do this in d3 but
-	//      then how to use them in jQuery? ugh
+	//      grab all .series .header_col elements
 
 	$('#data_table tr.series td.header_col').each(function() {
 		//$('tr.series_clone').appendTo("#column_table");
