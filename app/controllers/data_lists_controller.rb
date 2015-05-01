@@ -24,6 +24,7 @@ class DataListsController < ApplicationController
   
   def super_table
     @freq = params[:freq]
+    @county = params[:county] # dt hmm
     @data_list = DataList.find(params[:id])
     # @series_to_chart = @data_list.series_names
     # frequency = @series_to_chart[0][-1]

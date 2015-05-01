@@ -62,7 +62,8 @@ class DataList < ActiveRecord::Base
       county_switch.nil? ? county = s.split("@")[1].split(".")[0] : county = county_switch #dt - grab county from series name
       print "county: #{county} -- "
       #s = s.split(".")[0] + "." + frequency_suffix unless frequency_suffix.nil?
-      s = s.split("@")[0] + "@" + county + "." + frequency_suffix unless frequency_suffix.nil?
+      series_front = s.split("@")[0] + "@" + county + "."
+      frequency_suffix.nil? ? s = series_front + s.split(".")[1] : s = series_front + frequency_suffix
       print "#{s} --- "
       series = s.ts
       #puts series.name unless series.nil?
@@ -75,7 +76,10 @@ class DataList < ActiveRecord::Base
     series_data = {}
     series_names.each do |s| # gets series names map for ea series listed in data list
       county_switch.nil? ? county = s.split("@")[1].split(".")[0] : county = county_switch #grab county from series name
-      s = s.split("@")[0] + "@" + county + "." + frequency_suffix unless frequency_suffix.nil?
+      #s = s.split("@")[0] + "@" + county + "." + frequency_suffix unless frequency_suffix.nil? #change this line bc when suffix is nil... it will skip everything!!
+      series_front = s.split("@")[0] + "@" + county + "."
+      frequency_suffix.nil? ? s = series_front + s.split(".")[1] : s = series_front + frequency_suffix
+  
       series = s.ts
       if series.nil?
         series_data[s] = {}

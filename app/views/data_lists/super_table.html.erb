@@ -57,10 +57,16 @@
 	div#top-level-nav, div#chart-board-nav {width:1064px;}
 
 	ul#ui-id-1 {font-size:10px; z-index: 11 !important;}
+
+	#print_county {
+		background-color:"blue";
+		height:100px;
+	}
 </style>
 
 <div id="frequency_selector">
-	Try a Different Frequency: <%= link_to "A", { :freq => "A" } %> | <%= link_to "Q", { :freq => "Q" } %> | <%= link_to "M", { :freq => "M" } %> | <%= link_to "Edit this List", :action => "edit"%>
+	Try a Different Frequency: <%= link_to "A", { :freq => "A" } %> | <%= link_to "Q", { :freq => "Q" } %> | <%= link_to "M", { :freq => "M" } %> | <%= link_to "Edit this List", :action => "edit"%> <br>
+	Switch Counties: <%= link_to "HI", { :county => "HI" } %> | <%= link_to "HON", { :county => "HON" } %> |  <%= link_to "HAW", { :county => "HAW" } %> | <%= link_to "MAU", { :county => "MAU" } %> | <%= link_to "KAU", { :county => "KAU" } %>
 </div>
 
 <div id="adjuster_wrapper">
@@ -151,7 +157,23 @@
 		return parsed_float;
 	}
 	
-	var all_data = <%= @freq.nil? ? @data_list.get_all_series_data_with_changes.to_json.html_safe : @data_list.get_all_series_data_with_changes(@freq).to_json.html_safe %>
+	var all_data = <%= 
+	
+		if @freq.nil?
+	      if @county.nil?
+	        @data_list.get_all_series_data_with_changes.to_json.html_safe
+	      else
+	        @data_list.get_all_series_data_with_changes(nil,@county).to_json.html_safe
+	      end
+	    else
+	      if @county.nil?
+	        @data_list.get_all_series_data_with_changes(@freq).to_json.html_safe
+	      else
+	        @data_list.get_all_series_data_with_changes(@freq,@county).to_json.html_safe
+	      end
+	    end
+
+		%> // dt need to change this to incl county switches prob
 	
 	var frequency = freq(d3.keys(all_data)[0]);
 	var all_dates = {}
@@ -546,7 +568,7 @@
 	//    - this fixes the horizontal scroll problem.
 
 	// STEP 1
-
+/*
 	header_table = $('#header_table');
 	column_table = $('#column_table');
 
@@ -592,4 +614,6 @@
 		new_td = $(this).clone().appendTo('#column_table');
 		new_td.wrap("<tr></tr>");
 	});
+
+*/
 </script>
