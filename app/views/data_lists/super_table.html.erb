@@ -46,7 +46,7 @@
 	div#frequency_selector {padding-bottom:5px;}
 
 	div#table_wrapper {width:auto;}
-	table#header_table, table#column_table {background-color: #fff;}
+	table#header_table, table#column_table {background-color: transparent;}
 	table#header_table {position:absolute;top:151px;left:8px;z-index: 10;}
 	table#column_table {position:absolute;top:150px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
 	table#column_table td {height:40px;min-height: 40px;border-collapse: separate;border-spacing: 2px;}
@@ -62,12 +62,35 @@
 		background-color:"blue";
 		height:100px;
 	}
+	#tester {
+		//height:300px;
+		background-color: skyblue;
+	}
 </style>
 
 <div id="frequency_selector">
 	Try a Different Frequency: <%= link_to "A", { :freq => "A" } %> | <%= link_to "Q", { :freq => "Q" } %> | <%= link_to "M", { :freq => "M" } %> | <%= link_to "Edit this List", :action => "edit"%> <br>
 	Switch Counties: <%= link_to "HI", { :county => "HI" } %> | <%= link_to "HON", { :county => "HON" } %> |  <%= link_to "HAW", { :county => "HAW" } %> | <%= link_to "MAU", { :county => "MAU" } %> | <%= link_to "KAU", { :county => "KAU" } %>
 </div>
+
+<div id="tester">
+	<% if @freq.nil?
+	     if @county.nil? %>
+	     both are nil <br>
+	  <% else %>
+	     freq is nil, county is <%= "#{@county}" %> <br>
+	  <% end %>
+	<% else
+		 if @county.nil? %>
+		 freq is <%= "#{@freq}" %>, county is nil <br>
+	  <% else %>
+	  	 freq is <%= "#{@freq}" %>, county is <%= "#{@county}" %> <br>
+	  <% end %>
+	<% end %>
+
+	<br><br>
+</div>
+
 
 <div id="adjuster_wrapper">
 	<div id="spark_adjuster">
@@ -106,6 +129,9 @@
 	<table id="data_table">
 	</table>
 </div>
+
+<%= params.inspect %>
+
 
 <script>
 
@@ -156,7 +182,7 @@
 		parsed_float = parseFloat(num);
 		return parsed_float;
 	}
-	
+
 	var all_data = <%= 
 	
 		if @freq.nil?
@@ -227,8 +253,8 @@
 			return date_h(d,frequency);
 		});
 		
-	$('#header_row').clone().appendTo('#header_table');
-	$('#header_table #header_row').attr("id","header_row_clone");
+	//$('#header_row').clone().appendTo('#header_table');
+	//$('#header_table #header_row').attr("id","header_row_clone");
 
 	var series_rows = data_table.selectAll("tr.series")
 		.data(d3.entries(all_data));
