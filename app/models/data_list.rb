@@ -57,21 +57,6 @@ class DataList < ActiveRecord::Base
     series_data
   end
   
-  def test_county_switch(frequency_suffix = nil, county_switch = nil)
-    series_names.each do |s| # gets series names map for ea series listed in data list
-      county_switch.nil? ? county = s.split("@")[1].split(".")[0] : county = county_switch #dt - grab county from series name
-      print "county: #{county} -- "
-      #s = s.split(".")[0] + "." + frequency_suffix unless frequency_suffix.nil?
-      series_front = s.split("@")[0] + "@" + county + "."
-      frequency_suffix.nil? ? s = series_front + s.split(".")[1] : s = series_front + frequency_suffix
-      print "#{s} --- "
-      series = s.ts
-      #puts series.name unless series.nil?
-      !series.nil? ? s = series.name : s = "nil" #annoying, can't have puts in ternary statement?
-      puts s
-    end
-  end
-
   def get_all_series_data_with_changes(frequency_suffix = nil, county_switch = nil)
     series_data = {}
     series_names.each do |s| # gets series names map for ea series listed in data list

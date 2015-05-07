@@ -46,9 +46,9 @@
 	div#frequency_selector {padding-bottom:5px;}
 
 	div#table_wrapper {width:auto;}
-	table#header_table, table#column_table {background-color: #fff; visibility: hidden;}
-	table#header_table {position:absolute;top:151px;left:8px;z-index: 10;}
-	table#column_table {position:absolute;top:150px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
+	table#header_table, table#column_table {background-color: #fff;}
+	table#header_table {position:absolute;top:166px;left:8px;z-index: 10;}
+	table#column_table {position:absolute;top:168px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
 	table#column_table td {height:40px;min-height: 40px;border-collapse: separate;border-spacing: 2px;}
 
 	table#data_table td.header_col {height:40px;min-height: 40px;}
@@ -58,14 +58,6 @@
 
 	ul#ui-id-1 {font-size:10px; z-index: 11 !important;}
 
-	#print_county {
-		background-color:"blue";
-		height:100px;
-	}
-	#tester {
-		//height:300px;
-		background-color: skyblue;
-	}
 </style>
 
 <div id="frequency_selector">
@@ -161,9 +153,6 @@
 	<table id="data_table">
 	</table>
 </div>
-
-<%= params.inspect %>
-
 
 <script>
 
@@ -285,8 +274,8 @@
 			return date_h(d,frequency);
 		});
 		
-	//$('#header_row').clone().appendTo('#header_table');
-	//$('#header_table #header_row').attr("id","header_row_clone");
+	$('#header_row').clone().appendTo('#header_table');
+	$('#header_table #header_row').attr("id","header_row_clone");
 
 	var series_rows = data_table.selectAll("tr.series")
 		.data(d3.entries(all_data));
@@ -626,7 +615,7 @@
 	//    - this fixes the horizontal scroll problem.
 
 	// STEP 1
-/*
+
 	header_table = $('#header_table');
 	column_table = $('#column_table');
 
@@ -636,14 +625,14 @@
 		wi_top = $(window).scrollTop(); // how far down window is scrolled
 		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
 
-		th_top = 151; // absolute. based on #header_row (offset from top)
+		th_top = 166; // absolute. based on #header_row (offset from top)
 
 		// HEADER ROW MOTION
 		if (wi_top >= th_top) {
 			header_table.css("top",$(window).scrollTop());
 			header_table.css("background-color","#eee");
 		} else {
-			header_table.css("top","151px");
+			header_table.css("top","166px"); //might want to remove instead of setting it on element
 			header_table.css("background-color","");
 		}
 
@@ -673,5 +662,4 @@
 		new_td.wrap("<tr></tr>");
 	});
 
-*/
 </script>
