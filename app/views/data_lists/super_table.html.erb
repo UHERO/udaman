@@ -68,24 +68,28 @@
 	     <%= link_to "Q", { :freq => "Q" } %> | 
 	     <%= link_to "M", { :freq => "M" } %> | 
 	     <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch County: 
+	     Switch Location: 
 	     <%= link_to "HI", { :county => "HI" } %> | 
 	     <%= link_to "HON", { :county => "HON" } %> |  
 	     <%= link_to "HAW", { :county => "HAW" } %> | 
 	     <%= link_to "MAU", { :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :county => "KAU" } %>
+	     <%= link_to "KAU", { :county => "KAU" } %> |
+	     <%= link_to "US", { :county => "US" } %> |
+	     <%= link_to "JP", { :county => "JP" } %>
 	  <% else # freq is nil, county has value%>
 	     Try a Different Frequency: 
 	     <%= link_to "A", { :freq => "A", :county => @county } %> | 
 	     <%= link_to "Q", { :freq => "Q", :county => @county } %> | 
 	     <%= link_to "M", { :freq => "M", :county => @county } %> | 
 	     <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch County: 
+	     Switch Location: 
 	     <%= link_to "HI", { :county => "HI" } %> | 
 	     <%= link_to "HON", { :county => "HON" } %> |  
 	     <%= link_to "HAW", { :county => "HAW" } %> | 
 	     <%= link_to "MAU", { :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :county => "KAU" } %>
+	     <%= link_to "KAU", { :county => "KAU" } %> |
+	     <%= link_to "US", { :county => "US" } %> |
+	     <%= link_to "JP", { :county => "JP" } %>
 	  <% end %>
 	<% else
 		 if @county.nil? # freq has value, county is nil%>
@@ -94,24 +98,28 @@
 		 <%= link_to "Q", { :freq => "Q" } %> | 
 		 <%= link_to "M", { :freq => "M" } %> | 
 		 <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch County: 
+	     Switch Location: 
 	     <%= link_to "HI", { :freq => @freq, :county => "HI" } %> | 
 	     <%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
 	     <%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
 	     <%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :freq => @freq, :county => "KAU" } %>
+	     <%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
+	     <%= link_to "US", { :county => "US" } %> |
+	     <%= link_to "JP", { :county => "JP" } %>
 	  <% else # both freq and county have values%>
 	  	 Try a Different Frequency: 
 	  	 <%= link_to "A", { :freq => "A", :county => @county } %> | 
 	  	 <%= link_to "Q", { :freq => "Q", :county => @county } %> | 
 	  	 <%= link_to "M", { :freq => "M", :county => @county } %> | 
 	  	 <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch County: 
+	     Switch Location: 
 	     <%= link_to "HI", { :freq => @freq, :county => "HI" } %> | 
 	     <%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
 	     <%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
 	     <%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :freq => @freq, :county => "KAU" } %>
+	     <%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
+	     <%= link_to "US", { :county => "US" } %> |
+	     <%= link_to "JP", { :county => "JP" } %>
 	  <% end %>
 	<% end %>
 </div>
