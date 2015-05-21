@@ -122,6 +122,8 @@
 	     <%= link_to "JP", { :county => "JP" } %>
 	  <% end %>
 	<% end %>
+	<br>
+	Seasonal | Nonseasonal
 </div>
 
 <div id="adjuster_wrapper">
@@ -228,7 +230,7 @@
 	      end
 	    end
 
-		%> // dt need to change this to incl county switches prob
+		%>
 	
 	var frequency = freq(d3.keys(all_data)[0]);
 	var all_dates = {}
