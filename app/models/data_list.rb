@@ -74,7 +74,7 @@ class DataList < ActiveRecord::Base
     end
   end
   
-  def get_all_series_data_with_changes(frequency_suffix = nil, county_switch = nil)
+  def get_all_series_data_with_changes(frequency_suffix = nil, county_switch = nil, seasonal = nil)
     series_data = {}
     series_names.each do |s| # gets series names map for ea series listed in data list
       county_switch.nil? ? county = s.split("@")[1].split(".")[0] : county = county_switch #grab county from series name

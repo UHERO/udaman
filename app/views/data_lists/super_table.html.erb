@@ -123,7 +123,10 @@
 	  <% end %>
 	<% end %>
 	<br>
-	Seasonal | Nonseasonal || <%= link_to "Reset Switches", {} %>
+	
+	Seasonal | Nonseasonal 
+
+	|| <%= link_to "Reset Switches", {} %>
 </div>
 
 <div id="adjuster_wrapper">
@@ -218,15 +221,31 @@
 	
 		if @freq.nil?
 	      if @county.nil?
-	        @data_list.get_all_series_data_with_changes.to_json.html_safe
+	    	if @seasonal.nil?
+	    		@data_list.get_all_series_data_with_changes.to_json.html_safe
+	    	else 
+	    		@data_list.get_all_series_data_with_changes(nil,nil,@seasonal).to_json.html_safe
+	    	end
 	      else
-	        @data_list.get_all_series_data_with_changes(nil,@county).to_json.html_safe
+	      	if @seasonal.nil?
+	        	@data_list.get_all_series_data_with_changes(nil,@county,nil).to_json.html_safe
+	    	else 
+	    		@data_list.get_all_series_data_with_changes(nil,@county,@seasonal).to_json.html_safe
+	    	end
 	      end
 	    else
 	      if @county.nil?
-	        @data_list.get_all_series_data_with_changes(@freq).to_json.html_safe
+	    	if @seasonal.nil?
+	    		@data_list.get_all_series_data_with_changes(@freq).to_json.html_safe
+	    	else 
+	    		@data_list.get_all_series_data_with_changes(@freq,nil,@seasonal).to_json.html_safe
+	    	end
 	      else
-	        @data_list.get_all_series_data_with_changes(@freq,@county).to_json.html_safe
+	      	if @seasonal.nil?
+	        	@data_list.get_all_series_data_with_changes(@freq,@county,nil).to_json.html_safe
+	    	else 
+	    		@data_list.get_all_series_data_with_changes(@freq,@county,@seasonal).to_json.html_safe
+	    	end
 	      end
 	    end
 
