@@ -46,9 +46,9 @@
 	div#frequency_selector {padding-bottom:5px;}
 
 	div#table_wrapper {width:auto;}
-	table#header_table, table#column_table {background-color: #fff;}
-	table#header_table {position:absolute;top:166px;left:8px;z-index: 10;}
-	table#column_table {position:absolute;top:168px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
+	table#header_table, table#column_table {background-color: transparent;}
+	table#header_table {position:absolute;top:185px;left:8px;z-index: 10;}
+	table#column_table {position:absolute;top:186px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
 	table#column_table td {height:40px;min-height: 40px;border-collapse: separate;border-spacing: 2px;}
 
 	table#data_table td.header_col {height:40px;min-height: 40px;}
@@ -210,10 +210,6 @@
 			<% end %>
 		<% end %>
 	<% end %>
-	<br>
-	
-	Seasonal | Nonseasonal 
-
 	|| <%= link_to "Reset Switches", {} %>
 </div>
 
@@ -742,14 +738,14 @@
 		wi_top = $(window).scrollTop(); // how far down window is scrolled
 		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
 
-		th_top = 166; // absolute. based on #header_row (offset from top)
+		th_top = 185; // absolute. based on #header_row (offset from top)
 
 		// HEADER ROW MOTION
 		if (wi_top >= th_top) {
 			header_table.css("top",$(window).scrollTop());
 			header_table.css("background-color","#eee");
 		} else {
-			header_table.css("top","166px"); //might want to remove instead of setting it on element
+			header_table.css("top","");
 			header_table.css("background-color","");
 		}
 
@@ -758,7 +754,7 @@
 			column_table.css("left",$(window).scrollLeft());
 			column_table.css("background-color","#eee");
 		} else {
-			column_table.css("left","8px");
+			column_table.css("left","");
 			column_table.css("background-color","");
 		}
 
