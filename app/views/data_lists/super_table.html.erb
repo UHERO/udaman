@@ -62,65 +62,153 @@
 
 <div id="frequency_selector">
 	<% if @freq.nil?
-	     if @county.nil? # both are nil%>
-	     Try a Different Frequency: 
-	     <%= link_to "A", { :freq => "A" } %> | 
-	     <%= link_to "Q", { :freq => "Q" } %> | 
-	     <%= link_to "M", { :freq => "M" } %> | 
-	     <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch Location: 
-	     <%= link_to "HI", { :county => "HI" } %> | 
-	     <%= link_to "HON", { :county => "HON" } %> |  
-	     <%= link_to "HAW", { :county => "HAW" } %> | 
-	     <%= link_to "MAU", { :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :county => "KAU" } %> |
-	     <%= link_to "US", { :county => "US" } %> |
-	     <%= link_to "JP", { :county => "JP" } %>
-	  <% else # freq is nil, county has value%>
-	     Try a Different Frequency: 
-	     <%= link_to "A", { :freq => "A", :county => @county } %> | 
-	     <%= link_to "Q", { :freq => "Q", :county => @county } %> | 
-	     <%= link_to "M", { :freq => "M", :county => @county } %> | 
-	     <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch Location: 
-	     <%= link_to "HI", { :county => "HI" } %> | 
-	     <%= link_to "HON", { :county => "HON" } %> |  
-	     <%= link_to "HAW", { :county => "HAW" } %> | 
-	     <%= link_to "MAU", { :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :county => "KAU" } %> |
-	     <%= link_to "US", { :county => "US" } %> |
-	     <%= link_to "JP", { :county => "JP" } %>
-	  <% end %>
+		if @county.nil? # both are nil
+			if @seasonal.nil? # all are nil %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A" } %> | 
+				<%= link_to "Q", { :freq => "Q" } %> | 
+				<%= link_to "M", { :freq => "M" } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :county => "HI" } %> | 
+				<%= link_to "HON", { :county => "HON" } %> |  
+				<%= link_to "HAW", { :county => "HAW" } %> | 
+				<%= link_to "MAU", { :county => "MAU" } %> | 
+				<%= link_to "KAU", { :county => "KAU" } %> |
+				<%= link_to "US",  { :county => "US" } %> |
+				<%= link_to "JP",  { :county => "JP" } %>
+				<br>
+				<%= link_to "Seasonal",     {:seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:seasonal => false} %>
+			<% else # freq and county false, seasonal has value %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A", :seasonal => @seasonal } %> | 
+				<%= link_to "Q", { :freq => "Q", :seasonal => @seasonal } %> | 
+				<%= link_to "M", { :freq => "M", :seasonal => @seasonal } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :county => "HI",  :seasonal => @seasonal } %> | 
+				<%= link_to "HON", { :county => "HON", :seasonal => @seasonal } %> |  
+				<%= link_to "HAW", { :county => "HAW", :seasonal => @seasonal } %> | 
+				<%= link_to "MAU", { :county => "MAU", :seasonal => @seasonal } %> | 
+				<%= link_to "KAU", { :county => "KAU", :seasonal => @seasonal } %> |
+				<%= link_to "US",  { :county => "US",  :seasonal => @seasonal } %> |
+				<%= link_to "JP",  { :county => "JP",  :seasonal => @seasonal } %>
+				<br>
+				<%= link_to "Seasonal",     {:seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:seasonal => false} %>
+			<% end %>
+		<% else # freq is nil, county has value %>
+			<% if @seasonal.nil? # freq is nil, county has value, seasonal is nil %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A", :county => @county } %> | 
+				<%= link_to "Q", { :freq => "Q", :county => @county } %> | 
+				<%= link_to "M", { :freq => "M", :county => @county } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :county => "HI" } %> | 
+				<%= link_to "HON", { :county => "HON" } %> |  
+				<%= link_to "HAW", { :county => "HAW" } %> | 
+				<%= link_to "MAU", { :county => "MAU" } %> | 
+				<%= link_to "KAU", { :county => "KAU" } %> |
+				<%= link_to "US",  { :county => "US" } %> |
+				<%= link_to "JP",  { :county => "JP" } %>
+				<br>
+				<%= link_to "Seasonal",     {:county => @county, :seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:county => @county, :seasonal => false} %>
+			<% else # freq nil, county has value, seasonal has value %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A", :county => @county, :seasonal => @seasonal } %> | 
+				<%= link_to "Q", { :freq => "Q", :county => @county, :seasonal => @seasonal } %> | 
+				<%= link_to "M", { :freq => "M", :county => @county, :seasonal => @seasonal } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :county => "HI",  :seasonal => @seasonal } %> | 
+				<%= link_to "HON", { :county => "HON", :seasonal => @seasonal } %> |  
+				<%= link_to "HAW", { :county => "HAW", :seasonal => @seasonal } %> | 
+				<%= link_to "MAU", { :county => "MAU", :seasonal => @seasonal } %> | 
+				<%= link_to "KAU", { :county => "KAU", :seasonal => @seasonal } %> |
+				<%= link_to "US",  { :county => "US",  :seasonal => @seasonal } %> |
+				<%= link_to "JP",  { :county => "JP",  :seasonal => @seasonal } %>
+				<br>
+				<%= link_to "Seasonal",     {:county => @county, :seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:county => @county, :seasonal => false} %>
+			<% end %>
+		<% end %>
 	<% else
-		 if @county.nil? # freq has value, county is nil%>
-		 Try a Different Frequency: 
-		 <%= link_to "A", { :freq => "A" } %> | 
-		 <%= link_to "Q", { :freq => "Q" } %> | 
-		 <%= link_to "M", { :freq => "M" } %> | 
-		 <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch Location: 
-	     <%= link_to "HI", { :freq => @freq, :county => "HI" } %> | 
-	     <%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
-	     <%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
-	     <%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
-	     <%= link_to "US", { :county => "US" } %> |
-	     <%= link_to "JP", { :county => "JP" } %>
-	  <% else # both freq and county have values%>
-	  	 Try a Different Frequency: 
-	  	 <%= link_to "A", { :freq => "A", :county => @county } %> | 
-	  	 <%= link_to "Q", { :freq => "Q", :county => @county } %> | 
-	  	 <%= link_to "M", { :freq => "M", :county => @county } %> | 
-	  	 <%= link_to "Edit this List", :action => "edit"%><br>
-	     Switch Location: 
-	     <%= link_to "HI", { :freq => @freq, :county => "HI" } %> | 
-	     <%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
-	     <%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
-	     <%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
-	     <%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
-	     <%= link_to "US", { :county => "US" } %> |
-	     <%= link_to "JP", { :county => "JP" } %>
-	  <% end %>
+		if @county.nil? # freq has value, county is nil
+			if @seasonal.nil? # freq has value, county is nil, seasonal is nil %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A" } %> | 
+				<%= link_to "Q", { :freq => "Q" } %> | 
+				<%= link_to "M", { :freq => "M" } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :freq => @freq, :county => "HI" } %> | 
+				<%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
+				<%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
+				<%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
+				<%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
+				<%= link_to "US",  { :freq => @freq, :county => "US" } %> |
+				<%= link_to "JP",  { :freq => @freq, :county => "JP" } %>
+				<br>
+				<%= link_to "Seasonal",     {:freq => @freq, :seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :seasonal => false} %>
+			<% else # freq has value, county is nil, seasonal has value %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A", :seasonal => @seasonal } %> | 
+				<%= link_to "Q", { :freq => "Q", :seasonal => @seasonal } %> | 
+				<%= link_to "M", { :freq => "M", :seasonal => @seasonal } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :freq => @freq, :county => "HI",  :seasonal => @seasonal } %> | 
+				<%= link_to "HON", { :freq => @freq, :county => "HON", :seasonal => @seasonal } %> |  
+				<%= link_to "HAW", { :freq => @freq, :county => "HAW", :seasonal => @seasonal } %> | 
+				<%= link_to "MAU", { :freq => @freq, :county => "MAU", :seasonal => @seasonal } %> | 
+				<%= link_to "KAU", { :freq => @freq, :county => "KAU", :seasonal => @seasonal } %> |
+				<%= link_to "US",  { :freq => @freq, :county => "US",  :seasonal => @seasonal } %> |
+				<%= link_to "JP",  { :freq => @freq, :county => "JP",  :seasonal => @seasonal } %>
+				<br>
+				<%= link_to "Seasonal",     {:freq => @freq, :seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :seasonal => false} %>
+			<% end %>
+		<% else # both freq and county have values
+			if @seasonal.nil? # both freq and county have values, seasonal is nil%>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A", :county => @county } %> | 
+				<%= link_to "Q", { :freq => "Q", :county => @county } %> | 
+				<%= link_to "M", { :freq => "M", :county => @county } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :freq => @freq, :county => "HI" } %> | 
+				<%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
+				<%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
+				<%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
+				<%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
+				<%= link_to "US",  { :freq => @freq, :county => "US" } %> |
+				<%= link_to "JP",  { :freq => @freq, :county => "JP" } %>
+				<br>
+				<%= link_to "Seasonal",     {:freq => @freq, :county => @county, :seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :county => @county, :seasonal => false} %>
+			<% else # all three have value %>
+				Try a Different Frequency: 
+				<%= link_to "A", { :freq => "A", :county => @county, :seasonal => @seasonal } %> | 
+				<%= link_to "Q", { :freq => "Q", :county => @county, :seasonal => @seasonal } %> | 
+				<%= link_to "M", { :freq => "M", :county => @county, :seasonal => @seasonal } %> | 
+				<%= link_to "Edit this List", :action => "edit"%><br>
+				Switch Location: 
+				<%= link_to "HI",  { :freq => @freq, :county => "HI",  :seasonal => @seasonal } %> | 
+				<%= link_to "HON", { :freq => @freq, :county => "HON", :seasonal => @seasonal } %> |  
+				<%= link_to "HAW", { :freq => @freq, :county => "HAW", :seasonal => @seasonal } %> | 
+				<%= link_to "MAU", { :freq => @freq, :county => "MAU", :seasonal => @seasonal } %> | 
+				<%= link_to "KAU", { :freq => @freq, :county => "KAU", :seasonal => @seasonal } %> |
+				<%= link_to "US",  { :freq => @freq, :county => "US",  :seasonal => @seasonal } %> |
+				<%= link_to "JP",  { :freq => @freq, :county => "JP",  :seasonal => @seasonal } %>
+				<br>
+				<%= link_to "Seasonal",     {:freq => @freq, :county => @county, :seasonal => true} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :county => @county, :seasonal => false} %>
+			<% end %>
+		<% end %>
 	<% end %>
 	<br>
 	
