@@ -46,7 +46,7 @@
 	div#frequency_selector {padding-bottom:5px;}
 
 	div#table_wrapper {width:auto;}
-	table#header_table, table#column_table {background-color: transparent;}
+	table#header_table, table#column_table {background-color: #fff;}
 	table#header_table {position:absolute;top:185px;left:8px;z-index: 10;}
 	table#column_table {position:absolute;top:186px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
 	table#column_table td {height:40px;min-height: 40px;border-collapse: separate;border-spacing: 2px;}
@@ -78,8 +78,8 @@
 				<%= link_to "US",  { :county => "US" } %> |
 				<%= link_to "JP",  { :county => "JP" } %>
 				<br>
-				<%= link_to "Seasonal",     {:seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:seasonal => false} %>
+				<%= link_to "Seasonal",     { :seasonal => "T" } %> | 
+				<%= link_to "Non-Seasonal", {:seasonal => "F"} %>
 			<% else # freq and county false, seasonal has value %>
 				Try a Different Frequency: 
 				<%= link_to "A", { :freq => "A", :seasonal => @seasonal } %> | 
@@ -95,8 +95,8 @@
 				<%= link_to "US",  { :county => "US",  :seasonal => @seasonal } %> |
 				<%= link_to "JP",  { :county => "JP",  :seasonal => @seasonal } %>
 				<br>
-				<%= link_to "Seasonal",     {:seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:seasonal => false} %>
+				<%= link_to "Seasonal",     {:seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:seasonal => "F"} %>
 			<% end %>
 		<% else # freq is nil, county has value %>
 			<% if @seasonal.nil? # freq is nil, county has value, seasonal is nil %>
@@ -114,8 +114,8 @@
 				<%= link_to "US",  { :county => "US" } %> |
 				<%= link_to "JP",  { :county => "JP" } %>
 				<br>
-				<%= link_to "Seasonal",     {:county => @county, :seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:county => @county, :seasonal => false} %>
+				<%= link_to "Seasonal",     {:county => @county, :seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:county => @county, :seasonal => "F"} %>
 			<% else # freq nil, county has value, seasonal has value %>
 				Try a Different Frequency: 
 				<%= link_to "A", { :freq => "A", :county => @county, :seasonal => @seasonal } %> | 
@@ -131,8 +131,8 @@
 				<%= link_to "US",  { :county => "US",  :seasonal => @seasonal } %> |
 				<%= link_to "JP",  { :county => "JP",  :seasonal => @seasonal } %>
 				<br>
-				<%= link_to "Seasonal",     {:county => @county, :seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:county => @county, :seasonal => false} %>
+				<%= link_to "Seasonal",     {:county => @county, :seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:county => @county, :seasonal => "F"} %>
 			<% end %>
 		<% end %>
 	<% else
@@ -152,8 +152,8 @@
 				<%= link_to "US",  { :freq => @freq, :county => "US" } %> |
 				<%= link_to "JP",  { :freq => @freq, :county => "JP" } %>
 				<br>
-				<%= link_to "Seasonal",     {:freq => @freq, :seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:freq => @freq, :seasonal => false} %>
+				<%= link_to "Seasonal",     {:freq => @freq, :seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :seasonal => "F"} %>
 			<% else # freq has value, county is nil, seasonal has value %>
 				Try a Different Frequency: 
 				<%= link_to "A", { :freq => "A", :seasonal => @seasonal } %> | 
@@ -169,8 +169,8 @@
 				<%= link_to "US",  { :freq => @freq, :county => "US",  :seasonal => @seasonal } %> |
 				<%= link_to "JP",  { :freq => @freq, :county => "JP",  :seasonal => @seasonal } %>
 				<br>
-				<%= link_to "Seasonal",     {:freq => @freq, :seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:freq => @freq, :seasonal => false} %>
+				<%= link_to "Seasonal",     {:freq => @freq, :seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :seasonal => "F"} %>
 			<% end %>
 		<% else # both freq and county have values
 			if @seasonal.nil? # both freq and county have values, seasonal is nil%>
@@ -188,8 +188,8 @@
 				<%= link_to "US",  { :freq => @freq, :county => "US" } %> |
 				<%= link_to "JP",  { :freq => @freq, :county => "JP" } %>
 				<br>
-				<%= link_to "Seasonal",     {:freq => @freq, :county => @county, :seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:freq => @freq, :county => @county, :seasonal => false} %>
+				<%= link_to "Seasonal",     {:freq => @freq, :county => @county, :seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :county => @county, :seasonal => "F"} %>
 			<% else # all three have value %>
 				Try a Different Frequency: 
 				<%= link_to "A", { :freq => "A", :county => @county, :seasonal => @seasonal } %> | 
@@ -205,8 +205,8 @@
 				<%= link_to "US",  { :freq => @freq, :county => "US",  :seasonal => @seasonal } %> |
 				<%= link_to "JP",  { :freq => @freq, :county => "JP",  :seasonal => @seasonal } %>
 				<br>
-				<%= link_to "Seasonal",     {:freq => @freq, :county => @county, :seasonal => true} %> | 
-				<%= link_to "Non-Seasonal", {:freq => @freq, :county => @county, :seasonal => false} %>
+				<%= link_to "Seasonal",     {:freq => @freq, :county => @county, :seasonal => "T"} %> | 
+				<%= link_to "Non-Seasonal", {:freq => @freq, :county => @county, :seasonal => "F"} %>
 			<% end %>
 		<% end %>
 	<% end %>

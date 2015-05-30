@@ -56,15 +56,19 @@ class DataList < ActiveRecord::Base
     end
     series_data
   end
-  
+
   def get_all_series_data_with_changes(frequency_suffix = nil, county_switch = nil, seasonal = nil)
+    puts "seasonal: #{seasonal}"
     series_data = {}
     series_names.each do |s| # gets series names map for ea series listed in data list
-      seasonal.nil? || seasonal == false ? mnemonic = s.split("@")[0].downcase.chomp("ns") : mnemonic = s.split("@")[0].downcase.chomp("ns").concat("ns")
+      mnemonic = s.split("@")[0]
+      if seasonal == "T" 
+        mnemonic = s.split("@")[0].downcase.chomp("ns")
+      elsif seasonal == "F" 
+        mnemonic = s.split("@")[0].downcase.chomp("ns").concat("ns")
+      end
       mnemonic.upcase! # for aesthetics/readability
       county_switch.nil? ? county = s.split("@")[1].split(".")[0] : county = county_switch #dt - grab county from series name
-      print "county: #{county} -- "
-      #s = s.split(".")[0] + "." + frequency_suffix unless frequency_suffix.nil?
       series_front = mnemonic + "@" + county + "."
       frequency_suffix.nil? ? s = series_front + s.split(".")[1] : s = series_front + frequency_suffix
   
