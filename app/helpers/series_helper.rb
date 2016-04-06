@@ -95,7 +95,7 @@ module SeriesHelper
   def navigation_by_letter
     html = "<br />"
     "A".upto("Z") do |letter|
-      count = Series.all(:conditions => ["name LIKE ?", "#{letter}%"]).count
+      count = Series.where("name LIKE :name", {:name => "#{letter}%"}).count
       #count = Series.where(:name => /^#{letter}/)
       if count > 0
         html += link_to raw("["+letter+"&nbsp;<span class='series_count'>#{count}</span>]"), {:action => 'index', :prefix => letter}
