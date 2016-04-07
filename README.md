@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/UHERO/udaman.png?label=ready&title=Ready)](https://waffle.io/UHERO/udaman)
 Udaman: UHERO Data Manager
 ======
 
