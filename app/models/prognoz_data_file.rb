@@ -1,7 +1,7 @@
 class PrognozDataFile < ActiveRecord::Base
   serialize :series_loaded, Hash
   
-  def PrognozDataFile.send_prognoz_update(recipients = ["jrpage@hawaii.edu", "diliaur@hawaii.edu"])
+  def PrognozDataFile.send_prognoz_update(recipients = ["jrpage@hawaii.edu"])
     folder = "/Users/uhero/Documents/data/prognoz_export/"
     filenames = ["Agriculture.xls", "CAFRCounties.xls", "Kauai.xls", "metatable_isdi.xls", "SourceDoc.xls", "TableTemplate.xls"]
     filenames.map! {|elem| folder+elem}

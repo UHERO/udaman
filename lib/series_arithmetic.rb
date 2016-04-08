@@ -158,6 +158,8 @@ module SeriesArithmetic
   #just going to leave out the 29th on leap years for now
   def day_based_yoy
     return all_nil unless ["week"].index(frequency).nil?
+    # get the yoy from the series unless there is a current data_point without yoy that should have it
+
     new_series_data = {}
     data.sort.each do |date_string, value|
       date = Date.parse(date_string)

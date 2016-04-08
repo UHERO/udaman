@@ -339,27 +339,38 @@ class Series < ActiveRecord::Base
       #puts "#{dp.date_string}: #{dp.value} (#{dp.current})"
       data_hash[dp.date_string] = dp.value if dp.current
     end
-    #puts "#{"%.2f" % (Time.now - dh_time)} : #{data_points.count} : #{self.name} : UPDATING DATA HASH FROM (ALL DATA POINTS)"    
+    #puts "#{"%.2f" % (Time.now - dh_time)} : #{data_points.count} : #{self.name} : UPDATING DATA HASH FROM (ALL DATA POINTS)"
     #s_time = Time.now
     self.save
     #puts "#{"%.2f" % (Time.now - s_time)} : #{data_hash.count} : #{self.name} : SAVING SERIES"    
   end
   
   def data
-    @data ||= data_from_datapoints
+    @data ||= extract_from_datapoints('value')
   end
   
   def data=(data_hash)
     @data = data_hash
   end
-  
-  #doesn't scale data yet
-  def data_from_datapoints
-    data_hash = {}
+
+  def yoy_hash
+    @yoy_hash ||= extract_from_datapoints('yoy')
+  end
+
+  def ytd_hash
+    @ytd_hash ||= extract_from_datapoints('ytd')
+  end
+
+  def change_hash
+    @change_hash ||= extract_from_datapoints('change')
+  end
+
+  def extract_from_datapoints(column)
+    hash = {}
     data_points.each do |dp|
-      data_hash[dp.date_string] = dp.value if dp.current
+      hash[dp.date_string] = dp[column] if dp.current
     end
-    data_hash
+    hash
   end
   
   def scaled_data_no_pseudo_history(round_to = 3)
