@@ -117,12 +117,31 @@ module SeriesArithmetic
     new_transformation("Percentage Change of #{name}", new_series_data)
   end
   
-  def absolute_change
+  def absolute_change(id=nil)
+    return faster_change(id) unless id.nil?
     new_series_data = {}
     last = nil
     data.sort.each do |date_string, value|
       new_series_data[date_string] = value - last unless last.nil?
       last = value
+    end
+    new_transformation("Absolute Change of #{name}", new_series_data)
+  end
+
+  def faster_change(id)
+    new_series_data = {}
+    sql = %[
+    SELECT t1.date_string, t1.value, t1.value - t2.last_value AS value_change
+      FROM (SELECT date_string, value, @row := @row + 1 AS row
+		    FROM data_points CROSS JOIN (SELECT @row := 0) AS init
+		    WHERE series_id = #{id} AND current = 1 ORDER BY date_string) AS t1
+      LEFT JOIN (SELECT date_string, value AS last_value, @other_row := @other_row + 1 AS row
+		    FROM data_points CROSS JOIN (SELECT @other_row := 1) AS init
+		    WHERE series_id = #{id} AND current = 1 ORDER BY date_string) AS t2
+      ON (t1.row = t2.row);
+    ]
+    self.connection.execute(sql).each(:as => :hash) do |row|
+      new_series_data[row['date_string']] = row['value_change'] unless row['value_change'].nil?
     end
     new_transformation("Absolute Change of #{name}", new_series_data)
   end
@@ -139,8 +158,8 @@ module SeriesArithmetic
     annualized_percentage_change
   end
   
-  def annualized_percentage_change
-    day_based_yoy
+  def annualized_percentage_change(id=nil)
+    day_based_yoy id
   end
   
   def old_annualized_percentage_change
@@ -156,9 +175,9 @@ module SeriesArithmetic
   end
   
   #just going to leave out the 29th on leap years for now
-  def day_based_yoy
+  def day_based_yoy(id)
     return all_nil unless ["week"].index(frequency).nil?
-    # get the yoy from the series unless there is a current data_point without yoy that should have it
+    return faster_yoy id unless id.nil?
 
     new_series_data = {}
     data.sort.each do |date_string, value|
@@ -166,6 +185,22 @@ module SeriesArithmetic
       last_year = date.year - 1
       last_year_date = last_year.to_s + date_string[4..10]
       new_series_data[date_string] = (value-data[last_year_date])/data[last_year_date]*100 unless data[last_year_date].nil?
+    end
+    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
+  end
+
+  def faster_yoy(id)
+    new_series_data = {}
+    sql = %[
+      SELECT t1.value, t1.date_string, (t1.value/t2.last_value - 1)*100 AS yoy
+      FROM (SELECT value, date_string, DATE_SUB(date_string, INTERVAL 1 YEAR) AS last_year
+            FROM data_points WHERE series_id = #{id} AND current = 1) AS t1
+      LEFT JOIN (SELECT value AS last_value, date_string
+            FROM data_points WHERE series_id = #{id} and current = 1) AS t2
+      ON (t1.last_year = t2.date_string);
+    ]
+    self.connection.execute(sql).each(:as => :hash) do |row|
+      new_series_data[row['date_string']] = row['yoy'] unless row['yoy'].nil?
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
@@ -215,8 +250,9 @@ module SeriesArithmetic
     ytd_percentage_change
   end
   
-  def ytd_percentage_change
+  def ytd_percentage_change(id=nil)
     return all_nil unless ["day", "week"].index(frequency).nil?
+    return faster_ytd(id) unless id.nil?
     new_series_data = {}
     ytd_sum = 0
     ytd_year = nil
@@ -231,6 +267,26 @@ module SeriesArithmetic
       new_series_data[date_string] = ytd_sum
     end
     new_transformation("Year to Date Percentage Change of #{name}", new_series_data).annualized_percentage_change
+  end
+
+  def faster_ytd(id)
+    new_series_data = {}
+    sql = %[
+      SELECT t1.date_string, t1.value, (t1.ytd/t2.last_ytd - 1)*100 AS ytd
+      FROM (SELECT date_string, value, @sum := IF(@year = YEAR(date_string), @sum, 0) + value AS ytd,
+            @year := year(date_string), DATE_SUB(date_string, INTERVAL 1 YEAR) AS last_year
+          FROM data_points CROSS JOIN (SELECT @sum := 0, @year := 0) AS init
+          WHERE series_id = #{id} AND current = 1 ORDER BY date_string) AS t1
+      LEFT JOIN (SELECT date_string, @sum := IF(@year = YEAR(date_string), @sum, 0) + value AS last_ytd,
+            @year := year(date_string)
+          FROM data_points CROSS JOIN (SELECT @sum := 0, @year := 0) AS init
+          WHERE series_id = #{id} AND current = 1 ORDER BY date_string) AS t2
+      ON (t1.last_year = t2.date_string);
+    ]
+    self.connection.execute(sql).each(:as => :hash) do |row|
+      new_series_data[row['date_string']] = row['ytd'] unless row['ytd'].nil?
+    end
+    new_transformation("Year to Date Percentage Change of #{name}", new_series_data)
   end
   
   def yoy_diff

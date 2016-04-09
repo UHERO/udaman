@@ -14,8 +14,8 @@ class SeriesController < ApplicationController
   def show
     @series = Series.find params[:id]
     @as = AremosSeries.get @series.name 
-    @chg = @series.annualized_percentage_change
-    @ytd_chg = @series.ytd_percentage_change
+    @chg = @series.annualized_percentage_change params[:id]
+    @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change
     @desc = @as.nil? ? "No Aremos Series" : @as.description
     
