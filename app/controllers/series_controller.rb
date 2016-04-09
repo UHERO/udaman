@@ -16,7 +16,7 @@ class SeriesController < ApplicationController
     @as = AremosSeries.get @series.name 
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
-    @lvl_chg = @series.absolute_change
+    @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? "No Aremos Series" : @as.description
     
     respond_to do |format|
