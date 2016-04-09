@@ -113,6 +113,7 @@ GEM
     net-sftp (2.1.2)
       net-ssh (>= 2.6.5)
     net-ssh (2.9.1)
+    newrelic_rpm (3.15.1.316)
     nokogiri (1.6.3.1)
       mini_portile (= 0.6.0)
     ntlm-http (0.1.1)
@@ -215,6 +216,7 @@ DEPENDENCIES
   mechanize
   mysql2 (< 0.3)
   net-sftp
+  newrelic_rpm
   nokogiri
   rails (= 3.0.19)
   roo
@@ -227,3 +229,6 @@ DEPENDENCIES
   watchr
   watir-webdriver
   whenever
+
+BUNDLED WITH
+   1.11.2
