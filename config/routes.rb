@@ -1,6 +1,8 @@
 UheroDb::Application.routes.draw do
   
 
+  get "data_points/show"
+
   root :to => "series#index"
   
   devise_for :users

@@ -1,4 +1,6 @@
 class SeriesController < ApplicationController
+  extend ::NewRelic::Agent::MethodTracer
+
   def index
 
     frequency = params.has_key?(:freq) ? params[:freq] : nil
