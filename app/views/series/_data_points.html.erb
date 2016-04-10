@@ -16,15 +16,9 @@
       date_hash
     end
 
-    def non_current_data_points
-      @series.data_points.where(:current => false)
-    end
-
     date_hash = process_missing_dates
-    ncdps = non_current_data_points
 
-
-    def display_data_points(date_hash, ncdps)
+    def display_data_points(date_hash)
       date_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
           # variables that need to be assigned because of block scoping
@@ -44,7 +38,7 @@
           bgcolor = DataSource.find(cdp.data_source_id).color rescue "FFF"
 %>
       <tr>
-        <td><%= cdp.date_string %></td>
+        <td><%= link_to cdp.date_string, controller: 'data_points', action: 'show', series_id: @series.id, date_string: cdp.date_string %></td>
         <td><span style='color:<%= a_color %>'><%= a_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= chg_value %><%= "%" if chg_value != "-" %></span></td>
@@ -54,40 +48,16 @@
           <div class='datapoint current-datapoint' style='background-color:#<%= bgcolor %>'>
             <%= "%.3f" % cdp_val %><sup><%= (Time.now.to_date - cdp.created_at.to_date).to_i %><%="(ph)" if cdp.pseudo_history %></sup>
           </div>
-<%
-          previous_data_points = []
-          dp_count = 0
-          dp_val, bgcolor, pdp_sort = nil
-          self.class.trace_execution_scoped(['Custom/data_points_partial/part_1']) do
-          # ncdps.each {|dp| previous_data_points.push(dp) if dp.date_string == cdp.date_string}
-          end
-          self.class.trace_execution_scoped(['Custom/data_points_partial/part_2']) do
-          pdp_sort = previous_data_points.sort {|dp1, dp2| dp2.created_at <=> dp1.created_at}
-          end
-          self.class.trace_execution_scoped(['Custom/data_points_partial/part_3']) do
-          pdp_sort.each do |dp|
-            dp_count += 1
-            break if dp_count > 7
-            dp_val = dp.value / @series.units
-            bgcolor = DataSource.find(dp.data_source_id).color rescue "FFF"
-%>
-							<div class='datapoint' style='background-color:#<%= bgcolor %>'>
-								<%= "%.3f" % dp_val %><sup><%= (Time.now.to_date - dp.created_at.to_date).to_i %><%="(ph)" if dp.pseudo_history %></sup>
-							</div>
-<%
-          end
-%>
-            </span>
+          </span>
         </td>
       </tr>
 <%
-          end
 
         else
           a_color = element == 1000000000000000.0 ? "gray" : "red"
 %>
       <tr>
-        <td><%= date_string %></td>
+        <td><%= link_to date_string, controller: 'data_points', action: 'show', series_id: @series.id, date_string: date_string %></td>
         <td><span style='color:<%= a_color %>'><%= element %></span></td>
         <td></td>
         <td style="text-align:center"><span style='color:red'> - </span></td>
@@ -98,7 +68,7 @@
     end
 
     # self.class.trace_execution_scoped(['Custom/data_points_partial/display_data_points']) do
-    display_data_points(date_hash, ncdps)
+    display_data_points(date_hash)
     # end
 %>
 	<tr>
