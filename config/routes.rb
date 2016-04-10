@@ -1,8 +1,10 @@
 UheroDb::Application.routes.draw do
   
 
-  root :to => "series#index"
-  
+  get 'data_points/:series_id/:date_string' => 'data_points#show'
+
+  root :to => 'series#index'
+
   devise_for :users
 
   # get "prognoz_data_files/index"

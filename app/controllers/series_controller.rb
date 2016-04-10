@@ -1,4 +1,5 @@
 class SeriesController < ApplicationController
+
   def index
 
     frequency = params.has_key?(:freq) ? params[:freq] : nil
