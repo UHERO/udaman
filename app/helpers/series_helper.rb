@@ -48,13 +48,13 @@ module SeriesHelper
   end
   
   def gct_datapoints(series)
-  arr = series.data.keys.sort
-  html =""
-  arr.each do |key|
-    html += "['#{key}',#{series.data[key]}]," unless series.data[key].nil?
-  end
-  #html += "['hi',10.0], ['bye', 30.0],"
-  return html.chop
+    arr = series.data.keys.sort
+    html =""
+    arr.each do |key|
+      html += "['#{key}',#{series.data[key]}]," unless series.data[key].nil?
+    end
+    #html += "['hi',10.0], ['bye', 30.0],"
+    return html.chop
   end
   
   def linked_version(description)
@@ -114,7 +114,6 @@ module SeriesHelper
     end
     count = Series.count
 	  html += link_to raw("all&nbsp;<span class='series_count'>#{count}</span>") , {:action => 'index', :all => 'true'}
-		
   end
 end
 
