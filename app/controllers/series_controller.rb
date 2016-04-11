@@ -1,5 +1,4 @@
 class SeriesController < ApplicationController
-  extend ::NewRelic::Agent::MethodTracer
 
   def index
 

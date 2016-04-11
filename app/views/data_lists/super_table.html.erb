@@ -63,8 +63,9 @@
 <div id="frequency_selector">
 	<% if @freq.nil?
 		if @county.nil? # both are nil
-			if @seasonal.nil? # all are nil %>
-				Try a Different Frequency: 
+			if @seasonal.nil? # all are nil
+  %>
+				Try a Different Frequency:
 				<%= link_to "A", { :freq => "A" } %> | 
 				<%= link_to "Q", { :freq => "Q" } %> | 
 				<%= link_to "M", { :freq => "M" } %> | 
@@ -80,7 +81,8 @@
 				<br>
 				<%= link_to "Seasonal",     { :seasonal => "T" } %> | 
 				<%= link_to "Non-Seasonal", {:seasonal => "F"} %>
-			<% else # freq and county false, seasonal has value %>
+			<%
+        else # freq and county false, seasonal has value %>
 				Try a Different Frequency: 
 				<%= link_to "A", { :freq => "A", :seasonal => @seasonal } %> | 
 				<%= link_to "Q", { :freq => "Q", :seasonal => @seasonal } %> | 
@@ -302,7 +304,7 @@
 	}
 
 	var all_data = <%= 
-	
+
 		if @freq.nil?
 	      if @county.nil?
 	    	if @seasonal.nil?

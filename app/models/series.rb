@@ -387,8 +387,15 @@ class Series < ActiveRecord::Base
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == "TGB" #hack for the tax scaling. Should not save units
-    data_points.each do |dp|
-      data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current
+    # data_points.each do |dp|
+    #   data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current
+    # end
+    sql = %[
+      SELECT round(value/#{self.units}, #{round_to}) AS value, date_string
+      FROM data_points WHERE series_id = #{self.id} AND current = 1;
+    ]
+    self.connection.execute(sql).each(:as => :hash) do |row|
+      data_hash[row['date_string']] = row['value']
     end
     data_hash
   end

@@ -154,8 +154,8 @@ module SeriesArithmetic
     new_transformation("All nil for dates in #{name}", new_series_data)
   end
   
-  def yoy
-    annualized_percentage_change
+  def yoy(id=nil)
+    annualized_percentage_change id
   end
   
   def annualized_percentage_change(id=nil)
@@ -246,8 +246,8 @@ module SeriesArithmetic
     new_transformation("Year to Date sum of #{name}", new_series_data)
   end
   
-  def ytd
-    ytd_percentage_change
+  def ytd(id=nil)
+    ytd_percentage_change id
   end
   
   def ytd_percentage_change(id=nil)
@@ -293,13 +293,30 @@ module SeriesArithmetic
     annual_diff
   end
   
-  def scaled_yoy_diff
+  def scaled_yoy_diff(id=nil)
+    return faster_scaled_yoy_diff(id) unless id.nil?
     new_series_data = {}
     last = {}
     scaled_data.sort.each do |date_string, value|
       month = Date.parse(date_string).month
       new_series_data[date_string] = (value-last[month]) unless last[month].nil?
       last[Date.parse(date_string).month] = value
+    end
+    new_transformation("Scaled year over year diff of #{name}", new_series_data)
+  end
+
+  def faster_scaled_yoy_diff(id)
+    new_series_data = {}
+    sql = %[
+      SELECT t1.value, t1.date_string, t1.value - t2.last_value AS yoy_diff
+      FROM (SELECT value, date_string, DATE_SUB(date_string, INTERVAL 1 YEAR) AS last_year
+            FROM data_points WHERE series_id = #{id} AND current = 1) AS t1
+      LEFT JOIN (SELECT value AS last_value, date_string
+            FROM data_points WHERE series_id = #{id} and current = 1) AS t2
+      ON (t1.last_year = t2.date_string);
+    ]
+    self.connection.execute(sql).each(:as => :hash) do |row|
+      new_series_data[row['date_string']] = row['yoy_diff'] unless row['yoy_diff'].nil?
     end
     new_transformation("Scaled year over year diff of #{name}", new_series_data)
   end

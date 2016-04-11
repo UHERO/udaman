@@ -1,4 +1,6 @@
 class DataListsController < ApplicationController
+
+
   # GET /data_lists
   # GET /data_lists.xml
   def index
