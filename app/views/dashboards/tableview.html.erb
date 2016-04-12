@@ -23,13 +23,13 @@ span.lighten {color:#AAA;}
 		series = s.ts
 		next if series.nil? or series.data.length == 0
 		plot_data = series.get_values_after(@start_date)
-		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1]
+		ytd = series.ytd_percentage_change(series.id).get_values_after(@start_date).sort[-1][1]
  		dates = plot_data.keys.sort
 		ytd_abs = plot_data[dates[-1]] - plot_data["#{dates[-1][0..3]}-01-01"] rescue nil
 		series_table_data[s] = {
 			:series => s.ts,
-			:s_chg_data => series.annualized_percentage_change.get_values_after(@start_date),
-			:a_chg_data => series.absolute_change.get_values_after(@start_date),
+			:s_chg_data => series.annualized_percentage_change(series.id).get_values_after(@start_date),
+			:a_chg_data => series.absolute_change(series.id).get_values_after(@start_date),
 	    	:ytd => ytd,
 			:ytd_abs => ytd_abs,
 			:a_series => AremosSeries.get(s),
