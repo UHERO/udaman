@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'rails', '3.0.19'
+gem 'rails', '4.2.6'
 
 # Application Monitoring
 gem 'newrelic_rpm'
@@ -15,16 +15,16 @@ gem 'rvm-capistrano'
 gem 'capistrano-rails', '~> 1.1'
 gem 'capistrano-bundler', '~> 1.1.3'
 gem 'capistrano', '~> 3.1'
-gem  'highline', '~> 1.6.0'
-gem 'mysql2', '< 0.3'
+gem 'highline', '~> 1.6.0'
+gem 'mysql2', '~> 0.4'
 gem 'roo'
 #gem 'fastercsv'
 gem 'httpclient'
-gem 'devise', '1.1.2'
+gem 'devise', '~> 3.5'
 gem 'spork', '~> 0.9.0.rc'
 gem 'rubyzip', '~> 1.0'
 gem 'capybara',  '2.0.3'
-gem "selenium-webdriver", "~> 2.39.0"
+gem 'selenium-webdriver', '~> 2.39.0'
 #gem 'watir'
 gem 'watir-webdriver'
 #gem 'watir-webdriver-rails'
@@ -33,6 +33,14 @@ gem 'mechanize'
 gem 'net-sftp'
 # Use unicorn as the web server
 # gem 'unicorn'
+
+# Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
+# gem 'prototype-rails', '~> 4.0' # removed rjs reference instead
+gem 'devise-encryptable', '~> 0.2'
+gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/17371334/how-is-attr-accessible-used-in-rails-4
+gem 'sass-rails',   '~> 5.0'
+gem 'coffee-rails', '~> 4.1'
+gem 'uglifier', '~> 3.0'
 
 # Deploy with Capistrano
 # gem 'capistrano'

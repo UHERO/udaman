@@ -1,11 +1,11 @@
 development:
     adapter: mysql2
-    host: <%= ENV['DATABASE_URL'] || 'localhost' %>
+    host: localhost
     encoding: utf8
     database: uhero_db_dev
     pool: 5
-    username: <%= ENV['UDAMAN_DB_USER'] || 'root' %>
-    password: <%= ENV['UDAMAN_DB_PW'] %>
+    username: root
+    password:
     socket: /tmp/mysql.sock
 
 # Warning: The database defined as "test" will be erased and
@@ -13,6 +13,7 @@ development:
 # Do not set this db to the same as development or production.
 test: &test
     adapter: mysql2
+    host: localhost
     encoding: utf8
     database: uhero_db_test
     pool: 5
@@ -26,8 +27,8 @@ production:
     encoding: utf8
     database: uhero_db_dev
     pool: 5
-    username: <%= ENV['UDAMAN_DB_USER'] || 'root' %>
-    password: <%= ENV['UDAMAN_DB_PW'] %>
+    username: root
+    password:
     socket: /tmp/mysql.sock
 
 cucumber:
