@@ -36,6 +36,7 @@ UheroDb::Application.configure do
 
   # Enable delivery errors, bad email addresses will be ignored
   config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.default_url_options = { host: 'udaman.uhero.hawaii.edu'}
 
   # Enable threaded mode
   # config.threadsafe!
