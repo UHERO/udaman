@@ -14,11 +14,11 @@ class DataSourceDownloadsController < ApplicationController
   end
 
   def show
-    @output_file = DataSourceDownload.find params[:id]
+    @output_file = DataSourceDownload.find_by id: params[:id]
   end
 
   def edit
-    @output_file = DataSourceDownload.find params[:id]
+    @output_file = DataSourceDownload.find_by id: params[:id]
   end
   
   def create
@@ -33,7 +33,7 @@ class DataSourceDownloadsController < ApplicationController
   end
   
   def update
-    @output_file = DataSourceDownload.find params[:id]
+    @output_file = DataSourceDownload.find_by id: params[:id]
     post_params = params[:data_source_download].delete(:post_parameters)
     respond_to do |format|
       if @output_file.update_attributes(params[:data_source_download])
@@ -51,13 +51,13 @@ class DataSourceDownloadsController < ApplicationController
   end
   
   def destroy
-    @output_file = DataSourceDownload.find params[:id]
+    @output_file = DataSourceDownload.find_by id: params[:id]
     @output_file.destroy    
     redirect_to :action => 'index'
   end
   
   def download
-    @output_file = DataSourceDownload.find params[:id]
+    @output_file = DataSourceDownload.find_by id: params[:id]
     respond_to do |format|
       begin
         @output_file.download 

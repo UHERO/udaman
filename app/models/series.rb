@@ -215,7 +215,7 @@ class Series < ActiveRecord::Base
   def Series.get(series_name)  
     headerparts = series_name.split(".")
     if (headerparts.count == 2)
-      name_match = Series.first :conditions => {:name=>series_name} #exact name_match
+      name_match = Series.where(:name => series_name).first #exact name_match
       return name_match #unless name_match.nil?
       #return Series.first :conditions => {:name=>headerparts[0], :frequency=>frequency_from_code(headerparts[1])} #same base name and correct frequency
     else

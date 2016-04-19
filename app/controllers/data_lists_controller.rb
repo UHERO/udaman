@@ -15,7 +15,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/1
   # GET /data_lists/1.xml
   def show
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
 
     respond_to do |format|
       format.csv { render :layout => false }
@@ -28,7 +28,7 @@ class DataListsController < ApplicationController
     @freq = params[:freq]
     @county = params[:county]
     @seasonal = params[:seasonal]
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     # @series_to_chart = @data_list.series_names
     # frequency = @series_to_chart[0][-1]
     # dates = set_dates(frequency, params)
@@ -38,7 +38,7 @@ class DataListsController < ApplicationController
   end
   
   def show_table
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @series_to_chart = @data_list.series_names
     frequency = @series_to_chart[0][-1]
     dates = set_dates(frequency, params)
@@ -50,14 +50,14 @@ class DataListsController < ApplicationController
 
 #NOTE DATA LIST NEEDS TO BE ALL CAPS... SOMETHING TO FIX. Not the case for regular super table
   def show_tsd_super_table
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     render "tsd_super_tableview"
   end
   
   def show_tsd_table
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     @series_to_chart = @data_list.series_names
@@ -69,7 +69,7 @@ class DataListsController < ApplicationController
   end
   
   def analyze_view
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
@@ -85,12 +85,12 @@ class DataListsController < ApplicationController
   end
   
   def compare_forecasts
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
   end
   
   def compare_view
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @tsd_file1 = "heco14.TSD"
     @tsd_file2 = "13Q4.TSD"
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
@@ -120,7 +120,7 @@ class DataListsController < ApplicationController
 
   # GET /data_lists/1/edit
   def edit
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
   end
 
   # POST /data_lists
@@ -142,7 +142,7 @@ class DataListsController < ApplicationController
   # PUT /data_lists/1
   # PUT /data_lists/1.xml
   def update
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
 
     respond_to do |format|
       if @data_list.update_attributes(params[:data_list])
@@ -158,7 +158,7 @@ class DataListsController < ApplicationController
   # DELETE /data_lists/1
   # DELETE /data_lists/1.xml
   def destroy
-    @data_list = DataList.find(params[:id])
+    @data_list = DataList.find_by id: params[:id]
     @data_list.destroy
 
     respond_to do |format|

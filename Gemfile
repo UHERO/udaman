@@ -41,6 +41,7 @@ gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/173713
 gem 'sass-rails',   '~> 5.0'
 gem 'coffee-rails', '~> 4.1'
 gem 'uglifier', '~> 3.0'
+gem 'jquery-rails', '~> 4.1'
 
 # Deploy with Capistrano
 # gem 'capistrano'

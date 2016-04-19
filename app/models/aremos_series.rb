@@ -10,7 +10,7 @@ class AremosSeries < ActiveRecord::Base
     end
 
     def AremosSeries.get(name)
-      AremosSeries.first(:conditions => {:name => name})
+      AremosSeries.where(:name => name).first
     end
 
     def AremosSeries.search(search)      
