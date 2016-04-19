@@ -8,4 +8,10 @@ Rails.application.config.assets.version = '1.0'
 
 # Precompile additional assets.
 # application.js, application.css, and all non-JS/CSS in app/assets folder are already added.
-Rails.application.config.assets.precompile += %w( jquery-ui.css ui/jquery-ui.js )
+Rails.application.config.assets.precompile += %w(
+  humblefinance/hsd.js humblefinance/base64.js humblefinance/canvas2image.js humblefinance/canvastext.js
+  humblefinance/data.js humblefinance/demo.js humblefinance/excanvas.js humblefinance/Finance.js
+  humblefinance/flotr.js humblefinance/HumbleFinance.js humblefinance/prototype.min.js
+)
+
+# Rails.application.config.assets.paths << Rails.root.join('vendor', 'assets', 'images')

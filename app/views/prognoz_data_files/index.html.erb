@@ -9,7 +9,7 @@
 	div#all_charts {clear:both;}
 </style>
 
-<h1>Prognoz Output Files</h2>
+<h1>Prognoz Output Files</h1>
 <p><%= link_to "Export" , "/send_prognoz_export" %></p>
 <p>
 <% @output_files.each do |data_file| %>
@@ -24,14 +24,14 @@
 
 	
 
-<script type="text/javascript" src="/javascripts/d3.v2.js"></script>
+
+  <%= javascript_include_tag 'd3.v2.min' %>
 <script type="text/javascript">
 
-	var pdf_labels = {
-		<%@output_files.each do |data_file|%>
-		<%= data_file.id%>:"<%=data_file.name%>",
-		<%end%>	
-	};
+	var pdf_labels = {};
+  <%@output_files.each do |data_file|%>
+    pdf_labels[<%= data_file.id%>] = "<%=data_file.name%>";
+  <%end%>
 	var params = {
 		scale: 1,
 		viz_data: [],
@@ -39,7 +39,7 @@
 		h: 10,
 		left_margin: 100,
 		space: 0,
-		export: function () {},
+		export: function () {}
 	};
 
 	function pf(num) {
