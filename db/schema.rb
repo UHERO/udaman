@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160419203702) do
+ActiveRecord::Schema.define(version: 20160420235231) do
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -146,6 +146,7 @@ ActiveRecord::Schema.define(version: 20160419203702) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.text     "investigation_notes",     limit: 65535
+    t.integer  "dependency_depth",        limit: 4
   end
 
   add_index "series", ["name"], name: "index_series_on_name", using: :btree

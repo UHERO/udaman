@@ -90,7 +90,7 @@ module SeriesComparison
     self.aremos_diff = 0
     self.aremos_temp = "ewfe"
     sources = self.data_sources_by_last_run
-    prognoz_data_file = PrognozDataFile.find prognoz_data_file_id
+    prognoz_data_file = PrognozDataFile.find_by id: prognoz_data_file_id
     aremos_series = AremosSeries.get self.name
     p_filename = prognoz_data_file.nil? ? "N/A" : prognoz_data_file.filename  
     p_data = prognoz_data_file_id.nil? ? {} : prognoz_data_file.get_data_for(self.name)
@@ -122,7 +122,7 @@ module SeriesComparison
   def prognoz_data_results
     sources = self.data_sources_by_last_run
     self.mult ||= 1
-    prognoz_data_file = PrognozDataFile.find prognoz_data_file_id
+    prognoz_data_file = PrognozDataFile.find_by id: prognoz_data_file_id
     if prognoz_data_file.nil?
       results = {}
       self.data.each do |datestring, value|

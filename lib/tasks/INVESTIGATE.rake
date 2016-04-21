@@ -82,7 +82,7 @@ task :gen_investigate_csv => :environment do
   CSV.open("public/dp_added.csv", "wb") do |csv|        
     csv << ["series_name", "series_id", "new_datapoints_added"]
     dps.each do |series_id,count| 
-      csv << [Series.find(series_id).name, series_id, count]
+      csv << [Series.find_by(id: series_id).name, series_id, count]
     end
   end
   
@@ -127,7 +127,7 @@ task :gen_daily_summary => :environment do
   CSV.open("public/dp_added.csv", "wb") do |csv|        
     csv << ["series_name", "series_id", "new_datapoints_added"]
     dps.each do |series_id,count| 
-      csv << [Series.find(series_id).name, series_id, count]
+      csv << [Series.find_by(id: series_id).name, series_id, count]
     end
   end
   

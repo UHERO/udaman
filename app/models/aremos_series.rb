@@ -15,7 +15,7 @@ class AremosSeries < ActiveRecord::Base
 
     def AremosSeries.search(search)      
       search_condition = "%" + search + "%"
-      find(:all, :conditions => ['name LIKE ? OR description LIKE ?', search_condition, search_condition], :order =>:name)
+      where('name LIKE ? OR description LIKE ?', search_condition, search_condition).order :name
     end
     
     def AremosSeries.web_search(search)

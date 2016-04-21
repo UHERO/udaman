@@ -731,7 +731,7 @@ class Series < ActiveRecord::Base
     source_array = []
     
     data_sources.each { |ds| source_array.push ds.id }  
-    source_array.each_index {|index| puts "(#{index}) #{DataSource.find(source_array[index]).eval}"}
+    source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
     data_points.each do |dp|  
       data_hash[dp.date_string] ||= []
       data_hash[dp.date_string].push("#{"H" unless dp.history.nil?}#{"|" unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10," "))
@@ -931,5 +931,8 @@ class Series < ActiveRecord::Base
     results
     
   end
-  
+
+  def Series.assign_dependency_depth
+
+  end
 end

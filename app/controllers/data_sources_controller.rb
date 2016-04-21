@@ -21,7 +21,7 @@ class DataSourcesController < ApplicationController
   
   def new
     #params.each { |key,value| puts "#{key}: #{value}" }
-    @series = Series.find(params[:series_id])
+    @series = Series.find_by id: params[:series_id]
     @data_source = DataSource.new(:series_id => @series.id)
   end
 

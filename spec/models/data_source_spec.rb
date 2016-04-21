@@ -50,8 +50,8 @@ describe DataSource do
     dps0.count.should == @data1_no_nil.count
     dps1.count.should == @data2_no_nil.count
         
-    DataPoint.find(dps0[0].id).should_not be_nil
-    DataPoint.find(dps1[0].id).should_not be_nil
+    DataPoint.find_by(id: dps0[0].id).should_not be_nil
+    DataPoint.find_by(id: dps1[0].id).should_not be_nil
     ds1.delete
     "YSTWTR@HI.A".ts.data_sources.count.should == 1
 #    "YSTWTR@HI.A".ts.print_data_points
@@ -61,8 +61,8 @@ describe DataSource do
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
     ds0.data_points.count.should == @data1_no_nil.count
     
-    DataPoint.where(:id => dps1[0].id).first.should be_nil
-    DataPoint.find(dps0[0].id).should_not be_nil
+    DataPoint.find_by(:id => dps1[0].id).first.should be_nil
+    DataPoint.find_by(dps0[0].id).should_not be_nil
   end
     
 

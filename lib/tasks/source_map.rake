@@ -32,6 +32,7 @@ end
 
 task :reload_all_series => :environment do
   t = Time.now
+  # this doesn't do what it was supposed to do
   circular = Series.find_first_order_circular
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["circular reference check", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 
