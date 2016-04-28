@@ -934,8 +934,15 @@ class Series < ActiveRecord::Base
 
   def Series.assign_dependency_depth
     # reset dependency_depth
+    ActiveRecord::Base.connection.execute('UPDATE series s SET dependency_depth = 0;')
+    
+    # first level of dependencies
+    first_level_sql = "UPDATE series s SET dependency_depth = 1
+      WHERE EXISTS (SELECT 1 FROM data_sources ds  WHERE ds.`dependencies` LIKE CONCAT('% ', s.`name`, '%'));"
+    ActiveRecord::Base.connection.execute(first_level_sql)
 
-# -- query for first round of setting dependency_depth
+
+    # -- query for first round of setting dependency_depth
 #     UPDATE series s SET dependency_depth = 1
 #     WHERE EXISTS (SELECT 1 FROM data_sources ds  WHERE ds.`dependencies` LIKE CONCAT('% ', s.`name`, '%'));
 #
