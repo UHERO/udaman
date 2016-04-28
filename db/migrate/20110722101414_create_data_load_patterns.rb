@@ -1,6 +1,6 @@
 class CreateDataLoadPatterns < ActiveRecord::Migration
   def self.up
-    create_table :data_load_patterns do |t|
+    create_table :data_load_patterns unless table_exists? :data_load_patterns do |t|
       t.string :start_date
       t.string :frequency
       t.string :path
@@ -15,6 +15,6 @@ class CreateDataLoadPatterns < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :data_load_patterns
+    drop_table :data_load_patterns if table_exists? :data_load_patterns
   end
 end

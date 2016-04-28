@@ -1,6 +1,6 @@
 class CreatePrognozDataFiles < ActiveRecord::Migration
   def self.up
-    create_table :prognoz_data_files do |t|
+    create_table :prognoz_data_files unless table_exists? :prognoz_data_files do |t|
       t.string :name
       t.string :filename
       t.string :frequency
@@ -15,6 +15,6 @@ class CreatePrognozDataFiles < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :prognoz_data_files
+    drop_table :prognoz_data_files if table_exists? :prognoz_data_files
   end
 end

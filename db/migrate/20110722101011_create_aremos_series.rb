@@ -1,6 +1,6 @@
 class CreateAremosSeries < ActiveRecord::Migration
   def self.up
-    create_table :aremos_series do |t|
+    create_table :aremos_series unless table_exists? :aremos_series do |t|
       t.string :name
       t.string :frequency
       t.string :description
@@ -15,6 +15,6 @@ class CreateAremosSeries < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :aremos_series
+    drop_table :aremos_series if table_exists? :aremos_series
   end
 end

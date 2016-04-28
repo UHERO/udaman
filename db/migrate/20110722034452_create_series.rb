@@ -1,6 +1,6 @@
 class CreateSeries < ActiveRecord::Migration
   def self.up
-    create_table :series do |t|
+    create_table :series unless table_exists? :series do |t|
       t.string :name
       t.string :frequency
       t.string :description
@@ -20,6 +20,6 @@ class CreateSeries < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :series
+    drop_table :series if table_exists? :series
   end
 end

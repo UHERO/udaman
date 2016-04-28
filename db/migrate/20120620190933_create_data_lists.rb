@@ -1,6 +1,6 @@
 class CreateDataLists < ActiveRecord::Migration
   def self.up
-    create_table :data_lists do |t|
+    create_table :data_lists unless table_exists? :data_lists do |t|
       t.string :name
       t.text :list
       t.integer :startyear
@@ -13,6 +13,6 @@ class CreateDataLists < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :data_lists
+    drop_table :data_lists if table_exists? :data_lists
   end
 end

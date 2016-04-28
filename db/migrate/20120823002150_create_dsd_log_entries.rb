@@ -1,6 +1,6 @@
 class CreateDsdLogEntries < ActiveRecord::Migration
   def self.up
-    create_table :dsd_log_entries do |t|
+    create_table :dsd_log_entries unless table_exists? :dsd_log_entries do |t|
       t.integer :data_source_download_id
       t.datetime :time
       t.string :url
@@ -14,6 +14,6 @@ class CreateDsdLogEntries < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :dsd_log_entries
+    drop_table :dsd_log_entries if table_exists? :dsd_log_entries
   end
 end
