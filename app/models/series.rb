@@ -933,6 +933,20 @@ class Series < ActiveRecord::Base
   end
 
   def Series.assign_dependency_depth
-
+# -- query for first round of setting dependency_depth
+#     UPDATE series s SET dependency_depth = 1
+#     WHERE EXISTS (SELECT 1 FROM data_sources ds  WHERE ds.`dependencies` LIKE CONCAT('% ', s.`name`, '%'));
+#
+# -- query for subsequent rounds
+# -- The extra (SELECT * FROM series) is required due to some issue with MySQL
+# -- See the following stackoverflow: http://stackoverflow.com/questions/4429319/you-cant-specify-target-table-for-update-in-from-clause
+# UPDATE series s SET dependency_depth = 2
+# WHERE EXISTS (SELECT 1 FROM data_sources ds
+# JOIN (SELECT * FROM series) inner_s ON ds.series_id = inner_s.id
+# WHERE inner_s.dependency_depth = 1
+# AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\%'), '%'));
+#
+# -- query for data_sources in a given round
+# select id from data_sources where series_id in (select id from series where dependency_depth = 17);
   end
 end
