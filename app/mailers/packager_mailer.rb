@@ -93,4 +93,14 @@ class PackagerMailer < ActionMailer::Base
       mail(:to => ["jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.prognoz_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
+
+  def circular_series_notification(series)
+    begin
+      @series = series
+      mail(to: ["jrpage@hawaii.edu"], subject: "Circular Series")
+    rescue => e
+      puts e.message
+      mail(:to => ["jrpage@hawaii.edu"], :subject => "PackageMailer.circular_series_notification error", :body => e.message, :content_type => "text/plain")
+    end
+  end
 end
