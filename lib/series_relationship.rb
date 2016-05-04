@@ -80,13 +80,13 @@ module SeriesRelationship
     dependent_names.each do |s_name|
       all_dependents.concat(s_name.ts.recursive_dependents(already_seen))
     end
-    return all_dependents    
+    all_dependents
   end
 
   #not recursive
   def new_dependents
     results = []
-    DataSource.all(:conditions => ["description LIKE ?", "% #{self.name.gsub("%", "\\%")}%"]).each do |ds|
+    DataSource.where("description LIKE ?", "% #{self.name.gsub("%", "\\%")}%").each do |ds|
       s = Series.find_by id: ds.series_id
       results.push s.name
     end

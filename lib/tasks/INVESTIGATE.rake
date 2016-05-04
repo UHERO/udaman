@@ -78,7 +78,7 @@ task :gen_investigate_csv => :environment do
   
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where("created_at > FROM_DAYS(TO_DAYS(NOW()))").count(:all, :group=> :series_id)
+  dps = DataPoint.where("created_at > FROM_DAYS(TO_DAYS(NOW()))").group(:series_id).count
   CSV.open("public/dp_added.csv", "wb") do |csv|        
     csv << ["series_name", "series_id", "new_datapoints_added"]
     dps.each do |series_id,count| 

@@ -68,6 +68,7 @@ every 1.day, :at => "#{hour.to_i+5}:30 am" do
   rake "gen_investigate_csv"
 end
 
+#TODO continue from here
 every 1.day, :at => "#{hour.to_i+5}:40 am" do
   rake "gen_prognoz_diffs"
 end

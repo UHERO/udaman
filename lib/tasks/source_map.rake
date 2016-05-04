@@ -32,23 +32,18 @@ end
 
 task :reload_all_series => :environment do
   t = Time.now
-  # this doesn't do what it was supposed to do
-  circular = Series.find_first_order_circular
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["circular reference check", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  DataSource.set_dependencies
+  Series.assign_dependency_depth
+  errors = Series.reload_by_dependency_depth
+  eval_statements = DataSource.order(:last_run_in_seconds).map {|ds| ds.get_eval_statement unless ds.series.nil?}
 
-  t = Time.now
-  series_to_refresh = Series.all_names - circular.uniq
-  #series_to_refresh = ["VEXP@HI.M"]
-  eval_statements = []
-  errors = []
-  Series.run_all_dependencies(series_to_refresh, {}, errors, eval_statements)
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["complete series reload", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
   File.open('lib/tasks/REBUILD.rb', 'w') {|file| eval_statements.each {|line| file.puts(line)} }
 
   #719528 is 1970-01-01 in mysql days, -10 does the adjustment for HST
   inactive_ds = DataSource.where("FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))").order(:last_run_in_seconds)
 
-  DataLoadMailer.series_refresh_notification(circular, inactive_ds, eval_statements.count, errors).deliver  
+  DataLoadMailer.series_refresh_notification(nil, inactive_ds, eval_statements.count, errors).deliver
 end
 
 task :reload_hiwi_series_only => :environment do
