@@ -37,14 +37,12 @@ module SeriesDataLists
   end
   
   def Series.write_prognoz_output_file(list, output_path, worksheet_name, sheet_dates)
-    require 'iconv'
     series_data = grab_scaled_data_no_pseudo_history(list, sheet_dates[0])
     xls = prep_prognoz_xls list, series_data, output_path, worksheet_name, sheet_dates
     return write_xls xls, output_path
   end
   
   def Series.write_data_list(list, output_path, start_date = "1900-01-01")
-    require 'iconv'
     series_data = grab_data(list, start_date)
     xls = prep_xls series_data, output_path
     write_xls_text(series_data, output_path)

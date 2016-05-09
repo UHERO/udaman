@@ -1,4 +1,3 @@
-require 'iconv'
 require 'roo'
 
 class UpdateSpreadsheet < Roo::Excel
@@ -6,7 +5,7 @@ class UpdateSpreadsheet < Roo::Excel
   
   def UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_name)
     name = update_spreadsheet_name.strip
-    return UpdateCSV.new name if name[-3..-1] == "csv"
+    return UpdateCSV.new name if name[-3..-1] == 'csv'
     return UpdateSpreadsheet.new name
   end
   
