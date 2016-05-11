@@ -138,7 +138,7 @@ class DataSource < ActiveRecord::Base
     end
     
     def create_from_form
-      Series.eval Series.find(self.series_id).name, self.eval
+      Series.eval Series.find_by(id: self.series_id).name, self.eval
       return true
     end
 
@@ -192,7 +192,7 @@ class DataSource < ActiveRecord::Base
     end
     
     def DataSource.delete_related_sources_except(ids)
-      ds_main = DataSource.find(ids[0])
+      ds_main = DataSource.find_by(id: ids[0])
       s = ds_main.series
       s.data_sources_by_last_run.each {|ds| ds.delete if ids.index(ds.id).nil?}
     end
@@ -229,7 +229,7 @@ class DataSource < ActiveRecord::Base
     end
 
     def series
-      Series.find self.series_id
+      Series.find_by id: self.series_id
     end
 
     def get_eval_statement

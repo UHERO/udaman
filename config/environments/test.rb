@@ -32,4 +32,11 @@ UheroDb::Application.configure do
 
   # Print deprecation notices to the stderr
   config.active_support.deprecation = :stderr
+
+  # Recommended with the upgrade to Rails 4.2 and Ruby 2.3.0
+  config.eager_load = false
+  config.assets.compile = true
+  config.assets.compress = false
+  config.assets.debug = false
+  config.assets.digest = false
 end

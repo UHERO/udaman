@@ -1,38 +1,38 @@
 source 'http://rubygems.org'
 
-gem 'rails', '3.0.19'
+gem 'rails', '4.2.6'
 
 # Application Monitoring
 gem 'newrelic_rpm'
 
-# Bundle edge Rails instead:
-# gem 'rails', :git => 'git://github.com/rails/rails.git'
-
-#gem 'sqlite3'
 gem 'capistrano-rvm'
 gem 'rvm-capistrano'
-# gem 'rvm1-capistrano3', require: false
 gem 'capistrano-rails', '~> 1.1'
 gem 'capistrano-bundler', '~> 1.1.3'
 gem 'capistrano', '~> 3.1'
-gem  'highline', '~> 1.6.0'
-gem 'mysql2', '< 0.3'
+gem 'highline', '~> 1.6.0'
+gem 'mysql2', '~> 0.4'
 gem 'roo'
-#gem 'fastercsv'
+gem 'roo-xls'
 gem 'httpclient'
-gem 'devise', '1.1.2'
 gem 'spork', '~> 0.9.0.rc'
 gem 'rubyzip', '~> 1.0'
 gem 'capybara',  '2.0.3'
-gem "selenium-webdriver", "~> 2.39.0"
-#gem 'watir'
+gem 'selenium-webdriver'
 gem 'watir-webdriver'
-#gem 'watir-webdriver-rails'
 gem 'whenever'
 gem 'mechanize'
 gem 'net-sftp'
-# Use unicorn as the web server
-# gem 'unicorn'
+
+# Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
+#gem 'devise-encryptable', '~> 0.2'
+gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/17371334/how-is-attr-accessible-used-in-rails-4
+gem 'sass-rails',   '~> 5.0'
+gem 'coffee-rails', '~> 4.1'
+gem 'uglifier', '~> 3.0'
+gem 'jquery-rails', '~> 4.1'
+gem 'jquery-ui-rails', '~> 5.0'
+gem 'devise', '~> 4.0.0'
 
 # Deploy with Capistrano
 # gem 'capistrano'

@@ -1,6 +1,6 @@
 class CreateDataSourceDownloads < ActiveRecord::Migration
   def self.up
-    create_table :data_source_downloads do |t|
+    create_table :data_source_downloads unless table_exists? :data_source_downloads do |t|
       t.string :url
       t.text :post_parameters
       t.string :save_path
@@ -11,6 +11,6 @@ class CreateDataSourceDownloads < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :data_source_downloads
+    drop_table :data_source_downloads if table_exists? :data_source_downloads
   end
 end

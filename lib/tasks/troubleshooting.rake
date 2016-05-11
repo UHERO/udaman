@@ -29,7 +29,7 @@ task :def_update => :environment do
     }
 
     updated_defs.each do |key, value|
-        DataSource.find(key).update_attributes(:eval => value)
+        DataSource.find_by(id: key).update_attributes(:eval => value)
       end
 end
 
@@ -45,7 +45,7 @@ end
 task :bea_2014_extra_data_cleanout => :environment do
   DataPoint.maximum(:date_string, :group => :data_source_id).each do |dsd_id, date_string|
     if !date_string.nil? and date_string > "2013-01-01"
-      ds = DataSource.find(dsd_id)
+      ds = DataSource.find_by(id: dsd_id)
       s = ds.series
       if s.frequency == "year" and s.name[0].upcase == "Y"
         puts s.name + " : " + ds.eval

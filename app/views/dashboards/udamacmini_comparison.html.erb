@@ -1,12 +1,12 @@
 
-<script type="text/javascript" src="/javascripts/d3.v3.min.js"></script>
+<%= javascript_include_tag 'd3.v3.min' %>
 
 <script type="text/javascript">
 	var local_data, remote_data;
-	var comp_data = {}
+	var comp_data = {};
 	
 	function defs_from_1_not_in_2(data1, data2) {
-		d2 = data2.map(function(d) { return d.ds_eval })
+		d2 = data2.map(function(d) { return d.ds_eval });
 		return data1.filter(function(d) { return d2.indexOf(d.ds_eval) === -1}).filter(function(d) { return !d.ds_eval.contains("/data/rawdata/") })
 	}
 	
@@ -20,7 +20,7 @@
 						children: series_name.value
 					}
 				})
-			}
+			};
 			// var children_array = d.value.map(function(child) { 
 			// 	return  { 
 			// 		node_name: child.series_name
@@ -31,7 +31,7 @@
 			// 	node_name: d.key
 			// 	children: children_array
 			// } 
-		})
+		});
 		return { series_name: "root", children: children_data }
 	}
 	function structure(summary_data) {
@@ -56,52 +56,52 @@
 			structured: structure(local_data),
 			data_points: d3.sum(local_data, function(e) { return e.current_data_points }),
 			missing_defs: defs_from_1_not_in_2(remote_data, local_data),
-		}
+		};
 		comp_data["udamacmini"] = { 
 			data: remote_data,
 			structured: structure(remote_data),
 			data_points: d3.sum(remote_data, function(e) { return e.current_data_points }),
-			missing_defs: defs_from_1_not_in_2(local_data, remote_data),
-		}
+			missing_defs: defs_from_1_not_in_2(local_data, remote_data)
+		};
 		
 				
 		var systems = d3.selectAll(".system_summary")
-			.data(d3.entries(comp_data))
+			.data(d3.entries(comp_data));
 		
 		var definition_count = systems.append("p")
-			.text(function(d) { return "Data Definitions: " + d.value.data.length})
+			.text(function(d) { return "Data Definitions: " + d.value.data.length});
 
 		var datapoint_count = systems.append("p")
-			.text(function(d) { return "Current Data Points: " + d.value.data_points })
+			.text(function(d) { return "Current Data Points: " + d.value.data_points });
 			
 
 		var definition_diffs = systems.append("p")
-			.text(function(d) { return "Missing Definitions (defs in the other system, but not in this system): " + d.value.missing_defs.length })
+			.text(function(d) { return "Missing Definitions (defs in the other system, but not in this system): " + d.value.missing_defs.length });
 		
-		var definition_detail = systems.append("ul").attr("class", "missing_defs")
+		var definition_detail = systems.append("ul").attr("class", "missing_defs");
 
 		definition_diffs.append("a")
 			.attr("href", "javascript:;")
 			.text("(show)")
 			.on("click", function(d) { 
-				console.log(d.value.missing_def)
-				d3.select(this).text("")
+				console.log(d.value.missing_def);
+				d3.select(this).text("");
 				d3.select("#"+d.key+ " .missing_defs")
 					.selectAll("li")
 					.data(d.value.missing_defs)
 					.enter()
 					.append("li")
 					.text(function(d) { return d.ds_id + " : " + d.series_name + " : " + d.ds_eval})
-			})
+			});
 
-		var readout = systems.append("p").attr("class", "readout").text("No series selected")
+		var readout = systems.append("p").attr("class", "readout").text("No series selected");
 
-		var width = 590
+		var width = 590;
 		var color = d3.scale.category20c();
 				
-		var tree_d = treemap_from_structure(comp_data["udaman"].structured)		
-		var total_data_points = comp_data["udaman"].data_points
-		var height = total_data_points / width
+		var tree_d = treemap_from_structure(comp_data["udaman"].structured);
+		var total_data_points = comp_data["udaman"].data_points;
+		var height = total_data_points / width;
 		
 		var treemap = d3.layout.treemap()
 		    .size([width, height])
@@ -124,9 +124,9 @@
 			.text(function(d) { return d.series_name.length > 1 ? null : d.series_name ; })
 			.on("mouseover", function(d) { d3.select("#udaman .readout").text(d.series_name) });
 		
-		var tree_d = treemap_from_structure(comp_data["udamacmini"].structured)		
-		var total_data_points = comp_data["udamacmini"].data_points
-		var height = total_data_points / width
+		var tree_d = treemap_from_structure(comp_data["udamacmini"].structured);
+		var total_data_points = comp_data["udamacmini"].data_points;
+		var height = total_data_points / width;
 		
 		var treemap = d3.layout.treemap()
 		    .size([width, height])
@@ -153,9 +153,9 @@
 	}
 	
 	d3.csv("system_summary.csv", function(data) {
-		local_data = data
+		local_data = data;
 		d3.csv("udamacmini_system_summary.csv", function(data2) {
-			remote_data = data2
+			remote_data = data2;
 			compare();
 		})
 	})

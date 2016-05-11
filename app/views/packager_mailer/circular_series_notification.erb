@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+</head>
+<body>
+<h3>Series with circular dependencies</h3>
+<ul>
+  <% @series.each do |series| %>
+      <li><a href="http://udaman.uhero.hawaii.edu/series/<%= series.id %>">http://udaman.uhero.hawaii.edu/series/<%= series.id %> : <%= series.name %></a>
+        <ul>
+          <% series.data_sources.each do |ds| %>
+            <% ds.dependencies.each do |dependency| %>
+              <% dependency_series = Series.get(dependency) %>
+              <li><a href="http://udaman.uhero.hawaii.edu/series<%= dependency_series.id %>"><%= dependency_series.id %> :<%= dependency_series.name %></li>
+            <% end %>
+          <% end %>
+        </ul>
+      </li>
+  <% end %>
+</ul>
+</body>
+</html>

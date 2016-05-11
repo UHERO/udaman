@@ -61,7 +61,7 @@ task :bls_cpi_upd_m => :environment do
 	
 	p = Packager.new
 	p.add_definitions bls_cpi_m
-	p.write_definitions_to "/Users/uhero/Documents/data/bls/update/bls_cpi_upd_m_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/bls_cpi_upd_m_NEW.xls"
 	
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["bls_cpi_upd_m", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -116,7 +116,7 @@ task :bls_cpi_upd_s => :environment do
 	
 	p = Packager.new
 	p.add_definitions bls_cpi_s
-	p.write_definitions_to "/Users/uhero/Documents/data/bls/update/bls_cpi_upd_s_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/bls_cpi_upd_s_NEW.xls"
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["bls_cpi_upd_s", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -367,7 +367,7 @@ task :bls_job_upd_m => :environment do
 	
 	p = Packager.new
 	p.add_definitions bls_job_m
-	p.write_definitions_to "/Users/uhero/Documents/data/bls/update/bls_job_upd_m_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/bls_job_upd_m_NEW.xls"
 	
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["bls_job_upd_m", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -689,25 +689,25 @@ task :hiwi_upd => :environment do
   
   p = Packager.new
   p.add_definitions hiwi_upd
-  p.write_definitions_to "/Users/uhero/Documents/data/bls/update/hiwi_HI.xls"
+  p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/hiwi_HI.xls"
   
   p = Packager.new
   p.add_definitions hiwi_upd_hon
-  p.write_definitions_to "/Users/uhero/Documents/data/bls/update/hiwi_HON.xls"
+  p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/hiwi_HON.xls"
   
   p = Packager.new
   p.add_definitions hiwi_upd_haw
-  p.write_definitions_to "/Users/uhero/Documents/data/bls/update/hiwi_HAW.xls"
+  p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/hiwi_HAW.xls"
   
   
   p = Packager.new
   p.add_definitions hiwi_upd_kau
-  p.write_definitions_to "/Users/uhero/Documents/data/bls/update/hiwi_KAU.xls"
+  p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/hiwi_KAU.xls"
   
   
   p = Packager.new
   p.add_definitions hiwi_upd_mau
-  p.write_definitions_to "/Users/uhero/Documents/data/bls/update/hiwi_MAU.xls"
+  p.write_definitions_to "#{ENV['DATA_PATH']}/bls/update/hiwi_MAU.xls"
   
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["hiwi_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -779,7 +779,7 @@ task :bls_identities => :environment do
   
   #Series loaded from this history sheet... may not need to load every day. But relatively fast...
   #["E_FIR@HI.M", "E_FIR@HON.M", "E_GDSPR@HON.M", "E_GVSL@HON.M", "E_TTU@HAW.M", "E_TTU@HON.M", "E_TTU@KAU.M", "E_TTU@MAU.M", "E_TU@HI.M", "E_TU@HON.M", "EAF@HI.M", "EAF@HON.M", "EAFAC@HI.M", "EAFAC@HON.M", "EAFFD@HI.M", "EAFFD@HON.M", "ECT@HI.M", "ECT@HON.M", "EFI@HI.M", "EFI@HON.M", "EGVFD@HI.M", "EGVFD@HON.M", "EGVLC@HI.M", "EGVLC@HON.M", "EGVST@HI.M", "EGVST@HON.M", "EHC@HI.M", "EHC@HON.M", "EMN@HI.M", "EMN@HON.M", "ERE@HI.M", "ERE@HON.M"]  
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"
   #needs EMN up here....
 
   
@@ -921,14 +921,14 @@ task :bls_identities => :environment do
   #{}"EAD@HI.M".ts_eval= %Q|("E_PBS@HI.M".ts - "EPS@HI.M".ts).share_using("EADNS@HI.M".ts.backward_looking_moving_average.trim, ("EMANS@HI.M".ts + "EADNS@HI.M".ts).backward_looking_moving_average.trim)|
   "EAD@HI.M".ts_eval = %Q|"E_PBS@HI.M".ts - "EPS@HI.M".ts - "EMA@HI.M".ts|
   
-  "EMN@HI.M".ts_eval= %Q|"EMN@HI.M".ts.load_sa_from("/Users/uhero/Documents/data/bls/seasadj/sadata.xls").trim("1990-01-01","2006-12-01")|
+  "EMN@HI.M".ts_eval= %Q|"EMN@HI.M".ts.load_sa_from("#{ENV['DATA_PATH']}/bls/seasadj/sadata.xls").trim("1990-01-01","2006-12-01")|
   "EMN@HI.M".ts_eval= %Q|"EMNSA@HI.M".ts|
   #"EMN@HI.M".ts_eval= %Q|"EMN@HI.M".ts.apply_seasonal_adjustment :multiplicative|
-  "EIF@HI.M".ts_eval= %Q|"EIF@HI.M".ts.load_sa_from "/Users/uhero/Documents/data/bls/seasadj/sadata.xls"|
+  "EIF@HI.M".ts_eval= %Q|"EIF@HI.M".ts.load_sa_from "#{ENV['DATA_PATH']}/bls/seasadj/sadata.xls"|
   "EIF@HI.M".ts_eval= %Q|"EIF@HI.M".ts.apply_seasonal_adjustment :additive|
   "EFI@HI.M".ts_eval= %Q|"E_FIR@HI.M".ts - "ERE@HI.M".ts|
   
-  "EAG@HI.M".ts_eval= %Q|"EAG@HI.M".tsn.load_sa_from "/Users/uhero/Documents/data/bls/seasadj/sadata.xls"|
+  "EAG@HI.M".ts_eval= %Q|"EAG@HI.M".tsn.load_sa_from "#{ENV['DATA_PATH']}/bls/seasadj/sadata.xls"|
   
   "E_TRADE@HI.M".ts_append_eval %Q|"EWT@HI.M".ts + "ERT@HI.M".ts| 
   "E_TU@HI.M".ts_eval= %Q|"E_TTU@HI.M".ts - "E_TRADE@HI.M".ts|
@@ -946,19 +946,19 @@ task :bls_identities => :environment do
   end
 
   #this might repeat what's above?
-  "EGVST@HI.M".ts_eval= %Q|"EGVST@HI.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|  
-  "EGVFD@HI.M".ts_eval= %Q|"EGVFD@HI.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|  
-  "EGVFD@HON.M".ts_eval= %Q|"EGVFD@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EGVST@HON.M".ts_eval= %Q|"EGVST@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EGVLC@HON.M".ts_eval= %Q|"EGVLC@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EMN@HON.M".ts_eval= %Q|"EMN@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "ECT@HON.M".ts_eval= %Q|"ECT@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EAFAC@HON.M".ts_eval= %Q|"EAFAC@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EAFFD@HON.M".ts_eval= %Q|"EAFFD@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "ERE@HON.M".ts_eval= %Q|"ERE@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EFI@HON.M".ts_eval= %Q|"EFI@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "E_TU@HON.M".ts_eval= %Q|"E_TU@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
-  "EHC@HON.M".ts_eval= %Q|"EHC@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls"|
+  "EGVST@HI.M".ts_eval= %Q|"EGVST@HI.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EGVFD@HI.M".ts_eval= %Q|"EGVFD@HI.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EGVFD@HON.M".ts_eval= %Q|"EGVFD@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EGVST@HON.M".ts_eval= %Q|"EGVST@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EGVLC@HON.M".ts_eval= %Q|"EGVLC@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EMN@HON.M".ts_eval= %Q|"EMN@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "ECT@HON.M".ts_eval= %Q|"ECT@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EAFAC@HON.M".ts_eval= %Q|"EAFAC@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EAFFD@HON.M".ts_eval= %Q|"EAFFD@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "ERE@HON.M".ts_eval= %Q|"ERE@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EFI@HON.M".ts_eval= %Q|"EFI@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "E_TU@HON.M".ts_eval= %Q|"E_TU@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
+  "EHC@HON.M".ts_eval= %Q|"EHC@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls"|
   
   ["HON", "HAW", "MAU", "KAU"].each do |county|
     puts county
@@ -1005,7 +1005,7 @@ task :bls_identities => :environment do
   end
   
   
-  Series.load_all_sa_series_from "/Users/uhero/Documents/data/bls/seasadj/bls_wagesa.xls"
+  Series.load_all_sa_series_from "#{ENV['DATA_PATH']}/bls/seasadj/bls_wagesa.xls"
 
   "E@HI.M".ts_eval= %Q|"E_NF@HI.M".ts + "EAG@HI.M".ts|
   "E@HI.Q".ts_eval= %Q|"E@HI.M".ts.aggregate(:quarter, :average)|

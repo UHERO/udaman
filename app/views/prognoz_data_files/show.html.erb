@@ -15,14 +15,14 @@
 	<%= link_to 'Edit', edit_prognoz_data_file_path(@output_file) %> |
 	<%= link_to 'Delete', @output_file, :method => :delete %> | 
 	<%= link_to 'Back', :action => 'index' %> | 
-	Path: </td><td><%= @output_file.filename %></td></tr>
+	Path: <td><%= @output_file.filename %></td></tr>
 </p>
 
 <div id="all_charts">
 	<svg id="matching_diffs"></svg>
 </div>
 
-<script type="text/javascript" src="/javascripts/d3.v2.js"></script>
+<%= javascript_include_tag 'd3.v2.min' %>
 <script type="text/javascript">
 
 	var s_labels = {

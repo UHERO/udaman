@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title><%= @series.nil? ? "UHERO Data Manager" : "#{@series.name} - #{@desc}" %></title>
-  <%= stylesheet_link_tag :all %>
+  <title><%= @series.nil? ? 'UHERO Data Manager' : "#{@series.name} - " %><%= @desc unless @desc.nil? %></title>
+  <%= stylesheet_link_tag 'application' %>
 
 <!--Load the AJAX API-->
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-  <%= 
-  javascript_include_tag :defaults 
-  %>
+  <%= javascript_include_tag 'application' %>
   <%= csrf_meta_tag %>
-<link rel="stylesheet" href="/stylesheets/jquery-ui.css">
-<script src="/javascripts/ui/jquery-ui.js"></script>
+  <!-- stylesheet_link_tag 'jquery-ui' %>-->
+  <!-- javascript_include_tag 'ui/jquery-ui' %>-->
+
 </head>
 <body>
 <div id="top-level-nav">

@@ -1,4 +1,4 @@
-<a href = /open/<%=a%>/names><%= a if a.index(".TSD")%></a><% desc = a_series.nil? ? "" : a_series.description[0..20].gsub(",","") %>
+<% desc = a_series.nil? ? "" : a_series.description[0..20].gsub(",","") %>
 <% full_desc = a_series.nil? ? "" : a_series.description %>
 
 <script type="text/javascript"

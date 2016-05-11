@@ -140,7 +140,7 @@ module SeriesArithmetic
 		    WHERE series_id = #{id} AND current = 1 ORDER BY date_string) AS t2
       ON (t1.row = t2.row);
     ]
-    self.connection.execute(sql).each(:as => :hash) do |row|
+    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date_string']] = row['value_change'] unless row['value_change'].nil?
     end
     new_transformation("Absolute Change of #{name}", new_series_data)
@@ -199,7 +199,7 @@ module SeriesArithmetic
             FROM data_points WHERE series_id = #{id} and current = 1) AS t2
       ON (t1.last_year = t2.date_string);
     ]
-    self.connection.execute(sql).each(:as => :hash) do |row|
+    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date_string']] = row['yoy'] unless row['yoy'].nil?
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
@@ -283,7 +283,7 @@ module SeriesArithmetic
           WHERE series_id = #{id} AND current = 1 ORDER BY date_string) AS t2
       ON (t1.last_year = t2.date_string);
     ]
-    self.connection.execute(sql).each(:as => :hash) do |row|
+    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date_string']] = row['ytd'] unless row['ytd'].nil?
     end
     new_transformation("Year to Date Percentage Change of #{name}", new_series_data)
@@ -315,7 +315,7 @@ module SeriesArithmetic
             FROM data_points WHERE series_id = #{id} and current = 1) AS t2
       ON (t1.last_year = t2.date_string);
     ]
-    self.connection.execute(sql).each(:as => :hash) do |row|
+    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date_string']] = row['yoy_diff'] unless row['yoy_diff'].nil?
     end
     new_transformation("Scaled year over year diff of #{name}", new_series_data)

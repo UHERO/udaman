@@ -1,11 +1,11 @@
 task :compressed_data_csv => :environment do
   require 'csv'
-  path = "/Users/uhero/Documents/data/rawdata/alltimeseries/"
+  path = "#{ENV['DATA_PATH']}/rawdata/alltimeseries/"
 
   CSV.open(path+'all_series.csv','wb') do |csv|  
     date_range = Date.compressed_date_range
     csv << ["series_name"] + date_range
-    Series.find(:all, :order => "name").each do |s| 
+    Series.all.order(:name).each do |s|
       puts s.name
       data = s.compressed_date_range_data(date_range)
       data_array = []

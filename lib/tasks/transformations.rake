@@ -410,7 +410,7 @@ task :distribute_county_shares => :environment do
   end
   
   s_name = "E_NF"
-  "E_NF@HON.M".ts.load_sa_from "/Users/uhero/Documents/data/bls/seasadj/bls_sa_history.xls"
+  "E_NF@HON.M".ts.load_sa_from "#{ENV['DATA_PATH']}/bls/seasadj/bls_sa_history.xls"
   ["HON", "HAW", "MAU", "KAU"].each do |county|
     puts "distributing #{s_name}, #{county}"
     start_date = "#{s_name}NS@#{county}.M".ts.first_value_date
@@ -583,7 +583,7 @@ end
 # end
 
 # task :vis => :environment do
-#   "VISDEMETRA_MC@HI.M".ts_eval= %Q|"VIS@HI.M".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls"|
+#   "VISDEMETRA_MC@HI.M".ts_eval= %Q|"VIS@HI.M".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls"|
 #   "VIS@HAW.M".ts_append_eval %Q|"VISDEMETRA_MC@HI.M".ts.mc_ma_county_share_for("HAW","VIS")|
 #   "VISJP@HAW.M".ts + "VISUS@HAW.M".ts + "VISRES@HAW.M".ts
 # end

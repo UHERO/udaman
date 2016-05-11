@@ -7,7 +7,7 @@ log/*.log
 tmp/
 config/site.yml
 script/rasterize.js
-public/**
+public/
 *.log
 *.out
 config/deploy.rb

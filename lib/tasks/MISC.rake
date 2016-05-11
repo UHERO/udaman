@@ -46,7 +46,7 @@ task :uic_upd => :environment do
 	
 	p = Packager.new
 	p.add_definitions uic
-	p.write_definitions_to "/Users/uhero/Documents/data/misc/uiclaims/update/UIC_upd_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/misc/uiclaims/update/UIC_upd_NEW.xls"
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["uic_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -69,7 +69,7 @@ task :const_upd_q => :environment do
 	
 	p = Packager.new
 	p.add_definitions const_q
-	p.write_definitions_to "/Users/uhero/Documents/data/misc/const/update/const_upd_q_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/misc/const/update/const_upd_q_NEW.xls"
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["const_upd_q", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -125,32 +125,32 @@ task :const_upd_m => :environment do
 		
 	p = Packager.new
 	p.add_definitions const_m
-	p.write_definitions_to "/Users/uhero/Documents/data/misc/const/update/const_upd_m_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/misc/const/update/const_upd_m_NEW.xls"
 
 	p = Packager.new
 	p.add_definitions poil
-	p.write_definitions_to "/Users/uhero/Documents/data/misc/const/update/poil.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/misc/const/update/poil.xls"
 
   # p = Packager.new
   # p.add_definitions const_m_nowrite
-  # p.write_definitions_to "/Users/uhero/Documents/data/rawdata/trash/const_upd_m_ID.xls"
+  # p.write_definitions_to "#{ENV['DATA_PATH']}/rawdata/trash/const_upd_m_ID.xls"
 
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["const_upd_m", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :const_identities => :environment do
   t= Time.now
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/census_imp.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/census_imp.xls"
   #not sure if these should go in misc or what...
-  #Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/AltUnemplStats.xls"
-  #Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/AltUnemplStats.xls", "Q"
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/AltURA.xls"
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/AltURQ.xls"
+  #Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/AltUnemplStats.xls"
+  #Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/AltUnemplStats.xls", "Q"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/AltURA.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/AltURQ.xls"
 
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/History/prud_upd.xls"
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/hbr_upd_m.csv"
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/hud_upd.xls"
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/manual/HAWpermits.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/prud_upd.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/hbr_upd_m.csv"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/hud_upd.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/manual/HAWpermits.xls"
 
   # ["KPPRVNS", "KPPRVRSDNS"].each do |s_name|
   #   "#{s_name}@HI.M".ts_eval= %Q|("#{s_name}@HAW.M".ts + "#{s_name}@MAU.M".ts + "#{s_name}@KAU.M".ts + "#{s_name}@HON.M".ts).trim("2012-04-01")|
@@ -313,8 +313,8 @@ task :const_identities => :environment do
   
   ["KRSGFNS", "KRCONNS"].each do |s_name|
     ["HON", "HAW", "MAU", "KAU"].each do |county|
-      "#{s_name}_NMC@#{county}.Q".ts_append_eval %Q|"#{s_name}@#{county}.Q".ts.load_from "/Users/uhero/Documents/data/rawdata/History/prud_upd.xls"|
-#      "#{s_name}_NMC@#{county}.Q".ts_append_eval %Q|"#{s_name}@#{county}.Q".ts.load_from "/Users/uhero/Documents/data/misc/prud/update/prud_upd.xls"|
+      "#{s_name}_NMC@#{county}.Q".ts_append_eval %Q|"#{s_name}@#{county}.Q".ts.load_from "#{ENV['DATA_PATH']}/rawdata/History/prud_upd.xls"|
+#      "#{s_name}_NMC@#{county}.Q".ts_append_eval %Q|"#{s_name}@#{county}.Q".ts.load_from "#{ENV['DATA_PATH']}/misc/prud/update/prud_upd.xls"|
     end
   end
   
@@ -337,26 +337,26 @@ task :const_identities => :environment do
   end
   
   #maybe the line below is already handled in a historical load...
-  "KBCONNS@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/hbr_upd_m.csv" 
-  "KBCON@HON.M".ts_eval= %Q|"KBCON@HON.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/hbr/seasadj/sadata.xls"|
+  "KBCONNS@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/hbr_upd_m.csv" 
+  "KBCON@HON.M".ts_eval= %Q|"KBCON@HON.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/hbr/seasadj/sadata.xls"|
   "KBCON@HON.M".ts_eval= %Q|"KBCON@HON.M".ts.apply_seasonal_adjustment :multiplicative|
   
-  "KBSGFNS@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/hbr_upd_m.csv" 
-  "KBSGF@HON.M".ts_eval= %Q|"KBSGF@HON.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/hbr/seasadj/sadata.xls"|
+  "KBSGFNS@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/hbr_upd_m.csv" 
+  "KBSGF@HON.M".ts_eval= %Q|"KBSGF@HON.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/hbr/seasadj/sadata.xls"|
   "KBSGF@HON.M".ts_eval= %Q|"KBSGF@HON.M".ts.apply_seasonal_adjustment :multiplicative|
 
 
-  "KBCONNS@MAU.M".ts_eval= %Q|"KBCONNS@MAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/mbr_upd_m.csv"|
-  "KBCON@MAU.M".ts_eval= %Q|"KBCON@MAU.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/hbr/seasadj/mbr_sa.xls"|
+  "KBCONNS@MAU.M".ts_eval= %Q|"KBCONNS@MAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/mbr_upd_m.csv"|
+  "KBCON@MAU.M".ts_eval= %Q|"KBCON@MAU.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/hbr/seasadj/mbr_sa.xls"|
   "KBCON@MAU.M".ts_eval= %Q|"KBCON@MAU.M".ts.apply_seasonal_adjustment :multiplicative|
   
-  "KBSGFNS@MAU.M".ts_eval= %Q|"KBSGFNS@MAU.M".tsn.load_from " /Users/uhero/Documents/data/rawdata/manual/mbr_upd_m.csv"|
-  "KBSGF@MAU.M".ts_eval= %Q|"KBSGF@MAU.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/hbr/seasadj/mbr_sa.xls"|
+  "KBSGFNS@MAU.M".ts_eval= %Q|"KBSGFNS@MAU.M".tsn.load_from " #{ENV['DATA_PATH']}/rawdata/manual/mbr_upd_m.csv"|
+  "KBSGF@MAU.M".ts_eval= %Q|"KBSGF@MAU.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/hbr/seasadj/mbr_sa.xls"|
   "KBSGF@MAU.M".ts_eval= %Q|"KBSGF@MAU.M".ts.apply_seasonal_adjustment :multiplicative|
   
   
-  "KB@HON.M".ts_eval= %Q|Series.add_demetra_series_and_mean_correct("KBSGF@HON.M", "KBCON@HON.M", "KBNS@HON.M", "/Users/uhero/Documents/data/misc/hbr/seasadj/sadata.xls")|
-  "KB@MAU.M".ts_eval= %Q|Series.add_demetra_series_and_mean_correct("KBSGF@MAU.M", "KBCON@MAU.M", "KBNS@MAU.M", "/Users/uhero/Documents/data/misc/hbr/seasadj/mbr_sa.xls")|
+  "KB@HON.M".ts_eval= %Q|Series.add_demetra_series_and_mean_correct("KBSGF@HON.M", "KBCON@HON.M", "KBNS@HON.M", "#{ENV['DATA_PATH']}/misc/hbr/seasadj/sadata.xls")|
+  "KB@MAU.M".ts_eval= %Q|Series.add_demetra_series_and_mean_correct("KBSGF@MAU.M", "KBCON@MAU.M", "KBNS@MAU.M", "#{ENV['DATA_PATH']}/misc/hbr/seasadj/mbr_sa.xls")|
   
   "KB@MAU.Q".ts_eval= %Q|"KB@MAU.M".ts.aggregate(:quarter, :sum)|
   "KB@HON.Q".ts_eval= %Q|"KB@HON.M".ts.aggregate(:quarter, :sum)|
@@ -370,28 +370,28 @@ task :const_identities => :environment do
     end    
   end
   
-  "PMKBSGF@HON.M".ts_eval= %Q|"PMKBSGF@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/hbr_upd_m.csv"|
-  "PMKBCON@HON.M".ts_eval= %Q|"PMKBCON@HON.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/hbr_upd_m.csv"|
-  "PMKBSGF@MAU.M".ts_eval= %Q|"PMKBSGF@MAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/mbr_upd_m.csv"|
-  "PMKBCON@MAU.M".ts_eval= %Q|"PMKBCON@MAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/manual/mbr_upd_m.csv"|
+  "PMKBSGF@HON.M".ts_eval= %Q|"PMKBSGF@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/hbr_upd_m.csv"|
+  "PMKBCON@HON.M".ts_eval= %Q|"PMKBCON@HON.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/hbr_upd_m.csv"|
+  "PMKBSGF@MAU.M".ts_eval= %Q|"PMKBSGF@MAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/mbr_upd_m.csv"|
+  "PMKBCON@MAU.M".ts_eval= %Q|"PMKBCON@MAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/manual/mbr_upd_m.csv"|
 
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/History/hbr_histQ.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/hbr_histQ.xls"
   
   "PMKBSGF@HON.Q".ts_eval= %Q|"PMKBSGF@HON.M".ts.aggregate(:quarter, :average)|
   "PMKBCON@HON.Q".ts_eval= %Q|"PMKBCON@HON.M".ts.aggregate(:quarter, :average)|
   # Not sure why these were even here. Just circular references
   # "PMKBSGF@HON.Q".ts_eval= %Q|"PMKBSGF@HON.Q".ts.trim("1980-01-01","1986-12-01")|
   # "PMKBCON@HON.Q".ts_eval= %Q|"PMKBCON@HON.Q".ts.trim("1980-01-01","1986-12-01")|
-  "PMKRCON@HON.Q".ts_eval=%Q|"PMKRCON@HON.Q".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/prud/seasadj/prud_sa.xls", "prud_sa" | 
-  "PMKRSGF@HON.Q".ts_eval=%Q|"PMKRSGF@HON.Q".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
+  "PMKRCON@HON.Q".ts_eval=%Q|"PMKRCON@HON.Q".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
+  "PMKRSGF@HON.Q".ts_eval=%Q|"PMKRSGF@HON.Q".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
 
   ["HI", "HAW", "KAU", "MAU"].each do |cnty|
     "PMKRSGF@#{cnty}.Q".ts_eval= %Q|"PMKRSGF@HON.Q".ts.mc_price_share_for("#{cnty}")|
     "PMKRCON@#{cnty}.Q".ts_eval= %Q|"PMKRCON@HON.Q".ts.mc_price_share_for("#{cnty}") |  
   end
   
-  "KRCON@HI.Q".ts_eval=%Q|"KRCON@HI.Q".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
-  "KRSGF@HI.Q".ts_eval=%Q|"KRSGF@HI.Q".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
+  "KRCON@HI.Q".ts_eval=%Q|"KRCON@HI.Q".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
+  "KRSGF@HI.Q".ts_eval=%Q|"KRSGF@HI.Q".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/misc/prud/seasadj/prud_sa.xls", "prud_sa" |
   
   ["HON", "HAW", "KAU", "MAU"].each do |cnty|
     "KRCON@#{cnty}.Q".ts_eval= %Q|"KRCON@HI.Q".ts.mc_price_share_for("#{cnty}")|
@@ -548,9 +548,9 @@ task :const_identities => :environment do
       end
    end
    
-   "POILEIALTB@US.A".ts_eval= %Q|"POILEIALTB@US.A".tsn.load_from "/Users/uhero/Documents/data/rawdata/Manual/EIA_LT.xls"|
-   "POILEIALTH@US.A".ts_eval= %Q|"POILEIALTH@US.A".tsn.load_from "/Users/uhero/Documents/data/rawdata/Manual/EIA_LT.xls"|
-   "POILEIALTL@US.A".ts_eval= %Q|"POILEIALTL@US.A".tsn.load_from "/Users/uhero/Documents/data/rawdata/Manual/EIA_LT.xls"|
+   "POILEIALTB@US.A".ts_eval= %Q|"POILEIALTB@US.A".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/Manual/EIA_LT.xls"|
+   "POILEIALTH@US.A".ts_eval= %Q|"POILEIALTH@US.A".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/Manual/EIA_LT.xls"|
+   "POILEIALTL@US.A".ts_eval= %Q|"POILEIALTL@US.A".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/Manual/EIA_LT.xls"|
    
    
    

@@ -84,13 +84,23 @@ class PackagerMailer < ActionMailer::Base
 
   def prognoz_notification(recipients, send_edition)
     begin
-      path = "/Users/uhero/Documents/data/prognoz_export/ready_to_send_zip_files/"
+      path = "#{ENV['DATA_PATH']}/prognoz_export/ready_to_send_zip_files/"
       filename = send_edition + ".zip"
       attachments[filename] = File.read(path+filename) 
       subject = "Prognoz Export (Udamacmini)"
       mail(:to => recipients, :subject => subject)  
     rescue => e
       mail(:to => ["jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.prognoz_notification error", :body => e.message, :content_type => "text/plain")
+    end
+  end
+
+  def circular_series_notification(series)
+    begin
+      @series = series
+      mail(to: ["jrpage@hawaii.edu"], subject: "Circular Series")
+    rescue => e
+      puts e.message
+      mail(:to => ["jrpage@hawaii.edu"], :subject => "PackageMailer.circular_series_notification error", :body => e.message, :content_type => "text/plain")
     end
   end
 end

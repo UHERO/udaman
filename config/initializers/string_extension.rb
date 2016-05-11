@@ -101,8 +101,9 @@ class String
   end
   
   def to_ascii_iconv
-     converter = Iconv.new('ASCII//IGNORE//TRANSLIT', 'UTF-8')
-     converter.iconv(self).unpack('U*').select{ |cp| cp < 127 }.pack('U*')
+     self.encode(
+         'ASCII', :invalid => :replace, :undef => :replace, :replace => '?'
+     ).unpack('U*').select{ |cp| cp < 127 }.pack('U*')
   end
   
   def no_okina

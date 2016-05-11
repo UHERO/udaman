@@ -1,6 +1,6 @@
 class CreateDataSources < ActiveRecord::Migration
   def self.up
-    create_table :data_sources do |t|
+    create_table :data_sources unless table_exists? :data_sources do |t|
       t.integer :series_id
       t.string :description
       t.string :eval
@@ -15,6 +15,6 @@ class CreateDataSources < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :data_sources
+    drop_table :data_sources if table_exists? :data_sources
   end
 end

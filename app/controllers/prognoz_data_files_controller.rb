@@ -1,6 +1,6 @@
 class PrognozDataFilesController < ApplicationController
   def index
-    @output_files = PrognozDataFile.all :order => :name
+    @output_files = PrognozDataFile.all.order :name
   end
 
   def new
@@ -8,12 +8,12 @@ class PrognozDataFilesController < ApplicationController
   end
 
   def show
-    @output_file = PrognozDataFile.find params[:id]
+    @output_file = PrognozDataFile.find_by id: params[:id]
     @diffs = @output_file.udaman_diffs
   end
 
   def edit
-    @output_file = PrognozDataFile.find params[:id]
+    @output_file = PrognozDataFile.find_by id: params[:id]
   end
   
   def create
@@ -26,7 +26,7 @@ class PrognozDataFilesController < ApplicationController
   end
   
   def update
-    @output_file = PrognozDataFile.find(params[:id])
+    @output_file = PrognozDataFile.find_by id: params[:id]
     respond_to do |format|
       if @output_file.update_attributes(params[:prognoz_data_file])
         format.html { redirect_to(@output_file,
@@ -41,21 +41,21 @@ class PrognozDataFilesController < ApplicationController
   end
   
   def destroy
-    @output_file = PrognozDataFile.find params[:id]
+    @output_file = PrognozDataFile.find_by id: params[:id]
     @output_file.destroy
     
     redirect_to :action => 'index'
   end
 
   def load_from_file
-    @output_file = PrognozDataFile.find params[:id]
+    @output_file = PrognozDataFile.find_by id: params[:id]
     results = @output_file.load
     #@output_file.load_series_validated
     redirect_to(:action => 'index', :notice => results[:notice])
   end
   
   def write_xls
-    @output_file = PrognozDataFile.find params[:id]
+    @output_file = PrognozDataFile.find_by id: params[:id]
     @output_file.write_export
     redirect_to :action => 'index'
   end

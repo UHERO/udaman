@@ -1,6 +1,6 @@
 class CreateDataPoints < ActiveRecord::Migration
   def self.up
-    create_table :data_points do |t|
+    create_table :data_points unless table_exists? :data_points do |t|
       t.integer :series_id
       t.string :date_string
       t.float :value
@@ -13,6 +13,6 @@ class CreateDataPoints < ActiveRecord::Migration
   end
 
   def self.down
-    drop_table :data_points
+    drop_table :data_points if table_exists? :data_points
   end
 end

@@ -2,7 +2,7 @@
 <style>
 .ui-widget { display:inline; font-size: 10px}
 .ui-autocomplete-loading {
-background: white url('/images/ui-anim_basic_16x16.gif') right center no-repeat;
+background: white url(<%= image_path 'ui-anim_basic_16x16.gif' %>) right center no-repeat;
 }
 </style>
 <script>
@@ -13,9 +13,8 @@ $(function() {
 	function extractLast( term ) {
 		return split( term ).pop();
 	}
-	$( "#search_field" )
-		// don't navigate away from the field on tab when selecting an item
-		.bind( "keydown", function( event ) {
+	$( "#search_field" ) // don't navigate away from the field on tab when selecting an item
+      .bind( "keydown", function(event ) {
 			if ( event.keyCode === $.ui.keyCode.TAB &&
 				$( this ).data( "ui-autocomplete" ).menu.active ) {
 					event.preventDefault();
@@ -39,9 +38,9 @@ $(function() {
 				return false;
 			},
 			select: function( event, ui ) {
-				console.log("/series/"+ui.item.value)
-				window.location.href = "/series/"+ui.item.value
-				this.value = ui.item.label
+				console.log("/series/"+ui.item.value);
+				window.location.href = "/series/"+ui.item.value;
+				this.value = ui.item.label;
 				return false;
 			}
 		});
