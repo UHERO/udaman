@@ -69,41 +69,41 @@ end
 
 # "OCUP%NS@HI.M"
 # <Series id: 7829, name: "OCUP%NS@HI.M", frequency: "month", description: nil, units: 1, seasonally_adjusted: nil, last_demetra_datestring: nil, factors: nil, factor_application: nil, prognoz_data_file_id: nil, aremos_missing: 7, aremos_diff: 0.0, mult: nil, created_at: "2011-08-11 01:00:17", updated_at: "2012-08-29 11:10:09", investigation_notes: nil> 
-# 21302 | 2012-02-01 04:12:55 UTC | "OCUP%NS@HI.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd2_hist.xls"
-# 25414 | 2012-02-25 00:58:30 UTC | "OCUP%NS@HI.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/Manual/TOUR_OCUP.xls"
-# 25481 | 2012-08-29 11:10:09 UTC | Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>2, :frequency=>"M" })
+# 21302 | 2012-02-01 04:12:55 UTC | "OCUP%NS@HI.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd2_hist.xls"
+# 25414 | 2012-02-25 00:58:30 UTC | "OCUP%NS@HI.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/Manual/TOUR_OCUP.xls"
+# 25481 | 2012-08-29 11:10:09 UTC | Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>2, :frequency=>"M" })
 
 task :tour_ocup_upd=>:environment do
   t = Time.now
 
-  "OCUP%NS@HI.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2004-01-10", :sheet=>"sheet_num:1", :row=>"increment:4:1", :col=>2, :frequency=>"W" })|
-  "PRMNS@HI.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2004-01-10", :sheet=>"sheet_num:1", :row=>"increment:4:1", :col=>3, :frequency=>"W" })|
-  "OCUP%NS@HON.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>4, :frequency=>"W" })|
-  "PRMNS@HON.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>5, :frequency=>"W" })|
-  "OCUP%NS@MAU.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>6, :frequency=>"W" })|
-  "PRMNS@MAU.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>7, :frequency=>"W" })|
-  "OCUP%NS@KAU.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>8, :frequency=>"W" })|
-  "PRMNS@KAU.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>9, :frequency=>"W" })|
-  "OCUP%NS@HAW.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>10, :frequency=>"W" })|
-  "PRMNS@HAW.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>11, :frequency=>"W" })|
-  "OCUP%NS@US.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>12, :frequency=>"W" })|
-  "PRMNS@US.W".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>13, :frequency=>"W" })|
+  "OCUP%NS@HI.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2004-01-10", :sheet=>"sheet_num:1", :row=>"increment:4:1", :col=>2, :frequency=>"W" })|
+  "PRMNS@HI.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2004-01-10", :sheet=>"sheet_num:1", :row=>"increment:4:1", :col=>3, :frequency=>"W" })|
+  "OCUP%NS@HON.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>4, :frequency=>"W" })|
+  "PRMNS@HON.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>5, :frequency=>"W" })|
+  "OCUP%NS@MAU.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>6, :frequency=>"W" })|
+  "PRMNS@MAU.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>7, :frequency=>"W" })|
+  "OCUP%NS@KAU.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>8, :frequency=>"W" })|
+  "PRMNS@KAU.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>9, :frequency=>"W" })|
+  "OCUP%NS@HAW.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>10, :frequency=>"W" })|
+  "PRMNS@HAW.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>11, :frequency=>"W" })|
+  "OCUP%NS@US.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>12, :frequency=>"W" })|
+  "PRMNS@US.W".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/ocupwkly.xls", {:file_type=>"xls", :start_date=>"2007-01-06", :sheet=>"sheet_num:1", :row=>"increment:160:1", :col=>13, :frequency=>"W" })|
 
-  "OCUP%NS@HI.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>2, :frequency=>"M" })| 
-  "OCUP%NS@HON.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>3, :frequency=>"M" })| 
-  "OCUP%NS@HAW.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>4, :frequency=>"M" })| 
-  "OCUP%NS@KAU.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>5, :frequency=>"M" })| 
-  "OCUP%NS@MAU.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>6, :frequency=>"M" })|
-  "PRMNS@HI.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>7, :frequency=>"M" })| 
-  "PRMNS@HON.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>8, :frequency=>"M" })| 
-  "PRMNS@HAW.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>9, :frequency=>"M" })| 
-  "PRMNS@KAU.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>10, :frequency=>"M" })| 
-  "PRMNS@MAU.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>11, :frequency=>"M" })| 
-  "RMRVNS@HI.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>12, :frequency=>"M" })| 
-  "RMRVNS@HON.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>13, :frequency=>"M" })| 
-  "RMRVNS@HAW.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>14, :frequency=>"M" })| 
-  "RMRVNS@KAU.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>15, :frequency=>"M" })| 
-  "RMRVNS@MAU.M".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>16, :frequency=>"M" })|
+  "OCUP%NS@HI.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>2, :frequency=>"M" })|
+  "OCUP%NS@HON.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>3, :frequency=>"M" })|
+  "OCUP%NS@HAW.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>4, :frequency=>"M" })|
+  "OCUP%NS@KAU.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>5, :frequency=>"M" })|
+  "OCUP%NS@MAU.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>6, :frequency=>"M" })|
+  "PRMNS@HI.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>7, :frequency=>"M" })|
+  "PRMNS@HON.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>8, :frequency=>"M" })| 
+  "PRMNS@HAW.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>9, :frequency=>"M" })| 
+  "PRMNS@KAU.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>10, :frequency=>"M" })| 
+  "PRMNS@MAU.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>11, :frequency=>"M" })| 
+  "RMRVNS@HI.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>12, :frequency=>"M" })| 
+  "RMRVNS@HON.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>13, :frequency=>"M" })| 
+  "RMRVNS@HAW.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>14, :frequency=>"M" })| 
+  "RMRVNS@KAU.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>15, :frequency=>"M" })| 
+  "RMRVNS@MAU.M".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>16, :frequency=>"M" })|
 
   "WAGOCUP%NS@HI.M".ts_eval= %Q|"OCUP%NS@HI.W".ts.fill_days_interpolation.aggregate_by(:month, :average)| 
   "WAGOCUP%NS@HON.M".ts_eval= %Q|"OCUP%NS@HON.W".ts.fill_days_interpolation.aggregate_by(:month, :average)| 
@@ -127,20 +127,20 @@ tour_vexp = {
 #{}"VXPRUS@HI.A"=>%Q|"VEXPUS@HI.A".ts|,
 #{}"VXPRJP@HI.A"=>%Q|"VEXPJP@HI.A".ts|,
 "VX@HI.A"=>[%Q|"VXPR@HI.A".ts + "VXBU@HI.A".ts|, 
-              %Q|"VX@HI.A".tsn.load_from "/Users/uhero/Documents/data/tour/update/vexp_upd.xls" |], 
+              %Q|"VX@HI.A".tsn.load_from "#{ENV['DATA_PATH']}/tour/update/vexp_upd.xls" |],
 
-"VXBU@HI.A"=>%Q|"VXBU@HI.A".tsn.load_from "/Users/uhero/Documents/data/tour/update/vexp_upd.xls"|,
-#{}"VXPR@HI.A"=>%Q|"VXPR@HI.A".tsn.load_from "/Users/uhero/Documents/data/tour/update/vexp_upd.xls"|, 
+"VXBU@HI.A"=>%Q|"VXBU@HI.A".tsn.load_from "#{ENV['DATA_PATH']}/tour/update/vexp_upd.xls"|,
+#{}"VXPR@HI.A"=>%Q|"VXPR@HI.A".tsn.load_from "#{ENV['DATA_PATH']}/tour/update/vexp_upd.xls"|, 
 #add in VX things here
 }	
 	
   # p = Packager.new
   # p.add_definitions tour_ocup
-  # p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_ocup_upd_NEW.xls"
+  # p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_ocup_upd_NEW.xls"
 
 	p = Packager.new
 	p.add_definitions tour_vexp
-	p.write_definitions_to "/Users/uhero/Documents/data/rawdata/trash/tour_vexp_upd_ID.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/rawdata/trash/tour_vexp_upd_ID.xls"
 
 
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["tour_ocup_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
@@ -164,7 +164,7 @@ tour_PC = {
 	
 	p = Packager.new
 	p.add_definitions tour_PC
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_PC_upd_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_PC_upd_NEW.xls"
 	
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["tour_PC_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -239,7 +239,7 @@ task :tour_seats_upd=>:environment do
 	
 	p = Packager.new
 	p.add_definitions tour_seats
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/seats_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/seats_NEW.xls"
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["tour_seats_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -655,78 +655,78 @@ task :tour_upd=>:environment do
 "VSITCHTNS@MAU.M"=>%Q|Series.load_from_download(  "TOUR_%b%y@hawaiitourismauthority.org", { :file_type=>"xls", :start_date=>"2011-08-01", :sheet=>"sheet_num:10", :row=>"header_range:col:1:Charter Seats:40:60", :col=>8, :frequency=>"M" })/1000|,
 "VSITCHTNS@HAW.M"=>%Q|Series.load_from_download(  "TOUR_%b%y@hawaiitourismauthority.org", { :file_type=>"xls", :start_date=>"2011-08-01", :sheet=>"sheet_num:10", :row=>"header_range:col:1:Charter Seats:40:60", :col=>11, :frequency=>"M" })/1000|,
 "VSITCHTNS@KAU.M"=>%Q|Series.load_from_download(  "TOUR_%b%y@hawaiitourismauthority.org", { :file_type=>"xls", :start_date=>"2011-08-01", :sheet=>"sheet_num:10", :row=>"header_range:col:1:Charter Seats:40:60", :col=>17, :frequency=>"M" })/1000|,
-"VDAYDMNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>4, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYDMNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>5, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYDMNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>6, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYDMNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>7, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYDMNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>8, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYDMNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>9, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISDMNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>14, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISDMNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>15, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISDMNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>16, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISDMNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>17, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISDMNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>18, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISDMNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>19, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYITNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>4, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYITNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>5, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYITNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>6, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYITNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>7, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYITNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>8, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYITNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>9, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISITNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>14, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISITNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>15, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISITNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>16, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISITNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>17, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISITNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>18, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VISITNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>19, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSWNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>3, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSWNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>4, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSWNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>5, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSWNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>6, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSWNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>7, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSWNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>8, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSWNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>11, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSWNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>12, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSWNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>13, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSWNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>14, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSWNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>15, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSWNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>16, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSENS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>21, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSENS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>22, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSENS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>23, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSENS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>24, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSENS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>25, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYUSENS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>26, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSENS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>29, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSENS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>30, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSENS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>31, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSENS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>32, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSENS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>33, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISUSENS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>34, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYJPNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>38, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYJPNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>39, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYJPNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>40, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYJPNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>41, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYJPNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>42, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYJPNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>43, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISJPNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>46, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISJPNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>47, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISJPNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>48, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISJPNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>49, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISJPNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>50, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISJPNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>51, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYCANNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>55, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYCANNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>56, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYCANNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>57, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYCANNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>58, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYCANNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>59, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-"VDAYCANNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>60, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISCANNS@HON.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>63, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISCANNS@KAU.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>64, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISCANNS@MAUI.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>65, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISCANNS@MOL.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>66, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISCANNS@LAN.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>67, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
-# "VISCANNS@HAW.M"=>%Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>68, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYDMNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>4, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYDMNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>5, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYDMNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>6, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYDMNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>7, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYDMNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>8, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYDMNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>9, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISDMNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>14, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISDMNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>15, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISDMNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>16, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISDMNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>17, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISDMNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>18, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISDMNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:1", :row=>19, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYITNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>4, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYITNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>5, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYITNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>6, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYITNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>7, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYITNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>8, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYITNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>9, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISITNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>14, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISITNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>15, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISITNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>16, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISITNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>17, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISITNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>18, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VISITNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:2", :row=>19, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSWNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>3, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSWNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>4, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSWNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>5, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSWNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>6, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSWNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>7, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSWNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>8, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSWNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>11, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSWNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>12, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSWNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>13, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSWNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>14, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSWNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>15, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSWNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>16, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSENS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>21, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSENS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>22, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSENS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>23, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSENS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>24, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSENS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>25, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYUSENS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>26, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSENS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>29, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSENS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>30, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSENS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>31, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSENS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>32, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSENS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>33, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISUSENS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>34, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYJPNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>38, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYJPNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>39, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYJPNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>40, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYJPNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>41, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYJPNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>42, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYJPNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>43, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISJPNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>46, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISJPNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>47, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISJPNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>48, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISJPNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>49, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISJPNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>50, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISJPNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>51, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYCANNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>55, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYCANNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>56, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYCANNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>57, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYCANNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>58, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYCANNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>59, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+"VDAYCANNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>60, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISCANNS@HON.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>63, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISCANNS@KAU.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>64, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISCANNS@MAUI.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>65, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISCANNS@MOL.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>66, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISCANNS@LAN.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>67, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
+# "VISCANNS@HAW.M"=>%Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/TOUR_CYFENG%y.xls", {:file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>68, :col=>"repeat:2:13", :frequency=>"M" })/1000|, 
 
 "VISUSWNS@HON.M"=>%Q|Series.load_from_download(  "TOUR_%b%y@hawaiitourismauthority.org", { :file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>"header_range:col:1:Oahu:10:45:no_okina", :col=>2, :frequency=>"M" })/1000|, 
 "VISUSWNS@KAU.M"=>%Q|Series.load_from_download(  "TOUR_%b%y@hawaiitourismauthority.org", { :file_type=>"xls", :start_date=>"2011-01-01", :sheet=>"sheet_num:3", :row=>"header_range:col:1:Kauai:10:45:no_okina", :col=>2, :frequency=>"M" })/1000|, 
@@ -774,16 +774,16 @@ task :tour_upd=>:environment do
 	
 	p = Packager.new
 	p.add_definitions tour_1
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_upd1_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_upd1_NEW.xls"
 	
 	p = Packager.new
 	p.add_definitions tour_2
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_upd2_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_upd2_NEW.xls"
 	
 	
 	p = Packager.new
 	p.add_definitions tour_3
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_upd3_NEW.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_upd3_NEW.xls"
 	
 	CSV.open("public/rake_time.csv", "a") {|csv| csv << ["tour_upd", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 	
@@ -841,15 +841,15 @@ task :vis_test=>:environment do
 	
 	p = Packager.new
 	p.add_definitions tour_1
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_upd1_NEW.xls"  
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_upd1_NEW.xls"  
 end
 
 
 task :visitor_identities=>:environment do
   t = Time.now
   
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/visfix.xls"
-  Series.load_all_series_from "/Users/uhero/Documents/data/rawdata/Manual/vexpfix.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/visfix.xls"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/Manual/vexpfix.xls"
   
   
   "VISUSNS@HON.M".ts_eval= %Q|"VISUSWNS@HON.M".ts + "VISUSENS@HON.M".ts|
@@ -972,17 +972,17 @@ task :visitor_identities=>:environment do
   #identities seemed to take over 10/21/12 Ben
   #need to load all history identities seem to take full precedence
   ["HON", "MAUI", "MOL", "LAN", "HAW"].each do |cnty| #note MAU is not included here. totally separate calculations
-    "VRLSUSWNS@#{cnty}.M".ts_eval= %Q|"VRLSUSWNS@#{cnty}.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd1_hist.xls"|
-    "VRLSUSENS@#{cnty}.M".ts_eval= %Q|"VRLSUSENS@#{cnty}.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd1_hist.xls"|
-    "VRLSJPNS@#{cnty}.M".ts_eval= %Q|"VRLSJPNS@#{cnty}.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd1_hist.xls"|
-    "VRLSCANNS@#{cnty}.M".ts_eval= %Q|"VRLSCANNS@#{cnty}.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd1_hist.xls"|
+    "VRLSUSWNS@#{cnty}.M".ts_eval= %Q|"VRLSUSWNS@#{cnty}.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd1_hist.xls"|
+    "VRLSUSENS@#{cnty}.M".ts_eval= %Q|"VRLSUSENS@#{cnty}.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd1_hist.xls"|
+    "VRLSJPNS@#{cnty}.M".ts_eval= %Q|"VRLSJPNS@#{cnty}.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd1_hist.xls"|
+    "VRLSCANNS@#{cnty}.M".ts_eval= %Q|"VRLSCANNS@#{cnty}.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd1_hist.xls"|
   end
   
   #KAU is in different history sheet
-  "VRLSUSWNS@KAU.M".ts_eval= %Q|"VRLSUSWNS@KAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd2_hist.xls"|
-  "VRLSUSENS@KAU.M".ts_eval= %Q|"VRLSUSENS@KAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd2_hist.xls"|
-  "VRLSJPNS@KAU.M".ts_eval= %Q|"VRLSJPNS@KAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd2_hist.xls"|
-  "VRLSCANNS@KAU.M".ts_eval= %Q|"VRLSCANNS@KAU.M".tsn.load_from "/Users/uhero/Documents/data/rawdata/History/tour_upd2_hist.xls"|
+  "VRLSUSWNS@KAU.M".ts_eval= %Q|"VRLSUSWNS@KAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd2_hist.xls"|
+  "VRLSUSENS@KAU.M".ts_eval= %Q|"VRLSUSENS@KAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd2_hist.xls"|
+  "VRLSJPNS@KAU.M".ts_eval= %Q|"VRLSJPNS@KAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd2_hist.xls"|
+  "VRLSCANNS@KAU.M".ts_eval= %Q|"VRLSCANNS@KAU.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd2_hist.xls"|
     
     
     
@@ -1090,7 +1090,7 @@ task :visitor_identities=>:environment do
   end
   
   [ "VISJP", "VISUS",  "VISRES", "VDAYUS", "VDAYRES", "VDAYJP", "VISIT", "VISDM", "VDAYDM", "VDAYIT"].each do |s_name|
-    "#{s_name}@HI.M".ts_append_eval %Q|"#{s_name}@HI.M".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls"|
+    "#{s_name}@HI.M".ts_append_eval %Q|"#{s_name}@HI.M".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls"|
     add_factors = ["VISRES", "VDAYUS", "VISUS", "VDAYRES", "VISIT", "VDAYIT", "VDAYDM", "VISUSE", "VEXPUS", "VEXPPTUSE", "VEXP", "VEXPPDUSW", "VISCR", "VEXPPDUS", "VEXPOT", "VEXPPDOT", "VEXPPDOTNS", "VISCRAIR", "VEXPUSW", "VEXPPTCAN", 'VEXPPDUSE', "VEXPJPNS", "VEXPPD", "VDAYUSE", "VISDM"]
     mult_factors = ["VISJP",  "VDAYJP", "VISUSW", "VISCAN", "VEXPPTJP", "VEXPPTUSW", "VS", "VDAYCAN", "VEXPPT", "VEXPCAN", "VSDM", "VEXPPTOT" ]    
     
@@ -1109,11 +1109,11 @@ task :visitor_identities=>:environment do
   end
   
   #weird one off of history? maybe ns doesn't go that far back or something
-  "VEXPPTOT@HI.M".ts_eval= %Q|"VEXPPTOT@HI.M".tsn.load_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
-  "VEXPPDOT@HI.M".ts_eval= %Q|"VEXPPDOT@HI.M".tsn.load_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "VEXPPTOT@HI.M".ts_eval= %Q|"VEXPPTOT@HI.M".tsn.load_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
+  "VEXPPDOT@HI.M".ts_eval= %Q|"VEXPPDOT@HI.M".tsn.load_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   
   ["VISUSW", "VISUSE", "VISCAN", "VEXPPTUSW", "VS", "VDAYCAN", "VEXPPT", "VEXPCAN", "VSDM", "VEXPPTOT", "VEXPUS", "VEXPPTUSE", "VEXP", "VEXPPDUSW", "VEXPPTJP", "VISCR", "VEXPPDUS", "VEXPOT", "VEXPPDOT", "VEXPPDOT", "VISCRAIR", "VEXPUSW", "VEXPPTCAN", 'VEXPPDUSE', "VEXPJP", "VEXPPD", "VDAYUSE", "VEXPPDCAN", "VDAYUSW", "VEXPUSE"].each do |s_name|
-    "#{s_name}@HI.M".ts_append_eval %Q|"#{s_name}@HI.M".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls"|
+    "#{s_name}@HI.M".ts_append_eval %Q|"#{s_name}@HI.M".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls"|
     add_factors = [ "VEXPUS", "VEXPPTUSE", "VEXP", "VEXPPDUSW", "VISCR", "VEXPPDUS", "VEXPPDOT", "VEXPPDOT", "VEXPUSW", "VEXPPTCAN", 'VEXPPDUSE', "VEXPJP", "VEXPPD", "VDAYUSE", "VEXPPDCAN", "VDAYUSW", "VEXPUSE", "VEXPPTOT"]
     mult_factors = ["VISUSE", "VISUSW", "VISCAN", "VEXPPTJP", "VEXPPTUSW", "VS", "VDAYCAN", "VEXPPT", "VEXPCAN", "VSDM", "VISCRAIR", "VEXPOT" ]    
 
@@ -1122,13 +1122,13 @@ task :visitor_identities=>:environment do
   end
   
 
-  "VDAY@HI.M".ts_append_eval %Q|"VDAY@HI.M".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls"|
+  "VDAY@HI.M".ts_append_eval %Q|"VDAY@HI.M".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls"|
   "VDAY@HI.M".ts_append_eval %Q|"VDAYJP@HI.M".ts + "VDAYUS@HI.M".ts + "VDAYRES@HI.M".ts|
   "VIS@HI.M".ts_eval= %Q|"VISJP@HI.M".ts + "VISUS@HI.M".ts + "VISRES@HI.M".ts|
-  "VISDEMETRA_MC@HI.M".ts_eval= %Q|"VIS@HI.M".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls"|
+  "VISDEMETRA_MC@HI.M".ts_eval= %Q|"VIS@HI.M".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls"|
   "VISDEMETRA_MC@HI.M".ts_eval= %Q|"VIS@HI.M".ts.apply_seasonal_adjustment :additive|
 
-  "VDAYDEMETRA_MC@HI.M".ts_eval= %Q|"VDAY@HI.M".ts.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls"|
+  "VDAYDEMETRA_MC@HI.M".ts_eval= %Q|"VDAY@HI.M".ts.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls"|
   
   #intermediate share calculations... all match
   ["HON", "HAW", "KAU", "MAU", "MAUI", "MOL", "LAN"].each do |cnty|   #CNTY WITHOUT HI
@@ -1179,22 +1179,22 @@ task :visitor_identities=>:environment do
 
   "VLOS@HI.M".ts_eval=      %Q|"VDAY@HI.M".ts / "VIS@HI.M".ts|
   
-  "VSO@HI.M".ts_eval= %Q|"VSO@HI.M".tsn.load_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
-  "VSO@HI.M".ts_eval= %Q|"VSO@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "VSO@HI.M".ts_eval= %Q|"VSO@HI.M".tsn.load_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
+  "VSO@HI.M".ts_eval= %Q|"VSO@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "VSO@HI.M".ts_eval= %Q|"VSO@HI.M".ts.apply_seasonal_adjustment :multiplicative|
   
-  "VSODM@HI.M".ts_eval= %Q|"VSODM@HI.M".tsn.load_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
-  "VSODM@HI.M".ts_eval= %Q|"VSODM@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "VSODM@HI.M".ts_eval= %Q|"VSODM@HI.M".tsn.load_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
+  "VSODM@HI.M".ts_eval= %Q|"VSODM@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "VSODM@HI.M".ts_eval= %Q|"VSODM@HI.M".ts.apply_seasonal_adjustment :multiplicative|
   
   
-  "VLOSCRAIR@HI.M".ts_eval= %Q|"VLOSCRAIR@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "VLOSCRAIR@HI.M".ts_eval= %Q|"VLOSCRAIR@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "VLOSCRAIR@HI.M".ts_eval= %Q|"VLOSCRAIR@HI.M".ts.apply_seasonal_adjustment :additive|
   
-  "VEXPPTUS@HI.M".ts_eval= %Q|"VEXPPTUS@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "VEXPPTUS@HI.M".ts_eval= %Q|"VEXPPTUS@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "VEXPPTUS@HI.M".ts_eval= %Q|"VEXPPTUS@HI.M".ts.apply_seasonal_adjustment :multiplicative|
   
-  "VEXPPDJP@HI.M".ts_eval= %Q|"VEXPPDJP@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "VEXPPDJP@HI.M".ts_eval= %Q|"VEXPPDJP@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "VEXPPDJP@HI.M".ts_eval= %Q|"VEXPPDJP@HI.M".ts.apply_seasonal_adjustment :additive|
 
   ["HON", "HAW", "KAU", "MAU"].each do |cnty| #MAUI / MOL / LAN?
@@ -1248,7 +1248,7 @@ task :visitor_identities=>:environment do
   #   "VXPRUS@HI.A"=>%Q|"VEXPUS@HI.A".ts|,
   #   "VXPRJP@HI.A"=>%Q|"VEXPJP@HI.A".ts|,
   #   "VX@HI.A"=>[%Q|"VXPR@HI.A".ts + "VXBU@HI.A".ts|, 
-  #                 %Q|"VX@HI.A".tsn.load_from "/Users/uhero/Documents/data/tour/update/vexp_upd.xls" |
+  #                 %Q|"VX@HI.A".tsn.load_from "#{ENV['DATA_PATH']}/tour/update/vexp_upd.xls" |
   #currently wrong // only VXs left, though
   "VX@HI.Q".ts_eval= %Q|"VEXP@HI.Q".ts|
   
@@ -1344,29 +1344,29 @@ task :visitor_identities=>:environment do
   "PCITJPNS@HI.M".ts_eval= %Q|"PCITJPNS@HI.D".ts.aggregate(:month, :sum) / 1000|
   "PCITOTNS@HI.M".ts_eval= %Q|"PCITOTNS@HI.D".ts.aggregate(:month, :sum) / 1000|
     
-  "PC@HI.M".ts_eval= %Q|"PC@HI.M".tsn.load_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
-  "PC@HI.M".ts_eval= %Q| "PC@HI.M".tsn.load_mean_corrected_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata")|
+  "PC@HI.M".ts_eval= %Q|"PC@HI.M".tsn.load_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
+  "PC@HI.M".ts_eval= %Q| "PC@HI.M".tsn.load_mean_corrected_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata")|
   "PC@HI.M".ts_eval= %Q|"PC@HI.M".ts.apply_seasonal_adjustment :additive|
 
-  "PCITJP@HI.M".ts_eval= %Q|"PCITJP@HI.M".tsn.load_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
-  "PCITJP@HI.M".ts_eval= %Q| "PCITJP@HI.M".tsn.load_mean_corrected_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata") |
+  "PCITJP@HI.M".ts_eval= %Q|"PCITJP@HI.M".tsn.load_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
+  "PCITJP@HI.M".ts_eval= %Q| "PCITJP@HI.M".tsn.load_mean_corrected_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata") |
   "PCITJP@HI.M".ts_eval= %Q| "PCITJP@HI.M".ts.apply_seasonal_adjustment :additive|
 
-  "PCITOT@HI.M".ts_eval= %Q|"PCITOT@HI.M".tsn.load_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
-  "PCITOT@HI.M".ts_eval= %Q|   "PCITOT@HI.M".tsn.load_mean_corrected_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata") |
+  "PCITOT@HI.M".ts_eval= %Q|"PCITOT@HI.M".tsn.load_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
+  "PCITOT@HI.M".ts_eval= %Q|   "PCITOT@HI.M".tsn.load_mean_corrected_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata") |
   "PCITOT@HI.M".ts_eval= %Q| "PCITOT@HI.M".ts.apply_seasonal_adjustment :additive |
 
-  "PCDM@HI.M".ts_eval= %Q|"PCDM@HI.M".tsn.load_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
-  "PCDM@HI.M".ts_eval= %Q|"PCDM@HI.M".tsn.load_mean_corrected_sa_from("/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata")|
+  "PCDM@HI.M".ts_eval= %Q|"PCDM@HI.M".tsn.load_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata").trim("2000-10-01", "2001-12-01")|
+  "PCDM@HI.M".ts_eval= %Q|"PCDM@HI.M".tsn.load_mean_corrected_sa_from("#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata")|
   "PCDM@HI.M".ts_eval= %Q|"PCDM@HI.M".ts.apply_seasonal_adjustment :additive|
 
-  "OCUP%@HI.M".ts_eval= %Q|"OCUP%@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "OCUP%@HI.M".ts_eval= %Q|"OCUP%@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "OCUP%@HI.M".ts_eval= %Q|"OCUP%@HI.M".ts.apply_seasonal_adjustment :additive|
 
-  "PRM@HI.M".ts_eval= %Q|"PRM@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "PRM@HI.M".ts_eval= %Q|"PRM@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "PRM@HI.M".ts_eval= %Q|"PRM@HI.M".ts.apply_seasonal_adjustment :multiplicative|
 
-  "RMRV@HI.M".ts_eval= %Q|"RMRV@HI.M".tsn.load_mean_corrected_sa_from "/Users/uhero/Documents/data/tour/seasadj/sadata.xls", "sadata"|
+  "RMRV@HI.M".ts_eval= %Q|"RMRV@HI.M".tsn.load_mean_corrected_sa_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata"|
   "RMRV@HI.M".ts_eval= %Q|"RMRV@HI.M".ts.apply_seasonal_adjustment :additive|
   
   
@@ -1394,11 +1394,11 @@ task :visitor_identities=>:environment do
   "RMRV@HI.Q".ts_eval= %Q|"RMRV@HI.M".ts.aggregate(:quarter, :average)|
   "PRM@HI.Q".ts_eval= %Q|"PRM@HI.M".ts.aggregate(:quarter, :average)|
   
-  "TRMS@HI.A".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 2, :frequency => "A" })|
-  "TRMS@HON.A".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 3, :frequency => "A" })|
-  "TRMS@HAW.A".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 4, :frequency => "A" })|
-  "TRMS@KAU.A".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 5, :frequency => "A" })|
-  "TRMS@MAU.A".ts_eval= %Q|Series.load_from_file("/Users/uhero/Documents/data/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 6, :frequency => "A" })|
+  "TRMS@HI.A".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 2, :frequency => "A" })|
+  "TRMS@HON.A".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 3, :frequency => "A" })|
+  "TRMS@HAW.A".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 4, :frequency => "A" })|
+  "TRMS@KAU.A".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 5, :frequency => "A" })|
+  "TRMS@MAU.A".ts_eval= %Q|Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/trms.xls", {:file_type => "xls", :start_date => "1964-01-01", :sheet => "trms", :row => "increment:2:1", :col => 6, :frequency => "A" })|
 
   ["Q", "A"].each do |f|
     "PPRM_WITH_CR@HI.#{f}".ts_eval= %Q|("VADC@HI.#{f}".ts - "VADCCRAIR@HI.#{f}".ts * 5 / 7) / ("TRMS@HI.#{f}".ts * "OCUP%@HI.#{f}".ts / 100)|

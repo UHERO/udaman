@@ -535,24 +535,24 @@ task :tour_rev_upd=>:environment do
 
 	p = Packager.new
 	p.add_definitions tour_big_rev
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_big_rev.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_big_rev.xls"
 	
 	p = Packager.new
 	p.add_definitions tour_rev1
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_rev_upd1.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_rev_upd1.xls"
 	
 	p = Packager.new
 	p.add_definitions tour_rev2
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_rev_upd2.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_rev_upd2.xls"
 
 	p = Packager.new
 	p.add_definitions tour_rev3
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_rev_upd3_pre_dummy.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_rev_upd3_pre_dummy.xls"
 	
 	
 	p = Packager.new
 	p.add_definitions tour_rev3
-	p.write_definitions_to "/Users/uhero/Documents/data/tour/update/tour_rev_upd3.xls"
+	p.write_definitions_to "#{ENV['DATA_PATH']}/tour/update/tour_rev_upd3.xls"
 
 
 

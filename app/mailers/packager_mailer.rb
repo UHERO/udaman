@@ -84,7 +84,7 @@ class PackagerMailer < ActionMailer::Base
 
   def prognoz_notification(recipients, send_edition)
     begin
-      path = "/Users/uhero/Documents/data/prognoz_export/ready_to_send_zip_files/"
+      path = "#{ENV['DATA_PATH']}/prognoz_export/ready_to_send_zip_files/"
       filename = send_edition + ".zip"
       attachments[filename] = File.read(path+filename) 
       subject = "Prognoz Export (Udamacmini)"

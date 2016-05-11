@@ -2,14 +2,14 @@ class PrognozDataFile < ActiveRecord::Base
   serialize :series_loaded, Hash
   
   def PrognozDataFile.send_prognoz_update(recipients = ["jrpage@hawaii.edu"])
-    folder = "/Users/uhero/Documents/data/prognoz_export/"
+    folder = "#{ENV['DATA_PATH']}/prognoz_export/"
     filenames = ["Agriculture.xls", "CAFRCounties.xls", "Kauai.xls", "metatable_isdi.xls", "SourceDoc.xls", "TableTemplate.xls"]
     filenames.map! {|elem| folder+elem}
     
     send_edition = Time.now.strftime("%yM%mD%d_%H%M%S")
     
     
-    retired_path = "/Users/uhero/Documents/data/prognoz_export/exports/retired_official_versions/" + send_edition
+    retired_path = "#{ENV['DATA_PATH']}/prognoz_export/exports/retired_official_versions/" + send_edition
     Dir.mkdir(retired_path) unless File.directory?(retired_path)
     
     self.all.each do |pdf| 
@@ -85,7 +85,7 @@ class PrognozDataFile < ActiveRecord::Base
     
   def output_path
     output_filename = filename.split("/")[-1]
-    "/Users/uhero/Documents/data/prognoz_export/exports/" + output_filename
+    "#{ENV['DATA_PATH']}/prognoz_export/exports/" + output_filename
   end
   
   def write_export

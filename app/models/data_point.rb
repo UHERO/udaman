@@ -95,9 +95,9 @@ class DataPoint < ActiveRecord::Base
   # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
   def is_pseudo_history?
     pseudo_history_sources = [
-      "/Users/uhero/Documents/data/rawdata/History/inc_hist.xls", 
-      "/Users/uhero/Documents/data/rawdata/History/bls_sa_history.xls", 
-      "/Users/uhero/Documents/data/rawdata/History/bls_histextend_date_format_correct.xls" 
+      "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls",
+      "#{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls",
+      "#{ENV['DATA_PATH']}/rawdata/History/bls_histextend_date_format_correct.xls"
     ]
     source_eval = self.data_source.eval
     pseudo_history_sources.each { |phs| return true if source_eval.index(phs) }
