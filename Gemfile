@@ -58,6 +58,10 @@ gem "sqlite3"
 #   gem 'webrat'
 # end
 
+# Gems for Passenger
+gem 'passenger'
+gem 'sqlite3'
+
 group :development, :test do
   gem 'rspec-rails'
   gem 'cucumber-rails', :require => false
