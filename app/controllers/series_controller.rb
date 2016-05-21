@@ -55,7 +55,7 @@ class SeriesController < ApplicationController
   def update    
     @series = Series.find_by id: params[:id]
     respond_to do |format|
-      if @series.update_attributes(params[:series])
+      if @series.update! series_params
         format.html { redirect_to(@series,
                       :notice => 'Data File successfully updated.') }
         format.xml  { head :ok }
@@ -66,6 +66,11 @@ class SeriesController < ApplicationController
       end
     end
   end
+
+  private
+    def series_params
+      params.require(:series).permit(:name, :description, :units, :investigation_notes)
+    end
 
   def destroy
     @series = Series.find_by id: params[:id]
