@@ -308,7 +308,9 @@ module SeriesArithmetic
   def faster_scaled_yoy_diff(id)
     new_series_data = {}
     sql = %[
-      SELECT t1.value, t1.date_string, t1.value - t2.last_value AS yoy_diff
+      SELECT t1.value, t1.date_string, (t1.value - t2.last_value) /
+      (select if(units is null, 1, units) as units from series where id = #{id} limit 1)
+       AS yoy_diff
       FROM (SELECT value, date_string, DATE_SUB(date_string, INTERVAL 1 YEAR) AS last_year
             FROM data_points WHERE series_id = #{id} AND current = 1) AS t1
       LEFT JOIN (SELECT value AS last_value, date_string

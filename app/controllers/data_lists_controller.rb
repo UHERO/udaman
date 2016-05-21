@@ -170,7 +170,7 @@ class DataListsController < ApplicationController
 
   private
     def data_list_params
-      params.require(:data_list).permit(:name, :list, :start_date)
+      params.require(:data_list).permit(:name, :list, :startyear)
     end
   
   
