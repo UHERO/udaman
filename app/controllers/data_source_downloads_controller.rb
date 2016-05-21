@@ -49,7 +49,7 @@ class DataSourceDownloadsController < ApplicationController
       end
     end
   end
-  
+
   def destroy
     @output_file = DataSourceDownload.find_by id: params[:id]
     @output_file.destroy    
