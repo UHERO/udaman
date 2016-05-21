@@ -36,7 +36,7 @@ class DataSourceDownloadsController < ApplicationController
     @output_file = DataSourceDownload.find_by id: params[:id]
     post_params = params[:data_source_download].delete(:post_parameters)
     respond_to do |format|
-      if @output_file.update_attributes(params[:data_source_download])
+      if @output_file.update! clean_post_paramaters
         @output_file.process_post_params(post_params)
         #@output_file.update_attributes(:post_parameters => params[:data_source_download])
         format.html { redirect_to( :action => 'index',
@@ -49,7 +49,12 @@ class DataSourceDownloadsController < ApplicationController
       end
     end
   end
-  
+
+  private
+    def clean_post_paramaters
+      params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :notes)
+    end
+
   def destroy
     @output_file = DataSourceDownload.find_by id: params[:id]
     @output_file.destroy    

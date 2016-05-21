@@ -28,7 +28,7 @@ class PrognozDataFilesController < ApplicationController
   def update
     @output_file = PrognozDataFile.find_by id: params[:id]
     respond_to do |format|
-      if @output_file.update_attributes(params[:prognoz_data_file])
+      if @output_file.update! prognoz_data_file_params
         format.html { redirect_to(@output_file,
                         :notice => 'Prognoz Output File successfully updated.') }
         format.xml  { head :ok }
@@ -39,6 +39,11 @@ class PrognozDataFilesController < ApplicationController
       end
     end
   end
+
+  private
+    def prognoz_data_file_params
+      params.require(:prognoz_data_file).permit(:name, :filename)
+    end
   
   def destroy
     @output_file = PrognozDataFile.find_by id: params[:id]

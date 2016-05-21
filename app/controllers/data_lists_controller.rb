@@ -145,7 +145,8 @@ class DataListsController < ApplicationController
     @data_list = DataList.find_by id: params[:id]
 
     respond_to do |format|
-      if @data_list.update_attributes(params[:data_list])
+      puts params[:data_list]
+      if @data_list.update! data_list_params
         format.html { redirect_to(@data_list, :notice => 'Data list was successfully updated.') }
         format.xml  { head :ok }
       else
@@ -166,6 +167,11 @@ class DataListsController < ApplicationController
       format.xml  { head :ok }
     end
   end
+
+  private
+    def data_list_params
+      params.require(:data_list).permit(:name, :list, :start_year)
+    end
   
   
 private
