@@ -126,7 +126,7 @@ class DataListsController < ApplicationController
   # POST /data_lists
   # POST /data_lists.xml
   def create
-    @data_list = DataList.new(params[:data_list])
+    @data_list = DataList.new data_list_params
 
     respond_to do |format|
       if @data_list.save
@@ -170,7 +170,7 @@ class DataListsController < ApplicationController
 
   private
     def data_list_params
-      params.require(:data_list).permit(:name, :list, :start_year)
+      params.require(:data_list).permit(:name, :list, :start_date)
     end
   
   

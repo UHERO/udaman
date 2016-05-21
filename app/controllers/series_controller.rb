@@ -13,6 +13,13 @@ class SeriesController < ApplicationController
     @all_series ||= [] 
   end
 
+  def autocomplete_search
+    puts params
+    #render :json => {"hi" => params[:term]}
+    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ":" + s[:description]), :value => s[:series_id] } })
+    #render :json => Series.web_search(params[:term]).map {|s| s[:name] }
+  end
+
   def show
     @series = Series.find_by id: params[:id]
     @as = AremosSeries.get @series.name 
@@ -81,13 +88,6 @@ class SeriesController < ApplicationController
   
   def search
     @search_results = AremosSeries.web_search(params[:search])
-  end
-  
-  def autocomplete_search
-    puts params
-    #render :json => {"hi" => params[:term]}
-    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ":" + s[:description]), :value => s[:series_id] } }) 
-    #render :json => Series.web_search(params[:term]).map {|s| s[:name] }
   end
   
   def comparison_graph
