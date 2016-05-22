@@ -50,11 +50,6 @@ class DataSourceDownloadsController < ApplicationController
     end
   end
 
-  private
-    def clean_post_paramaters
-      params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :notes)
-    end
-
   def destroy
     @output_file = DataSourceDownload.find_by id: params[:id]
     @output_file.destroy    
@@ -90,4 +85,8 @@ class DataSourceDownloadsController < ApplicationController
     render :partial => "parameter_formatting_test_results"
   end
 
+  private
+    def clean_post_paramaters
+      params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :notes)
+    end
 end

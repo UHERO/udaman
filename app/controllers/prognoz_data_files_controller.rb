@@ -40,11 +40,6 @@ class PrognozDataFilesController < ApplicationController
     end
   end
 
-  private
-    def prognoz_data_file_params
-      params.require(:prognoz_data_file).permit(:name, :filename)
-    end
-  
   def destroy
     @output_file = PrognozDataFile.find_by id: params[:id]
     @output_file.destroy
@@ -72,4 +67,8 @@ class PrognozDataFilesController < ApplicationController
     redirect_to :action => 'index'
   end
 
+  private
+    def prognoz_data_file_params
+      params.require(:prognoz_data_file).permit(:name, :filename)
+    end
 end
