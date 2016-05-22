@@ -1,7 +1,6 @@
 class SeriesController < ApplicationController
 
   def index
-
     frequency = params.has_key?(:freq) ? params[:freq] : nil
     prefix = params.has_key?(:prefix) ? params[:prefix] : nil
     all = params.has_key?(:all) ? true : false
@@ -67,11 +66,6 @@ class SeriesController < ApplicationController
     end
   end
 
-  private
-    def series_params
-      params.require(:series).permit(:name, :description, :units, :investigation_notes)
-    end
-
   def destroy
     @series = Series.find_by id: params[:id]
     @series.destroy
@@ -84,12 +78,11 @@ class SeriesController < ApplicationController
   end
   
   def autocomplete_search
-    puts params
     #render :json => {"hi" => params[:term]}
-    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ":" + s[:description]), :value => s[:series_id] } }) 
+    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ":" + s[:description]), :value => s[:series_id] } })
     #render :json => Series.web_search(params[:term]).map {|s| s[:name] }
   end
-  
+
   def comparison_graph
     @series = Series.find_by id: params[:id]
     @comp = @series.aremos_data_side_by_side
@@ -187,17 +180,20 @@ class SeriesController < ApplicationController
     @series.update_attributes({:investigation_notes => params[:note]})
     render :partial => "investigation_sort.html"
   end
-private
 
-  def convert_to_udaman_notation(eval_string)
-    operator_fix = eval_string.gsub("(","( ").gsub(")", " )").gsub("*"," * ").gsub("/"," / ").gsub("-"," - ").gsub("+"," + ")
-    (operator_fix.split(" ").map {|e| (e.index("@").nil? or !e.index(".ts").nil? ) ? e : "\"#{e}\".ts" }).join(" ")
-  end
-  
-  def json_from_heroku_tsd(series_name, tsd_file)
-    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
-    res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-    data = res.code == "500" ? nil : JSON.parse(res.body)  
-  end
+  private
+    def series_params
+      params.require(:series).permit(:name, :description, :units, :investigation_notes)
+    end
 
+    def convert_to_udaman_notation(eval_string)
+      operator_fix = eval_string.gsub("(","( ").gsub(")", " )").gsub("*"," * ").gsub("/"," / ").gsub("-"," - ").gsub("+"," + ")
+      (operator_fix.split(" ").map {|e| (e.index("@").nil? or !e.index(".ts").nil? ) ? e : "\"#{e}\".ts" }).join(" ")
+    end
+
+    def json_from_heroku_tsd(series_name, tsd_file)
+      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
+      res = Net::HTTP.new(url.host, url.port).request_get(url.path)
+      data = res.code == "500" ? nil : JSON.parse(res.body)
+    end
 end

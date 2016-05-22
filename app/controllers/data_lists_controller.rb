@@ -126,7 +126,7 @@ class DataListsController < ApplicationController
   # POST /data_lists
   # POST /data_lists.xml
   def create
-    @data_list = DataList.new(params[:data_list])
+    @data_list = DataList.new data_list_params
 
     respond_to do |format|
       if @data_list.save
@@ -168,40 +168,40 @@ class DataListsController < ApplicationController
     end
   end
 
+
+  
   private
     def data_list_params
-      params.require(:data_list).permit(:name, :list, :start_year)
+      params.require(:data_list).permit(:name, :list, :startyear)
     end
-  
-  
-private
-  def set_dates(frequency, params)
-    case frequency
-    when "M", "m"
-      months_back = 15
-      offset = 1
-    when "Q", "q"
-      months_back = 34
-      offset = 4
-    when "A", "a"
-      months_back = 120
-      offset = 4
+
+    def set_dates(frequency, params)
+      case frequency
+      when "M", "m"
+        months_back = 15
+        offset = 1
+      when "Q", "q"
+        months_back = 34
+        offset = 4
+      when "A", "a"
+        months_back = 120
+        offset = 4
+      end
+
+      if params[:num_years].nil?
+        start_date = (Time.now.to_date << (months_back)).to_s
+        end_date = nil
+      else
+        start_date = (Time.now.to_date << (12 * params[:num_years].to_i + offset)).to_s
+        end_date = nil
+      end
+      return {:start_date => start_date, :end_date => end_date}
     end
-    
-    if params[:num_years].nil?
-      start_date = (Time.now.to_date << (months_back)).to_s
-      end_date = nil
-    else
-      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + offset)).to_s
-      end_date = nil
+
+    def json_from_heroku_tsd(series_name, tsd_file)
+      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
+      res = Net::HTTP.new(url.host, url.port).request_get(url.path)
+      data = res.code == "500" ? nil : JSON.parse(res.body)
     end
-    return {:start_date => start_date, :end_date => end_date}
-  end
-  
-  def json_from_heroku_tsd(series_name, tsd_file)
-    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
-    res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-    data = res.code == "500" ? nil : JSON.parse(res.body)  
-  end
 
 end

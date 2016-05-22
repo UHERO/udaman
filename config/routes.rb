@@ -58,7 +58,7 @@ UheroDb::Application.routes.draw do
   #map.devise_for :users
   
   resources :series
-  
+
   resources :data_source_downloads
   resources :data_sources
   resources :prognoz_data_files
@@ -131,8 +131,8 @@ UheroDb::Application.routes.draw do
   get 'listseries/re' =>'listseries#redir'
   get 'listseries/:name' => 'listseries#get'
   
-  match 'autocomplete' => 'series#autocomplete_search', via: :all
-  
+  get 'autocomplete' => 'series#autocomplete_search'
+
   #match 'path' => 'controller#method'
   # The priority is based upon order of creation:
   # first created -> highest priority.

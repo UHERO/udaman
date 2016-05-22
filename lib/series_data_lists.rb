@@ -143,6 +143,5 @@ module SeriesDataLists
     Dir.mkdir output_path+"_vintages" unless File::directory?(output_path+"_vintages")
     open(output_path+"_vintages/#{Date.today}_"+output_filename, "wb") { |file| file.write old_file }
   end
-  
 end
 
