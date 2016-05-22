@@ -39,13 +39,14 @@
 <% lvl_chg = @lvl_chg.data %>
 <% chg = @chg.data %>
 <% ytd = @ytd.data %>
+<% units = @series.units.nil? ? 1 : @series.units %>
 
 var jsonData = [ 
 	<% dates.each do |date_string|  %> 
 	{ 
 		date: "<%=date_string %>", 
-		level: "<%= data[date_string].nil? ? "" : "%.3f" % data[date_string] %>" , 
-		change: "<%= chg[date_string].nil? ? "" : "%.1f" % chg[date_string]%>" ,
+		level: "<%= data[date_string].nil? ? "" : "%.3f" % (data[date_string] / units) %>" ,
+		change: "<%= chg[date_string].nil? ? "" : "%.1f" % chg[date_string] %>" ,
 		ytd: "<%= ytd[date_string].nil? ? "" : "%.1f" % ytd[date_string]%>"
 	}, 
 	<%end%> 
@@ -92,7 +93,7 @@ end
 <%= javascript_include_tag 'humblefinance/HumbleFinance' %>
 <%= javascript_include_tag 'humblefinance/demo' %>
 
-<table>
+<table style="margin-top: 50px;">
 	<tr>
 		<th>Date</th>
 		<th>Level</th>
@@ -103,8 +104,8 @@ end
 	<% dates.reverse.each do |date_string|  %>  
 	<tr>	
 		<td><%=date_string %></td> 
-		<td><%= data[date_string].nil? ? "" : "%.3f" % data[date_string] %></td>
-		<td><%= lvl_chg[date_string].nil? ? "" : "%.3f" % lvl_chg[date_string] %></td>
+		<td><%= data[date_string].nil? ? "" : "%.3f" % (data[date_string] / units) %></td>
+		<td><%= lvl_chg[date_string].nil? ? "" : "%.3f" % (lvl_chg[date_string] / units) %></td>
 		<td><%= chg[date_string].nil? ? "" : "%.1f" % chg[date_string]%></td>
 		<td><%= ytd[date_string].nil? ? "" : "%.1f" % ytd[date_string]%></td>
 	</tr>
