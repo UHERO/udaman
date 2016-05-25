@@ -34,11 +34,10 @@ end
 task :gen_prognoz_diffs => :environment do
   t = Time.now
   diff_data = []
-  
-  
+
   PrognozDataFile.all.each do |pdf| 
     t1 = Time.now
-    os = UpdateSpreadsheet.new pdf.filename    
+    os = UpdateSpreadsheet.new pdf.filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
     os.headers_with_frequency_code.each do |header|
       diff_data.push({:pdf_id => pdf.id, :id => 0, :name => header, :display_array => [-1]}) if header.ts.nil?
       next if header.ts.nil?
