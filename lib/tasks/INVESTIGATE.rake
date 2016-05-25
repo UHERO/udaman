@@ -35,8 +35,6 @@ task :gen_prognoz_diffs => :environment do
   t = Time.now
   diff_data = []
 
-  puts "#{ENV['DATA_PATH']}"
-  
   PrognozDataFile.all.each do |pdf| 
     t1 = Time.now
     os = UpdateSpreadsheet.new pdf.filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
