@@ -30,8 +30,7 @@ class PrognozDataFile < ActiveRecord::Base
   end
   
   def update_spreadsheet
-    os = UpdateSpreadsheet.new filename
-    return os
+    UpdateSpreadsheet.new filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
   end
   
   def load
@@ -52,7 +51,7 @@ class PrognozDataFile < ActiveRecord::Base
 
   def udaman_diffs
     t = Time.now
-    os = UpdateSpreadsheet.new filename
+    os = UpdateSpreadsheet.new filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
 #    puts "#{"%.2f" %(Time.now - t)} | loading spreadsheet"
     return {:notice=>"problem loading spreadsheet", :headers=>[]} if os.load_error?
     diffs = {}
@@ -100,7 +99,7 @@ class PrognozDataFile < ActiveRecord::Base
   end
   
   def prognoz_output_path
-    "#{ENV["DATAFILES_PATH"]}/datafiles/test_output/"
+    "#{ENV['DATA_PATH']}/datafiles/test_output/"
   end
   
   def create_output_folder
