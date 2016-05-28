@@ -3,7 +3,7 @@
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<% form_for(@output_file) do |f| %>
+	<%= form_for @output_file do |f| %>
 		<div class="field">
 			<%= f.label :handle %>
 			<%= f.text_field :handle, :size => 100 %>
@@ -17,23 +17,46 @@
 		<div class="field">
 			<%= f.label :url %>
 			<div id="url_message"></div>
-			<%= f.text_field :url, :size => 100, :onchange => remote_function(:update => "url_message", :url => {:action => 'test_url'}, :with=>"'change_to='+this.value+''") %>
+			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
 			
 		</div>
 		
 		<div class="field">
 			<%= f.label :save_path %>
 			<div id="save_path_message"></div>
-			<%= f.text_field :save_path, :size => 100, :onchange => remote_function(:update => "save_path_message", :url => {:action => 'test_save_path'}, :with=>"'change_to='+this.value+''") %>
+			<%= f.text_field :save_path, :size => 100, 'data-test-save-path': 'save_path_message'%>
 		</div>
 		
 		<div class="field">
 			<%= f.label :post_parameters %>
 			<div id="post_parameters_message"></div>
-			<%= f.text_area :post_parameters, :value => " \n  ", :size => "72x20", :onchange => remote_function(:update => "post_parameters_message", :url => {:action => 'test_post_params'}, :with=>"'change_to='+this.value+' '") %>
+			<%= f.text_area :post_parameters, :value => " \n  ", :size => '72x20', 'data-test-post-params': 'post_parameters_message' %>
 		</div>
 		<div class="actions">
 			<%= f.submit %>
 		</div>
 	<% end %>
 </div>
+<script>
+
+  function validateInput(action, dataAttr) {
+    $(':input[data-' + dataAttr + ']').change(function() {
+      console.log('Value to send: ' + $(this).val());
+      var divToChange = $(this).data(dataAttr);
+      $('#' + divToChange).html('Validating input ...');
+      $.post('<%= url_for controller: :data_source_downloads, :only_path => false %>/' + action,
+          {change_to: $(this).val()},
+          function(data) {
+            $('#' + divToChange).html(data);
+            console.log('received result for ' + action);
+          }
+      );
+    });
+  }
+
+  $(function() {
+    validateInput('test_url', 'test-url');
+    validateInput('test_save_path', 'test-save-path');
+    validateInput('test_post_params', 'test-post-params');
+  });
+</script>
