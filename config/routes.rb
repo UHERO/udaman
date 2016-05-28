@@ -59,7 +59,6 @@ UheroDb::Application.routes.draw do
   
   resources :series
 
-  resources :data_source_downloads
   resources :data_sources
   resources :prognoz_data_files
   resources :series_data_files
@@ -132,6 +131,11 @@ UheroDb::Application.routes.draw do
   get 'listseries/:name' => 'listseries#get'
   
   get 'autocomplete' => 'series#autocomplete_search'
+
+  post 'data_source_downloads/test_url' => 'data_source_downloads#test_url'
+  post 'data_source_downloads/test_save_path' => 'data_source_downloads#test_save_path'
+  post 'data_source_downloads/test_post_params' => 'data_source_downloads#test_post_params'
+  resources :data_source_downloads
 
   #match 'path' => 'controller#method'
   # The priority is based upon order of creation:

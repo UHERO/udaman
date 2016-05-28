@@ -72,17 +72,17 @@ class DataSourceDownloadsController < ApplicationController
   
   def test_url
     @test_url_status = DataSourceDownload.test_url(params[:change_to])
-    render :partial => "download_test_results"
+    render :partial => 'download_test_results'
   end
 
   def test_save_path
     @test_save_path = DataSourceDownload.test_save_path(params[:change_to])
-    render :partial => "save_location_test_results"
+    render :partial => 'save_location_test_results'
   end
   
   def test_post_params
     @test_post_params = DataSourceDownload.test_post_params(params[:change_to])
-    render :partial => "parameter_formatting_test_results"
+    render :partial => 'parameter_formatting_test_results'
   end
 
   private

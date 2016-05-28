@@ -1,3 +1,5 @@
+<%= @test_save_path %>
 <div class="good-response"><%= "OK" if  @test_save_path == "ok"%></div>
 <div class="bad-response"><%= "A different download is already being saved to this path" if @test_save_path == "duplicate" %></div>
 <div class="bad-response"><%= "This directory does not exist" if @test_save_path == "badpath" %></div>
+<div class="bad-response"><%= "No path given" if @test_save_path == "nopath" %></div>

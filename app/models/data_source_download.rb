@@ -27,12 +27,12 @@ class DataSourceDownload < ActiveRecord::Base
     end
 
     def DataSourceDownload.test_post_params(params)
-  #    begin
+     begin
         DataSourceDownload.new.test_process_post_params(params)
-      # rescue Exception => exc
-      #   return false
-      # end
-      return true
+     rescue SyntaxError
+        return false
+     end
+     true
     end
     #used this in the other script that downloaded https files
     #but this script doesn't appear to need it
