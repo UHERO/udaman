@@ -135,7 +135,11 @@ class DataList < ActiveRecord::Base
   
   def DataList.write(name, path, start_date = "1900-01-01")
     t = Time.now
-    names = DataList.where(:name => name).first.series_names
+    begin
+      names = DataList.find_by!(name: name).series_names
+    rescue ActiveRecord::RecordNotFound
+      return puts "#{ "%.2f" % (Time.now - t) } | 0 (no list named #{name}) | #{ path }"
+    end
     Series.write_data_list names, path, start_date
     puts "#{ "%.2f" % (Time.now - t) } | #{ names.count } | #{ path }"
   end
