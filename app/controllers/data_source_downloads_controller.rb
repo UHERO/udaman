@@ -71,7 +71,7 @@ class DataSourceDownloadsController < ApplicationController
   end
   
   def test_url
-    @test_url_status = DataSourceDownload.test_url(params[:change_to])
+    @test_url_status = DataSourceDownload.test_url(URI.encode(params[:change_to]))
     render :partial => 'download_test_results'
   end
 
