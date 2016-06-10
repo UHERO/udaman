@@ -37,7 +37,7 @@ class DataSourceDownload < ActiveRecord::Base
         return false
      end
      true
-    endç
+    end
     #used this in the other script that downloaded https files
     #but this script doesn't appear to need it
     #client.ssl_config.set_trust_ca('ca.secure.webapp.domain.com.crt')
