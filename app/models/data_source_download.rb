@@ -5,6 +5,10 @@ class DataSourceDownload < ActiveRecord::Base
   serialize :download_log, Array
 
   has_many :dsd_log_entries
+  @@Default_data_path = '/Users/uhero/Documents/data'
+  def DataSourceDownload.default_data_path
+    @@Default_data_path
+  end
   
     #some tight coupling to the unizipping functionality in the string extension
     def DataSourceDownload.get_by_path(save_path)
@@ -33,7 +37,7 @@ class DataSourceDownload < ActiveRecord::Base
         return false
      end
      true
-    end
+    endç
     #used this in the other script that downloaded https files
     #but this script doesn't appear to need it
     #client.ssl_config.set_trust_ca('ca.secure.webapp.domain.com.crt')
@@ -54,8 +58,8 @@ class DataSourceDownload < ActiveRecord::Base
     end
     
     def save_path_flex
-      return save_path unless ENV["JON"] == "true"
-      return save_path.gsub("UHEROwork", "UHEROwork-1")
+      return save_path.gsub(@@Default_data_path, ENV['DATA_PATH']) if save_path.include? @@Default_data_path
+      return save_path
     end
     
     def extract_path_flex
@@ -112,7 +116,7 @@ class DataSourceDownload < ActiveRecord::Base
       last_log = dsd_log_entries.order(:time).last
       
       if last_log.nil? or !(last_log.url == download_url and last_log.time.to_date == download_time.to_date and last_log.status == status)
-        self.dsd_log_entries.create(:time => download_time, :url => download_url, :location => download_location, :type => content_type, :status => status, :dl_changed => data_changed)
+        self.dsd_log_entries.create(:time => download_time, :url => download_url, :location => download_location, :mimetype => content_type, :status => status, :dl_changed => data_changed)
       end
       
       #this return might be a little misleading since it isn't always the exact results of the last download, just an indication that they were mostly the same
