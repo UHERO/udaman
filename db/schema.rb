@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160420235231) do
+ActiveRecord::Schema.define(version: 20160609210500) do
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -103,11 +103,11 @@ ActiveRecord::Schema.define(version: 20160420235231) do
     t.datetime "time"
     t.string   "url",                     limit: 255
     t.string   "location",                limit: 255
-    t.string   "type",                    limit: 255
     t.integer  "status",                  limit: 4
     t.boolean  "dl_changed"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.string   "mimetype",                limit: 255
   end
 
   create_table "packager_outputs", force: :cascade do |t|
