@@ -1,4 +1,6 @@
 class DashboardsController < ApplicationController
+  skip_before_action :authenticate_user!, only: [:investigate_visual]
+
   def index
     @series_count = Series.count
     @aremos_series_count = AremosSeries.count
