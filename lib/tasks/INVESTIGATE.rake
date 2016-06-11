@@ -1,29 +1,29 @@
 
 task :gen_system_summary => :environment do
-   CSV.open("public/system_summary.csv", "wb") do |csv|        
-      csv << ["series_name", "ds_id", "ds_eval", "current_data_points", "dependencies_count", "aremos_diffs", "last_run", "data_point_sha1", "dependencies", "first_date"]
+   CSV.open('public/system_summary.csv', 'wb') do |csv|        
+      csv << %w{series_name ds_id ds_eval current_data_points dependencies_count aremos_diffs last_run data_point_sha1 dependencies first_date}
       DataSource.order('series_id desc').all.each do |ds| 
          dps = ds.series.current_data_points.sort_by {|dp| dp.date_string}
          hash = Digest::SHA1.hexdigest(dps.map {|dp| dp.value.round(3)} * ",")
-         puts ds.series.name.rjust(20, " ") + ds.id.to_s.rjust(6," ") + dps.count.to_s.rjust(5," ") + ds.dependencies.count.to_s.rjust(3, " ") + ds.series.aremos_diff.to_s.rjust(5, " ") + ds.last_run.to_s.rjust(40," ") + " " + hash + " " + (dps.count > 1 ? dps.first.date_string : "")   
-         csv << [ ds.series.name, ds.id, ds.eval, dps.count, ds.dependencies.count, ds.series.aremos_diff, ds.last_run, hash, ds.dependencies.sort.join(", "), (dps.count > 0 ? dps.first.date_string : "")]
+         puts ds.series.name.rjust(20, ' ') + ds.id.to_s.rjust(6, ' ') + dps.count.to_s.rjust(5, ' ') + ds.dependencies.count.to_s.rjust(3, ' ') + ds.series.aremos_diff.to_s.rjust(5, ' ') + ds.last_run.to_s.rjust(40, ' ') + ' ' + hash + ' ' + (dps.count > 1 ? dps.first.date_string : '')   
+         csv << [ ds.series.name, ds.id, ds.eval, dps.count, ds.dependencies.count, ds.series.aremos_diff, ds.last_run, hash, ds.dependencies.sort.join(', '), (dps.count > 0 ? dps.first.date_string : '')]
       end
    end
 end
 
 task :update_diffs => :environment do
-  to_investigate = Series.where("aremos_missing > 0 OR ABS(aremos_diff) > 0.0").order('frequency, name ASC')
+  to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('frequency, name ASC')
   to_investigate.each {|s| s.aremos_comparison}
 
   diff_data = []
   
-  to_investigate = Series.where("aremos_missing > 0 OR ABS(aremos_diff) > 0.0").order('frequency, name ASC')
+  to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('frequency, name ASC')
   to_investigate.each do |ts| 
     aremos_series = AremosSeries.get ts.name
     diff_data.push({:id => ts.id, :name => ts.name, :display_array => ts.aremos_comparison_display_array})
   end
   
-  CSV.open("public/investigate_visual.csv", "wb") do |csv|        
+  CSV.open('public/investigate_visual.csv', 'wb') do |csv|        
     diff_data.each do |dd|
       csv << [dd[:name]] + [dd[:id]] + dd[:display_array]
     end
@@ -46,30 +46,30 @@ task :gen_prognoz_diffs => :environment do
       diff_data.push({:pdf_id => pdf.id, :id => header.ts.id, :name => header, :display_array => diff_hash}) if diff_hash.count > 0
     end    
     pdf.write_export
-    puts "#{"%.2f" %(Time.now - t1)} | #{pdf.filename}"
+    puts "#{'%.2f' %(Time.now - t1)} | #{pdf.filename}"
   end 
     
-  CSV.open("public/prognoz_diffs.csv", "wb") do |csv|        
+  CSV.open('public/prognoz_diffs.csv', 'wb') do |csv|        
     diff_data.each do |dd|
       csv << [dd[:pdf_id]]+[dd[:name]] + [dd[:id]] + dd[:display_array]
     end
   end
 
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["gen_prognoz_diffs", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_prognoz_diffs', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :gen_investigate_csv => :environment do
   t = Time.now
   # diff_data = [{:id => 1, :name => "he", :display_array => [1,2,2,2] }]
   diff_data = []
-  to_investigate = Series.where("aremos_missing > 0 OR ABS(aremos_diff) > 0.0").order('frequency, name ASC')
+  to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('frequency, name ASC')
   
   to_investigate.each do |ts| 
     aremos_series = AremosSeries.get ts.name
     diff_data.push({:id => ts.id, :name => ts.name, :display_array => ts.aremos_comparison_display_array})
   end
   
-  CSV.open("public/investigate_visual.csv", "wb") do |csv|        
+  CSV.open('public/investigate_visual.csv', 'wb') do |csv|
     diff_data.each do |dd|
       csv << [dd[:name]] + [dd[:id]] + dd[:display_array]
     end
@@ -77,16 +77,16 @@ task :gen_investigate_csv => :environment do
   
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where("created_at > FROM_DAYS(TO_DAYS(NOW()))").group(:series_id).count
-  CSV.open("public/dp_added.csv", "wb") do |csv|        
-    csv << ["series_name", "series_id", "new_datapoints_added"]
+  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:series_id).count
+  CSV.open('public/dp_added.csv', 'wb') do |csv|
+    csv << %w{series_name series_id new_datapoints_added}
     dps.each do |series_id,count| 
       csv << [Series.find_by(id: series_id).name, series_id, count]
     end
   end
   
-  CSV.open("public/download_results.csv", "wb") do |csv|
-    csv << ["id", "handle", "time", "status", "changed", "url"]
+  CSV.open('public/download_results.csv', 'wb') do |csv|
+    csv << %w{id handle time status changed url}
     DataSourceDownload.all.each do |dsd|
       puts dsd.handle.to_s
       next if dsd.dsd_log_entries == []
@@ -96,18 +96,18 @@ task :gen_investigate_csv => :environment do
     end
   end
   
-  CSV.open("public/packager_output.csv", "wb") do |csv|
-    csv << ["changed", "group", "label"]
+  CSV.open('public/packager_output.csv', 'wb') do |csv|
+    csv << %w{changed group label}
     PackagerOutput.all.each do |po| 
-      path_parts = po.path.split("/")
-      csv << [po.last_new_data == Time.now.to_date, path_parts[4], path_parts[-1].gsub(".xls","").gsub("_NEW","")]
+      path_parts = po.path.split('/')
+      csv << [po.last_new_data == Time.now.to_date, path_parts[4], path_parts[-1].gsub('.xls', '').gsub('_NEW','')]
       downloads += 1 if po.last_new_data == Time.now.to_date
     end
   end
   puts "cd #{Rails.root}/script && casperjs rasterize.js"
   system("cd #{Rails.root}/script && casperjs rasterize.js")
   puts "dps.count = #{dps.count}, changed_files = #{changed_files}, downloads = #{downloads}"
-  puts "finished this now sending"
+  puts 'finished this now sending'
   begin
       # PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
       PackagerMailer.visual_notification.deliver
