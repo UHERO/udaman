@@ -1,18 +1,25 @@
 <p class="notice"><%= notice %></p>
 
-<h1><%= link_to @series.name, @series, :method => :get %></h1>
-<p><%= @desc %></p>
-<h2><%= @date_string %></h2>
+<%
+  series = @data_points.first.series
+  aremos_series = series.aremos_series
+  desc = aremos_series.nil? ? 'No Aremos Series' : aremos_series.description
+%>
+
+
+<h1><%= link_to series.name, series, :method => :get %></h1>
+<p><%= desc %></p>
+<h2><%= @data_points.first.date %></h2>
 
 <%
   previous_data_points = @data_points
   pdp_sort = previous_data_points.sort {|dp1, dp2| dp2.created_at <=> dp1.created_at}
   pdp_sort.each do |dp|
-    dp_val = dp.value / @series.units
-    data_source = DataSource.find_by id: dp.data_source_id
-    bgcolor = data_source.color rescue "FFF"
+    dp_val = dp.value / series.units
+    data_source = @data_points.first.data_source
+    bgcolor = data_source.color rescue 'FFF'
   %>
   <div class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
-    <%= "%.3f" % dp_val %><sup><%= (Time.now.to_date - dp.created_at.to_date).to_i %><%="(ph)" if dp.pseudo_history %></sup>
+    <%= '%.3f' % dp_val %><sup><%= (Time.now.to_date - dp.created_at.to_date).to_i %><%='(ph)' if dp.is_pseudo_history? %></sup>
   </div>
 <% end %>
