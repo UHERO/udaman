@@ -119,7 +119,7 @@ describe DataSource do
      new_series = Series.new(:data => new_data)
      Series.store("YSTWTR@HI.A", new_series, "dummy series description", "dummy")
 
-     history = "YSTWTR@HI.A".ts.data_points.where(:date_string => delete_date).first.history
+     history = "YSTWTR@HI.A".ts.data_points.where(:date => delete_date).first.history
      history.should_not be_nil
      history.localtime.to_date.should == Time.now.to_date
    end

@@ -8,7 +8,7 @@ describe DataPoint do
   #redo tests above without the update function
   it "should not change datapoint if value and source_id are unchanged" do
     ds = DataSource.create
-    dp = DataPoint.create(:series_id => @s.id, :date_string => "2011-03-01", :value => 100.0, :data_source_id => ds.id, :current => true)
+    dp = DataPoint.create(:series_id => @s.id, :date => "2011-03-01", :value => 100.0, :data_source_id => ds.id, :current => true)
     dp.upd(100, ds)
     dpu = @s.data_points[0]
     dpu.id.should == dp.id
@@ -20,7 +20,7 @@ describe DataPoint do
   it "should update a data points source_id if source_id is different" do
     ds1 = DataSource.create
     ds2 = DataSource.create
-    dp = DataPoint.create(:series_id => @s.id, :date_string => "2011-03-01", :value => 100.0, :data_source_id => ds1.id, :current => true)
+    dp = DataPoint.create(:series_id => @s.id, :date => "2011-03-01", :value => 100.0, :data_source_id => ds1.id, :current => true)
     dp.upd(100, ds2)
     
     dpu = @s.data_points[0]
@@ -37,7 +37,7 @@ describe DataPoint do
   
   it "should mark itself as non-current and spawn a new data point if the value of the data point changes" do
     ds1 = DataSource.create
-    dp = DataPoint.create(:series_id => @s.id, :date_string => "2011-03-01", :value => 100.0, :data_source_id => ds1.id, :current => true)
+    dp = DataPoint.create(:series_id => @s.id, :date => "2011-03-01", :value => 100.0, :data_source_id => ds1.id, :current => true)
     dp.upd(200, ds1)
     DataPoint.count.should == 2
     @s.current_data_points.count.should == 1
@@ -46,7 +46,7 @@ describe DataPoint do
     
   it "should make it's 'next of kin' data point current if it's being deleted" do
     ds1 = DataSource.create
-    dp = DataPoint.create(:series_id => @s.id, :date_string => "2011-03-01", :value => 100.0, :data_source_id => ds1.id, :current => true)
+    dp = DataPoint.create(:series_id => @s.id, :date => "2011-03-01", :value => 100.0, :data_source_id => ds1.id, :current => true)
 
     dp1 = dp.upd(200, ds1)
     

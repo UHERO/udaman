@@ -112,7 +112,7 @@ module SeriesExternalRelationship
         data = self.data
         unless data[datestring].nil?
           diff = a_diff(value, self.units_at(datestring))
-          dp = DataPoint.where(:series_id => self.id, :date_string => datestring, :current=>true)[0]
+          dp = DataPoint.where(:series_id => self.id, :date => datestring, :current=>true)[0]
           source_code = dp.source_type_code
           puts "#{self.name}: #{datestring}: #{value}, #{self.units_at(datestring)} diff:#{diff}" if diff != 0
           results.push(0+source_code) if diff == 0
@@ -182,7 +182,7 @@ module SeriesExternalRelationship
         end
       end
             
-      dp_idx = cdp.index {|dp| dp.date_string == date_string }
+      dp_idx = cdp.index {|dp| dp.date == date_string }
       dp = dp_idx.nil? ? dp_idx : cdp.delete_at(dp_idx)
       
       if !dp_val.nil? and value.nil? #data in series, no data in spreadsheet

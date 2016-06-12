@@ -25,7 +25,7 @@ class DataPoint < ActiveRecord::Base
   end
   
   def debug(value)
-    puts "#{date_string} - SELF.VALUE: #{self.value} / #{self.value.class} VALUE: #{value} / #{value.class}"
+    puts "#{date} - SELF.VALUE: #{self.value} / #{self.value.class} VALUE: #{value} / #{value.class}"
   end
   
   def create_new_dp(value, data_source)
@@ -38,13 +38,13 @@ class DataPoint < ActiveRecord::Base
   end
   
   def restore_prior_dp(value, data_source)
-    prior_dp = DataPoint.where(:date_string => date_string, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
+    prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
     return nil if prior_dp.nil?
     self.update_attributes(:current => false) unless self.id == prior_dp.id #this screws up... if equality is off a little
     prior_dp.increment :restore_counter
     prior_dp.current = true
     prior_dp.save
-    prior_dp = DataPoint.where(:date_string => date_string, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
+    prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
     return prior_dp
   end
   
@@ -65,12 +65,12 @@ class DataPoint < ActiveRecord::Base
   end
   
   def delete
-    date_string = self.date_string
+    date = self.date
     series_id = self.series_id
     
     super
 
-    next_of_kin = DataPoint.where(:date_string => date_string, :series_id => series_id).sort_by(&:updated_at).reverse[0]
+    next_of_kin = DataPoint.where(:date => date, :series_id => series_id).sort_by(&:updated_at).reverse[0]
     next_of_kin.update_attributes(:current => true) unless next_of_kin.nil?        
   end
   
@@ -132,10 +132,10 @@ class DataPoint < ActiveRecord::Base
   end
 
   #have not tested as is. This is created from a one time job. Need to test again
-  def DataPoint.delete_all_created_on(date_string)
+  def DataPoint.delete_all_created_on(date)
     #dps_to_delete = DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date_string}')")
     #dps_to_delete.each { |dp| puts "#{dp.series_id} : #{dp.date_string} : #{dp.value}"; dp.delete }
-    DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date_string}')").each { |dp| dp.delete }
+    DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
     
   end
   

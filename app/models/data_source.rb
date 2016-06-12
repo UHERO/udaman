@@ -134,7 +134,7 @@ class DataSource < ActiveRecord::Base
     end
 
     def current_data_points
-      self.data_points.where(:current => true).order(:date_string).all
+      self.data_points.where(:current => true).order(:date).all
     end
     
     def create_from_form
@@ -171,9 +171,9 @@ class DataSource < ActiveRecord::Base
       data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
     
-    def mark_as_pseudo_history_before(date_string)
+    def mark_as_pseudo_history_before(date)
       puts "marking ds: #{self.id}"
-      data_points.where("date_string < '#{date_string}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
+      data_points.where("date < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
 
     def unmark_as_pseudo_history
@@ -181,9 +181,9 @@ class DataSource < ActiveRecord::Base
       data_points.each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
     
-    def unmark_as_pseudo_history_before(date_string)
+    def unmark_as_pseudo_history_before(date)
       puts "unmarking ds: #{self.id}"
-      data_points.where("date_string < '#{date_string}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
+      data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
     
     def delete_all_other_sources
