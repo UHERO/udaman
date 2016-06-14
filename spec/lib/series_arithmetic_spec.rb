@@ -93,7 +93,7 @@ describe SeriesArithmetic do
       it "should successfully calculate a moving average" do
         bl_mov_avg    = @dh.ns "BL_MA@TEST.M"
         to_bl_mov_avg = @dh.ns "TO_AVG@TEST.M"
-        bl_mov_avg.identical_to?(to_bl_mov_avg.backward_looking_moving_average.data).should be_true
+        bl_mov_avg.identical_to?(to_bl_mov_avg.backward_looking_ma.data).should be_true
       end
     end
     
@@ -101,7 +101,7 @@ describe SeriesArithmetic do
       it "should successfully calculate a moving average" do
         fl_mov_avg    = @dh.ns "FL_MA@TEST.M"
         to_bl_mov_avg = @dh.ns "TO_AVG@TEST.M"
-        fl_mov_avg.identical_to?(to_bl_mov_avg.forward_looking_moving_average.data).should be_true
+        fl_mov_avg.identical_to?(to_bl_mov_avg.forward_looking_ma.data).should be_true
       end
     end
     
@@ -109,7 +109,7 @@ describe SeriesArithmetic do
       it "should successfully calculate a moving average" do
         fl1_mov_avg    = @dh.ns "FL1_MA@TEST.M"
         to_bl_mov_avg = @dh.ns "TO_AVG@TEST.M"
-        fl1_mov_avg.identical_to?(to_bl_mov_avg.offset_forward_looking_moving_average.data).should be_true
+        fl1_mov_avg.identical_to?(to_bl_mov_avg.offset_forward_looking_ma.data).should be_true
       end
     end
   end

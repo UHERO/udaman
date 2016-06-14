@@ -17,7 +17,7 @@ module SeriesAggregation
     grouped_data.keys.each do |date_string|
       aggregated_data[date_string] = grouped_data[date_string].send(operation)
     end
-    return aggregated_data
+    aggregated_data
   end
   
   def aggregate_by(frequency,operation, override_prune = false)
@@ -56,9 +56,7 @@ module SeriesAggregation
     #puts key+" "+value.count.to_s + " " + Date.parse(key).days_in_month.to_s;
     #month check for days is more complicated because need to check for number of days in each month
 
-    
-    
-    return aggregated_data
+    aggregated_data
   end
   
   def validate_aggregation(frequency)
@@ -75,7 +73,5 @@ module SeriesAggregation
     raise AggregationException.new if freq == "month" and (frequency == :month or frequency == :week or frequency == :day)
     raise AggregationException.new if freq == "week" and (frequency == :day or frequency == :week)
     raise AggregationException.new if freq == "day" and frequency == :day
-    
   end
-  
 end

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160609210500) do
+ActiveRecord::Schema.define(version: 20160612041037) do
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -67,6 +67,7 @@ ActiveRecord::Schema.define(version: 20160609210500) do
     t.float    "change",          limit: 53
     t.float    "yoy",             limit: 53
     t.float    "ytd",             limit: 53
+    t.date     "date"
   end
 
   add_index "data_points", ["series_id", "date_string"], name: "index_data_points_on_series_id_and_date_string", using: :btree

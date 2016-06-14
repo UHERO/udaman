@@ -14,7 +14,7 @@
     def process_missing_dates(as)
       date_hash = {}
       date_hash = as.clone unless as.nil?
-      @series.current_data_points.each {|cdp| date_hash[cdp.date_string] = cdp}
+      @series.current_data_points.each {|cdp| date_hash[cdp.date.to_s] = cdp}
       date_hash
     end
 
@@ -30,11 +30,12 @@
       date_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
           cdp = element
+          date_string = cdp.date.to_s
           cdp_val = cdp.value / units
-          a_value = (as.nil? or as[cdp.date_string].nil?) ? "-" : as[cdp.date_string].round(3)
-          chg_value = (chg_data.nil? or chg_data[cdp.date_string].nil?) ? "-" : chg_data[cdp.date_string].round(1) rescue "-"
-          ytd_chg_value = (ytd_data.nil? or ytd_data[cdp.date_string].nil?) ? "-" : ytd_data[cdp.date_string].round(1) rescue "-"
-          lvl_chg_value = (lvl_data.nil? or lvl_data[cdp.date_string].nil?) ? "-" : lvl_data[cdp.date_string].round(3) rescue "-"
+          a_value = (as.nil? or as[date_string].nil?) ? "-" : as[date_string].round(3)
+          chg_value = (chg_data.nil? or chg_data[date_string].nil?) ? "-" : chg_data[date_string].round(1) rescue "-"
+          ytd_chg_value = (ytd_data.nil? or ytd_data[date_string].nil?) ? "-" : ytd_data[date_string].round(1) rescue "-"
+          lvl_chg_value = (lvl_data.nil? or lvl_data[date_string].nil?) ? "-" : lvl_data[date_string].round(3) rescue "-"
           unless a_value.nil? or a_value.class == String
             diff = @series.a_diff(a_value, cdp_val.round(3))
             a_color = diff == 0 ? "#999999" : aremos_color(diff)
@@ -42,7 +43,7 @@
           bgcolor = bgcolor_hash[cdp.data_source_id] rescue "FFF"
 %>
       <tr>
-        <td><%= link_to cdp.date_string, controller: 'data_points', action: 'show', series_id: @series.id, date_string: cdp.date_string %></td>
+        <td><%= link_to cdp.date, controller: 'data_points', action: 'show', series_id: @series.id, date: cdp.date %></td>
         <td><span style='color:<%= a_color %>'><%= a_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= chg_value %><%= "%" if chg_value != "-" %></span></td>
@@ -60,7 +61,7 @@
           a_color = element == 1000000000000000.0 ? "gray" : "red"
 %>
       <tr>
-        <td><%= link_to date_string, controller: 'data_points', action: 'show', series_id: @series.id, date_string: date_string %></td>
+        <td><%= link_to date_string, controller: 'data_points', action: 'show', series_id: @series.id, date: date_string %></td>
         <td><span style='color:<%= a_color %>'><%= element %></span></td>
         <td></td>
         <td style="text-align:center"><span style='color:red'> - </span></td>

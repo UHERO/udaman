@@ -29,7 +29,7 @@ module SeriesSeasonalAdjustment
     ns_series = get_ns_series
     self.factors ||= {}
     
-    self.last_demetra_datestring = (self.frequency == "quarter" or self.frequency == "Q") ? self.get_last_complete_4th_quarter_datestring : self.get_last_complete_december_datestring
+    self.last_demetra_datestring = (self.frequency == "quarter" or self.frequency == "Q") ? self.get_last_complete_4th_quarter : self.get_last_complete_december
     last_demetra_date = Date.parse self.last_demetra_datestring
     factor_comparison_start_date = last_demetra_date << 12
     last_year_of_sa_values = get_values_after(factor_comparison_start_date.to_s, self.last_demetra_datestring)

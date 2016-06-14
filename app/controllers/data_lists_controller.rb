@@ -177,25 +177,27 @@ class DataListsController < ApplicationController
 
     def set_dates(frequency, params)
       case frequency
-      when "M", "m"
-        months_back = 15
-        offset = 1
-      when "Q", "q"
-        months_back = 34
-        offset = 4
-      when "A", "a"
-        months_back = 120
-        offset = 4
+        when 'M', 'm'
+          months_back = 15
+          offset = 1
+        when 'Q', 'q'
+          months_back = 34
+          offset = 4
+        when 'A', 'a'
+          months_back = 120
+          offset = 4
+        else
+          return nil
       end
 
       if params[:num_years].nil?
-        start_date = (Time.now.to_date << (months_back)).to_s
+        start_date = (Time.now.to_date << (months_back))
         end_date = nil
       else
-        start_date = (Time.now.to_date << (12 * params[:num_years].to_i + offset)).to_s
+        start_date = (Time.now.to_date << (12 * params[:num_years].to_i + offset))
         end_date = nil
       end
-      return {:start_date => start_date, :end_date => end_date}
+      {:start_date => start_date, :end_date => end_date}
     end
 
     def json_from_heroku_tsd(series_name, tsd_file)

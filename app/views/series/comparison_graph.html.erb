@@ -73,8 +73,8 @@ function init_viz_element(svg, elem_with_class, data) {
 
 function draw() {
 	var data = [
-		<% @comp.sort.each do |date_string, val|  %>
-		{date: "<%=date_string %>", aremos: <%= val[:aremos].nil? ? "null" : val[:aremos] %>,  udaman: <%= val[:udaman].nil? ? "null" : val[:udaman] %>},
+		<% @comp.sort.each do |date, val|  %>
+		{date: "<%=date %>", aremos: <%= val[:aremos].nil? ? "null" : val[:aremos] %>,  udaman: <%= val[:udaman].nil? ? "null" : val[:udaman] %>},
 		<%end%>
 	]	
 	//store things for next draw iteration

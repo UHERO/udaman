@@ -1,6 +1,6 @@
 <%
- start_date = @start_date.nil? ? (Time.now.to_date << (15)).to_s : @start_date.to_s
- end_date = @end_date.nil? ? Time.now.to_date.to_s : @end_date.to_s
+ start_date = @start_date.nil? ? (Time.now.to_date << (15)) : @start_date
+ end_date = @end_date.nil? ? Time.now.to_date : @end_date
  plot_data = @series.get_values_after_including(start_date,end_date)
  a_series = AremosSeries.get(@series.name)
 
@@ -32,7 +32,7 @@ div.col {width:500px; float:left; margin-right:15px;}
 <label for="start_date">Start Date</label>
 <select id="start_date" name="start_date" onchange="this.form.submit();">
 	<% @series.data.sort.reverse.each do |pair| %>
-		<option value="<%= pair[0] %>" <%= "selected" if pair[0] == start_date %> ><%= pair[0] %></option>
+		<option value="<%= pair[0] %>" <%= "selected" if pair[0] == start_date.to_s %> ><%= pair[0] %></option>
 	<% end %>
 </select>
 
@@ -40,7 +40,7 @@ div.col {width:500px; float:left; margin-right:15px;}
 <label for="end_date">End Date</label>
 <select name="end_date" id="end_date" onchange="this.form.submit();">
 	<% @series.data.sort.reverse.each do |pair| %>
-		<option value="<%= pair[0] %>" <%= "selected" if pair[0] == end_date %> ><%= pair[0] %></option>
+		<option value="<%= pair[0] %>" <%= "selected" if pair[0] == end_date.to_s %> ><%= pair[0] %></option>
 	<% end %>
 </select>
 

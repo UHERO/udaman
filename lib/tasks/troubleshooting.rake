@@ -43,12 +43,12 @@ task :add_2014_seasonal_adjustment_method_change do
 end
 
 task :bea_2014_extra_data_cleanout => :environment do
-  DataPoint.maximum(:date_string, :group => :data_source_id).each do |dsd_id, date_string|
-    if !date_string.nil? and date_string > "2013-01-01"
-      ds = DataSource.find_by(id: dsd_id)
+  DataPoint.maximum(:date, :group => :data_source_id).each do |dsd_id, date_string|
+    if !date_string.nil? and date_string > '2013-01-01'
+      ds = DataSource.find_by id: dsd_id
       s = ds.series
-      if s.frequency == "year" and s.name[0].upcase == "Y"
-        puts s.name + " : " + ds.eval
+      if s.frequency == 'year' and s.name[0].upcase == 'Y'
+        puts s.name + ' : ' + ds.eval
         ds.clear_and_reload_source
       end
     end

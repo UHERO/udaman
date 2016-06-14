@@ -309,16 +309,16 @@ class Series < ActiveRecord::Base
     
     #cdp_time = Time.now         #timer
     current_data_points.each do |dp|
-      dp.upd(data[dp.date_string], source)
-      observation_dates.delete dp.date_string
+      dp.upd(data[dp.date], source)
+      observation_dates.delete dp.date
     end
     #puts "#{"%.2f" % (Time.now - cdp_time)} : #{current_data_points.count} : #{self.name} : UPDATING CURRENT DATAPOINTS"
 
     #od_time = Time.now             #timer
-    observation_dates.each do |date_string|
+    observation_dates.each do |date|
       data_points.create(
-        :date_string => date_string,
-        :value => data[date_string],
+        :date => date,
+        :value => data[date],
         :current => true,
         :data_source_id => source.id
       )
@@ -337,7 +337,7 @@ class Series < ActiveRecord::Base
     #dh_time = Time.now            #timer
     data_points.each do |dp|
       #puts "#{dp.date_string}: #{dp.value} (#{dp.current})"
-      data_hash[dp.date_string] = dp.value if dp.current
+      data_hash[dp.date] = dp.value if dp.current
     end
     #puts "#{"%.2f" % (Time.now - dh_time)} : #{data_points.count} : #{self.name} : UPDATING DATA HASH FROM (ALL DATA POINTS)"
     #s_time = Time.now
@@ -368,7 +368,7 @@ class Series < ActiveRecord::Base
   def extract_from_datapoints(column)
     hash = {}
     data_points.each do |dp|
-      hash[dp.date_string] = dp[column] if dp.current
+      hash[dp.date] = dp[column] if dp.current
     end
     hash
   end
@@ -378,7 +378,7 @@ class Series < ActiveRecord::Base
     self.units ||= 1
     self.units = 1000 if name[0..2] == "TGB" #hack for the tax scaling. Should not save units
     data_points.each do |dp|
-      data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history
+      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history
     end
     data_hash
   end
@@ -558,7 +558,7 @@ class Series < ActiveRecord::Base
   
   def days_in_period
     series_data = {}
-    data.each {|date_string, val| series_data[date_string] = date_string.to_date.days_in_period(self.frequency) }
+    data.each {|date, val| series_data[date] = date.to_date.days_in_period(self.frequency) }
     Series.new_transformation("days in time periods", series_data, self.frequency)
   end
   
@@ -640,7 +640,7 @@ class Series < ActiveRecord::Base
   
   def new_at(date)
     dp = DataPoint.first
-    DataPoint.first(:conditions => {:date_string => date, :current => true, :series_id => self.id})
+    DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
   def observation_count
@@ -733,8 +733,8 @@ class Series < ActiveRecord::Base
     data_sources.each { |ds| source_array.push ds.id }  
     source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
     data_points.each do |dp|  
-      data_hash[dp.date_string] ||= []
-      data_hash[dp.date_string].push("#{"H" unless dp.history.nil?}#{"|" unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10," "))
+      data_hash[dp.date] ||= []
+      data_hash[dp.date].push("#{"H" unless dp.history.nil?}#{"|" unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10," "))
     end
   
     data_hash.sort.each do |datestring, value_array|
@@ -790,14 +790,17 @@ class Series < ActiveRecord::Base
   def get_tsd_series_data(tsd_file)      
     url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split(".")[0].gsub("%","%25")}/json")
     res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-    tsd_data = res.code == "500" ? nil : JSON.parse(res.body)  
+    tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
     
     return nil if tsd_data.nil?
-    return Series.new_from_tsd_data(tsd_data)
+    clean_tsd_data = {}
+    tsd_data['data'].each {|date_string, value| clean_tsd_data[Date.strptime(date_string, '%Y-%m-%d')] = value}
+    tsd_data['data'] = clean_tsd_data
+    Series.new_from_tsd_data(tsd_data)
   end
   
   def tsd_string
-    data_string = ""
+    data_string = ''
     lm = data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
@@ -807,17 +810,17 @@ class Series < ActiveRecord::Base
     dates = dps.keys.sort
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
-    day_switches = "0                "
-    day_switches = "0         0000000"                if frequency == "week"
-    day_switches[10 + dates[0].to_date.wday] = '1'    if frequency == "week"
-    day_switches = "0         1111111"                if frequency == "day"
+    day_switches = '0                '
+    day_switches = '0         0000000' if frequency == 'week'
+    day_switches[10 + dates[0].to_date.wday] = '1'    if frequency == 'week'
+    day_switches = '0         1111111' if frequency == 'day'
     
     data_string+= "#{name.split(".")[0].to_s.ljust(16," ")}#{as_description.ljust(64, " ")}\r\n"
     data_string+= "#{lm.month.to_s.rjust(34," ")}/#{lm.day.to_s.rjust(2," ")}/#{lm.year.to_s[2..4]}0800#{dates[0].to_date.tsd_start(frequency)}#{dates[-1].to_date.tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
-    dps.each do |date_string, val|
-      sci_data[date_string] = ("%.6E" % units_at(date_string)).insert(-3,"00")
+    dps.each do |date, val|
+      sci_data[date] = ("%.6E" % units_at(date)).insert(-3,"00")
     end
     
     

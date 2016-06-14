@@ -11,16 +11,16 @@ module SeriesDataLists
   #   
   # end
 
-  def Series.grab_scaled_data_no_pseudo_history(list, start_date = "1900-01-01")
+  def Series.grab_scaled_data_no_pseudo_history(list, start_date = Date.new(1900))
     series_data = {}
     list.each do |s|
       series = s.ts
-      series_data[s] = series.nil? ? {} : series.get_scaled_no_pseudo_history_values_after_including(start_date)
+      series_data[s] = series.nil? ? {} : series.get_scaled_no_ph_after_inc(start_date)
     end
     series_data
   end
   
-  def Series.grab_data(list, start_date = "1900-01-01")
+  def Series.grab_data(list, start_date = Date.new(1900))
     series_data = {}
     list.each do |s|
       series = s.ts

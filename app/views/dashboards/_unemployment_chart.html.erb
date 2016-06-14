@@ -59,7 +59,7 @@ function draw_charts() {
 			].each do |iteration_data| %>
 
 			<%= render :file => 'app/views/dashboards/_individual_google_chart2.html.erb', :locals => {
-				:plot_data => iteration_data[:plot_data].ts.get_values_after_including("2006-01-01").sort, 
+				:plot_data => iteration_data[:plot_data].ts.get_values_after_including(2006).sort,
 				:chart_title => iteration_data[:chart_title], 
 				:div_label => iteration_data[:div_label], 
 				:width => iteration_data[:width],

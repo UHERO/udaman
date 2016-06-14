@@ -12,7 +12,7 @@ Rails.application.config.assets.precompile += %w(
   humblefinance/hsd.js humblefinance/base64.js humblefinance/canvas2image.js humblefinance/canvastext.js
   humblefinance/data.js humblefinance/demo.js humblefinance/excanvas.js humblefinance/Finance.js
   humblefinance/flotr.js humblefinance/HumbleFinance.js humblefinance/prototype.min.js
-  d3.v2.min d3.v3.min dat.gui queue.min
+  d3.v2.min d3.v3.min dat.gui queue.min dat.gui.min
 )
 
 # Rails.application.config.assets.paths << Rails.root.join('vendor', 'assets', 'images')
