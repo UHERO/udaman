@@ -20,7 +20,7 @@ task :update_diffs => :environment do
   to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('frequency, name ASC')
   to_investigate.each do |ts| 
     aremos_series = AremosSeries.get ts.name
-    diff_data.push({:id => ts.id, :name => ts.name, :display_array => ts.aremos_comparison_display_array})
+    diff_data.push({:id => ts.id, :name => ts.name, :display_array => ts.aremos_comp_display_array})
   end
   
   CSV.open('public/investigate_visual.csv', 'wb') do |csv|        
@@ -66,7 +66,7 @@ task :gen_investigate_csv => :environment do
   
   to_investigate.each do |ts| 
     aremos_series = AremosSeries.get ts.name
-    diff_data.push({:id => ts.id, :name => ts.name, :display_array => ts.aremos_comparison_display_array})
+    diff_data.push({:id => ts.id, :name => ts.name, :display_array => ts.aremos_comp_display_array})
   end
   
   CSV.open('public/investigate_visual.csv', 'wb') do |csv|

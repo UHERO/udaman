@@ -24,7 +24,7 @@ class DataList < ActiveRecord::Base
     series_data = {}
     series_names.each do |s| 
       as = AremosSeries.get(s)
-      series_data[s.split(".")[0]] = as.description unless as.nil?
+      series_data[s.split('.')[0]] = as.description unless as.nil?
     end
     series_data    
   end
@@ -41,7 +41,7 @@ class DataList < ActiveRecord::Base
   def get_series_ids_for_frequency(frequency)
     series_data = {}
     series_names.each do |s| 
-      s_name = (s.split(".")[0]+"."+frequency)
+      s_name = (s.split('.')[0] + '.' + frequency)
       series = s_name.ts
       series_data[s_name] = series.id unless series.nil?
     end
@@ -52,7 +52,7 @@ class DataList < ActiveRecord::Base
     series_data = {}
     series_names.each do |s| 
       series = s.ts
-      series_data[s] = series.nil? ? {} : series.get_values_after_including(start_date)
+      series_data[s] = series.nil? ? {} : series.get_values_after_including(Date.new(startyear))
     end
     series_data
   end
@@ -62,17 +62,17 @@ class DataList < ActiveRecord::Base
     series_data = {}
     series_names.each do |s| # gets series names map for ea series listed in data list
 
-      mnemonic = s.split("@")[0]
-      if seasonal == "T"
-        mnemonic = s.split("@")[0].downcase.chomp("ns")
-      elsif seasonal == "F"
-        mnemonic = s.split("@")[0].downcase.chomp("ns").concat("ns")
+      mnemonic = s.split('@')[0]
+      if seasonal == 'T'
+        mnemonic = s.split('@')[0].downcase.chomp('ns')
+      elsif seasonal == 'F'
+        mnemonic = s.split('@')[0].downcase.chomp('ns').concat('ns')
       end
 
       mnemonic.upcase! # for aesthetics/readability
-      county_switch.nil? ? county = s.split("@")[1].split(".")[0] : county = county_switch #dt - grab county from series name
-      series_front = mnemonic + "@" + county + "."
-      frequency_suffix.nil? ? s = series_front + s.split(".")[1] : s = series_front + frequency_suffix
+      county_switch.nil? ? county = s.split('@')[1].split('.')[0] : county = county_switch #dt - grab county from series name
+      series_front = mnemonic + '@' + county + '.'
+      frequency_suffix.nil? ? s = series_front + s.split('.')[1] : s = series_front + frequency_suffix
 
       series = s.ts
 
@@ -102,16 +102,16 @@ class DataList < ActiveRecord::Base
     series_data = {}
     series_names.each do |s| 
       as = AremosSeries.get(s.upcase)
-      desc = as.nil? ? "" : as.description
+      desc = as.nil? ? '' : as.description
       
-      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{s.split(".")[0].gsub("%","%25")}/json")
+      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{s.split('.')[0].gsub('%','%25')}/json")
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-      tsd_data = res.code == "500" ? nil : JSON.parse(res.body)  
+      tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
 
       if tsd_data.nil?
-        series_data[s] = {:data => {}, :id => nil, :desc => desc, :freq => "M"} 
+        series_data[s] = {:data => {}, :id => nil, :desc => desc, :freq => 'M'}
       else
-        series = Series.new_transformation(tsd_data["name"]+"."+tsd_data["frequency"],  tsd_data["data"], Series.frequency_from_code(tsd_data["frequency"]))
+        series = Series.new_transformation(tsd_data['name'] + '.' + tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
         all_changes = {}
         yoy = series.yoy.data
         ytd = series.ytd.data
@@ -120,7 +120,7 @@ class DataList < ActiveRecord::Base
         data.keys.sort.each do |date|
           all_changes[date] = {:value => data[date], :yoy => yoy[date], :ytd => ytd[date], :yoy_diff => yoy_diff[date]}
         end
-        series_data[s] = {:data => all_changes, :id => nil, :desc => desc, :freq => tsd_data["frequency"]} 
+        series_data[s] = {:data => all_changes, :id => nil, :desc => desc, :freq => tsd_data['frequency']}
       end
     end
     series_data

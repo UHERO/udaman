@@ -66,12 +66,13 @@ module SeriesExternalRelationship
       self.aremos_missing = missing_keys.count
       self.aremos_diff = 0
       #self.units ||= 1
-      as.data.each do |datestring, value|
-        unless self.data[datestring].nil?
+      as.data.each do |date_string, value|
+        date = Date.strptime date_string, '%Y-%m-%d'
+        unless self.data[date].nil?
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
-          diff = a_diff(value, self.units_at(datestring))
+          diff = a_diff(value, self.units_at(date))
           self.aremos_diff +=  diff 
-          puts "#{self.name}: #{datestring}: #{value}, #{self.units_at(datestring)} diff:#{diff}" if diff != 0
+          puts "#{self.name}: #{date_string}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
         end
       end
       self.save if save_series
@@ -99,7 +100,7 @@ module SeriesExternalRelationship
     return aremos_diff
   end
   
-  def aremos_comparison_display_array
+  def aremos_comp_display_array
     
     results = []
     begin
@@ -144,9 +145,9 @@ module SeriesExternalRelationship
     comparison_hash = {}
     as = self.aremos_series
     
-    all_dates = self.data.keys | as.data.keys
-    all_dates.each { |date_string| comparison_hash[date_string] = {:aremos => as.data[date_string], :udaman => self.units_at(date_string)} }
-    return comparison_hash
+    all_dates = self.data.keys | as.data.keys.map {|date| Date.strptime(date, '%Y-%m-%d')}
+    all_dates.each { |date| comparison_hash[date] = {:aremos => as.data[date.strftime('%Y-%m-%d')], :udaman => self.units_at(date)} }
+    comparison_hash
   end
   
   def ma_data_side_by_side
@@ -158,11 +159,11 @@ module SeriesExternalRelationship
       residual = ma.data[date_string].nil? ? nil : ma.data[date_string] - self.data[date_string]
       comparison_hash[date_string] = {:ma => ma_point, :udaman => self.data[date_string], :residual => residual } 
     end
-    return comparison_hash
+    comparison_hash
   end
   
   def data_diff(comparison_data, digits_to_round)
-    self.units = 1000 if name[0..2] == "TGB" #hack for the tax scaling. Should not save units
+    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     cdp = current_data_points.to_a
     diff_hash = {}
     results = []

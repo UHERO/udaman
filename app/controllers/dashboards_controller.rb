@@ -1347,92 +1347,91 @@ class DashboardsController < ApplicationController
     dates = set_dates_a(params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render "tableview"
+    render 'tableview'
   end
 
   def prudential_list_q
-    @series_to_chart = [
-      'KRSGFNS@HON.Q',
-      'PMKRSGFNS@HON.Q',
-      'LRSGFNS@HON.Q',
-      'DOMSGFNS@HON.Q',
-      'LRSGFNS@HON.Q',
-      'KRCONNS@HON.Q',
-      'PMKRCONNS@HON.Q',
-      'LRCONNS@HON.Q',
-      'DOMCONNS@HON.Q',
-      'LRCONNS@HON.Q',
-      'KRSGFNS@MAU.Q',
-      'PMKRSGFNS@MAU.Q',
-      'LRSGFNS@MAU.Q',
-      'DOMSGFNS@MAU.Q',
-      'LRSGFNS@MAU.Q',
-      'KRCONNS@MAU.Q',
-      'PMKRCONNS@MAU.Q',
-      'LRCONNS@MAU.Q',
-      'DOMCONNS@MAU.Q',
-      'LRCONNS@MAU.Q',
-      'KRSGFNS@HAW.Q',
-      'PMKRSGFNS@HAW.Q',
-      'LRSGFNS@HAW.Q',
-      'DOMSGFNS@HAW.Q',
-      'LRSGFNS@HAW.Q',
-      'KRCONNS@HAW.Q',
-      'PMKRCONNS@HAW.Q',
-      'LRCONNS@HAW.Q',
-      'DOMCONNS@HAW.Q',
-      'LRCONNS@HAW.Q',
-      'KRSGFNS@KAU.Q',
-      'PMKRSGFNS@KAU.Q',
-      'LRSGFNS@KAU.Q',
-      'DOMSGFNS@KAU.Q',
-      'LRSGFNS@KAU.Q',
-      'KRCONNS@KAU.Q',
-      'PMKRCONNS@KAU.Q',
-      'LRCONNS@KAU.Q',
-      'DOMCONNS@KAU.Q',
-      'LRCONNS@KAU.Q'
-    ]
+    @series_to_chart = %w(
+      KRSGFNS@HON.Q
+      PMKRSGFNS@HON.Q
+      LRSGFNS@HON.Q
+      DOMSGFNS@HON.Q
+      LRSGFNS@HON.Q
+      KRCONNS@HON.Q
+      PMKRCONNS@HON.Q
+      LRCONNS@HON.Q
+      DOMCONNS@HON.Q
+      LRCONNS@HON.Q
+      KRSGFNS@MAU.Q
+      PMKRSGFNS@MAU.Q
+      LRSGFNS@MAU.Q
+      DOMSGFNS@MAU.Q
+      LRSGFNS@MAU.Q
+      KRCONNS@MAU.Q
+      PMKRCONNS@MAU.Q
+      LRCONNS@MAU.Q
+      DOMCONNS@MAU.Q
+      LRCONNS@MAU.Q
+      KRSGFNS@HAW.Q
+      PMKRSGFNS@HAW.Q
+      LRSGFNS@HAW.Q
+      DOMSGFNS@HAW.Q
+      LRSGFNS@HAW.Q
+      KRCONNS@HAW.Q
+      PMKRCONNS@HAW.Q
+      LRCONNS@HAW.Q
+      DOMCONNS@HAW.Q
+      LRCONNS@HAW.Q
+      KRSGFNS@KAU.Q
+      PMKRSGFNS@KAU.Q
+      LRSGFNS@KAU.Q
+      DOMSGFNS@KAU.Q
+      LRSGFNS@KAU.Q
+      KRCONNS@KAU.Q
+      PMKRCONNS@KAU.Q
+      LRCONNS@KAU.Q
+      DOMCONNS@KAU.Q
+      LRCONNS@KAU.Q
+    )
     dates = set_dates_q(params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render "tableview"
+    render 'tableview'
   end
 private
   def set_dates_m(params)
     if params[:num_years].nil?
-      start_date = (Time.now.to_date << (15)).to_s
+      start_date = (Time.now.to_date << (15))
       end_date = nil
     else
-      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 1)).to_s
+      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 1))
       end_date = nil
     end
-    return {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => end_date}
   end
 
   def set_dates_q(params)
     if params[:num_years].nil?
-      start_date = (Time.now.to_date << (34)).to_s
+      start_date = (Time.now.to_date << (34))
       end_date = nil
     else
-      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4)).to_s
+      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4))
       end_date = nil
     end
-    return {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => end_date}
   end
 
   def set_dates_a(params)
     if params[:num_years].nil?
       current_year = Time.now.to_date.year
-      start_date = "#{current_year-10}-01-01"
+      start_date = Date.new(current_year - 10)
       end_date = nil
     else
-      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4)).to_s
+      start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4))
       end_date = nil
     end
-    return {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => end_date}
   end
-
 end
 
 #kinds of series
