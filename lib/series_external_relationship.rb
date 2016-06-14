@@ -143,8 +143,13 @@ module SeriesExternalRelationship
   
   def aremos_data_side_by_side
     comparison_hash = {}
+
     as = self.aremos_series
-    
+    if as.nil?
+      self.data.keys.each {|date| comparison_hash[date] = {:aremos => nil, :udaman=> self.units_at(date)} }
+      return comparison_hash
+    end
+
     all_dates = self.data.keys | as.data.keys.map {|date| Date.strptime(date, '%Y-%m-%d')}
     all_dates.each { |date| comparison_hash[date] = {:aremos => as.data[date.strftime('%Y-%m-%d')], :udaman => self.units_at(date)} }
     comparison_hash

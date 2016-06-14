@@ -790,14 +790,17 @@ class Series < ActiveRecord::Base
   def get_tsd_series_data(tsd_file)      
     url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split(".")[0].gsub("%","%25")}/json")
     res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-    tsd_data = res.code == "500" ? nil : JSON.parse(res.body)  
+    tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
     
     return nil if tsd_data.nil?
-    return Series.new_from_tsd_data(tsd_data)
+    clean_tsd_data = {}
+    tsd_data['data'].each {|date_string, value| clean_tsd_data[Date.strptime(date_string, '%Y-%m-%d')] = value}
+    tsd_data['data'] = clean_tsd_data
+    Series.new_from_tsd_data(tsd_data)
   end
   
   def tsd_string
-    data_string = ""
+    data_string = ''
     lm = data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
@@ -807,10 +810,10 @@ class Series < ActiveRecord::Base
     dates = dps.keys.sort
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
-    day_switches = "0                "
-    day_switches = "0         0000000"                if frequency == "week"
-    day_switches[10 + dates[0].to_date.wday] = '1'    if frequency == "week"
-    day_switches = "0         1111111"                if frequency == "day"
+    day_switches = '0                '
+    day_switches = '0         0000000' if frequency == 'week'
+    day_switches[10 + dates[0].to_date.wday] = '1'    if frequency == 'week'
+    day_switches = '0         1111111' if frequency == 'day'
     
     data_string+= "#{name.split(".")[0].to_s.ljust(16," ")}#{as_description.ljust(64, " ")}\r\n"
     data_string+= "#{lm.month.to_s.rjust(34," ")}/#{lm.day.to_s.rjust(2," ")}/#{lm.year.to_s[2..4]}0800#{dates[0].to_date.tsd_start(frequency)}#{dates[-1].to_date.tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
