@@ -159,7 +159,7 @@ class AremosSeries < ActiveRecord::Base
         #end_date = parse_date(series_hash[:end], series_hash[:frequency], :end, series_hash[:daily_switches])
 
         start_date = parse_date(series_hash[:start], series_hash[:frequency], :start, series_hash[:daily_switches]) 
-        start_date_string = series_hash[:frequency] == "W" ? start_date : series_hash[:start]
+        start_date_string = series_hash[:frequency] == 'W' ? start_date : series_hash[:start]
         data = parse_data(series_hash[:data], start_date_string, series_hash[:frequency])
                 
         AremosSeries.create(
@@ -170,7 +170,7 @@ class AremosSeries < ActiveRecord::Base
            :data => data,
            :aremos_update_date => series_hash[:aremos_update]
          ) 
-         puts "#{"%.2f" % (Time.now - t)} | added to db #{series_hash[:name]}.#{series_hash[:frequency]}"
+         puts "#{'%.2f' % (Time.now - t)} | added to db #{series_hash[:name]}.#{series_hash[:frequency]}"
       elsif s.aremos_update_date != series_hash[:aremos_update]
         
         #the problem with this check is that if there are multiple updates in a day, only one will be read, so entire database needs to be cleared

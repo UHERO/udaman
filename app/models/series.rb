@@ -391,11 +391,11 @@ class Series < ActiveRecord::Base
     #   data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current
     # end
     sql = %[
-      SELECT round(value/#{self.units}, #{round_to}) AS value, date_string
+      SELECT round(value/#{self.units}, #{round_to}) AS value, date
       FROM data_points WHERE series_id = #{self.id} AND current = 1;
     ]
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
-      data_hash[row['date_string']] = row['value']
+      data_hash[row['date']] = row['value']
     end
     data_hash
   end
