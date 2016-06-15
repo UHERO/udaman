@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160612041037) do
+ActiveRecord::Schema.define(version: 20160614222819) do
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -53,25 +53,22 @@ ActiveRecord::Schema.define(version: 20160612041037) do
     t.boolean  "reverse",                      default: false
   end
 
-  create_table "data_points", force: :cascade do |t|
-    t.integer  "series_id",       limit: 4
-    t.string   "date_string",     limit: 255
+  create_table "data_points", id: false, force: :cascade do |t|
+    t.integer  "id",              limit: 4
+    t.integer  "series_id",       limit: 4,                  null: false
     t.float    "value",           limit: 53
     t.boolean  "current"
-    t.integer  "data_source_id",  limit: 4
+    t.integer  "data_source_id",  limit: 4,                  null: false
     t.datetime "history"
-    t.datetime "created_at"
+    t.datetime "created_at",                                 null: false
     t.datetime "updated_at"
-    t.integer  "restore_counter", limit: 4,   default: 0
-    t.boolean  "pseudo_history",              default: false
+    t.integer  "restore_counter", limit: 4,  default: 0
+    t.boolean  "pseudo_history",             default: false
     t.float    "change",          limit: 53
     t.float    "yoy",             limit: 53
     t.float    "ytd",             limit: 53
-    t.date     "date"
+    t.date     "date",                                       null: false
   end
-
-  add_index "data_points", ["series_id", "date_string"], name: "index_data_points_on_series_id_and_date_string", using: :btree
-  add_index "data_points", ["series_id"], name: "index_data_points_on_series_id", using: :btree
 
   create_table "data_source_downloads", force: :cascade do |t|
     t.string   "url",             limit: 255

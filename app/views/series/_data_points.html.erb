@@ -58,7 +58,7 @@
       </tr>
 <%
         else
-          a_color = element == 1000000000000000.0 ? "gray" : "red"
+          a_color = element == 1000000000000000.0 ? 'gray' : 'red'
 %>
       <tr>
         <td><%= link_to date_string, controller: 'data_points', action: 'show', series_id: @series.id, date: date_string %></td>

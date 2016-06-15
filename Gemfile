@@ -12,6 +12,7 @@ gem 'capistrano-bundler', '~> 1.1.3'
 gem 'capistrano', '~> 3.2.1'
 gem 'highline', '~> 1.6.0'
 gem 'mysql2', '~> 0.4'
+gem 'composite_primary_keys', '=8.1.3'
 gem 'roo'
 gem 'roo-xls'
 gem 'httpclient'
@@ -48,8 +49,8 @@ gem 'nokogiri'
 # gem 'aws-s3', :require => 'aws/s3'
 
 # gems for passenger
-gem "passenger"
-gem "sqlite3"
+gem 'passenger'
+gem 'sqlite3'
 
 # Bundle gems for the local environment. Make sure to
 # put test-only gems in this group so their generators
