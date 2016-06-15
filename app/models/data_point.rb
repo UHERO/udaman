@@ -1,16 +1,18 @@
 class DataPoint < ActiveRecord::Base
+  self.primary_keys = :series_id, :date, :created_at
   belongs_to :series
   belongs_to :data_source
   
   def upd(value, data_source)
-    return self                                     if trying_to_replace_current_value_with_nil?(value) #scen 0
+    return self                                     if trying_to_replace_with_nil?(value) #scen 0
     return update_timestamp                         if same_as_current_data_point?(value, data_source) #scen 1
-    prior_dp = restore_prior_dp(value, data_source) if value_or_data_source_has_changed?(value, data_source) #scen 2
+    prior_dp = nil
+    prior_dp = restore_prior_dp(value, data_source) if value_or_source_has_changed?(value, data_source) #scen 2
     return prior_dp                                 unless prior_dp.nil?
-    return create_new_dp(value, data_source)         #scen 3
+    create_new_dp(value, data_source)         #scen 3
   end
   
-  def value_or_data_source_has_changed?(value, data_source)
+  def value_or_source_has_changed?(value, data_source)
     !same_value_as?(value) or self.data_source_id != data_source.id
   end
   
@@ -20,7 +22,7 @@ class DataPoint < ActiveRecord::Base
     same_value_as?(value) and self.data_source_id == data_source.id
   end
   
-  def trying_to_replace_current_value_with_nil?(value)
+  def trying_to_replace_with_nil?(value)
      value.nil? and !self.value.nil?
   end
   
@@ -45,7 +47,7 @@ class DataPoint < ActiveRecord::Base
     prior_dp.current = true
     prior_dp.save
     prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
-    return prior_dp
+    prior_dp
   end
   
   def update_timestamp
@@ -77,13 +79,13 @@ class DataPoint < ActiveRecord::Base
   def source_type
     source_eval = self.data_source.eval
     case 
-    when source_eval.index("load_from_bls")
+    when source_eval.index('load_from_bls')
       return :download
-    when source_eval.index("load_from_download")
+    when source_eval.index('load_from_download')
       return :download
-    when source_eval.index("load_from_fred")
+    when source_eval.index('load_from_fred')
       return :download
-    when source_eval.index("load_from")
+    when source_eval.index('load_from')
       return :static_file
     else
       return :identity
@@ -101,7 +103,7 @@ class DataPoint < ActiveRecord::Base
     )
     source_eval = self.data_source.eval
     pseudo_history_sources.each { |phs| return true if source_eval.index(phs) }
-    return false
+    false
   end
 
   #this never finishes running. Doesn't seem to catch all the stuff I want either
@@ -136,7 +138,6 @@ class DataPoint < ActiveRecord::Base
     #dps_to_delete = DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date_string}')")
     #dps_to_delete.each { |dp| puts "#{dp.series_id} : #{dp.date_string} : #{dp.value}"; dp.delete }
     DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
-    
   end
   
 end
