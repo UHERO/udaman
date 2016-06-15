@@ -21,7 +21,7 @@ Event.observe(document, 'dom:loaded', function() {
     };
     
     HumbleFinance.xTickFormatter = function (n) { 
-        
+        n = Math.floor(n)
         if (n == 0) {
             return false;
         }
