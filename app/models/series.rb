@@ -976,13 +976,13 @@ class Series < ActiveRecord::Base
   end
 
   def Series.reload_by_dependency_depth
-    puts "Starting Reload by Dependency Depth"
+    puts 'Starting Reload by Dependency Depth'
     errors = []
     Series.order(:dependency_depth => :desc).each do |series|
       begin
-        series.reload_sources
+        errors += series.reload_sources
       rescue
-        puts "-------------------THIS IS THE SERIES THAT BROKE--------------------"
+        puts '-------------------THIS IS THE SERIES THAT BROKE--------------------'
         puts series.id
         puts series.name
         errors.concat ["Series ID: #{series.id}, Series Name: #{series.name}"]
