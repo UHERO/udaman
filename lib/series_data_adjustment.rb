@@ -57,7 +57,10 @@ module SeriesDataAdjustment
   end
 
   def get_scaled_no_ph_after_inc(start_data, end_data = Time.now.to_date, round_to = 3)
-    scaled_data_no_pseudo_history(round_to).reject {|date, value| date < start_data or value.nil? or date > end_data}
+    start_data = Date.parse start_data.to_s
+    scaled_data_no_pseudo_history(round_to).reject do |date, value|
+      date < start_data or value.nil? or date > end_data
+    end
   end
   
   def compressed_date_range_data(compressed_dates = Date.compressed_date_range)

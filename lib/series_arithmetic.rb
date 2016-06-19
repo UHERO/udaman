@@ -131,7 +131,7 @@ module SeriesArithmetic
   def faster_change(id)
     new_series_data = {}
     sql = %[
-    SELECT t1.date, t1.value, t1.value - t2.last_value /
+    SELECT t1.date, t1.value, (t1.value - t2.last_value) /
       (select if(units is null, 1, units) as units from series where id = #{id} limit 1)
       AS value_change
       FROM (SELECT date, value, @row := @row + 1 AS row
