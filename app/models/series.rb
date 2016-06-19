@@ -309,8 +309,8 @@ class Series < ActiveRecord::Base
     
     #cdp_time = Time.now         #timer
     current_data_points.each do |dp|
-      dp.upd(data[dp.date], source)
-      observation_dates.delete dp.date
+      dp.upd(data[dp.date.to_s], source)
+      observation_dates.delete dp.date.to_s
     end
     #puts "#{"%.2f" % (Time.now - cdp_time)} : #{current_data_points.count} : #{self.name} : UPDATING CURRENT DATAPOINTS"
 
@@ -337,7 +337,7 @@ class Series < ActiveRecord::Base
     #dh_time = Time.now            #timer
     data_points.each do |dp|
       #puts "#{dp.date_string}: #{dp.value} (#{dp.current})"
-      data_hash[dp.date] = dp.value if dp.current
+      data_hash[dp.date.to_s] = dp.value if dp.current
     end
     #puts "#{"%.2f" % (Time.now - dh_time)} : #{data_points.count} : #{self.name} : UPDATING DATA HASH FROM (ALL DATA POINTS)"
     #s_time = Time.now

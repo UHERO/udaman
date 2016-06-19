@@ -69,7 +69,7 @@ class PrognozDataFile < ActiveRecord::Base
       diffs[header] = diff_hash if diff_hash.count > 0
 #      puts "#{"%.2f" %(Time.now - t)} | #{ filename}"
     end
-    puts "#{"%.2f" %(Time.now - t)} | #{ filename}"
+    puts "#{'%.2f' %(Time.now - t)} | #{ filename}"
     diffs
   end
     
@@ -83,7 +83,7 @@ class PrognozDataFile < ActiveRecord::Base
   end
     
   def output_path
-    output_filename = filename.split("/")[-1]
+    output_filename = filename.split('/')[-1]
     "#{ENV['DATA_PATH']}/prognoz_export/exports/" + output_filename
   end
   
@@ -91,11 +91,11 @@ class PrognozDataFile < ActiveRecord::Base
     t = Time.now
     os = update_spreadsheet    
     Series.write_prognoz_output_file(os.headers_with_frequency_code, output_path, os.sheets.first, os.dates.keys)
-    puts "#{"%.2f" %(Time.now - t)} | #{ output_path}"
+    puts "#{'%.2f' %(Time.now - t)} | #{ output_path}"
   end
   
   def output_folder_name_for_date(date)
-    "#{date.to_s[2..3]}M#{date.to_s[5..6]}"
+    date.strftime '%yM%m'
   end
   
   def prognoz_output_path
@@ -117,7 +117,7 @@ class PrognozDataFile < ActiveRecord::Base
       dates.push date.to_s
       date = date >> offset
     end
-    return dates
+    dates
   end
   
 

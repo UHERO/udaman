@@ -46,8 +46,7 @@ class DataPoint < ActiveRecord::Base
     prior_dp.increment :restore_counter
     prior_dp.current = true
     prior_dp.save
-    prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
-    prior_dp
+    DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
   end
   
   def update_timestamp

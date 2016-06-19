@@ -44,17 +44,16 @@ module SeriesHelper
       rs += sorted_names.map {|s| series_data[s][date] == "" ? "0" : series_data[s][date] }.join(", ") +"],\n"
     end
     rs += "]);\n"
-    rs 
   end
   
   def gct_datapoints(series)
     arr = series.data.keys.sort
-    html =""
+    html =''
     arr.each do |key|
       html += "['#{key}',#{series.data[key]}]," unless series.data[key].nil?
     end
     #html += "['hi',10.0], ['bye', 30.0],"
-    return html.chop
+    html.chop
   end
   
   def linked_version(description)
@@ -62,19 +61,19 @@ module SeriesHelper
   end
   
   def linked_version_with_action(description, action)
-    return "" if description.nil?
+    return '' if description.nil?
     new_words = []
-    description.split(" ").each do |word|
+    description.split(' ').each do |word|
       #new_word = word.index('@').nil? ? word : link_to(word, {:action => 'show', :id => word.ts.id})
       new_word = word
       begin
-        new_word = (word.index('@').nil? or word.split(".")[-1].length > 1) ? word : link_to(word, {:action => action, :id => word.ts.id}, :target=>'_blank' ) 
+        new_word = (word.index('@').nil? or word.split('.')[-1].length > 1) ? word : link_to(word, {:action => action, :id => word.ts.id}, :target=>'_blank' )
       rescue
         new_word = word
       end
       new_words.push new_word
     end
-    return new_words.join(" ")
+    new_words.join(' ')
   end
   
 #  def aremos_color(val, aremos_val)

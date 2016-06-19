@@ -17,7 +17,7 @@ data.addColumn('string', 'Date');
 data.addColumn('number', '<%= @series.name %>');
 data.addRows([
 <%=
-gct_datapoints @series
+gct_datapoints(@series).html_safe
 %>
 ]);
 
