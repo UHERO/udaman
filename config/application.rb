@@ -40,9 +40,6 @@ module UheroDb
     #config.action_view.JavaScript_expansions[:defaults] = %w(jquery rails application)  
     
     # Configure the default encoding used in templates for Ruby 1.9.
-    config.encoding = "utf-8"
-
-    # Configure sensitive parameters which will be filtered from the log file.
-    config.filter_parameters += [:password, :password_confirmation]
+    config.encoding = 'utf-8'
   end
 end

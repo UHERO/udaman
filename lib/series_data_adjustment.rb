@@ -13,7 +13,7 @@ module SeriesDataAdjustment
     nil
   end
        
-  def trim(start_date = get_last_incomplete_january, end_date = Time.now.to_date.to_s)
+  def trim(start_date = get_last_incomplete_january, end_date = Time.now.to_date)
     new_series_data = get_values_after_including(start_date, end_date)
     new_transformation("Trimmed #{name} starting at #{start_date}", new_series_data)
   end
@@ -43,8 +43,8 @@ module SeriesDataAdjustment
       new_series_data = {} 
       return new_transformation('No Data since no incomplete year', new_series_data)
     end
-    start_date = "#{last_date.year}-01-01"
-    end_date = Time.now.to_date.to_s
+    start_date = Date.new(last_date.year)
+    end_date = Time.now.to_date
     trim(start_date, end_date)
   end
   
@@ -76,18 +76,18 @@ module SeriesDataAdjustment
   end
   
   def shift_forward_months(num_months)
-    new_series_data = Hash[data.map {|date, val| [(Date.parse(date) >> num_months).to_s, val]}]
+    new_series_data = Hash[data.map {|date, val| [date + num_months.months, val]}]
     new_transformation("Shifted Series #{name} forward by #{num_months} months ", new_series_data)
   end
 
   def shift_backward_months(num_months)
-    new_series_data = Hash[data.map {|date, val| [(Date.parse(date) << num_months).to_s, val]}]
+    new_series_data = Hash[data.map {|date, val| [date - num_months.months, val]}]
     new_transformation("Shifted Series #{name} backwards by #{num_months} months ", new_series_data)
   end
 
   
   def shift_forward_years(num_years)
-    new_series_data = Hash[data.map {|date, val| [(Date.parse(date) >> 12 * num_years).to_s, val]}]
+    new_series_data = Hash[data.map {|date, val| [date + num_years.years, val]}]
     new_transformation("Shifted Series #{name}", new_series_data)
   end
 end

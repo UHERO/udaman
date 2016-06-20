@@ -30,13 +30,12 @@ module SeriesAggregation
     validate_aggregation(frequency)
     
     aggregated_data = Hash.new
-    frequency_method = frequency.to_s+"_s"
+    frequency_method = frequency.to_s + '_s'
     
-    self.data.keys.each do |date_string|
+    self.data.keys.each do |date|
       #puts "#{date_string}: #{self.at date_string}"
-      date = Date.parse date_string
-      aggregated_data[date.send(frequency_method)] ||= AggregatingArray.new unless self.at(date_string).nil?
-      aggregated_data[date.send(frequency_method)].push self.at(date_string) unless self.at(date_string).nil?
+      aggregated_data[date.send(frequency_method)] ||= AggregatingArray.new unless self.at(date).nil?
+      aggregated_data[date.send(frequency_method)].push self.at(date) unless self.at(date).nil?
     end
     #puts frequency
     #puts self.frequency
@@ -46,13 +45,13 @@ module SeriesAggregation
     
     freq = self.frequency.to_s
     
-    aggregated_data.delete_if {|key,value| value.count != 6} if frequency == :semi and freq == "month"
-    aggregated_data.delete_if {|key,value| value.count != 3} if (frequency == :quarter and freq == "month") and override_prune == false
-    aggregated_data.delete_if {|key,value| value.count != 12} if frequency == :year and freq == "month"
-    aggregated_data.delete_if {|key,value| value.count != 4} if frequency == :year and freq == "quarter"
-    aggregated_data.delete_if {|key,value| value.count != 2} if frequency == :semi and freq == "quarter"    
-    aggregated_data.delete_if {|key,value| value.count != 2} if frequency == :year and freq == "semi"
-    aggregated_data.delete_if {|key,value| value.count != Date.parse(key).days_in_month} if frequency == :month and freq == "day"
+    aggregated_data.delete_if {|_,value| value.count != 6} if frequency == :semi and freq == 'month'
+    aggregated_data.delete_if {|_,value| value.count != 3} if (frequency == :quarter and freq == 'month') and override_prune == false
+    aggregated_data.delete_if {|_,value| value.count != 12} if frequency == :year and freq == 'month'
+    aggregated_data.delete_if {|_,value| value.count != 4} if frequency == :year and freq == 'quarter'
+    aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :semi and freq == 'quarter'    
+    aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :year and freq == 'semi'
+    aggregated_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month and freq == 'day'
     #puts key+" "+value.count.to_s + " " + Date.parse(key).days_in_month.to_s;
     #month check for days is more complicated because need to check for number of days in each month
 
@@ -66,12 +65,12 @@ module SeriesAggregation
     # puts "frequency:#{frequency}:#{frequency.class}"
 
     freq = self.frequency.to_s
-    raise AggregationException.new if ["year", "semi", "quarter", "month", "day"].index(freq).nil?
-    raise AggregationException.new if freq == "year"
-    raise AggregationException.new if freq == "semi"  and (frequency == :month or frequency == :quarter or frequency == :semi or frequency == :week or frequency == :day)
-    raise AggregationException.new if freq == "quarter" and (frequency == :month or frequency == :quarter or frequency == :week or frequency == :day)
-    raise AggregationException.new if freq == "month" and (frequency == :month or frequency == :week or frequency == :day)
-    raise AggregationException.new if freq == "week" and (frequency == :day or frequency == :week)
-    raise AggregationException.new if freq == "day" and frequency == :day
+    raise AggregationException.new if %w(year semi quarter month day).index(freq).nil?
+    raise AggregationException.new if freq == 'year'
+    raise AggregationException.new if freq == 'semi'  and (frequency == :month or frequency == :quarter or frequency == :semi or frequency == :week or frequency == :day)
+    raise AggregationException.new if freq == 'quarter' and (frequency == :month or frequency == :quarter or frequency == :week or frequency == :day)
+    raise AggregationException.new if freq == 'month' and (frequency == :month or frequency == :week or frequency == :day)
+    raise AggregationException.new if freq == 'week' and (frequency == :day or frequency == :week)
+    raise AggregationException.new if freq == 'day' and frequency == :day
   end
 end
