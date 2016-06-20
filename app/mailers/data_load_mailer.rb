@@ -19,7 +19,7 @@ class DataLoadMailer < ActionMailer::Base
       #@empty_data_sources = empty_data_sources
 
       @errors = [*errors]
-      mail(to: %w(jrpage@hawaii.edu james29@hawaii.edu ashleysh@hawaii.edu), subject: "[Udamacmini Series Reload] #{ds_count} Datasources loaded : #{@errors.count} / #{@circular_series.count} / #{@stale_data_sources.count} ")
+      mail(to: %w(jrpage@hawaii.edu), subject: "[Udamacmini Series Reload] #{ds_count} Datasources loaded : #{@errors.count} / #{@circular_series.count} / #{@stale_data_sources.count} ")
     rescue => e
       @mailer_error = e.message
       mail(to: ['jrpage@hawaii.edu'], subject: '[UDAMACMINI] DataLoadMailer error', body: e.message, content_type: 'text/plain')

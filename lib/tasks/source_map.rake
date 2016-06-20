@@ -2,7 +2,7 @@ task :reload_aremos => :environment do
   puts ENV
   puts ENV['DATA_PATH']
   #evenaully move this to a standalone task
-  CSV.open("public/rake_time.csv", "wb") {|csv| csv << ["name", "duration", "start", "end"] }
+  CSV.open('public/rake_time.csv', 'wb') {|csv| csv << %w(name duration start end) }
   
   #this currently runs in 5 minutes even with the complete delete
   AremosSeries.delete_all
@@ -20,15 +20,15 @@ task :reload_aremos => :environment do
    AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/D_DATA.TSD")
    dt = Time.now
    
-  puts "#{"%.2f" % (dt - t)} | to write all"
-  puts "#{"%.2f" % (dt-wt)} | days"
-  puts "#{"%.2f" % (wt-mt)} | weeks"
-  puts "#{"%.2f" % (mt-qt)} | months"
-  puts "#{"%.2f" % (qt-st)} | quarters"
-  puts "#{"%.2f" % (st-at)} | half-years"
-  puts "#{"%.2f" % (at-t)} | years"
+  puts "#{'%.2f' % (dt - t)} | to write all"
+  puts "#{'%.2f' % (dt-wt)} | days"
+  puts "#{'%.2f' % (wt-mt)} | weeks"
+  puts "#{'%.2f' % (mt-qt)} | months"
+  puts "#{'%.2f' % (qt-st)} | quarters"
+  puts "#{'%.2f' % (st-at)} | half-years"
+  puts "#{'%.2f' % (at-t)} | years"
   
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["reload_aremos", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['reload_aremos', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 
@@ -39,11 +39,11 @@ task :reload_all_series => :environment do
   errors = Series.reload_by_dependency_depth
   eval_statements = DataSource.order(:last_run_in_seconds).map {|ds| ds.get_eval_statement unless ds.series.nil?}
 
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["complete series reload", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
   File.open('lib/tasks/REBUILD.rb', 'w') {|file| eval_statements.each {|line| file.puts(line)} }
 
   #719528 is 1970-01-01 in mysql days, -10 does the adjustment for HST
-  inactive_ds = DataSource.where("FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))").order(:last_run_in_seconds)
+  inactive_ds = DataSource.where('FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))').order(:last_run_in_seconds)
 
   DataLoadMailer.series_refresh_notification(nil, inactive_ds, eval_statements.count, errors).deliver
 end
@@ -51,25 +51,25 @@ end
 task :reload_hiwi_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  bls_series = Series.get_all_series_from_website("hiwi.org")
+  bls_series = Series.get_all_series_from_website('hiwi.org')
   Series.run_all_dependencies(bls_series, {}, [], [])
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["hiwi series dependency check and load", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['hiwi series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_bls_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  bls_series = Series.get_all_series_from_website("load_from_bls")
+  bls_series = Series.get_all_series_from_website('load_from_bls')
   Series.run_all_dependencies(bls_series, {}, [], [])
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["bls series dependency check and load", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_bea_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  bea_series = Series.get_all_series_from_website("bea.gov")
+  bea_series = Series.get_all_series_from_website('bea.gov')
   Series.run_all_dependencies(bea_series, {}, [], [])
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["bea series dependency check and load", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :daily_history_load => :environment do
@@ -90,11 +90,11 @@ task :daily_history_load => :environment do
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_A_NBI.xls" 
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_Q.xls"
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls" 
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", "hon" 
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", "haw" 
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", "mau" 
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", "kau" 
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", "hi"
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", 'hon'
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", 'haw'
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", 'mau'
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", 'kau'
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SIC_income.xls", 'hi'
 
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/esic_CNTY_a.xls" 
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/esic_CNTY_m.xls" 
@@ -123,21 +123,21 @@ task :daily_history_load => :environment do
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/const_hist_q.xls"
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/const_hist_a.xls" 
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/jp_m_hist.xls"
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/bls_histextend_date_format_correct.xls", "hiwi" #some diffs, but could be something else
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/bls_histextend_date_format_correct.xls", 'hiwi' #some diffs, but could be something else
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/vx_hist.xls"
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/TGBCT_hist.xls"
   
   
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/tax_hist_new.xls", "ge" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/tax_hist_new.xls", "collec" #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/tax_hist_new.xls", 'ge' #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/tax_hist_new.xls", 'collec' #moved up from below
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/bls_sic_detail.xls" #moved up from below
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/bls_cpi_int_m.XLS" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", "HI_Q" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", "HI" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", "HON" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", "HAW" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", "MAU" #moved up from below
-  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", "KAU" #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", 'HI_Q' #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", 'HI' #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", 'HON' #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", 'HAW' #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", 'MAU' #moved up from below
+  Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls", 'KAU' #moved up from below
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/SQ5NHistory.xls" #moved up from below
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/gsp_hist.xls" #moved up from below
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/bls_job_hist.xls" #moved up from below
@@ -145,7 +145,7 @@ task :daily_history_load => :environment do
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/pc_sa_hist.xls"
   #Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/hbr_histQ.xls"
   
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["daily_history_load", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['daily_history_load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
   
   # ---------------------------------------------------------
 end

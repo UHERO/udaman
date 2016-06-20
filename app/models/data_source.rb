@@ -139,7 +139,7 @@ class DataSource < ActiveRecord::Base
     
     def create_from_form
       Series.eval Series.find_by(id: self.series_id).name, self.eval
-      return true
+      true
     end
 
     def setup
