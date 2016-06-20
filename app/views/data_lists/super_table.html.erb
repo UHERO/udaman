@@ -41,7 +41,6 @@
 
 	#data_table tr#header_row th {background-color: transparent; padding: 0;}
 	tr#header_row_clone th {background-color: transparent; padding: 0;}
-
 	table#data_table th.calc, table#header_table th.calc {line-height:13px;}
 	div#frequency_selector {padding-bottom:5px;}
 
@@ -736,31 +735,33 @@
 
 	// STEP 2 & 3
 
-	$(window).scroll( function() {
-		wi_top = $(window).scrollTop(); // how far down window is scrolled
-		wi_left= $(window).scrollLeft(); // how far to the right window is scrolled
+    var fixedHeaderColumn = function() {
+      $(window).scroll(function () {
+        wi_top = $(window).scrollTop(); // how far down window is scrolled
+        wi_left = $(window).scrollLeft(); // how far to the right window is scrolled
 
-		th_top = 185; // absolute. based on #header_row (offset from top)
+        th_top = 185; // absolute. based on #header_row (offset from top)
 
-		// HEADER ROW MOTION
-		if (wi_top >= th_top) {
-			header_table.css("top",$(window).scrollTop());
-			header_table.css("background-color","#eee");
-		} else {
-			header_table.css("top","");
-			header_table.css("background-color","");
-		}
+        // HEADER ROW MOTION
+        if (wi_top >= th_top) {
+          header_table.css("top", $(window).scrollTop());
+          header_table.css("background-color", "#eee");
+        } else {
+          header_table.css("top", "");
+          header_table.css("background-color", "");
+        }
 
-		// LEFT COLUMN MOTION
-		if (wi_left > 8) {
-			column_table.css("left",$(window).scrollLeft());
-			column_table.css("background-color","#eee");
-		} else {
-			column_table.css("left","");
-			column_table.css("background-color","");
-		}
+        // LEFT COLUMN MOTION
+        if (wi_left > 8) {
+          column_table.css("left", $(window).scrollLeft());
+          column_table.css("background-color", "#eee");
+        } else {
+          column_table.css("left", "");
+          column_table.css("background-color", "");
+        }
 
-	});
+      });
+    };
 
 	// ------------ /
 	// LEFT COLUMN  /
@@ -776,5 +777,31 @@
 		new_td = $(this).clone().appendTo('#column_table');
 		new_td.wrap("<tr></tr>");
 	});
+
+  fixedHeaderColumn();
+
+  //Reset header and left column positions when page is printed
+
+  var beforePrint = function() {
+    header_table.css('top', 185);
+    column_table.css('left', 8);
+  };
+  var afterPrint = function() {
+    fixedHeaderColumn();
+  };
+
+  if (window.matchMedia) {
+    var mediaQueryList = window.matchMedia('print');
+    mediaQueryList.addListener(function(mql) {
+      if (mql.matches) {
+        beforePrint();
+      } else {
+        afterPrint();
+      }
+    });
+  };
+
+  window.onbeforeprint = beforePrint;
+  window.onafterprint = afterPrint;
 
 </script>
