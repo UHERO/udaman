@@ -1,10 +1,13 @@
+require 'new_relic/agent/method_tracer'
 module SeriesExternalRelationship
+  include ::NewRelic::Agent::MethodTracer
+
   def find_prognoz_data_file
   	pdfs = PrognozDataFile.all
   	pdfs.each do |pdf|
   		return pdf if pdf.series_loaded.include?(self.name) 
   	end
-  	return nil
+  	nil
   end
   
    def set_output_series(multiplier)
@@ -15,7 +18,7 @@ module SeriesExternalRelationship
     self.mult ||= 1
     return set_output_series(1000) if self.mult == 1
     return set_output_series(10) if self.mult == 1000
-    return set_output_series(1) if self.mult == 10
+    set_output_series(1) if self.mult == 10
   end
   
   def a_diff(value, series_value)
@@ -34,7 +37,7 @@ module SeriesExternalRelationship
     diff_second = diff_first < diff_sig_6 ? diff_first : diff_sig_6
         
     #diffsecond used to have to be greater than 0.001. Turned down sensitivity... on 4/12/13 to address the big subtraction problem
-    return diff_second > 0.01 ? diff_second : 0
+    diff_second > 0.01 ? diff_second : 0
   end
   
   def Series.a_diff(value, series_value)    
@@ -54,25 +57,25 @@ module SeriesExternalRelationship
       as = AremosSeries.get self.name
       if as.nil?
         #puts "NO MATCH: #{self.name}"
-        self.aremos_missing = "-1"
+        self.aremos_missing = '-1'
         self.save if save_series
-        return {:missing => "No Matching Aremos Series", :diff => "No Matching Aremos Series"}
+        return {:missing => 'No Matching Aremos Series', :diff => 'No Matching Aremos Series'}
       end
-      missing_keys = (as.data.keys - self.data.keys)
-      
+      as.data = Hash[as.data.map {|date, value| [Date.strptime(date, '%Y-%m-%d'), value]}]
+      missing_keys = as.data.keys - self.data.keys
+
       #remove all suppressed values
       missing_keys.delete_if {|key| as.data[key] == 1000000000000000.0}
-      
+
       self.aremos_missing = missing_keys.count
       self.aremos_diff = 0
       #self.units ||= 1
-      as.data.each do |date_string, value|
-        date = Date.strptime date_string, '%Y-%m-%d'
+      as.data.each do |date, value|
         unless self.data[date].nil?
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
           diff = a_diff(value, self.units_at(date))
-          self.aremos_diff +=  diff 
-          puts "#{self.name}: #{date_string}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
+          self.aremos_diff +=  diff
+          puts "#{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
         end
       end
       self.save if save_series
@@ -240,5 +243,6 @@ module SeriesExternalRelationship
       self.update_attributes(:units => 1)
     end
   end
-  
+
+  add_method_tracer :aremos_comparison, 'Custom/SeriesExternalRelationship#aremos_comparison'
 end

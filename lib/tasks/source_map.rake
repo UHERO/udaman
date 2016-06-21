@@ -32,10 +32,15 @@ task :reload_aremos => :environment do
 end
 
 
-task :reload_all_series => :environment do
+task :reset_dependency_depth => :environment do
   t = Time.now
   DataSource.set_dependencies
   Series.assign_dependency_depth
+  puts (Time.now - t).to_s + ' seconds'
+end
+
+task :reload_all_series => :environment do
+  t = Time.now
   errors = Series.reload_by_dependency_depth
   eval_statements = DataSource.order(:last_run_in_seconds).map {|ds| ds.get_eval_statement unless ds.series.nil?}
 
