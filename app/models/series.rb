@@ -1,3 +1,5 @@
+require 'new_relic/agent/method_tracer'
+
 class Series < ActiveRecord::Base
   include SeriesArithmetic
   include SeriesAggregation
@@ -12,6 +14,8 @@ class Series < ActiveRecord::Base
   include SeriesDataLists
   include SeriesStatistics
   
+  include ::NewRelic::Agent::MethodTracer
+  
   #serialize :data, Hash
   serialize :factors, Hash
   
@@ -20,7 +24,7 @@ class Series < ActiveRecord::Base
   
   def as_json(options = {})
     as = AremosSeries.get(self.name)
-    desc = as.nil? ? "" : as.description
+    desc = as.nil? ? '' : as.description
     {
       data: self.data,
       frequency: self.frequency,
@@ -30,11 +34,9 @@ class Series < ActiveRecord::Base
     }
   end
   
-
-  
   def last_observation
     return nil if data.nil?
-    return data.keys.sort[-1]
+    data.keys.sort[-1]
   end
   
   def Series.handle_buckets(series_array, handle_hash)
@@ -109,34 +111,36 @@ class Series < ActiveRecord::Base
   
   
   def Series.code_from_frequency(frequency)
-    return 'A' if frequency == :year || frequency == "year" || frequency == :annual || frequency == "annual" || frequency == "annually"
-    return 'Q' if frequency == :quarter || frequency == "quarter" || frequency == "quarterly"
-    return 'M' if frequency == :month || frequency == "month" || frequency == "monthly"
-    return 'S' if frequency == :semi || frequency == "semi" || frequency == "semi-annually"
-    return 'W' if frequency == :week || frequency == "week" || frequency == "weekly"
-    return 'D' if frequency == :day || frequency == "day" || frequency == "daily"
+    return 'A' if frequency == :year || frequency == 'year' || frequency == :annual || frequency == 'annual' || frequency == 'annually'
+    return 'Q' if frequency == :quarter || frequency == 'quarter' || frequency == 'quarterly'
+    return 'M' if frequency == :month || frequency == 'month' || frequency == 'monthly'
+    return 'S' if frequency == :semi || frequency == 'semi' || frequency == 'semi-annually'
+    return 'W' if frequency == :week || frequency == 'week' || frequency == 'weekly'
+    return 'D' if frequency == :day || frequency == 'day' || frequency == 'daily'
     
-    return ""
+    return ''
   end
   
   #There are duplicates of these in other file... non series version 
   def Series.frequency_from_code(code)
-    return :year if code == 'A' || code =="a"
-    return :quarter if code == 'Q' || code =="q"
-    return :month if code == 'M' || code == "m"
-    return :semi if code == 'S' || code == "s"
-    return :week if code == 'W' || code == "w"
-    return :day if code == 'D' || code == "d"
+    return :year if code == 'A' || code =='a'
+    return :quarter if code == 'Q' || code =='q'
+    return :month if code == 'M' || code == 'm'
+    return :semi if code == 'S' || code == 's'
+    return :week if code == 'W' || code == 'w'
+    return :day if code == 'D' || code == 'd'
     return nil
   end
   
-  def Series.each_spreadsheet_header(update_spreadsheet_path, sheet_to_load = nil, sa = false)
-    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
-    return {:message => "The spreadsheet could not be found", :headers => []} if update_spreadsheet.load_error?
+  def Series.each_spreadsheet_header(spreadsheet_path, sheet_to_load = nil, sa = false)
+    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
+    return {:message => 'The spreadsheet could not be found', :headers => []} if update_spreadsheet.load_error?
 
-    default_sheet = sa ? "sadata" : update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
-    update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load unless update_spreadsheet.class == UpdateCSV
-    return {:message=>"The spreadsheet was not formatted properly", :headers=>[]} unless update_spreadsheet.update_formatted?
+    unless update_spreadsheet.class == UpdateCSV
+      default_sheet = sa ? 'sadata' : update_spreadsheet.sheets.first
+      update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load 
+    end
+    return {:message=>'The spreadsheet was not formatted properly', :headers=>[]} unless update_spreadsheet.update_formatted?
 
     header_names = Array.new    
      
@@ -146,38 +150,38 @@ class Series < ActiveRecord::Base
     end
     
     sheets = update_spreadsheet.class == UpdateCSV ? [] : update_spreadsheet.sheets
-    return {:message=>"success", :headers=>header_names, :sheets => sheets}
+    return {:message=>'success', :headers=>header_names, :sheets => sheets}
   end
   
-  def Series.load_all_sa_series_from(update_spreadsheet_path, sheet_to_load = nil)  
-    each_spreadsheet_header(update_spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
+  def Series.load_all_sa_series_from(spreadsheet_path, sheet_to_load = nil)  
+    each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
       frequency_code = code_from_frequency update_spreadsheet.frequency  
-      sa_base_name = series_name.sub("NS@","@")
-      sa_series_name = sa_base_name+"."+frequency_code
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?
+      sa_base_name = series_name.sub('NS@','@')
+      sa_series_name = sa_base_name+'.'+frequency_code
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
       #sa_series_name.ts.update_attributes(:seasonally_adjusted => true, :last_demetra_datestring => update_spreadsheet.dates.keys.sort.last)
       
       sa_series_name
     end
   end
 
-  def Series.load_all_mean_corrected_sa_series_from(update_spreadsheet_path, sheet_to_load = nil)  
-    each_spreadsheet_header(update_spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
+  def Series.load_all_mean_corrected_sa_series_from(spreadsheet_path, sheet_to_load = nil)  
+    each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
       frequency_code = code_from_frequency update_spreadsheet.frequency  
-      sa_base_name = series_name.sub("NS@","@")
-      sa_series_name = sa_base_name+"."+frequency_code
-      ns_series_name = series_name+"."+frequency_code
+      sa_base_name = series_name.sub('NS@','@')
+      sa_series_name = sa_base_name+'.'+frequency_code
+      ns_series_name = series_name+'.'+frequency_code
       
-      demetra_series = new_transformation("demetra series", update_spreadsheet.series(series_name), frequency_code)
+      demetra_series = new_transformation('demetra series', update_spreadsheet.series(series_name), frequency_code)
       
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), update_spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), update_spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
 
       unless ns_series_name.ts.nil?
         mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_series_name.ts.annual_sum 
-        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{update_spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{update_spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?
+        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
+        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
       end
       # sa_series_name.ts_eval=(%Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
       # sa_series_name.ts_eval=(%Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil? 
@@ -197,24 +201,24 @@ class Series < ActiveRecord::Base
     end
   end
   
-  def Series.load_all_series_from(update_spreadsheet_path, sheet_to_load = nil, priority = 100)
+  def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     # puts "Setting priority to #{priority}"
-    each_spreadsheet_header(update_spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
-      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil?      
+    each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
+      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
+      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{spreadsheet_path}"^) if sheet_to_load.nil?      
       #puts series_name
       @data_source.update_attributes(:priority => priority)
       # puts "Series Name: #{series_name}"
       # puts "priority: #{priority}, ds_id: #{@data_source.id} "
       series_name
     end
-    puts "#{"%.2f" % (Time.now - t)} : #{update_spreadsheet_path}"
+    puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
   
   def Series.get(series_name)  
-    headerparts = series_name.split(".")
-    if (headerparts.count == 2)
+    headerparts = series_name.split('.')
+    if headerparts.count == 2
       name_match = Series.where(:name => series_name).first #exact name_match
       return name_match #unless name_match.nil?
       #return Series.first :conditions => {:name=>headerparts[0], :frequency=>frequency_from_code(headerparts[1])} #same base name and correct frequency
@@ -224,7 +228,7 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_or_new(series_name)
-    frequency = (series_name.split(".").count == 2 and series_name.split("@").count == 2 and series_name.split(".")[1].length == 1) ? Series.frequency_from_code(series_name[-1]) : nil
+    frequency = (series_name.split('.').count == 2 and series_name.split('@').count == 2 and series_name.split('.')[1].length == 1) ? Series.frequency_from_code(series_name[-1]) : nil
     series_to_store = Series.get series_name
     series_to_store = Series.create(:name => series_name, :frequency => frequency) if series_to_store.nil?
     return series_to_store
@@ -234,7 +238,7 @@ class Series < ActiveRecord::Base
     #t = Time.now
     #puts series.frequency
     desc = series.name if desc.nil?
-    desc = "Source Series Name is blank" if desc.nil? or desc == ""
+    desc = 'Source Series Name is blank' if desc.nil? or desc == ''
     # series_to_set = Series.get_or_new series_name
     # series_to_set.update_attributes(
     #   :frequency => series.frequency
@@ -302,7 +306,7 @@ class Series < ActiveRecord::Base
     #have to do this here because there are some direct calls to update data that could include nils
     #instead of calling in save_source
     #p_time = Time.now
-    data.delete_if {|key,value| value.nil?}
+    data.delete_if {|_,value| value.nil?}
     
     observation_dates = data.keys
     #puts "#{"%.2f" % (Time.now - p_time)} : #{current_data_points.count} : #{self.name} : PRUNING DATAPOINTS"
@@ -376,7 +380,7 @@ class Series < ActiveRecord::Base
   def scaled_data_no_pseudo_history(round_to = 3)
     data_hash = {}
     self.units ||= 1
-    self.units = 1000 if name[0..2] == "TGB" #hack for the tax scaling. Should not save units
+    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     data_points.each do |dp|
       data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history
     end
@@ -386,7 +390,7 @@ class Series < ActiveRecord::Base
   def scaled_data(round_to = 3)
     data_hash = {}
     self.units ||= 1
-    self.units = 1000 if name[0..2] == "TGB" #hack for the tax scaling. Should not save units
+    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     # data_points.each do |dp|
     #   data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current
     # end
@@ -401,7 +405,7 @@ class Series < ActiveRecord::Base
   end
   
   def Series.new_from_data(frequency, data)
-    Series.new_transformation("One off data", data, frequency)
+    Series.new_transformation('One off data', data, frequency)
   end
   
   def Series.new_transformation(name, data, frequency)
@@ -413,12 +417,12 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data)
-    frequency = (self.frequency.nil? and name.split(".").count == 2 and name.split("@") == 2 and name.split(".")[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
+    frequency = (self.frequency.nil? and name.split('.').count == 2 and name.split('@') == 2 and name.split('.')[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
     #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
     Series.new(
       :name => name,
       :frequency => frequency,
-      :data => data.reject {|k,v| v.nil?}
+      :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
     )
   end
   
@@ -429,22 +433,26 @@ class Series < ActiveRecord::Base
   #until we can figure out a solid for sources ordering, this error is particularly costly
   #just keeping data the same if there's a problem to preserve the order.
   
-  def load_from(update_spreadsheet_path, sheet_to_load = nil)
-    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
+  def load_from(spreadsheet_path, sheet_to_load = nil)
+    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
+    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise SeriesReloadException if update_spreadsheet.load_error?
     #return self if update_spreadsheet.load_error?
 
-    default_sheet = update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
-    update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load unless update_spreadsheet.class == UpdateCSV
+    unless update_spreadsheet.class == UpdateCSV
+      default_sheet = update_spreadsheet.sheets.first
+      update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load
+    end
     raise SeriesReloadException unless update_spreadsheet.update_formatted?
     #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency
-    new_transformation(update_spreadsheet_path, update_spreadsheet.series(self.name))
+    new_transformation(spreadsheet_path, update_spreadsheet.series(self.name))
   end
     
   
   def load_sa_from(update_spreadsheet_path, sheet_to_load = nil)
+    update_spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
     #raise SeriesReloadException if update_spreadsheet.load_error?
     return self if update_spreadsheet.load_error?
@@ -460,23 +468,26 @@ class Series < ActiveRecord::Base
   end
     
   
-  def load_mean_corrected_sa_from(update_spreadsheet_path, sheet_to_load = nil)
-    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
+  def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = nil)
+    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
+    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
     #raise SeriesReloadException if update_spreadsheet.load_error?
     return self if update_spreadsheet.load_error?
 
-    ns_name = self.name.sub("@", "NS@")
-    default_sheet = update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
-    update_spreadsheet.default_sheet = sheet_to_load.nil? ? "sadata" : sheet_to_load unless update_spreadsheet.class == UpdateCSV
+    ns_name = self.name.sub('@', 'NS@')
+    unless update_spreadsheet.class == UpdateCSV
+      # default_sheet = update_spreadsheet.sheets.first
+      update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load
+    end
     #raise SeriesReloadException unless update_spreadsheet.update_formatted?
     return self unless update_spreadsheet.update_formatted?
     
-    demetra_series = new_transformation("demetra series", update_spreadsheet.series(ns_name))
+    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
     mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
-    new_transformation("mean corrected against #{ns_name} and loaded from #{update_spreadsheet_path}", mean_corrected_demetra_series.data)
+    new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end
   
   #if smart update or other process sets a global cache object for a session, use that. Otherwise
@@ -499,10 +510,11 @@ class Series < ActiveRecord::Base
   #series definition as necessary
   
   def Series.load_from_file(file, options, cached_files = nil)
+    file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     begin
       cached_files = Series.get_cached_files if cached_files.nil?
-      %x(chmod 766 #{file}) unless file.include? "%"
-      dp = DownloadProcessor.new("manual", options.merge({ :path => file }), cached_files)
+      %x(chmod 766 #{file}) unless file.include? '%'
+      dp = DownloadProcessor.new('manual', options.merge({:path => file }), cached_files)
       series_data = dp.get_data
     rescue => e
       Series.write_cached_files cached_files if cached_files.new_data?
@@ -559,7 +571,7 @@ class Series < ActiveRecord::Base
   def days_in_period
     series_data = {}
     data.each {|date, val| series_data[date] = date.to_date.days_in_period(self.frequency) }
-    Series.new_transformation("days in time periods", series_data, self.frequency)
+    Series.new_transformation('days in time periods', series_data, self.frequency)
   end
   
   def Series.load_from_fred(code, frequency)
@@ -581,32 +593,32 @@ class Series < ActiveRecord::Base
     self.data_sources.each do |ds|
       return true unless ds.eval.index(string).nil?
     end
-    return false
+    false
   end
   
   def handle
     self.data_sources.each do |ds|
-      if !ds.eval.index("load_from_download").nil?
-        return ds.eval.split("load_from_download")[1].split("\"")[1]
+      unless ds.eval.index('load_from_download').nil?
+        return ds.eval.split('load_from_download')[1].split("\"")[1]
       end
     end
-    return nil
+    nil
   end
 
   def original_url
     self.data_sources.each do |ds|
-      if !ds.eval.index("load_from_download").nil?
-        return DataSourceDownload.get(ds.eval.split("load_from_download")[1].split("\"")[1]).url
+      unless ds.eval.index('load_from_download').nil?
+        return DataSourceDownload.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
       end
     end
-    return nil
+    nil
   end
   
   def Series.write_cached_files(cached_files)
     t = Time.now
     cached_files.reset_new_data
     puts "#{Time.now - t} | Wrote downloads to cache"
-    Rails.cache.write("downloads", Marshal.dump(cached_files), :time_to_live => 600.seconds)
+    Rails.cache.write('downloads', Marshal.dump(cached_files), :time_to_live => 600.seconds)
     #Rails.cache.write("downloads", cached_files, :time_to_live => 600.seconds)
     
   end
@@ -621,7 +633,7 @@ class Series < ActiveRecord::Base
     #the larger file sizes really slow the system down, even though this is still a performance boost
     #may also be able to dump directly now that Marshal knows about the classes? 
     #also that class logic will work by itself. 
-    cache = Rails.cache.read("downloads")
+    cache = Rails.cache.read('downloads')
 #    puts "#{Time.now - t} | Got Downloads from Cache " unless cache.nil?
     return DownloadsCache.new if cache.nil?
     return Marshal.load(cache)
@@ -639,7 +651,6 @@ class Series < ActiveRecord::Base
   end
   
   def new_at(date)
-    dp = DataPoint.first
     DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
@@ -648,7 +659,7 @@ class Series < ActiveRecord::Base
     data.each do |key,value|
       observations += 1 unless value.nil?
     end
-    return observations
+    observations
   end
 
   # def get_source_colors
@@ -658,14 +669,14 @@ class Series < ActiveRecord::Base
   # end
   
   def print
-    data.sort.each do |datestring, value|
-      puts "#{datestring}: #{value}"
+    data.sort.each do |date, value|
+      puts "#{date}: #{value}"
     end
     puts name
   end
   
   def new_data?
-    data_points.where("created_at > FROM_DAYS(TO_DAYS(NOW()))").count > 0
+    data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
   #used to use app.get trick
@@ -673,27 +684,27 @@ class Series < ActiveRecord::Base
     start_date = start_date.nil? ? (Time.now.to_date << (15)).to_s : start_date.to_s
     end_date = end_date.nil? ? Time.now.to_date.to_s : end_date.to_s
     plot_data = self.get_values_after(start_date,end_date)
-    chart_id = self.id.to_s+"_"+Date.today.to_s
+    chart_id = self.id.to_s + '_' + Date.today.to_s
     a_series = AremosSeries.get(self.name)
     view = ActionView::Base.new(ActionController::Base.view_paths, {}) 
     
     
-    if bar == "yoy"
+    if bar == 'yoy'
       bar_data = self.annualized_percentage_change.data
-      bar_id_label = "yoy"
-      bar_color = "#AAAAAA"
-      bar_label = "YOY % Change"
-      template_path = "app/views/series/_blog_chart_line_bar"
+      bar_id_label = 'yoy'
+      bar_color = '#AAAAAA'
+      bar_label = 'YOY % Change'
+      template_path = 'app/views/series/_blog_chart_line_bar'
       post_body = '' + view.render(:file=> "#{template_path}.html.erb", :locals => {:plot_data => plot_data, :a_series => a_series, :chart_id => chart_id, :bar_id_label=>bar_id_label, :bar_label => bar_label, :bar_color => bar_color, :bar_data => bar_data })
-    elsif bar == "ytd"
+    elsif bar == 'ytd'
       bar_data = self.ytd_percentage_change.data 
-      bar_id_label = "ytd"
-      bar_color = "#AAAAAA"
-      bar_label = "YTD % Change"
-      template_path = "app/views/series/_blog_chart_line_bar"
+      bar_id_label = 'ytd'
+      bar_color = '#AAAAAA'
+      bar_label = 'YTD % Change'
+      template_path = 'app/views/series/_blog_chart_line_bar'
       post_body = '' + view.render(:file=> "#{template_path}.html.erb", :locals => {:plot_data => plot_data, :a_series => a_series, :chart_id => chart_id, :bar_id_label=>bar_id_label, :bar_label => bar_label, :bar_color => bar_color, :bar_data => bar_data })
     else
-      template_path = "app/views/series/_blog_chart_line"
+      template_path = 'app/views/series/_blog_chart_line'
       post_body = '' + view.render(:file=> "#{template_path}.html.erb", :locals => {:plot_data => plot_data, :a_series => a_series, :chart_id => chart_id})
     end
 
@@ -703,17 +714,17 @@ class Series < ActiveRecord::Base
     
     raise "config/site.yml needs to be set up with 'cms_user'/'cms_pass'" if SITE['cms_user'].nil? or SITE['cms_pass'].nil?
     
-    dashboard = login_page.form_with(:action => '/admin/login') do |f|
-    	f.send("data[User][login]=", SITE['cms_user'])
-    	f.send("data[User][pass]=", SITE['cms_pass'])
+    login_page.form_with(:action => '/admin/login') do |f|
+    	f.send('data[User][login]=', SITE['cms_user'])
+    	f.send('data[User][pass]=', SITE['cms_pass'])
     end.click_button
     
     new_product_page = agent.get('http://www.uhero.hawaii.edu/admin/news/add')
     
     conf_page = new_product_page.form_with(:action => '/admin/news/add') do |f|
       
-    	f.send("data[NewsPost][title]=", "#{a_series.description} (#{self.name})")
-    	f.send("data[NewsPost][content]=", post_body)
+    	f.send('data[NewsPost][title]=', "#{a_series.description} (#{self.name})")
+    	f.send('data[NewsPost][content]=', post_body)
     	#f.checkbox_with(:value => '2').check
       
     end.click_button
@@ -734,7 +745,7 @@ class Series < ActiveRecord::Base
     source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
     data_points.each do |dp|  
       data_hash[dp.date] ||= []
-      data_hash[dp.date].push("#{"H" unless dp.history.nil?}#{"|" unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10," "))
+      data_hash[dp.date].push("#{'H' unless dp.history.nil?}#{'|' unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10, ' '))
     end
   
     data_hash.sort.each do |datestring, value_array|
@@ -745,10 +756,10 @@ class Series < ActiveRecord::Base
   
   
   def month_mult
-    return 1 if frequency == "month"
-    return 3 if frequency == "quarter"
-    return 6 if frequency == "semi"
-    return 12 if frequency == "year"
+    return 1 if frequency == 'month'
+    return 3 if frequency == 'quarter'
+    return 6 if frequency == 'semi'
+    12 if frequency == 'year'
   end
   
   def date_range
@@ -763,8 +774,8 @@ class Series < ActiveRecord::Base
     dates = []
     offset = 0
     
-    if frequency == "day" or frequency == "week"
-      day_multiplier = frequency == "day" ? 1 : 7
+    if frequency == 'day' or frequency == 'week'
+      day_multiplier = frequency == 'day' ? 1 : 7
       begin
         curr_date = start_date + offset * day_multiplier
         dates.push(curr_date.to_s)
@@ -784,11 +795,11 @@ class Series < ActiveRecord::Base
   end
 
   def Series.new_from_tsd_data(tsd_data)
-    return Series.new_transformation(tsd_data["name"]+"."+tsd_data["frequency"],  tsd_data["data"], Series.frequency_from_code(tsd_data["frequency"]))
+    return Series.new_transformation(tsd_data['name']+'.'+tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
   end
   
   def get_tsd_series_data(tsd_file)      
-    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split(".")[0].gsub("%","%25")}/json")
+    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split('.')[0].gsub('%', '%25')}/json")
     res = Net::HTTP.new(url.host, url.port).request_get(url.path)
     tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
     
@@ -804,7 +815,7 @@ class Series < ActiveRecord::Base
     lm = data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
-    as_description = as.nil? ? "" : as.description
+    as_description = as.nil? ? '' : as.description
 
     dps = data
     dates = dps.keys.sort
@@ -815,12 +826,12 @@ class Series < ActiveRecord::Base
     day_switches[10 + dates[0].to_date.wday] = '1'    if frequency == 'week'
     day_switches = '0         1111111' if frequency == 'day'
     
-    data_string+= "#{name.split(".")[0].to_s.ljust(16," ")}#{as_description.ljust(64, " ")}\r\n"
-    data_string+= "#{lm.month.to_s.rjust(34," ")}/#{lm.day.to_s.rjust(2," ")}/#{lm.year.to_s[2..4]}0800#{dates[0].to_date.tsd_start(frequency)}#{dates[-1].to_date.tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
+    data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.ljust(64, ' ')}\r\n"
+    data_string+= "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].to_date.tsd_start(frequency)}#{dates[-1].to_date.tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
-    dps.each do |date, val|
-      sci_data[date] = ("%.6E" % units_at(date)).insert(-3,"00")
+    dps.each do |date, _|
+      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
     
     
@@ -828,12 +839,12 @@ class Series < ActiveRecord::Base
     dates.each_index do |i|
     # sci_data.each_index do |i|
       date = dates[i]
-      dp_string = sci_data[date].nil? ? "1.000000E+0015".rjust(15, " ") : sci_data[date].rjust(15, " ")
+      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].rjust(15, ' ')
       data_string += dp_string
       data_string += "     \r\n" if (i+1)%5==0
     end    
     space_padding = 80 - data_string.split("\r\n")[-1].length
-    return space_padding == 0 ? data_string : data_string + " " * space_padding + "\r\n"
+    space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
   
   #["ERE", "EGVLC", "EGVST", "EGVFD", "EAFFD", "EAFAC", "EAE", "EHC", "EED", "EPS", "EAD", "EMA","E_TU","EWT","ERT","ECT","EMN","EIF", "EOS", "E_TTU", "E_TRADE", "E_FIR", "E_PBS","E_EDHC", "E_LH", "EAF", "EGV", "E_GVSL", "E_NF"].each do |pre|
@@ -864,7 +875,7 @@ class Series < ActiveRecord::Base
   end
   
   def last_data_added_string
-    last_data_added.strftime("%B %e, %Y")
+    last_data_added.strftime('%B %e, %Y')
   end
   
   def Series.get_all_series_from_website(url_string)
@@ -890,7 +901,7 @@ class Series < ActiveRecord::Base
       begin
         Series.run_all_dependencies(s.new_dependencies, already_run, errors, eval_statements)
       rescue
-        puts "-------------------THIS IS THE ONE THAT BROKE--------------------"
+        puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
         puts s.id
         puts s.name
       end
@@ -910,24 +921,24 @@ class Series < ActiveRecord::Base
   
   def Series.web_search(search_string, num_results = 10)
     regex = /"([^"]*)"/
-    search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, "").split(" ")
-    name_where = (search_parts.map {|s| "name LIKE '%#{s}%'"}).join (" AND ")
+    search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
+    name_where = (search_parts.map {|s| "name LIKE '%#{s}%'"}).join (' AND ')
     name_results = Series.where(name_where).limit(num_results)
     
-    desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (" AND ")
+    desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
     desc_results = AremosSeries.where(desc_where).limit(num_results)
     
     results = []
   
     name_results.each do |s| 
       as = AremosSeries.get(s.name)
-      results.push({ :name => s.name, :series_id => s.id, :description => as.nil? ? "no aremos series" : as.description})
+      results.push({ :name => s.name, :series_id => s.id, :description => as.nil? ? 'no aremos series' : as.description})
       #puts "#{s.id} : #{s.name} - #{as.nil? ? "no aremos series" : as.description}"
     end
     
     desc_results.each do |as|
       s = as.name.ts
-      results.push({:name => as.name, :series_id => s.nil? ? "no series" : s.id, :description => as.description})
+      results.push({:name => as.name, :series_id => s.nil? ? 'no series' : s.id, :description => as.description})
       #puts "#{s.nil? ? "no series" : s.id}  : #{as.name} - #{as.description}"
     end
     
@@ -990,4 +1001,6 @@ class Series < ActiveRecord::Base
     end
     errors
   end
+
+  add_method_tracer :update_data, 'Custom/Series#update_data'
 end
