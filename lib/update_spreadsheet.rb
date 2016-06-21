@@ -1,5 +1,4 @@
 require 'roo'
-require 'new_relic/agent/method_tracer'
 
 class UpdateSpreadsheet < Roo::Excel
   include UpdateCore
@@ -17,10 +16,5 @@ class UpdateSpreadsheet < Roo::Excel
       puts e.message
       @load_error = true
     end
-  end
-
-  class << self
-    include ::NewRelic::Agent::MethodTracer
-    add_method_tracer :new_xls_or_csv, 'Custom/UpdateSpreadsheet#new_xls_or_csv'
   end
 end

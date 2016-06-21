@@ -1,7 +1,4 @@
-require 'new_relic/agent/method_tracer'
 module SeriesExternalRelationship
-  include ::NewRelic::Agent::MethodTracer
-
   def find_prognoz_data_file
   	pdfs = PrognozDataFile.all
   	pdfs.each do |pdf|
@@ -243,6 +240,4 @@ module SeriesExternalRelationship
       self.update_attributes(:units => 1)
     end
   end
-
-  add_method_tracer :aremos_comparison, 'Custom/SeriesExternalRelationship#aremos_comparison'
 end

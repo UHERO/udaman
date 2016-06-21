@@ -1,5 +1,3 @@
-require 'new_relic/agent/method_tracer'
-
 class Series < ActiveRecord::Base
   include SeriesArithmetic
   include SeriesAggregation
@@ -13,8 +11,6 @@ class Series < ActiveRecord::Base
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
-  
-  include ::NewRelic::Agent::MethodTracer
   
   #serialize :data, Hash
   serialize :factors, Hash
@@ -1001,6 +997,4 @@ class Series < ActiveRecord::Base
     end
     errors
   end
-
-  add_method_tracer :update_data, 'Custom/Series#update_data'
 end

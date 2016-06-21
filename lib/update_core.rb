@@ -1,7 +1,4 @@
-require 'new_relic/agent/method_tracer'
-
 module UpdateCore
-  include ::NewRelic::Agent::MethodTracer
   def load_error?
     @load_error ||= false
   end
@@ -231,6 +228,4 @@ module UpdateCore
       return true
     end
   end
-
-  add_method_tracer :series, 'Custom/UpdateCore#series'
 end
