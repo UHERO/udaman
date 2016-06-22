@@ -264,12 +264,11 @@ class Series < ActiveRecord::Base
    #     puts "ERROR | #{series_name} | #{eval_statement}"
   end
   
-  def save_source(source_desc, source_eval_statement, data, last_run = Time.now)
+  def save_source(source_desc, eval_statement, data, last_run = Time.now)
     source = nil
     #ss_time = Time.now          #timer
-    data_count = data.count     #timer
     data_sources.each do |ds|
-      if !source_eval_statement.nil? and !ds.eval.nil? and source_eval_statement.strip == ds.eval.strip
+      if !eval_statement.nil? and !ds.eval.nil? and eval_statement.strip == ds.eval.strip
         #ds.update_attributes(:data => data, :last_run => Time.now) 
         ds.update_attributes(:last_run => Time.now) 
         source = ds 
@@ -279,7 +278,7 @@ class Series < ActiveRecord::Base
     if source.nil?
       data_sources.create(
         :description => source_desc[0,255], 
-        :eval => source_eval_statement, 
+        :eval => eval_statement,
         #:data => data,
         :last_run => last_run
       )
@@ -447,20 +446,20 @@ class Series < ActiveRecord::Base
   end
     
   
-  def load_sa_from(update_spreadsheet_path, sheet_to_load = nil)
-    update_spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
-    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
+  def load_sa_from(spreadsheet_path, sheet_to_load = nil)
+    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
+    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     #raise SeriesReloadException if update_spreadsheet.load_error?
     return self if update_spreadsheet.load_error?
 
-    ns_name = self.name.sub("@", "NS@")
+    ns_name = self.name.sub('@', 'NS@')
 #    default_sheet = update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
-    update_spreadsheet.default_sheet = sheet_to_load.nil? ? "sadata" : sheet_to_load unless update_spreadsheet.class == UpdateCSV
+    update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load unless update_spreadsheet.class == UpdateCSV
     #raise SeriesReloadException unless update_spreadsheet.update_formatted?
     return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency 
-    new_transformation(update_spreadsheet_path, update_spreadsheet.series(ns_name))
+    new_transformation(spreadsheet_path, update_spreadsheet.series(ns_name))
   end
     
   
@@ -543,7 +542,7 @@ class Series < ActiveRecord::Base
   end
   
   def load_from_bea(code, region)
-    frequency = Series.frequency_from_code(self.name.split(".")[1])
+    frequency = Series.frequency_from_code(self.name.split('.')[1])
     series_data = DataHtmlParser.new.get_bea_series(code, region)
     Series.new_transformation("loaded series code: #{code} for region #{region} from bea website", series_data, frequency)
   end
@@ -566,7 +565,7 @@ class Series < ActiveRecord::Base
   
   def days_in_period
     series_data = {}
-    data.each {|date, val| series_data[date] = date.to_date.days_in_period(self.frequency) }
+    data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
     Series.new_transformation('days in time periods', series_data, self.frequency)
   end
   
@@ -763,8 +762,8 @@ class Series < ActiveRecord::Base
     #return self.data.keys.sort 
       
     data_dates = self.data.keys.sort
-    start_date = Date.parse data_dates[0]
-    end_date = Date.parse data_dates[-1]
+    start_date = data_dates[0]
+    end_date = data_dates[-1]
     curr_date = start_date
     
     dates = []
@@ -819,11 +818,11 @@ class Series < ActiveRecord::Base
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = '0                '
     day_switches = '0         0000000' if frequency == 'week'
-    day_switches[10 + dates[0].to_date.wday] = '1'    if frequency == 'week'
+    day_switches[10 + dates[0].wday] = '1'    if frequency == 'week'
     day_switches = '0         1111111' if frequency == 'day'
     
     data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.ljust(64, ' ')}\r\n"
-    data_string+= "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].to_date.tsd_start(frequency)}#{dates[-1].to_date.tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
+    data_string+= "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
     dps.each do |date, _|
