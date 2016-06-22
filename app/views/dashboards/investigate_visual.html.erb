@@ -43,10 +43,10 @@
 		var color_size_array = [];
 		var current_val = data_array[0];
 		var current_size = 0;
-		var i=0;
-		var length = data_array.length
+		var i;
+		var length = data_array.length;
 		for (i=0; i < length; i++) {
-			check_val = data_array.shift();
+			var check_val = data_array.shift();
 			if (check_val != current_val) {
 				color_size_array.push({color: convert_to_color(current_val), size: current_size, end_pos: i });
 				current_val = check_val;
@@ -61,7 +61,7 @@
 	
 	function matching_diffs(text) {
 		params.viz_data = text;
-		max_length = 0;
+		var max_length = 0;
 		var data = d3.csv.parseRows(text);
 		var formatted_data = data.map(function(elem) {
 			max_length = elem.length > max_length ? elem.length : max_length;
@@ -69,7 +69,7 @@
 		});
 		
 		var svg = d3.select("svg#matching_diffs")
-			.attr("height", function(d) {return (params.h+params.space) * params.scale * (3+formatted_data.length)})
+			.attr("height", function() {return (params.h+params.space) * params.scale * (3+formatted_data.length)})
 			.attr("width", (max_length * params.unitw + params.left_margin) * params.scale);
 			//.attr("fill", "#444444");
 		
@@ -79,8 +79,9 @@
 			.append("g")
 			.attr("transform", function(d, i) {return "translate(0," +  (i * (params.h+params.space) * params.scale).toString() + ")"});
 			//.attr("y", function(d, i) {return i * params.h * params.scale});
-			
-		var series_labels = rows.selectAll("text")
+
+    // series labels
+		rows.selectAll("text")
 			.data(function(d) {return [d]})
 			.enter()
 			.append("a")
@@ -92,7 +93,8 @@
 			.attr("y", (8+params.h) * params.scale)
 			.text(function(d) { return d.name;});
 				
-		var datapoints = rows.selectAll("rect")
+		// data points
+    rows.selectAll("rect")
 			.data(function(d) {return d.data})
 			.enter()
 			.append("rect")
@@ -141,8 +143,9 @@
 			.attr("x", 0)
 			.attr("y", 25)
 			.text(datapoint_count + " New Datapoints");
-		
-		var dp_bars = svg.selectAll("rect.dp")
+
+    // data point bars
+		svg.selectAll("rect.dp")
 			.data(all_letters_counts)
 			.enter()
 			.append("rect")
@@ -154,9 +157,9 @@
 			.attr("fill", "#D3E4D0")
 			.append("svg:title")
 			.text(function(d){return d[2] + ": " + d[3]} );
-			;
 
-		var series_bars = svg.selectAll("rect.series")
+    // series bars
+		svg.selectAll("rect.series")
 			.data(all_letters_counts)
 			.enter()
 			.append("rect")
@@ -168,9 +171,9 @@
 			.attr("fill", "#119F49")
 			.append("svg:title")
 			.text(function(d){return d[2] + ":" + d[3]} );
-			;
-			
-		var letter_labels = svg.selectAll("text.label")
+
+    // letter_labels
+		svg.selectAll("text.label")
 			.data(all_letters_counts)
 			.enter()
 			.append("text")
@@ -248,7 +251,7 @@
 		}
 		csv.sort(function(a,b) {
 			return d3.ascending(a.group+a.label,b.group+b.label);
-		})
+		});
 		
 		var svg = d3.select("svg#update_spreadsheets")
 			.attr("width", num_per_row * (width_of_box+space))
