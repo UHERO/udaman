@@ -111,11 +111,12 @@ module SeriesExternalRelationship
       
       as.data.each do |datestring, value|
         data = self.data
-        unless data[datestring].nil?
-          diff = a_diff(value, self.units_at(datestring))
-          dp = DataPoint.where(:series_id => self.id, :date => datestring, :current=>true)[0]
+        date = datestring.to_date
+        unless data[date].nil?
+          diff = a_diff(value, self.units_at(date))
+          dp = DataPoint.where(:series_id => self.id, :date => date, :current=>true)[0]
           source_code = dp.source_type_code
-          puts "#{self.name}: #{datestring}: #{value}, #{self.units_at(datestring)} diff:#{diff}" if diff != 0
+          puts "#{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
           results.push(0+source_code) if diff == 0
           results.push(1+source_code) if diff > 0 and diff <= 1.0
           results.push(2+source_code) if diff > 1.0 and diff  <= 10.0
@@ -123,7 +124,7 @@ module SeriesExternalRelationship
           next #need this. otherwise might add two array elements per diff
         end
         
-        if data[datestring].nil? and value == 1000000000000000.0
+        if data[date].nil? and value == 1000000000000000.0
           results.push(0)
         else
           results.push(-1)
