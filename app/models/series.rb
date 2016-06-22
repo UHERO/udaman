@@ -773,14 +773,14 @@ class Series < ActiveRecord::Base
       day_multiplier = frequency == 'day' ? 1 : 7
       begin
         curr_date = start_date + offset * day_multiplier
-        dates.push(curr_date.to_s)
+        dates.push(curr_date)
         offset += 1
       end while curr_date < end_date
     else
       month_multiplier = month_mult
       begin
         curr_date = start_date>>offset*month_multiplier
-        dates.push(curr_date.to_s)
+        dates.push(curr_date)
         offset += 1
       end while curr_date < end_date
     end
