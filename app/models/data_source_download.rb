@@ -4,9 +4,10 @@ class DataSourceDownload < ActiveRecord::Base
 
   has_many :dsd_log_entries
 
-  @default_data_path = '/Users/uhero/Documents/data'
+  DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
+  
   def DataSourceDownload.default_data_path
-    @default_data_path
+    DEFAULT_DATA_PATH
   end
 
   #some tight coupling to the unizipping functionality in the string extension
@@ -57,7 +58,7 @@ class DataSourceDownload < ActiveRecord::Base
   end
 
   def save_path_flex
-    return save_path.gsub(@default_data_path, ENV['DATA_PATH']) if save_path.include? @default_data_path
+    return save_path.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if save_path.include? DEFAULT_DATA_PATH
     save_path
   end
 
