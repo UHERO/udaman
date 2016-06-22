@@ -98,7 +98,7 @@ module SeriesSharing
       historical.data.series_merge(current_year.data))
   end
   
-  def aa_state_based_co_share_for(county_abbrev)
+  def aa_state_based_county_share_for(county_abbrev)
     series_prefix = self.name.split('@')[0]
     county_sum = "#{series_prefix}NS@HON.M".ts + "#{series_prefix}NS@HAW.M".ts + "#{series_prefix}NS@MAU.M".ts + "#{series_prefix}NS@KAU.M".ts
 #    county_sum.print
