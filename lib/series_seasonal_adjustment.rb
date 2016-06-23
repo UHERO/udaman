@@ -1,11 +1,11 @@
 module SeriesSeasonalAdjustment
   #may need to spec a test for this in terms of adding the correct source
   def apply_seasonal_adjustment(factor_application)
-    ns_series_name = name.sub("@","NS@")
+    ns_series_name = name.sub('@','NS@')
     ns_series = Series.get ns_series_name
     raise SeasonalAdjustmentException.new if ns_series.nil?
     set_factors factor_application 
-    new_ns_values = ns_series.get_values_after (Date.parse last_demetra_datestring)
+    new_ns_values = ns_series.get_values_after (Date.parse last_demetra_datestring.to_s)
     adjusted_data = {}
     new_ns_values.each do |date, value|
       factor_month = date.month
@@ -17,8 +17,7 @@ module SeriesSeasonalAdjustment
   end
   
   def apply_ns_growth_rate_sa
-    ns_series_name = name.sub("@","NS@")
-    ns_series = Series.get ns_series_name
+    ns_series_name = name.sub('@','NS@')
     new_data = (self.shift_forward_years(1) + self.shift_forward_years(1) * ((ns_series_name.ts.annualized_percentage_change)/100)).trim.data 
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series_name}", new_data)  
   end
@@ -29,10 +28,8 @@ module SeriesSeasonalAdjustment
     ns_series = get_ns_series
     self.factors ||= {}
     
-    self.last_demetra_datestring = (self.frequency == "quarter" or self.frequency == "Q") ? self.get_last_complete_4th_quarter : self.get_last_complete_december
-    last_demetra_date = Date.parse self.last_demetra_datestring
-    factor_comparison_start_date = last_demetra_date - 1.year
-    last_year_of_sa_values = get_values_after(factor_comparison_start_date, last_demetra_date)
+    self.last_demetra_datestring = (self.frequency == 'quarter' or self.frequency == 'Q') ? self.get_last_complete_4th_quarter : self.get_last_complete_december
+    last_year_of_sa_values = get_values_after(self.last_demetra_datestring - 1.year, self.last_demetra_datestring)
     last_year_of_sa_values.sort.each do |date,sa_value|
       ns_value = ns_series.at(date)
       #puts "#{datestring} - ns:#{ns_value} sa:#{sa_value}"
