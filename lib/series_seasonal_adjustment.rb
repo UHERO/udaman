@@ -27,9 +27,10 @@ module SeriesSeasonalAdjustment
     #should throw in some exception handling if this happens for a non sa series
     ns_series = get_ns_series
     self.factors ||= {}
-    
-    self.last_demetra_datestring = (self.frequency == 'quarter' or self.frequency == 'Q') ? self.get_last_complete_4th_quarter : self.get_last_complete_december
-    last_year_of_sa_values = get_values_after(self.last_demetra_datestring - 1.year, self.last_demetra_datestring)
+
+    last_demetra_date = (self.frequency == 'quarter' or self.frequency == 'Q') ? self.get_last_complete_4th_quarter : self.get_last_complete_december
+    self.last_demetra_datestring = last_demetra_date
+    last_year_of_sa_values = get_values_after(last_demetra_date - 1.year, last_demetra_date)
     last_year_of_sa_values.sort.each do |date,sa_value|
       ns_value = ns_series.at(date)
       #puts "#{datestring} - ns:#{ns_value} sa:#{sa_value}"
