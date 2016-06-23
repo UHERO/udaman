@@ -5,12 +5,12 @@ module SeriesSeasonalAdjustment
     ns_series = Series.get ns_series_name
     raise SeasonalAdjustmentException.new if ns_series.nil?
     set_factors factor_application 
-    new_ns_values = ns_series.get_values_after last_demetra_datestring
+    new_ns_values = ns_series.get_values_after (Date.parse last_demetra_datestring)
     adjusted_data = {}
-    new_ns_values.each do |datestring, value|
-      factor_month = Date.parse(datestring).month
-      adjusted_data[datestring] = value - factors[factor_month.to_s] if factor_application == :additive
-      adjusted_data[datestring] = value / factors[factor_month.to_s] if factor_application == :multiplicative
+    new_ns_values.each do |date, value|
+      factor_month = date.month
+      adjusted_data[date] = value - factors[factor_month.to_s] if factor_application == :additive
+      adjusted_data[date] = value / factors[factor_month.to_s] if factor_application == :multiplicative
     end
     #still valuable to run as the current series because it sets the seasonal factors
     new_transformation("Applied #{factor_application} Seasonal Adjustment against #{ns_series_name}", adjusted_data)  
@@ -31,13 +31,13 @@ module SeriesSeasonalAdjustment
     
     self.last_demetra_datestring = (self.frequency == "quarter" or self.frequency == "Q") ? self.get_last_complete_4th_quarter : self.get_last_complete_december
     last_demetra_date = Date.parse self.last_demetra_datestring
-    factor_comparison_start_date = last_demetra_date << 12
-    last_year_of_sa_values = get_values_after(factor_comparison_start_date.to_s, self.last_demetra_datestring)
-    last_year_of_sa_values.sort.each do |datestring,sa_value|
-      ns_value = ns_series.at(datestring)
+    factor_comparison_start_date = last_demetra_date - 1.year
+    last_year_of_sa_values = get_values_after(factor_comparison_start_date, last_demetra_date)
+    last_year_of_sa_values.sort.each do |date,sa_value|
+      ns_value = ns_series.at(date)
       #puts "#{datestring} - ns:#{ns_value} sa:#{sa_value}"
       #think can just use months for both months and quarters to keep things simple
-      factor_month = Date.parse(datestring).month
+      factor_month = date.month
       self.factors[factor_month.to_s] = ns_value - sa_value if factor_application == :additive
       self.factors[factor_month.to_s] = ns_value / sa_value if factor_application == :multiplicative
     end
