@@ -8,11 +8,11 @@ module SeriesSharing
     trimmed_data = get_values_after(start_date << 1, end_date)
     new_series_data = {}
     position = 0
-    trimmed_data.sort.each do |date_string, _|
+    trimmed_data.sort.each do |date, _|
       periods = window_size
       start_pos = window_start(position, trimmed_data.length-1, periods, ma_type_string)
       end_pos = window_end(position, trimmed_data.length-1, periods, ma_type_string)
-      new_series_data[date_string] = moving_window_average(start_pos, end_pos, periods, trimmed_data) unless start_pos.nil? or end_pos.nil?
+      new_series_data[date] = moving_window_average(start_pos, end_pos, periods, trimmed_data) unless start_pos.nil? or end_pos.nil?
       position += 1
     end
     new_series_data
@@ -76,15 +76,15 @@ module SeriesSharing
     new_transformation("Moving Average of #{name}", ma_series_data('offset_ma', start_date, end_date))
   end
   
-  def backward_looking_ma(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def backward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
   
-  def forward_looking_ma(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Forward Looking Moving Average of #{name}", ma_series_data('forward_ma', start_date, end_date))
   end
   
-  def offset_forward_looking_ma(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def offset_forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Offset Forward Looking Moving Average of #{name}", ma_series_data('offset_forward_ma', start_date, end_date))
   end
   
