@@ -76,7 +76,7 @@ module SeriesSharing
     new_transformation("Moving Average of #{name}", ma_series_data('offset_ma', start_date, end_date))
   end
   
-  def backward_looking_ma(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def backward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
   
