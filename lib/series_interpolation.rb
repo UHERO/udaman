@@ -152,14 +152,14 @@ module SeriesInterpolation
                                   (frequency == :day and self.frequency == "month")
     data_copy = self.data.sort
     last_val = data_copy[0][1]
-    last_date = data_copy[0][0].to_s
+    last_date = data_copy[0][0]
     first = data_copy.shift
     
     new_series_data = nil
     data_copy.each do |date, val|
       diff = val - last_val
       new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency, frequency) if new_series_data.nil?
-      new_series_data.merge! date.to_s.linear_path_to_previous_period(val, diff, self.frequency, frequency)
+      new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency, frequency)
       last_val = val
       last_date = date.to_s
     end
