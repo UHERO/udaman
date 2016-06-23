@@ -8,11 +8,11 @@ module SeriesSharing
     trimmed_data = get_values_after(start_date << 1, end_date)
     new_series_data = {}
     position = 0
-    trimmed_data.sort.each do |date_string, _|
+    trimmed_data.sort.each do |date, _|
       periods = window_size
       start_pos = window_start(position, trimmed_data.length-1, periods, ma_type_string)
       end_pos = window_end(position, trimmed_data.length-1, periods, ma_type_string)
-      new_series_data[date_string] = moving_window_average(start_pos, end_pos, periods, trimmed_data) unless start_pos.nil? or end_pos.nil?
+      new_series_data[date] = moving_window_average(start_pos, end_pos, periods, trimmed_data) unless start_pos.nil? or end_pos.nil?
       position += 1
     end
     new_series_data
