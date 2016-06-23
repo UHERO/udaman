@@ -1,4 +1,33 @@
 class Date
+  def linear_path_to_previous_period(start_val, diff, source_frequency, target_frequency)
+    if (source_frequency == 'year' or source_frequency == :year) and target_frequency == :quarter
+      return {
+        self             => start_val - (diff / 4 * 3),
+        self + 3.months  => start_val - (diff / 4 * 2),
+        self + 6.months  => start_val - (diff / 4),
+        self + 9.months  => start_val
+      }
+    end
+
+    if (source_frequency == 'quarter' or source_frequency == :quarter) and target_frequency == :month
+      return {
+        self             => start_val - (diff / 3 * 2),
+        self + 1.month   => start_val - (diff / 3),
+        self + 1.months  => start_val
+      }
+    end
+    if (source_frequency == 'month' or source_frequency == :month) and target_frequency == :day
+      num_days = self.days_in_month
+      data = {}
+      (1..num_days).each do |days_back|
+        data[self + (days_back - 1).days] =  start_val - (diff / num_days * (num_days - days_back))
+      end
+      return data
+    end
+
+    {}
+  end
+
   def quarter
     return "#{self.year}-Q1" if [1,2,3].include?(self.mon)
     return "#{self.year}-Q2" if [4,5,6].include?(self.mon)

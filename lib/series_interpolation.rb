@@ -156,12 +156,12 @@ module SeriesInterpolation
     first = data_copy.shift
     
     new_series_data = nil
-    data_copy.each do |date_string, val|
+    data_copy.each do |date, val|
       diff = val - last_val
       new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency, frequency) if new_series_data.nil?
-      new_series_data.merge! date_string.linear_path_to_previous_period(val, diff, self.frequency, frequency)
+      new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency, frequency)
       last_val = val
-      last_date = date_string
+      last_date = date.to_s
     end
     
     new_series = new_transformation("Interpolated (linear match last) from #{self.name}", new_series_data)
