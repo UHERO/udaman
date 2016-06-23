@@ -80,11 +80,11 @@ module SeriesSharing
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
   
-  def forward_looking_ma(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Forward Looking Moving Average of #{name}", ma_series_data('forward_ma', start_date, end_date))
   end
   
-  def offset_forward_looking_ma(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def offset_forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Offset Forward Looking Moving Average of #{name}", ma_series_data('offset_forward_ma', start_date, end_date))
   end
   
