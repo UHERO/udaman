@@ -1,4 +1,7 @@
 class CreateCompositeKeyForDataPoint < ActiveRecord::Migration
+  # This causes errors without first manually removing the autoincrement from `id`
+  # `ALTER TABLE data_points MODIFY id INT(11) NOT NULL;`
+
   def up
     execute <<-SQL
       DELETE FROM data_points WHERE `date` IS NULL;
