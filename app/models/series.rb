@@ -676,6 +676,8 @@ class Series < ActiveRecord::Base
   
   #used to use app.get trick
   def create_blog_post(bar = nil, start_date = nil, end_date = nil)
+    return unless ((ENV.has_key? 'cms_user') and ENV.has_key? 'cms_pass')
+
     start_date = start_date.nil? ? (Time.now.to_date << (15)).to_s : start_date.to_s
     end_date = end_date.nil? ? Time.now.to_date.to_s : end_date.to_s
     plot_data = self.get_values_after(start_date,end_date)
@@ -707,11 +709,9 @@ class Series < ActiveRecord::Base
     agent = Mechanize.new
     login_page = agent.get('http://www.uhero.hawaii.edu/admin/login')
     
-    raise "config/site.yml needs to be set up with 'cms_user'/'cms_pass'" if SITE['cms_user'].nil? or SITE['cms_pass'].nil?
-    
     login_page.form_with(:action => '/admin/login') do |f|
-    	f.send('data[User][login]=', SITE['cms_user'])
-    	f.send('data[User][pass]=', SITE['cms_pass'])
+    	f.send('data[User][login]=', ENV['cms_user'])
+    	f.send('data[User][pass]=', ENV['cms_pass'])
     end.click_button
     
     new_product_page = agent.get('http://www.uhero.hawaii.edu/admin/news/add')
@@ -743,8 +743,8 @@ class Series < ActiveRecord::Base
       data_hash[dp.date].push("#{'H' unless dp.history.nil?}#{'|' unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10, ' '))
     end
   
-    data_hash.sort.each do |datestring, value_array|
-      puts "#{datestring}: #{value_array.sort.join}"
+    data_hash.sort.each do |date, value_array|
+      puts "#{date}: #{value_array.sort.join}"
     end
     puts name
   end
