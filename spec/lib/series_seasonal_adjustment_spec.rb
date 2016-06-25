@@ -51,7 +51,7 @@ describe SeriesSeasonalAdjustment do
   
     it "should find 12 date, value pairs to derive factors from in its data array." do
       @ns_series.should_not be_nil
-      last_demetra_date = Date.parse @sa_series.last_demetra_datestring
+      last_demetra_date = @sa_series.last_demetra_date
       factor_comparison_start_date = last_demetra_date << 12
       last_year_of_sa_values = @sa_series.get_values_after(factor_comparison_start_date.to_s)
       last_year_of_sa_values.should have(12).items
@@ -80,7 +80,7 @@ describe SeriesSeasonalAdjustment do
     it "should update the series with the expected values" do
       @ns_series.save
       @sa_series.data = @sa_series.apply_seasonal_adjustment(:additive).data
-      observed_values_since_seasonal_adjustment = @sa_series.get_values_after(@sa_series.last_demetra_datestring)
+      observed_values_since_seasonal_adjustment = @sa_series.get_values_after(@sa_series.last_demetra_date)
       observed_values_since_seasonal_adjustment.should have(7).items
       @sa_series.data["2010-01-01"].should be_within(0.005).of(9.01432223)
       @sa_series.data["2010-02-01"].should be_within(0.005).of(8.64584337)
