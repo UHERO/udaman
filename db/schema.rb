@@ -54,7 +54,7 @@ ActiveRecord::Schema.define(version: 20160624234825) do
   end
 
   create_table "data_points", id: false, force: :cascade do |t|
-    t.integer  "id",              limit: 4,                  null: false
+    t.integer  "id",              limit: 4
     t.integer  "series_id",       limit: 4,                  null: false
     t.float    "value",           limit: 53
     t.boolean  "current"
