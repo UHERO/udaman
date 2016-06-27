@@ -93,7 +93,7 @@ module SeriesSharing
     series_prefix = self.name.split('@')[0]
     county_sum = "#{series_prefix}NS@HON.M".ts + "#{series_prefix}NS@HAW.M".ts + "#{series_prefix}NS@MAU.M".ts + "#{series_prefix}NS@KAU.M".ts
     historical = "#{series_prefix}NS@#{county_abbrev}.M".ts.annual_average / county_sum.annual_average * self
-    current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_ma.get_last_incomplete_year / county_sum.backward_looking_ma.get_last_incomplete_year * self
+    current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_moving_average.get_last_incomplete_year / county_sum.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.M over sum of #{series_prefix}NS@HON.M , #{series_prefix}NS@HAW.M , #{series_prefix}NS@MAU.M , #{series_prefix}NS@KAU.M using annual averages where available and a backward looking moving average for the current year",
       historical.data.series_merge(current_year.data))
   end
@@ -105,7 +105,7 @@ module SeriesSharing
     state = "#{series_prefix}NS@HI.M".ts 
 #    state.print
     historical = "#{series_prefix}NS@#{county_abbrev}.M".ts.annual_average / state.annual_average * self
-    current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_ma.get_last_incomplete_year / state.backward_looking_ma.get_last_incomplete_year * self
+    current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.M over #{series_prefix}NS@HI.M , using annual averages where available and a backward looking moving average for the current year",
     historical.data.series_merge(current_year.data))
   end
@@ -119,7 +119,7 @@ module SeriesSharing
     #historical.print
     mean_corrected_historical = historical / historical.annual_sum * "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.annual_sum
     #mean_corrected_historical.print
-    current_year = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.backward_looking_ma.get_last_incomplete_year / "#{series_prefix}NS@HI.#{f}".ts.backward_looking_ma.get_last_incomplete_year * self
+    current_year = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.backward_looking_moving_average.get_last_incomplete_year / "#{series_prefix}NS@HI.#{f}".ts.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.#{f} over #{series_prefix}NS@HI.#{f} using a mean corrected moving average (offset early) and a backward looking moving average for the current year",
         mean_corrected_historical.data.series_merge(current_year.data))
   end
@@ -130,7 +130,7 @@ module SeriesSharing
     start_date = "#{series_prefix}NS@#{county_abbrev}.Q".ts.first_value_date
     shared_series = "#{name}".ts.share_using("#{series_prefix}NS@#{county_abbrev}.Q".ts.trim(start_date, get_last_complete_4th_quarter).moving_average, "#{series_prefix}NS@#{self_region}.Q".ts.trim(start_date, get_last_complete_4th_quarter).moving_average)
     mean_corrected_series = shared_series.share_using("#{series_prefix}NS@#{county_abbrev}.Q".ts.annual_average, shared_series.annual_average)
-    current_year = "#{series_prefix}NS@#{county_abbrev}.Q".ts.backward_looking_ma.get_last_incomplete_year / "#{series_prefix}NS@#{self_region}.Q".ts.backward_looking_ma.get_last_incomplete_year * self
+    current_year = "#{series_prefix}NS@#{county_abbrev}.Q".ts.backward_looking_moving_average.get_last_incomplete_year / "#{series_prefix}NS@#{self_region}.Q".ts.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of the moving average #{series_prefix}NS@#{county_abbrev}.Q over the moving average of #{series_prefix}NS@#{self_region}.Q , mean corrected for the year",
         mean_corrected_series.data.series_merge(current_year.data))
   end
