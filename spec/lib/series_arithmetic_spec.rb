@@ -93,7 +93,7 @@ describe SeriesArithmetic do
       it "should successfully calculate a moving average" do
         bl_mov_avg    = @dh.ns "BL_MA@TEST.M"
         to_bl_mov_avg = @dh.ns "TO_AVG@TEST.M"
-        bl_mov_avg.identical_to?(to_bl_mov_avg.backward_looking_ma.data).should be_true
+        bl_mov_avg.identical_to?(to_bl_mov_avg.backward_looking_moving_average.data).should be_true
       end
     end
     
