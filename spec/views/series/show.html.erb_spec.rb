@@ -8,7 +8,7 @@ describe "series/show.html.erb" do
       :description => "Description",
       :units => 1,
       :seasonally_adjusted => false,
-      :last_demetra_datestring => "Last Demetra Datestring",
+      :last_demetra_date => "Last Demetra Date",
       :factors => {},
       :factor_application => "Factor Application",
       :prognoz_data_file_id => "Prognoz Data File",

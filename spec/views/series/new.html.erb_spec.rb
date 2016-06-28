@@ -8,7 +8,7 @@ describe "series/new.html.erb" do
       :description => "MyString",
       :units => 1,
       :seasonally_adjusted => false,
-      :last_demetra_datestring => "MyString",
+      :last_demetra_date => "MyString",
       :factors => "",
       :factor_application => "MyString",
       :prognoz_data_file_id => "MyString",
@@ -29,7 +29,7 @@ describe "series/new.html.erb" do
       assert_select "input#series_description", :name => "series[description]"
       assert_select "input#series_units", :name => "series[units]"
       assert_select "input#series_seasonally_adjusted", :name => "series[seasonally_adjusted]"
-      assert_select "input#series_last_demetra_datestring", :name => "series[last_demetra_datestring]"
+      assert_select "input#series_last_demetra_date", :name => "series[last_demetra_date]"
       assert_select "input#series_factors", :name => "series[factors]"
       assert_select "input#series_factor_application", :name => "series[factor_application]"
       assert_select "input#series_prognoz_data_file_id", :name => "series[prognoz_data_file_id]"

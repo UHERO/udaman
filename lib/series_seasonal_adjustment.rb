@@ -5,7 +5,7 @@ module SeriesSeasonalAdjustment
     ns_series = Series.get ns_series_name
     raise SeasonalAdjustmentException.new if ns_series.nil?
     set_factors factor_application 
-    new_ns_values = ns_series.get_values_after (Date.parse last_demetra_datestring.to_s)
+    new_ns_values = ns_series.get_values_after (Date.parse last_demetra_date.to_s)
     adjusted_data = {}
     new_ns_values.each do |date, value|
       factor_month = date.month
@@ -29,7 +29,7 @@ module SeriesSeasonalAdjustment
     self.factors ||= {}
 
     last_demetra_date = (self.frequency == 'quarter' or self.frequency == 'Q') ? self.get_last_complete_4th_quarter : self.get_last_complete_december
-    self.last_demetra_datestring = last_demetra_date
+    self.last_demetra_date = last_demetra_date
     last_year_of_sa_values = get_values_after(last_demetra_date - 1.year, last_demetra_date)
     last_year_of_sa_values.sort.each do |date,sa_value|
       ns_value = ns_series.at(date)

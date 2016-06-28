@@ -113,7 +113,7 @@ describe Series do
       end
     
       it "should store the last date calculated by Demetra" do
-        @sa_series.last_demetra_datestring.should == "2009-12-01"
+        @sa_series.last_demetra_date.should == 2009-12-01
       end
     
       it "should indicate it is a seasonally adjusted series" do
@@ -126,7 +126,7 @@ describe Series do
     
       it "should have a counterpart series in the database that can also return any  observations after the last demetra output date" do
         counterpart_ns_series = @sa_series.get_ns_series
-        ns_values = counterpart_ns_series.get_values_after @sa_series.last_demetra_datestring
+        ns_values = counterpart_ns_series.get_values_after @sa_series.last_demetra_date
         ns_values.should include("2010-01-01"=>8.6)
         ns_values.should have(7).items
       end

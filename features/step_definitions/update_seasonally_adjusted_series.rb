@@ -33,14 +33,13 @@ Then /^the series should contain the same number of observations as its counterp
 end
 
 Then /^the observations that follow the last demetra adjusted value should equal the sum of the seasonal factor and the counterpart series observation$/ do
-  sa_values = @sa_series.get_values_after @sa_series.last_demetra_datestring
-  ns_values = @ns_series.get_values_after @sa_series.last_demetra_datestring
+  sa_values = @sa_series.get_values_after @sa_series.last_demetra_date
+  ns_values = @ns_series.get_values_after @sa_series.last_demetra_date
   @expected_values = Hash.new
-  ns_values.each do |datestring,ns_value|
-    date = Date.parse datestring
-    @expected_values[datestring] = ns_value - @sa_series.factors[date.month.to_s]
+  ns_values.each do |date,ns_value|
+    @expected_values[date] = ns_value - @sa_series.factors[date.month.to_s]
   end
-  @expected_values.each {|datestring,sa_value| @sa_series.data.should include(datestring=>sa_value.round(5))}
+  @expected_values.each {|date,sa_value| @sa_series.data.should include(date=>sa_value.round(5))}
 end
 
 When /^I update the seasonally adjusted series applying the factors multiplicatively$/ do
@@ -49,14 +48,13 @@ When /^I update the seasonally adjusted series applying the factors multiplicati
 end
 
 Then /^the observations that follow the last demetra adjusted value should equal the product of the seasonal factor and the counterpart series observation$/ do
-  sa_values = @sa_series.get_values_after @sa_series.last_demetra_datestring
-  ns_values = @ns_series.get_values_after @sa_series.last_demetra_datestring
+  sa_values = @sa_series.get_values_after @sa_series.last_demetra_date
+  ns_values = @ns_series.get_values_after @sa_series.last_demetra_date
   @expected_values = Hash.new
-  ns_values.each do |datestring,ns_value|
-    date = Date.parse datestring
-    @expected_values[datestring] = (ns_value / @sa_series.factors[date.month.to_s])
+  ns_values.each do |date,ns_value|
+    @expected_values[date] = (ns_value / @sa_series.factors[date.month.to_s])
   end
-  @expected_values.each {|datestring,sa_value| @sa_series.data.should include(datestring=>sa_value.round(5))}
+  @expected_values.each {|date,sa_value| @sa_series.data.should include(date=>sa_value.round(5))}
 end
 
 Given /^a seasonally adjusted \(additive\) series$/ do
@@ -70,9 +68,9 @@ Given /^a non\-seasonally adjusted counterpart with no more recent observations$
   @ns_series_name = @ns_series_names.first
   @ns_series = Series.get @ns_series_name
   @sa_series = Series.get @sa_series_name
-  ns_values = @ns_series.get_values_after @sa_series.last_demetra_datestring
-  ns_values.keys.each do |datestring|
-    @ns_series.data[datestring] = nil
+  ns_values = @ns_series.get_values_after @sa_series.last_demetra_date
+  ns_values.keys.each do |date|
+    @ns_series.data[date] = nil
   end
   @ns_series.save
 end
