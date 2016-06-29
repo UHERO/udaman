@@ -60,10 +60,10 @@ class DownloadPreprocessor
   end  
   
   def DownloadPreprocessor.find_header(options)
-    raise "Request to find header requires a header name" if options[:header_name].nil? 
-    raise "Request to find header requires a handle" if options[:handle].nil?
+    raise 'Request to find header requires a header name' if options[:header_name].nil? 
+    raise 'Request to find header requires a handle' if options[:handle].nil?
     
-    header_in = options[:header_in].nil? ? "col" : options[:header_in]
+    header_in = options[:header_in].nil? ? 'col' : options[:header_in]
     match_type = options[:match_type].nil? ? :hiwi : options[:match_type].parameterize.underscore.to_sym
     search_main = options[:search_main].nil? ? 1 : options[:search_main]
     cached_files = options[:cached_files].nil? ? DownloadsCache : options[:cached_files]
@@ -75,7 +75,7 @@ class DownloadPreprocessor
 
     (search_start..search_end).each {|elem| return elem if match?(elem, spreadsheet, match_type, header_in, search_main, options)}
     #temporary hack to get this to work
-    return 1000 if options[:header_name] == "AGRICULTURE"
+    return 1000 if options[:header_name] == 'AGRICULTURE'
     raise "could not find header: '#{options[:header_name]}'" #return nil
   end
   

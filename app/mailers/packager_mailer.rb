@@ -53,7 +53,7 @@ class PackagerMailer < ActionMailer::Base
       mail(:to => recipients, :subject => subject)
     rescue => e
         puts e.message
-      mail(:to => ["jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.visual_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ['jrpage@hawaii.edu'], :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -64,9 +64,9 @@ class PackagerMailer < ActionMailer::Base
       @handle = handle
       @url = url
       @save_path = save_path
-      mail(:to => ["jrpage@hawaii.edu"], :subject => subject)
+      mail(:to => ['jrpage@hawaii.edu'], :subject => subject)
     rescue => e
-      mail(:to => ["jrpage@hawaii.edu"], :subject => "[UDAMACMINI] PackageMailer.download_link_notification error", :body => e.message, :content_type => "text/plain")
+      mail(:to => ['jrpage@hawaii.edu'], :subject => '[UDAMACMINI] PackageMailer.download_link_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
