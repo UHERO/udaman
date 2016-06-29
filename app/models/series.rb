@@ -51,10 +51,10 @@ class Series < ActiveRecord::Base
   def Series.last_observation_buckets(frequency)
     obs_buckets = {}
     mod_buckets = {}
-    results = Series.where(:frequency => frequency).select("data, updated_at")
+    results = Series.where(:frequency => frequency).select('data, updated_at')
     results.each do |s|
-      last_date = s.last_observation.nil? ? "no data" : s.last_observation[0..6]
-      last_update = s.updated_at.nil? ? "never" : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
+      last_date = s.last_observation.nil? ? 'no data' : s.last_observation[0..6]
+      last_update = s.updated_at.nil? ? 'never' : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
       obs_buckets[last_date] ||= 0
       obs_buckets[last_date] += 1
       mod_buckets[last_update] ||= 0
@@ -75,8 +75,8 @@ class Series < ActiveRecord::Base
     all_names = Series.all_names
     all_names.each do |name|
       next if name.nil?
-      suffix = name.split("@")[1]
-      region = suffix.nil? ? "" : suffix.split(".")[0]
+      suffix = name.split('@')[1]
+      region = suffix.nil? ? '' : suffix.split('.')[0]
       region_hash[region] ||= []
       region_hash[region].push(name)
     end
@@ -85,7 +85,7 @@ class Series < ActiveRecord::Base
   
   def Series.frequency_hash
     frequency_hash = {}
-    all_names = Series.select("name, frequency")
+    all_names = Series.select('name, frequency')
     all_names.each do |s|
       frequency_hash[s.frequency] ||= []
       frequency_hash[s.frequency].push(s.name)
@@ -255,7 +255,7 @@ class Series < ActiveRecord::Base
     Series.store series_name, new_series, new_series.name, eval_statement
     #taking this out as well... not worth it to run
     #source.update_attributes(:runtime => (Time.now - t))
-    puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement}" 
+    puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}" 
     #rescue => e
     #   Series.store series_name, Series.new_transformation(series_name, {}, Series.frequency_from_code(series_name[-1])), "Source Series rescued: #{e.message}", eval_statement
     #   puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement} | Source Series rescued, #{e.message}" 
@@ -651,7 +651,7 @@ class Series < ActiveRecord::Base
 
   def observation_count
     observations = 0
-    data.each do |key,value|
+    data.each do |_, value|
       observations += 1 unless value.nil?
     end
     observations
@@ -882,7 +882,7 @@ class Series < ActiveRecord::Base
       all_series_from_website.concat(s.recursive_dependents)
     end
 
-    return all_series_from_website.uniq
+    return Series.where name: all_series_from_website.uniq
   end
   
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
@@ -981,10 +981,10 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.reload_by_dependency_depth
+  def Series.reload_by_dependency_depth(series_list = Series.all)
     puts 'Starting Reload by Dependency Depth'
     errors = []
-    Series.order(:dependency_depth => :desc).each do |series|
+    series_list.order(:dependency_depth => :desc).each do |series|
       begin
         errors += series.reload_sources
       rescue
