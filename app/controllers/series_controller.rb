@@ -18,7 +18,7 @@ class SeriesController < ApplicationController
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
-    @desc = @as.nil? ? "No Aremos Series" : @as.description
+    @desc = @as.nil? ? 'No Aremos Series' : @as.description
     
     respond_to do |format|
       format.csv { render :layout => false }
@@ -36,12 +36,12 @@ class SeriesController < ApplicationController
     @series = Series.find_by id: params[:id]
     tsd_file = params[:tsd_file]
     if tsd_file.nil?
-      render inline: "WRITE AN ERROR TEMPLATE: You need a tsd_file parameter"
+      render inline: 'WRITE AN ERROR TEMPLATE: You need a tsd_file parameter'
     else
       @series = @series.get_tsd_series_data(tsd_file)
   
       respond_to do |format|
-        format.html {render "analyze"}
+        format.html {render 'analyze'}
         format.json {render :json => { :series => @series, :chg => @series.annualized_percentage_change} }
       end
     end
@@ -59,7 +59,7 @@ class SeriesController < ApplicationController
                       :notice => 'Data File successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render :action => "edit" }
+        format.html { render :action => 'edit' }
         format.xml  { render :xml => @series.errors,
                       :status => :unprocessable_entity }
       end

@@ -5,9 +5,9 @@ class DataLoadMailer < ActionMailer::Base
     begin
       @update_info = update_info
       @update_summary = update_summary
-      mail(:to => ['jrpage@hawaii.edu'], :subject => "A spreadsheet was updated (Udamacmini): #{update_info}")
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => "A spreadsheet was updated (Udamacmini): #{update_info}")
     rescue => e
-      mail(:to => ['jrpage@hawaii.edu'], :subject => '[UDAMACMINI] DataLoadMailer error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => '[UDAMACMINI] DataLoadMailer error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -19,10 +19,10 @@ class DataLoadMailer < ActionMailer::Base
       #@empty_data_sources = empty_data_sources
 
       @errors = [*errors]
-      mail(to: %w(jrpage@hawaii.edu), subject: "[Udamacmini Series Reload] #{ds_count} Datasources loaded : #{@errors.count} / #{@circular_series.count} / #{@stale_data_sources.count} ")
+      mail(to: %w(jrpage@hawaii.edu vward@hawaii.edu), subject: "[Udamacmini Series Reload] #{ds_count} Datasources loaded : #{@errors.count} / #{@circular_series.count} / #{@stale_data_sources.count} ")
     rescue => e
       @mailer_error = e.message
-      mail(to: ['jrpage@hawaii.edu'], subject: '[UDAMACMINI] DataLoadMailer error', body: e.message, content_type: 'text/plain')
+      mail(to: %w(jrpage@hawaii.edu vward@hawaii.edu), subject: '[UDAMACMINI] DataLoadMailer error', body: e.message, content_type: 'text/plain')
     end
   end
 end
