@@ -33,7 +33,7 @@ class PrognozDataFilesController < ApplicationController
                         :notice => 'Prognoz Output File successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render :action => "edit" }
+        format.html { render :action => 'edit' }
         format.xml  { render :xml => @output_file.errors,
                       :status => :unprocessable_entity }
       end
@@ -61,9 +61,9 @@ class PrognozDataFilesController < ApplicationController
   end
   
   def send_prognoz_export
-    @recipients = ["ashleysh@hawaii.edu", "fuleky@hawaii.edu", "james29@hawaii.edu", "jrpage@hawaii.edu"]
+    @recipients = %w(ashleysh@hawaii.edu fuleky@hawaii.edu james29@hawaii.edu jrpage@hawaii.edu vward@hawaii.edu)
     PrognozDataFile.send_prognoz_update(@recipients)
-    flash[:notice] = "Zipped Export was sent to [#{@recipients.join(", ")}]. Comparison files were updated in /data/prognoz_export."
+    flash[:notice] = "Zipped Export was sent to [#{@recipients.join(', ')}]. Comparison files were updated in /data/prognoz_export."
     redirect_to :action => 'index'
   end
 
