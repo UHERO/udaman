@@ -3,8 +3,8 @@ module SeriesRelationship
     s_root = self.name[0..-3]
     f_array = []
     
-    ["A", "S", "Q", "M", "W", "D"].each do |suffix|
-      f_array.push(s_root+"."+suffix) unless (s_root+"."+suffix).ts.nil?
+    %w(A S Q M W D).each do |suffix|
+      f_array.push(s_root + '.' + suffix) unless (s_root + '.' + suffix).ts.nil?
     end
     f_array
   end
@@ -14,7 +14,7 @@ module SeriesRelationship
   end
   
   def get_ns_series
-    ns_series_name = name.sub("@","NS@")
+    ns_series_name = name.sub('@', 'NS@')
     Series.get ns_series_name
   end
   
@@ -67,7 +67,7 @@ module SeriesRelationship
         od.push(dep)
       end
     end
-    return od
+    od
   end
   
   def recursive_dependents(already_seen = [])
@@ -86,11 +86,11 @@ module SeriesRelationship
   #not recursive
   def new_dependents
     results = []
-    DataSource.where("description LIKE ?", "% #{self.name.gsub("%", "\\%")}%").each do |ds|
+    DataSource.where('description LIKE ?', "% #{self.name.gsub('%', "\\%")}%").each do |ds|
       s = Series.find_by id: ds.series_id
       results.push s.name
     end
-    return results.uniq
+    results.uniq
   end
 
   #recursive
@@ -102,6 +102,7 @@ module SeriesRelationship
     second_order_results = []
     results.each {|s| second_order_results |= s.ts.new_dependencies}
     results |= second_order_results
+    results
   end
   
   def first_order_dependencies
@@ -121,7 +122,7 @@ module SeriesRelationship
         begin
           circular_series.push(dependent_series) unless dependent_series.ts.first_order_dependencies.index(series.name).nil?
         rescue
-          puts "THIS BROKE"
+          puts 'THIS BROKE'
           puts dependent_series
           puts series.name
           puts series.id
@@ -143,7 +144,7 @@ module SeriesRelationship
   end
   
   def Series.print_prioritization_info
-    Series.where("aremos_missing = 0 AND ABS(aremos_diff) >= 10").order('ABS(aremos_diff) DESC').each {|s| puts "#{s.id} - #{s.name}: #{s.new_dependents.count} / #{s.new_dependencies.count} : #{s.aremos_diff}" if s.new_dependents.count > 0 }
+    Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 10').order('ABS(aremos_diff) DESC').each {|s| puts "#{s.id} - #{s.name}: #{s.new_dependents.count} / #{s.new_dependencies.count} : #{s.aremos_diff}" if s.new_dependents.count > 0 }
   end
   
   def Series.print_multi_sources
@@ -164,14 +165,14 @@ module SeriesRelationship
         puts "SOMETHING BROKE with source #{ds.id} in series #{self.name} (#{self.id})-----------------------------------------------"
       end
     end
-    return errors
+    errors
   end
   
   def print_source_eval_statements
     self.data_sources_by_last_run.each do |ds|
       ds.print_eval_statement
     end
-    return 0
+    0
   end
   
   
