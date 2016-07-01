@@ -85,7 +85,7 @@ end
 
 task :update_seats_links => :environment do  
   t = Time.now
-  seats_links = DataSourceDownload.where("handle LIKE 'SEATS%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '') }
+  seats_links = DataSourceDownload.where("handle LIKE 'SEATS%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '').gsub('%20', ' ') }
 
   require 'mechanize'
   agent = Mechanize.new
@@ -98,7 +98,8 @@ task :update_seats_links => :environment do
     has_seats_text = !link.text.index('Seat Outlook for').nil?
     is_excel = !%w(xls xlsx).index(href.split('.')[-1]).nil?
     is_not_already_in_downloads = seats_links.index(href.gsub('%20',' ')).nil?
-    is_not_in_exclusion_list = ['/default/assets/File/research/airline-capacity/Seat%20Outlook%202013.xls'].index(href).nil?
+    is_not_in_exclusion_list = ['/default/assets/File/research/airline-capacity/Seat%20Outlook%202013.xls',
+                                '/default/assets/File/research/airline-capacity/Seat Outlook 2013.xls'].index(href).nil?
     
     if has_seats_text and is_excel and is_not_already_in_downloads and is_not_in_exclusion_list
       begin
@@ -129,33 +130,33 @@ end
 
 task :update_vis_history_links => :environment do
   t = Time.now
-  handle_fragment = "TOUR_HIST"
-  search_page = "http://www.hawaiitourismauthority.org/research/reports/historical-visitor-statistics/"
-  link_search_string = "Monthly Final"
+  handle_fragment = 'TOUR_HIST'
+  search_page = 'http://www.hawaiitourismauthority.org/research/reports/historical-visitor-statistics/'
+  link_search_string = 'Monthly Final'
     
-  seats_links = DataSourceDownload.where("handle LIKE '#{handle_fragment}%'").map { |dsd| dsd.url.gsub("http://www.hawaiitourismauthority.org","") }
+  seats_links = DataSourceDownload.where("handle LIKE '#{handle_fragment}%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '').gsub('%20', ' ') }
   
   require 'mechanize'
   agent = Mechanize.new
 
   hta_seats = agent.get search_page
 
-  hta_seats.search("#content").css("a").each do |link|
-    puts "inspecting "+link.text
-    href = link.attributes["href"].to_s
+  hta_seats.search('#content').css('a').each do |link|
+    puts 'inspecting '+link.text
+    href = link.attributes['href'].to_s
     
     has_seats_text = !link.text.index(link_search_string).nil?
-    is_excel = !["xls", "xlsx"].index(href.split(".")[-1]).nil?
-    is_not_already_in_downloads = seats_links.index(href.gsub("%20"," ")).nil?
+    is_excel = !%w(xls xlsx).index(href.split('.')[-1]).nil?
+    is_not_already_in_downloads = seats_links.index(href.gsub('%20',' ')).nil?
     
     if has_seats_text and is_excel and is_not_already_in_downloads
       begin
-        puts "creating Data Source Download for "+href
-        file_name = href.split("/")[-1].gsub("%20"," ")
+        puts 'creating Data Source Download for '+href
+        file_name = href.split('/')[-1].gsub('%20',' ')
         #month = file_name[0..2]
         year = ([2011,2012,2013,2014,2015,2016,2017,2018].keep_if {|year| !file_name.index(year.to_s).nil? })[0]
-        url = "http://www.hawaiitourismauthority.org" + href.gsub("%20"," ")
-        save_path = "#{ENV['DATA_PATH']}/rawdata/TOUR_HIST" + year.to_s[2..4] + "." + href.split(".")[-1]
+        url = 'http://www.hawaiitourismauthority.org' + href.gsub('%20',' ')
+        save_path = "#{ENV['DATA_PATH']}/rawdata/TOUR_HIST" + year.to_s[2..4] + '.' + href.split('.')[-1]
         handle = "TOUR_HIST#{year.to_s[2..4]}@hawaiitourismauthority.org"
         dsd = DataSourceDownload.new(:handle => handle, :url => url, :save_path => save_path)
         if dsd.download[:status] == 200
@@ -166,10 +167,10 @@ task :update_vis_history_links => :environment do
           PackagerMailer.download_link_notification(handle, url, save_path, false).deliver
         end
       rescue
-        puts "There was an error"
+        puts 'There was an error'
         PackagerMailer.download_link_notification(handle, url, save_path, false).deliver
       end
     end
   end
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["update_vis_history_links", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['update_vis_history_links', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end

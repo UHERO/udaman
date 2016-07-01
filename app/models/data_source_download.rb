@@ -88,9 +88,9 @@ class DataSourceDownload < ActiveRecord::Base
     #loop seems to allow cookie to be downloaded... maybe more effective way to do this?
     (1..2).each do |i|
       if post_parameters.nil? or post_parameters.length == 0
-        resp = client.get URI.encode(url), follow_redirect: true
+        resp = client.get URI.encode(url.strip), follow_redirect: true
       else
-        resp = client.post URI.encode(url), post_parameters, follow_redirect: true
+        resp = client.post URI.encode(url.strip), post_parameters, follow_redirect: true
       end
       break if resp.header.status_code == 200
     end
