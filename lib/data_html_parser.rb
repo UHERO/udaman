@@ -78,7 +78,7 @@ class DataHtmlParser
       freq = get_freq(cols[2])
       date_string = get_date(cols[1], cols[2])
       @data_hash[freq] ||= {}
-      @data_hash[freq][date_string] = cols[3].to_f
+      @data_hash[freq][date_string] = cols[3].to_f unless date_string.nil?
     end
     @data_hash
   end
@@ -99,10 +99,10 @@ class DataHtmlParser
     return "#{year_string}-#{other_string[1..2]}-01" unless %w(M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12).index(other_string).nil?
     return "#{year_string}-01-01" if other_string == 'S01'
     return "#{year_string}-07-01" if other_string == 'S02'
-    return "#{year_string}-01-01" if other_string == 'Q1'
-    return "#{year_string}-04-01" if other_string == 'Q2'
-    return "#{year_string}-07-01" if other_string == 'Q3'
-    return "#{year_string}-10-01" if other_string == 'Q4'
+    return "#{year_string}-01-01" unless %w(Q1 Q01).index(other_string).nil?
+    return "#{year_string}-04-01" unless %w(Q2 Q02).index(other_string).nil?
+    return "#{year_string}-07-01" unless %w(Q3 Q03).index(other_string).nil?
+    return "#{year_string}-10-01" unless %w(Q4 Q04).index(other_string).nil?
     "#{year_string}-01-01" if other_string == ''
   end
   
