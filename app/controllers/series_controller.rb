@@ -79,7 +79,7 @@ class SeriesController < ApplicationController
   
   def autocomplete_search
     #render :json => {"hi" => params[:term]}
-    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ":" + s[:description]), :value => s[:series_id] } })
+    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ':' + s[:description]), :value => s[:series_id] } })
     #render :json => Series.web_search(params[:term]).map {|s| s[:name] }
   end
 
@@ -92,7 +92,7 @@ class SeriesController < ApplicationController
     @series = Series.find_by id: params[:id]
     @comp = @series.ma_data_side_by_side
     #residuals is actually whole range of values.
-    residuals = @comp.map { |date, ma_hash| ma_hash[:udaman] }
+    residuals = @comp.map { |_, ma_hash| ma_hash[:udaman] }
     residuals.reject!{|a| a.nil?}
     average = residuals.inject{ |sum, el| sum + el }.to_f / residuals.count
     @std_dev = Math.sqrt((residuals.inject(0){ | sum, x | sum + (x - average) ** 2 }) / (residuals.count - 1))
@@ -100,7 +100,7 @@ class SeriesController < ApplicationController
   
   def all_tsd_chart
     @series = Series.find_by id: params[:id]
-    @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
+    @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
     @all_tsd_files.each do |tsd|
       data = json_from_heroku_tsd(@series.name, tsd)
@@ -108,10 +108,10 @@ class SeriesController < ApplicationController
       puts @series.name
       puts data
       @all_series_to_chart.push(Series.new_transformation(
-        data["name"]+"."+data["frequency"]+":"+tsd,
-        data["data"], 
-        Series.frequency_from_code(data["frequency"])
-        )) unless data.nil? or data["frequency"] != @series.name[-1]
+        data['name'] + '.' + data['frequency'] + ':' + tsd,
+        data['data'], 
+        Series.frequency_from_code(data['frequency'])
+        )) unless data.nil? or data['frequency'] != @series.name[-1]
     end
   end
   
@@ -157,7 +157,7 @@ class SeriesController < ApplicationController
     #@series.save
     @series.aremos_comparison(true)
     @as = AremosSeries.get @series.name
-    render :partial => "toggle_units.html"
+    render :partial => 'toggle_units.html'
   end
   
   def render_data_points
@@ -172,13 +172,13 @@ class SeriesController < ApplicationController
     #@series.save
     @output_file = PrognozDataFile.find_by id: @series.prognoz_data_file_id
     @output_file.update_series_validated_for @series
-    render :partial => "validate_row"
+    render :partial => 'validate_row'
   end
 
   def update_notes
     @series = Series.find_by id: params[:id]
     @series.update_attributes({:investigation_notes => params[:note]})
-    render :partial => "investigation_sort.html"
+    render :partial => 'investigation_sort.html'
   end
 
   private
@@ -187,13 +187,13 @@ class SeriesController < ApplicationController
     end
 
     def convert_to_udaman_notation(eval_string)
-      operator_fix = eval_string.gsub("(","( ").gsub(")", " )").gsub("*"," * ").gsub("/"," / ").gsub("-"," - ").gsub("+"," + ")
-      (operator_fix.split(" ").map {|e| (e.index("@").nil? or !e.index(".ts").nil? ) ? e : "\"#{e}\".ts" }).join(" ")
+      operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
+      (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
     end
 
     def json_from_heroku_tsd(series_name, tsd_file)
       url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-      data = res.code == "500" ? nil : JSON.parse(res.body)
+      res.code == '500' ? nil : JSON.parse(res.body)
     end
 end

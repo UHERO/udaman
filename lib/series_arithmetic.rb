@@ -101,8 +101,8 @@ module SeriesArithmetic
     else
       new_base = self.at(date).to_f
     end
-    data.sort.each do |date, value|
-      new_series_data[date] = value / new_base * 100
+    data.sort.each do |inner_date, value|
+      new_series_data[inner_date] = value / new_base * 100
     end
     new_transformation("Rebased #{name} to #{date}", new_series_data)
   end

@@ -7,7 +7,7 @@ class AggregatingArray < Array
     returnvalue
   end
   def average
-     return self.sum / self.count.to_f
+     self.sum / self.count.to_f
   end  
 end
 

@@ -34,8 +34,8 @@ module SeriesAggregation
     
     self.data.keys.each do |date|
       #puts "#{date_string}: #{self.at date_string}"
-      aggregated_data[date.send(frequency_method)] ||= AggregatingArray.new unless self.at(date).nil?
-      aggregated_data[date.send(frequency_method)].push self.at(date) unless self.at(date).nil?
+      aggregated_data[Date.parse(date.send(frequency_method))] ||= AggregatingArray.new unless self.at(date).nil?
+      aggregated_data[Date.parse(date.send(frequency_method))].push self.at(date) unless self.at(date).nil?
     end
     #puts frequency
     #puts self.frequency

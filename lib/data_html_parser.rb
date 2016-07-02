@@ -78,7 +78,7 @@ class DataHtmlParser
       freq = get_freq(cols[2])
       date_string = get_date(cols[1], cols[2])
       @data_hash[freq] ||= {}
-      @data_hash[freq][date_string] = cols[3].to_f unless date_string.nil?
+      @data_hash[freq][Date.parse(date_string)] = cols[3].to_f unless date_string.nil?
     end
     @data_hash
   end
@@ -115,19 +115,35 @@ class DataHtmlParser
       
       http = Net::HTTP.new(url.host, url.port)
       if @post_parameters.nil? or @post_parameters.length == 0
-        request = Net::HTTP::Get.new(url)
+        @content = fetch(@url).read_body
       else
         request = Net::HTTP::Post.new(url)
         request['cache-control'] = 'no-cache'
         request['content-type'] = 'application/x-www-form-urlencoded'
         request.body = URI::encode_www_form @post_parameters
+        @content = http.request(request).read_body
       end
-      @content = http.request(request).read_body
       return Nokogiri::HTML(@content)
     rescue Exception
       return 'Something went wrong with download'
     end
   end
-  
+
+  def fetch(uri_str, limit = 10)
+    raise ArgumentError, 'too many HTTP redirects' if limit == 0
+
+    response = Net::HTTP.get_response(URI(uri_str))
+
+    case response
+      when Net::HTTPSuccess then
+        response
+      when Net::HTTPRedirection then
+        location = response['location']
+        warn "redirected to #{location}"
+        fetch(location, limit - 1)
+      else
+        response.value
+    end
+  end
   
 end
