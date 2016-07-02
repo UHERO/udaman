@@ -32,7 +32,7 @@ module SeriesDataLists
   
   def Series.get_all_dates_from_data(data)
     dates_array = []
-    data.each {|series_name, data| dates_array |= data.keys}
+    data.each {|date, _| dates_array |= date}
     dates_array.sort
   end
   
@@ -50,10 +50,10 @@ module SeriesDataLists
   end
   
   def Series.write_data_list_tsd(list, output_path)
-    open(output_path, "w") do |f|
+    open(output_path, 'w') do |f|
       list.each do |name|
         #if series doesn't exist .ts returns nil
-        f.puts name.ts.tsd_string rescue ""
+        f.puts name.ts.tsd_string rescue ''
       end
     end
   end

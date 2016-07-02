@@ -11,22 +11,22 @@ class BlsTextParser
     while data_row = file.gets
       data = data_row.split(" ")
       
-      frequency = "M" if data[2][0] == "M" and data[2] != "M13"
-      frequency = "A" if data[2] == "M13"
-      frequency = "Q" if data[2][0] == "Q"
+      frequency = 'M' if data[2][0] == 'M' and data[2] != 'M13'
+      frequency = 'A' if data[2] == 'M13'
+      frequency = 'Q' if data[2][0] == 'Q'
       dateyear = data[1]
-      if frequency == "Q"
-        datemonth = "01" if data[2] = "Q1"
-        datemonth = "04" if data[2] = "Q2"
-        datemonth = "07" if data[2] = "Q3"
-        datemonth = "10" if data[2] = "Q4"
+      if frequency == 'Q'
+        datemonth = '01' if data[2] = 'Q1'
+        datemonth = '04' if data[2] = 'Q2'
+        datemonth = '07' if data[2] = 'Q3'
+        datemonth = '10' if data[2] = 'Q4'
       else
-        datemonth = data[2] == "M13" ? "01" : data[2][1..2]
+        datemonth = data[2] == 'M13' ? '01' : data[2][1..2]
       end
       
       @data_hash[data[0]] ||= {}
       @data_hash[data[0]][frequency] ||= {}
-      @data_hash[data[0]][frequency]["#{dateyear}-#{datemonth}-01"] = data[3]
+      @data_hash[data[0]][frequency][Date.new(dateyear.to_i, datemonth.to_i)] = data[3]
     end
   end
   
