@@ -110,6 +110,7 @@ class DataHtmlParser
     begin
       require 'uri'
       require 'net/http'
+      require 'timeout'
       
       url = URI(@url)
       
@@ -121,7 +122,7 @@ class DataHtmlParser
         request['cache-control'] = 'no-cache'
         request['content-type'] = 'application/x-www-form-urlencoded'
         request.body = URI::encode_www_form @post_parameters
-        @content = http.request(request).read_body
+        Timeout::timeout(5) { @content = http.request(request).read_body }
       end
       return Nokogiri::HTML(@content)
     rescue Exception
