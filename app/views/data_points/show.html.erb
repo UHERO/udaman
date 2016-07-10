@@ -16,7 +16,7 @@
   pdp_sort = previous_data_points.sort {|dp1, dp2| dp2.created_at <=> dp1.created_at}
   pdp_sort.each do |dp|
     dp_val = dp.value / series.units
-    data_source = @data_points.first.data_source
+    data_source = dp.data_source
     bgcolor = data_source.color rescue 'FFF'
   %>
   <div class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
