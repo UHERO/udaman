@@ -14,7 +14,7 @@ class AremosSeries < ActiveRecord::Base
     end
 
     def AremosSeries.search(search)      
-      search_condition = "%" + search + "%"
+      search_condition = '%' + search + '%'
       where('name LIKE ? OR description LIKE ?', search_condition, search_condition).order :name
     end
     
@@ -32,8 +32,8 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       year = start_date_string[0..3].to_i
       data.each do |datapoint|
-        return data_hash if datapoint.strip == ""
-        data_hash["#{year}-01-01"] = datapoint.to_f
+        return data_hash if datapoint.strip == ''
+        data_hash[Date.new(year)] = datapoint.to_f
         year += 1
       end
       return data_hash
@@ -44,12 +44,12 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       year = start_date_string[0..3].to_i
       semi = start_date_string[4..5].to_i
-      semi_array = ["01", "07"]
+      semi_array = %w(01 07)
       data.each do |datapoint|
-        return data_hash if datapoint.strip == ""
-        data_hash["#{year}-#{semi_array[semi-1]}-01"] = datapoint.to_f
+        return data_hash if datapoint.strip == ''
+        data_hash[Date.new(year, semi_array[semi-1])] = datapoint.to_f
         semi += 1
-        if (semi > 2)
+        if semi > 2
           semi = 1
           year += 1
         end
@@ -61,12 +61,12 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       year = start_date_string[0..3].to_i
       quarter = start_date_string[4..5].to_i
-      quarter_array = ["01", "04", "07", "10"]
+      quarter_array = %w(01 04 07 10)
       data.each do |datapoint|
-        return data_hash if datapoint.strip == ""
-        data_hash["#{year}-#{quarter_array[quarter-1]}-01"] = datapoint.to_f
+        return data_hash if datapoint.strip == ''
+        data_hash[Date.new(year, quarter_array[quarter-1])] = datapoint.to_f
         quarter += 1
-        if (quarter > 4)
+        if quarter > 4
           quarter = 1
           year += 1
         end
@@ -79,11 +79,10 @@ class AremosSeries < ActiveRecord::Base
       year = start_date_string[0..3].to_i
       month = start_date_string[4..5].to_i
       data.each do |datapoint|
-        return data_hash if datapoint.strip == ""
-        month_filler = month < 10 ? "0" : ""
-        data_hash["#{year}-#{month_filler}#{month}-01"] = datapoint.to_f
+        return data_hash if datapoint.strip == ''
+        data_hash[Date.new(year, month)] = datapoint.to_f
         month += 1
-        if (month > 12)
+        if month > 12
           month = 1
           year += 1
         end
@@ -95,8 +94,8 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       date = Date.parse start_date_string
       data.each do |datapoint|
-        return data_hash if datapoint.strip == ""
-        data_hash[date.to_s] = datapoint.to_f
+        return data_hash if datapoint.strip == ''
+        data_hash[date] = datapoint.to_f
         date += 7
       end
       return data_hash
@@ -106,42 +105,41 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       date = Date.parse start_date_string
       data.each do |datapoint|
-        return data_hash if datapoint.strip == ""
-        data_hash[date.to_s] = datapoint.to_f
+        return data_hash if datapoint.strip == ''
+        data_hash[date] = datapoint.to_f
         date += 1
       end
       return data_hash
     end
 
     def AremosSeries.parse_data(data, start_date_string, frequency)
-      return parse_annual_data(data, start_date_string) if frequency == "A"
-      return parse_semi_annual_data(data, start_date_string) if frequency == "S"
-      return parse_quarterly_data(data, start_date_string) if frequency == "Q"
-      return parse_monthly_data(data, start_date_string) if frequency == "M"
-      return parse_weekly_data(data, start_date_string) if frequency == "W"
-      return parse_daily_data(data, start_date_string) if frequency == "D"
+      return parse_annual_data(data, start_date_string) if frequency == 'A'
+      return parse_semi_annual_data(data, start_date_string) if frequency == 'S'
+      return parse_quarterly_data(data, start_date_string) if frequency == 'Q'
+      return parse_monthly_data(data, start_date_string) if frequency == 'M'
+      return parse_weekly_data(data, start_date_string) if frequency == 'W'
+      return parse_daily_data(data, start_date_string) if frequency == 'D'
     end
 
     def AremosSeries.parse_date(aremos_date_string, frequency, a_date_type, daily_switches)
-      if frequency == "W"
+      if frequency == 'W'
         listed_date = Date.parse(aremos_date_string)
-        date = listed_date+daily_switches.index("1")
-        #puts "#{daily_switches} | #{aremos_date_string} | #{Date.parse(aremos_date_string).wday} | #{date}" 
+        date = listed_date + daily_switches.index('1')
+        #puts '#{daily_switches} | #{aremos_date_string} | #{Date.parse(aremos_date_string).wday} | #{date}' 
         return date.to_s
       end
-      year = aremos_date_string[0..3]
-      month = aremos_date_string[4..5]
-      if frequency == "Q"
-        month_int = month.to_i * 3 - 2 
-        month = month_int < 10 ? "0#{month_int}" : "#{month_int}"
+      year = aremos_date_string[0..3].to_i
+      month = aremos_date_string[4..5].to_i
+      if frequency == 'Q'
+        month = month * 3 - 2 
       end
-      day = aremos_date_string[6..7]
-      day = "01" if day == "00"
-      return "#{year}-#{month}-#{day}"
+      day = aremos_date_string[6..7].to_i
+      day = 1 if day == 0
+      return Date.new(year, month, day)
     end
 
     def AremosSeries.read_date_info(line)
-      aremos_update = Date.strptime line[32..39].gsub(/ /,""), "%m/%d/%y"
+      aremos_update = Date.strptime line[32..39].gsub(/ /,''), '%m/%d/%y'
       return { :aremos_update=> aremos_update, :start => line[44..51], :end => line[52..59], :frequency => line[60..60], :daily_switches => line[73..79] }
     end
 
@@ -177,7 +175,7 @@ class AremosSeries < ActiveRecord::Base
         #end_date = parse_date(series_hash[:end], series_hash[:frequency], :end, series_hash[:daily_switches])
         
         start_date = parse_date(series_hash[:start], series_hash[:frequency], :start, series_hash[:daily_switches]) 
-        start_date_string = series_hash[:frequency] == "W" ? start_date : series_hash[:start]
+        start_date_string = series_hash[:frequency] == 'W' ? start_date : series_hash[:start]
         data = parse_data(series_hash[:data], start_date_string, series_hash[:frequency])
 
         s.update_attributes(
@@ -188,9 +186,9 @@ class AremosSeries < ActiveRecord::Base
           :aremos_update_date => series_hash[:aremos_update],
           :updated_at => Time.now
         )
-        puts "#{"%.2f" % (Time.now - t)} | wrote in db #{series_hash[:name]}.#{series_hash[:frequency]}"
+        puts "#{'%.2f' % (Time.now - t)} | wrote in db #{series_hash[:name]}.#{series_hash[:frequency]}"
       else
-        puts "#{"%.2f" % (Time.now - t)} | skipped #{(series_hash[:name] + "." + series_hash[:frequency]).ljust(20," ")} | A_Update : #{series_hash[:aremos_update]} | Modified : #{ActiveSupport::TimeZone["Hawaii"].at(s.updated_at)}"
+        puts "#{'%.2f' % (Time.now - t)} | skipped #{(series_hash[:name] + '.' + series_hash[:frequency]).ljust(20, ' ')} | A_Update : #{series_hash[:aremos_update]} | Modified : #{ActiveSupport::TimeZone['Hawaii'].at(s.updated_at)}"
       end
       
 
@@ -208,9 +206,9 @@ class AremosSeries < ActiveRecord::Base
     end
 
     def AremosSeries.load_tsd(filename)
-      file = File.open(filename, "r")
+      file = File.open(filename, 'r')
       just_read_series_name = false
-      current_series = ""
+      current_series = ''
       data_hash = {}
       series_hash = {}
       
@@ -223,7 +221,7 @@ class AremosSeries < ActiveRecord::Base
             series_hash.merge!(read_date_info(line))
             just_read_series_name = false
           else
-            if line.index("@").nil?
+            if line.index('@').nil?
               series_hash[:data] ||= []
               series_hash[:data] += read_data(line)
             else

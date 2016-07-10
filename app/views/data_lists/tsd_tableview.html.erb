@@ -21,11 +21,11 @@ span.lighten {color:#AAA;}
 	@series_to_chart.each do |s|
 		data = json_from_heroku_tsd(s,@tsd_file)
 		next if data.nil?
-		series = Series.new_transformation(data["name"]+"."+data["frequency"],  data["data"], Series.frequency_from_code(data["frequency"]))
+		series = Series.new_transformation(data['name'] + '.' + data['frequency'], data['data'], Series.frequency_from_code(data['frequency']))
 		plot_data = series.get_values_after(@start_date)
 		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1]
  		dates = plot_data.keys.sort
-		ytd_abs = plot_data[dates[-1]] - plot_data["#{dates[-1][0..3]}-01-01"] rescue nil
+		ytd_abs = plot_data[dates[-1]] - plot_data[Date.new(dates[-1].year)] rescue nil
 		series_table_data[s] = {
 			:series => series,
 			:s_chg_data => series.annualized_percentage_change.get_values_after(@start_date),
@@ -40,11 +40,11 @@ span.lighten {color:#AAA;}
 	end
 	
 	date_keys.sort!
-	vintage = @tsd_file.split(".")[0][-4..-1]
-	if vintage[2] == "Q"
+	vintage = @tsd_file.split('.')[0][-4..-1]
+	if vintage[2] == 'Q'
 		year = vintage[0..1]
-		month = ["01","04","07","10"][vintage[3].to_i-1]
-		current_date_index = @series_to_chart[0][-1] == "A" ? date_keys.index("20#{year}-01-01") : date_keys.index("#{year}-#{month}-01")
+		month = %w(01 04 07 10)[vintage[3].to_i-1]
+		current_date_index = @series_to_chart[0][-1] == 'A' ? date_keys.index(Date.new(2000 + year)) : date_keys.index(Date.new(year, month))
 		show_dates = current_date_index.nil? ? [date_keys[-3], date_keys[-2], date_keys[-1]] : [
 			date_keys[current_date_index-1], 
 			date_keys[current_date_index], 

@@ -1,7 +1,7 @@
 module SeriesInterpolation
   
   def interpolate_to (frequency, operation, series_to_store_name)
-    series_to_store_name.ts= interpolate frequency,operation
+    series_to_store_name.ts = interpolate frequency,operation
   end
   
   def extend_first_data_point_back_to(date)
@@ -9,15 +9,16 @@ module SeriesInterpolation
     first_data_point_date = self.first_value_date
     first_data_point_val = data[first_data_point_date]
 
-    offset = 1 if self.frequency == "month"
-    offset = 3 if self.frequency == "quarter"
-    offset = 6 if self.frequency == "semi"
-    offset = 12 if self.frequency == "year"
-    new_date = Date.parse(first_data_point_date) << offset
+    offset = 0
+    offset = 1 if self.frequency == 'month'
+    offset = 3 if self.frequency == 'quarter'
+    offset = 6 if self.frequency == 'semi'
+    offset = 12 if self.frequency == 'year'
+    new_date = first_data_point_date - offset.months
 
-    while new_date.to_s >= date
-      new_data[new_date.to_s] = first_data_point_val
-      new_date = new_date << offset
+    while new_date >= date
+      new_data[new_date] = first_data_point_val
+      new_date = new_date - offset.months
     end
     new_series = new_transformation("Extended the first value back to #{date}", new_data)
     new_series.frequency = self.frequency
@@ -31,15 +32,16 @@ module SeriesInterpolation
     
     last_data_point_val = data[current_last_data_point]
     
-    offset = 1 if self.frequency == "month"
-    offset = 3 if self.frequency == "quarter"
-    offset = 6 if self.frequency == "semi"
-    offset = 12 if self.frequency == "year"
-    new_date = Date.parse(current_last_data_point) >> offset
+    offset = 0
+    offset = 1 if self.frequency == 'month'
+    offset = 3 if self.frequency == 'quarter'
+    offset = 6 if self.frequency == 'semi'
+    offset = 12 if self.frequency == 'year'
+    new_date = current_last_data_point + offset.months
 
-    while new_date.to_s <= last_data_point_date
-      new_data[new_date.to_s] = last_data_point_val
-      new_date = new_date >> offset
+    while new_date <= last_data_point_date
+      new_data[new_date] = last_data_point_val
+      new_date = new_date + offset.months
     end
     new_series = new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
     new_series.frequency = self.frequency
@@ -49,18 +51,18 @@ module SeriesInterpolation
   def fill_interpolate_to(target_frequency)
     freq = self.frequency.to_s
     new_series_data = {}
-    if  freq == "year"
+    if  freq == 'year'
       if target_frequency == :quarter
-        month_vals = ["01", "04", "07", "10"]
+        month_vals = %w(01 04 07 10)
       elsif target_frequency == :month
-        month_vals = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+        month_vals = %w(01 02 03 04 05 06 07 08 09 10 11 12)
       else
         raise InterpolationException
       end
 
-      self.data.each do |date_string, val|
-        year = date_string.to_date.year
-        month_vals.each {|month| new_series_data["#{year}-#{month}-01"] = val }
+      self.data.each do |date, val|
+        year = date.year
+        month_vals.each {|month| new_series_data[Date.new(year, month)] = val }
       end
     else
       raise InterpolationException
@@ -73,34 +75,34 @@ module SeriesInterpolation
   
   def fill_days_interpolation
     daily_data = {}
-    raise InterpolationException if frequency != "week" and frequency != "W"
+    raise InterpolationException if frequency != 'week' and frequency != 'W'
     self.data.each do |date, val|
-      6.downto(0).each { |days_back| daily_data[(Date.parse(date) - days_back).to_s] = val }
+      6.downto(0).each { |days_back| daily_data[date - days_back.days] = val }
     end 
     new_series = new_transformation("Interpolated Days (filled) from #{self.name}", daily_data)
-    new_series.frequency = "day"
+    new_series.frequency = 'day'
     new_series
   end
 
   def distribute_days_interpolation
     daily_data = {}
-    raise InterpolationException if frequency != "week" and frequency != "W"
+    raise InterpolationException if frequency != 'week' and frequency != 'W'
     self.data.each do |date, val|
-      6.downto(0).each { |days_back| daily_data[(Date.parse(date) - days_back).to_s] = val / 7 }
+      6.downto(0).each { |days_back| daily_data[date - days_back.days] = val / 7 }
     end 
     new_series = new_transformation("Interpolated Days (distributed) from #{self.name}", daily_data)
-    new_series.frequency = "day"
+    new_series.frequency = 'day'
     new_series
   end
   
   def pseudo_centered_spline_interpolation(frequency)
-    raise AggregationError unless (frequency == :quarter and self.frequency == "year") or 
-                                  (frequency == :month and self.frequency == "quarter") or 
-                                  (frequency == :day and self.frequency == "month")
+    raise AggregationError unless (frequency == :quarter and self.frequency == 'year') or 
+                                  (frequency == :month and self.frequency == 'quarter') or 
+                                  (frequency == :day and self.frequency == 'month')
 
-    divisor = 4 if frequency == :quarter and self.frequency == "year"
-    divisor = 3 if frequency == :month and self.frequency == "quarter"
-    divisor = 30.4375 if frequency == :day and self.frequency == "month"
+    divisor = 4 if frequency == :quarter and self.frequency == 'year'
+    divisor = 3 if frequency == :month and self.frequency == 'quarter'
+    divisor = 30.4375 if frequency == :day and self.frequency == 'month'
     
     temp_series_data = {}
     #last_temp_val = nil
@@ -147,9 +149,9 @@ module SeriesInterpolation
 
   #first period is just first value
   def linear_interpolate(frequency)
-    raise AggregationError unless (frequency == :quarter and self.frequency == "year") or 
-                                  (frequency == :month and self.frequency == "quarter") or 
-                                  (frequency == :day and self.frequency == "month")
+    raise AggregationError unless (frequency == :quarter and self.frequency == 'year') or 
+                                  (frequency == :month and self.frequency == 'quarter') or 
+                                  (frequency == :day and self.frequency == 'month')
     data_copy = self.data.sort
     last_val = data_copy[0][1]
     last_date = data_copy[0][0]
@@ -161,7 +163,7 @@ module SeriesInterpolation
       new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency, frequency) if new_series_data.nil?
       new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency, frequency)
       last_val = val
-      last_date = date.to_s
+      last_date = date
     end
     
     new_series = new_transformation("Interpolated (linear match last) from #{self.name}", new_series_data)
@@ -171,23 +173,23 @@ module SeriesInterpolation
   
   
   def census_interpolate(frequency)
-    raise AggregationError if frequency != :quarter and self.frequency != "year" 
+    raise AggregationError if frequency != :quarter and self.frequency != 'year' 
     quarterly_data = {}
     last = nil
     started_interpolation = false
     data.sort.each do |key, value|
       unless last.nil?
-        year = key.to_date.year
+        year = key.year
         step = (value - last) / 4
-        quarterly_data["#{year-1}-10-01"] = value - 3 * step
-        quarterly_data["#{year}-01-01"]   = value - 2 * step
-        quarterly_data["#{year}-04-01"]   = value - 1 * step
-        quarterly_data["#{year}-07-01"]   = value
+        quarterly_data[Date.new(year - 1, 10)] = value - 3 * step
+        quarterly_data[Date.new(year)]   = value - 2 * step
+        quarterly_data[Date.new(year, 4)]   = value - 1 * step
+        quarterly_data[Date.new(year, 7)]   = value
         unless started_interpolation
-          quarterly_data["#{year-2}-10-01"] = last - 3 * step
-          quarterly_data["#{year-1}-01-01"]   = last - 2 * step
-          quarterly_data["#{year-1}-04-01"]   = last - 1 * step
-          quarterly_data["#{year-1}-07-01"]   = last
+          quarterly_data[Date.new(year - 2, 10)] = last - 3 * step
+          quarterly_data[Date.new(year - 1)]   = last - 2 * step
+          quarterly_data[Date.new(year - 1, 4)]   = last - 1 * step
+          quarterly_data[Date.new(year - 1, 7)]   = last
           started_interpolation = true
         end
       end
@@ -214,19 +216,19 @@ module SeriesInterpolation
     data.sort.each do |key, value|
       next if value.nil?
       unless last.nil?
-        d1 = Date.parse key
-        d2 = Date.parse last_date
+        d1 = key
+        d2 = last_date
         quarter_diff = ((d1.year - d2.year) * 12 + (d1.month - d2.month))/3
         interval = value - last 
         quarterly_data[last_date] = last - interval/(quarter_diff*2) 
-        quarterly_data[(Date.parse(last_date) >> 3).to_s] = last + interval/(quarter_diff*2) 
+        quarterly_data[last_date + 3.months] = last + interval/(quarter_diff*2)
       end
       last = value
       last_date = key
     end
     #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
     quarterly_data[last_date] = last - interval/4
-    quarterly_data[(Date.parse(last_date) >> 3).to_s] = last + interval/4
+    quarterly_data[last_date + 3.months] = last + interval/4
     #quarterly_data
     new_series = new_transformation("Interpolated from #{self.name}", quarterly_data)
     new_series.frequency = frequency 
@@ -242,23 +244,23 @@ module SeriesInterpolation
       monthly_series_data[key] = val
       unless last_val.nil?
         val_diff = val - last_val
-        d1 = Date.parse key
-        d2 = Date.parse last_date
+        d1 = key
+        d2 = last_date
         month_diff = (d1.year - d2.year) * 12 + (d1.month - d2.month)
         #puts "#{key}: #{month_diff}"
-        (1..month_diff-1).each { |offset| monthly_series_data[(d2 >> offset).to_s] = last_val + (val_diff / month_diff) * offset }
+        (1..month_diff-1).each { |offset| monthly_series_data[d2 + offset.months] = last_val + (val_diff / month_diff) * offset }
       end
       last_val = val
       last_date = key
     end
     monthly_series = new_transformation("Interpolated Monthly Series from #{self.name}", monthly_series_data)
-    monthly_series.frequency = "month"
+    monthly_series.frequency = 'month'
     monthly_series.aggregate(frequency, operation)
 
   end
   
   def trms_interpolate_to_quarterly
-    raise InterpolationException if frequency != "year"
+    raise InterpolationException if frequency != 'year'
     new_series_data = {}
     previous_data_val = nil
     previous_year = nil
@@ -269,21 +271,21 @@ module SeriesInterpolation
         previous_year = key
         next
       end
-      year = previous_year.to_date.year
-      new_series_data["#{year}-01-01"] = previous_data_val - (val - previous_data_val) / 4 * 1.5
-      new_series_data["#{year}-04-01"] = previous_data_val - (val - previous_data_val) / 4 * 0.5
-      new_series_data["#{year}-07-01"] = previous_data_val + (val - previous_data_val) / 4 * 0.5
-      new_series_data["#{year}-10-01"] = previous_data_val + (val - previous_data_val) / 4 * 1.5
+      year = previous_year.year
+      new_series_data[Date.new(year)] = previous_data_val - (val - previous_data_val) / 4 * 1.5
+      new_series_data[Date.new(year, 4)] = previous_data_val - (val - previous_data_val) / 4 * 0.5
+      new_series_data[Date.new(year, 7)] = previous_data_val + (val - previous_data_val) / 4 * 0.5
+      new_series_data[Date.new(year, 10)] = previous_data_val + (val - previous_data_val) / 4 * 1.5
       last_diff = val - previous_data_val
       previous_data_val = val
       previous_year = key  
     end
     
-    year = previous_year.to_date.year
-    new_series_data["#{year}-01-01"] = previous_data_val - last_diff / 4 * 1.5
-    new_series_data["#{year}-04-01"] = previous_data_val - last_diff / 4 * 0.5
-    new_series_data["#{year}-07-01"] = previous_data_val + last_diff / 4 * 0.5
-    new_series_data["#{year}-10-01"] = previous_data_val + last_diff / 4 * 1.5
+    year = previous_year.year
+    new_series_data[Date.new(year)] = previous_data_val - last_diff / 4 * 1.5
+    new_series_data[Date.new(year, 4)] = previous_data_val - last_diff / 4 * 0.5
+    new_series_data[Date.new(year, 7)] = previous_data_val + last_diff / 4 * 0.5
+    new_series_data[Date.new(year, 10)] = previous_data_val + last_diff / 4 * 1.5
     
     blma_new_series_data = {}
     prev_val = nil
@@ -300,7 +302,7 @@ module SeriesInterpolation
     end
     
     new_series = new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data)
-    new_series.frequency = "quarter"
+    new_series.frequency = 'quarter'
     new_series
     
   end
