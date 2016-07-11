@@ -55,7 +55,7 @@ class String
   def unzip
     file = self
     #destination = "/" + self.split("/")[1..-2].join("/") + "/"
-    destination = self + "_extracted_files/"
+    destination = self + '_extracted_files/'
     Zip::File.open(file) { |zip_file|
       zip_file.each { |f|
         f_path=File.join(destination, f.name)
@@ -69,7 +69,7 @@ class String
   
   def to_ascii_iconv
      self.encode(
-         'ASCII', :invalid => :replace, :undef => :replace, :replace => '?'
+         'ASCII', :invalid => :replace, :undef => :replace, :replace => ''
      ).unpack('U*').select{ |cp| cp < 127 }.pack('U*')
   end
   
