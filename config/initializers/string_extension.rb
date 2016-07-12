@@ -67,10 +67,9 @@ class String
     }
   end
   
-  def to_ascii_iconv
-     self.encode(
-         'ASCII', :invalid => :replace, :undef => :replace, :replace => ''
-     ).unpack('U*').select{ |cp| cp < 127 }.pack('U*')
+  def to_ascii
+    require 'stringex/unidecoder'
+    Stringex::Unidecoder.decode self
   end
   
   def no_okina

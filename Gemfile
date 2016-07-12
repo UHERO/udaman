@@ -34,6 +34,7 @@ gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.1'
 gem 'jquery-ui-rails', '~> 5.0'
 gem 'devise', '~> 4.0.0'
+gem 'stringex', '~> 2.6'
 
 # Deploy with Capistrano
 # gem 'capistrano'
