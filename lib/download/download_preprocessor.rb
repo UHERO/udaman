@@ -5,10 +5,11 @@ class DownloadPreprocessor
   
   def DownloadPreprocessor.xls(desc, handle, sheet, cached_files=nil)
     return desc unless desc.class == String
-    p = desc.split ":"
-    return desc unless p[0] == "header"
-    res = DownloadPreprocessor.find_xls_header_row_in_col(p[2].to_i, p[3], handle, sheet, cached_files) if p[1] == "col"
-    res = DownloadPreprocessor.find_xls_header_col_in_row(p[2].to_i, p[3], handle, sheet, cached_files) if p[1] == "row"
+    p = desc.split ':'
+    return desc unless p[0] == 'header'
+    res = nil
+    res = DownloadPreprocessor.find_xls_header_row_in_col(p[2].to_i, p[3], handle, sheet, cached_files) if p[1] == 'col'
+    res = DownloadPreprocessor.find_xls_header_col_in_row(p[2].to_i, p[3], handle, sheet, cached_files) if p[1] == 'row'
 #    puts res
     return res
     #return desc
@@ -16,10 +17,10 @@ class DownloadPreprocessor
 
   def DownloadPreprocessor.csv(desc, handle, cached_files=nil)
     return desc unless desc.class == String
-    p = desc.split ":"
-    return desc unless p[0] == "header"
-    return DownloadPreprocessor.find_csv_header_row_in_col(p[2].to_i, p[3], handle, cached_files) if p[1] == "col"
-    return DownloadPreprocessor.find_csv_header_col_in_row(p[2].to_i, p[3], handle, cached_files) if p[1] == "row"
+    p = desc.split ':'
+    return desc unless p[0] == 'header'
+    return DownloadPreprocessor.find_csv_header_row_in_col(p[2].to_i, p[3], handle, cached_files) if p[1] == 'col'
+    return DownloadPreprocessor.find_csv_header_col_in_row(p[2].to_i, p[3], handle, cached_files) if p[1] == 'row'
     return desc
   end  
 
@@ -29,27 +30,27 @@ class DownloadPreprocessor
     
     return false if value.class != String
     #puts "looking for [#{header}] in cell with value: [#{value}]"
-    #assuming BLS format with "(" for now
-    value = value.split("(")[0] unless value == ""
+    #assuming BLS format with '(' for now
+    value = value.split('(')[0] unless value == ''
     #puts value.strip.downcase.to_ascii_iconv
-    return value.strip.downcase.to_ascii_iconv.no_okina == header.strip.downcase if no_okina
-    return value.strip.downcase.to_ascii_iconv == header.strip.downcase 
+    return value.strip.downcase.to_ascii.no_okina == header.strip.downcase if no_okina
+    return value.strip.downcase.to_ascii == header.strip.downcase
   end
   
   def DownloadPreprocessor.match_prefix(value, header, no_okina = false)
     #puts "looking for prefix [#{header}] in cell with value: [#{value}]"
     return false if value.class != String
     #puts value.strip.downcase.to_ascii_iconv
-    return value.strip.downcase.to_ascii_iconv.no_okina.index(header.strip.downcase) == 0 if no_okina
-    return value.strip.downcase.to_ascii_iconv.index(header.strip.downcase) == 0
+    return value.strip.downcase.to_ascii.no_okina.index(header.strip.downcase) == 0 if no_okina
+    return value.strip.downcase.to_ascii.index(header.strip.downcase) == 0
   end
     
   def DownloadPreprocessor.match_sub(value, header, no_okina = false)
     #puts "looking for prefix [#{header}] in cell with value: [#{value}]"
     return false if value.class != String
     #puts value.strip.downcase.to_ascii_iconv
-    return value.strip.downcase.to_ascii_iconv.no_okina.index(header.strip.downcase) != nil if no_okina
-    return value.strip.downcase.to_ascii_iconv.index(header.strip.downcase) != nil
+    return value.strip.downcase.to_ascii.no_okina.index(header.strip.downcase) != nil if no_okina
+    return value.strip.downcase.to_ascii.index(header.strip.downcase) != nil
   end
   
   def DownloadPreprocessor.match_trim_elipsis(value, header)    
@@ -84,24 +85,25 @@ class DownloadPreprocessor
 
     #might not actually need this logic with the new way this is being cached...
     if options[:sheet].nil?
-      return spreadsheet.length if header_in == "col"        #search the column return a row number
-      return spreadsheet[0].length if header_in == "row"     #search the row and return a column number
+      return spreadsheet.length if header_in == 'col'        #search the column return a row number
+      return spreadsheet[0].length if header_in == 'row'     #search the row and return a column number
     else
-      return spreadsheet.last_row if header_in == "col"      #search the column return a row number
-      return spreadsheet.last_column if header_in == "row"   #search the row and return a column number
+      return spreadsheet.last_row if header_in == 'col'      #search the column return a row number
+      return spreadsheet.last_column if header_in == 'row'   #search the row and return a column number
     end
-    raise "could not calculate the end of the search range"
+    raise 'could not calculate the end of the search range'
   end
   
   def DownloadPreprocessor.match?(elem, spreadsheet, match_type, header_in, search_main, options)
-    row = header_in == "col" ? elem : search_main
-    col = header_in == "col" ? search_main : elem
+    row = header_in == 'col' ? elem : search_main
+    col = header_in == 'col' ? search_main : elem
     
-    #puts "Searching for #{options[:header_name]} in row:#{row} col:#{col}"
+    #puts 'Searching for #{options[:header_name]} in row:#{row} col:#{col}'
     #might not actually need this logic with the new way this is being cached...
     cell_value = spreadsheet[row-1][col-1].to_s if options[:sheet].nil?
     cell_value = spreadsheet.cell(row,col).to_s unless options[:sheet].nil?
-    options[:header_name].split("[or]").each do |header|
+    result = false
+    options[:header_name].split('[or]').each do |header|
       #puts "Searching for #{header} in row:#{row} col:#{col} / VALUE: #{cell_value}"
       result = match(cell_value, header) if match_type == :hiwi
       result = match_prefix(cell_value, header) if match_type == :prefix
