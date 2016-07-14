@@ -91,7 +91,7 @@ class DataList < ActiveRecord::Base
           all_changes[date] = {:value => data[date], :yoy => yoy[date], :ytd => ytd[date], :yoy_diff => yoy_diff[date]}
         end
         as = AremosSeries.get(s.upcase)
-        desc = as.nil? ? "" : as.description
+        desc = as.nil? ? '' : as.description
         series_data[s] = {:data => all_changes, :id => series.id, :desc => desc}
       end
     end
@@ -129,26 +129,26 @@ class DataList < ActiveRecord::Base
   
   def data_dates
     dates_array = []
-    series_data.each {|series_name, data| dates_array |= data.keys}
+    series_data.each {|_, data| dates_array |= data.keys}
     dates_array.sort
   end
   
-  def DataList.write(name, path, start_date = "1900-01-01")
+  def DataList.write(name, path, start_date = Date.new(1900))
     t = Time.now
     begin
       names = DataList.find_by!(name: name).series_names
     rescue ActiveRecord::RecordNotFound
-      return puts "#{ "%.2f" % (Time.now - t) } | 0 (no list named #{name}) | #{ path }"
+      return puts "#{ '%.2f' % (Time.now - t) } | 0 (no list named #{name}) | #{ path }"
     end
     Series.write_data_list names, path, start_date
-    puts "#{ "%.2f" % (Time.now - t) } | #{ names.count } | #{ path }"
+    puts "#{ '%.2f' % (Time.now - t) } | #{ names.count } | #{ path }"
   end
   
   def DataList.write_tsd(name, path)
     t = Time.now
     names = DataList.where(:name => name).first.series_names
     Series.write_data_list_tsd names, path
-    puts "#{ "%.2f" % (Time.now - t) } | #{ names.count } | #{ path }"
+    puts "#{ '%.2f' % (Time.now - t) } | #{ names.count } | #{ path }"
   end
 end
 
