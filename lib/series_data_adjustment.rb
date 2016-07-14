@@ -29,12 +29,18 @@ module SeriesDataAdjustment
   
   def get_last_complete_december
     last_date = self.data.keys.sort[-1]
-    Date.new(last_date.year, 12)
+    if last_date.month == 12
+      return last_date
+    end
+    Date.new(last_date.year - 1, 12)
   end
   
   def get_last_complete_4th_quarter
     last_date = self.data.keys.sort[-1]
-    Date.new(last_date.year, 10)
+    if last_date.month == 10
+      return last_date
+    end
+    Date.new(last_date.year - 1, 10)
   end
   
   def get_last_incomplete_year
