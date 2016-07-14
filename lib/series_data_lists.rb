@@ -32,7 +32,7 @@ module SeriesDataLists
   
   def Series.get_all_dates_from_data(data)
     dates_array = []
-    data.each {|date, _| dates_array |= date}
+    data.each {|_, series_data| dates_array |= series_data.keys}
     dates_array.sort
   end
   
@@ -112,17 +112,20 @@ module SeriesDataLists
   end
   
   def Series.write_dates(dates, sheet)
-    sheet[0,0] = "DATE"
+    sheet[0,0] = 'DATE'
     count=1
     dates.each do |date|
-      sheet[count,0] = date
+      sheet[count,0] = date.strftime '%Y-%m-%d'
       count += 1
     end
   end
   
   def Series.write_xls(xls, output_path)
-    old_file = File::exists?(output_path) ? open(output_path, "rb").read : nil
-    old_file_xls = Roo::Excel.new(output_path) if File::exists?(output_path)
+    old_file, old_file_xls = nil, nil
+    if File::exists?(output_path)
+      old_file = open(output_path, 'rb').read
+      old_file_xls = Roo::Excel.new(output_path)
+    end
     xls.write output_path
     new_file_xls = Roo::Excel.new(output_path)
     changed = new_file_xls.to_s != old_file_xls.to_s
@@ -131,15 +134,15 @@ module SeriesDataLists
   end
   
   def Series.write_xls_text(series_data, output_path)
-    File.open(output_path + ".txt", 'w') do |f|
-      series_data.keys.sort.each {|s| f.print(s.split(".")[0] + "\r\n") }
+    File.open(output_path + '.txt', 'w') do |f|
+      series_data.keys.sort.each {|s| f.print(s.split('.')[0] + "\r\n") }
     end
   end
   
   def Series.backup_xls(old_file, output_path)
-    output_filename = output_path.split("/")[-1]
-    Dir.mkdir output_path+"_vintages" unless File::directory?(output_path+"_vintages")
-    open(output_path+"_vintages/#{Date.today}_"+output_filename, "wb") { |file| file.write old_file }
+    output_filename = output_path.split('/')[-1]
+    Dir.mkdir output_path+'_vintages' unless File::directory?(output_path+'_vintages')
+    open(output_path+"_vintages/#{Date.today}_"+output_filename, 'wb') { |file| file.write old_file }
   end
 end
 
