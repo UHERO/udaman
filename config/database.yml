@@ -27,8 +27,8 @@ production:
     encoding: utf8
     database: uhero_db_dev
     pool: 5
-    username: root
-    password:
+    username: <%= ENV['DB_USER'] || 'root' %>
+    password: <%= ENV['DB_PASSWORD'] || '' %>
     socket: /tmp/mysql.sock
 
 cucumber:
