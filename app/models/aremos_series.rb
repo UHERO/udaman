@@ -44,7 +44,7 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       year = start_date_string[0..3].to_i
       semi = start_date_string[4..5].to_i
-      semi_array = %w(01 07)
+      semi_array = (1..12).to_a.select {|m| m % 6 == 1}
       data.each do |datapoint|
         return data_hash if datapoint.strip == ''
         data_hash[Date.new(year, semi_array[semi-1])] = datapoint.to_f
@@ -61,7 +61,7 @@ class AremosSeries < ActiveRecord::Base
       data_hash = {}
       year = start_date_string[0..3].to_i
       quarter = start_date_string[4..5].to_i
-      quarter_array = %w(01 04 07 10)
+      quarter_array = (1..12).to_a.select {|m| m % 3 == 1}
       data.each do |datapoint|
         return data_hash if datapoint.strip == ''
         data_hash[Date.new(year, quarter_array[quarter-1])] = datapoint.to_f
