@@ -62,7 +62,7 @@ module SeriesInterpolation
 
       self.data.each do |date, val|
         year = date.year
-        month_vals.each {|month| new_series_data[Date.new(year, month)] = val }
+        month_vals.each {|month| new_series_data[Date.new(year, month.to_i)] = val }
       end
     else
       raise InterpolationException
