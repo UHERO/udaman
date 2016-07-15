@@ -302,7 +302,12 @@ class Series < ActiveRecord::Base
     #instead of calling in save_source
     #p_time = Time.now
     data.delete_if {|_,value| value.nil?}
-    
+
+    # make sure data keys are in Date format
+    formatted_data = {}
+    data.each_pair {|date, value| formatted_data[Date.parse date.to_s] = value}
+    data = formatted_data
+
     observation_dates = data.keys
     #puts "#{"%.2f" % (Time.now - p_time)} : #{current_data_points.count} : #{self.name} : PRUNING DATAPOINTS"
     
