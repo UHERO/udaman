@@ -14,7 +14,7 @@
     def process_missing_dates(as)
       date_hash = {}
       date_hash = as.clone unless as.nil?
-      @series.current_data_points.each {|cdp| date_hash[cdp.date.to_s] = cdp}
+      @series.current_data_points.each {|cdp| date_hash[cdp.date] = cdp}
       date_hash
     end
 
@@ -32,7 +32,7 @@
           cdp = element
           date_string = cdp.date.to_s
           cdp_val = cdp.value / units
-          a_value = (as.nil? or as[date_string].nil?) ? "-" : as[date_string].round(3)
+          a_value = (as.nil? or as[cdp.date].nil?) ? "-" : as[cdp.date].round(3)
           chg_value = (chg_data.nil? or chg_data[cdp.date].nil?) ? "-" : chg_data[cdp.date].round(1) rescue "-"
           ytd_chg_value = (ytd_data.nil? or ytd_data[cdp.date].nil?) ? "-" : ytd_data[cdp.date].round(1) rescue "-"
           lvl_chg_value = (lvl_data.nil? or lvl_data[cdp.date].nil?) ? "-" : lvl_data[cdp.date].round(3) rescue "-"
