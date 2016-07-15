@@ -53,16 +53,15 @@ module SeriesInterpolation
     new_series_data = {}
     if  freq == 'year'
       if target_frequency == :quarter
-        month_vals = %w(01 04 07 10)
+        month_vals = (1..12).to_a.select {|m| m % 3 == 1}
       elsif target_frequency == :month
-        month_vals = %w(01 02 03 04 05 06 07 08 09 10 11 12)
+        month_vals = (1..12).to_a
       else
         raise InterpolationException
       end
 
       self.data.each do |date, val|
-        year = date.year
-        month_vals.each {|month| new_series_data[Date.new(year, month.to_i)] = val }
+        month_vals.each {|month| new_series_data[Date.new(date.year, month)] = val }
       end
     else
       raise InterpolationException
