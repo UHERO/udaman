@@ -16,7 +16,7 @@ module SeriesInterpolation
     offset = 12 if self.frequency == 'year'
     new_date = first_data_point_date - offset.months
 
-    while new_date >= date
+    while new_date >= Date.strptime(date)
       new_data[new_date] = first_data_point_val
       new_date = new_date - offset.months
     end
