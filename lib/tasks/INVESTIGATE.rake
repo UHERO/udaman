@@ -41,7 +41,7 @@ task :gen_prognoz_diffs => :environment do
     os.headers_with_frequency_code.each do |header|
       diff_data.push({:pdf_id => pdf.id, :id => 0, :name => header, :display_array => [-1]}) if header.ts.nil?
       next if header.ts.nil?
-      ddiff = header.ts.data_diff(os.series(header.split(".")[0]), 3)
+      ddiff = header.ts.data_diff(os.series(header.split('.')[0]), 3)
       diff_hash = ddiff[:display_array]
       diff_data.push({:pdf_id => pdf.id, :id => header.ts.id, :name => header, :display_array => diff_hash}) if diff_hash.count > 0
     end    
@@ -113,25 +113,25 @@ task :gen_investigate_csv => :environment do
       PackagerMailer.visual_notification.deliver
   rescue => e
       puts e.message
-    PackagerMailer.rake_error(e, "").deliver
+    PackagerMailer.rake_error(e, '').deliver
   end  
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["gen_investigate_csv", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_investigate_csv', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :gen_daily_summary => :environment do
   t = Time.now
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where("created_at > FROM_DAYS(TO_DAYS(NOW()))").count(:all, :group=> :series_id)
-  CSV.open("public/dp_added.csv", "wb") do |csv|        
-    csv << ["series_name", "series_id", "new_datapoints_added"]
+  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count(:all, :group=> :series_id)
+  CSV.open('public/dp_added.csv', 'wb') do |csv|        
+    csv << %w(series_name series_id new_datapoints_added)
     dps.each do |series_id,count| 
       csv << [Series.find_by(id: series_id).name, series_id, count]
     end
   end
   
-  CSV.open("public/download_results.csv", "wb") do |csv|
-    csv << ["id", "handle", "time", "status", "changed", "url"]
+  CSV.open('public/download_results.csv', 'wb') do |csv|
+    csv << %w(id handle time status changed url)
     DataSourceDownload.all.each do |dsd|
       puts dsd.handle
       next if dsd.dsd_log_entries.nil?
@@ -141,19 +141,19 @@ task :gen_daily_summary => :environment do
     end
   end
   
-  CSV.open("public/packager_output.csv", "wb") do |csv|
-    csv << ["changed", "group", "label"]
+  CSV.open('public/packager_output.csv', 'wb') do |csv|
+    csv << %w(changed group label)
     PackagerOutput.all.each do |po| 
-      path_parts = po.path.split("/")
-      csv << [po.last_new_data == Time.now.to_date, path_parts[4], path_parts[-1].gsub(".xls","").gsub("_NEW","")]
+      path_parts = po.path.split('/')
+      csv << [po.last_new_data == Time.now.to_date, path_parts[4], path_parts[-1].gsub('.xls','').gsub('_NEW','')]
       changed_files += 1 if po.last_new_data == Time.now.to_date
     end
   end
   system 'cd /Users/uhero/Documents/udaman/current/script && casperjs rasterize.js'
-  puts "finished this now sending"
+  puts 'finished this now sending'
   
   PackagerMailer.visual_notification.deliver
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["gen_daily_summary", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_daily_summary', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 
@@ -165,7 +165,7 @@ task :mark_pseudo_history => :environment do
   DataSource.where("eval LIKE '%bls_sa_history.xls%'").each {|ds| ds.mark_as_pseudo_history}
   DataSource.where("eval LIKE '%SQ5NHistory.xls%'").each {|ds| ds.mark_as_pseudo_history}
   
-  CSV.open("public/rake_time.csv", "a") {|csv| csv << ["mark_pseudo_history", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['mark_pseudo_history', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
   
 end
 
@@ -182,8 +182,8 @@ end
 
 task :clean_data_sources => :environment do
 
-  active_ds = DataSource.where("last_run > FROM_DAYS(TO_DAYS(NOW()))").order(:last_run); 0
-  inactive_ds = DataSource.where("last_run <= FROM_DAYS(TO_DAYS(NOW()))").order(:last_run); 0
+  active_ds = DataSource.where('last_run > FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
+  inactive_ds = DataSource.where('last_run <= FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
 
 # active_but_not_current = active_ds.reject {|elem| elem.current? }
 # active_current = active_ds.reject {|elem| !elem.current? }
@@ -203,7 +203,7 @@ task :clean_data_sources => :environment do
       active_but_not_current.push(ds)
     end
   end; 0
-  puts "#{ "%.2f" % (Time.now - t) } |  Active but not Current | #{ active_but_not_current.count } | Active Current | #{ active_current.count } |"
+  puts "#{ '%.2f' % (Time.now - t) } |  Active but not Current | #{ active_but_not_current.count } | Active Current | #{ active_current.count } |"
   
   t = Time.now
   inactive_ds.each do |ds|
@@ -213,7 +213,7 @@ task :clean_data_sources => :environment do
       inactive_not_current.push(ds)
     end  
   end; 0
-  puts "#{ "%.2f" % (Time.now - t) } |  Inactive not Current | #{ inactive_not_current.count } | Inactive but Current | #{ inactive_but_current.count } |"
+  puts "#{ '%.2f' % (Time.now - t) } |  Inactive not Current | #{ inactive_not_current.count } | Inactive but Current | #{ inactive_but_current.count } |"
   
   # active_but_not_current.count #delete and pull out of definitions INVESTIGATE - 390
   # active_current.count #leave alone - 6301
@@ -224,7 +224,7 @@ task :clean_data_sources => :environment do
   #     ds.print_eval_statement
   # end
 
-  puts "COPY THESE INTO AN ARCHIVE"
+  puts 'COPY THESE INTO AN ARCHIVE'
   inactive_not_current.each do |ds|
     begin
       ds.print_eval_statement
@@ -233,7 +233,7 @@ task :clean_data_sources => :environment do
       puts "ERROR! Series ID: #{ds.id}"
     end
   end; 0
-  puts "COPY THESE INTO AN ARCHIVE"
+  puts 'COPY THESE INTO AN ARCHIVE'
 end
 #Maybe should move circular diffs in here
 
@@ -246,14 +246,14 @@ task :find_outliers => :environment do
     outliers = s.outlier
     if outliers.nil?
       errors.push s.name 
-      print "E"
+      print 'E'
     elsif outliers.count > 0
       outlier_series.push s.name 
       print s.name
     else
-      print "."
+      print '.'
     end
   end
-  puts "#{ "%.2f" % (Time.now - t) }"
+  puts "#{ '%.2f' % (Time.now - t) }"
   puts errors
 end

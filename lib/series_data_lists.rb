@@ -82,7 +82,7 @@ module SeriesDataLists
     xls = Spreadsheet::Workbook.new output_path
     sheet1 = xls.create_worksheet
     dates = get_all_dates_from_data(series_data)
-    write_dates dates, sheet1
+    write_dates dates.map {|date| date.strftime '%Y-%m-%d'}, sheet1
     col = 1
     series_data.sort.each do |name, data|
       write_series(name, data, sheet1, col, dates)
@@ -106,7 +106,7 @@ module SeriesDataLists
     date_interval = (dates[1]-dates[0]).to_i
 
     return dates.map {|elem| elem.year } if (365..366) === date_interval #year
-    return dates.map {|elem| (elem.year.to_s + '0' + ((elem.month - 1 ) / 3 + 1)).to_i } if (84..93) === date_interval #quarter
+    return dates.map {|elem| (elem.year.to_s + '0' + ((elem.month - 1 ) / 3 + 1).to_s).to_i } if (84..93) === date_interval #quarter
     return dates.map {|elem| elem.strftime('%Y%m').to_i } if (28..31) === date_interval #month
 
   end
@@ -115,7 +115,7 @@ module SeriesDataLists
     sheet[0,0] = 'DATE'
     count=1
     dates.each do |date|
-      sheet[count,0] = date.strftime '%Y-%m-%d'
+      sheet[count,0] = date
       count += 1
     end
   end
