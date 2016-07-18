@@ -58,7 +58,7 @@ module SeriesExternalRelationship
         self.save if save_series
         return {:missing => 'No Matching Aremos Series', :diff => 'No Matching Aremos Series'}
       end
-      as.data = Hash[as.data.map {|date, value| [Date.strptime(date, '%Y-%m-%d'), value]}]
+      as.data = Hash[as.data.map {|date, value| [Date.strptime(date.to_s, '%Y-%m-%d'), value]}]
       missing_keys = as.data.keys - self.data.keys
 
       #remove all suppressed values
