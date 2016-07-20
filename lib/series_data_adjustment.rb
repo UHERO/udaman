@@ -77,8 +77,7 @@ module SeriesDataAdjustment
   
   def get_data_for_month(month_num)
     return {} if month_num > 12 or month_num < 1
-    month_prefix = %w(01 02 03 04 05 06 07 08 09 10 11 12)[month_num-1]
-    data.reject {|date_string, _| date_string.month != month_prefix}
+    data.reject {|date_string, _| date_string.month != month_num}
   end
   
   def shift_forward_months(num_months)
