@@ -35,17 +35,25 @@ class DataPoint < ActiveRecord::Base
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
     self.update_attributes(:current => false)
-    new_dp = self.clone
-    new_dp.update_attributes(:data_source_id => data_source.id, :value => value, :current => true, :created_at => Time.now, :updated_at => Time.now)
+    new_dp = self.dup
+    new_dp.update_attributes(
+        :series_id => self.series_id,
+        :date => self.date,
+        :data_source_id => data_source.id,
+        :value => value,
+        :current => true,
+        :created_at => Time.now,
+        :updated_at => Time.now
+    )
   end
   
   def restore_prior_dp(value, data_source)
     prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
     return nil if prior_dp.nil?
-    self.update_attributes(:current => false) unless self.id == prior_dp.id #this screws up... if equality is off a little
+    self.update_attributes(:current => false)
     prior_dp.increment :restore_counter
     prior_dp.current = true
-    prior_dp.save
+    prior_dp.save!
     DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
   end
   
