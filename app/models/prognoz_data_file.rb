@@ -113,7 +113,7 @@ class PrognozDataFile < ActiveRecord::Base
     offset = 3 if self.frequency == 'quarter'
     offset = 6 if self.frequency == 'semi'
     offset = 12 if self.frequency == 'year'
-    date = Date.parse self.output_start_date
+    date = self.output_start_date
     while date < Date.today
       dates.push date.to_s
       date = date >> offset

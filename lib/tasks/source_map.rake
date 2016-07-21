@@ -48,7 +48,7 @@ task :reload_all_series => :environment do
   #719528 is 1970-01-01 in mysql days, -10 does the adjustment for HST
   inactive_ds = DataSource.where('FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))').order(:last_run_in_seconds)
 
-  DataLoadMailer.series_refresh_notification(nil, inactive_ds, eval_statements.count, errors).deliver
+  DataLoadMailer.series_refresh_notification(nil, inactive_ds, DataSource.count, errors).deliver
 end
 
 task :build_rebuild => :environment do

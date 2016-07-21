@@ -39,8 +39,8 @@ module UpdateCore
   
   def date_interval
     sorted_dates = self.dates.keys.sort
-    date1 = Date.parse sorted_dates[0]
-    date2 = Date.parse sorted_dates[1]
+    date1 = Date.parse sorted_dates[0].to_s
+    date2 = Date.parse sorted_dates[1].to_s
     (date2-date1).to_i
   end
   
@@ -90,12 +90,9 @@ module UpdateCore
   def convert_if_quarters(dates)
     quarter_dates = {}
     dates.each do |date,index|
-      middle = date[5..6]
-      return dates if middle.to_i > 4
-      quarter_dates[date] = index if middle == '01'
-      quarter_dates[date.gsub('-02-','-04-')] = index if middle == '02'
-      quarter_dates[date.gsub('-03-','-07-')] = index if middle == '03'
-      quarter_dates[date.gsub('-04-','-10-')] = index if middle == '04'
+      middle = date.month
+      return dates if middle > 4
+      quarter_dates[Date.new(date.year, (middle * 3) - 2)] = index
     end
     quarter_dates
   end
@@ -137,14 +134,14 @@ module UpdateCore
         # date_string = self.cell(row,1).to_s
         # date = Date.parse date_string
         date = self.cell_to_date(row,1)
-        @dates[date.to_formatted_s] = row unless date.nil?
+        @dates[date] = row unless date.nil?
       end
     end
 
     if self.header_location == 'rows'
       2.upto(self.last_column) do |col|
         date = self.cell_to_date(1,col)
-        @dates[date.to_formatted_s] = col unless date.nil?
+        @dates[date] = col unless date.nil?
       end
     end
     @dates = convert_if_quarters @dates 

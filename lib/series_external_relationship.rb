@@ -190,7 +190,7 @@ module SeriesExternalRelationship
       end
             
       dp_idx = cdp.index {|dp| dp.date == date_string }
-      dp = dp_idx.nil? ? dp_idx : cdp.delete_at(dp_idx)
+      dp = dp_idx.nil? ? nil : cdp.delete_at(dp_idx)
       
       if !dp_val.nil? and value.nil? #data in series, no data in spreadsheet
         if dp.pseudo_history
