@@ -19,7 +19,17 @@ module SeriesRelationship
   end
   
   def current_data_points
-    self.data_points.where(:current => true).order(:date).all
+    cdp_hash = {}
+    cdp_array = []
+    self.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
+      if cdp_hash.has_key? cdp.date
+        cdp.update_attributes!(:current => false)
+      else
+        cdp_hash[cdp.date] = true
+        cdp_array.push cdp
+      end
+    end
+    cdp_array
   end
   
   #does this return ascending or descending

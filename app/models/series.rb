@@ -323,6 +323,7 @@ class Series < ActiveRecord::Base
       data_points.create(
         :date => date,
         :value => data[date],
+        :created_at => Time.now,
         :current => true,
         :data_source_id => source.id
       )
