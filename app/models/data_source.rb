@@ -6,7 +6,7 @@ class DataSource < ActiveRecord::Base
   has_many :data_points
   
   composed_of :last_run,
-                :class_name => "Time",
+                :class_name => 'Time',
                 :mapping => %w(last_run_in_seconds to_r),
                 :constructor => Proc.new { |t| Time.at(t) },
                 :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.at(t/1000.0) }
@@ -18,15 +18,15 @@ class DataSource < ActiveRecord::Base
       all_evals = DataSource.all_evals
       all_evals.each do |eval|
         next if eval.nil?
-        type_buckets[:arithmetic] += 1 unless eval.index(" + ").nil? and eval.index(" - ").nil? and eval.index(" / ").nil? and eval.index(" * ").nil? and eval.index(" ** ").nil? and eval.index("zero_add").nil? 
-        type_buckets[:aggregation] += 1 unless eval.index("aggregate").nil?
-        type_buckets[:share] += 1 unless eval.index("share").nil?
-        type_buckets[:seasonal_factors] += 1 unless eval.index("seasonal_adjustment").nil?
-        type_buckets[:mean_corrected_load] += 1 unless eval.index("load_mean_corrected_sa_from").nil?
-        type_buckets[:sa_load] += 1 unless eval.index("load_sa_from").nil?
-        type_buckets[:interpolation] += 1 unless eval.index("interpolate").nil?
-        type_buckets[:other_mathemetical] += 1 unless eval.index("rebase").nil? and eval.index("annual").nil?
-        type_buckets[:load] += 1 unless eval.index("load_from").nil?
+        type_buckets[:arithmetic] += 1 unless eval.index(' + ').nil? and eval.index(' - ').nil? and eval.index(' / ').nil? and eval.index(' * ').nil? and eval.index(' ** ').nil? and eval.index('zero_add').nil? 
+        type_buckets[:aggregation] += 1 unless eval.index('aggregate').nil?
+        type_buckets[:share] += 1 unless eval.index('share').nil?
+        type_buckets[:seasonal_factors] += 1 unless eval.index('seasonal_adjustment').nil?
+        type_buckets[:mean_corrected_load] += 1 unless eval.index('load_mean_corrected_sa_from').nil?
+        type_buckets[:sa_load] += 1 unless eval.index('load_sa_from').nil?
+        type_buckets[:interpolation] += 1 unless eval.index('interpolate').nil?
+        type_buckets[:other_mathemetical] += 1 unless eval.index('rebase').nil? and eval.index('annual').nil?
+        type_buckets[:load] += 1 unless eval.index('load_from').nil?
       end
       type_buckets
     end
@@ -44,7 +44,7 @@ class DataSource < ActiveRecord::Base
     def DataSource.handle_hash
       handle_hash = {}
       DataSource.where("eval LIKE '%load_from_download%'").select([:eval, :series_id]).all.each do |ds|
-        handle = ds.eval.split("load_from_download")[1].split("\"")[1]
+        handle = ds.eval.split('load_from_download')[1].split("\"")[1]
         handle_hash[ds.series_id] = handle
       end
       handle_hash
@@ -61,20 +61,20 @@ class DataSource < ActiveRecord::Base
     #const is not there yet
     def DataSource.all_history_and_manual_series_names
       series_names = []
-      ['sic','permits','agriculture','Kauai','HBR','prud','census','trms','vexp','hud','hiwi_upd','const_hist', 'tax_hist', 'tke'].each do |type| 
+      %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
           series_names.push ds.series.name
         end
       end
-      ['visusns', 'vrlsns', 'tke', 'tkb','vrdc', 'gffot', 'yl_o', 'yl_tu', 'yl_trade'].each do |type| 
+      %w(visusns vrlsns tke tkb vrdc gffot yl_o yl_tu yl_trade).each do |type|
         DataSource.where("eval LIKE '%#{type}%load_from %'").each do |ds|
           series_names.push ds.series.name
         end
       end
 
-      series_names.push "PC_ANNUAL@HON.M"
-      series_names.push "PCTRGSMD@HON.M"
-      series_names.push "NTTOURNS@HI.M"
+      series_names.push 'PC_ANNUAL@HON.M'
+      series_names.push 'PCTRGSMD@HON.M'
+      series_names.push 'NTTOURNS@HI.M'
       series_names.uniq
     end
     
@@ -121,7 +121,7 @@ class DataSource < ActiveRecord::Base
     
     def DataSource.series_sources
       sa_series_sources = [] 
-      DataSource.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index("load_sa_from").nil?}
+      DataSource.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
       sa_series_sources
     end
 
@@ -218,8 +218,8 @@ class DataSource < ActiveRecord::Base
 
 
     def set_color
-      color_order = ["FFCC99", "CCFFFF", "99CCFF", "CC99FF", "FFFF99", "CCFFCC", "FF99CC", "CCCCFF", "9999FF", "99FFCC"]
-      #puts "#{self.id}: #{self.series_id}"
+      color_order = %w(FFCC99 CCFFFF 99CCFF CC99FF FFFF99 CCFFCC FF99CC CCCCFF 9999FF 99FFCC)
+      #puts '#{self.id}: #{self.series_id}"
       other_sources = self.series.data_sources_by_last_run
       other_sources.each do |source|
         color_order.delete source.color unless source.color.nil?
@@ -242,8 +242,8 @@ class DataSource < ActiveRecord::Base
 
     def set_dependencies
       self.dependencies = []
-      self.description.split(" ").each do |word|
-        unless (word.index('@').nil? or word.split(".")[-1].length > 1)
+      self.description.split(' ').each do |word|
+        unless word.index('@').nil? or word.split('.')[-1].length > 1
           self.dependencies.push(word)
         end
       end unless self.description.nil?
