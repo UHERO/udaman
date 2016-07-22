@@ -40,9 +40,21 @@ task :reset_dependency_depth => :environment do
 end
 
 task :reload_all_series => :environment do
+  algorithm = :legacy
+  
   t = Time.now
-  errors = Series.reload_by_dependency_depth
-
+  if algorithm == :legacy
+    circular = Series.find_first_order_circular
+    CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['circular reference check', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+    t = Time.now
+    series_to_refresh = Series.all_names - circular.uniq
+    eval_statements = []
+    errors = []
+    Series.run_all_dependencies(series_to_refresh, {}, errors, eval_statements)
+  else
+    errors = Series.reload_by_dependency_depth
+  end
+  
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 
   #719528 is 1970-01-01 in mysql days, -10 does the adjustment for HST
