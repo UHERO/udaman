@@ -122,7 +122,7 @@ class DataHtmlParser
         request['cache-control'] = 'no-cache'
         request['content-type'] = 'application/x-www-form-urlencoded'
         request.body = URI::encode_www_form @post_parameters
-        Timeout::timeout(5) { @content = http.request(request).read_body }
+        Timeout::timeout(2) { @content = http.request(request).read_body }
       end
       return Nokogiri::HTML(@content)
     rescue Exception
