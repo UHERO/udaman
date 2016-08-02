@@ -1,0 +1,29 @@
+<%= form_for(@geography) do |f| %>
+  <% if @geography.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@geography.errors.count, "error") %> prohibited this geography from being saved:</h2>
+
+      <ul>
+      <% @geography.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :fips %><br>
+    <%= f.text_field :fips %>
+  </div>
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+  </div>
+  <div class="field">
+    <%= f.label :handle %><br>
+    <%= f.text_field :handle %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>
