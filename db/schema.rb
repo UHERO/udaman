@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160624234825) do
+ActiveRecord::Schema.define(version: 20160802210843) do
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -54,7 +54,7 @@ ActiveRecord::Schema.define(version: 20160624234825) do
   end
 
   create_table "data_points", id: false, force: :cascade do |t|
-    t.integer  "id",              limit: 4
+    t.integer  "id",              limit: 4,  default: 0,     null: false
     t.integer  "series_id",       limit: 4,                  null: false
     t.float    "value",           limit: 53
     t.boolean  "current"
@@ -106,6 +106,14 @@ ActiveRecord::Schema.define(version: 20160624234825) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "mimetype",                limit: 255
+  end
+
+  create_table "geographies", force: :cascade do |t|
+    t.string   "fips",       limit: 255
+    t.string   "name",       limit: 255
+    t.string   "handle",     limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
   end
 
   create_table "packager_outputs", force: :cascade do |t|
