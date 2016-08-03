@@ -16,9 +16,10 @@ gem 'composite_primary_keys', '=8.1.3'
 gem 'roo'
 gem 'roo-xls'
 gem 'httpclient'
-gem 'spork', '~> 0.9.0.rc'
+gem 'spork', github: 'sporkrb/spork'
+gem 'spork-rails'
 gem 'rubyzip', '~> 1.0'
-gem 'capybara',  '2.0.3'
+gem 'capybara', '~> 2.7'
 gem 'selenium-webdriver'
 gem 'watir-webdriver'
 gem 'whenever'
@@ -48,10 +49,6 @@ gem 'stringex', '~> 2.6'
 gem 'nokogiri'
 # gem 'sqlite3-ruby', :require => 'sqlite3'
 # gem 'aws-s3', :require => 'aws/s3'
-
-# gems for passenger
-gem 'passenger'
-gem 'sqlite3'
 
 # Bundle gems for the local environment. Make sure to
 # put test-only gems in this group so their generators

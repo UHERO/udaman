@@ -1,29 +1,14 @@
 Title:               Japan / U.S. Foreign Exchange Rate
 Series ID:           EXJPUS
-Source:              Board of Governors of the Federal Reserve System (US)
+Source:              Board of Governors of the Federal Reserve System
 Release:             G.5 Foreign Exchange Rates
-Seasonal Adjustment: Not Seasonally Adjusted
+Seasonal Adjustment: Not Applicable
 Frequency:           Monthly
 Units:               Japanese Yen to One U.S. Dollar
-Date Range:          1971-01-01 to 2016-07-01
-Last Updated:        2016-07-25 3:41 PM CDT
+Date Range:          1971-01-01 to 2011-12-01
+Last Updated:        2012-01-04 8:18 AM CST
 Notes:               Averages of daily figures. Noon buying rates in New York City for
                      cable transfers payable in foreign currencies.
-                     
-                     This data series is updated from the source files in the Data Download
-                     Program
-                     (http://www.federalreserve.gov/datadownload/Choose.aspx?rel=h10). The
-                     files are updated on a weekly basis every Monday. If Monday is a
-                     holiday, the data files are updated the next business day.
-                     
-                     Monthly values are averages of the daily data available. Preliminary
-                     value for the current month is provided by the source even if not all
-                     daily values are available for the entire month.
-                     
-                     Please note that the values reported on the press release may not
-                     correspond to the values in the Data Download Program when the press
-                     release is published on a day other than Monday. This inconsistency is
-                     resolved on the next available weekly release date.
 
 DATE           VALUE
 1971-01-01  358.0200
@@ -518,58 +503,3 @@ DATE           VALUE
 2011-10-01   76.6430
 2011-11-01   77.5595
 2011-12-01   77.7967
-2012-01-01   76.9640
-2012-02-01   78.4700
-2012-03-01   82.4659
-2012-04-01   81.2524
-2012-05-01   79.6668
-2012-06-01   79.3152
-2012-07-01   78.9348
-2012-08-01   78.6909
-2012-09-01   78.1353
-2012-10-01   79.0132
-2012-11-01   81.0305
-2012-12-01   83.7905
-2013-01-01   89.0581
-2013-02-01   93.0016
-2013-03-01   94.7700
-2013-04-01   97.7582
-2013-05-01  100.9186
-2013-06-01   97.2350
-2013-07-01   99.6727
-2013-08-01   97.8123
-2013-09-01   99.2100
-2013-10-01   97.7700
-2013-11-01  100.0737
-2013-12-01  103.4600
-2014-01-01  103.7614
-2014-02-01  102.1253
-2014-03-01  102.3395
-2014-04-01  102.4582
-2014-05-01  101.7738
-2014-06-01  102.0629
-2014-07-01  101.7400
-2014-08-01  102.9438
-2014-09-01  107.4257
-2014-10-01  108.0264
-2014-11-01  116.2994
-2014-12-01  119.3233
-2015-01-01  118.2500
-2015-02-01  118.7600
-2015-03-01  120.3945
-2015-04-01  119.5095
-2015-05-01  120.7980
-2015-06-01  123.7186
-2015-07-01  123.3109
-2015-08-01  123.0038
-2015-09-01  120.1476
-2015-10-01  120.0481
-2015-11-01  122.6432
-2015-12-01  121.6350
-2016-01-01  118.2258
-2016-02-01  114.6155
-2016-03-01  112.9317
-2016-04-01  109.5519
-2016-05-01  108.8481
-2016-06-01  105.3509
-2016-07-01  104.0093
