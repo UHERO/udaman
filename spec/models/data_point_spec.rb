@@ -11,9 +11,9 @@ describe DataPoint do
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds.id, :current => true)
     dp.upd(100, ds)
     dpu = @s.data_points[0]
-    expect dpu.value == dp.value
-    expect dpu.current == dp.current
-    expect dpu.data_source_id == dp.data_source_id
+    expect(dpu.value).to eq(dp.value)
+    expect(dpu.current).to eq(dp.current)
+    expect(dpu.data_source_id).to eq(dp.data_source_id)
   end
   
   it 'should update a data points source_id if source_id is different' do
@@ -23,11 +23,11 @@ describe DataPoint do
     dp.upd(100, ds2)
     
     dpu = @s.data_points[0]
-    expect(dpu.value).to eq(dp.value)
-    expect(dpu.current).to eq(dp.current)
+    expect(dpu.value).to eq(dp.value), 'not the same value'
+    expect(dpu.current).to eq(dp.current), 'not the same current flag'
 
-    expect(dpu.data_source_id).to eq(ds2.id)
-    expect(dpu.data_source_id).not_to eq(ds1.id)
+    expect(dpu.data_source_id).to eq(ds2.id), 'ds2 does not have the same id'
+    expect(dpu.data_source_id).not_to eq(ds1.id), 'ds1 does have the same id'
   end
   
   # it 'should be able to clone itself but assign a new value, source_id' do
@@ -37,9 +37,9 @@ describe DataPoint do
     ds1 = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds1.id, :current => true)
     dp.upd(200, ds1)
-    expect DataPoint.count == 2
-    expect @s.current_data_points.count == 1
-    expect @s.data_points.count == 2
+    expect(DataPoint.count).to eq(2)
+    expect(@s.current_data_points.count).to eq(1)
+    expect(@s.data_points.count).to eq(2)
   end
     
   it "should make its 'next of kin' data point current if it's being deleted" do
@@ -48,14 +48,14 @@ describe DataPoint do
 
     dp.upd(200, ds1)
     
-    expect @s.data_points.count == 2
-    expect @s.current_data_points.count == 1
+    expect(@s.data_points.count).to eq(2)
+    expect(@s.current_data_points.count).to eq(1)
     
     @s.current_data_points[0].delete
 
-    expect @s.data_points.count == 1
-    expect @s.current_data_points.count == 1
-    expect @s.current_data_points[0].id == dp.id
+    expect(@s.data_points.count).to eq(1)
+    expect(@s.current_data_points.count).to eq(1)
+    expect(@s.current_data_points[0].id).to eq(dp.id)
 
     sleep 1  
     dp = DataPoint.where(:current => true).first
@@ -67,10 +67,9 @@ describe DataPoint do
   
     @s.current_data_points[0].delete
 
-    expect @s.data_points.count == 2
-    expect @s.current_data_points.count == 1
-    expect @s.current_data_points[0].id == dp2.id
-    
+    expect(@s.data_points.count).to eq(2)
+    expect(@s.current_data_points.count).to eq(1)
+    expect(@s.current_data_points[0].id).to eq(dp2.id)
   end
 end
 
