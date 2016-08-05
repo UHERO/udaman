@@ -11,6 +11,8 @@ class Series < ActiveRecord::Base
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
+
+  validates :name, presence: true, uniqueness: true
   
   #serialize :data, Hash
   serialize :factors, Hash

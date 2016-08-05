@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160804231201) do
+ActiveRecord::Schema.define(version: 20160805005053) do
 
   create_table "api_users", force: :cascade do |t|
     t.string   "key",        limit: 255
@@ -157,7 +157,7 @@ ActiveRecord::Schema.define(version: 20160804231201) do
     t.date     "last_demetra_date"
   end
 
-  add_index "series", ["name"], name: "index_series_on_name", using: :btree
+  add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
 
   create_table "users", force: :cascade do |t|
     t.string   "email",                  limit: 255, default: "", null: false
