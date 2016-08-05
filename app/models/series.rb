@@ -32,8 +32,9 @@ class Series < ActiveRecord::Base
     }
   end
 
-  def Series.bulk_create(mnemonic_array)
-
+  def Series.bulk_create(mnemonics)
+    mnemonics.each { |mnemonic| Series.create name: mnemonic }
+    return true
   end
   
   def last_observation
@@ -930,20 +931,25 @@ class Series < ActiveRecord::Base
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     name_where = (search_parts.map {|s| "name LIKE '%#{s}%'"}).join (' AND ')
-    name_results = Series.where(name_where).limit(num_results)
-    
     desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
-    desc_results = AremosSeries.where(desc_where).limit(num_results)
+
+    series_results = Series.where("(#{name_where}) OR (#{desc_where})").limit(num_results)
+
+    aremos_desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
+    aremos_desc_results = AremosSeries.where(aremos_desc_where).limit(num_results)
     
     results = []
   
-    name_results.each do |s| 
+    series_results.each do |s|
       as = AremosSeries.get(s.name)
-      results.push({ :name => s.name, :series_id => s.id, :description => as.nil? ? 'no aremos series' : as.description})
+      description = 'no aremos series'
+      description = as.description unless as.nil?
+      description = s.description unless s.description.nil?
+      results.push({ :name => s.name, :series_id => s.id, :description => description})
       #puts "#{s.id} : #{s.name} - #{as.nil? ? "no aremos series" : as.description}"
     end
     
-    desc_results.each do |as|
+    aremos_desc_results.each do |as|
       s = as.name.ts
       results.push({:name => as.name, :series_id => s.nil? ? 'no series' : s.id, :description => as.description})
       #puts "#{s.nil? ? "no series" : s.id}  : #{as.name} - #{as.description}"

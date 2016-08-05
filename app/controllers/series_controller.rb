@@ -5,7 +5,7 @@ class SeriesController < ApplicationController
     @series = Series.new
   end
 
-  # GET /series/bulk_new
+  # GET /series/bulk
   def bulk_new
   end
 
@@ -20,8 +20,9 @@ class SeriesController < ApplicationController
     end
   end
 
+  # POST /series/bulk
   def bulk_create
-    if Series.bulk_create params[:mnemonics]
+    if Series.bulk_create params[:mnemonics].split /\s+/
       redirect_to '/series'
     end
   end
