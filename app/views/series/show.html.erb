@@ -39,9 +39,10 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<h3>Series:</h3>
 	<h3><%= @series.name %></h3>
 	<h3><%= @desc %></h3>
+  <h3><%= @series.description %></h3>
 	<div id="navigation">
 		<%= link_to 'Edit', edit_series_path(@series) %> |
-		<%= link_to 'Delete', @series, :method => :delete %> | 
+		<%= link_to 'Delete', @series, :method => :delete, data: { confirm: 'Are you sure?'} %> |
 		<%= link_to 'Back', :action => 'index' %> |
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
 		<%= link_to 'Comparison Chart', :action => 'comparison_graph', :id => @series %> | 

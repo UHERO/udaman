@@ -1,5 +1,32 @@
 class SeriesController < ApplicationController
 
+  # GET /series/new
+  def new
+    @series = Series.new
+  end
+
+  # GET /series/bulk
+  def bulk_new
+  end
+
+  # POST /series
+  def create
+    @series = Series.new(series_params)
+
+    if @series.save
+      redirect_to @series, notice: 'Series was successfully created.'
+    else
+      render :new
+    end
+  end
+
+  # POST /series/bulk
+  def bulk_create
+    if Series.bulk_create params[:mnemonics].split /\s+/
+      redirect_to '/series'
+    end
+  end
+
   def index
     frequency = params.has_key?(:freq) ? params[:freq] : nil
     prefix = params.has_key?(:prefix) ? params[:prefix] : nil
@@ -148,7 +175,7 @@ class SeriesController < ApplicationController
   end
   
   def replace_block
-    render :partial => "replace_block"
+    render :partial => 'replace_block'
   end
   
   def toggle_units

@@ -1,6 +1,7 @@
 UheroDb::Application.routes.draw do
   
 
+  resources :api_users
   get 'data_points/:series_id/:date_string' => 'data_points#show'
 
   root :to => 'series#index'
@@ -57,6 +58,8 @@ UheroDb::Application.routes.draw do
 
   #map.devise_for :users
   
+  get 'series/bulk', to: 'series#bulk_new'
+  post 'series/bulk', to: 'series#bulk_create'
   resources :series
 
   resources :data_sources

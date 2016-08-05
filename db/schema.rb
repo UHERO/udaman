@@ -11,7 +11,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160624234825) do
+ActiveRecord::Schema.define(version: 20160805005053) do
+
+  create_table "api_users", force: :cascade do |t|
+    t.string   "key",        limit: 255
+    t.string   "email",      limit: 255
+    t.string   "name",       limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+    t.string   "hostname",   limit: 255
+  end
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -54,7 +63,7 @@ ActiveRecord::Schema.define(version: 20160624234825) do
   end
 
   create_table "data_points", id: false, force: :cascade do |t|
-    t.integer  "id",              limit: 4
+    t.integer  "id",              limit: 4,  default: 0,     null: false
     t.integer  "series_id",       limit: 4,                  null: false
     t.float    "value",           limit: 53
     t.boolean  "current"
@@ -148,7 +157,7 @@ ActiveRecord::Schema.define(version: 20160624234825) do
     t.date     "last_demetra_date"
   end
 
-  add_index "series", ["name"], name: "index_series_on_name", using: :btree
+  add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
 
   create_table "users", force: :cascade do |t|
     t.string   "email",                  limit: 255, default: "", null: false

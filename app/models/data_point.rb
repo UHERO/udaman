@@ -36,7 +36,7 @@ class DataPoint < ActiveRecord::Base
     #rounding doesnt work, looks like there's some kind of truncation too.
     self.update_attributes!(:current => false)
     new_dp = self.dup
-    new_dp.update_attributes(
+    new_dp.update_attributes!(
         :series_id => self.series_id,
         :date => self.date,
         :data_source_id => data_source.id,
@@ -45,6 +45,7 @@ class DataPoint < ActiveRecord::Base
         :created_at => Time.now,
         :updated_at => Time.now
     )
+    new_dp
   end
   
   def restore_prior_dp(value, data_source)

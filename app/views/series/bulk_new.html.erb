@@ -1,0 +1,10 @@
+<%= form_tag('/series/bulk', method: 'post') do %>
+  <div class="field">
+    <%= label_tag(:mnemonics, 'List of Mnemonics') %>
+    <%= text_area_tag :mnemonics, nil, rows: 10 %>
+  </div>
+  <div class="actions">
+    <%= submit_tag('Create All Series') %>
+  </div>
+<% end %>
+<%= link_to 'Back', series_index_path %>
