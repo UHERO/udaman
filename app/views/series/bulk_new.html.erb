@@ -1,0 +1,5 @@
+<%= form_tag('/series/bulk_create', method: 'post') do %>
+    <%= label_tag(:mnemonics, 'List of Mnemonics') %>
+    <%= text_area_tag(:mnemonics) %>
+    <%= submit_tag('Create Series') %>
+<% end %>

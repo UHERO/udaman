@@ -29,6 +29,10 @@ class Series < ActiveRecord::Base
       source: self.original_url
     }
   end
+
+  def Series.bulk_create(mnemonic_array)
+
+  end
   
   def last_observation
     return nil if data.nil?
