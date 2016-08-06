@@ -22,7 +22,7 @@ class SeriesController < ApplicationController
 
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create params[:mnemonics].split /\s+/
+    if Series.bulk_create params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
       redirect_to '/series'
     end
   end
