@@ -1,10 +1,21 @@
 <%= form_tag('/series/bulk', method: 'post') do %>
+    Example:
+    <p>
+      "VSOM2NS@HAW.M".ts_eval= %Q|Series.load_from_fred("MCOILBRENTEU", "M")|
+    </p>
+    <p>
+      This would create the series VSOM2NS@HAW.M with the definition contained within %Q||
+    </p>
+    <p>
+      If a series has already been created, this will add the definition.
+      The last definition assigned will be given implicit priority above previous definitions.
+    </p>
   <div class="field">
-    <%= label_tag(:mnemonics, 'List of Mnemonics') %>
-    <%= text_area_tag :mnemonics, nil, rows: 10 %>
+    <%= label_tag(:definitions, 'List of Definitions') %>
+    <%= text_area_tag :definitions, nil, rows: 20, cols: 100 %>
   </div>
   <div class="actions">
-    <%= submit_tag('Create All Series') %>
+    <%= submit_tag('Create All Definitions') %>
   </div>
 <% end %>
 <%= link_to 'Back', series_index_path %>

@@ -32,8 +32,8 @@ class Series < ActiveRecord::Base
     }
   end
 
-  def Series.bulk_create(mnemonics)
-    mnemonics.each { |mnemonic| Series.create name: mnemonic }
+  def Series.bulk_create(definitions)
+    definitions.each { |definition| Kernel::eval definition }
     return true
   end
   
@@ -425,7 +425,7 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data)
-    frequency = (self.frequency.nil? and name.split('.').count == 2 and name.split('@') == 2 and name.split('.')[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
+    frequency = (self.frequency.nil? and series.name.split('.').count == 2 and series.name.split('@').count == 2 and series.name.split('.')[1].count == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
     #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
     Series.new(
       :name => name,
