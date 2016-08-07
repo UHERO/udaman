@@ -4,6 +4,7 @@ gem 'rails', '4.2.6'
 
 # Application Monitoring
 gem 'newrelic_rpm'
+gem 'newrelic-rake'
 
 gem 'capistrano-rvm'
 gem 'rvm-capistrano'
@@ -12,7 +13,7 @@ gem 'capistrano-bundler', '~> 1.1.3'
 gem 'capistrano', '~> 3.2.1'
 gem 'highline', '~> 1.6.0'
 gem 'mysql2', '~> 0.4'
-gem 'composite_primary_keys', '=8.1.3'
+gem 'composite_primary_keys', '~> 8.1'
 gem 'roo'
 gem 'roo-xls'
 gem 'httpclient'

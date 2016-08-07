@@ -124,8 +124,10 @@ class DataHtmlParser
         request.body = URI::encode_www_form @post_parameters
         Timeout::timeout(2) { @content = http.request(request).read_body }
       end
+      http.finish
       return Nokogiri::HTML(@content)
     rescue Exception
+      http.finish
       return 'Something went wrong with download'
     end
   end
