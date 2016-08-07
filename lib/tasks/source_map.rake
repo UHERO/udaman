@@ -39,6 +39,16 @@ task :reset_dependency_depth => :environment do
   puts (Time.now - t).to_s + ' seconds'
 end
 
+desc 'Switch rails logger to stdout'
+task verbose: [:environment] do
+  Rails.logger = ActiveRecord::Base.logger = Logger.new(STDOUT)
+end
+
+desc 'Switch logging to debug'
+task debug: [:environment, :verbose] do
+  Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
+end
+
 task :reload_all_series => :environment do
   algorithm = nil
   
