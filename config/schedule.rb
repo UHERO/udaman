@@ -32,16 +32,16 @@ job_type :rake,    'cd :path && bundle exec rake :task'
 #     rake "test_case"
 # end
 
-every 1.day, :at => '10:00 pm' do
+every 1.day, :at => '8:00 pm' do
   rake 'reload_aremos'
 end
 
-every 1.day, :at => "#{hour}:00 am" do
+every 1.day, :at => '9:00 pm' do
   rake 'update_seats_links'
   rake 'update_vis_history_links'
 end
 
-every 1.day, :at => "#{hour}:10 am" do
+every 1.day, :at => '9:10 pm' do
   rake 'reload_all_series'
 end
 
