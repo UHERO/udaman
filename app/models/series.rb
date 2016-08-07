@@ -340,6 +340,7 @@ class Series < ActiveRecord::Base
     #update_data_hash
 
     #a_time = Time.now
+    # this one also takes a long time.
     aremos_comparison #if we can take out this save, might speed things up a little
     #puts "#{"%.2f" % (Time.now - a_time)} : #{observation_dates.count} : #{self.name} : AREMOS COMPARISON"
   end
@@ -1002,7 +1003,7 @@ class Series < ActiveRecord::Base
   def Series.reload_by_dependency_depth(series_list = Series.all)
     puts 'Starting Reload by Dependency Depth'
     errors = []
-    series_list.order(:dependency_depth => :desc).each do |series|
+    series_list.order(:dependency_depth => :desc).find_each do |series|
       begin
         errors += series.reload_sources
       rescue
@@ -1011,6 +1012,7 @@ class Series < ActiveRecord::Base
         puts series.name
         errors.concat ["Series ID: #{series.id}, Series Name: #{series.name}"]
       end
+      GC.start
     end
     errors
   end

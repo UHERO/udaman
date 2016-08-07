@@ -48,12 +48,16 @@ class Date
     return "#{self.year}-07-01" if [7,8,9].include?(self.mon)
     return "#{self.year}-10-01" if [10,11,12].include?(self.mon)
   end
+
+  def quarter_d
+    Date.new(self.year, (self.month - 1) / 3 * 3 + 1)
+  end
   
   def semi_i
     return "#{self.year}01" if [1,2,3,4,5,6].include?(self.mon)
     return "#{self.year}02" if [7,8,9,10,11,12].include?(self.mon)
   end
-  
+
   def tsd_start(f)
     return "#{self.year}0100"                         if f == "year"
     return semi_i.to_s+"00"                           if f == "semi"
@@ -71,6 +75,10 @@ class Date
   def year_s
     return year.to_s+"-01-01"
   end
+
+  def year_d
+    Date.new(self.year)
+  end
   
   def month_i
     return strftime('%Y%m').to_i
@@ -79,10 +87,18 @@ class Date
   def month_s
     return strftime('%Y-%m-01')
   end
-  
+
+  def month_d
+    Date.new(self.year, self.month)
+  end
+
   def semi_s
     return "#{self.year}-01-01" if [1,2,3,4,5,6].include?(self.mon)
     return "#{self.year}-07-01" if [7,8,9,10,11,12].include?(self.mon)
+  end
+
+  def semi_d
+    Date.new(self.year, (self.month - 1) / 6)
   end
   
   def days_in_period(frequency)

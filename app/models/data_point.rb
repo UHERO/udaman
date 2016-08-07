@@ -7,8 +7,10 @@ class DataPoint < ActiveRecord::Base
     return self                                     if trying_to_replace_with_nil?(value) #scen 0
     return update_timestamp                         if same_as_current_data_point?(value, data_source) #scen 1
     prior_dp = nil
-    prior_dp = restore_prior_dp(value, data_source) if value_or_source_has_changed?(value, data_source) #scen 2
-    return prior_dp                                 unless prior_dp.nil?
+    # this one can take a lot of time
+    changed = value_or_source_has_changed? value, data_source
+    prior_dp = restore_prior_dp(value, data_source) if changed
+    return                                 unless prior_dp.nil?
     create_new_dp(value, data_source)         #scen 3
   end
   
@@ -45,16 +47,14 @@ class DataPoint < ActiveRecord::Base
         :created_at => Time.now,
         :updated_at => Time.now
     )
-    new_dp
   end
   
   def restore_prior_dp(value, data_source)
     prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
     return nil if prior_dp.nil?
     self.update_attributes!(:current => false)
-    prior_dp.increment! :restore_counter
+    prior_dp.increment :restore_counter
     prior_dp.update_attributes!(:current => true)
-    DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
   end
   
   def update_timestamp

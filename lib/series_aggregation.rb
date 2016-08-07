@@ -30,12 +30,13 @@ module SeriesAggregation
     validate_aggregation(frequency)
     
     aggregated_data = Hash.new
-    frequency_method = frequency.to_s + '_s'
+    frequency_method = frequency.to_s + '_d'
     
     self.data.keys.each do |date|
       #puts "#{date_string}: #{self.at date_string}"
-      aggregated_data[Date.parse(date.send(frequency_method))] ||= AggregatingArray.new unless self.at(date).nil?
-      aggregated_data[Date.parse(date.send(frequency_method))].push self.at(date) unless self.at(date).nil?
+      next if self.at(date).nil?
+      aggregated_data[date.send(frequency_method)] ||= AggregatingArray.new
+      aggregated_data[date.send(frequency_method)].push self.at(date)
     end
     #puts frequency
     #puts self.frequency
@@ -43,15 +44,17 @@ module SeriesAggregation
     # Prune out any incomplete aggregated groups (except days, since it's complicated to match month to day count)
     #can probably take out this override pruning nonsense since this function doesn't work anyway and should be some kind of interpolation
     
-    freq = self.frequency.to_s
-    
-    aggregated_data.delete_if {|_,value| value.count != 6} if frequency == :semi and freq == 'month'
-    aggregated_data.delete_if {|_,value| value.count != 3} if (frequency == :quarter and freq == 'month') and override_prune == false
-    aggregated_data.delete_if {|_,value| value.count != 12} if frequency == :year and freq == 'month'
-    aggregated_data.delete_if {|_,value| value.count != 4} if frequency == :year and freq == 'quarter'
-    aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :semi and freq == 'quarter'    
-    aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :year and freq == 'semi'
-    aggregated_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month and freq == 'day'
+    self.class.trace_execution_scoped(['Custom/aggregation/delete_if']) do
+      freq = self.frequency.to_s
+
+      aggregated_data.delete_if {|_,value| value.count != 6} if frequency == :semi and freq == 'month'
+      aggregated_data.delete_if {|_,value| value.count != 3} if (frequency == :quarter and freq == 'month') and override_prune == false
+      aggregated_data.delete_if {|_,value| value.count != 12} if frequency == :year and freq == 'month'
+      aggregated_data.delete_if {|_,value| value.count != 4} if frequency == :year and freq == 'quarter'
+      aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :semi and freq == 'quarter'
+      aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :year and freq == 'semi'
+      aggregated_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month and freq == 'day'
+    end
     #puts key+" "+value.count.to_s + " " + Date.parse(key).days_in_month.to_s;
     #month check for days is more complicated because need to check for number of days in each month
 
