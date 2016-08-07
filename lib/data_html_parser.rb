@@ -124,10 +124,8 @@ class DataHtmlParser
         request.body = URI::encode_www_form @post_parameters
         Timeout::timeout(2) { @content = http.request(request).read_body }
       end
-      http.finish
       return Nokogiri::HTML(@content)
     rescue Exception
-      http.finish
       return 'Something went wrong with download'
     end
   end
@@ -135,7 +133,7 @@ class DataHtmlParser
   def fetch(uri_str, limit = 10)
     raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
-    response = Net::HTTP.get_response(URI(uri_str))
+    response = Timeout::timeout(2) { Net::HTTP.get_response(URI(uri_str)) }
 
     case response
       when Net::HTTPSuccess then
