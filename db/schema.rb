@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160805005053) do
+ActiveRecord::Schema.define(version: 20160809000410) do
 
   create_table "api_users", force: :cascade do |t|
     t.string   "key",        limit: 255
@@ -36,6 +36,14 @@ ActiveRecord::Schema.define(version: 20160805005053) do
   end
 
   add_index "aremos_series", ["name"], name: "index_aremos_series_on_name", using: :btree
+
+  create_table "categories", force: :cascade do |t|
+    t.string   "name",         limit: 255
+    t.integer  "parent",       limit: 4
+    t.integer  "data_list_id", limit: 4
+    t.datetime "created_at",               null: false
+    t.datetime "updated_at",               null: false
+  end
 
   create_table "data_lists", force: :cascade do |t|
     t.string   "name",       limit: 255
@@ -117,6 +125,15 @@ ActiveRecord::Schema.define(version: 20160805005053) do
     t.string   "mimetype",                limit: 255
   end
 
+  create_table "geographies", force: :cascade do |t|
+    t.string   "fips",               limit: 255
+    t.string   "display_name",       limit: 255
+    t.string   "display_name_short", limit: 255
+    t.string   "handle",             limit: 255
+    t.datetime "created_at",                     null: false
+    t.datetime "updated_at",                     null: false
+  end
+
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
     t.date     "last_new_data"
@@ -158,6 +175,13 @@ ActiveRecord::Schema.define(version: 20160805005053) do
   end
 
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
+
+  create_table "sources", force: :cascade do |t|
+    t.string   "description", limit: 255
+    t.string   "link",        limit: 255
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+  end
 
   create_table "users", force: :cascade do |t|
     t.string   "email",                  limit: 255, default: "", null: false

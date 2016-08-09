@@ -1,6 +1,7 @@
 UheroDb::Application.routes.draw do
   
 
+  resources :sources
   resources :api_users
   get 'data_points/:series_id/:date_string' => 'data_points#show'
 
