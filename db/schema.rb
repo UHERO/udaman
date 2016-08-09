@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160805005053) do
+ActiveRecord::Schema.define(version: 20160806014734) do
 
   create_table "api_users", force: :cascade do |t|
     t.string   "key",        limit: 255
@@ -115,6 +115,15 @@ ActiveRecord::Schema.define(version: 20160805005053) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.string   "mimetype",                limit: 255
+  end
+
+  create_table "geographies", force: :cascade do |t|
+    t.string   "fips",               limit: 255
+    t.string   "display_name",       limit: 255
+    t.string   "display_name_short", limit: 255
+    t.string   "handle",             limit: 255
+    t.datetime "created_at",                     null: false
+    t.datetime "updated_at",                     null: false
   end
 
   create_table "packager_outputs", force: :cascade do |t|
