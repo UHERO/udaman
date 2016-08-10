@@ -505,7 +505,9 @@ class Series < ActiveRecord::Base
     begin
       cached_files = Series.get_cached_files if cached_files.nil?
       dp = DownloadProcessor.new(handle, options, cached_files)
+      # self.class.trace_execution_scoped(['Custom/load_from_download/dp#get_data']) do
       series_data = dp.get_data
+      # end
     rescue => e
       Series.write_cached_files cached_files if cached_files.new_data?
       raise e

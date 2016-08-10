@@ -13,44 +13,69 @@ class XlsFileProcessor
     @date_processor = DatePatternProcessor.new date_info[:start], options[:frequency], date_info[:rev]
   end
 
+  extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
-    
-    date = @date_processor.compute(index)
-  
-    handle = @handle_processor.compute(date)
-    sheet = @sheet_processor.compute(date)
-    path = @path_processor.nil? ? nil : @path_processor.compute(date)
-    
+    date = nil
+    self.class.trace_execution_scoped(['Custom/observation_at/data_processor#compute']) do
+      date = @date_processor.compute(index)
+    end
+
+    handle = nil
+    self.class.trace_execution_scoped(['Custom/observation_at/handle_processor#compute']) do
+      handle = @handle_processor.compute(date)
+    end
+
+    sheet = nil
+    self.class.trace_execution_scoped(['Custom/observation_at/sheet_processor#compute']) do
+      sheet = @sheet_processor.compute(date)
+    end
+    path = nil
+    self.class.trace_execution_scoped(['Custom/observation_at/path_processor#compute']) do
+      path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    end
+
     # puts index
     # puts path
     # puts sheet
     begin
-      row = @row_processor.compute(index, @cached_files, handle, sheet)      
-      col = @col_processor.compute(index, @cached_files, handle, sheet)
+      row = nil
+      self.class.trace_execution_scoped(['Custom/observation_at/row_processor#compute']) do
+        row = @row_processor.compute(index, @cached_files, handle, sheet)
+      end
+      col = nil
+      self.class.trace_execution_scoped(['Custom/observation_at/col_processor#compute']) do
+        col = @col_processor.compute(index, @cached_files, handle, sheet)
+      end
       
       #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
 
-      worksheet = @cached_files.xls(handle, sheet, path)
+      worksheet = nil
+      self.class.trace_execution_scoped(['Custom/observation_at/cached_files#xls']) do
+        worksheet = @cached_files.xls(handle, sheet, path)
+      end
     rescue RuntimeError => e
       puts e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
       #not sure if this is the right thing to do. Will get an indication from the daily download checks, but not sure if will see if you just 
       #load the data other than missing some values... not gonna do this just yet because it was rake that errored out not the series. might try to
       #do a rake trace next time it breaks to check better
-      #return "END" if (e.message[0..5] == "handle" or e.message[0..22] == "the download for handle") and @handle_processor.date_sensitive?
-      return "END" if e.message[0..5] == "handle" and @handle_processor.date_sensitive?
-      return {} if e.message[0..20] == "could not find header" and ["Condo only"].include? e.message.split(": ")[1][1..-2]
+      #return 'END' if (e.message[0..5] == 'handle' or e.message[0..22] == 'the download for handle') and @handle_processor.date_sensitive?
+      return 'END' if e.message[0..5] == 'handle' and @handle_processor.date_sensitive?
+      return {} if e.message[0..20] == 'could not find header' and ['Condo only'].include? e.message.split(': ')[1][1..-2]
       raise e
     rescue IOError => e
       puts e.message
-      return "END" if e.message[0..3] == "file" and @path_processor.date_sensitive?
+      return 'END' if e.message[0..3] == 'file' and @path_processor.date_sensitive?
       raise e
     end
-  
-    observation_value = parse_cell(worksheet.cell(row,col))
+
+    observation_value = nil
+    self.class.trace_execution_scoped(['Custom/observation_at/parce_cell']) do
+      observation_value = parse_cell(worksheet.cell(row,col))
+    end
     
-    return "END" if observation_value == "BREAK IN DATA" unless @handle_processor.date_sensitive?
-    return {} if observation_value == "BREAK IN DATA" if @handle_processor.date_sensitive?
+    return 'END' if observation_value == 'BREAK IN DATA' unless @handle_processor.date_sensitive?
+    return {} if observation_value == 'BREAK IN DATA' if @handle_processor.date_sensitive?
     {date => observation_value}
   end
 
@@ -60,8 +85,8 @@ class XlsFileProcessor
     rescue
       #puts cell_value    
       #known data values that should be suppressed as nils... may need to separate these by file being read in
-      return nil if ["(D) ", "(L) ", "(N) ", "(T) ", "no data"].include? cell_value
-      return "BREAK IN DATA"
+      return nil if ['(D) ', '(L) ', '(N) ', '(T) ', 'no data'].include? cell_value
+      return 'BREAK IN DATA'
     end
   end
 
