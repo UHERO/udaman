@@ -1,4 +1,6 @@
 class DataSourceDownload < ActiveRecord::Base
+  require 'rest-client'
+
   serialize :post_parameters, Hash
   serialize :download_log, Array
 
@@ -86,31 +88,28 @@ class DataSourceDownload < ActiveRecord::Base
     client.connect_timeout = 1000
     resp = nil
     #loop seems to allow cookie to be downloaded... maybe more effective way to do this?
-    (1..2).each do |i|
-      if post_parameters.nil? or post_parameters.length == 0
-        resp = client.get URI.encode(url.strip), follow_redirect: true
-      else
-        resp = client.post URI.encode(url.strip), post_parameters, follow_redirect: true
-      end
-      break if resp.header.status_code == 200
+    if post_parameters.nil? or post_parameters.length == 0
+      resp = RestClient.get URI.encode(url.strip)
+    else
+      resp = RestClient.post URI.encode(url.strip), post_parameters
     end
     puts 'downloaded'
     #not sure why I was raising this exception. Want to note the failed downloads and continue
     #raise DownloadException if resp.header.status_code != 200
-    if resp.header.status_code == 200 #successful download
-      data_changed = content_changed?(resp.content)
+    if resp.code == 200 #successful download
+      data_changed = content_changed?(resp.to_str)
 
       backup if data_changed
 
-      open(save_path_flex, 'wb') { |file| file.write resp.content }
+      open(save_path_flex, 'wb') { |file| file.write resp.to_str }
       save_path_flex.unzip if save_path_flex[-3..-1] == 'zip'
     end
     #logging section
     download_time = Time.now
     download_url = url
-    download_location = resp.header['Location']
-    content_type = resp.header['Content-Type']
-    status = resp.header.status_code
+    download_location = resp.headers['Location']
+    content_type = resp.headers['Content-Type']
+    status = resp.code
     last_log = dsd_log_entries.order(:time).last
 
     if last_log.nil? or !(last_log.url == download_url and last_log.time.to_date == download_time.to_date and last_log.status == status)

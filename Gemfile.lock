@@ -152,6 +152,7 @@ GEM
     net-sftp (2.1.2)
       net-ssh (>= 2.6.5)
     net-ssh (3.2.0)
+    netrc (0.11.0)
     newrelic-rake (1.4.1)
       newrelic_rpm (>= 3.1.0)
     newrelic_rpm (3.16.0.318)
@@ -196,6 +197,10 @@ GEM
     rake (11.2.2)
     responders (2.2.0)
       railties (>= 4.2.0, < 5.1)
+    rest-client (2.0.0)
+      http-cookie (>= 1.0.2, < 2.0)
+      mime-types (>= 1.16, < 4.0)
+      netrc (~> 0.8)
     roo (2.4.0)
       nokogiri (~> 1)
       rubyzip (~> 1.1, < 2.0.0)
@@ -303,6 +308,7 @@ DEPENDENCIES
   passenger
   protected_attributes (~> 1.1)
   rails (= 4.2.6)
+  rest-client (~> 2.0)
   roo
   roo-xls
   rspec-rails

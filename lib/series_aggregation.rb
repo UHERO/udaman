@@ -44,17 +44,15 @@ module SeriesAggregation
     # Prune out any incomplete aggregated groups (except days, since it's complicated to match month to day count)
     #can probably take out this override pruning nonsense since this function doesn't work anyway and should be some kind of interpolation
     
-    self.class.trace_execution_scoped(['Custom/aggregation/delete_if']) do
       freq = self.frequency.to_s
 
-      aggregated_data.delete_if {|_,value| value.count != 6} if frequency == :semi and freq == 'month'
-      aggregated_data.delete_if {|_,value| value.count != 3} if (frequency == :quarter and freq == 'month') and override_prune == false
-      aggregated_data.delete_if {|_,value| value.count != 12} if frequency == :year and freq == 'month'
-      aggregated_data.delete_if {|_,value| value.count != 4} if frequency == :year and freq == 'quarter'
-      aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :semi and freq == 'quarter'
-      aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :year and freq == 'semi'
-      aggregated_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month and freq == 'day'
-    end
+    aggregated_data.delete_if {|_,value| value.count != 6} if frequency == :semi and freq == 'month'
+    aggregated_data.delete_if {|_,value| value.count != 3} if (frequency == :quarter and freq == 'month') and override_prune == false
+    aggregated_data.delete_if {|_,value| value.count != 12} if frequency == :year and freq == 'month'
+    aggregated_data.delete_if {|_,value| value.count != 4} if frequency == :year and freq == 'quarter'
+    aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :semi and freq == 'quarter'
+    aggregated_data.delete_if {|_,value| value.count != 2} if frequency == :year and freq == 'semi'
+    aggregated_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month and freq == 'day'
     #puts key+" "+value.count.to_s + " " + Date.parse(key).days_in_month.to_s;
     #month check for days is more complicated because need to check for number of days in each month
 

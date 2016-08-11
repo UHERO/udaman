@@ -30,7 +30,7 @@ class DownloadProcessor
     index = 0
     data = {}
     begin
-      data_point = @spreadsheet.observation_at index 
+      data_point = @spreadsheet.observation_at index
       data.merge!(data_point) if data_point.class == Hash
       index += 1
     end until data_point.class == String or (!@options[:end_date].nil? and data_point.keys[0] == @options[:end_date])

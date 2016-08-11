@@ -1,0 +1,33 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Geographies</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Fips</th>
+      <th>Display name</th>
+      <th>Display name short</th>
+      <th>Handle</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @geographies.each do |geography| %>
+      <tr>
+        <td><%= geography.fips %></td>
+        <td><%= geography.display_name %></td>
+        <td><%= geography.display_name_short %></td>
+        <td><%= geography.handle %></td>
+        <td><%= link_to 'Show', geography %></td>
+        <td><%= link_to 'Edit', edit_geography_path(geography) %></td>
+        <td><%= link_to 'Destroy', geography, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Geography', new_geography_path %>
