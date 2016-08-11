@@ -321,8 +321,8 @@ class Series < ActiveRecord::Base
     #cdp_time = Time.now         #timer
     current_data_points.each do |dp|
       dp.upd(data[dp.date], source)
-      observation_dates.delete dp.date
     end
+    observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
     #puts "#{"%.2f" % (Time.now - cdp_time)} : #{current_data_points.count} : #{self.name} : UPDATING CURRENT DATAPOINTS"
 
     #od_time = Time.now             #timer

@@ -130,7 +130,7 @@ class Packager
     else
       po.touch
     end
-    return po
+    po
   end
 
   def eval(definition)
