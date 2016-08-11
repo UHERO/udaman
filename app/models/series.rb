@@ -321,8 +321,8 @@ class Series < ActiveRecord::Base
     #cdp_time = Time.now         #timer
     current_data_points.each do |dp|
       dp.upd(data[dp.date], source)
-      observation_dates.delete dp.date
     end
+    observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
     #puts "#{"%.2f" % (Time.now - cdp_time)} : #{current_data_points.count} : #{self.name} : UPDATING CURRENT DATAPOINTS"
 
     #od_time = Time.now             #timer
@@ -505,9 +505,7 @@ class Series < ActiveRecord::Base
     begin
       cached_files = Series.get_cached_files if cached_files.nil?
       dp = DownloadProcessor.new(handle, options, cached_files)
-      # self.class.trace_execution_scoped(['Custom/load_from_download/dp#get_data']) do
       series_data = dp.get_data
-      # end
     rescue => e
       Series.write_cached_files cached_files if cached_files.new_data?
       raise e

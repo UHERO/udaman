@@ -15,44 +15,23 @@ class XlsFileProcessor
 
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
-    date = nil
-    self.class.trace_execution_scoped(['Custom/observation_at/data_processor#compute']) do
-      date = @date_processor.compute(index)
-    end
+    date = @date_processor.compute(index)
 
-    handle = nil
-    self.class.trace_execution_scoped(['Custom/observation_at/handle_processor#compute']) do
-      handle = @handle_processor.compute(date)
-    end
+    handle = @handle_processor.compute(date)
 
-    sheet = nil
-    self.class.trace_execution_scoped(['Custom/observation_at/sheet_processor#compute']) do
-      sheet = @sheet_processor.compute(date)
-    end
-    path = nil
-    self.class.trace_execution_scoped(['Custom/observation_at/path_processor#compute']) do
-      path = @path_processor.nil? ? nil : @path_processor.compute(date)
-    end
+    sheet = @sheet_processor.compute(date)
+    path = @path_processor.nil? ? nil : @path_processor.compute(date)
 
     # puts index
     # puts path
     # puts sheet
     begin
-      row = nil
-      self.class.trace_execution_scoped(['Custom/observation_at/row_processor#compute']) do
-        row = @row_processor.compute(index, @cached_files, handle, sheet)
-      end
-      col = nil
-      self.class.trace_execution_scoped(['Custom/observation_at/col_processor#compute']) do
-        col = @col_processor.compute(index, @cached_files, handle, sheet)
-      end
-      
+      row = @row_processor.compute(index, @cached_files, handle, sheet)
+      col = @col_processor.compute(index, @cached_files, handle, sheet)
+
       #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
 
-      worksheet = nil
-      self.class.trace_execution_scoped(['Custom/observation_at/cached_files#xls']) do
-        worksheet = @cached_files.xls(handle, sheet, path)
-      end
+      worksheet = @cached_files.xls(handle, sheet, path)
     rescue RuntimeError => e
       puts e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
@@ -69,11 +48,8 @@ class XlsFileProcessor
       raise e
     end
 
-    observation_value = nil
-    self.class.trace_execution_scoped(['Custom/observation_at/parce_cell']) do
-      observation_value = parse_cell(worksheet.cell(row,col))
-    end
-    
+    observation_value = parse_cell(worksheet.cell(row,col))
+
     return 'END' if observation_value == 'BREAK IN DATA' unless @handle_processor.date_sensitive?
     return {} if observation_value == 'BREAK IN DATA' if @handle_processor.date_sensitive?
     {date => observation_value}

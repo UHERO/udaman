@@ -25,19 +25,13 @@ class DownloadProcessor
     get_data_spreadsheet
   end
 
-  extend ::NewRelic::Agent::MethodTracer
   def get_data_spreadsheet
     raise 'spreadhseet was never set' if @spreadsheet.nil?
     index = 0
     data = {}
     begin
-      data_point = nil
-      self.class.trace_execution_scoped(['Custom/get_data_spreadsheet/observation_at']) do
-        data_point = @spreadsheet.observation_at index
-      end
-      # self.class.trace_execution_scoped(['Custom/get_data_spreadsheet/merge']) do
+      data_point = @spreadsheet.observation_at index
       data.merge!(data_point) if data_point.class == Hash
-      # end
       index += 1
     end until data_point.class == String or (!@options[:end_date].nil? and data_point.keys[0] == @options[:end_date])
     data
