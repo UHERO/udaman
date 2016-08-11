@@ -904,7 +904,7 @@ class Series < ActiveRecord::Base
   #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
   
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements)
-    series_list.each do |s_name|
+    series_list.find_each do |s_name|
       next unless already_run[s_name].nil?
       s = s_name.ts
       begin
