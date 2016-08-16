@@ -172,6 +172,9 @@ ActiveRecord::Schema.define(version: 20160809211835) do
     t.text     "investigation_notes",     limit: 65535
     t.integer  "dependency_depth",        limit: 4
     t.date     "last_demetra_date"
+    t.string   "unitsLabel",              limit: 255
+    t.string   "unitsLabelShort",         limit: 255
+    t.string   "dataPortalName",          limit: 255
   end
 
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
