@@ -13,5 +13,4 @@ public/
 *.out
 config/deploy.rb
 config/deploy/*
-config/secrets.yml
 Capfile
