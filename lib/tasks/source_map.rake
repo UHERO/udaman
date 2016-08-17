@@ -50,7 +50,7 @@ task debug: [:environment, :verbose] do
 end
 
 task :reload_all_series => :environment do
-  algorithm = :legacy
+  algorithm = nil
   
   t = Time.now
   if algorithm == :legacy
