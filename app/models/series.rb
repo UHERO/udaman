@@ -1003,7 +1003,9 @@ class Series < ActiveRecord::Base
   def Series.reload_by_dependency_depth(series_list = Series.all)
     puts 'Starting Reload by Dependency Depth'
     errors = []
-    series_list.order(:dependency_depth => :desc).find_each do |series|
+    ordered_ids = series_list.order(:dependency_depth => :desc).pluck(:id)
+    ordered_ids.in_groups_of(1000).each do |series_id|
+      series = Series.find_by id: series_id
       begin
         errors += series.reload_sources
       rescue
