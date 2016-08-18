@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'rails', '4.2.6'
+gem 'rails', '~> 4.2'
 
 # Application Monitoring
 gem 'newrelic_rpm'
@@ -20,6 +20,10 @@ gem 'httpclient'
 gem 'rest-client', '~> 2.0'
 gem 'spork', github: 'sporkrb/spork'
 gem 'spork-rails'
+gem 'sidekiq', '~> 4.1'
+gem 'sinatra', require: false
+gem 'sinatra_auth_github', require: false
+gem 'sinatra'
 gem 'rubyzip', '~> 1.0'
 gem 'capybara', '~> 2.7'
 gem 'selenium-webdriver'
@@ -36,7 +40,7 @@ gem 'coffee-rails', '~> 4.1'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.1'
 gem 'jquery-ui-rails', '~> 5.0'
-gem 'devise', '~> 4.0.0'
+gem 'devise', '~> 4.0'
 gem 'stringex', '~> 2.6'
 
 # Deploy with Capistrano
