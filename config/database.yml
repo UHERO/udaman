@@ -3,7 +3,7 @@ development:
     host: localhost
     encoding: utf8
     database: uhero_db_dev
-    pool: 5
+    pool: 30
     username: <%= ENV['DB_USER'] || 'root' %>
     password: <%= ENV['DB_PASSWORD'] || '' %>
     socket: /tmp/mysql.sock
@@ -26,7 +26,7 @@ production:
     host: <%= ENV['DATABASE_URL'] || 'localhost' %>
     encoding: utf8
     database: uhero_db_dev
-    pool: 5
+    pool: 30
     username: <%= ENV['DB_USER'] || 'root' %>
     password: <%= ENV['DB_PASSWORD'] || '' %>
     socket: /tmp/mysql.sock
