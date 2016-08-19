@@ -3,6 +3,9 @@ require 'sidekiq'
 class SeriesWorker
   include Sidekiq::Worker
   def perform(series_id)
-    Series.find(series_id).reload_sources
+    errors = Series.find(series_id).reload_sources
+    unless errors.nil?
+      File.open('public/reload_errors.log', 'a') {|f| f.puts errors } # clear out reload errors log
+    end
   end
 end
