@@ -122,7 +122,7 @@ class DataHtmlParser
         request['cache-control'] = 'no-cache'
         request['content-type'] = 'application/x-www-form-urlencoded'
         request.body = URI::encode_www_form @post_parameters
-        Timeout::timeout(2) { @content = http.request(request).read_body }
+        @content = http.request(request).read_body
       end
       return Nokogiri::HTML(@content)
     rescue Exception
@@ -133,7 +133,7 @@ class DataHtmlParser
   def fetch(uri_str, limit = 10)
     raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
-    response = Timeout::timeout(2) { Net::HTTP.get_response(URI(uri_str)) }
+    response = Net::HTTP.get_response(URI(uri_str))
 
     case response
       when Net::HTTPSuccess then

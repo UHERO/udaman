@@ -47,6 +47,7 @@ class DataPoint < ActiveRecord::Base
         :created_at => Time.now,
         :updated_at => Time.now
     )
+    []
   end
   
   def restore_prior_dp(value, data_source)
@@ -55,6 +56,7 @@ class DataPoint < ActiveRecord::Base
     self.update_attributes(:current => false)
     prior_dp.increment :restore_counter
     prior_dp.update_attributes(:current => true)
+    return prior_dp
   end
   
   def update_timestamp

@@ -67,6 +67,7 @@ task :reload_all_series => :environment do
 
     DataLoadMailer.series_refresh_notification(nil, inactive_ds, DataSource.count, errors).deliver
   else
+    File.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload (sidekiq)', '', Time.now.to_s, '']}
     File.open('public/reload_errors.log', 'w') {|f| f.puts "Reload start time: #{Time.now.to_s}" } # clear out reload errors log
     Series.reload_by_dependency_depth
   end

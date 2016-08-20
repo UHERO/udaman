@@ -5,7 +5,7 @@ class SeriesWorker
   def perform(series_id)
     errors = Series.find(series_id).reload_sources
     unless errors.nil?
-      File.open('public/reload_errors.log', 'a') {|f| f.puts errors } # clear out reload errors log
+      File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
     end
   end
 end
