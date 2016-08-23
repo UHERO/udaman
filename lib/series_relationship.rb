@@ -184,6 +184,4 @@ module SeriesRelationship
     end
     0
   end
-  
-  
 end

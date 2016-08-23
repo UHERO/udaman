@@ -20,6 +20,7 @@ common: &default_settings
 
   # To disable the agent regardless of other settings, uncomment the following:
   # agent_enabled: false
+  disable_middleware_instrumentation: true
 
   # Logging level for log/newrelic_agent.log
   log_level: debug

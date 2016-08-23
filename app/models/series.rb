@@ -321,8 +321,8 @@ class Series < ActiveRecord::Base
     #cdp_time = Time.now         #timer
     current_data_points.each do |dp|
       dp.upd(data[dp.date], source)
-      observation_dates.delete dp.date
     end
+    observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
     #puts "#{"%.2f" % (Time.now - cdp_time)} : #{current_data_points.count} : #{self.name} : UPDATING CURRENT DATAPOINTS"
 
     #od_time = Time.now             #timer
@@ -341,8 +341,9 @@ class Series < ActiveRecord::Base
 
     #a_time = Time.now
     # this one also takes a long time.
-    aremos_comparison #if we can take out this save, might speed things up a little
+    #aremos_comparison #if we can take out this save, might speed things up a little
     #puts "#{"%.2f" % (Time.now - a_time)} : #{observation_dates.count} : #{self.name} : AREMOS COMPARISON"
+    []
   end
   
   def update_data_hash
@@ -426,7 +427,7 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data)
-    frequency = (self.frequency.nil? and series.name.split('.').count == 2 and series.name.split('@').count == 2 and series.name.split('.')[1].count == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
+    frequency = (self.frequency.nil? and name.split('.').count == 2 and name.split('@').count == 2 and name.split('.')[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
     #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
     Series.new(
       :name => name,
@@ -1002,18 +1003,8 @@ class Series < ActiveRecord::Base
 
   def Series.reload_by_dependency_depth(series_list = Series.all)
     puts 'Starting Reload by Dependency Depth'
-    errors = []
-    series_list.order(:dependency_depth => :desc).find_each do |series|
-      begin
-        errors += series.reload_sources
-      rescue
-        puts '-------------------THIS IS THE SERIES THAT BROKE--------------------'
-        puts series.id
-        puts series.name
-        errors.concat ["Series ID: #{series.id}, Series Name: #{series.name}"]
-      end
-      GC.start
+    series_list.order(:dependency_depth => :desc).pluck(:id).each do |series_id|
+      SeriesWorker.perform_async series_id
     end
-    errors
   end
 end

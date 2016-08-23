@@ -110,7 +110,7 @@ class DownloadsCache
       next unless line.index("HYPERLINK").nil?
       # valid encoding solution is to deal with xA0 characters from this stack overflow post
       # http://stackoverflow.com/questions/8710444/is-there-a-way-in-ruby-1-9-to-remove-invalid-byte-sequences-from-strings
-      csv_data.push(CSV.parse_line(line.strip.chars.select{|i| i.valid_encoding?}.join))
+      csv_data.push(CSV.parse_line(line.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')))
     end
     csv_file.close
     return csv_data 

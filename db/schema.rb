@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160809000623) do
+ActiveRecord::Schema.define(version: 20160809211835) do
 
   create_table "api_users", force: :cascade do |t|
     t.string   "key",        limit: 255
@@ -172,16 +172,12 @@ ActiveRecord::Schema.define(version: 20160809000623) do
     t.text     "investigation_notes",     limit: 65535
     t.integer  "dependency_depth",        limit: 4
     t.date     "last_demetra_date"
+    t.string   "unitsLabel",              limit: 255
+    t.string   "unitsLabelShort",         limit: 255
+    t.string   "dataPortalName",          limit: 255
   end
 
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
-
-  create_table "sources", force: :cascade do |t|
-    t.string   "description", limit: 255
-    t.string   "link",        limit: 255
-    t.datetime "created_at",              null: false
-    t.datetime "updated_at",              null: false
-  end
 
   create_table "transformations", force: :cascade do |t|
     t.string   "key",         limit: 255
