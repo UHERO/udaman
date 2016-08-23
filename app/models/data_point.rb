@@ -36,9 +36,9 @@ class DataPoint < ActiveRecord::Base
     #create a new datapoint because value changed
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
-    self.update_attributes!(:current => false)
+    self.update_attributes(:current => false)
     new_dp = self.dup
-    new_dp.update_attributes!(
+    new_dp.update_attributes(
         :series_id => self.series_id,
         :date => self.date,
         :data_source_id => data_source.id,
@@ -47,14 +47,16 @@ class DataPoint < ActiveRecord::Base
         :created_at => Time.now,
         :updated_at => Time.now
     )
+    []
   end
   
   def restore_prior_dp(value, data_source)
     prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
     return nil if prior_dp.nil?
-    self.update_attributes!(:current => false)
+    self.update_attributes(:current => false)
     prior_dp.increment :restore_counter
-    prior_dp.update_attributes!(:current => true)
+    prior_dp.update_attributes(:current => true)
+    return prior_dp
   end
   
   def update_timestamp

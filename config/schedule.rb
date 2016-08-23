@@ -24,7 +24,7 @@ bls_hour = '4'
 set :output, {:standard => '~/Documents/cronlog/udaman-download.log', :error => '~/Documents/cronlog/udaman-error.log'}
 # set :environment, 'development'
 #job_type :rake,    'cd :path && rake :task :output'
-job_type :rake,    "cd :path && DB_PASSWORD=#{ENV['DB_PASSWORD']} #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['DATA_PATH'].nil?} bundle exec rake :task"
+job_type :rake,    "cd :path && DB_PASSWORD=#{ENV['DB_PASSWORD']} #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['DATA_PATH'].nil?} #{%Q|RAILS_ENV=#{ENV['RAILS_ENV']}| unless ENV['RAILS_ENV'].nil?} bundle exec rake :task"
 #job_type :rake,    "cd :path && RAILS_ENV=:environment bundle exec rake :task :output"
 
 # this is a useful short task for testing cron

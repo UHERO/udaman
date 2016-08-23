@@ -341,8 +341,9 @@ class Series < ActiveRecord::Base
 
     #a_time = Time.now
     # this one also takes a long time.
-    aremos_comparison #if we can take out this save, might speed things up a little
+    #aremos_comparison #if we can take out this save, might speed things up a little
     #puts "#{"%.2f" % (Time.now - a_time)} : #{observation_dates.count} : #{self.name} : AREMOS COMPARISON"
+    []
   end
   
   def update_data_hash
@@ -1002,18 +1003,8 @@ class Series < ActiveRecord::Base
 
   def Series.reload_by_dependency_depth(series_list = Series.all)
     puts 'Starting Reload by Dependency Depth'
-    errors = []
-    series_list.order(:dependency_depth => :desc).find_each do |series|
-      begin
-        errors += series.reload_sources
-      rescue
-        puts '-------------------THIS IS THE SERIES THAT BROKE--------------------'
-        puts series.id
-        puts series.name
-        errors.concat ["Series ID: #{series.id}, Series Name: #{series.name}"]
-      end
-      GC.start
+    series_list.order(:dependency_depth => :desc).pluck(:id).each do |series_id|
+      SeriesWorker.perform_async series_id
     end
-    errors
   end
 end
