@@ -179,6 +179,13 @@ ActiveRecord::Schema.define(version: 20160809211835) do
 
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
 
+  create_table "sources", force: :cascade do |t|
+    t.string   "description", limit: 255
+    t.string   "link",        limit: 255
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+  end
+
   create_table "transformations", force: :cascade do |t|
     t.string   "key",         limit: 255
     t.string   "description", limit: 255
