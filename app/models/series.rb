@@ -137,13 +137,19 @@ class Series < ActiveRecord::Base
   
   def Series.each_spreadsheet_header(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    return {:message => 'The spreadsheet could not be found', :headers => []} if update_spreadsheet.load_error?
+    if update_spreadsheet.load_error?
+      update_spreadsheet.remove_tmp
+      return {:message => 'The spreadsheet could not be found', :headers => []}
+    end
 
     unless update_spreadsheet.class == UpdateCSV
       default_sheet = sa ? 'sadata' : update_spreadsheet.sheets.first
       update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load 
     end
-    return {:message=>'The spreadsheet was not formatted properly', :headers=>[]} unless update_spreadsheet.update_formatted?
+    unless update_spreadsheet.update_formatted?
+      update_spreadsheet.remove_tmp
+      return {:message=>'The spreadsheet was not formatted properly', :headers=>[]}
+    end
 
     header_names = Array.new    
      
@@ -153,6 +159,7 @@ class Series < ActiveRecord::Base
     end
     
     sheets = update_spreadsheet.class == UpdateCSV ? [] : update_spreadsheet.sheets
+    update_spreadsheet.remove_tmp
     return {:message=>'success', :headers=>header_names, :sheets => sheets}
   end
   
@@ -457,7 +464,9 @@ class Series < ActiveRecord::Base
     #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency
-    new_transformation(spreadsheet_path, update_spreadsheet.series(self.name))
+    result = new_transformation(spreadsheet_path, update_spreadsheet.series(self.name))
+    update_spreadsheet.remove_tmp
+    result
   end
     
   
@@ -465,16 +474,24 @@ class Series < ActiveRecord::Base
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     #raise SeriesReloadException if update_spreadsheet.load_error?
-    return self if update_spreadsheet.load_error?
+    if update_spreadsheet.load_error?
+      update_spreadsheet.remove_tmp
+      return self
+    end
 
     ns_name = self.name.sub('@', 'NS@')
 #    default_sheet = update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
     update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load unless update_spreadsheet.class == UpdateCSV
     #raise SeriesReloadException unless update_spreadsheet.update_formatted?
-    return self unless update_spreadsheet.update_formatted?
+    unless update_spreadsheet.update_formatted?
+      update_spreadsheet.remove_tmp
+      return self
+    end
     
     self.frequency = update_spreadsheet.frequency 
-    new_transformation(spreadsheet_path, update_spreadsheet.series(ns_name))
+    result = new_transformation(spreadsheet_path, update_spreadsheet.series(ns_name))
+    update_spreadsheet.remove_tmp
+    result
   end
     
   
@@ -483,7 +500,10 @@ class Series < ActiveRecord::Base
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
     #raise SeriesReloadException if update_spreadsheet.load_error?
-    return self if update_spreadsheet.load_error?
+    if update_spreadsheet.load_error?
+      update_spreadsheet.remove_tmp
+      return self
+    end
 
     ns_name = self.name.sub('@', 'NS@')
     unless update_spreadsheet.class == UpdateCSV
@@ -491,11 +511,15 @@ class Series < ActiveRecord::Base
       update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load
     end
     #raise SeriesReloadException unless update_spreadsheet.update_formatted?
-    return self unless update_spreadsheet.update_formatted?
+    unless update_spreadsheet.update_formatted?
+      update_spreadsheet.remove_tmp
+      return self
+    end
     
     demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
+    update_spreadsheet.remove_tmp
     mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
     new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end

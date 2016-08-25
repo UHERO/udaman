@@ -35,7 +35,10 @@ class PrognozDataFile < ActiveRecord::Base
   
   def load
     @output_spreadsheet = UpdateSpreadsheet.new filename
-    return {:notice=> 'problem loading spreadsheet', :headers=>[]} if @output_spreadsheet.load_error?    
+    if @output_spreadsheet.load_error?
+      @output_spreadsheet.remove_tmp
+      return {:notice=> 'problem loading spreadsheet', :headers=>[]}
+    end
     @output_spreadsheet.default_sheet = @output_spreadsheet.sheets.first
 
     self.frequency = @output_spreadsheet.frequency
@@ -46,14 +49,19 @@ class PrognozDataFile < ActiveRecord::Base
     # end
     self.save
 
-    {:notice=> 'success', :headers => @output_spreadsheet.headers_with_frequency_code, :frequency => @output_spreadsheet.frequency}
+    result = {:notice=> 'success', :headers => @output_spreadsheet.headers_with_frequency_code, :frequency => @output_spreadsheet.frequency}
+    @output_spreadsheet.remove_tmp
+    result
   end
 
   def udaman_diffs
     t = Time.now
     os = UpdateSpreadsheet.new filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
 #    puts "#{"%.2f" %(Time.now - t)} | loading spreadsheet"
-    return {:notice => 'problem loading spreadsheet', :headers=>[]} if os.load_error?
+    if os.load_error?
+      os.remove_tmp
+      return {:notice => 'problem loading spreadsheet', :headers=>[]}
+    end
     diffs = {}
     os.headers_with_frequency_code.each do |header|
 #      t = Time.now
@@ -69,6 +77,7 @@ class PrognozDataFile < ActiveRecord::Base
       diffs[header] = diff_hash if diff_hash.count > 0
 #      puts "#{"%.2f" %(Time.now - t)} | #{ filename}"
     end
+    os.remove_tmp
     puts "#{'%.2f' %(Time.now - t)} | #{ filename}"
     diffs
   end
@@ -76,10 +85,21 @@ class PrognozDataFile < ActiveRecord::Base
   def get_data_for(series_name, output_spreadsheet = nil)    
     output_spreadsheet = UpdateSpreadsheet.new filename if output_spreadsheet.nil?
     s = parse_series_name series_name
-    raise PrognozDataFindException unless s[:frequency_code] == Series.code_from_frequency(self.frequency)
-    raise PrognozDataFindException unless series_loaded.include? series_name
-    raise PrognozDataFindException unless output_spreadsheet.headers.include? s[:base_name]
-    output_spreadsheet.series s[:base_name]
+    unless s[:frequency_code] == Series.code_from_frequency(self.frequency)
+      output_spreadsheet.remove_tmp
+      raise PrognozDataFindException
+    end
+    unless series_loaded.include? series_name
+      output_spreadsheet.remove_tmp
+      raise PrognozDataFindException
+    end
+    unless output_spreadsheet.headers.include? s[:base_name]
+      output_spreadsheet.remove_tmp
+      raise PrognozDataFindException
+    end
+    result = output_spreadsheet.series s[:base_name]
+    output_spreadsheet.remove_tmp
+    result
   end
     
   def output_path
@@ -91,6 +111,7 @@ class PrognozDataFile < ActiveRecord::Base
     t = Time.now
     os = update_spreadsheet    
     Series.write_prognoz_output_file(os.headers_with_frequency_code, output_path, os.sheets.first, os.dates.keys)
+    os.remove_tmp
     puts "#{'%.2f' %(Time.now - t)} | #{ output_path}"
   end
   

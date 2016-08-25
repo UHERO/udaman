@@ -121,15 +121,21 @@ module SeriesDataLists
   end
   
   def Series.write_xls(xls, output_path)
-    old_file, old_file_xls = nil, nil
+    old_file, old_file_s = nil, nil
+    changed = true
     if File::exists?(output_path)
       old_file = open(output_path, 'rb').read
       old_file_xls = Roo::Excel.new(output_path)
+      old_file_s = old_file_xls.to_s
+      old_file_xls.remove_tmp
     end
     xls.write output_path
-    new_file_xls = Roo::Excel.new(output_path)
-    changed = new_file_xls.to_s != old_file_xls.to_s
-    backup_xls(old_file, output_path) if changed unless old_file.nil?
+    unless old_file_s.nil?
+      new_file_xls = Roo::Excel.new(output_path)
+      changed = new_file_xls.to_s != old_file_s.to_s
+      new_file_xls.remove_tmp
+      backup_xls(old_file, output_path) if changed unless old_file.nil?
+    end
     return changed
   end
   
