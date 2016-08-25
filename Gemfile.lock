@@ -97,6 +97,7 @@ GEM
       nokogiri (~> 1.5)
       railties (>= 3, < 5.1)
     cucumber-wire (0.0.1)
+    dalli (2.7.6)
     database_cleaner (1.5.3)
     devise (4.2.0)
       bcrypt (~> 3.0)
@@ -321,6 +322,7 @@ DEPENDENCIES
   coffee-rails (~> 4.1)
   composite_primary_keys (~> 8.1)
   cucumber-rails
+  dalli (~> 2.7)
   database_cleaner
   devise (~> 4.0)
   highline (~> 1.6.0)

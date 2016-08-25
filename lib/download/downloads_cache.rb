@@ -7,7 +7,7 @@ class DownloadsCache
   
   def new_data?
     return false if @new_data.nil?
-    return true
+    true
   end
   
   def reset_new_data

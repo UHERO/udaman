@@ -31,6 +31,7 @@ gem 'watir-webdriver'
 gem 'whenever'
 gem 'mechanize'
 gem 'net-sftp'
+gem 'dalli', '~> 2.7'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 #gem 'devise-encryptable', '~> 0.2'
