@@ -6,7 +6,7 @@ class StringWithDatePatternProcessor
   def compute(date_string)
     subbed_path = @string_format
   #  return subbed_path if date_string.nil?
-    return date_string.to_date.strftime(@string_format) unless subbed_path.index('%').nil?
+    return (date_string.to_s).to_date.strftime(@string_format) unless subbed_path.index('%').nil?
     subbed_path
   end
   

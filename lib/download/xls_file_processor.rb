@@ -44,7 +44,7 @@ class XlsFileProcessor
       raise e
     rescue IOError => e
       puts e.message
-      return 'END' if e.message[0..3] == 'file' and @path_processor.date_sensitive?
+      return 'END' if e.message[0..3] == 'file' and !@path_processor.nil? and @path_processor.date_sensitive?
       raise e
     end
 
