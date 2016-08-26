@@ -45,7 +45,6 @@ task :gen_prognoz_diffs => :environment do
       diff_hash = ddiff[:display_array]
       diff_data.push({:pdf_id => pdf.id, :id => header.ts.id, :name => header, :display_array => diff_hash}) if diff_hash.count > 0
     end
-    os.remove_tmp
     pdf.write_export
     puts "#{'%.2f' %(Time.now - t1)} | #{pdf.filename}"
   end 

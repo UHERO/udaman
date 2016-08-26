@@ -12,14 +12,12 @@ def data_hash_string(update_spreadsheet_path, sheet_to_load = nil, sa = false)
   dh_string = ''
   update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(update_spreadsheet_path)
   if update_spreadsheet.load_error?
-    update_spreadsheet.remove_tmp
-    return {:message => 'The spreadsheet could not be found', :headers => []} 
+    return {:message => 'The spreadsheet could not be found', :headers => []}
   end
 
   default_sheet = sa ? 'Demetra_Results_fa' : update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
   update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load unless update_spreadsheet.class == UpdateCSV
   unless update_spreadsheet.update_formatted?
-    update_spreadsheet.remove_tmp
     return {:message=> 'The spreadsheet was not formatted properly', :headers=>[]}
   end
 
@@ -38,7 +36,6 @@ def data_hash_string(update_spreadsheet_path, sheet_to_load = nil, sa = false)
     dh_string += %Q|"#{series_name}" => {#{all_data}}, |
     #{update_spreadsheet.series(series_name).to_s}|
   end
-  update_spreadsheet.remove_tmp
   dh_string
 end
 

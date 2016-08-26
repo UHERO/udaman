@@ -63,7 +63,6 @@ class DownloadsCache
     end
     @xls[@cache_handle] ||= {}
     @xls[@cache_handle][@sheet] = excel.to_matrix.to_a
-    excel.remove_tmp
   end
 
   def download_results
