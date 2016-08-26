@@ -211,7 +211,7 @@ GEM
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
-    roo (2.5.0)
+    roo (2.4.0)
       nokogiri (~> 1)
       rubyzip (~> 1.1, < 2.0.0)
     roo-xls (1.0.0)
@@ -339,7 +339,7 @@ DEPENDENCIES
   protected_attributes (~> 1.1)
   rails (~> 4.2)
   rest-client (~> 2.0)
-  roo
+  roo (~> 2.4.0)
   roo-xls
   rspec-rails
   rubyzip (~> 1.0)
