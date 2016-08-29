@@ -1,6 +1,7 @@
 UheroDb::Application.routes.draw do
   
 
+  resources :api_applications
   resources :sources
   resources :transformations
   resources :categories
