@@ -1,0 +1,29 @@
+<%= form_for(@api_application) do |f| %>
+  <% if @api_application.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@api_application.errors.count, "error") %> prohibited this api_application from being saved:</h2>
+
+      <ul>
+      <% @api_application.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+  </div>
+  <div class="field">
+    <%= f.label :hostname %><br>
+    <%= f.text_field :hostname %>
+  </div>
+  <div class="field">
+    <%= f.label :key %><br>
+    <%= f.text_field :key %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>
