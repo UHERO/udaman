@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @api_application.name %>
+</p>
+
+<p>
+  <strong>Hostname:</strong>
+  <%= @api_application.hostname %>
+</p>
+
+<p>
+  <strong>Key:</strong>
+  <%= @api_application.key %>
+</p>
+
+<%= link_to 'Edit', edit_api_application_path(@api_application) %> |
+<%= link_to 'Back', api_applications_path %>

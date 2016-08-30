@@ -11,15 +11,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160809211835) do
+ActiveRecord::Schema.define(version: 20160829234438) do
+
+  create_table "api_applications", force: :cascade do |t|
+    t.string   "name",        limit: 255
+    t.string   "hostname",    limit: 255
+    t.string   "key",         limit: 255
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+    t.integer  "api_user_id", limit: 4
+  end
+
+  add_index "api_applications", ["api_user_id"], name: "index_api_applications_on_api_user_id", using: :btree
 
   create_table "api_users", force: :cascade do |t|
-    t.string   "key",        limit: 255
-    t.string   "email",      limit: 255
-    t.string   "name",       limit: 255
-    t.datetime "created_at",             null: false
-    t.datetime "updated_at",             null: false
-    t.string   "hostname",   limit: 255
+    t.string   "email",        limit: 255
+    t.string   "name",         limit: 255
+    t.datetime "created_at",               null: false
+    t.datetime "updated_at",               null: false
+    t.string   "auth_user_id", limit: 255
   end
 
   create_table "aremos_series", force: :cascade do |t|
@@ -214,4 +224,5 @@ ActiveRecord::Schema.define(version: 20160809211835) do
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
 
+  add_foreign_key "api_applications", "api_users"
 end

@@ -1,0 +1,31 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Api Applications</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Hostname</th>
+      <th>Key</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @api_applications.each do |api_application| %>
+      <tr>
+        <td><%= api_application.name %></td>
+        <td><%= api_application.hostname %></td>
+        <td><%= api_application.key %></td>
+        <td><%= link_to 'Show', api_application %></td>
+        <td><%= link_to 'Edit', edit_api_application_path(api_application) %></td>
+        <td><%= link_to 'Destroy', api_application, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Api application', new_api_application_path %>

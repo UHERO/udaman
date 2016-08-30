@@ -14,3 +14,4 @@ public/
 config/deploy.rb
 config/deploy/*
 Capfile
+spec/datafiles/specs_output
