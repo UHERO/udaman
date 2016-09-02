@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160829234438) do
+ActiveRecord::Schema.define(version: 20160902235327) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",        limit: 255
@@ -110,8 +110,8 @@ ActiveRecord::Schema.define(version: 20160829234438) do
 
   create_table "data_sources", force: :cascade do |t|
     t.integer  "series_id",           limit: 4
-    t.string   "description",         limit: 255
-    t.string   "eval",                limit: 255
+    t.text     "description",         limit: 65535
+    t.text     "eval",                limit: 65535
     t.text     "dependencies",        limit: 65535
     t.string   "color",               limit: 255
     t.float    "runtime",             limit: 24
