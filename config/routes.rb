@@ -6,7 +6,7 @@ UheroDb::Application.routes.draw do
   resources :transformations
   resources :categories
   resources :geographies
-  resources :api_users
+
   get 'data_points/:series_id/:date_string' => 'data_points#show'
 
   root :to => 'series#index'
