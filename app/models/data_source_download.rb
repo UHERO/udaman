@@ -65,7 +65,7 @@ class DataSourceDownload < ActiveRecord::Base
   end
 
   def extract_path_flex
-    return file_to_extract.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if file_to_extract.include? DEFAULT_DATA_PATH
+    return file_to_extract.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if !file_to_extract.nil? && file_to_extract.include?(DEFAULT_DATA_PATH)
     file_to_extract
   end
 
