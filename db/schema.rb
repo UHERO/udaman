@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160910033416) do
+ActiveRecord::Schema.define(version: 20160922231228) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -43,6 +43,7 @@ ActiveRecord::Schema.define(version: 20160910033416) do
     t.integer  "data_list_id", limit: 4
     t.datetime "created_at",               null: false
     t.datetime "updated_at",               null: false
+    t.integer  "order",        limit: 4
   end
 
   create_table "data_lists", force: :cascade do |t|
