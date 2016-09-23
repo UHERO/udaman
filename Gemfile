@@ -23,7 +23,6 @@ gem 'spork-rails'
 gem 'sidekiq', '~> 4.1'
 gem 'sinatra', require: false
 gem 'sinatra_auth_github', require: false
-gem 'sinatra'
 gem 'rubyzip', '~> 1.0'
 gem 'capybara', '~> 2.7'
 gem 'selenium-webdriver'
@@ -32,6 +31,7 @@ gem 'whenever'
 gem 'mechanize'
 gem 'net-sftp'
 gem 'dalli', '~> 2.7'
+gem 'rails-assets-select2', source: 'https://rails-assets.org'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 #gem 'devise-encryptable', '~> 0.2'

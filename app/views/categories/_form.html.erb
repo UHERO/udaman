@@ -17,13 +17,17 @@
   </div>
   <div class="field">
     <%= f.label :parent %><br>
-    <%= f.number_field :parent %>
+    <%= f.collection_select :parent, Category.all, :id, :name, {:include_blank => true}%>
   </div>
   <div class="field">
     <%= f.label :data_list_id %><br>
-    <%= f.number_field :data_list_id %>
+    <%= f.collection_select :data_list_id, DataList.all, :id, :name, {:include_blank => true} %>
   </div>
   <div class="actions">
     <%= f.submit %>
   </div>
 <% end %>
+
+<script>
+  $(document).ready(function() { $("#category_data_list_id").select2(); })
+</script>
