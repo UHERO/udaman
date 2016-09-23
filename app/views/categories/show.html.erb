@@ -7,7 +7,7 @@
 
 <p>
   <strong>Parent:</strong>
-  <%= @category.parent %>
+  <%= @category.parent.name unless @category.parent.nil? %>
 </p>
 
 <p>

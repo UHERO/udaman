@@ -3,7 +3,7 @@ class CategoriesController < ApplicationController
 
   # GET /categories
   def index
-    @categories = Category.all
+    @category_roots = Category.roots
   end
 
   # GET /categories/1
@@ -53,6 +53,6 @@ class CategoriesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def category_params
-      params.require(:category).permit(:name, :parent, :data_list_id)
+      params.require(:category).permit(:name, :parent_id, :data_list_id, :order)
     end
 end
