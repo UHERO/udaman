@@ -11,7 +11,7 @@ module CategoriesHelper
   def show_list_item(leaf)
     data_list_section = link_to('Add DataList', edit_category_path(leaf))
     unless leaf.data_list.nil?
-      data_list_section = link_to(leaf.data_list.name, "#{data_list_path}/super_table/#{leaf.data_list_id}")
+      data_list_section = link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
     end
     "#{leaf.name} (" <<
     data_list_section <<
