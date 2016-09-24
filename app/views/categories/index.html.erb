@@ -3,8 +3,8 @@
 <h1>Listing Categories</h1>
 
 <ul>
-  <% @category_roots.each do |category| %>
-      <%= show_table(category).html_safe %>
+  <% @category_roots.sort_by!{|cat| cat.order}.each_index do |i| %>
+      <%= show_table(@category_roots[i], i == 0, i + 1 == @category_roots.length).html_safe %>
   <% end %>
 </ul>
 

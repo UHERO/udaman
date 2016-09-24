@@ -1,5 +1,7 @@
 <h1>Listing data_lists</h1>
 
+<%= link_to 'New Data list', new_data_list_path %>
+
 <table>
   <tr>
     <th>Name</th>
@@ -29,7 +31,7 @@
     <td><%= link_to 'Table', :action => 'show_table', :id => data_list %></td>
     <td><%= link_to 'FlexTable', :action => 'super_table', :id => data_list %></td>
     <td><%= link_to 'Edit', edit_data_list_path(data_list) %></td>
-    <td><%= link_to 'Destroy', data_list, :confirm => 'Are you sure?', :method => :delete %></td>
+    <td><%= link_to 'Destroy', data_list, :method => :delete, data: { confirm: 'Are you sure'} %></td>
   </tr>
 <% end %>
 </table>
