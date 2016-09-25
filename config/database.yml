@@ -32,5 +32,3 @@ production:
     password: <%= ENV['DB_PASSWORD'] || '' %>
     socket: /tmp/mysql.sock
 
-cucumber:
-  <<: *test
