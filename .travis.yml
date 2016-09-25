@@ -1,3 +1,6 @@
 language: ruby
 services:
   - mysql
+
+before_script:
+  - mysql -e 'create database uhero_db_test;'
