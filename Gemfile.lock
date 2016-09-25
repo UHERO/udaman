@@ -357,7 +357,7 @@ DEPENDENCIES
   rest-client (~> 2.0)
   roo (~> 2.4.0)
   roo-xls
-  rspec-rails
+  rspec-rails (~> 3.5)
   rubyzip (~> 1.0)
   rvm-capistrano
   sass-rails (~> 5.0)
