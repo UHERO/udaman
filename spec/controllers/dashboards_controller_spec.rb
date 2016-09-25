@@ -3,7 +3,7 @@ require 'spec_helper'
 describe DashboardsController do
 
   describe "GET 'index'" do
-    it "should be successful" do
+    xit "should be successful" do
       get 'index'
       response.should be_success
     end

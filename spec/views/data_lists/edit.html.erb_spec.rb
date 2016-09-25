@@ -12,7 +12,7 @@ describe "data_lists/edit.html.erb" do
     ))
   end
 
-  it "renders the edit data_list form" do
+  xit "renders the edit data_list form" do
     render
 
     # Run the generator again with the --webrat flag if you want to use webrat matchers

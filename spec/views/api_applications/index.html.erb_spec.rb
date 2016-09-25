@@ -6,12 +6,12 @@ RSpec.describe "api_applications/index", type: :view do
       ApiApplication.create!(
         :name => "Name",
         :hostname => "Hostname",
-        :key => "Key"
+        :api_key => "Key"
       ),
       ApiApplication.create!(
         :name => "Name",
         :hostname => "Hostname",
-        :key => "Key"
+        :api_key => "Key"
       )
     ])
   end

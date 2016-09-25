@@ -10,7 +10,7 @@ describe Packager do
     @dsd.stub(:save_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/datafiles/specs/downloads/pattern.xls")
   end
   
-  it "should add definitions " do
+  xit "should add definitions " do
     p = Packager.new
     p.definitions.should be_nil
     options = %Q|{ :file_type => "xls", :start_date => "2000-01-01", :sheet => "increment_col_a", :row => 2, :col => "increment:3:1", :frequency => "A" }|
@@ -25,7 +25,7 @@ describe Packager do
     p.definitions.count.should == 3 
   end
   
-  it "should get return series data when requested" do
+  xit "should get return series data when requested" do
     p = Packager.new
     
     p.stub(:eval).and_return(Series.create_dummy("dummy", :year, "2000-01-01",0,3))
@@ -44,12 +44,12 @@ describe Packager do
     dfd["TEST3@HI.A"].should == {"2000-01-01" => 0, "2001-01-01" => 1, "2002-01-01" => 2, "2003-01-01" => 3 }
   end
   
-  it "should raise an error if download results are accessed before series are evaluated" do
+  xit "should raise an error if download results are accessed before series are evaluated" do
     p = Packager.new
     lambda { dr = p.download_results }.should raise_error(RuntimeError, "download results have not been set")
   end
 
-  it "should populate download results" do
+  xit "should populate download results" do
     p = Packager.new
     
     options = %Q|{ :file_type => "xls", :start_date => "2000-01-01", :sheet => "increment_col_a", :row => 2, :col => "increment:3:1", :frequency => "A" }|
@@ -67,7 +67,7 @@ describe Packager do
     dr["HANDLE2@TEST.COM"].should == {:status => 200}
   end
   
-  it "should produce definitions when requested" do
+  xit "should produce definitions when requested" do
      p = Packager.new
 
       options = %Q|{ :file_type => "xls", :start_date => "2000-01-01", :sheet => "increment_col_a", :row => 2, :col => "increment:3:1", :frequency => "A" }|
@@ -85,7 +85,7 @@ describe Packager do
       d["TEST3@HI.A"].should == %Q|"TEST3@HI.A".tsn.load_from_download "HANDLE@TEST.COM", { :file_type => "xls", :start_date => "2000-01-01", :sheet => "increment_col_a", :row => 2, :col => "increment:3:1", :frequency => "A" }|
   end
   
-  it "should write definitions to database" do
+  xit "should write definitions to database" do
       p = Packager.new
       Series.create_dummy("dummy@HI.A", :year, "2000-01-01",0,3)
 
@@ -102,7 +102,7 @@ describe Packager do
       "TEST3@HI.A".ts.data.should == {"2000-01-01" => 0, "2001-01-01" => 1, "2002-01-01" => 2, "2003-01-01" => 3 }
   end
   
-  it "should write definitions to a file" do
+  xit "should write definitions to a file" do
     p = Packager.new
     p.stub(:eval).and_return(Series.create_dummy("dummy", :year, "2000-01-01",0,3))
 

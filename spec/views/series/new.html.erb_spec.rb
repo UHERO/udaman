@@ -19,7 +19,7 @@ describe "series/new.html.erb" do
     ).as_new_record)
   end
 
-  it "renders new series form" do
+  xit "renders new series form" do
     render
 
     # Run the generator again with the --webrat flag if you want to use webrat matchers

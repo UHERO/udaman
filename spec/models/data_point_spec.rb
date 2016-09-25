@@ -6,7 +6,7 @@ describe DataPoint do
   end
   
   #redo tests above without the update function
-  it 'should not change data_point if value and source_id are unchanged' do
+  xit 'should not change data_point if value and source_id are unchanged' do
     ds = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds.id, :current => true)
     dp.upd(100, ds)
@@ -16,7 +16,7 @@ describe DataPoint do
     expect(dpu.data_source_id).to eq(dp.data_source_id)
   end
   
-  it 'should update a data_points source_id if source_id is different' do
+  xit 'should update a data_points source_id if source_id is different' do
     ds1 = DataSource.create
     ds2 = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds1.id, :current => true)
@@ -33,7 +33,7 @@ describe DataPoint do
   # it 'should be able to clone itself but assign a new value, source_id' do
   # end
   
-  it 'should mark itself as non-current and spawn a new data point if the value of the data point changes' do
+  xit 'should mark itself as non-current and spawn a new data point if the value of the data point changes' do
     ds1 = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds1.id, :current => true)
     dp.upd(200, ds1)
@@ -42,7 +42,7 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(2)
   end
     
-  it "should make its 'next of kin' data point current if it's being deleted" do
+  xit "should make its 'next of kin' data point current if it's being deleted" do
     ds1 = DataSource.create
     dp = DataPoint.create(
         :series_id => @s.id,

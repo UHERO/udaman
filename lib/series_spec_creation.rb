@@ -35,7 +35,7 @@ module SeriesSpecCreation
     dataseries = Hash.new
     date = Date.parse start_date_string
     (start_offset..end_offset).each do |offset|
-      dataseries[(date>>offset*month_multiplier).to_s] = offset
+      dataseries[(date>>offset*month_multiplier)] = offset
     end
     return Series.create(
       :name => series_name,

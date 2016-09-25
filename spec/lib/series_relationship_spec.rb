@@ -18,7 +18,7 @@ describe SeriesRelationship do
     end
   
     #could probably split this test up into two pieces
-    it "should remove the unused data source from a series with three data sources" do
+    xit "should remove the unused data source from a series with three data sources" do
 
       "VISJPDEMETRA@HI.M".ts_append_eval %Q|"VISJPDEMETRANS@HI.M".ts|
       "VISJPDEMETRANS@HI.M".ts_append_eval %Q|"VISJPNS@HI.M".ts|
@@ -42,24 +42,24 @@ describe SeriesRelationship do
       Series.load_all_series_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/ECT.xls"
     end
   
-    it "should recognize a component series as a dependency" do
+    xit "should recognize a component series as a dependency" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT@HI.M".ts.new_dependencies.index("ECT@HON.M").should be_true
     end
   
-    it "should recognize dependents when it is a component series for another" do
+    xit "should recognize dependents when it is a component series for another" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT@HI.M").should be_true
     end
   
-    it "should recognize component series of multiple sources in the dependencies array" do
+    xit "should recognize component series of multiple sources in the dependencies array" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT_CALC@HON.M".ts + 1|
       "ECT_DEPENDENT@HI.M".ts.new_dependencies.index("ECT@HON.M").should be_true
       "ECT_DEPENDENT@HI.M".ts.new_dependencies.index("ECT_CALC@HON.M").should be_true
     end
   
-    it "should recognize multiple dependents when it is a component for multiple series" do
+    xit "should recognize multiple dependents when it is a component for multiple series" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT2@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT@HI.M").should be_true

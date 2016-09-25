@@ -19,7 +19,8 @@ test: &test
     pool: 5
     username: root
     password:
-    socket: /tmp/mysql.sock
+    host: 127.0.0.1
+    port: 3306
 
 production:
     adapter: mysql2
@@ -31,5 +32,3 @@ production:
     password: <%= ENV['DB_PASSWORD'] || '' %>
     socket: /tmp/mysql.sock
 
-cucumber:
-  <<: *test

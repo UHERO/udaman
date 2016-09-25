@@ -3,8 +3,6 @@ source 'http://rubygems.org'
 gem 'rails', '~> 4.2'
 
 # Application Monitoring
-gem 'newrelic_rpm'
-gem 'newrelic-rake'
 
 gem 'capistrano-rvm'
 gem 'rvm-capistrano'
@@ -69,11 +67,21 @@ gem 'nokogiri'
 gem 'passenger'
 gem 'sqlite3'
 
+group :production do
+  gem 'newrelic_rpm'
+  gem 'newrelic-rake'
+end
+
 group :development, :test do
-  gem 'rspec-rails'
-  gem 'cucumber-rails', :require => false
+  gem 'rspec-rails', '~> 3.0.2'
+  gem 'factory_girl_rails', '~> 4.7'
+  gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
   gem 'test-unit', '1.2.3'
   # added for deployment process (6/5/2014) JP
+end
+
+group :test do
+  gem 'rake'
 end

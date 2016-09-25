@@ -5,7 +5,7 @@ RSpec.describe "api_applications/edit", type: :view do
     @api_application = assign(:api_application, ApiApplication.create!(
       :name => "MyString",
       :hostname => "MyString",
-      :key => "MyString"
+      :api_key => "MyString"
     ))
   end
 
@@ -18,7 +18,6 @@ RSpec.describe "api_applications/edit", type: :view do
 
       assert_select "input#api_application_hostname[name=?]", "api_application[hostname]"
 
-      assert_select "input#api_application_key[name=?]", "api_application[key]"
     end
   end
 end

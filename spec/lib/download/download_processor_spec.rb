@@ -20,7 +20,7 @@ describe DownloadProcessor do
         @dsd.stub(:save_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/datafiles/specs/downloads/pattern.xls")
         @dsd.stub(:extract_path_flex).and_return(nil)
       end
-      it "should handle basic incrementing columns in xls files" do
+      xit "should handle basic incrementing columns in xls files" do
         options = {
           :file_type => "xls",
           :start_date => "2000-01-01",
@@ -32,7 +32,7 @@ describe DownloadProcessor do
         DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
       end
   
-      it "should handle basic incrementing columns in xls files in different named sheets" do
+      xit "should handle basic incrementing columns in xls files in different named sheets" do
         options = {
           :file_type => "xls",
           :start_date => "2000-07-01",
@@ -44,7 +44,7 @@ describe DownloadProcessor do
         DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
       end
   
-      it "should handle basic incrementing columns in xls files in different numbered sheets" do
+      xit "should handle basic incrementing columns in xls files in different numbered sheets" do
         options = {
           :file_type => "xls",
           :start_date => "2000-07-01",
@@ -56,7 +56,7 @@ describe DownloadProcessor do
         DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
       end
       
-      it "should handle basic incrementing columns in xls files when first sheet is requested" do
+      xit "should handle basic incrementing columns in xls files when first sheet is requested" do
         options = {
           :file_type => "xls",
           :start_date => "2000-07-01",
@@ -82,7 +82,7 @@ describe DownloadProcessor do
       #   DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q_alt
       # end
       
-      it "should use the handle's target if it's present, to use in the case that the handle downloads a zip" do
+      xit "should use the handle's target if it's present, to use in the case that the handle downloads a zip" do
         @dsd.stub(:extract_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/datafiles/specs/downloads/alternate.xls")
         options = {
           :file_type => "xls",
@@ -97,7 +97,7 @@ describe DownloadProcessor do
       
       
       #process here instead of in the integer processor object since has to read from file
-      it "should let you specify a header instead of a row " do
+      xit "should let you specify a header instead of a row " do
         options = {
           :file_type => "xls",
           :start_date => "2000-01-01",
@@ -109,7 +109,7 @@ describe DownloadProcessor do
         DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
       end
       
-      it "should let you specify a header instead of a column" do
+      xit "should let you specify a header instead of a column" do
         options = {
           :file_type => "xls",
           :start_date => "2000-01-01",
@@ -128,7 +128,7 @@ describe DownloadProcessor do
         @dsd.stub(:save_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/datafiles/specs/downloads/pattern_csv.csv")
       end
     
-      it "should handle basic incrementing columns in csv" do
+      xit "should handle basic incrementing columns in csv" do
         options = {
           :file_type => "csv",
           :start_date => "2000-01-01",
@@ -146,7 +146,7 @@ describe DownloadProcessor do
         @dsd.stub(:extract_path_flex).and_return(nil)
       end
     
-      it "should be able to read a start date from a spreadsheet" do
+      xit "should be able to read a start date from a spreadsheet" do
         options = {
           :file_type => "xls",
           :start_row => 2,
@@ -161,7 +161,7 @@ describe DownloadProcessor do
         data["2011-06-01"].should == 9708.05
       end
     
-      it "should be able to index dates in reverse and identify a special start date when a row and column are specified" do
+      xit "should be able to index dates in reverse and identify a special start date when a row and column are specified" do
         options = {
           :file_type => "xls",
           :start_row => 2,
@@ -178,7 +178,7 @@ describe DownloadProcessor do
         data["2010-12-01"].should == 9939.8 
       end
     
-      it "should be able to index dates in reverse and read start date from row / col with week day frequency" do
+      xit "should be able to index dates in reverse and read start date from row / col with week day frequency" do
         options = {
           :file_type => "xls",
           :start_row => 2,
@@ -200,7 +200,7 @@ describe DownloadProcessor do
   end #end behavior scenarios
   
   describe "local files tests" do      
-    it "should be able read the same kind of files, but specify a manual download and file path" do
+    xit "should be able read the same kind of files, but specify a manual download and file path" do
       options = {
           :path => "#{ENV["DATAFILES_PATH"]}/datafiles/specs/downloads/pattern.xls",
           :file_type => "xls",
@@ -235,7 +235,7 @@ describe DownloadProcessor do
       lambda { DownloadProcessor.new("HI@test.com", {:file_type => "xls"}) }.should raise_error(RuntimeError, "incomplete Download Processor specification because the following information is missing: start date information, row specification, column specification, sheet specification, frequency specification")
     end
     
-    it "should raise an exception and tell you that a handle does not exist in the database" do
+    xit "should raise an exception and tell you that a handle does not exist in the database" do
       lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "handle 'HI@test.com' does not exist")
     end
     
@@ -260,11 +260,11 @@ describe DownloadProcessor do
         @dsd.stub(:extract_path_flex).and_return(nil)
       end
       
-      it "should raise an exception if download is not successful" do
+      xit "should raise an exception if download is not successful" do
         lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "the download for handle 'HI@test.com failed with status code 500 when attempt to reach http://broken_download.com")
       end
     
-      it "should raise an exception if file cannot be found" do
+      xit "should raise an exception if file cannot be found" do
         @dsd.stub(:download).and_return({:status => 200})
         @dsd.stub(:save_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/no_file.xls")
       
@@ -272,7 +272,7 @@ describe DownloadProcessor do
         lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(IOError, "file spec/no_file.xls does not exist")      
       end
     
-      it "should raise an exception if sheet is not present" do
+      xit "should raise an exception if sheet is not present" do
         @dsd.stub(:download).and_return({:status => 200})
         @options[:sheet] = "no sheet"
         lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "sheet 'no sheet' does not exist in workbook 'spec/datafiles/specs/downloads/pattern.xls' [Handle: HI@test.com]")
