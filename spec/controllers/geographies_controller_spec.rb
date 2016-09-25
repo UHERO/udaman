@@ -24,134 +24,135 @@ RSpec.describe GeographiesController, type: :controller do
   # Geography. As you add validations to Geography, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    skip("Add a hash of attributes valid for your model")
+    {fips: '15001', display_name: 'City and County of Honolulu', display_name_short: 'Honolulu', handle: 'HNL'}
   }
 
   let(:invalid_attributes) {
-    skip("Add a hash of attributes invalid for your model")
+    skip('Add a hash of attributes invalid for your model')
   }
 
-  # This should return the minimal set of values that should be in the session
-  # in order to pass any filters (e.g. authentication) defined in
-  # GeographiesController. Be sure to keep this updated too.
-  let(:valid_session) { {} }
+  before(:each) do
+    @request.env['devise.mapping'] = Devise.mappings[:user]
+    user = FactoryGirl.create(:user)
+    sign_in user
+  end
 
-  describe "GET #index" do
-    it "assigns all geographies as @geographies" do
+  describe 'GET #index' do
+    it 'assigns all geographies as @geographies' do
       geography = Geography.create! valid_attributes
-      get :index, params: {}, session: valid_session
+      get :index, {}
       expect(assigns(:geographies)).to eq([geography])
     end
   end
 
-  describe "GET #show" do
-    it "assigns the requested geography as @geography" do
+  describe 'GET #show' do
+    it 'assigns the requested geography as @geography' do
       geography = Geography.create! valid_attributes
-      get :show, params: {id: geography.to_param}, session: valid_session
+      get :show, {id: geography.to_param}
       expect(assigns(:geography)).to eq(geography)
     end
   end
 
-  describe "GET #new" do
-    it "assigns a new geography as @geography" do
-      get :new, params: {}, session: valid_session
+  describe 'GET #new' do
+    it 'assigns a new geography as @geography' do
+      get :new, {}
       expect(assigns(:geography)).to be_a_new(Geography)
     end
   end
 
-  describe "GET #edit" do
-    it "assigns the requested geography as @geography" do
+  describe 'GET #edit' do
+    it 'assigns the requested geography as @geography' do
       geography = Geography.create! valid_attributes
-      get :edit, params: {id: geography.to_param}, session: valid_session
+      get :edit, {id: geography.to_param}
       expect(assigns(:geography)).to eq(geography)
     end
   end
 
-  describe "POST #create" do
-    context "with valid params" do
-      it "creates a new Geography" do
+  describe 'POST #create' do
+    context 'with valid params' do
+      it 'creates a new Geography' do
         expect {
-          post :create, params: {geography: valid_attributes}, session: valid_session
+          post :create, {geography: valid_attributes}
         }.to change(Geography, :count).by(1)
       end
 
-      it "assigns a newly created geography as @geography" do
-        post :create, params: {geography: valid_attributes}, session: valid_session
+      it 'assigns a newly created geography as @geography' do
+        post :create, {geography: valid_attributes}
         expect(assigns(:geography)).to be_a(Geography)
         expect(assigns(:geography)).to be_persisted
       end
 
-      it "redirects to the created geography" do
-        post :create, params: {geography: valid_attributes}, session: valid_session
+      it 'redirects to the created geography' do
+        post :create, {geography: valid_attributes}
         expect(response).to redirect_to(Geography.last)
       end
     end
 
-    context "with invalid params" do
-      it "assigns a newly created but unsaved geography as @geography" do
-        post :create, params: {geography: invalid_attributes}, session: valid_session
+    context 'with invalid params' do
+      xit 'assigns a newly created but unsaved geography as @geography' do
+        post :create, {geography: invalid_attributes}
         expect(assigns(:geography)).to be_a_new(Geography)
       end
 
       it "re-renders the 'new' template" do
-        post :create, params: {geography: invalid_attributes}, session: valid_session
-        expect(response).to render_template("new")
+        post :create, {geography: invalid_attributes}
+        expect(response).to render_template('new')
       end
     end
   end
 
-  describe "PUT #update" do
-    context "with valid params" do
+  describe 'PUT #update' do
+    context 'with valid params' do
       let(:new_attributes) {
-        skip("Add a hash of attributes valid for your model")
+        {fips: '15', display_name: 'State of Hawaii', display_name_short: 'Hawaii', handle: 'HI'}
       }
 
-      it "updates the requested geography" do
+      it 'updates the requested geography' do
         geography = Geography.create! valid_attributes
-        put :update, params: {id: geography.to_param, geography: new_attributes}, session: valid_session
+        put :update, {id: geography.id, geography: new_attributes}
         geography.reload
-        skip("Add assertions for updated state")
+        skip('Add assertions for updated state')
       end
 
-      it "assigns the requested geography as @geography" do
+      it 'assigns the requested geography as @geography' do
         geography = Geography.create! valid_attributes
-        put :update, params: {id: geography.to_param, geography: valid_attributes}, session: valid_session
+        put :update, {id: geography.to_param, geography: valid_attributes}
         expect(assigns(:geography)).to eq(geography)
       end
 
-      it "redirects to the geography" do
+      it 'redirects to the geography' do
         geography = Geography.create! valid_attributes
-        put :update, params: {id: geography.to_param, geography: valid_attributes}, session: valid_session
+        put :update, {id: geography.to_param, geography: valid_attributes}
         expect(response).to redirect_to(geography)
       end
     end
 
-    context "with invalid params" do
-      it "assigns the geography as @geography" do
+    context 'with invalid params' do
+      it 'assigns the geography as @geography' do
         geography = Geography.create! valid_attributes
-        put :update, params: {id: geography.to_param, geography: invalid_attributes}, session: valid_session
+        put :update, {id: geography.to_param, geography: invalid_attributes}
         expect(assigns(:geography)).to eq(geography)
       end
 
       it "re-renders the 'edit' template" do
         geography = Geography.create! valid_attributes
-        put :update, params: {id: geography.to_param, geography: invalid_attributes}, session: valid_session
-        expect(response).to render_template("edit")
+        put :update, {id: geography.to_param, geography: invalid_attributes}
+        expect(response).to render_template('edit')
       end
     end
   end
 
-  describe "DELETE #destroy" do
-    it "destroys the requested geography" do
+  describe 'DELETE #destroy' do
+    it 'destroys the requested geography' do
       geography = Geography.create! valid_attributes
       expect {
-        delete :destroy, params: {id: geography.to_param}, session: valid_session
+        delete :destroy, {id: geography.to_param}
       }.to change(Geography, :count).by(-1)
     end
 
-    it "redirects to the geographies list" do
+    it 'redirects to the geographies list' do
       geography = Geography.create! valid_attributes
-      delete :destroy, params: {id: geography.to_param}, session: valid_session
+      delete :destroy, {id: geography.to_param}
       expect(response).to redirect_to(geographies_url)
     end
   end

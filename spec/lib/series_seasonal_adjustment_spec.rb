@@ -3,53 +3,53 @@ require 'spec_data_hash.rb'
 
 describe SeriesSeasonalAdjustment do
 
-  before(:all) do
-    @ns_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/ns_update.xls"
-    @ns_load_results = Series.load_all_series_from @ns_update_path
-    @ns_series_names = @ns_load_results[:headers] 
-    @ns_series_name = @ns_series_names.first
-    @ns_series_loaded = @ns_series_name.ts
-    
-    @sa_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/sa_update.xls"
-    @worksheet_name = "sadata"
-    @sa_load_results = Series.load_all_sa_series_from @sa_update_path, @worksheet_name
-    @sa_series_names = @sa_load_results[:headers] 
-    @sa_series_name = @sa_series_names.first
-    @sa_series = Series.get @sa_series_name
-    @sa_series_loaded = Series.get @sa_series_name
-    
-  end
+  # before(:all) do
+  #   @ns_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/ns_update.xls"
+  #   @ns_load_results = Series.load_all_series_from @ns_update_path
+  #   @ns_series_names = @ns_load_results[:headers]
+  #   @ns_series_name = @ns_series_names.first
+  #   @ns_series_loaded = @ns_series_name.ts
+  #
+  #   @sa_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/sa_update.xls"
+  #   @worksheet_name = "sadata"
+  #   @sa_load_results = Series.load_all_sa_series_from @sa_update_path, @worksheet_name
+  #   @sa_series_names = @sa_load_results[:headers]
+  #   @sa_series_name = @sa_series_names.first
+  #   @sa_series = Series.get @sa_series_name
+  #   @sa_series_loaded = Series.get @sa_series_name
+  #
+  # end
   
   describe "performing SEASONAL ADJUSTMENT UPDATES" do
-    before(:each) do
-      
-      @ns_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/ns_update.xls"
-      @ns_load_results = Series.load_all_series_from @ns_update_path
-      @ns_series_names = @ns_load_results[:headers] 
-      @ns_series_name = @ns_series_names.first
-      @ns_series_loaded = @ns_series_name.ts
-
-      @sa_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/sa_update.xls"
-      @worksheet_name = "sadata"
-      @sa_load_results = Series.load_all_sa_series_from @sa_update_path, @worksheet_name
-      @sa_series_names = @sa_load_results[:headers] 
-      @sa_series_name = @sa_series_names.first
-      @sa_series = Series.get @sa_series_name
-      @sa_series_loaded = Series.get @sa_series_name
-      
-      # Series.all.each {|s| puts s.name}
-      # puts "------------"
-      @ns_series_loaded.save
-      # Series.all.each {|s| puts s.name}
-      # puts "------------"
-      @sa_series_loaded.save
-      @ns_series = @ns_series_name.ts
-      # Series.all.each {|s| puts s.name}
-      # puts "------------"
-      @sa_series = @sa_series_name.ts
-    end
+    # before(:each) do
+    #
+    #   @ns_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/ns_update.xls"
+    #   @ns_load_results = Series.load_all_series_from @ns_update_path
+    #   @ns_series_names = @ns_load_results[:headers]
+    #   @ns_series_name = @ns_series_names.first
+    #   @ns_series_loaded = @ns_series_name.ts
+    #
+    #   @sa_update_path = "#{ENV["DATAFILES_PATH"]}/datafiles/sa_update.xls"
+    #   @worksheet_name = "sadata"
+    #   @sa_load_results = Series.load_all_sa_series_from @sa_update_path, @worksheet_name
+    #   @sa_series_names = @sa_load_results[:headers]
+    #   @sa_series_name = @sa_series_names.first
+    #   @sa_series = Series.get @sa_series_name
+    #   @sa_series_loaded = Series.get @sa_series_name
+    #
+    #   # Series.all.each {|s| puts s.name}
+    #   # puts "------------"
+    #   @ns_series_loaded.save
+    #   # Series.all.each {|s| puts s.name}
+    #   # puts "------------"
+    #   @sa_series_loaded.save
+    #   @ns_series = @ns_series_name.ts
+    #   # Series.all.each {|s| puts s.name}
+    #   # puts "------------"
+    #   @sa_series = @sa_series_name.ts
+    # end
   
-    it "should find 12 date, value pairs to derive factors from in its data array." do
+    xit "should find 12 date, value pairs to derive factors from in its data array." do
       @ns_series.should_not be_nil
       last_demetra_date = @sa_series.last_demetra_date
       factor_comparison_start_date = last_demetra_date << 12
@@ -57,7 +57,7 @@ describe SeriesSeasonalAdjustment do
       last_year_of_sa_values.should have(12).items
     end
   
-    it "should generate expected factors from a seasonally adjusted series and its counterpart." do
+    xit "should generate expected factors from a seasonally adjusted series and its counterpart." do
       @ns_series.save
       @sa_series.set_factors :additive
       @sa_series.factors.should have(12).items
@@ -77,7 +77,7 @@ describe SeriesSeasonalAdjustment do
       #@sa_series.factors.should include("2009-01-01"=>-0.41432)
     end
   
-    it "should update the series with the expected values" do
+    xit "should update the series with the expected values" do
       @ns_series.save
       @sa_series.data = @sa_series.apply_seasonal_adjustment(:additive).data
       observed_values_since_seasonal_adjustment = @sa_series.get_values_after(@sa_series.last_demetra_date)

@@ -12,7 +12,7 @@ describe "data_lists/new.html.erb" do
     ).as_new_record)
   end
 
-  it "renders new data_list form" do
+  xit "renders new data_list form" do
     render
 
     # Run the generator again with the --webrat flag if you want to use webrat matchers

@@ -24,134 +24,143 @@ RSpec.describe TransformationsController, type: :controller do
   # Transformation. As you add validations to Transformation, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    skip("Add a hash of attributes valid for your model")
+    {
+        key: 'pch',
+        description: 'Percent change since last value',
+        formula: '(x(t) - x(t-1))/x(t-1)'
+    }
   }
 
   let(:invalid_attributes) {
-    skip("Add a hash of attributes invalid for your model")
+    skip('Add a hash of attributes invalid for your model')
   }
 
-  # This should return the minimal set of values that should be in the session
-  # in order to pass any filters (e.g. authentication) defined in
-  # TransformationsController. Be sure to keep this updated too.
-  let(:valid_session) { {} }
+  before(:each) do
+    @request.env['devise.mapping'] = Devise.mappings[:user]
+    user = FactoryGirl.create(:user)
+    sign_in user
+  end
 
-  describe "GET #index" do
-    it "assigns all transformations as @transformations" do
+  describe 'GET #index' do
+    it 'assigns all transformations as @transformations' do
       transformation = Transformation.create! valid_attributes
-      get :index, params: {}, session: valid_session
+      get :index, {}
       expect(assigns(:transformations)).to eq([transformation])
     end
   end
 
-  describe "GET #show" do
-    it "assigns the requested transformation as @transformation" do
+  describe 'GET #show' do
+    it 'assigns the requested transformation as @transformation' do
       transformation = Transformation.create! valid_attributes
-      get :show, params: {id: transformation.to_param}, session: valid_session
+      get :show, {id: transformation.to_param}
       expect(assigns(:transformation)).to eq(transformation)
     end
   end
 
-  describe "GET #new" do
-    it "assigns a new transformation as @transformation" do
-      get :new, params: {}, session: valid_session
+  describe 'GET #new' do
+    it 'assigns a new transformation as @transformation' do
+      get :new, {}
       expect(assigns(:transformation)).to be_a_new(Transformation)
     end
   end
 
-  describe "GET #edit" do
-    it "assigns the requested transformation as @transformation" do
+  describe 'GET #edit' do
+    it 'assigns the requested transformation as @transformation' do
       transformation = Transformation.create! valid_attributes
-      get :edit, params: {id: transformation.to_param}, session: valid_session
+      get :edit, {id: transformation.to_param}
       expect(assigns(:transformation)).to eq(transformation)
     end
   end
 
-  describe "POST #create" do
-    context "with valid params" do
-      it "creates a new Transformation" do
+  describe 'POST #create' do
+    context 'with valid params' do
+      it 'creates a new Transformation' do
         expect {
-          post :create, params: {transformation: valid_attributes}, session: valid_session
+          post :create, {transformation: valid_attributes}
         }.to change(Transformation, :count).by(1)
       end
 
-      it "assigns a newly created transformation as @transformation" do
-        post :create, params: {transformation: valid_attributes}, session: valid_session
+      it 'assigns a newly created transformation as @transformation' do
+        post :create, {transformation: valid_attributes}
         expect(assigns(:transformation)).to be_a(Transformation)
         expect(assigns(:transformation)).to be_persisted
       end
 
-      it "redirects to the created transformation" do
-        post :create, params: {transformation: valid_attributes}, session: valid_session
+      it 'redirects to the created transformation' do
+        post :create, {transformation: valid_attributes}
         expect(response).to redirect_to(Transformation.last)
       end
     end
 
-    context "with invalid params" do
-      it "assigns a newly created but unsaved transformation as @transformation" do
-        post :create, params: {transformation: invalid_attributes}, session: valid_session
+    context 'with invalid params' do
+      it 'assigns a newly created but unsaved transformation as @transformation' do
+        post :create, {transformation: invalid_attributes}
         expect(assigns(:transformation)).to be_a_new(Transformation)
       end
 
       it "re-renders the 'new' template" do
-        post :create, params: {transformation: invalid_attributes}, session: valid_session
-        expect(response).to render_template("new")
+        post :create, {transformation: invalid_attributes}
+        expect(response).to render_template('new')
       end
     end
   end
 
-  describe "PUT #update" do
-    context "with valid params" do
+  describe 'PUT #update' do
+    context 'with valid params' do
       let(:new_attributes) {
-        skip("Add a hash of attributes valid for your model")
+        {
+            key: 'chg',
+            description: 'Change since last value',
+            formula: '(x(t) - x(t-1))'
+        }
       }
 
-      it "updates the requested transformation" do
+      it 'updates the requested transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, params: {id: transformation.to_param, transformation: new_attributes}, session: valid_session
+        put :update, {id: transformation.to_param, transformation: new_attributes}
         transformation.reload
-        skip("Add assertions for updated state")
+        skip('Add assertions for updated state')
       end
 
-      it "assigns the requested transformation as @transformation" do
+      it 'assigns the requested transformation as @transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, params: {id: transformation.to_param, transformation: valid_attributes}, session: valid_session
+        put :update, {id: transformation.to_param, transformation: valid_attributes}
         expect(assigns(:transformation)).to eq(transformation)
       end
 
-      it "redirects to the transformation" do
+      it 'redirects to the transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, params: {id: transformation.to_param, transformation: valid_attributes}, session: valid_session
+        put :update, {id: transformation.to_param, transformation: valid_attributes}
         expect(response).to redirect_to(transformation)
       end
     end
 
-    context "with invalid params" do
-      it "assigns the transformation as @transformation" do
+    context 'with invalid params' do
+      it 'assigns the transformation as @transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, params: {id: transformation.to_param, transformation: invalid_attributes}, session: valid_session
+        put :update, {id: transformation.to_param, transformation: invalid_attributes}
         expect(assigns(:transformation)).to eq(transformation)
       end
 
       it "re-renders the 'edit' template" do
         transformation = Transformation.create! valid_attributes
-        put :update, params: {id: transformation.to_param, transformation: invalid_attributes}, session: valid_session
-        expect(response).to render_template("edit")
+        put :update, {id: transformation.to_param, transformation: invalid_attributes}
+        expect(response).to render_template('edit')
       end
     end
   end
 
-  describe "DELETE #destroy" do
-    it "destroys the requested transformation" do
+  describe 'DELETE #destroy' do
+    it 'destroys the requested transformation' do
       transformation = Transformation.create! valid_attributes
       expect {
-        delete :destroy, params: {id: transformation.to_param}, session: valid_session
+        delete :destroy, {id: transformation.to_param}
       }.to change(Transformation, :count).by(-1)
     end
 
-    it "redirects to the transformations list" do
+    it 'redirects to the transformations list' do
       transformation = Transformation.create! valid_attributes
-      delete :destroy, params: {id: transformation.to_param}, session: valid_session
+      delete :destroy, {id: transformation.to_param}
       expect(response).to redirect_to(transformations_url)
     end
   end

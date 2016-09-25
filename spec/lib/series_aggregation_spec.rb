@@ -54,37 +54,37 @@ describe SeriesAggregation do
   end
   
   describe "performing GROUPING" do
-    it "should group monthly data into quarters and only keep complete quarters" do
+    xit "should group monthly data into quarters and only keep complete quarters" do
       grouped_data = @monthly_series_to_aggregate.group_data_by :quarter
       @expected_quarters.each {|date| grouped_data.keys.should include(date)}
       grouped_data.should have(11).items
     end
 
-    it "should group monthly data into years and only keep complete years" do
+    xit "should group monthly data into years and only keep complete years" do
       grouped_data = @monthly_series_to_aggregate.group_data_by :year
       @expected_years.each {|date| grouped_data.keys.should include(date)}
       grouped_data.should have(2).items
     end
   
-    it "should group quarterly data into years and only keep complete years" do
+    xit "should group quarterly data into years and only keep complete years" do
       grouped_data = @quarterly_series_to_aggregate.group_data_by :year
       @expected_years.each {|date| grouped_data.should include(date)}
       grouped_data.should have(2).items
     end
 
-    it "should group semi annual data into years and only keep complete years" do
+    xit "should group semi annual data into years and only keep complete years" do
       grouped_data = @semi_annual_series_to_aggregate.group_data_by :year
       @expected_years.each {|date| grouped_data.should include(date)}
       grouped_data.should have(5).items
     end
     
-    it "should group quarterly data to semis and only keep complete semis" do
+    xit "should group quarterly data to semis and only keep complete semis" do
       grouped_data = @quarterly_series_to_aggregate.group_data_by :semi
       @expected_semis.each {|date| grouped_data.should include(date)}
       grouped_data.should have(6).items
     end
     
-    it "should group monthly data to semis and only keep complete semis" do
+    xit "should group monthly data to semis and only keep complete semis" do
       grouped_data = @monthly_series_to_aggregate.group_data_by :semi
       @expected_semis.each {|date| grouped_data.should include(date)}
       grouped_data.should have(5).items
@@ -96,61 +96,61 @@ describe SeriesAggregation do
   end
   
   describe "performing AGGREGATION" do
-    it "should aggregate monthly data into quarters using a sum operation" do
+    xit "should aggregate monthly data into quarters using a sum operation" do
       aggregated_data = @monthly_series_to_aggregate.aggregate_data_by :quarter, :sum
       @expected_month_to_quarter_sums.each {|date, sum| aggregated_data.should include(date=>sum)}
       aggregated_data.should have(11).items
     end
   
-    it "should aggregate monthly data into years using a sum operation" do
+    xit "should aggregate monthly data into years using a sum operation" do
       aggregated_data = @monthly_series_to_aggregate.aggregate_data_by :year, :sum
       @expected_month_to_year_sums.each {|date, sum| aggregated_data.should include(date=>sum)}
       aggregated_data.should have(2).items
     end
 
-    it "should aggregate monthly data into semi_annuals using a sum operation" do
+    xit "should aggregate monthly data into semi_annuals using a sum operation" do
       aggregated_data = @monthly_series_to_aggregate.aggregate_data_by :semi, :sum
       @expected_month_to_semi_sums.each {|date, sum| aggregated_data.should include(date=>sum)}
       aggregated_data.should have(5).items
     end
     
-    it "should aggregate monthly data into quarters using an average operation" do
+    xit "should aggregate monthly data into quarters using an average operation" do
       aggregated_data = @monthly_series_to_aggregate.aggregate_data_by :quarter, :average
       @expected_month_to_quarter_avgs.each {|date, avg| aggregated_data.should include(date=>avg)}
       aggregated_data.should have(11).items
     end
   
-    it "should aggregate monthly data into years using an average operation" do
+    xit "should aggregate monthly data into years using an average operation" do
       aggregated_data = @monthly_series_to_aggregate.aggregate_data_by :year, :average
       @expected_month_to_year_avgs.each {|date, avg| aggregated_data.should include(date=>avg)}
       aggregated_data.should have(2).items
     end
     
-    it "should aggregate monthly data into semi_annuals using a average operation" do
+    xit "should aggregate monthly data into semi_annuals using a average operation" do
       aggregated_data = @monthly_series_to_aggregate.aggregate_data_by :semi, :average
       @expected_month_to_semi_avgs.each {|date, sum| aggregated_data.should include(date=>sum)}
       aggregated_data.should have(5).items
     end
 
-    it "should aggregate quarterly data into years using a sum operation" do
+    xit "should aggregate quarterly data into years using a sum operation" do
       aggregated_data = @quarterly_series_to_aggregate.aggregate_data_by :year, :sum
       @expected_quarter_to_year_sums.each {|date, sum| aggregated_data.should include(date=>sum)}
       aggregated_data.should have(2).items
     end
   
-    it "should aggregated quarterly data into years using an average operation" do
+    xit "should aggregated quarterly data into years using an average operation" do
       aggregated_data = @quarterly_series_to_aggregate.aggregate_data_by :year, :average
       @expected_quarter_to_year_avgs.each {|date, avg| aggregated_data.should include(date=>avg)}
       aggregated_data.should have(2).items
     end
 
-    it "should aggregate semi_annual data into years using a sum operation" do
+    xit "should aggregate semi_annual data into years using a sum operation" do
       aggregated_data = @semi_annual_series_to_aggregate.aggregate_data_by :year, :sum
       @expected_semi_to_year_sums.each {|date, sum| aggregated_data.should include(date=>sum)}
       aggregated_data.should have(5).items
     end
   
-    it "should aggregated semi_annual data into years using an average operation" do
+    xit "should aggregated semi_annual data into years using an average operation" do
       aggregated_data = @semi_annual_series_to_aggregate.aggregate_data_by :year, :average
       @expected_semi_to_year_avgs.each {|date, avg| aggregated_data.should include(date=>avg)}
       aggregated_data.should have(5).items

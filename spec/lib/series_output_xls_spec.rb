@@ -34,7 +34,7 @@ describe SeriesOutputXls do
     @sox.dates[23].should == "2018-01-01"    
   end
   
-  it "should not write a file if no data is present" do
+  xit "should not write a file if no data is present" do
     no_file_path = "#{ENV["DATAFILES_PATH"]}/datafiles/no_file.xls"
     sox_no_data = SeriesOutputXls.new(no_file_path)
     sox_no_data.write_xls
@@ -42,7 +42,7 @@ describe SeriesOutputXls do
   end
   
    
-  it "should write a file with the correct data" do
+  xit "should write a file with the correct data" do
     @sox.add_data("ONES@TEST.M", @ones_data)
     @sox.add_data("TWOS@TEST.M", @twos_data)
     @sox.add_data("THREES@TEST.M", @threes_data)

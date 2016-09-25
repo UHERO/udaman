@@ -2,15 +2,15 @@ require 'rails_helper'
 
 RSpec.describe "categories/index", type: :view do
   before(:each) do
-    assign(:categories, [
+    assign(:category_roots, [
       Category.create!(
         :name => "Name",
-        :parent => 2,
+        :parent_id => nil,
         :data_list_id => 3
       ),
       Category.create!(
         :name => "Name",
-        :parent => 2,
+        :parent_id => nil,
         :data_list_id => 3
       )
     ])
@@ -18,8 +18,6 @@ RSpec.describe "categories/index", type: :view do
 
   it "renders a list of categories" do
     render
-    assert_select "tr>td", :text => "Name".to_s, :count => 2
-    assert_select "tr>td", :text => 2.to_s, :count => 2
-    assert_select "tr>td", :text => 3.to_s, :count => 2
+    assert_select "ul>li>strong", :text => "Name".to_s, :count => 2
   end
 end

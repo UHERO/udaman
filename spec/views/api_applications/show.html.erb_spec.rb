@@ -5,7 +5,7 @@ RSpec.describe "api_applications/show", type: :view do
     @api_application = assign(:api_application, ApiApplication.create!(
       :name => "Name",
       :hostname => "Hostname",
-      :key => "Key"
+      :api_key => "Key"
     ))
   end
 

@@ -3,7 +3,7 @@ require 'spec_data_hash.rb'
 #lop
 
 describe AremosSeries do
-  it "(AremosSeries) should read in a single annual series from TSD file into AremosSeries objects" do
+  xit "(AremosSeries) should read in a single annual series from TSD file into AremosSeries objects" do
     AremosSeries.load_tsd "#{ENV["DATAFILES_PATH"]}/datafiles/specs/single_tsd/A_DATA_TOUR.TSD"
     s = AremosSeries.first
     s.name.should == "NAIV@HI.A"
@@ -18,7 +18,7 @@ describe AremosSeries do
     s.aremos_update_date.should == Date.parse("2011-03-09")
   end
   
-  it "(AremosSeries) should read in a single quarterly series from TSD file into AremosSeries objects" do
+  xit "(AremosSeries) should read in a single quarterly series from TSD file into AremosSeries objects" do
     AremosSeries.load_tsd "#{ENV["DATAFILES_PATH"]}/datafiles/specs/single_tsd/Q_DATA_TOUR.TSD"
     s = AremosSeries.first
     s.name.should == "NAIVCANNS@HI.Q"
@@ -33,7 +33,7 @@ describe AremosSeries do
     s.aremos_update_date.should == Date.parse("2011-03-14")
   end
   
-  it "(AremosSeries) should read in a single monthly series from TSD file into AremosSeries objects" do
+  xit "(AremosSeries) should read in a single monthly series from TSD file into AremosSeries objects" do
     AremosSeries.load_tsd "#{ENV["DATAFILES_PATH"]}/datafiles/specs/single_tsd/M_DATA_TOUR.TSD"
     s = AremosSeries.first
     s.name.should == "NAIVCANNS@HI.M"
@@ -48,7 +48,7 @@ describe AremosSeries do
     s.aremos_update_date.should == Date.parse("2011-03-09")
   end
   
-  it "(AremosSeries) should read in a single weekly series from TSD file into AremosSeries objects" do
+  xit "(AremosSeries) should read in a single weekly series from TSD file into AremosSeries objects" do
     AremosSeries.load_tsd "#{ENV["DATAFILES_PATH"]}/datafiles/specs/single_tsd/W_DATA_TOUR.TSD"
     s = AremosSeries.first
     s.name.should == "OCUP%NS@HAW.W"
@@ -63,7 +63,7 @@ describe AremosSeries do
     s.aremos_update_date.should == Date.parse("2011-03-07")
   end
   
-  it "(AremosSeries) should read in a single daily series from TSD file into AremosSeries objects" do
+  xit "(AremosSeries) should read in a single daily series from TSD file into AremosSeries objects" do
     AremosSeries.load_tsd "#{ENV["DATAFILES_PATH"]}/datafiles/specs/single_tsd/D_DATA_TOUR.TSD"
     s = AremosSeries.first
     s.name.should == "PCDMNS@HAW.D"
@@ -101,7 +101,7 @@ describe AremosSeries do
     s.data.count.should == 12
   end
   
-  it "should be able to load a file twice without crashing" do
+  xit "should be able to load a file twice without crashing" do
     AremosSeries.load_tsd "#{ENV["DATAFILES_PATH"]}/datafiles/specs/single_tsd/A_DATA_TOUR.TSD"
     AremosSeries.all.count.should == 1
     s = AremosSeries.first

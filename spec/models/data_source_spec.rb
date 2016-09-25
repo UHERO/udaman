@@ -14,7 +14,7 @@ describe DataSource do
     @data2_no_nil.delete_if {|key,value| value.nil?}
   end
     
-  it "should create a source when append syntax is used" do
+  xit "should create a source when append syntax is used" do
     "YSTWTR@HI.A".ts_append_eval %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
     "YSTWTR@HI.A".ts.data_sources.count.should == 1
     "YSTWTR@HI.A".ts.data_sources.first.eval.should_not be_nil
@@ -30,7 +30,7 @@ describe DataSource do
     "YSTWTR@HI.A".ts.data_sources.count.should == 2
   end
      
-  it "should delete all dependent data points if it is deleted and regenerate the data hash for the series" do
+  xit "should delete all dependent data points if it is deleted and regenerate the data hash for the series" do
     "YSTWTR@HI.A".ts_eval= %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
     
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
@@ -74,7 +74,7 @@ describe DataSource do
     source.id.should == "YSTWTR@HI.A".ts.data_sources[0].id
   end
 
-  it "should be able to retrieve series in order of earliest last run to latest last run" do
+  xit "should be able to retrieve series in order of earliest last run to latest last run" do
     Series.store("YSTWTR@HI.A", Series.new(:data => @data1_hash),"desc1", %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|)
     Series.store("YSTWTR@HI.A", Series.new(:data => @data2_hash),"desc2", %Q|"YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|)    
     sleep 1
@@ -84,7 +84,7 @@ describe DataSource do
   end
 
   
-  it "should be able to reload series data from a source" do
+  xit "should be able to reload series data from a source" do
     # Series.store("YSTWTR@HI.A", Series.new(:data => @data2_hash),nil,"desc2", %Q|"YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|)    
     # Series.store("YSTWTR@HI.A", Series.new(:data => @data1_hash),nil,"desc1", %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|)
     
@@ -107,7 +107,7 @@ describe DataSource do
   end
   
     #turn off "setting" data sources. Now that we can delete sources and data points. All sources should be appended
-   it "should mark data points as history if they are attached to current data source, but the date is not in the source data hash" do
+   xit "should mark data points as history if they are attached to current data source, but the date is not in the source data hash" do
      #Series.store(series_name, series, mode, desc=nil, eval_statement=nil)
      delete_date = "2000-01-01"
      dummy_series = "YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"
