@@ -5,6 +5,7 @@ Udaman: UHERO Data Manager
 Udaman is [UHERO](http://uhero.hawaii.edu)'s data management system.
 
 To set up your development environment,
+
 1. [Install Vagrant](https://www.vagrantup.com/downloads.html).
 2. [Install Virtual Box](https://www.virtualbox.org/wiki/Downloads).
 3. Clone this project.
