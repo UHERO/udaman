@@ -1,79 +1,25 @@
-[![Stories in Ready](https://badge.waffle.io/UHERO/udaman.png?label=ready&title=Ready)](https://waffle.io/UHERO/udaman)
+[![Build Status](https://travis-ci.org/UHERO/udaman.svg?branch=master)](https://travis-ci.org/UHERO/udaman)
 Udaman: UHERO Data Manager
 ======
 
-Udaman is [UHERO](http://uhero.hawaii.edu)'s data management system. Udaman is a Ruby on Rails applciation, and will therefore require Ruby to by installed. We use [RVM](https://rvm.io/) to manage our Ruby versions. Udaman is currently running on Ruby version ruby-1.9.2-p290.
+Udaman is [UHERO](http://uhero.hawaii.edu)'s data management system.
 
-We encourage you to clone this project and take it for a spin. Fork us and contribute to the project through pull requests.
-
-The following instructions assume you are using OS X.
-
-Setting Up Your Development Environment
-----
-
-###Setup RVM
-From the console in the folder in which you will install Udaman:
-```bash
-\curl -sSL https://get.rvm.io | bash -s stable
-```
-Click `yes` if prompted to install developer tools.
-
-Then
-```bash
-rvm install ruby-1.9.2-p290
-```
-Install Homebrew if prompted.
-
-If it fails the first time, run `rvm install ruby-1.9.2-p290` a second time.
-
-###Create the appropriate gemset
-```
-rvm use ruby-1.9.2-p290
-rvm gemset create rails3
-rvm use ruby-1.9.2-p290@rails3
-```
-
-###Setup MySQL
-1. Download the "x86, 64bit" DMG version of MySQL 5.6.x for OS X 10.7 from mysql.com and install the pkg, the startup item and the pref pane.
-2. Open the pref pane and start the MySQL Server.
-3. Update the path by editing `~/.bash_profile` and add:
-```bash
-export PATH=~/bin:/usr/local/bin:/usr/local/mysql/bin:$PATH
-```
-at top of file.
-
-###Add Library Path
-In `.bash_profile`, add the following line:
-```bash
-export DYLD_LIBRARY_PATH=/usr/local/mysql/lib:$DYLD_LIBRARY_PATH
-```
-
-### Clone the project
-```bash
-git clone https://github.com/UHERO/udaman.git
-```
-
-### Change directories into the `udaman` folder:
-```bash
-cd udaman
-```
-
-### Install the required gems
-```bash
-bundle install
-```
-
-### Start MySQL (if it's not already running)
-```bash
-mysqld
-```
-If this didn't work, make sure you have MySQL and Homebrew installed (try [this tutorial](http://benjsicam.me/blog/how-to-install-mysql-on-mac-os-x-using-homebrew-tutorial/)).
-
-### Setup the Database 
-Run the following command from the Udaman folder:
-```bash
-rake db:setup
-```
+To set up your development environment,
+1. [Install Vagrant](https://www.vagrantup.com/downloads.html).
+2. [Install Virtual Box](https://www.virtualbox.org/wiki/Downloads).
+3. Clone this project.
+4. Install the following Vagrant plugins:
+    1. `vagrant plugin install vagrant-reload`
+    2. `vagrant plugin install vagrant-vbguest`
+5. `vagrant up` in the porject directory.
+6. `vagrant ssh` to log into the Udaman VM.
+7. In the Udaman VM, run the following commands to start the server, which you can access at localhost:3000:
+    ```
+    cd /vagrant
+    gem install bundler
+    bundle install
+    rvmsudo passenger start
+    ```
 
 ### Add a user
 From the Udaman application folder, open the rails console:
@@ -102,7 +48,7 @@ rake rebuild
 ### Take Udaman for a spin
 Start the rails server in the console
 ```bash
-rails server
+rvmsudo passenger start
 ```
 
 In another terminal window enter the rails console in the project folder (`rails console`). And find the name of a series with data in it using the following command:
