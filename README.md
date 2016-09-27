@@ -15,6 +15,7 @@ To set up your development environment,
 5. `vagrant up` in the porject directory.
 6. `vagrant ssh` to log into the Udaman VM.
 7. In the Udaman VM, run the following commands to start the server, which you can access at localhost:3000:
+
     ```
     cd /vagrant
     gem install bundler
