@@ -97,7 +97,8 @@ class DataSourceDownload < ActiveRecord::Base
     puts 'downloaded'
     #not sure why I was raising this exception. Want to note the failed downloads and continue
     #raise DownloadException if resp.header.status_code != 200
-    if resp.code == 200 #successful download
+    status = resp.code
+    if status == 200 #successful download
       data_changed = content_changed?(resp.to_str)
 
       backup if data_changed
@@ -110,7 +111,6 @@ class DataSourceDownload < ActiveRecord::Base
     download_url = url
     download_location = resp.headers['Location']
     content_type = resp.headers['Content-Type']
-    status = resp.code
     last_log = dsd_log_entries.order(:time).last
 
     if last_log.nil? or !(last_log.url == download_url and last_log.time.to_date == download_time.to_date and last_log.status == status)

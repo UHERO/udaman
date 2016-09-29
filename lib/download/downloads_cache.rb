@@ -62,7 +62,6 @@ class DownloadsCache
 
   def download_results
     @download_results ||= {}
-    @download_results
   end
 
   def download_handle
@@ -100,19 +99,22 @@ class DownloadsCache
 
   def alternate_fastercsv_read(path)
     csv_data = []
-    csv_file = open path, "r"
-    while line = csv_file.gets
-      next unless line.index("HYPERLINK").nil?
-      # valid encoding solution is to deal with xA0 characters from this stack overflow post
-      # http://stackoverflow.com/questions/8710444/is-there-a-way-in-ruby-1-9-to-remove-invalid-byte-sequences-from-strings
-      csv_data.push(CSV.parse_line(line.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')))
+    csv_file = open path, 'r'
+    while (line = csv_file.gets)
+      begin
+        next unless line.index('HYPERLINK').nil?
+        # valid encoding solution is to deal with xA0 characters from this stack overflow post
+        # http://stackoverflow.com/questions/8710444/is-there-a-way-in-ruby-1-9-to-remove-invalid-byte-sequences-from-strings
+        csv_data.push(CSV.parse_line(line.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')))
+      rescue
+        puts 'CSV is having a problem with the following line'
+        puts line
+        csv_data.push([])
+      end
     end
     csv_file.close
-    return csv_data 
-  rescue
-    puts "CSV is having a problem with the following line"
-    puts line
-    return [] #not sure about this change. Used to be nil. but got too time consuming
+    csv_data
+    # return [] #not sure about this change. Used to be nil. but got too time consuming
   end
 
   def text(handle)
@@ -130,9 +132,9 @@ class DownloadsCache
   end
 
   def get_text_rows
-    f = open @dsd.save_path_flex, "r"
+    f = open @dsd.save_path_flex, 'r'
     text_rows = []
-    while row = f.gets
+    while (row = f.gets)
       text_rows.push row 
     end
     text_rows
