@@ -1,9 +1,3 @@
-GIT
-  remote: git://github.com/sporkrb/spork.git
-  revision: 224df492657e617a0c93c0319e78f0eefee5b636
-  specs:
-    spork (1.0.0rc4)
-
 GEM
   remote: http://rubygems.org/
   remote: https://rails-assets.org/
@@ -255,6 +249,7 @@ GEM
     sinatra_auth_github (1.2.0)
       sinatra (~> 1.0)
       warden-github (~> 1.2.0)
+    spork (1.0.0rc4)
     spork-rails (4.0.0)
       rails (>= 3.0.0, < 5)
       spork (>= 1.0rc0)
@@ -343,7 +338,6 @@ DEPENDENCIES
   sidekiq (~> 4.1)
   sinatra
   sinatra_auth_github
-  spork!
   spork-rails
   sqlite3
   stringex (~> 2.6)

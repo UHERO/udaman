@@ -16,11 +16,10 @@ gem 'roo', '~> 2.4.0'
 gem 'roo-xls'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
-gem 'spork', github: 'sporkrb/spork'
 gem 'spork-rails'
 gem 'sidekiq', '~> 4.1'
-gem 'sinatra', require: false
-gem 'sinatra_auth_github', require: false
+gem 'sinatra', :require => false
+gem 'sinatra_auth_github', :require => false
 gem 'rubyzip', '~> 1.0'
 gem 'capybara', '~> 2.7'
 gem 'selenium-webdriver'
@@ -29,7 +28,7 @@ gem 'whenever'
 gem 'mechanize'
 gem 'net-sftp'
 gem 'dalli', '~> 2.7'
-gem 'rails-assets-select2', source: 'https://rails-assets.org'
+gem 'rails-assets-select2', :source => 'https://rails-assets.org'
 gem 'ancestry'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
