@@ -345,7 +345,7 @@ class Series < ActiveRecord::Base
 
     #a_time = Time.now
     # this one also takes a long time.
-    #aremos_comparison #if we can take out this save, might speed things up a little
+    aremos_comparison #if we can take out this save, might speed things up a little
     #puts "#{"%.2f" % (Time.now - a_time)} : #{observation_dates.count} : #{self.name} : AREMOS COMPARISON"
     []
   end
