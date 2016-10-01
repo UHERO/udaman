@@ -3,6 +3,7 @@ Passengerfile.json
 **/.DS_Store
 .idea
 .bundle
+.vagrant
 db/*.sqlite3
 log/*.log
 tmp/
