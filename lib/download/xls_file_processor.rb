@@ -1,3 +1,5 @@
+require 'new_relic/agent/method_tracer'
+
 #can use allow_blanks as an option for handling blanks
 class XlsFileProcessor
   #job of this object is to coordinate all of the other processor objects for the mapping
