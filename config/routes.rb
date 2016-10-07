@@ -1,5 +1,4 @@
 UheroDb::Application.routes.draw do
-  
 
   resources :api_applications
   resources :sources
@@ -12,6 +11,11 @@ UheroDb::Application.routes.draw do
   root :to => 'series#index'
 
   devise_for :users
+
+  require 'sidekiq/web'
+  authenticate :users do
+    mount Sidekiq::Web => '/sidekiq'
+  end
 
   # get "prognoz_data_files/index"
   # 
