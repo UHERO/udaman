@@ -13,7 +13,7 @@ UheroDb::Application.routes.draw do
   devise_for :users
 
   require 'sidekiq/web'
-  authenticate :users do
+  authenticate :user do
     mount Sidekiq::Web => '/sidekiq'
   end
 
