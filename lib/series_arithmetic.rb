@@ -92,19 +92,27 @@ module SeriesArithmetic
     #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
   end
   
-  def rebase(date)
+  def rebase(year=nil)
+    unless year.nil?
+      year = Date.parse(year).year
+    end
     new_series_data = {}
-    
-    if frequency != 'year' or frequency != :year
+    if frequency != 'year' and frequency != :year
       annual_series = (self.name.split('.')[0] + '.A').ts
-      new_base = annual_series.at(date).to_f
+      if year.nil?
+        year = annual_series.data.keys.sort[-1].year
+      end
+      new_base = annual_series.at(Date.new(year)).to_f
     else
-      new_base = self.at(date).to_f
+      if year.nil?
+        year = self.data.keys.sort[-1].year
+      end
+      new_base = self.at(Date.new(year)).to_f
     end
     data.sort.each do |inner_date, value|
       new_series_data[inner_date] = value / new_base * 100
     end
-    new_transformation("Rebased #{name} to #{date}", new_series_data)
+    new_transformation("Rebased #{name} to #{year}", new_series_data)
   end
   
   def percentage_change
