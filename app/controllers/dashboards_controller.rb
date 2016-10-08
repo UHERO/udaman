@@ -59,6 +59,11 @@ class DashboardsController < ApplicationController
     @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
   end
 
+  def export_tsd
+    ExportWorker.perform_async
+    render :json => {message: 'Export TSD in Queue'}
+  end
+
   def udamacmini_comparison
     client = HTTPClient.new
     resp = client.get('http://s9n196.soc.hawaii.edu:3000/system_summary.csv')

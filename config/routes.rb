@@ -84,6 +84,7 @@ UheroDb::Application.routes.draw do
   get 'investigate_visual' => 'dashboards#investigate_visual'
   get 'investigate_no_source' => 'dashboards#investigate_no_source'
   get 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
+  get 'export_tsd' => 'dashboards#export_tsd'
   get 'rake_report' => 'dashboards#rake_report'
   get 'construction' => 'dashboards#construction'
   get 'construction/years/:num_years' => 'dashboards#construction'
