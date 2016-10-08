@@ -299,7 +299,6 @@
 	d3.csv('/dp_added.csv', new_data_points);
 	d3.csv('/download_results.csv', download_results);
 	d3.csv('/packager_output.csv', packager_output);
-	 
 	</script>
 	
 	<style>
@@ -332,7 +331,8 @@
 			<h2>Downloads / Raw Data</h2>
 			<svg id="download_results"></svg>
       <p><a href="reload_errors.log" target="_blank">Reload Errors Log</a></p>
-      <p><a href="/sidekiq">Reload Queue</a></p>
+      <p><a href="/sidekiq">Series Reload Queue</a> | <button id="export_tsd">Generate TSD Export</button></p>
+      <p id="message_area"></p>
 		</td>
 		</tr>
       <tr>
@@ -347,5 +347,20 @@
 		<h2>Series Mismatches with Aremos</h2>
 		<svg id="matching_diffs"></svg>
 	</div>
-	
+
+<script>
+  d3.select('#export_tsd').on('click', function() {
+    console.log('clicked button');
+    d3.json('/export_tsd', function(data) {
+      console.log('received json');
+      d3.select('#message_area')
+          .text(data.message)
+          .style('background-color', '#A4CCB3')
+          .style('padding', '20px')
+          .style('display', 'inline-block')
+          .style('font-weight', 700)
+          .style('color', '#397A26');
+    })
+  })
+</script>
 
