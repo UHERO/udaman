@@ -1,33 +1,49 @@
 <%= form_for(@series) do |f| %>
-  <% if @series.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>
+    <% if @series.errors.any? %>
+        <div id="error_explanation">
+          <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>
 
-      <ul>
-      <% @series.errors.full_messages.each do |msg| %>
-        <li><%= msg %></li>
-      <% end %>
-      </ul>
+          <ul>
+            <% @series.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :name %><br/>
+      <%= f.text_field :name %>
     </div>
-  <% end %>
-
-  <div class="field">
-    <%= f.label :name %><br />
-    <%= f.text_field :name %>
-  </div>
-  <div class="field">
-    <%= f.label :description %><br />
-    <%= f.text_field :description %>
-  </div>
-  <div class="field">
-    <%= f.label :units %><br />
-    <%= f.text_field :units %>
-  </div>
-  <div class="field">
-    <%= f.label :investigation_notes %><br />
-    <%= f.text_area :investigation_notes %>
-  </div>
-  <div class="actions">
-    <%= f.submit %>
-  </div>
+    <div class="field">
+      <%= f.label 'Data Portal Name' %><br/>
+      <%= f.text_field :dataPortalName %>
+    </div>
+    <div class="field">
+      <%= f.label :description %><br/>
+      <%= f.text_field :description %>
+    </div>
+    <div class="field">
+      <%= f.label :units %><br/>
+      <%= f.text_field :units %>
+    </div>
+    <div class="field">
+      <%= f.label 'Units Label' %><br/>
+      <%= f.text_field :unitsLabel %>
+    </div>
+    <div class="field">
+      <%= f.label 'Units Label Short' %><br/>
+      <%= f.text_field :unitsLabelShort %>
+    </div>
+    <div class="field">
+      <%= f.label :investigation_notes %><br/>
+      <%= f.text_area :investigation_notes %>
+    </div>
+    <div class="field">
+      <%= f.label 'Seasonally Adjusted' %><br/>
+      <%= f.text_area :seasonally_adjusted %>
+    </div>
+    <div class="actions">
+      <%= f.submit %>
+    </div>
 <% end %>
