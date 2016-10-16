@@ -21,10 +21,19 @@ class SeriesWorker
       puts 'WORKER: Another worker will finish'
       return
     end
+    redis.incr('waiting_workers')
     puts 'WORKER: This worker will finish'
     # no one else has so time to raise the flag
     redis.set('finishing_depth', true)
     # wait for everyone else to finish
+    while Sidekiq::Workers.new.size > 1
+      sleep(1)
+      # the random component helps avoid a race condition between two processes
+      if redis.get('waiting_workers') > 1 && rand > 0.5
+        redis.decr('waiting_workers')
+        return
+      end
+    end
     sleep(1) until Sidekiq::Workers.new.size <= 1
     # if no workers are busy, the queue should be filled with the next
     next_depth = redis.get('current_depth').to_i - 1
