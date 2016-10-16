@@ -29,7 +29,7 @@ class SeriesWorker
     while Sidekiq::Workers.new.size > 1
       sleep(1)
       # the random component helps avoid a race condition between two processes
-      if redis.get('waiting_workers') > 1 && rand > 0.5
+      if redis.get('waiting_workers').to_i > 1 && rand > 0.5
         redis.decr('waiting_workers')
         return
       end
