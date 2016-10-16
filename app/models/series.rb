@@ -1017,6 +1017,8 @@ class Series < ActiveRecord::Base
     puts 'Starting Reload by Dependency Depth'
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
     redis.set('current_depth', first_depth)
+    redis.set('waiting_workers', 0)
+    redis.set('finishing_depth', false)
     series_size = series_list.count
     redis.set("series_list_#{series_size}", series_list.pluck(:id))
     # set the current depth
