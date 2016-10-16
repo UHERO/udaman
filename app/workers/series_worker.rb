@@ -35,6 +35,14 @@ class SeriesWorker
     puts "WORKER: Next depth: #{next_depth}"
     redis.set('current_depth', next_depth)
     series_ids = redis.get("series_list_#{series_size}").scan(/\d+/).map{|s| s.to_i}
+    next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
+    while next_series.count == 0
+      next_depth -= 1
+      puts "WORKER: Next depth: #{next_depth}"
+      return if next_depth == 0
+      redis.set('current_depth', next_depth)
+      next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
+    end
     Series.all.where(:id => series_ids, :dependency_depth => next_depth).pluck(:id).each do |id|
       SeriesWorker.perform_async id, series_size
     end
