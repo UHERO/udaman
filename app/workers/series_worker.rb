@@ -57,5 +57,6 @@ class SeriesWorker
     end
     puts 'WORKER: queued up the next depth'
     redis.set('finishing_depth', false)
+    redis.decr('waiting_workers')
   end
 end
