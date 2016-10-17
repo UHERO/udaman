@@ -37,7 +37,7 @@ class SeriesWorker
     sleep(1) until Sidekiq::Workers.new.size <= 1
     # if no workers are busy, the queue should be filled with the next
     next_depth = redis.get('current_depth').to_i - 1
-    if next_depth == 0
+    if next_depth == -1
       puts 'WORKER: on last depth'
       return
     end
@@ -48,7 +48,7 @@ class SeriesWorker
     while next_series.count == 0
       next_depth -= 1
       puts "WORKER: Next depth: #{next_depth}"
-      return if next_depth == 0
+      return if next_depth == -1
       redis.set('current_depth', next_depth)
       next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
     end
