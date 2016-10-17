@@ -34,7 +34,6 @@ class SeriesWorker
         return
       end
     end
-    sleep(1) until Sidekiq::Workers.new.size <= 1
     # if no workers are busy, the queue should be filled with the next
     next_depth = redis.get('current_depth').to_i - 1
     if next_depth == -1
