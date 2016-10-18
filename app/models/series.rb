@@ -1021,6 +1021,7 @@ class Series < ActiveRecord::Base
     redis.set("waiting_workers_#{series_size}", 0)
     redis.set("finishing_depth_#{series_size}", false)
     redis.set("series_list_#{series_size}", series_list.pluck(:id))
+    redis.set("queue_#{series_size}", series_list.where(:dependency_depth => first_depth).count)
     # set the current depth
     series_list.where(:dependency_depth => first_depth).pluck(:id).each do |series_id|
       SeriesWorker.perform_async series_id, series_size
