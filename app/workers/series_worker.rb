@@ -62,11 +62,11 @@ class SeriesWorker
         redis.set("current_depth_#{series_size}", next_depth)
         next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       end
-      redis.set("queue_#{series_size}", Series.all.where(:dependency_depth => next_depth).count)
+      redis.set("queue_#{series_size}", next_series.count)
       redis.set("finishing_depth_#{series_size}", false)
       puts "\nWORKER (#{series_size}): set busy_workers counter to 1 (end of worker)\n\n"
       redis.set("busy_workers_#{series_size}", 1)
-      Series.all.where(:id => series_ids, :dependency_depth => next_depth).pluck(:id).each do |id|
+      next_series.pluck(:id).each do |id|
         SeriesWorker.perform_async id, series_size
       end
       puts "\nWORKER (#{series_size}): queued up the next depth\n\n"
