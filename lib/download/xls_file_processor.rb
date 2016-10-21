@@ -18,9 +18,7 @@ class XlsFileProcessor
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
     date = @date_processor.compute(index)
-
     handle = @handle_processor.compute(date)
-
     sheet = @sheet_processor.compute(date)
     path = @path_processor.nil? ? nil : @path_processor.compute(date)
 
