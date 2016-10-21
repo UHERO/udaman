@@ -71,8 +71,8 @@ module SeriesComparison
     aremos_series = AremosSeries.get self.name
     data_to_compare = aremos_series.nil? ? {} : aremos_series.data 
     self.data.each do |date, value|
-      value = value/self.mult.to_f unless value.nil? or value.class == String
-      self.aremos_missing += 1 and (value.nil? and !data_to_compare[date].nil?)
+      value = value/self.mult.to_f unless (value.nil? or value.class == String)
+      self.aremos_missing += 1 if (!value.nil? and data_to_compare[date].nil?)
       self.aremos_diff += (data_to_compare[date].to_f.to_sci - value.to_f.to_sci).abs if data_to_compare[date] != nil and value != nil
     end
     self.save

@@ -93,6 +93,11 @@ class SeriesController < ApplicationController
     end
   end
 
+  def refresh_aremos
+    Series.find_by(id: params[:id]).aremos_match
+    redirect_to :action => 'show', id: params[:id]
+  end
+
   def destroy
     @series = Series.find_by id: params[:id]
     @series.destroy
