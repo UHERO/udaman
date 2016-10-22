@@ -144,7 +144,7 @@ GEM
     netrc (0.11.0)
     newrelic-rake (1.4.1)
       newrelic_rpm (>= 3.1.0)
-    newrelic_rpm (3.16.1.320)
+    newrelic_rpm (3.17.0.325)
     nokogiri (1.6.8)
       mini_portile2 (~> 2.1.0)
       pkg-config (~> 1.1.7)
