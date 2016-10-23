@@ -203,6 +203,10 @@ GEM
       nokogiri
       roo (>= 2.0.0beta1, < 3)
       spreadsheet (> 0.9.0)
+    rspec (3.0.0)
+      rspec-core (~> 3.0.0)
+      rspec-expectations (~> 3.0.0)
+      rspec-mocks (~> 3.0.0)
     rspec-core (3.0.4)
       rspec-support (~> 3.0.0)
     rspec-expectations (3.0.4)
@@ -218,6 +222,9 @@ GEM
       rspec-expectations (~> 3.0.0)
       rspec-mocks (~> 3.0.0)
       rspec-support (~> 3.0.0)
+    rspec-sidekiq (2.2.0)
+      rspec (~> 3.0, >= 3.0.0)
+      sidekiq (>= 2.4.0)
     rspec-support (3.0.4)
     ruby-ole (1.2.12)
     rubyzip (1.2.0)
@@ -331,6 +338,7 @@ DEPENDENCIES
   roo (~> 2.4.0)
   roo-xls
   rspec-rails (~> 3.0.2)
+  rspec-sidekiq
   rubyzip (~> 1.0)
   rvm-capistrano
   sass-rails (~> 5.0)

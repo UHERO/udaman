@@ -33,7 +33,10 @@ class SeriesWorker
         puts "\nWORKER (#{series_size}): waiting for other workers to finish\n\n"
         sleep(1)
         # the random component helps avoid a race condition between two processes
-        if redis.get("waiting_workers_#{series_size}").to_i > 1 && rand > 0.5
+        if redis.get("waiting_workers_#{series_size}").to_i > 1 &&
+            redis.get("busy_workers_#{series_size}").to_i > 1 &&
+            Sidekiq::Workers.new.size > 1 &&
+            rand > 0.5
           puts "\nWORKER (#{series_size}): breaking ties\n\n"
           redis.decr("waiting_workers_#{series_size}")
           return

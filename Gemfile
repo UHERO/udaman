@@ -86,4 +86,5 @@ end
 
 group :test do
   gem 'rake'
+  gem 'rspec-sidekiq'
 end
