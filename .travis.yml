@@ -1,6 +1,7 @@
 language: ruby
 services:
   - mysql
+  - redis-server
 
 before_script:
   - mysql -e 'create database uhero_db_test;'
