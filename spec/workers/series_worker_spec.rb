@@ -3,17 +3,21 @@ require 'redis'
 
 describe SeriesWorker do
   redis = Redis.new
-  series_id = 'FAKE@HI.A'.tsn.id
   size = 35
+  redis.del "queue_#{size}"
   it 'should grab from the queue' do
+    series_id = 1
     SeriesWorker.perform_async series_id, size
     expect(SeriesWorker).to have_enqueued_job(series_id, size)
+    redis.del "queue_#{size}"
   end
 
   it 'should decrease the namespaced queue' do
-    expect(redis.get "queue_#{size}").to eq('0')
+    series_id = Series.create(name: 'FAKE1@HI.A').id
+    expect(redis.get "queue_#{size}").to be_a(NilClass)
     SeriesWorker.perform_async series_id, size
     SeriesWorker.drain
     expect(redis.get "queue_#{size}").to eq('-1')
+    redis.del "queue_#{size}"
   end
 end
