@@ -1042,8 +1042,9 @@ class Series < ActiveRecord::Base
       waiting_workers = redis.get("waiting_workers_#{series_size}")
       busy_workers = redis.get("busy_workers_#{series_size}")
     end
-    if current_depth.value.to_i > 0 &&
-        queue .value.to_i < 0 &&
+    current_depth = current_depth.value.to_i
+    if current_depth > 0 &&
+        queue.value.to_i < 0 &&
         finishing_depth.value == 'true' &&
         waiting_workers.value.to_i == 1 &&
         busy_workers.value.to_i == 0
