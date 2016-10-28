@@ -45,6 +45,10 @@ every 1.day, :at => '9:10 pm' do
   rake 'reload_all_series'
 end
 
+every 30.minutes do
+  rake 'check_for_stalled_reload'
+end
+
 # ------- These two are together. Need only sometimes --------
 every 1.day, :at => '5:30 am' do
   rake 'update_bea_links'

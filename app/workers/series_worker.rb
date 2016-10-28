@@ -80,17 +80,17 @@ class SeriesWorker
         next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       end
 
-      next_series.pluck(:id).each do |id|
-        SeriesWorker.perform_async id, series_size
-      end
-      puts "\nWORKER (#{series_size}): queued up the next depth\n\n"
       redis.pipelined do
-        redis.set keys[:current_depth], next_depth
         redis.set keys[:queue], next_series.count
+        redis.set keys[:current_depth], next_depth
         redis.set keys[:finishing_depth], false
         redis.set keys[:busy_workers], 1
       end
       puts "\nWORKER (#{series_size}): set busy_workers counter to 1 (end of worker)\n\n"
+      next_series.pluck(:id).each do |id|
+        SeriesWorker.perform_async id, series_size
+      end
+      puts "\nWORKER (#{series_size}): queued up the next depth\n\n"
 
     rescue => e
       puts "\nWORKER (#{series_size}): error running series #{series_id}\n\n"
