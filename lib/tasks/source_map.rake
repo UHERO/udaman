@@ -73,6 +73,10 @@ task :reload_all_series => :environment do
   end
 end
 
+task :check_for_stalled_reload => :environment do
+  Series.check_for_stalled_reload
+end
+
 task :build_rebuild => :environment do
   File.open('lib/tasks/REBUILD.rb', 'w') do |file|
     DataSource.order(:last_run_in_seconds).each do |ds|
