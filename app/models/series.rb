@@ -988,7 +988,7 @@ class Series < ActiveRecord::Base
                         WHERE EXISTS (SELECT 1 FROM data_sources ds
                         JOIN (SELECT * FROM series) inner_s ON ds.series_id = inner_s.id
                         WHERE inner_s.dependency_depth = #{previous_depth}
-                        AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\%'), '%'));]
+                        AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%'));]
       ActiveRecord::Base.connection.execute next_level_sql
       previous_depth_count = current_depth_count
       current_depth_count = Series.where(dependency_depth: previous_depth + 1).count
