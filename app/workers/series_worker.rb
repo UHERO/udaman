@@ -4,7 +4,12 @@ require 'redis'
 class SeriesWorker
   include Sidekiq::Worker
 
+  sidekiq_retries_exhausted do |msg|
+    Sidekiq.logger.warn "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
+  end
+
   def perform(series_id, series_size)
+    sidekiq_options :retry => false # job will be discarded immediately if failed
     keys = {
       queue: "queue_#{series_size}",
       busy_workers: "busy_workers_#{series_size}",
