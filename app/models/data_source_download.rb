@@ -83,11 +83,7 @@ class DataSourceDownload < ActiveRecord::Base
 
   def download
     #self.download_log ||= []
-    #### trying to comment out following lines creating HTTPClient, because it seems not to be used. -dji
-    ##client = HTTPClient.new
     #some will only respond to certain user agents... this may have to be updated
-    ##client.agent_name = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:9.0) Gecko/20100101 Firefox/9.0'
-    ##client.connect_timeout = 1000
     resp = nil
     #loop seems to allow cookie to be downloaded... maybe more effective way to do this?
     if post_parameters.nil? or post_parameters.length == 0
