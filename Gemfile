@@ -71,6 +71,10 @@ group :production do
   gem 'newrelic-rake'
 end
 
+group :development do
+  gem 'newrelic_rpm'
+end
+
 group :development, :test do
   gem 'rspec-rails', '~> 3.0.2'
   gem 'factory_girl_rails', '~> 4.7'
@@ -78,9 +82,9 @@ group :development, :test do
   gem 'watchr'
   gem 'database_cleaner'
   gem 'test-unit', '1.2.3'
-  # added for deployment process (6/5/2014) JP
 end
 
 group :test do
   gem 'rake'
+  gem 'rspec-sidekiq'
 end

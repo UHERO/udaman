@@ -987,7 +987,7 @@ class Series < ActiveRecord::Base
                         WHERE EXISTS (SELECT 1 FROM data_sources ds
                         JOIN (SELECT * FROM series) inner_s ON ds.series_id = inner_s.id
                         WHERE inner_s.dependency_depth = #{previous_depth}
-                        AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\%'), '%'));]
+                        AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%'));]
       ActiveRecord::Base.connection.execute next_level_sql
       previous_depth_count = current_depth_count
       current_depth_count = Series.where(dependency_depth: previous_depth + 1).count
@@ -1016,15 +1016,54 @@ class Series < ActiveRecord::Base
     puts 'Starting Reload by Dependency Depth'
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
     series_size = series_list.count
-    redis.set("current_depth_#{series_size}", first_depth)
-    redis.set("waiting_workers_#{series_size}", 0)
-    redis.set("busy_workers_#{series_size}", 0)
-    redis.set("finishing_depth_#{series_size}", false)
-    redis.set("series_list_#{series_size}", series_list.pluck(:id))
-    redis.set("queue_#{series_size}", series_list.where(:dependency_depth => first_depth).count)
+    redis.pipelined do
+      redis.set("current_depth_#{series_size}", first_depth)
+      redis.set("waiting_workers_#{series_size}", 0)
+      redis.set("busy_workers_#{series_size}", 0)
+      redis.set("finishing_depth_#{series_size}", false)
+      redis.set("series_list_#{series_size}", series_list.pluck(:id))
+      redis.set("queue_#{series_size}", series_list.where(:dependency_depth => first_depth).count)
+    end
     # set the current depth
     series_list.where(:dependency_depth => first_depth).pluck(:id).each do |series_id|
       SeriesWorker.perform_async series_id, series_size
+    end
+  end
+
+  def Series.check_for_stalled_reload(series_size = Series.all.count)
+    require 'redis'
+    redis = Redis.new
+    current_depth, queue, finishing_depth, waiting_workers, busy_workers, series_ids = nil
+    redis.pipelined do
+      current_depth = redis.get("current_depth_#{series_size}")
+      queue = redis.get("queue_#{series_size}")
+      finishing_depth = redis.get "finishing_depth_#{series_size}"
+      waiting_workers = redis.get("waiting_workers_#{series_size}")
+      busy_workers = redis.get("busy_workers_#{series_size}")
+    end
+    current_depth = current_depth.value.to_i
+    if current_depth > 0 &&
+        queue.value.to_i < 0 &&
+        finishing_depth.value == 'true' &&
+        waiting_workers.value.to_i == 1 &&
+        busy_workers.value.to_i == 0
+      puts "Jump starting stalled reload (#{series_size})"
+      next_depth = current_depth - 1
+      redis.pipelined do
+        redis.set("current_depth_#{series_size}", next_depth)
+        series_ids = redis.get("series_list_#{series_size}")
+      end
+      series_ids = series_ids.value.scan(/\d+/).map{|s| s.to_i}
+      next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
+      redis.pipelined do
+        redis.set("queue_#{series_size}", next_series.count)
+        redis.set("finishing_depth_#{series_size}", false)
+        redis.set("busy_workers_#{series_size}", 1)
+      end
+      next_series.pluck(:id).each do |id|
+        SeriesWorker.perform_async id, series_size
+      end
+      puts "Queued depth #{next_depth} (#{series_size})"
     end
   end
 end
