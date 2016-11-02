@@ -206,9 +206,11 @@ class DataSource < ActiveRecord::Base
     end
         
     def delete_data_points
+      t = Time.now
       self.data_points.each do |dp|
         dp.delete
-      end    
+      end
+      puts "#{Time.now - t} | deleted all data points for DS #{self.description}"
     end
     
     def delete

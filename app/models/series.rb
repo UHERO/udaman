@@ -524,13 +524,12 @@ class Series < ActiveRecord::Base
       raise e
     end
     Series.write_cached_files cached_files if cached_files.new_data?
-
     Series.new_transformation("loaded from download #{handle} with options:#{options}", series_data, Series.frequency_from_code(options[:frequency]))
   end
   
   #the other problem with these "SERIES" style transformations is that they overwrite the units calculations. Can also build that into the 
   #series definition as necessary
-  
+
   def Series.load_from_file(file, options, cached_files = nil)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     begin
@@ -648,13 +647,13 @@ class Series < ActiveRecord::Base
     DownloadsCache
     DataSourceDownload
     DsdLogEntry
-#    t = Time.now
+    t = Time.now
     #this is pretty good for now. Will eventually want to redo cache strategy to write directly to cache with individual keys
     #the larger file sizes really slow the system down, even though this is still a performance boost
     #may also be able to dump directly now that Marshal knows about the classes? 
     #also that class logic will work by itself. 
     cache = Rails.cache.fetch('downloads')
-#    puts "#{Time.now - t} | Got Downloads from Cache " unless cache.nil?
+    puts "#{Time.now - t} | Got Downloads from Cache " unless cache.nil?
     return DownloadsCache.new if cache.nil?
     return Marshal.load(cache)
   end

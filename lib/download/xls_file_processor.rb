@@ -17,23 +17,22 @@ class XlsFileProcessor
 
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
+    #puts "DEBUG: Observation at index #{index}"
     date = @date_processor.compute(index)
-
     handle = @handle_processor.compute(date)
-
     sheet = @sheet_processor.compute(date)
-    path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    path = @path_processor.nil? ? @cached_files.chandle : @path_processor.compute(date)
 
     # puts index
     # puts path
     # puts sheet
     begin
-      row = @row_processor.compute(index, @cached_files, handle, sheet)
-      col = @col_processor.compute(index, @cached_files, handle, sheet)
+      row = @row_processor.compute(index, @cached_files, handle, sheet, path)
+      col = @col_processor.compute(index, @cached_files, handle, sheet, path)
 
       #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
-
-      worksheet = @cached_files.xls(handle, sheet, path)
+      #puts "DEBUG: Before ...... cached files.xls CALL: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:|#{path || @cached_files.chandle}|"
+      worksheet = @cached_files.xls(handle, sheet, path || @cached_files.chandle)
     rescue RuntimeError => e
       puts e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
@@ -51,10 +50,10 @@ class XlsFileProcessor
     end
 
     observation_value = parse_cell(worksheet.cell(row,col))
-
-    return 'END' if observation_value == 'BREAK IN DATA' unless @handle_processor.date_sensitive?
-    return {} if observation_value == 'BREAK IN DATA' if @handle_processor.date_sensitive?
-    {date => observation_value}
+    if observation_value == 'BREAK IN DATA'
+      return @handle_processor.date_sensitive? ? {} : 'END';
+    end
+    return {date => observation_value}
   end
 
   def parse_cell(cell_value)
