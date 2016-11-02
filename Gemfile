@@ -71,10 +71,6 @@ group :production do
   gem 'newrelic-rake'
 end
 
-group :development do
-  gem 'newrelic_rpm'
-end
-
 group :development, :test do
   gem 'rspec-rails', '~> 3.0.2'
   gem 'factory_girl_rails', '~> 4.7'

@@ -83,10 +83,7 @@ class DataSourceDownload < ActiveRecord::Base
 
   def download
     #self.download_log ||= []
-    client = HTTPClient.new
     #some will only respond to certain user agents... this may have to be updated
-    client.agent_name = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:9.0) Gecko/20100101 Firefox/9.0'
-    client.connect_timeout = 1000
     resp = nil
     #loop seems to allow cookie to be downloaded... maybe more effective way to do this?
     if post_parameters.nil? or post_parameters.length == 0
@@ -123,14 +120,14 @@ class DataSourceDownload < ActiveRecord::Base
 
   def content_changed?(new_content)
     puts 'checking for changed content'
-    return true unless File::exists? save_path_flex
+    return true if !File::exists? save_path_flex
     previous_download = open(save_path_flex, 'rb').read
     previous_download != new_content
   end
 
   def backup
     puts 'backing up'
-    return unless File::exists? save_path_flex
+    return if !File::exists? save_path_flex
     Dir.mkdir save_path_flex+'_vintages' unless File::directory?(save_path_flex+'_vintages')
     filename = save_path_flex.split('/')[-1]
     date = Date.today

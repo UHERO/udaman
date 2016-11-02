@@ -63,13 +63,12 @@ class DownloadPreprocessor
   def DownloadPreprocessor.find_header(options)
     raise 'Request to find header requires a header name' if options[:header_name].nil? 
     raise 'Request to find header requires a handle' if options[:handle].nil?
-    
     header_in = options[:header_in].nil? ? 'col' : options[:header_in]
     match_type = options[:match_type].nil? ? :hiwi : options[:match_type].parameterize.underscore.to_sym
     search_main = options[:search_main].nil? ? 1 : options[:search_main]
     cached_files = options[:cached_files].nil? ? DownloadsCache : options[:cached_files]
     
-    spreadsheet = options[:sheet].nil? ? cached_files.csv(options[:handle]) : cached_files.xls(options[:handle], options[:sheet])
+    spreadsheet = options[:sheet].nil? ? cached_files.csv(options[:handle]) : cached_files.xls(options[:handle], options[:sheet], options[:path])
     
     search_start = options[:search_start].nil? ? 1 : options[:search_start]
     search_end = compute_search_end(spreadsheet, options, header_in)
