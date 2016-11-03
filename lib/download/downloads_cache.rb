@@ -14,17 +14,15 @@ class DownloadsCache
     @new_data = nil
   end
 
-  def chandle
-    @cache_handle
-  end
-
   def xls(handle, sheet, path = nil)
     #puts "DEBUG: xls "+self.__id__.to_s+"//"+self.object_id.to_s+" ## "+(handle || "nil")+" :: "+(sheet || "nil")+" :: "+(path || "nil")
 
     if path.nil?
-      @dsd = DataSourceDownload.get(handle)
+      @got_handle ||= {}
+      @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
       raise "handle '#{handle}' does not exist" if @dsd.nil?
       path = (@dsd.extract_path_flex.nil? or @dsd.extract_path_flex == '') ? @dsd.save_path_flex : @dsd.extract_path_flex
+      @got_handle[handle] = @dsd
     end
     
     @cache_handle = path
@@ -36,7 +34,7 @@ class DownloadsCache
     if (@xls[@cache_handle].nil? and handle != 'manual')
       download_handle
     else
-      puts "DEBUG: >>>>>>> NOT downloaded"
+      #puts "DEBUG: >>>>>>> NOT downloaded"
     end
     @xls[@cache_handle] ||= {}
 
@@ -44,7 +42,7 @@ class DownloadsCache
       #if sheet not present, only other sheets were used so far
       set_xls_sheet
     else
-      puts "DEBUG:  NOT call set_xls_sheet"
+      #puts "DEBUG:  NOT call set_xls_sheet"
     end
     @xls[@cache_handle][sheet]
   end

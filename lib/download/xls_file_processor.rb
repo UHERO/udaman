@@ -17,22 +17,22 @@ class XlsFileProcessor
 
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
-    #puts "DEBUG: Observation at index #{index}"
+
     date = @date_processor.compute(index)
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
-    path = @path_processor.nil? ? @cached_files.chandle : @path_processor.compute(date)
+    path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    puts "DEBUG: In OBS_AT(#{index}): h:#{handle}, s:#{sheet}, p:|#{path}|"
 
     # puts index
     # puts path
     # puts sheet
     begin
-      row = @row_processor.compute(index, @cached_files, handle, sheet, path)
-      col = @col_processor.compute(index, @cached_files, handle, sheet, path)
+      row = @row_processor.compute(index, @cached_files, handle, sheet)
+      col = @col_processor.compute(index, @cached_files, handle, sheet)
 
       #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
-      #puts "DEBUG: Before ...... cached files.xls CALL: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:|#{path || @cached_files.chandle}|"
-      worksheet = @cached_files.xls(handle, sheet, path || @cached_files.chandle)
+      worksheet = @cached_files.xls(handle, sheet, path)
     rescue RuntimeError => e
       puts e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
