@@ -68,7 +68,7 @@ class DownloadPreprocessor
     search_main = options[:search_main].nil? ? 1 : options[:search_main]
     cached_files = options[:cached_files].nil? ? DownloadsCache : options[:cached_files]
     
-    spreadsheet = options[:sheet].nil? ? cached_files.csv(options[:handle]) : cached_files.xls(options[:handle], options[:sheet], options[:path])
+    spreadsheet = options[:sheet].nil? ? cached_files.csv(options[:handle]) : cached_files.xls(options[:handle], options[:sheet])
     
     search_start = options[:search_start].nil? ? 1 : options[:search_start]
     search_end = compute_search_end(spreadsheet, options, header_in)

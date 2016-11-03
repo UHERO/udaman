@@ -17,24 +17,24 @@ class XlsFileProcessor
 
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
-    #puts "DEBUG: Observation at index #{index}"
+
     date = @date_processor.compute(index)
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
-    path = @path_processor.nil? ? @cached_files.chandle : @path_processor.compute(date)
+    path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    Rails.logger.debug "DEBUG: In OBS_AT(#{index}): h:#{handle}, s:#{sheet}, p:|#{path}|"
 
     # puts index
     # puts path
     # puts sheet
     begin
-      row = @row_processor.compute(index, @cached_files, handle, sheet, path)
-      col = @col_processor.compute(index, @cached_files, handle, sheet, path)
+      row = @row_processor.compute(index, @cached_files, handle, sheet)
+      col = @col_processor.compute(index, @cached_files, handle, sheet)
 
       #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
-      #puts "DEBUG: Before ...... cached files.xls CALL: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:|#{path || @cached_files.chandle}|"
-      worksheet = @cached_files.xls(handle, sheet, path || @cached_files.chandle)
+      worksheet = @cached_files.xls(handle, sheet, path)
     rescue RuntimeError => e
-      puts e.message unless @handle_processor.date_sensitive?
+      Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
       #not sure if this is the right thing to do. Will get an indication from the daily download checks, but not sure if will see if you just 
       #load the data other than missing some values... not gonna do this just yet because it was rake that errored out not the series. might try to
@@ -44,7 +44,7 @@ class XlsFileProcessor
       return {} if e.message[0..20] == 'could not find header' and ['Condo only'].include? e.message.split(': ')[1][1..-2]
       raise e
     rescue IOError => e
-      puts e.message
+      Rails.logger.error e.message
       return 'END' if e.message[0..3] == 'file' and !@path_processor.nil? and @path_processor.date_sensitive?
       raise e
     end
