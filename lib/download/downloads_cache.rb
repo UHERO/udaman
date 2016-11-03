@@ -34,7 +34,7 @@ class DownloadsCache
     if (@xls[@cache_handle].nil? and handle != 'manual')
       download_handle
     else
-      #puts "DEBUG: >>>>>>> NOT downloaded"
+      Rails.logger.debug 'DEBUG: >>>>>>> NOT downloaded'
     end
     @xls[@cache_handle] ||= {}
 
@@ -42,7 +42,7 @@ class DownloadsCache
       #if sheet not present, only other sheets were used so far
       set_xls_sheet
     else
-      #puts "DEBUG:  NOT call set_xls_sheet"
+      Rails.logger.debug 'DEBUG: NOT call set_xls_sheet'
     end
     @xls[@cache_handle][sheet]
   end
