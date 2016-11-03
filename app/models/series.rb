@@ -1041,11 +1041,8 @@ class Series < ActiveRecord::Base
     if current_depth > 0 && sidekiq_stats.enqueued == 0 && sidekiq_stats.retry_size == 0 &&  sidekiq_stats.workers_size == 0
       puts "Jump starting stalled reload (#{series_size})"
       next_depth = current_depth - 1
-      redis.pipelined do
-        redis.set("current_depth_#{series_size}", next_depth)
-        series_ids = redis.get("series_list_#{series_size}")
-      end
-      series_ids = series_ids.value.scan(/\d+/).map{|s| s.to_i}
+      redis.set("current_depth_#{series_size}", next_depth)
+      series_ids = redis.get("series_list_#{series_size}").scan(/\d+/).map{|s| s.to_i}
       next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       redis.pipelined do
         redis.set("queue_#{series_size}", next_series.count)
