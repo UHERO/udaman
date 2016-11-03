@@ -1032,21 +1032,13 @@ class Series < ActiveRecord::Base
 
   def Series.check_for_stalled_reload(series_size = Series.all.count)
     require 'redis'
+    require 'sidekiq/api'
     redis = Redis.new
-    current_depth, queue, finishing_depth, waiting_workers, busy_workers, series_ids = nil
-    redis.pipelined do
-      current_depth = redis.get("current_depth_#{series_size}")
-      queue = redis.get("queue_#{series_size}")
-      finishing_depth = redis.get "finishing_depth_#{series_size}"
-      waiting_workers = redis.get("waiting_workers_#{series_size}")
-      busy_workers = redis.get("busy_workers_#{series_size}")
-    end
-    current_depth = current_depth.value.to_i
-    if current_depth > 0 &&
-        queue.value.to_i < 0 &&
-        finishing_depth.value == 'true' &&
-        waiting_workers.value.to_i == 1 &&
-        busy_workers.value.to_i == 0
+
+    sidekiq_stats = Sidekiq::Stats.new
+    current_depth = redis.get("current_depth_#{series_size}").to_i
+
+    if current_depth > 0 && sidekiq_stats.enqueued == 0 && sidekiq_stats.retry_size == 0 &&  sidekiq_stats.workers_size == 0
       puts "Jump starting stalled reload (#{series_size})"
       next_depth = current_depth - 1
       redis.pipelined do
