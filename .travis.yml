@@ -3,5 +3,14 @@ services:
   - mysql
   - redis-server
 
+dist: trusty
+sudo: required
+addons:
+  apt:
+    packages:
+    - mysql-server-5.6
+    - mysql-client-core-5.6
+    - mysql-client-5.6
+
 before_script:
-  - mysql -e 'create database uhero_db_test;'
+  - mysql -u root -e 'create database uhero_db_test;'
