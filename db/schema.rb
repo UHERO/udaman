@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160923012307) do
+ActiveRecord::Schema.define(version: 20161104013922) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -180,6 +180,7 @@ ActiveRecord::Schema.define(version: 20160923012307) do
     t.string   "dataPortalName",          limit: 255
   end
 
+  add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
 
   create_table "sources", force: :cascade do |t|
