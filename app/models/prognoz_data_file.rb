@@ -98,7 +98,7 @@ class PrognozDataFile < ActiveRecord::Base
   end
   
   def safe_filename
-    safe_filename
+    filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
   end
   
   def write_export
