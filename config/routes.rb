@@ -69,6 +69,7 @@ UheroDb::Application.routes.draw do
   
   get 'series/bulk', to: 'series#bulk_new'
   post 'series/bulk', to: 'series#bulk_create'
+  get 'series/stale', to: 'series#stale'
   resources :series
 
   resources :data_sources
