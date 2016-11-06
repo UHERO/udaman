@@ -13,13 +13,13 @@ class PrognozDataFile < ActiveRecord::Base
     Dir.mkdir(retired_path) unless File.directory?(retired_path)
     
     self.all.each do |pdf| 
-      puts pdf.filename
-      updated_file = pdf.filename.gsub('/prognoz_export/', '/prognoz_export/exports/')
-      original_file = pdf.filename
-      FileUtils.mv(original_file, retired_path + '/' + pdf.filename.split('/')[-1])
+      puts pdf.safe_filename
+      updated_file = pdf.safe_filename.gsub('/prognoz_export/', '/prognoz_export/exports/')
+      original_file = pdf.safe_filename
+      FileUtils.mv(original_file, retired_path + '/' + pdf.safe_filename.split('/')[-1])
       # this copy puts the new file in the right location to get zipped
       FileUtils.cp(updated_file, original_file)
-      filenames.push pdf.filename
+      filenames.push pdf.safe_filename
     end
     
     Zip::File.open(folder + 'ready_to_send_zip_files/' + send_edition + '.zip', Zip::File::CREATE) do |zipfile|
@@ -30,11 +30,11 @@ class PrognozDataFile < ActiveRecord::Base
   end
   
   def update_spreadsheet
-    UpdateSpreadsheet.new filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
+    UpdateSpreadsheet.new safe_filename
   end
   
   def load
-    @output_spreadsheet = UpdateSpreadsheet.new filename
+    @output_spreadsheet = UpdateSpreadsheet.new safe_filename
     if @output_spreadsheet.load_error?
       return {:notice=> 'problem loading spreadsheet', :headers=>[]}
     end
@@ -53,7 +53,7 @@ class PrognozDataFile < ActiveRecord::Base
 
   def udaman_diffs
     t = Time.now
-    os = UpdateSpreadsheet.new filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
+    os = UpdateSpreadsheet.new safe_filename
 #    puts "#{"%.2f" %(Time.now - t)} | loading spreadsheet"
     if os.load_error?
       return {:notice => 'problem loading spreadsheet', :headers=>[]}
@@ -73,12 +73,12 @@ class PrognozDataFile < ActiveRecord::Base
       diffs[header] = diff_hash if diff_hash.count > 0
 #      puts "#{"%.2f" %(Time.now - t)} | #{ filename}"
     end
-    puts "#{'%.2f' %(Time.now - t)} | #{ filename}"
+    puts "#{'%.2f' %(Time.now - t)} | #{ safe_filename}"
     diffs
   end
     
   def get_data_for(series_name, output_spreadsheet = nil)    
-    output_spreadsheet = UpdateSpreadsheet.new filename if output_spreadsheet.nil?
+    output_spreadsheet = UpdateSpreadsheet.new safe_filename if output_spreadsheet.nil?
     s = parse_series_name series_name
     unless s[:frequency_code] == Series.code_from_frequency(self.frequency)
       raise PrognozDataFindException
@@ -95,6 +95,10 @@ class PrognozDataFile < ActiveRecord::Base
   def output_path
     output_filename = filename.split('/')[-1]
     "#{ENV['DATA_PATH']}/prognoz_export/exports/" + output_filename
+  end
+  
+  def safe_filename
+    filename.gsub('/Users/uhero/Documents/data', ENV['DATA_PATH'])
   end
   
   def write_export
@@ -131,8 +135,6 @@ class PrognozDataFile < ActiveRecord::Base
     dates
   end
   
-
-  
   def write_dates(sheet,dates = output_dates)
     sheet[0,0] = 'DATE'
     count=1
@@ -168,5 +170,4 @@ class PrognozDataFile < ActiveRecord::Base
     folder_path = prognoz_output_path+output_folder_name_for_date(Date.today)+'/'
     book.write "#{folder_path}#{output_filename}"
   end
-  
 end
