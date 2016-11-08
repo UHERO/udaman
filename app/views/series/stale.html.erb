@@ -6,7 +6,7 @@
 <div id="details_area">
 		<ul>
 		<% @stale_series.each do |series| %>
-      <li><%= link_to series.name, { :action => 'show', :id => series.id } %></li>
+      <li><%= link_to series[1], { :action => 'show', :id => series[0] } %></li>
 		<% end %>
 		</ul>
 </div>

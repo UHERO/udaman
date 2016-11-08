@@ -214,15 +214,7 @@ class SeriesController < ApplicationController
   end
 
   def stale
-    stale_ds = DataSource.where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i).order(:last_run_in_seconds => :asc)
-    @stale_series = stale_ds.select do |ds|
-      if ds.series.nil?
-        File.open('public/orphan_data_sources.log', 'a') { |f| f.puts ds.series_id }
-        false
-      else
-        true
-      end
-    end.collect { |ds| ds.series }
+    @stale_series = Series.joins(:data_sources).where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i).pluck(:id, :name)
   end
 
   private
