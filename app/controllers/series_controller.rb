@@ -213,6 +213,10 @@ class SeriesController < ApplicationController
     render :partial => 'investigation_sort.html'
   end
 
+  def stale
+    @stale_series = Series.joins(:data_sources).where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i).pluck(:id, :name)
+  end
+
   private
     def series_params
       params.require(:series).permit(:name, :description, :units, :investigation_notes, :dataPortalName, :unitsLabel, :unitsLabelShort, :seasonally_adjusted)
