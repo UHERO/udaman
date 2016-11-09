@@ -1,0 +1,14 @@
+<div id="summary_area">
+	<h2>Data Series with a stale source</h2>
+	<h2>Total: <%= @stale_series.count %></h2>
+</div>
+<div id="details_mask"></div>
+<div id="details_area">
+		<ul>
+		<% @stale_series.each do |series| %>
+      <li><%= link_to series[1], { :action => 'show', :id => series[0] } %></li>
+		<% end %>
+		</ul>
+</div>
+
+<p>
