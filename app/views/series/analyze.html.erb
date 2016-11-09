@@ -34,7 +34,8 @@
 
 <script>
 
-<% dates = @series.data.keys.sort { |a,b| params[:sortorder] == 'desc' ? b <=> a : a <=> b } %>
+<% sort = params[:sort]
+   dates = @series.data.keys.sort { |a,b| sort == 'desc' ? b <=> a : a <=> b } %>
 <% data = @series.data %>
 <% lvl_chg = @lvl_chg.data %>
 <% chg = @chg.data %>
@@ -79,13 +80,9 @@ end
 <%= javascript_include_tag 'humblefinance/HumbleFinance' %>
 <%= javascript_include_tag 'humblefinance/demo' %>
 
-<p>Sort:
-<%= radio_button_tag 'sortorder', 'asc', true %> Ascending
-<%= radio_button_tag 'sortorder', 'desc'  %> Descending
-</p>
 <table style="margin-top: 50px;">
 	<tr>
-		<th>Date</th>
+		<th><a href="?sort=<%= sort == 'desc' ? 'asc' : 'desc' %>">Date</a></th>
 		<th>Level</th>
 		<th>Level Change</th>
 		<th>YOY</th>
