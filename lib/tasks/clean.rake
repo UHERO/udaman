@@ -8,3 +8,19 @@ task :clean_current => :environment do
     }
   }
 end
+
+desc 'Keep only the two most recent data_points for each series, data_source, and date'
+task :trim_data_point_history => :environment do
+  ActiveRecord::Base.connection.execute(%Q|DELETE FROM data_points
+WHERE (series_id, data_source_id, date, created_at)
+  IN (SELECT series_id, data_source_id, date, created_at
+FROM
+  (SELECT series_id, data_source_id, date, created_at,
+     (CASE date
+      WHEN @curDate
+        THEN @curRow := @curRow + 1
+      ELSE @curRow := 1 AND @curDate := date END) AS rank
+   FROM data_points, (SELECT @curRow := 0, @curDate := '') r
+   ORDER BY series_id, data_source_id, date, created_at DESC)
+    AS older WHERE rank > 2)|)
+end
