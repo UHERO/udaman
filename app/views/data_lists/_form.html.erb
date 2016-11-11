@@ -23,17 +23,21 @@
     <%= f.label :startyear %><br />
     <%= f.text_field :startyear %>
   </div>
+  <div class="field">
+    <%= f.label :owned_by %><br />
+    <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => "Owned by") %>
+  </div>
   <!-- <div class="field">
-    <%= f.label :endyear %><br />
-    <%= f.text_field :endyear %>
+    < %= f.label :endyear %><br />
+    < %= f.text_field :endyear %>
   </div>
   <div class="field">
-    <%= f.label :startdate %><br />
-    <%= f.text_field :startdate %>
+    < %= f.label :startdate %><br />
+    < %= f.text_field :startdate %>
   </div>
   <div class="field">
-    <%= f.label :enddate %><br />
-    <%= f.text_field :enddate %>
+    < %= f.label :enddate %><br />
+    < %= f.text_field :enddate %>
   </div> -->
   <div class="actions">
     <%= f.submit %>

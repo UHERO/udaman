@@ -7,6 +7,12 @@ class DataList < ActiveRecord::Base
   #   date = Date.today    
   #   FileUtils.cp(save_path_flex, save_path_flex+"_vintages/#{date}_"+filename)
   # end
+  before_update :set_updated_by
+
+  def set_updated_by
+    updated_by = current_user.id
+  end
+
   def series_names
     list.split("\n").map {|element| element.strip} 
   end

@@ -110,7 +110,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/new
   # GET /data_lists/new.xml
   def new
-    @data_list = DataList.new
+    @data_list = DataList.new(:created_by => current_user.id)
 
     respond_to do |format|
       format.html # new.html.erb
