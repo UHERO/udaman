@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161104013922) do
+ActiveRecord::Schema.define(version: 20161111023506) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
