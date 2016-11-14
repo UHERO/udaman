@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161111023506) do
+ActiveRecord::Schema.define(version: 20161114222515) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -38,12 +38,14 @@ ActiveRecord::Schema.define(version: 20161111023506) do
   add_index "aremos_series", ["name"], name: "index_aremos_series_on_name", using: :btree
 
   create_table "categories", force: :cascade do |t|
-    t.string   "name",         limit: 255
-    t.integer  "data_list_id", limit: 4
-    t.datetime "created_at",               null: false
-    t.datetime "updated_at",               null: false
-    t.integer  "order",        limit: 4
-    t.string   "ancestry",     limit: 255
+    t.string   "name",           limit: 255
+    t.integer  "data_list_id",   limit: 4
+    t.datetime "created_at",                 null: false
+    t.datetime "updated_at",                 null: false
+    t.integer  "order",          limit: 4
+    t.string   "ancestry",       limit: 255
+    t.string   "default_handle", limit: 255
+    t.string   "default_freq",   limit: 255
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
@@ -88,6 +90,12 @@ ActiveRecord::Schema.define(version: 20161111023506) do
     t.float    "yoy",             limit: 53
     t.float    "ytd",             limit: 53
     t.date     "date",                                       null: false
+  end
+
+  create_table "data_portal_names", id: false, force: :cascade do |t|
+    t.string "prefix",           limit: 255
+    t.string "units",            limit: 255
+    t.string "data_portal_name", limit: 255
   end
 
   create_table "data_source_downloads", force: :cascade do |t|
