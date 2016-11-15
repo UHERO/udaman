@@ -22,6 +22,7 @@ module CategoriesHelper
     "<strong>#{leaf.name}</strong> (" <<
     data_list_section <<
     ') ' <<
+    "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
     order_section(leaf, first, last) << ' - ' <<
     link_to('Edit', edit_category_path(leaf)) << ' - ' <<
     link_to('Destroy', leaf, method: :delete, data: { confirm: 'Are you sure?' })
