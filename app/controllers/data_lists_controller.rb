@@ -110,7 +110,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/new
   # GET /data_lists/new.xml
   def new
-    @data_list = DataList.new(:created_by => current_user.id)
+    @data_list = DataList.new
 
     respond_to do |format|
       format.html # new.html.erb
@@ -126,7 +126,7 @@ class DataListsController < ApplicationController
   # POST /data_lists
   # POST /data_lists.xml
   def create
-    @data_list = DataList.new data_list_params
+    @data_list = DataList.new  data_list_params.merge({ :created_by => current_user.id })
 
     respond_to do |format|
       if @data_list.save
@@ -146,7 +146,7 @@ class DataListsController < ApplicationController
 
     respond_to do |format|
       puts params[:data_list]
-      if @data_list.update! data_list_params
+      if @data_list.update! data_list_params.merge({ :updated_by => current_user.id })
         format.html { redirect_to(@data_list, :notice => 'Data list was successfully updated.') }
         format.xml  { head :ok }
       else
@@ -172,7 +172,7 @@ class DataListsController < ApplicationController
   
   private
     def data_list_params
-      params.require(:data_list).permit(:name, :list, :startyear)
+      params.require(:data_list).permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by)
     end
 
     def set_dates(frequency, params)
