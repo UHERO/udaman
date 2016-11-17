@@ -126,7 +126,7 @@ class DataListsController < ApplicationController
   # POST /data_lists
   # POST /data_lists.xml
   def create
-    @data_list = DataList.new  data_list_params.merge({ :created_by => current_user.id })
+    @data_list = DataList.new  data_list_params.merge({ :created_by => current_user.id, :updated_by => current_user.id, :owned_by => current_user.id })
 
     respond_to do |format|
       if @data_list.save
