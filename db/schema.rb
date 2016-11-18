@@ -59,6 +59,9 @@ ActiveRecord::Schema.define(version: 20161114222515) do
     t.string   "enddate",    limit: 255
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "created_by", limit: 4
+    t.integer  "updated_by", limit: 4
+    t.integer  "owned_by",   limit: 4
   end
 
   create_table "data_load_patterns", force: :cascade do |t|
