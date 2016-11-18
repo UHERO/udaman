@@ -15,7 +15,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/1
   # GET /data_lists/1.xml
   def show
-    @data_list = DataList.joins("inner join users on users.id = data_lists.owned_by").select("data_lists.*, users.email").find_by(id: params[:id])
+    @data_list = DataList.joins("left join users on users.id = data_lists.owned_by").select("data_lists.*, coalesce(users.email, 'Unassigned') as owner").find_by(id: params[:id])
 
     respond_to do |format|
       format.csv { render :layout => false }
