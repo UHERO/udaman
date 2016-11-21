@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161114222515) do
+ActiveRecord::Schema.define(version: 20161121003831) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -63,6 +63,13 @@ ActiveRecord::Schema.define(version: 20161114222515) do
     t.integer  "updated_by", limit: 4
     t.integer  "owned_by",   limit: 4
   end
+
+  create_table "data_lists_series", id: false, force: :cascade do |t|
+    t.integer "data_list_id", limit: 4, null: false
+    t.integer "series_id",    limit: 4, null: false
+  end
+
+  add_index "data_lists_series", ["data_list_id"], name: "index_data_lists_series_on_data_list_id", using: :btree
 
   create_table "data_load_patterns", force: :cascade do |t|
     t.string   "start_date",       limit: 255
