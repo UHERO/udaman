@@ -1,7 +1,7 @@
 class PrognozDataFile < ActiveRecord::Base
   serialize :series_loaded, Hash
   
-  def PrognozDataFile.send_prognoz_update(recipients = %w(jrpage@hawaii.edu vward@hawaii.edu))
+    def PrognozDataFile.send_prognoz_update(recipients = %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu))
     folder = "#{ENV['DATA_PATH']}/prognoz_export/"
     filenames = %w(Agriculture.xls CAFRCounties.xls Kauai.xls metatable_isdi.xls SourceDoc.xls TableTemplate.xls)
     filenames.map! {|elem| folder+elem}
@@ -11,15 +11,15 @@ class PrognozDataFile < ActiveRecord::Base
     
     retired_path = "#{ENV['DATA_PATH']}/prognoz_export/exports/retired_official_versions/" + send_edition
     Dir.mkdir(retired_path) unless File.directory?(retired_path)
-    
-    self.all.each do |pdf| 
-      puts pdf.safe_filename
-      updated_file = pdf.safe_filename.gsub('/prognoz_export/', '/prognoz_export/exports/')
-      original_file = pdf.safe_filename
-      FileUtils.mv(original_file, retired_path + '/' + pdf.safe_filename.split('/')[-1])
+
+    PrognozDataFile.all.each do |file|
+      puts file.safe_filename
+      updated_file = file.safe_filename.gsub('/prognoz_export/', '/prognoz_export/exports/')
+      original_file = file.safe_filename
+      FileUtils.mv(original_file, retired_path + '/' + file.safe_filename.split('/')[-1])
       # this copy puts the new file in the right location to get zipped
       FileUtils.cp(updated_file, original_file)
-      filenames.push pdf.safe_filename
+      filenames.push file.safe_filename
     end
     
     Zip::File.open(folder + 'ready_to_send_zip_files/' + send_edition + '.zip', Zip::File::CREATE) do |zipfile|
@@ -103,7 +103,7 @@ class PrognozDataFile < ActiveRecord::Base
   
   def write_export
     t = Time.now
-    os = update_spreadsheet    
+    os = update_spreadsheet
     Series.write_prognoz_output_file(os.headers_with_frequency_code, output_path, os.sheets.first, os.dates.keys)
     puts "#{'%.2f' %(Time.now - t)} | #{ output_path}"
   end
