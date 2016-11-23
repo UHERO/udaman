@@ -35,7 +35,7 @@
 <script>
 
 <% sort = params[:sort]
-   dates = @series.data.keys.sort { |a,b| sort == 'desc' ? b <=> a : a <=> b } %>
+   dates = @series.data.keys.sort %>
 <% data = @series.data %>
 <% lvl_chg = @lvl_chg.data %>
 <% chg = @chg.data %>
@@ -88,7 +88,7 @@ end
 		<th>YOY</th>
 		<th>YTD</th>
 	</tr>
-	<% dates.each do |date_string|  %>
+	<% dates.sort { |a,b| sort == 'desc' ? b <=> a : a <=> b }.each do |date_string|  %>
 	<tr>	
 		<td><%= date_string %></td>
 		<td><%= data[date_string].nil? ? "" : "%.3f" % (data[date_string] / units) %></td>
