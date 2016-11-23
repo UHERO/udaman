@@ -1,4 +1,6 @@
 class DataList < ActiveRecord::Base
+  has_and_belongs_to_many :series
+
   # def export
   #   
   #   return unless File::exists? save_path_flex 
@@ -36,6 +38,16 @@ class DataList < ActiveRecord::Base
       series_data[s] = series.nil? ? nil : series.id
     end
     series_data    
+  end
+
+  def get_sibling_series_ids
+    sibling_ids = []
+    series_names.each do |s|
+      sa_prefix = s[/.*@/].to_s.chomp('@').upcase.chomp('NS') + '@'
+      sibling_ids += Series.where("name LIKE '#{sa_prefix}%'").pluck :id
+      sibling_ids += Series.where("name LIKE '#{sa_prefix.chomp('@') + 'NS@'}%'").pluck :id
+    end
+    sibling_ids
   end
   
   def get_series_ids_for_frequency(frequency)
