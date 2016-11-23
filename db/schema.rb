@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161121003831) do
+ActiveRecord::Schema.define(version: 20161123013055) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -196,6 +196,9 @@ ActiveRecord::Schema.define(version: 20161121003831) do
     t.string   "unitsLabel",              limit: 255
     t.string   "unitsLabelShort",         limit: 255
     t.string   "dataPortalName",          limit: 255
+    t.boolean  "percent"
+    t.boolean  "real"
+    t.string   "frequency_transform",     limit: 255
   end
 
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
