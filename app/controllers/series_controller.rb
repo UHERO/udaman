@@ -219,7 +219,19 @@ class SeriesController < ApplicationController
 
   private
     def series_params
-      params.require(:series).permit(:name, :description, :units, :investigation_notes, :dataPortalName, :unitsLabel, :unitsLabelShort, :seasonally_adjusted)
+      params.require(:series).permit(
+          :name,
+          :description,
+          :units,
+          :investigation_notes,
+          :dataPortalName,
+          :unitsLabel,
+          :unitsLabelShort,
+          :seasonally_adjusted,
+          :percent,
+          :real,
+          :frequency_transform
+      )
     end
 
     def convert_to_udaman_notation(eval_string)
