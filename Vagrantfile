@@ -12,14 +12,18 @@ SCRIPT
 
 $script2 = <<SCRIPT
 sudo yum install -y epel-release yum-utils
-sudo yum install -y mysql-server
 sudo yum-config-manager --enable epel
 sudo yum install -y pygpgme curl
 sudo curl --fail -sSLo /etc/yum.repos.d/passenger.repo https://oss-binaries.phusionpassenger.com/yum/definitions/el-passenger.repo
 sudo yum install -y mod_passenger
 sudo yum install -y http-devel
+wget http://dev.mysql.com/get/mysql57-community-release-el6-9.noarch.rpm
+sudo yum localinstall -y mysql57-community-release-el6-9.noarch.rpm
+sudo yum install -y mysql-community-server
 sudo yum install -y mysql-devel
-sudo yum install -y nodejs 
+curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -
+sudo yum install -y nodejs
+sudo yum install -y gcc-c++ make
 sudo yum install -y libcurl-devel
 
 sudo service httpd restart
@@ -29,9 +33,13 @@ source /etc/profile.d/rvm.sh
 rvm group add rvm "vagrant"
 cd /vagrant
 rvm install ruby-2.3.0
-gem install bundle
+gem install bundler
 bundle install
 service mysqld start
+export DB_PASSWORD=`sudo grep 'temporary password' /var/log/mysqld.log | awk 'NF>1{print $NF}'`
+echo 'ALTER USER "root"@"localhost" IDENTIFIED BY "MyNewPass4!";' | sed "s/\"/'/g" > changepwd.txt
+mysql -uroot -p$DB_PASSWORD --connect-expired-password < changepwd.txt
+export DB_PASSWORD='MyNewPass4!'
 rake db:setup
 SCRIPT
 
@@ -51,14 +59,10 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell", inline: $script2
 
   # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:3000" will access port 80 on the guest machine.
   config.vm.network "forwarded_port", guest: 3000, host: 3000
   config.vm.network "forwarded_port", guest: 3306, host: 3316
 
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  # config.vm.synced_folder "../data", "/vagrant_data"
+  config.vm.post_up_message = %Q|Set new MySQL password: http://dev.mysql.com/doc/refman/5.7/en/linux-installation-yum-repo.html.\n
+Then export the new password as DB_PASSWORD.\n
+Then run bundle exec rake db:setup|
 end
