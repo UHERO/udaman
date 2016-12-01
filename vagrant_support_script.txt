@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+sudo yum install -y epel-release yum-utils
+sudo yum-config-manager --enable epel
+sudo yum install -y pygpgme curl
+sudo curl --fail -sSLo /etc/yum.repos.d/passenger.repo https://oss-binaries.phusionpassenger.com/yum/definitions/el-passenger.repo
+sudo yum install -y mod_passenger
+sudo yum install -y http-devel
+wget http://dev.mysql.com/get/mysql57-community-release-el6-9.noarch.rpm
+sudo yum localinstall -y mysql57-community-release-el6-9.noarch.rpm
+sudo yum install -y mysql-community-server
+sudo yum install -y mysql-devel
+curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -
+sudo yum install -y nodejs
+sudo yum install -y gcc-c++ make
+sudo yum install -y libcurl-devel
+
+sudo service httpd restart
+gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+curl -sSL https://get.rvm.io | bash -s stable
+source ~/.profile
+cd /vagrant
+rvm install ruby-2.3.0
+gem install bundler
+bundle install
+sudo service mysqld start
+export DB_PASSWORD=`sudo grep 'temporary password' /var/log/mysqld.log | awk 'NF>1{print $NF}'`
+echo 'ALTER USER "root"@"localhost" IDENTIFIED BY "MyNewPass4!";' | sed "s/\"/'/g" > changepwd.txt
+mysql -uroot -p$DB_PASSWORD --connect-expired-password < changepwd.txt
+echo 'export DB_PASSWORD="MyNewPass4!"' | sed "s/\"/'/g" >> ~/.bashrc
+export DB_PASSWORD='MyNewPass4!'
+rake db:setup
+rvm gemset copy 2.3.0@default 2.3.0@rails4.2
