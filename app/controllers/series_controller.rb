@@ -220,17 +220,17 @@ class SeriesController < ApplicationController
   private
     def series_params
       params.require(:series).permit(
-        :name,
-        :description,
-        :units,
-        :investigation_notes,
-        :dataPortalName,
-        :unitsLabel,
-        :unitsLabelShort,
-        :seasonally_adjusted,
-        :percent,
-        :real,
-        :frequency_transform
+          :name,
+          :description,
+          :units,
+          :investigation_notes,
+          :dataPortalName,
+          :unitsLabel,
+          :unitsLabelShort,
+          :seasonally_adjusted,
+          :percent,
+          :real,
+          :frequency_transform
       )
     end
 
