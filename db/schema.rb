@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161205211632) do
+ActiveRecord::Schema.define(version: 20161206011902) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -41,6 +41,8 @@ ActiveRecord::Schema.define(version: 20161205211632) do
     t.integer "user_id",          limit: 4,   null: false
     t.string  "provider",         limit: 255, null: false
     t.integer "provider_user_id", limit: 4,   null: false
+    t.string  "name",             limit: 255
+    t.string  "email",            limit: 255
   end
 
   add_index "authorizations", ["provider_user_id"], name: "index_authorizations_on_provider_user_id", using: :btree
