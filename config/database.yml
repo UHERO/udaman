@@ -13,12 +13,12 @@ development:
 # Do not set this db to the same as development or production.
 test: &test
     adapter: mysql2
-    host: localhost
+    host: <%= ENV['DB_HOST'] || 'localhost' %>
     encoding: utf8
     database: uhero_db_test
     pool: 5
-    username: root
-    password:
+    username: <%= ENV['DB_USER'] || 'root' %>
+    password: <%= ENV['DB_PASSWORD'] || '' %>
     port: 3306
 
 production:

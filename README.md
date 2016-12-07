@@ -40,13 +40,6 @@ Quit the rails console
 quit
 ```
 
-### Load the data
-This tasks will take a long time to run completely (approximately 10 hours). You can interrupt the task by closing your terminal window if you prefer to only load some of the data. From the console, run the following rake task:
-```bash
-rake rebuild
-```
-
-
 ### Take Udaman for a spin
 Start the rails server in the console
 ```bash
