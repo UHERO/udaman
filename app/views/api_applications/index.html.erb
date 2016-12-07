@@ -20,7 +20,7 @@
         <td><%= api_application.api_key %></td>
         <td><%= link_to 'Show', api_application %></td>
         <td><%= link_to 'Edit', edit_api_application_path(api_application) %></td>
-        <td><%= link_to 'Destroy', api_application, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', api_application, method: :delete, data: { confirm: "Destroy #{api_application.name}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>
