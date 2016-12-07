@@ -27,7 +27,6 @@ Vagrant.configure("2") do |config|
 
   # Create a forwarded port mapping which allows access to a specific port
   config.vm.network "forwarded_port", guest: 3000, host: 3000
-  config.vm.network "forwarded_port", guest: 3306, host: 3316
 
   config.vm.post_up_message = %Q|vagrant ssh\n
 Then\n
