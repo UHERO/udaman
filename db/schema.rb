@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161114222515) do
+ActiveRecord::Schema.define(version: 20161206011902) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -36,6 +36,17 @@ ActiveRecord::Schema.define(version: 20161114222515) do
   end
 
   add_index "aremos_series", ["name"], name: "index_aremos_series_on_name", using: :btree
+
+  create_table "authorizations", id: false, force: :cascade do |t|
+    t.integer "user_id",          limit: 4,   null: false
+    t.string  "provider",         limit: 255, null: false
+    t.integer "provider_user_id", limit: 4,   null: false
+    t.string  "name",             limit: 255
+    t.string  "email",            limit: 255
+  end
+
+  add_index "authorizations", ["provider_user_id"], name: "index_authorizations_on_provider_user_id", using: :btree
+  add_index "authorizations", ["user_id"], name: "fk_rails_4ecef5b8c5", using: :btree
 
   create_table "categories", force: :cascade do |t|
     t.string   "name",           limit: 255
@@ -63,6 +74,13 @@ ActiveRecord::Schema.define(version: 20161114222515) do
     t.integer  "updated_by", limit: 4
     t.integer  "owned_by",   limit: 4
   end
+
+  create_table "data_lists_series", id: false, force: :cascade do |t|
+    t.integer "data_list_id", limit: 4, null: false
+    t.integer "series_id",    limit: 4, null: false
+  end
+
+  add_index "data_lists_series", ["data_list_id"], name: "index_data_lists_series_on_data_list_id", using: :btree
 
   create_table "data_load_patterns", force: :cascade do |t|
     t.string   "start_date",       limit: 255
@@ -189,6 +207,9 @@ ActiveRecord::Schema.define(version: 20161114222515) do
     t.string   "unitsLabel",              limit: 255
     t.string   "unitsLabelShort",         limit: 255
     t.string   "dataPortalName",          limit: 255
+    t.boolean  "percent"
+    t.boolean  "real"
+    t.string   "frequency_transform",     limit: 255
   end
 
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
@@ -229,4 +250,5 @@ ActiveRecord::Schema.define(version: 20161114222515) do
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
 
+  add_foreign_key "authorizations", "users"
 end

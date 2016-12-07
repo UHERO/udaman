@@ -19,6 +19,8 @@ class Series < ActiveRecord::Base
   
   has_many :data_points
   has_many :data_sources
+
+  has_and_belongs_to_many :data_lists
   
   def as_json(options = {})
     as = AremosSeries.get(self.name)
