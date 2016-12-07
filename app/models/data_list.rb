@@ -43,7 +43,7 @@ class DataList < ActiveRecord::Base
   def get_sibling_series_ids
     sibling_ids = []
     series_names.each do |s|
-      sa_prefix = s[/.*@/].to_s.chomp('@').upcase.chomp('NS') + '@'
+      sa_prefix = s[/.*@/].to_s.chomp('@').upcase.chomp('NS').gsub('_', '\\_') + '@'
       sibling_ids += Series.where("name LIKE '#{sa_prefix}%'").pluck :id
       sibling_ids += Series.where("name LIKE '#{sa_prefix.chomp('@') + 'NS@'}%'").pluck :id
     end
