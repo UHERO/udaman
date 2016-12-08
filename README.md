@@ -18,9 +18,7 @@ To set up your development environment,
 
     ```
     cd /vagrant
-    gem install bundler
-    bundle install
-    rvmsudo passenger start
+    rails s -b 0.0.0.0
     ```
 
 ### Add a user
@@ -43,7 +41,7 @@ quit
 ### Take Udaman for a spin
 Start the rails server in the console
 ```bash
-rvmsudo passenger start
+rails s -b 0.0.0.0
 ```
 
 In another terminal window enter the rails console in the project folder (`rails console`). And find the name of a series with data in it using the following command:
