@@ -13,6 +13,7 @@
 
 </head>
 <body>
+<% if user_signed_in? %>
 <div id="top-level-nav">
 	<%= 
 	render 'devise/menu/login_items' 
@@ -60,6 +61,7 @@
   Data Portal: <a href="/categories" title="Edit Data Portal Categories">Categories</a> |
                <a href="/geographies" title="Edit Data Portal Geographies">Geographies</a>
   </div>
+<% end %>
 <% end %>
 
 <p class="notice"><%= flash[:notice] %></p>
