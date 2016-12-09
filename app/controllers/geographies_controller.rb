@@ -1,4 +1,5 @@
 class GeographiesController < ApplicationController
+  before_action :check_authorization
   before_action :set_geography, only: [:show, :edit, :update, :destroy]
 
   # GET /geographies
@@ -54,5 +55,9 @@ class GeographiesController < ApplicationController
     # Only allow a trusted parameter "white list" through.
     def geography_params
       params.require(:geography).permit(:fips, :display_name, :display_name_short, :handle)
+    end
+
+    def check_authorization
+      raise 'User not authorized' unless current_user.dev_user?
     end
 end

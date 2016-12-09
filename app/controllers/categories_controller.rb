@@ -1,4 +1,5 @@
 class CategoriesController < ApplicationController
+  before_action :check_authorization
   before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down]
 
   # GET /categories
@@ -89,4 +90,8 @@ class CategoriesController < ApplicationController
     def category_params
       params.require(:category).permit(:name, :parent_id, :data_list_id, :order, :default_handle, :default_freq)
     end
+
+  def check_authorization
+    raise 'User not authorized' unless current_user.dev_user?
+  end
 end
