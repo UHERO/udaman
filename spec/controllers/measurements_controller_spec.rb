@@ -36,6 +36,12 @@ RSpec.describe MeasurementsController, :type => :controller do
   # MeasurementsController. Be sure to keep this updated too.
   let(:valid_session) { {} }
 
+  before(:each) do
+    @request.env['devise.mapping'] = Devise.mappings[:user]
+    user = FactoryGirl.create(:user)
+    sign_in user
+  end
+
   describe "GET index" do
     it "assigns all measurements as @measurements" do
       measurement = Measurement.create! valid_attributes
