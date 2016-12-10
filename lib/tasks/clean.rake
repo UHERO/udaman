@@ -33,3 +33,18 @@ task :add_data_list_series_associations => :environment do
     dl.series_ids = dl.get_sibling_series_ids
   end
 end
+
+desc 'Create measurements from series table and destroy the old ones'
+task :reset_measurements => :environment do
+  ActiveRecord::Base.connection.execute('DELETE FROM measurements;')
+  ActiveRecord::Base.connection.execute(%Q|INSERT INTO
+measurements (prefix, data_portal_name, units_label, units_label_short, percent, `real`, created_at, updated_at)
+(SELECT LEFT(series.name, LOCATE('@', series.name) - 1) AS prefix, MAX(dataPortalName) AS data_portal_name,
+  MAX(unitsLabel) AS units_label, MAX(unitsLabelShort) AS units_label_short, MAX(percent) AS percent,
+  MAX(series.real) AS `real`, NOW(), NOW()
+FROM series GROUP BY LEFT(series.name, locate('@', series.name) - 1));|)
+  Series.find_each(batch_size: 50) do |s|
+    s.measurement = Measurement.find_by prefix: s.name[/[^@]*/]
+    s.save
+  end
+end

@@ -1,5 +1,6 @@
 UheroDb::Application.routes.draw do
 
+  resources :measurements
   resources :api_applications
   resources :sources
   resources :transformations
