@@ -24,11 +24,11 @@ RSpec.describe MeasurementsController, :type => :controller do
   # Measurement. As you add validations to Measurement, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    skip("Add a hash of attributes valid for your model")
+    skip('Add a hash of attributes valid for your model')
   }
 
   let(:invalid_attributes) {
-    skip("Add a hash of attributes invalid for your model")
+    skip('Add a hash of attributes invalid for your model')
   }
 
   # This should return the minimal set of values that should be in the session
@@ -42,98 +42,98 @@ RSpec.describe MeasurementsController, :type => :controller do
     sign_in user
   end
 
-  describe "GET index" do
-    it "assigns all measurements as @measurements" do
+  describe 'GET index' do
+    it 'assigns all measurements as @measurements' do
       measurement = Measurement.create! valid_attributes
       get :index, {}, valid_session
       expect(assigns(:measurements)).to eq([measurement])
     end
   end
 
-  describe "GET show" do
-    it "assigns the requested measurement as @measurement" do
+  describe 'GET show' do
+    it 'assigns the requested measurement as @measurement' do
       measurement = Measurement.create! valid_attributes
       get :show, {:id => measurement.to_param}, valid_session
       expect(assigns(:measurement)).to eq(measurement)
     end
   end
 
-  describe "GET new" do
-    it "assigns a new measurement as @measurement" do
+  describe 'GET new' do
+    it 'assigns a new measurement as @measurement' do
       get :new, {}, valid_session
       expect(assigns(:measurement)).to be_a_new(Measurement)
     end
   end
 
-  describe "GET edit" do
-    it "assigns the requested measurement as @measurement" do
+  describe 'GET edit' do
+    it 'assigns the requested measurement as @measurement' do
       measurement = Measurement.create! valid_attributes
       get :edit, {:id => measurement.to_param}, valid_session
       expect(assigns(:measurement)).to eq(measurement)
     end
   end
 
-  describe "POST create" do
-    describe "with valid params" do
-      it "creates a new Measurement" do
+  describe 'POST create' do
+    describe 'with valid params' do
+      it 'creates a new Measurement' do
         expect {
           post :create, {:measurement => valid_attributes}, valid_session
         }.to change(Measurement, :count).by(1)
       end
 
-      it "assigns a newly created measurement as @measurement" do
+      it 'assigns a newly created measurement as @measurement' do
         post :create, {:measurement => valid_attributes}, valid_session
         expect(assigns(:measurement)).to be_a(Measurement)
         expect(assigns(:measurement)).to be_persisted
       end
 
-      it "redirects to the created measurement" do
+      it 'redirects to the created measurement' do
         post :create, {:measurement => valid_attributes}, valid_session
         expect(response).to redirect_to(Measurement.last)
       end
     end
 
-    describe "with invalid params" do
-      it "assigns a newly created but unsaved measurement as @measurement" do
+    describe 'with invalid params' do
+      it 'assigns a newly created but unsaved measurement as @measurement' do
         post :create, {:measurement => invalid_attributes}, valid_session
         expect(assigns(:measurement)).to be_a_new(Measurement)
       end
 
       it "re-renders the 'new' template" do
         post :create, {:measurement => invalid_attributes}, valid_session
-        expect(response).to render_template("new")
+        expect(response).to render_template('new')
       end
     end
   end
 
-  describe "PUT update" do
-    describe "with valid params" do
+  describe 'PUT update' do
+    describe 'with valid params' do
       let(:new_attributes) {
-        skip("Add a hash of attributes valid for your model")
+        skip('Add a hash of attributes valid for your model')
       }
 
-      it "updates the requested measurement" do
+      it 'updates the requested measurement' do
         measurement = Measurement.create! valid_attributes
         put :update, {:id => measurement.to_param, :measurement => new_attributes}, valid_session
         measurement.reload
-        skip("Add assertions for updated state")
+        skip('Add assertions for updated state')
       end
 
-      it "assigns the requested measurement as @measurement" do
+      it 'assigns the requested measurement as @measurement' do
         measurement = Measurement.create! valid_attributes
         put :update, {:id => measurement.to_param, :measurement => valid_attributes}, valid_session
         expect(assigns(:measurement)).to eq(measurement)
       end
 
-      it "redirects to the measurement" do
+      it 'redirects to the measurement' do
         measurement = Measurement.create! valid_attributes
         put :update, {:id => measurement.to_param, :measurement => valid_attributes}, valid_session
         expect(response).to redirect_to(measurement)
       end
     end
 
-    describe "with invalid params" do
-      it "assigns the measurement as @measurement" do
+    describe 'with invalid params' do
+      it 'assigns the measurement as @measurement' do
         measurement = Measurement.create! valid_attributes
         put :update, {:id => measurement.to_param, :measurement => invalid_attributes}, valid_session
         expect(assigns(:measurement)).to eq(measurement)
@@ -142,20 +142,20 @@ RSpec.describe MeasurementsController, :type => :controller do
       it "re-renders the 'edit' template" do
         measurement = Measurement.create! valid_attributes
         put :update, {:id => measurement.to_param, :measurement => invalid_attributes}, valid_session
-        expect(response).to render_template("edit")
+        expect(response).to render_template('edit')
       end
     end
   end
 
-  describe "DELETE destroy" do
-    it "destroys the requested measurement" do
+  describe 'DELETE destroy' do
+    it 'destroys the requested measurement' do
       measurement = Measurement.create! valid_attributes
       expect {
         delete :destroy, {:id => measurement.to_param}, valid_session
       }.to change(Measurement, :count).by(-1)
     end
 
-    it "redirects to the measurements list" do
+    it 'redirects to the measurements list' do
       measurement = Measurement.create! valid_attributes
       delete :destroy, {:id => measurement.to_param}, valid_session
       expect(response).to redirect_to(measurements_url)
