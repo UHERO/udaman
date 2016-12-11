@@ -77,7 +77,6 @@ group :development, :test do
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
-  gem 'test-unit', '1.2.3'
 end
 
 group :test do
