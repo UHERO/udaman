@@ -1,7 +1,5 @@
 class DataListsController < ApplicationController
-  before_action only: [:edit, :update, :destroy] do
-      check_authorization(params[:action])
-    end
+  before_action :check_authorization, only: [:edit, :update, :destroy]
 
   # GET /data_lists
   # GET /data_lists.xml
@@ -208,9 +206,9 @@ class DataListsController < ApplicationController
       data = res.code == "500" ? nil : JSON.parse(res.body)
     end
 
-    def check_authorization(action)
-      @data_list = DataList.find_by id: params[:id]
-      if action == :destroy
+    def check_authorization
+      current_user.id = DataList.find_by(id: params[:id]).owned_by
+      if params[:action] == :destroy
         raise 'User not authorized for action' unless @data_list.owned_by == current_user.id || current_user.dev_user?
       else
         raise 'User not authorized for action' unless @data_list.owned_by == current_user.id || current_user.admin_user?

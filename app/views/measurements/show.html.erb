@@ -1,0 +1,39 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Prefix:</strong>
+  <%= @measurement.prefix %>
+</p>
+
+<p>
+  <strong>Data portal name:</strong>
+  <%= @measurement.data_portal_name %>
+</p>
+
+<p>
+  <strong>Units label:</strong>
+  <%= @measurement.units_label %>
+</p>
+
+<p>
+  <strong>Units label short:</strong>
+  <%= @measurement.units_label_short %>
+</p>
+
+<p>
+  <strong>Percent:</strong>
+  <%= @measurement.percent %>
+</p>
+
+<p>
+  <strong>Real:</strong>
+  <%= @measurement.real %>
+</p>
+
+<p>
+  <strong>Notes:</strong>
+  <%= @measurement.notes %>
+</p>
+
+<%= link_to 'Edit', edit_measurement_path(@measurement) %> |
+<%= link_to 'Back', measurements_path %>

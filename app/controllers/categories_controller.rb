@@ -2,6 +2,9 @@ class CategoriesController < ApplicationController
   before_action :check_authorization
   before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down]
 
+  # when we move to rails 5 we can use redirect_back instead of redirect_to(:back) below
+  rescue_from ActionController::RedirectBackError, with: :redirect_to_default
+
   # GET /categories
   def index
     @category_roots = Category.roots.to_a
@@ -91,7 +94,21 @@ class CategoriesController < ApplicationController
       params.require(:category).permit(:name, :parent_id, :data_list_id, :order, :default_handle, :default_freq)
     end
 
-  def check_authorization
-    raise 'User not authorized' unless current_user.dev_user?
-  end
+    def check_authorization
+      unless current_user.internal_user?
+        redirect_to :back, flash: {error: 'Not Authorized to view categories'}
+        return
+      end
+      if !current_user.admin_user? && [:up, :down, :edit, :update].index(params[:action]).nil?
+        redirect_to :back, flash: {error: 'Not Authorized to edit categories'}
+        return
+      end
+      if !current_user.dev_user? && params[:action] == :destroy
+        redirect_to :back, flash: {error: 'Not Authorized to destroy categories'}
+      end
+    end
+
+    def redirect_to_default
+      redirect_to root_path, flash: {error: 'Not Authorized'}
+    end
 end

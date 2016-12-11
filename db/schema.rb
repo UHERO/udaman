@@ -11,11 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-<<<<<<< HEAD
-ActiveRecord::Schema.define(version: 20161125221559) do
-=======
-ActiveRecord::Schema.define(version: 20161206011902) do
->>>>>>> 52c8bd44905ab256d1883080360a9c601d86e034
+ActiveRecord::Schema.define(version: 20161123013055) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -40,17 +36,6 @@ ActiveRecord::Schema.define(version: 20161206011902) do
   end
 
   add_index "aremos_series", ["name"], name: "index_aremos_series_on_name", using: :btree
-
-  create_table "authorizations", id: false, force: :cascade do |t|
-    t.integer "user_id",          limit: 4,   null: false
-    t.string  "provider",         limit: 255, null: false
-    t.integer "provider_user_id", limit: 4,   null: false
-    t.string  "name",             limit: 255
-    t.string  "email",            limit: 255
-  end
-
-  add_index "authorizations", ["provider_user_id"], name: "index_authorizations_on_provider_user_id", using: :btree
-  add_index "authorizations", ["user_id"], name: "fk_rails_4ecef5b8c5", using: :btree
 
   create_table "categories", force: :cascade do |t|
     t.string   "name",           limit: 255
@@ -115,6 +100,12 @@ ActiveRecord::Schema.define(version: 20161206011902) do
     t.float    "yoy",             limit: 53
     t.float    "ytd",             limit: 53
     t.date     "date",                                       null: false
+  end
+
+  create_table "data_portal_names", id: false, force: :cascade do |t|
+    t.string "prefix",           limit: 255
+    t.string "units",            limit: 255
+    t.string "data_portal_name", limit: 255
   end
 
   create_table "data_source_downloads", force: :cascade do |t|
@@ -243,11 +234,9 @@ ActiveRecord::Schema.define(version: 20161206011902) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.datetime "reset_password_sent_at"
-    t.integer  "role",                   limit: 4
   end
 
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
 
-  add_foreign_key "authorizations", "users"
 end

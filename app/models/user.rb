@@ -1,6 +1,11 @@
 class User < ActiveRecord::Base
-  enum role: [:datauser, :internal, :admin, :dev]
-  after_initialize :set_default_role, :if => :new_record?
+  enum role: {
+      data_portal_user: 'data_portal_user',
+      heco: 'heco',
+      internal: 'internal',
+      admin: 'admin',
+      dev: 'dev'
+  }
 
   # Include default devise modules. Others available are:
   # :token_authenticatable, :confirmable, :lockable and :timeoutable
@@ -15,10 +20,6 @@ class User < ActiveRecord::Base
 
   # Setup accessible (or protected) attributes for your model
   #attr_accessible :email, :password, :password_confirmation, :remember_me
-
-  def set_default_role
-    self.role ||= :datauser
-  end
 
   def internal_user?
     self.internal? || self.admin? || self.dev?
