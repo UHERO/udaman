@@ -72,7 +72,7 @@ group :production do
 end
 
 group :development, :test do
-  gem 'rspec-rails', '~> 3.0.2'
+  gem 'rspec-rails', '~> 3.1'
   gem 'factory_girl_rails', '~> 4.7'
   gem 'faker', '~> 1.6'
   gem 'watchr'

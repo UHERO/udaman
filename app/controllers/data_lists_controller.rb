@@ -1,5 +1,7 @@
 class DataListsController < ApplicationController
-  before_action :check_authorization, only: [:edit, :update, :destroy]
+  include Authorization
+
+  before_action :check_data_list_authorization
 
   # GET /data_lists
   # GET /data_lists.xml
@@ -204,14 +206,5 @@ class DataListsController < ApplicationController
       url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
       data = res.code == "500" ? nil : JSON.parse(res.body)
-    end
-
-    def check_authorization
-      current_user.id = DataList.find_by(id: params[:id]).owned_by
-      if params[:action] == :destroy
-        raise 'User not authorized for action' unless @data_list.owned_by == current_user.id || current_user.dev_user?
-      else
-        raise 'User not authorized for action' unless @data_list.owned_by == current_user.id || current_user.admin_user?
-      end
     end
 end

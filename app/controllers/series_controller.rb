@@ -1,7 +1,7 @@
 class SeriesController < ApplicationController
-  before_action only: [:new, :bulk_new, :create, :bulk_create, :edit, :update, :destroy] do
-    check_authorization(params[:action])
-  end
+  include Authorization
+
+  before_action :check_authorization
 
   # GET /series/new
   def new
@@ -247,9 +247,4 @@ class SeriesController < ApplicationController
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
       res.code == '500' ? nil : JSON.parse(res.body)
     end
-
-    def check_authorization(action)
-      raise 'User not authorized for action' unless current_user.internal_user?
-    end
-
 end

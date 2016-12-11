@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161123013055) do
+ActiveRecord::Schema.define(version: 20161209023203) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -36,6 +36,17 @@ ActiveRecord::Schema.define(version: 20161123013055) do
   end
 
   add_index "aremos_series", ["name"], name: "index_aremos_series_on_name", using: :btree
+
+  create_table "authorizations", id: false, force: :cascade do |t|
+    t.integer "user_id",          limit: 4,   null: false
+    t.string  "provider",         limit: 255, null: false
+    t.integer "provider_user_id", limit: 4,   null: false
+    t.string  "name",             limit: 255
+    t.string  "email",            limit: 255
+  end
+
+  add_index "authorizations", ["provider_user_id"], name: "index_authorizations_on_provider_user_id", using: :btree
+  add_index "authorizations", ["user_id"], name: "fk_rails_4ecef5b8c5", using: :btree
 
   create_table "categories", force: :cascade do |t|
     t.string   "name",           limit: 255
@@ -155,6 +166,18 @@ ActiveRecord::Schema.define(version: 20161123013055) do
     t.datetime "updated_at",                     null: false
   end
 
+  create_table "measurements", force: :cascade do |t|
+    t.string   "prefix",            limit: 255,   null: false
+    t.string   "data_portal_name",  limit: 255
+    t.string   "units_label",       limit: 255
+    t.string   "units_label_short", limit: 255
+    t.boolean  "percent"
+    t.boolean  "real"
+    t.text     "notes",             limit: 65535
+    t.datetime "created_at",                      null: false
+    t.datetime "updated_at",                      null: false
+  end
+
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
     t.date     "last_new_data"
@@ -199,8 +222,10 @@ ActiveRecord::Schema.define(version: 20161123013055) do
     t.boolean  "percent"
     t.boolean  "real"
     t.string   "frequency_transform",     limit: 255
+    t.integer  "measurement_id",          limit: 4
   end
 
+  add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
 
@@ -234,9 +259,12 @@ ActiveRecord::Schema.define(version: 20161123013055) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.datetime "reset_password_sent_at"
+    t.string   "role",                   limit: 16
   end
 
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
 
+  add_foreign_key "authorizations", "users"
+  add_foreign_key "series", "measurements"
 end
