@@ -14,7 +14,8 @@ module CategoriesHelper
   end
 
   def show_list_item(leaf, first, last)
-    data_list_section = link_to('Add DataList', edit_category_path(leaf))
+    data_list_section = ''
+    data_list_section = link_to('Add DataList', edit_category_path(leaf)) if current_user.admin_user?
     unless leaf.data_list.nil?
       data_list_section = link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
     end
@@ -23,9 +24,9 @@ module CategoriesHelper
     data_list_section <<
     ') ' <<
     "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
-    order_section(leaf, first, last) << ' - ' <<
-    link_to('Edit', edit_category_path(leaf)) << ' - ' <<
-    link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
+    (current_user.admin_user? ? order_section(leaf, first, last) << ' - ' : '') <<
+    (current_user.admin_user? ? link_to('Edit', edit_category_path(leaf)) << ' - ' : '') <<
+    (current_user.dev_user? ? link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" }) : '')
   end
 
   private

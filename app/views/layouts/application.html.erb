@@ -21,6 +21,7 @@
     <% if current_user.admin_user? %>
   	  <a href="/prognoz_data_files">Prognoz Output Files</a> |
     <% end %>
+    <% if current_user.internal_user? %>
   	<a href="/series">Data Series</a> |
   	<a href="/data_source_downloads">Downloads</a> |
     <a href="/investigate_visual">Investigation Dashboard</a> |
@@ -42,8 +43,7 @@
   	<a href="/employment_mau">(MAU)</a> 
   	<a href="/employment_kau">(KAU)</a> | 
   	<a href="/income">Income (HI)</a> 
-  	<a href="/income_r">Real Income (HI)</a> 
-  	
+  	<a href="/income_r">Real Income (HI)</a>
   </div>
   <div id="chart-board-nav">
   	Visitor HI</a> <a href="/visitor_a">(A)</a> <a href="/visitor_q">(Q)</a> <a href="/visitor">(M)</a> | 
@@ -54,15 +54,15 @@
   	<a href="/prudential_list_q">Prudential</a> |
   	<a href="/tax_m">Tax</a> 
   </div>
-  <% if current_user.dev_user? %>
     <div id="chart-board-nav">
     Data Portal: <a href="/categories" title="Edit Data Portal Categories">Categories</a> |
                  <a href="/geographies" title="Edit Data Portal Geographies">Geographies</a>
+    <% end %>
     </div>
-  <% end %>
 <% end %>
 <p class="notice"><%= flash[:notice] %></p>
 <p class="alert"><%= flash[:alert] %></p>
+<p class="error"><%= flash[:error] %></p>
 <%= yield %>
 
 </body>

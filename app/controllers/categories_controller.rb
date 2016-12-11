@@ -95,11 +95,17 @@ class CategoriesController < ApplicationController
     end
 
     def check_authorization
+      puts "Action: #{params[:action].to_s}"
+      puts "Edit action type: #{(!%w(up down edit update).index(params[:action]).nil?).to_s}"
+      puts "Destroy action: #{(params[:action] == :destroy).to_s}"
+      puts "Internal User: #{current_user.internal_user?.to_s}"
+      puts "Admin: #{current_user.admin_user?.to_s}"
+      puts "Dev: #{current_user.dev_user?.to_s}"
       unless current_user.internal_user?
         redirect_to :back, flash: {error: 'Not Authorized to view categories'}
-        return
       end
-      if !current_user.admin_user? && [:up, :down, :edit, :update].index(params[:action]).nil?
+      if !current_user.admin_user? && !%w(up down edit update new create).index(params[:action]).nil?
+        puts 'not admin AND edit command'
         redirect_to :back, flash: {error: 'Not Authorized to edit categories'}
         return
       end
