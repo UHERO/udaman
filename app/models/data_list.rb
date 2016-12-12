@@ -1,5 +1,6 @@
 class DataList < ActiveRecord::Base
   has_and_belongs_to_many :series
+  has_and_belongs_to_many :measurements
 
   # def export
   #   
