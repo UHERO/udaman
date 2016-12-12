@@ -1,7 +1,7 @@
 class DataListsController < ApplicationController
   include Authorization
 
-  before_action :check_data_list_authorization
+  before_action :check_data_list_authorization, except: [:index]
 
   # GET /data_lists
   # GET /data_lists.xml
