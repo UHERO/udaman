@@ -11,7 +11,7 @@ module Authorization
   end
 
   def check_data_list_authorization
-    if DataList.find_by(id: params[:id]).owned_by == current_user.id
+    if !%w(index new create).include?(params[:action]) && DataList.find_by(id: params[:id]).owned_by == current_user.id
       return
     end
     check_authorization
