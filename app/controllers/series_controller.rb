@@ -1,7 +1,7 @@
 class SeriesController < ApplicationController
   include Authorization
 
-  before_action :check_authorization
+  before_action :check_authorization, except: [:index]
 
   # GET /series/new
   def new
