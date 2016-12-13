@@ -1,5 +1,6 @@
 UheroDb::Application.routes.draw do
 
+  resources :forecast_snapshots
   resources :measurements
   resources :api_applications
   resources :sources

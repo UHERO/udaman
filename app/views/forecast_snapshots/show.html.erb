@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @forecast_snapshot.name %>
+</p>
+
+<p>
+  <strong>Version:</strong>
+  <%= @forecast_snapshot.version %>
+</p>
+
+<p>
+  <strong>Comments:</strong>
+  <%= @forecast_snapshot.comments %>
+</p>
+
+<p>
+  <strong>Published:</strong>
+  <%= @forecast_snapshot.published %>
+</p>
+
+<%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'Back', forecast_snapshots_path %>
