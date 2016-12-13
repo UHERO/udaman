@@ -31,6 +31,10 @@ class SeriesController < ApplicationController
   end
 
   def index
+    unless current_user.internal_user?
+      render text: 'Your current role only gets to see this page.', layout: true
+      return
+    end
     frequency = params.has_key?(:freq) ? params[:freq] : nil
     prefix = params.has_key?(:prefix) ? params[:prefix] : nil
     all = params.has_key?(:all) ? true : false
