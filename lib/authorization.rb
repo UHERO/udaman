@@ -11,10 +11,7 @@ module Authorization
   end
 
   def check_data_list_authorization
-    if !%w(index new create).include?(params[:action]) && DataList.find_by(id: params[:id]).owned_by == current_user.id
-      return
-    end
-    if %w(new create).include?(params[:action]) && current_user.internal_user?
+    if current_user.internal_user? && (%w(index new create).include?(params[:action]) || owns_data_list?(params[:id]))
       return
     end
     check_authorization
@@ -38,5 +35,9 @@ module Authorization
 
   def redirect_to_default
     redirect_to root_path, flash: {error: 'Not authorized'}
+  end
+
+  def owns_data_list?(data_list_id)
+    DataList.find_by(id: data_list_id).owned_by == current_user.id
   end
 end
