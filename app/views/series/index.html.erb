@@ -5,10 +5,12 @@
 		<%= raw navigation_by_frequency %>
 		<%= raw navigation_by_letter %>
 	</div>
-  <div>
-    <%= link_to 'Create Series', controller: 'series', action: 'new' %>
-    <%= link_to 'Bulk Series Create', controller: 'series', action: 'bulk_new' %>
-  </div>
+  <% if current_user.internal_user? %>
+    <div>
+      <%= link_to 'Create Series', controller: 'series', action: 'new' %>
+      <%= link_to 'Bulk Series Create', controller: 'series', action: 'bulk_new' %>
+    </div>
+  <% end %>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
