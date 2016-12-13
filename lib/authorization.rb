@@ -14,6 +14,9 @@ module Authorization
     if !%w(index new create).include?(params[:action]) && DataList.find_by(id: params[:id]).owned_by == current_user.id
       return
     end
+    if %w(new create).include?(params[:action]) && current_user.internal_user?
+      return
+    end
     check_authorization
   end
 
@@ -29,6 +32,7 @@ module Authorization
     end
     if !current_user.dev_user? && params[:action] == 'destroy'
       redirect_to :back, flash: {error: 'Not authorized to destroy'}
+      return
     end
   end
 
