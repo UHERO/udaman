@@ -49,13 +49,17 @@ FROM series GROUP BY LEFT(series.name, locate('@', series.name) - 1));|)
   end
 end
 
-desc 'Use data_lists_series to build data_lists_measurements'
+desc 'Use data_list list to build data_lists_measurements'
 task :build_data_list_measurements => :environment do
-  DataList.each do |dl|
+  DataList.find_each(batch_size: 50) do |dl|
     list = dl.list.split("\r\n").map{|s| s[/[^@]*/]}
     list.each_index do |list_order|
       measurement = Measurement.find_by(prefix: list[list_order])
-      dl.measurements<< measurement
+      if measurement.nil?
+        puts list[list_order]
+        next
+      end
+      dl.measurements<< measurement unless dl.measurements.include?(measurement)
       DataListMeasurement.find_by(data_list_id: dl.id, measurement_id: measurement.id).update(list_order: list_order)
     end
   end

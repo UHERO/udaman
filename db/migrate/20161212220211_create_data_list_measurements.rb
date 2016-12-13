@@ -5,5 +5,6 @@ class CreateDataListMeasurements < ActiveRecord::Migration
       t.belongs_to :measurement, index: true
       t.integer :list_order
     end
+    add_index :data_list_measurements, [:data_list_id, :measurement_id], unique: true
   end
 end
