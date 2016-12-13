@@ -1,4 +1,7 @@
 class ApiApplicationsController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_api_application, only: [:show, :edit, :update, :destroy]
 
   # GET /api_applications

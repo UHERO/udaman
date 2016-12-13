@@ -1,4 +1,8 @@
 class PrognozDataFilesController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
+
   def index
     @output_files = PrognozDataFile.all.order :name
   end

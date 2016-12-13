@@ -1,4 +1,8 @@
 class DataSourceDownloadsController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
+
   def index
     @output_files = DataSourceDownload.order(:url).all
     @domain_hash = {}

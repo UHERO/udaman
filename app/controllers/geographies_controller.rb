@@ -1,4 +1,7 @@
 class GeographiesController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_geography, only: [:show, :edit, :update, :destroy]
 
   # GET /geographies

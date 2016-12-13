@@ -1,5 +1,7 @@
 class DataListsController < ApplicationController
+  include Authorization
 
+  before_action :check_data_list_authorization
 
   # GET /data_lists
   # GET /data_lists.xml
@@ -205,5 +207,4 @@ class DataListsController < ApplicationController
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
       data = res.code == "500" ? nil : JSON.parse(res.body)
     end
-
 end

@@ -269,6 +269,7 @@ ActiveRecord::Schema.define(version: 20161212220211) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.datetime "reset_password_sent_at"
+    t.string   "role",                   limit: 16
   end
 
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
