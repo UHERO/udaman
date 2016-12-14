@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161209023203) do
+ActiveRecord::Schema.define(version: 20161212220211) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -60,6 +60,16 @@ ActiveRecord::Schema.define(version: 20161209023203) do
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
+
+  create_table "data_list_measurements", force: :cascade do |t|
+    t.integer "data_list_id",   limit: 4
+    t.integer "measurement_id", limit: 4
+    t.integer "list_order",     limit: 4
+  end
+
+  add_index "data_list_measurements", ["data_list_id", "measurement_id"], name: "index_data_list_measurements_on_data_list_id_and_measurement_id", unique: true, using: :btree
+  add_index "data_list_measurements", ["data_list_id"], name: "index_data_list_measurements_on_data_list_id", using: :btree
+  add_index "data_list_measurements", ["measurement_id"], name: "index_data_list_measurements_on_measurement_id", using: :btree
 
   create_table "data_lists", force: :cascade do |t|
     t.string   "name",       limit: 255
