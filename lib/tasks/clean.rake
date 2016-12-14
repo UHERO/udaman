@@ -36,8 +36,12 @@ end
 
 desc 'Create measurements from series table and destroy the old ones'
 task :reset_measurements => :environment do
+  # reset measurement tables
   ActiveRecord::Base.connection.execute('UPDATE series SET measurement_id = NULL;')
   ActiveRecord::Base.connection.execute('DELETE FROM measurements;')
+  ActiveRecord::Base.connection.execute('ALTER TABLE measurements AUTO_INCREMENT = 1;')
+  ActiveRecord::Base.connection.execute('DELETE FROM data_list_measurements;')
+  ActiveRecord::Base.connection.execute('ALTER TABLE data_list_measurements AUTO_INCREMENT = 1;')
   ActiveRecord::Base.connection.execute(%Q|INSERT INTO
 measurements (prefix, data_portal_name, units_label, units_label_short, percent, `real`, created_at, updated_at)
 (SELECT
@@ -48,6 +52,21 @@ measurements (prefix, data_portal_name, units_label, units_label_short, percent,
 FROM series GROUP BY
   TRIM(TRAILING '&NS' FROM TRIM(TRAILING 'NS' FROM UPPER(LEFT(series.name, LOCATE('@', series.name) - 1))))
 );|)
+
+  # set data_list - measurement associations
+  DataList.find_each(batch_size: 10) do |dl|
+    list = dl.list.split(/\r\n/).map{|s| s[/[^@]*/].upcase.chomp('NS').gsub(/NS&$/, '&')}
+    list.each_index do |list_order|
+      m = Measurement.find_by(prefix: list[list_order])
+      if m.nil?
+        next
+      end
+      dl.measurements<< m unless dl.measurements.include?(m)
+      DataListMeasurement.find_by(data_list_id: dl.id, measurement_id: m.id).update(list_order: list_order)
+    end
+  end
+
+  # set measurement - series associations
   Series.find_each(batch_size: 50) do |s|
     s.measurement = Measurement.find_by prefix: s.name[/[^@]*/].upcase.chomp('NS').gsub(/NS&$/, '&')
     s.save
