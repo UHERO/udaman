@@ -10,5 +10,10 @@
   <%= @tsd_file.latest %>
 </p>
 
+<p>
+  <strong>Forecast snapshot:</strong>
+  <%= link_to @fs.name, @fs %>
+</p>
+
 <%= link_to 'Edit', edit_tsd_file_path(@tsd_file) %> |
 <%= link_to 'Back', tsd_files_path %>

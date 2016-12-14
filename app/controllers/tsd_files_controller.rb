@@ -1,4 +1,7 @@
 class TsdFilesController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_tsd_file, only: [:show, :edit, :update, :destroy]
 
   # GET /tsd_files
@@ -49,6 +52,7 @@ class TsdFilesController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_tsd_file
       @tsd_file = TsdFile.find(params[:id])
+      @fs = @tsd_file.forecast_snapshot
     end
 
     # Only allow a trusted parameter "white list" through.

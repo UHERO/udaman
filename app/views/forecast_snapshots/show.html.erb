@@ -20,5 +20,14 @@
   <%= @forecast_snapshot.published %>
 </p>
 
+<p>
+  <strong>TSD files:</strong>
+  <ul>
+  <% @forecast_snapshot.tsd_files.all.each do |tsd| %>
+    <li><%= link_to tsd.path, tsd %></li>
+  <% end %>
+  </ul>
+</p>
+
 <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
 <%= link_to 'Back', forecast_snapshots_path %>

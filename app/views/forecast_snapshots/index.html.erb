@@ -21,8 +21,12 @@
         <td><%= forecast_snapshot.comments %></td>
         <td><%= forecast_snapshot.published %></td>
         <td><%= link_to 'Show', forecast_snapshot %></td>
-        <td><%= link_to 'Edit', edit_forecast_snapshot_path(forecast_snapshot) %></td>
-        <td><%= link_to 'Destroy', forecast_snapshot, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% if current_user.admin_user? %>
+           <td><%= link_to 'Edit', edit_forecast_snapshot_path(forecast_snapshot) %></td>
+        <% end %>
+        <% if current_user.dev_user? %>
+           <td><%= link_to 'Destroy', forecast_snapshot, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <% end %>
       </tr>
     <% end %>
   </tbody>
