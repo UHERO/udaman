@@ -77,6 +77,8 @@ group :development, :test do
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
+  gem 'ruby-debug-ide'
+  gem 'debase'
 end
 
 group :test do
