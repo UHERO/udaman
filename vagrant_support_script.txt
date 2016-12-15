@@ -19,7 +19,7 @@ gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB8
 curl -sSL https://get.rvm.io | bash -s stable
 source ~/.profile
 cd /vagrant
-rvm install ruby-2.3.0
+rvm install ruby-2.3.3
 gem install bundler
 bundle install
 sudo service mysqld start
@@ -29,4 +29,4 @@ mysql -uroot -p$DB_PASSWORD --connect-expired-password < changepwd.txt
 echo 'export DB_PASSWORD="MyNewPass4!"' | sed "s/\"/'/g" >> ~/.bashrc
 export DB_PASSWORD='MyNewPass4!'
 rake db:setup
-rvm gemset copy 2.3.0@default 2.3.0@rails4.2
+rvm gemset copy 2.3.3@default 2.3.3@rails4.2
