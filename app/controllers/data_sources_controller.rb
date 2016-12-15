@@ -1,5 +1,8 @@
 class DataSourcesController < ApplicationController
-  #can eventually move this to a data_source_controller when 
+  include Authorization
+
+  before_action :check_authorization
+  #can eventually move this to a data_source_controller when
   #that's developed for other source editing facilities
   def source
     source = DataSource.find_by id: params[:id]

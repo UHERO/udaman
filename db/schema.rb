@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161206011902) do
+ActiveRecord::Schema.define(version: 20161212220211) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -60,6 +60,16 @@ ActiveRecord::Schema.define(version: 20161206011902) do
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
+
+  create_table "data_list_measurements", force: :cascade do |t|
+    t.integer "data_list_id",   limit: 4
+    t.integer "measurement_id", limit: 4
+    t.integer "list_order",     limit: 4
+  end
+
+  add_index "data_list_measurements", ["data_list_id", "measurement_id"], name: "index_data_list_measurements_on_data_list_id_and_measurement_id", unique: true, using: :btree
+  add_index "data_list_measurements", ["data_list_id"], name: "index_data_list_measurements_on_data_list_id", using: :btree
+  add_index "data_list_measurements", ["measurement_id"], name: "index_data_list_measurements_on_measurement_id", using: :btree
 
   create_table "data_lists", force: :cascade do |t|
     t.string   "name",       limit: 255
@@ -166,6 +176,18 @@ ActiveRecord::Schema.define(version: 20161206011902) do
     t.datetime "updated_at",                     null: false
   end
 
+  create_table "measurements", force: :cascade do |t|
+    t.string   "prefix",            limit: 255,   null: false
+    t.string   "data_portal_name",  limit: 255
+    t.string   "units_label",       limit: 255
+    t.string   "units_label_short", limit: 255
+    t.boolean  "percent"
+    t.boolean  "real"
+    t.text     "notes",             limit: 65535
+    t.datetime "created_at",                      null: false
+    t.datetime "updated_at",                      null: false
+  end
+
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
     t.date     "last_new_data"
@@ -210,8 +232,10 @@ ActiveRecord::Schema.define(version: 20161206011902) do
     t.boolean  "percent"
     t.boolean  "real"
     t.string   "frequency_transform",     limit: 255
+    t.integer  "measurement_id",          limit: 4
   end
 
+  add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
 
@@ -245,10 +269,12 @@ ActiveRecord::Schema.define(version: 20161206011902) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.datetime "reset_password_sent_at"
+    t.string   "role",                   limit: 16
   end
 
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
 
   add_foreign_key "authorizations", "users"
+  add_foreign_key "series", "measurements"
 end

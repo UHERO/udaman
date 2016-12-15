@@ -1,4 +1,7 @@
 class CategoriesController < ApplicationController
+  include Authorization
+  
+  before_action :check_authorization
   before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down]
 
   # GET /categories

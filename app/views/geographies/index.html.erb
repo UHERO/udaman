@@ -22,7 +22,7 @@
         <td><%= geography.handle %></td>
         <td><%= link_to 'Show', geography %></td>
         <td><%= link_to 'Edit', edit_geography_path(geography) %></td>
-        <td><%= link_to 'Destroy', geography, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', geography, method: :delete, data: { confirm: "Destroy #{geography.display_name}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>

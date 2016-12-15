@@ -1,4 +1,8 @@
 class ListseriesController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
+
   def get
     require "net/http"
     @filelist = []
@@ -19,6 +23,5 @@ class ListseriesController < ApplicationController
   @name = params[:name]
   redirect_to "/listseries/#{@name}"
   end
-    
-  
+
 end
