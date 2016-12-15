@@ -13,6 +13,8 @@ curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -
 sudo yum install -y nodejs
 sudo yum install -y gcc-c++ make
 sudo yum install -y libcurl-devel
+sudo yum install -y redis
+sudo service redis start
 
 sudo service httpd restart
 gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3

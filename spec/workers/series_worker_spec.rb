@@ -1,5 +1,13 @@
-require 'spec_helper'
+require 'rails_helper'
 require 'redis'
+
+module RSpec
+  module Sidekiq
+    module Matchers
+      alias have_enqueued_sidekiq_job have_enqueued_job
+    end
+  end
+end
 
 describe SeriesWorker do
   redis = Redis.new
@@ -8,7 +16,7 @@ describe SeriesWorker do
   it 'should grab from the queue' do
     series_id = 1
     SeriesWorker.perform_async series_id, size
-    expect(SeriesWorker).to have_enqueued_job(series_id, size)
+    expect(SeriesWorker).to have_enqueued_sidekiq_job(series_id, size)
     redis.del "queue_#{size}"
   end
 

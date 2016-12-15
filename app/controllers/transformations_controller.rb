@@ -1,4 +1,7 @@
 class TransformationsController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_transformation, only: [:show, :edit, :update, :destroy]
 
   # GET /transformations

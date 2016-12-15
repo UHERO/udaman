@@ -1,4 +1,7 @@
 class SourcesController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_source, only: [:show, :edit, :update, :destroy]
 
   # GET /sources
