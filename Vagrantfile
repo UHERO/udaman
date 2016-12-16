@@ -26,8 +26,10 @@ Vagrant.configure('2') do |config|
   config.vm.provision :reload
   config.vm.provision 'shell', path: 'vagrant_support_script.txt', privileged: false
 
-  # Create a forwarded port mapping which allows access to a specific port
+  # Forwarded port mapping for http
   config.vm.network 'forwarded_port', guest: 3000, host: 3000
+  # Forwarded port mapping for debugging
+  config.vm.network 'forwarded_port', guest: 1234, host: 11234, auto_correct: true
 
   config.vm.post_up_message = %Q|vagrant ssh\n
 Then\n

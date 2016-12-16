@@ -55,12 +55,14 @@
   	<a href="/tax_m">Tax</a> 
   </div>
   <div id="chart-board-nav">
-  <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a>
-  <a href="/tsd_files" title="Edit Forecast Snapshot TSD Files">Forecast Snapshot TSD Files</a>
-  </div>
-  <div id="chart-board-nav">
     Data Portal: <a href="/categories" title="Edit Data Portal Categories">Categories</a> |
                  <a href="/geographies" title="Edit Data Portal Geographies">Geographies</a>
+  </div>
+  <div id="chart-board-nav">
+  <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a>
+  <% if current_user.dev_user? %>
+    <a href="/tsd_files" title="Edit Forecast Snapshot TSD Files">Forecast Snapshot TSD Files</a>
+  <% end %>
   </div>
     <% end %>
 <% end %>

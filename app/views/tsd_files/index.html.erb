@@ -7,6 +7,7 @@
     <tr>
       <th>Path</th>
       <th>Latest</th>
+      <th>Snapshot</th>
       <th colspan="3"></th>
     </tr>
   </thead>
@@ -16,6 +17,7 @@
       <tr>
         <td><%= tsd_file.path %></td>
         <td><%= tsd_file.latest %></td>
+        <td><%= tsd_file.forecast_snapshot ? link_to(tsd_file.forecast_snapshot.name, tsd_file.forecast_snapshot) : 'None' %></td>
         <td><%= link_to 'Show', tsd_file %></td>
         <% if current_user.admin_user? %>
            <td><%= link_to 'Edit', edit_tsd_file_path(tsd_file) %></td>

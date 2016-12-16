@@ -12,11 +12,15 @@
   <% end %>
 
   <div class="field">
-    <%= f.label :path %><br>
-    <%= f.text_field :path %>
+    Associated Forecast Snapshot: <%= f.label @fs ? @fs.name : 'None' %>
+    <%= f.hidden_field :forecast_snapshot_id %>
   </div>
   <div class="field">
-    <%= f.label :latest %><br>
+    Select file:
+    <%= f.file_field :path %>
+  </div>
+  <div class="field">
+    <%= f.label :latest %>
     <%= f.check_box :latest %>
   </div>
   <div class="actions">

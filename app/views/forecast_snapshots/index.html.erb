@@ -17,9 +17,9 @@
     <% @forecast_snapshots.each do |forecast_snapshot| %>
       <tr>
         <td><%= forecast_snapshot.name %></td>
-        <td><%= forecast_snapshot.version %></td>
+        <td align="center"><%= forecast_snapshot.version %></td>
         <td><%= forecast_snapshot.comments %></td>
-        <td><%= forecast_snapshot.published %></td>
+        <td align="center"><%= forecast_snapshot.published %></td>
         <td><%= link_to 'Show', forecast_snapshot %></td>
         <% if current_user.admin_user? %>
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(forecast_snapshot) %></td>
