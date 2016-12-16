@@ -7,7 +7,7 @@
 
 <p>
   <strong>Latest:</strong>
-  <%= @tsd_file.latest %>
+  <%= @tsd_file.latest ? 'Y' : 'N' %>
 </p>
 
 <p>
@@ -15,7 +15,5 @@
   <%= @fs ? link_to(@fs.name, @fs) : 'None' %>
 </p>
 
-<%= link_to 'Edit', edit_tsd_file_path(@tsd_file) %> |
-<% if current_user.dev_user? %>
-    <%= link_to 'Destroy', @tsd_file, method: :delete, data: { confirm: "Destroy #{@tsd_file.path}: Are you sure??" } %> |<% end %>
+<%= link_to 'Destroy', @tsd_file, method: :delete, data: { confirm: "Destroy #{@tsd_file.path}: Are you sure??" } %> |
 <%= link_to 'Back', tsd_files_path %>

@@ -1,37 +1,8 @@
 <p id="notice"><%= notice %></p>
 
-<p>
-  <strong>Name:</strong>
-  <%= @forecast_snapshot.name %>
-</p>
-
-<p>
-  <strong>Version:</strong>
-  <%= @forecast_snapshot.version %>
-</p>
-
-<p>
-  <strong>Comments:</strong>
-  <%= @forecast_snapshot.comments %>
-</p>
-
-<p>
-  <strong>Published:</strong>
-  <%= @forecast_snapshot.published %>
-</p>
-
-<p>
-  <strong>TSD files:</strong>
-  <ul>
-  <% @forecast_snapshot.tsd_files.all.each do |tsd| %>
-    <li><%= link_to tsd.path, tsd %>
-        [ <%= link_to 'Edit', edit_tsd_file_path(tsd) %>
-          <%= link_to 'Destroy', controller: :tsd_files, action: :destroy, id: tsd.id %> ]
-    </li>
-  <% end %>
-  <%= link_to 'New associated TSD file', :controller => :tsd_files, :action => :new, :forecast_snapshot_id => @forecast_snapshot.id %>
-  </ul>
-</p>
-
 <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
 <%= link_to 'Back', forecast_snapshots_path %>
+
+<h2><%= @forecast_snapshot.name %></h2>
+<h3>The real display coming soon</h3>
+

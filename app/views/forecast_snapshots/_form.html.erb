@@ -14,6 +14,8 @@
   <div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name %>
+    Published?
+    <%= f.check_box :published %>
   </div>
   <div class="field">
     <%= f.label :version %><br>
@@ -23,11 +25,20 @@
     <%= f.label :comments %><br>
     <%= f.text_area :comments %>
   </div>
-  <div class="field">
-    <%= f.label :published %><br>
-    <%= f.check_box :published %>
-  </div>
-  <div class="actions">
+    <div class="actions">
     <%= f.submit %>
   </div>
 <% end %>
+
+<p>
+  <h3>Associated TSD files:</h3>
+<ul>
+  <% @forecast_snapshot.tsd_files.all.each do |tsd| %>
+      <li><%= link_to tsd.path, tsd %>
+        [ <%= link_to 'Destroy', tsd, method: :delete, data: { confirm: "Destroy #{tsd.path}: Are you sure??" } %> ]
+      </li>
+  <% end %>
+ [ <%= link_to 'Add new TSD file', :controller => :tsd_files, :action => :new, :forecast_snapshot_id => @forecast_snapshot.id %> ]
+</ul>
+</p>
+

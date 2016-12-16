@@ -14,18 +14,18 @@
   </thead>
 
   <tbody>
-    <% @forecast_snapshots.each do |forecast_snapshot| %>
+    <% @forecast_snapshots.each do |fs| %>
       <tr>
-        <td><%= forecast_snapshot.name %></td>
-        <td align="center"><%= forecast_snapshot.version %></td>
-        <td><%= forecast_snapshot.comments %></td>
-        <td align="center"><%= forecast_snapshot.published %></td>
-        <td><%= link_to 'Show', forecast_snapshot %></td>
+        <td><%= fs.name %></td>
+        <td align="center"><%= fs.version %></td>
+        <td><%= fs.comments %></td>
+        <td align="center"><%= fs.published ? 'Y' : 'N' %></td>
+        <td><%= link_to 'Show', fs %></td>
         <% if current_user.admin_user? %>
-           <td><%= link_to 'Edit', edit_forecast_snapshot_path(forecast_snapshot) %></td>
+           <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
         <% end %>
         <% if current_user.dev_user? %>
-           <td><%= link_to 'Destroy', forecast_snapshot, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+           <td><%= link_to 'Destroy', fs, method: :delete, data: { confirm: "Destroy #{fs.name}: Are you sure??" } %></td>
         <% end %>
       </tr>
     <% end %>

@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Listing Tsd Files</h1>
+<h1>Listing TSD Files</h1>
 
 <table>
   <thead>
@@ -16,20 +16,10 @@
     <% @tsd_files.each do |tsd_file| %>
       <tr>
         <td><%= tsd_file.path %></td>
-        <td><%= tsd_file.latest %></td>
+        <td><%= tsd_file.latest ? 'Y' : 'N' %></td>
         <td><%= tsd_file.forecast_snapshot ? link_to(tsd_file.forecast_snapshot.name, tsd_file.forecast_snapshot) : 'None' %></td>
         <td><%= link_to 'Show', tsd_file %></td>
-        <% if current_user.admin_user? %>
-           <td><%= link_to 'Edit', edit_tsd_file_path(tsd_file) %></td>
-        <% end %>
-        <% if current_user.dev_user? %>
-           <td><%= link_to 'Destroy', tsd_file, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-        <% end %>
       </tr>
     <% end %>
   </tbody>
 </table>
-
-<br>
-
-<%= link_to 'New Tsd file', new_tsd_file_path %>

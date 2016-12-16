@@ -19,22 +19,22 @@ module Authorization
 
   def check_authorization
     unless current_user.internal_user?
-      redirect_to :back, flash: {error: 'Not authorized to view'}
+      redirect_to :back, flash: { error: 'Not authorized to view' }
       return
     end
     if !current_user.admin_user? && !Authorization::EDIT_ACTIONS.index(params[:action]).nil?
       puts 'not admin AND edit command'
-      redirect_to :back, flash: {error: 'Not authorized to edit'}
+      redirect_to :back, flash: { error: 'Not authorized to edit' }
       return
     end
     if !current_user.dev_user? && params[:action] == 'destroy'
-      redirect_to :back, flash: {error: 'Not authorized to destroy'}
+      redirect_to :back, flash: { error: 'Not authorized to destroy' }
       return
     end
   end
 
   def redirect_to_default
-    redirect_to root_path, flash: {error: 'Not authorized'}
+    redirect_to root_path, flash: { error: 'Not authorized' }
   end
 
   def owns_data_list?(data_list_id)

@@ -21,16 +21,9 @@ class TsdFilesController < ApplicationController
     @tsd_file = TsdFile.new(:forecast_snapshot_id => @fs.id)
   end
 
-  # GET /tsd_files/1/edit
-  def edit
-  end
-
   # POST /tsd_files
   def create
-    puts ">>>>>> DEBUG: create TSD file: param is #{params[:tsd_file][:path].to_s}"
     uploaded_file = params[:tsd_file][:path]
-    puts ">>>>>> DEBUG: create TSD file: var is #{uploaded_file.to_s}"
-    ##params.delete :thefile
     filepath = make_new_filepath(uploaded_file.original_filename)
     File.open(Rails.root.join(ENV['DATA_PATH']+filepath), 'wb') do |file|
       file.write(uploaded_file.read)
@@ -39,7 +32,7 @@ class TsdFilesController < ApplicationController
     @tsd_file = TsdFile.new(tsd_file_params)
 
     if @tsd_file.save
-      redirect_to @tsd_file, notice: 'TSD file was successfully created.'
+      redirect_to @tsd_file.forecast_snapshot, notice: 'TSD file was successfully created.'
     else
       render :new
     end
@@ -59,14 +52,15 @@ class TsdFilesController < ApplicationController
     @tsd_file.forecast_snapshot_id = nil
 
     if @tsd_file.save
-      redirect_to @tsd_file, notice: "Tsd file was unassociated from #{fsname}."
+      redirect_to @tsd_file, notice: "TSD file was unassociated from #{fsname}."
     end
   end
 
   # DELETE /tsd_files/1
   def destroy
+    fs = @tsd_file.forecast_snapshot
     @tsd_file.destroy
-    redirect_to tsd_files_url, notice: 'Tsd file was successfully destroyed.'
+    redirect_to forecast_snapshot_path(fs), notice: 'TSD file was successfully destroyed.'
   end
 
   private
