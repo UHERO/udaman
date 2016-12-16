@@ -1,7 +1,7 @@
 <%= form_for(@data_list) do |f| %>
   <% if @data_list.errors.any? %>
     <div id="error_explanation">
-      <h2><%= pluralize(@data_list.errors.count, "error") %> prohibited this data_list from being saved:</h2>
+      <h2><%= pluralize(@data_list.errors.count, 'error') %> prohibited this data_list from being saved:</h2>
 
       <ul>
       <% @data_list.errors.full_messages.each do |msg| %>
@@ -16,17 +16,30 @@
     <%= f.text_field :name %>
   </div>
   <div class="field">
-    <%= f.label :list %><br />
-    <%= f.text_area :list %>
-  </div>
-  <div class="field">
     <%= f.label :startyear %><br />
     <%= f.text_field :startyear %>
   </div>
+    <h2>List of Measurements</h2>
   <% if request.path =~ /edit/ %>
+        <table>
+          <thead>
+            <tr><th>Prefix</th><th>Data Portal Name</th><th></th><th></th></tr>
+          </thead>
+          <tbody>
+          <% @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}.map{|m| m.measurement}.each do |measurement| %>
+              <tr>
+                <td><%= measurement.prefix %></td>
+                <td><%= measurement.data_portal_name %></td>
+                <td><%= link_to 'Up', {controller: :data_lists, action: :measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
+                <td><%= link_to 'Down', {controller: :data_lists, action: :measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
+              </tr>
+          <% end %>
+          </tbody>
+        </table>
+        <br />
     <div class="field">
       <%= f.label :owned_by %><br />
-      <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => "Owned by") %>
+      <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
     </div>
   <% end %>
   <!-- <div class="field">

@@ -2,6 +2,7 @@ class DataList < ActiveRecord::Base
   has_and_belongs_to_many :series
   has_many :data_list_measurements
   has_many :measurements, -> {distinct}, through: :data_list_measurements
+  accepts_nested_attributes_for :measurements
 
   # def export
   #   
@@ -12,6 +13,9 @@ class DataList < ActiveRecord::Base
   #   FileUtils.cp(save_path_flex, save_path_flex+"_vintages/#{date}_"+filename)
   # end
   def series_names
+    if list.nil?
+      return []
+    end
     list.split("\n").map {|element| element.strip} 
   end
   
