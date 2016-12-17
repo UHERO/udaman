@@ -24,11 +24,12 @@ class TsdFilesController < ApplicationController
   # POST /tsd_files
   def create
     uploaded_file = params[:tsd_file][:path]
-    filepath = make_new_filepath(uploaded_file.original_filename)
-    File.open(Rails.root.join(ENV['DATA_PATH']+filepath), 'wb') do |file|
-      file.write(uploaded_file.read)
-    end
-    params[:tsd_file][:path] = filepath
+    filecontent = uploaded_file.read
+## validate filecontent
+    tsdpath = make_tsd_filepath(uploaded_file.original_filename)
+    File.open(File.join(ENV['DATA_PATH'], tsdpath), 'wb') { |file| file.write(filecontent) }
+##File.open(ENV['DATA_PATH']+tsdpath, 'wb') { |file| file.write(filecontent) }
+    params[:tsd_file][:path] = tsdpath
     @tsd_file = TsdFile.new(tsd_file_params)
 
     if @tsd_file.save
@@ -41,13 +42,13 @@ class TsdFilesController < ApplicationController
   # PATCH/PUT /tsd_files/1
   def update
     if @tsd_file.update(tsd_file_params)
-      redirect_to @tsd_file, notice: 'Tsd file was successfully updated.'
+      redirect_to @tsd_file, notice: 'TSD file was successfully updated.'
     else
       render :edit
     end
   end
 
-  def unassociate_obsolete_can_delete?
+  def unassociate_OBSOLETE_CAN_DELETE?
     fsname = @fs ? @fs.name : 'None'
     @tsd_file.forecast_snapshot_id = nil
 
@@ -59,6 +60,15 @@ class TsdFilesController < ApplicationController
   # DELETE /tsd_files/1
   def destroy
     fs = @tsd_file.forecast_snapshot
+    path = File.join(ENV['DATA_PATH'], @tsd_file.path)
+    ##path = ENV['DATA_PATH']+@tsd_file.path
+    begin
+      File.delete(path)
+    rescue StandardError => e
+      Rails.logger.error e.message
+      redirect_to forecast_snapshot_path(fs), notice: "Failed to remove TSD file #{path}: #{e.message}"
+      return
+    end
     @tsd_file.destroy
     redirect_to forecast_snapshot_path(fs), notice: 'TSD file was successfully destroyed.'
   end
@@ -75,7 +85,7 @@ class TsdFilesController < ApplicationController
       params.require(:tsd_file).permit(:path, :latest, :forecast_snapshot_id)
     end
 
-    def make_new_filepath(name)
-      '/'+TSD_PATH+'/'+name
+    def make_tsd_filepath(name)
+      File.join(File::SEPARATOR, TSD_PATH, name)
     end
 end
