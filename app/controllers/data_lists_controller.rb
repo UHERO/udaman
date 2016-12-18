@@ -175,6 +175,23 @@ class DataListsController < ApplicationController
     end
   end
 
+  def add_measurement
+    puts "id: #{params[:id]}, measurement_id: #{params[:data_list][:measurement_ids]}"
+    @data_list = DataList.find_by id: params[:id].to_i
+    measurement = Measurement.find_by id: params[:data_list][:measurement_ids].to_i
+    if @data_list.measurements.include?(measurement)
+      # send an error saying that the measurement was already added
+      return
+    end
+    list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order)
+    @data_list.measurements<< measurement
+    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order)
+    respond_to do |format|
+      format.html { redirect_to edit_data_list_url(@data_list.id) }
+      format.js {}
+    end
+  end
+  
   def measurement_up
     @data_list = DataList.find_by id: params[:id]
     puts "trying to move measurement #{params[:measurement_id]} up."
@@ -215,6 +232,11 @@ class DataListsController < ApplicationController
     respond_to do |format|
       format.js {}
     end
+  end
+
+  def remove_measurement
+    @data_list = DataListMeasurement.find_by id: params[:id]
+    @data_list.data_list_measurements
   end
 
   private
