@@ -176,11 +176,10 @@ class DataListsController < ApplicationController
   end
 
   def add_measurement
-    puts "id: #{params[:id]}, measurement_id: #{params[:data_list][:measurement_ids]}"
     @data_list = DataList.find_by id: params[:id].to_i
     measurement = Measurement.find_by id: params[:data_list][:measurement_ids].to_i
     if @data_list.measurements.include?(measurement)
-      # send an error saying that the measurement was already added
+      redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end
     list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order)
@@ -192,51 +191,69 @@ class DataListsController < ApplicationController
     end
   end
   
-  def measurement_up
+  def move_measurement_up
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
     @data_list = DataList.find_by id: params[:id]
     puts "trying to move measurement #{params[:measurement_id]} up."
-    siblings_array = @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}
-    old_index = siblings_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
-    siblings_array.each_index do |i|
+    measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
+    old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    if old_index <= 0
+      return
+    end
+    measurements_array.each_index do |i|
       if old_index - 1 == i
-        siblings_array[i].update list_order: i + 1
+        measurements_array[i].update list_order: i + 1
         next
       end
       if old_index == i
-        siblings_array[i].update list_order: i - 1
+        measurements_array[i].update list_order: i - 1
         next
       end
-      siblings_array[i].update list_order: i
-    end
-    respond_to do |format|
-      format.js {}
+      measurements_array[i].update list_order: i
     end
   end
 
-  def measurement_down
+  def move_measurement_down
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
     @data_list = DataList.find_by id: params[:id]
     puts "trying to move measurement #{params[:measurement_id]} down."
-    siblings_array = @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}
-    old_index = siblings_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
-    siblings_array.each_index do |i|
+    measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
+    old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    if old_index >= measurements_array.length - 1
+      return
+    end
+    measurements_array.each_index do |i|
       if old_index + 1 == i
-        siblings_array[i].update list_order: i - 1
+        measurements_array[i].update list_order: i - 1
         next
       end
       if old_index == i
-        siblings_array[i].update list_order: i + 1
+        measurements_array[i].update list_order: i + 1
         next
       end
-      siblings_array[i].update list_order: i
-    end
-    respond_to do |format|
-      format.js {}
+      measurements_array[i].update list_order: i
     end
   end
 
   def remove_measurement
-    @data_list = DataListMeasurement.find_by id: params[:id]
-    @data_list.data_list_measurements
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    measurements = DataListMeasurement.where(data_list_id: params[:id]).to_a.sort_by{ |m| m.list_order }
+    index_to_remove = measurements.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    new_order = 0
+    measurements.each_index do |i|
+      if index_to_remove == i
+        next
+      end
+      measurements[i].update list_order: new_order
+    end
+    id_to_remove = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id]).id
+    DataListMeasurement.destroy(id_to_remove)
   end
 
   private

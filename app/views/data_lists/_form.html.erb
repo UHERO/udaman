@@ -30,9 +30,9 @@
               <tr>
                 <td><%= measurement.prefix %></td>
                 <td><%= measurement.data_portal_name %></td>
-                <td><%= link_to 'Up', {controller: :data_lists, action: :measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
-                <td><%= link_to 'Down', {controller: :data_lists, action: :measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
-                <td><%= link_to 'Remove', {controller: :data_lists, action: :measurement_remove, id: @data_list, measurement_id: measurement.id}, remote: true, data: {remove: true} %></td>
+                <td><%= link_to 'Up', {controller: :data_lists, action: :move_measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
+                <td><%= link_to 'Down', {controller: :data_lists, action: :move_measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
+                <td><%= link_to 'Remove', {controller: :data_lists, action: :remove_measurement, id: @data_list, measurement_id: measurement.id}, remote: true, data: {remove: true} %></td>
               </tr>
           <% end %>
           </tbody>
