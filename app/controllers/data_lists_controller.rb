@@ -17,7 +17,9 @@ class DataListsController < ApplicationController
   # GET /data_lists/1
   # GET /data_lists/1.xml
   def show
-    @data_list = DataList.joins("left join users on users.id = data_lists.owned_by").select("data_lists.*, coalesce(users.email, 'Unassigned') as owner").find_by(id: params[:id])
+    @data_list = DataList.joins('left join users on users.id = data_lists.owned_by')
+                     .select("data_lists.*, coalesce(users.email, 'Unassigned') as owner")
+                     .find_by(id: params[:id])
 
     respond_to do |format|
       format.csv { render :layout => false }
@@ -36,76 +38,79 @@ class DataListsController < ApplicationController
     # dates = set_dates(frequency, params)
     # @start_date = dates[:start_date]
     # @end_date = dates[:end_date]
-    render "super_table"
+    render 'super_table'
   end
   
   def show_table
     @data_list = DataList.find_by id: params[:id]
     @series_to_chart = @data_list.series_names
+    if @series_to_chart.length == 0
+      render 'tableview'
+      return
+    end
     frequency = @series_to_chart[0][-1]
     dates = set_dates(frequency, params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render "tableview"
+    render 'tableview'
   end
-
 
 #NOTE DATA LIST NEEDS TO BE ALL CAPS... SOMETHING TO FIX. Not the case for regular super table
   def show_tsd_super_table
     @data_list = DataList.find_by id: params[:id]
-    @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
+    @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
-    render "tsd_super_tableview"
+    render 'tsd_super_tableview'
   end
   
   def show_tsd_table
     @data_list = DataList.find_by id: params[:id]
-    @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
+    @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     @series_to_chart = @data_list.series_names
     frequency = @series_to_chart[0][-1]
     dates = set_dates(frequency, params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render "tsd_tableview"
+    render 'tsd_tableview'
   end
   
   def analyze_view
     @data_list = DataList.find_by id: params[:id]
-    @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
+    @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
     #@series_name = @data_list.series_names[@series_index]
 
     @data = json_from_heroku_tsd(@series_name,@tsd_file)
-		@series = @data.nil? ? nil : Series.new_transformation(@data["name"]+"."+@data["frequency"],  @data["data"], Series.frequency_from_code(@data["frequency"]))
+		@series = @data.nil? ? nil : Series.new_transformation(@data['name']+'.'+@data['frequency'],  @data['data'], Series.frequency_from_code(@data['frequency']))
 		@chg = @series.annualized_percentage_change
     #@as = AremosSeries.get @series.name 
-    @desc = "None yet" #@as.nil? ? "No Aremos Series" : @as.description
+    @desc = 'None yet' #@as.nil? ? 'No Aremos Series' : @as.description
     @lvl_chg = @series.absolute_change
     @ytd = @series.ytd_percentage_change
   end
   
   def compare_forecasts
     @data_list = DataList.find_by id: params[:id]
-    @all_tsd_files = JSON.parse(open("http://readtsd.herokuapp.com/listnames/json").read)["file_list"]
+    @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
   end
   
   def compare_view
     @data_list = DataList.find_by id: params[:id]
-    @tsd_file1 = "heco14.TSD"
-    @tsd_file2 = "13Q4.TSD"
+    @tsd_file1 = 'heco14.TSD'
+    @tsd_file2 = '13Q4.TSD'
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
 
     @data1 = json_from_heroku_tsd(@series_name,@tsd_file1)
-		@series1 = @data1.nil? ? nil : Series.new_transformation(@data1["name"]+"."+@data1["frequency"],  @data1["data"], Series.frequency_from_code(@data1["frequency"])).trim("2006-01-01","2017-10-01")
+		@series1 = @data1.nil? ? nil : Series.new_transformation(@data1['name']+'.'+@data1['frequency'],  @data1['data'], Series.frequency_from_code(@data1['frequency'])).trim('2006-01-01','2017-10-01')
 		@chg1 = @series1.annualized_percentage_change
     
     @data2 = json_from_heroku_tsd(@series_name,@tsd_file2)
-		@series2 = @data2.nil? ? nil : Series.new_transformation(@data2["name"]+"."+@data2["frequency"],  @data2["data"], Series.frequency_from_code(@data2["frequency"])).trim("2006-01-01","2017-10-01")
+		@series2 = @data2.nil? ? nil : Series.new_transformation(@data2['name']+'.'+@data2['frequency'],  @data2['data'], Series.frequency_from_code(@data2['frequency'])).trim('2006-01-01','2017-10-01')
 		@chg2 = @series2.annualized_percentage_change
 
-    @history_series = @series_name.ts.trim("2006-01-01","2017-10-01")
+    @history_series = @series_name.ts.trim('2006-01-01','2017-10-01')
     @history_chg = @history_series.annualized_percentage_change
   end
   
@@ -135,7 +140,7 @@ class DataListsController < ApplicationController
         format.html { redirect_to(@data_list, :notice => 'Data list was successfully created.') }
         format.xml  { render :xml => @data_list, :status => :created, :location => @data_list }
       else
-        format.html { render :action => "new" }
+        format.html { render :action => 'new' }
         format.xml  { render :xml => @data_list.errors, :status => :unprocessable_entity }
       end
     end
@@ -152,7 +157,7 @@ class DataListsController < ApplicationController
         format.html { redirect_to(@data_list, :notice => 'Data list was successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render :action => "edit" }
+        format.html { render :action => 'edit' }
         format.xml  { render :xml => @data_list.errors, :status => :unprocessable_entity }
       end
     end
@@ -170,11 +175,91 @@ class DataListsController < ApplicationController
     end
   end
 
-
+  def add_measurement
+    @data_list = DataList.find_by id: params[:id].to_i
+    measurement = Measurement.find_by id: params[:data_list][:measurement_ids].to_i
+    if @data_list.measurements.include?(measurement)
+      redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
+      return
+    end
+    list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order)
+    @data_list.measurements<< measurement
+    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order)
+    respond_to do |format|
+      format.html { redirect_to edit_data_list_url(@data_list.id) }
+      format.js {}
+    end
+  end
   
+  def move_measurement_up
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    @data_list = DataList.find_by id: params[:id]
+    puts "trying to move measurement #{params[:measurement_id]} up."
+    measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
+    old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    if old_index <= 0
+      return
+    end
+    measurements_array.each_index do |i|
+      if old_index - 1 == i
+        measurements_array[i].update list_order: i + 1
+        next
+      end
+      if old_index == i
+        measurements_array[i].update list_order: i - 1
+        next
+      end
+      measurements_array[i].update list_order: i
+    end
+  end
+
+  def move_measurement_down
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    @data_list = DataList.find_by id: params[:id]
+    puts "trying to move measurement #{params[:measurement_id]} down."
+    measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
+    old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    if old_index >= measurements_array.length - 1
+      return
+    end
+    measurements_array.each_index do |i|
+      if old_index + 1 == i
+        measurements_array[i].update list_order: i - 1
+        next
+      end
+      if old_index == i
+        measurements_array[i].update list_order: i + 1
+        next
+      end
+      measurements_array[i].update list_order: i
+    end
+  end
+
+  def remove_measurement
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    measurements = DataListMeasurement.where(data_list_id: params[:id]).to_a.sort_by{ |m| m.list_order }
+    index_to_remove = measurements.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    new_order = 0
+    measurements.each_index do |i|
+      if index_to_remove == i
+        next
+      end
+      measurements[i].update list_order: new_order
+    end
+    id_to_remove = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id]).id
+    DataListMeasurement.destroy(id_to_remove)
+  end
+
   private
     def data_list_params
-      params.require(:data_list).permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by)
+      params.require(:data_list)
+          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id)
     end
 
     def set_dates(frequency, params)
@@ -205,6 +290,6 @@ class DataListsController < ApplicationController
     def json_from_heroku_tsd(series_name, tsd_file)
       url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-      data = res.code == "500" ? nil : JSON.parse(res.body)
+      res.code == '500' ? nil : JSON.parse(res.body)
     end
 end
