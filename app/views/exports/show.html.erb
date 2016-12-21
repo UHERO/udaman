@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @export.name %>
+</p>
+
+<p>
+  <strong>Created by:</strong>
+  <%= @export.created_by %>
+</p>
+
+<p>
+  <strong>Updated by:</strong>
+  <%= @export.updated_by %>
+</p>
+
+<p>
+  <strong>Owned by:</strong>
+  <%= @export.owned_by %>
+</p>
+
+<%= link_to 'Edit', edit_export_path(@export) %> |
+<%= link_to 'Back', exports_path %>

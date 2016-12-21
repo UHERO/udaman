@@ -1,0 +1,33 @@
+<%= form_for(@export) do |f| %>
+  <% if @export.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@export.errors.count, "error") %> prohibited this export from being saved:</h2>
+
+      <ul>
+      <% @export.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+  </div>
+  <div class="field">
+    <%= f.label :created_by %><br>
+    <%= f.number_field :created_by %>
+  </div>
+  <div class="field">
+    <%= f.label :updated_by %><br>
+    <%= f.number_field :updated_by %>
+  </div>
+  <div class="field">
+    <%= f.label :owned_by %><br>
+    <%= f.number_field :owned_by %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>
