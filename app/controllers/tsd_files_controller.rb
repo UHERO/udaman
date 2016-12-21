@@ -4,8 +4,6 @@ class TsdFilesController < ApplicationController
   before_action :check_authorization
   before_action :set_tsd_file, only: [:show, :edit, :update, :destroy, :unassociate]
 
-  TSD_PATH = 'tsd_files'
-
   # GET /tsd_files
   def index
     @tsd_files = TsdFile.all
@@ -26,14 +24,15 @@ class TsdFilesController < ApplicationController
     uploaded_file = params[:tsd_file][filename]
     filecontent = uploaded_file.read
 ## validate filecontent
-    params[:tsd_file][:filename] = tsdname = uploaded_file.original_filename
-    File.open(File.join(ENV['DATA_PATH'], tsd_rel_filepath(tsdname)), 'wb') do |f|
-      f.write(filecontent)
-    end
+    params[:tsd_file][:filename] = uploaded_file.original_filename
     @tsd_file = TsdFile.new(tsd_file_params)
 
     if @tsd_file.save
-      redirect_to @tsd_file.forecast_snapshot, notice: 'TSD file was successfully created.'
+      if @tsd_file.write_to_disk(filecontent)
+        redirect_to @tsd_file.forecast_snapshot, notice: 'TSD file was successfully created.'
+      else
+        # do something
+      end
     else
       render :new
     end
@@ -73,10 +72,5 @@ class TsdFilesController < ApplicationController
     # Only allow a trusted parameter "white list" through.
     def tsd_file_params
       params.require(:tsd_file).permit(:filename, :latest, :forecast_snapshot_id)
-    end
-
-    def tsd_rel_filepath(name)
-      hash = name   ## Put salted hashing stuff in here, eh?
-      File.join(TSD_PATH, hash)
     end
 end
