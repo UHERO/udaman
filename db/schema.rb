@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161221234459) do
+ActiveRecord::Schema.define(version: 20161221235041) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -166,6 +166,16 @@ ActiveRecord::Schema.define(version: 20161221234459) do
     t.datetime "updated_at"
     t.string   "mimetype",                limit: 255
   end
+
+  create_table "export_series", force: :cascade do |t|
+    t.integer "export_id",  limit: 4
+    t.integer "series_id",  limit: 4
+    t.integer "list_order", limit: 4
+  end
+
+  add_index "export_series", ["export_id", "series_id"], name: "index_export_series_on_export_id_and_series_id", unique: true, using: :btree
+  add_index "export_series", ["export_id"], name: "index_export_series_on_export_id", using: :btree
+  add_index "export_series", ["series_id"], name: "index_export_series_on_series_id", using: :btree
 
   create_table "exports", force: :cascade do |t|
     t.string   "name",       limit: 255
