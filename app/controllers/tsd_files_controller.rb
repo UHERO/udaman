@@ -23,13 +23,13 @@ class TsdFilesController < ApplicationController
 
   # POST /tsd_files
   def create
-    uploaded_file = params[:tsd_file][:path]
+    uploaded_file = params[:tsd_file][filename]
     filecontent = uploaded_file.read
 ## validate filecontent
-    tsdpath = make_tsd_filepath(uploaded_file.original_filename)
-    File.open(File.join(ENV['DATA_PATH'], tsdpath), 'wb') { |file| file.write(filecontent) }
-##File.open(ENV['DATA_PATH']+tsdpath, 'wb') { |file| file.write(filecontent) }
-    params[:tsd_file][:path] = tsdpath
+    params[:tsd_file][:filename] = tsdname = uploaded_file.original_filename
+    File.open(File.join(ENV['DATA_PATH'], tsd_rel_filepath(tsdname)), 'wb') do |f|
+      f.write(filecontent)
+    end
     @tsd_file = TsdFile.new(tsd_file_params)
 
     if @tsd_file.save
@@ -48,20 +48,10 @@ class TsdFilesController < ApplicationController
     end
   end
 
-  def unassociate_OBSOLETE_CAN_DELETE?
-    fsname = @fs ? @fs.name : 'None'
-    @tsd_file.forecast_snapshot_id = nil
-
-    if @tsd_file.save
-      redirect_to @tsd_file, notice: "TSD file was unassociated from #{fsname}."
-    end
-  end
-
   # DELETE /tsd_files/1
   def destroy
     fs = @tsd_file.forecast_snapshot
-    path = File.join(ENV['DATA_PATH'], @tsd_file.path)
-    ##path = ENV['DATA_PATH']+@tsd_file.path
+    path = File.join(ENV['DATA_PATH'], tsd_rel_filepath(@tsd_file.filename))
     begin
       File.delete(path)
     rescue StandardError => e
@@ -82,10 +72,11 @@ class TsdFilesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def tsd_file_params
-      params.require(:tsd_file).permit(:path, :latest, :forecast_snapshot_id)
+      params.require(:tsd_file).permit(:filename, :latest, :forecast_snapshot_id)
     end
 
-    def make_tsd_filepath(name)
-      File.join(File::SEPARATOR, TSD_PATH, name)
+    def tsd_rel_filepath(name)
+      hash = name   ## Put salted hashing stuff in here, eh?
+      File.join(TSD_PATH, hash)
     end
 end
