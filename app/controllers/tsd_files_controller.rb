@@ -21,7 +21,7 @@ class TsdFilesController < ApplicationController
 
   # POST /tsd_files
   def create
-    uploaded_file = params[:tsd_file][filename]
+    uploaded_file = params[:tsd_file][:filename]
     filecontent = uploaded_file.read
 ## validate filecontent
     params[:tsd_file][:filename] = uploaded_file.original_filename
