@@ -9,6 +9,7 @@ UheroDb::Application.routes.draw do
   resources :geographies
 
   get 'data_points/:series_id/:date_string' => 'data_points#show'
+  get 'exports/:id/add_series/:series_id' => 'exports#add_series'
 
   root :to => 'series#index'
 

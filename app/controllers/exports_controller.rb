@@ -61,6 +61,88 @@ class ExportsController < ApplicationController
     @export.destroy
     redirect_to exports_url, notice: 'Export was successfully destroyed.'
   end
+  
+  def add_series
+    @export = Export.find_by id: params[:id].to_i
+    series = Series.find_by id: params[:series_id].to_i
+    if @export.series.include?(series)
+      redirect_to edit_export_url(@export.id), notice: 'This Series is already in the list!'
+      return
+    end
+    list_order = ExportSeries.where(export_id: @export.id).maximum(:list_order) + 1
+    @export.series<< series
+    ExportSeries.find_by(export_id: @export.id, series_id: series.id).update(list_order: list_order)
+    respond_to do |format|
+      format.html { redirect_to edit_export_url(@export.id) }
+      format.js {}
+    end
+  end
+
+  def move_series_up
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    @export = Export.find_by id: params[:id]
+    puts "trying to move series #{params[:series_id]} up."
+    series_array = @export.export_series.to_a.sort_by{ |m| m.list_order }
+    old_index = series_array.index{ |m| m.series_id == params[:series_id].to_i }
+    if old_index <= 0
+      return
+    end
+    series_array.each_index do |i|
+      if old_index - 1 == i
+        series_array[i].update list_order: i + 1
+        next
+      end
+      if old_index == i
+        series_array[i].update list_order: i - 1
+        next
+      end
+      series_array[i].update list_order: i
+    end
+  end
+
+  def move_series_down
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    @export = Export.find_by id: params[:id]
+    puts "trying to move series #{params[:series_id]} down."
+    series_array = @export.export_series.to_a.sort_by{ |m| m.list_order }
+    old_index = series_array.index{ |m| m.series_id == params[:series_id].to_i }
+    if old_index >= series_array.length - 1
+      return
+    end
+    series_array.each_index do |i|
+      if old_index + 1 == i
+        series_array[i].update list_order: i - 1
+        next
+      end
+      if old_index == i
+        series_array[i].update list_order: i + 1
+        next
+      end
+      series_array[i].update list_order: i
+    end
+  end
+
+  def remove_series
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    series = ExportSeries.where(export_id: params[:id]).to_a.sort_by{ |m| m.list_order }
+    index_to_remove = series.index{ |m| m.series_id == params[:series_id].to_i }
+    new_order = 0
+    series.each_index do |i|
+      if index_to_remove == i
+        next
+      end
+      series[i].update list_order: new_order
+      new_order += 1
+    end
+    id_to_remove = ExportSeries.find_by(export_id: params[:id], series_id: params[:series_id]).id
+    ExportSeries.destroy(id_to_remove)
+  end
 
   private
     # Use callbacks to share common setup or constraints between actions.

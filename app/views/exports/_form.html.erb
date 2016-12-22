@@ -15,17 +15,32 @@
     <%= f.label :name %><br>
     <%= f.text_field :name %>
   </div>
+
+    <% if request.path =~ /edit/ %>
+        <h2>List of Series</h2>
+        <table>
+          <thead>
+          <tr><th>Series</th><th></th><th></th></tr>
+          </thead>
+          <tbody>
+          <% @export.export_series.to_a.sort_by{|s| s.list_order}.map{|s| s.series}.each do |series| %>
+              <tr>
+                <td><%= series.name %></td>
+                <td><%= link_to 'Up', {controller: :exports, action: :move_series_up, id: @export, series_id: series.id}, remote: true, data: {up: true} %></td>
+                <td><%= link_to 'Down', {controller: :exports, action: :move_series_down, id: @export, series_id: series.id}, remote: true, data: {down: true} %></td>
+                <td><%= link_to 'Remove', {controller: :exports, action: :remove_series, id: @export, series_id: series.id}, remote: true, data: {remove: true} %></td>
+              </tr>
+          <% end %>
+          </tbody>
+        </table>
+        <br />
+    <% end %>
+
+  <%= render 'add_series' %>
+
   <div class="field">
-    <%= f.label :created_by %><br>
-    <%= f.number_field :created_by %>
-  </div>
-  <div class="field">
-    <%= f.label :updated_by %><br>
-    <%= f.number_field :updated_by %>
-  </div>
-  <div class="field">
-    <%= f.label :owned_by %><br>
-    <%= f.number_field :owned_by %>
+    <%= f.label :owned_by %><br />
+    <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
   </div>
   <div class="actions">
     <%= f.submit %>
