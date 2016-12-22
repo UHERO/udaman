@@ -13,7 +13,7 @@ $(function() {
 	function extractLast( term ) {
 		return split( term ).pop();
 	}
-	$( "#search_field" ) // don't navigate away from the field on tab when selecting an item
+	$( "#add_series_field" ) // don't navigate away from the field on tab when selecting an item
       .bind( "keydown", function(event ) {
 			if ( event.keyCode === $.ui.keyCode.TAB &&
 				$( this ).data( "ui-autocomplete" ).menu.active ) {
@@ -38,8 +38,7 @@ $(function() {
 				return false;
 			},
 			select: function( event, ui ) {
-				console.log("/series/"+ui.item.value);
-				window.location.href = "/series/"+ui.item.value;
+				window.location.href = "/exports/" + <%= @export.id %> + "/add_series/"+ui.item.value;
 				this.value = ui.item.label;
 				return false;
 			}
@@ -49,7 +48,8 @@ $(function() {
 
 
 <div class="ui-widget">
-<input id="search_field" type="text" size="30" name="search">
+  <label for="add_series_field">Add Series to Export</label>
+<input id="add_series_field" type="text" size="30" name="search">
 </div>
 
 

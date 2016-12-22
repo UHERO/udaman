@@ -1,0 +1,48 @@
+<%= form_for(@export) do |f| %>
+  <% if @export.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@export.errors.count, "error") %> prohibited this export from being saved:</h2>
+
+      <ul>
+      <% @export.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+  </div>
+
+    <% if request.path =~ /edit/ %>
+        <h2>List of Series</h2>
+        <table>
+          <thead>
+          <tr><th>Series</th><th></th><th></th></tr>
+          </thead>
+          <tbody>
+          <% @export.export_series.to_a.sort_by{|s| s.list_order}.map{|s| s.series}.each do |series| %>
+              <tr>
+                <td><%= series.name %></td>
+                <td><%= link_to 'Up', {controller: :exports, action: :move_series_up, id: @export, series_id: series.id}, remote: true, data: {up: true} %></td>
+                <td><%= link_to 'Down', {controller: :exports, action: :move_series_down, id: @export, series_id: series.id}, remote: true, data: {down: true} %></td>
+                <td><%= link_to 'Remove', {controller: :exports, action: :remove_series, id: @export, series_id: series.id}, remote: true, data: {remove: true} %></td>
+              </tr>
+          <% end %>
+          </tbody>
+        </table>
+        <br />
+      <%= render 'add_series' %>
+    <% end %>
+
+
+  <div class="field">
+    <%= f.label :owned_by %><br />
+    <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

@@ -85,3 +85,21 @@ task :reset_seasonally_adjusted => :environment do
     end
   end
 end
+
+desc 'Load exports from data_lists'
+task :build_exports_from_data_lists => :environment do
+  DataList.find_each(batch_size: 10) do |dl|
+    export = Export.create(name: dl.name, created_by: dl.created_by, updated_by: dl.updated_by, owned_by: dl.owned_by)
+    series_ids = dl.series_names.map do |sn|
+      begin
+        sn.ts.id unless sn.ts.nil?
+      rescue SeriesNameException
+        nil
+      end
+    end
+    series_ids.compact!
+    series_ids.each_index do |i|
+      ExportSeries.create(export_id: export.id, series_id: series_ids[i], list_order: i) unless ExportSeries.exists?(export_id: export.id, series_id: series_ids[i])
+    end
+  end
+end
