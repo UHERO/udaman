@@ -17,11 +17,6 @@ RSpec.describe "exports/edit", type: :view do
 
       assert_select "input#export_name[name=?]", "export[name]"
 
-      assert_select "input#export_created_by[name=?]", "export[created_by]"
-
-      assert_select "input#export_updated_by[name=?]", "export[updated_by]"
-
-      assert_select "input#export_owned_by[name=?]", "export[owned_by]"
     end
   end
 end
