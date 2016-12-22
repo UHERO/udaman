@@ -3,7 +3,7 @@ class ExportsController < ApplicationController
 
   # GET /exports
   def index
-    @exports = Export.all
+    @exports = Export.order(:name).all
   end
 
   # GET /exports/1
@@ -69,9 +69,10 @@ class ExportsController < ApplicationController
       redirect_to edit_export_url(@export.id), notice: 'This Series is already in the list!'
       return
     end
-    list_order = ExportSeries.where(export_id: @export.id).maximum(:list_order) + 1
+    list_order = ExportSeries.where(export_id: @export.id).maximum(:list_order)
+    list_order ||= 0
     @export.series<< series
-    ExportSeries.find_by(export_id: @export.id, series_id: series.id).update(list_order: list_order)
+    ExportSeries.find_by(export_id: @export.id, series_id: series.id).update(list_order: list_order + 1)
     respond_to do |format|
       format.html { redirect_to edit_export_url(@export.id) }
       format.js {}

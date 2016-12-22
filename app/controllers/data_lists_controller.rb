@@ -182,9 +182,10 @@ class DataListsController < ApplicationController
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end
-    list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order) + 1
+    list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order)
+    list_order ||= 0
     @data_list.measurements<< measurement
-    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order)
+    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order + 1)
     respond_to do |format|
       format.html { redirect_to edit_data_list_url(@data_list.id) }
       format.js {}
