@@ -3,6 +3,11 @@
 <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
 <%= link_to 'Back', forecast_snapshots_path %>
 
-<h2><%= @forecast_snapshot.name %></h2>
-<h3>The real display coming soon</h3>
-
+<h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
+<% @tsd_files.each do |tsd| %>
+<hr/>
+<h3><%= tsd.filename %></h3>
+<pre>
+  <%= tsd.read_from_disk %>
+</pre>
+<% end %>

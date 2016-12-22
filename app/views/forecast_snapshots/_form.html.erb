@@ -34,8 +34,8 @@
   <h3>Associated TSD files:</h3>
 <ul>
   <% @forecast_snapshot.tsd_files.all.each do |tsd| %>
-      <li><%= link_to tsd.path, tsd %>
-        [ <%= link_to 'Destroy', tsd, method: :delete, data: { confirm: "Destroy #{tsd.path}: Are you sure??" } %> ]
+      <li><%= link_to tsd.filename, tsd %>
+        [ <%= link_to 'Destroy', tsd, method: :delete, data: { confirm: "Destroy #{tsd.filename}: Are you sure??" } %> ]
       </li>
   <% end %>
  [ <%= link_to 'Add new TSD file', :controller => :tsd_files, :action => :new, :forecast_snapshot_id => @forecast_snapshot.id %> ]

@@ -4,7 +4,7 @@ RSpec.describe "tsd_files/new", type: :view do
   before(:each) do
     assign(:tsd_file, TsdFile.new(
       :path => "MyString",
-      :latest => false
+      :latest_forecast => false
     ))
   end
 

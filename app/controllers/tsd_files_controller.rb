@@ -11,6 +11,7 @@ class TsdFilesController < ApplicationController
 
   # GET /tsd_files/1
   def show
+    @filecontent = @tsd_file.read_from_disk
   end
 
   # GET /tsd_files/new
@@ -27,15 +28,15 @@ class TsdFilesController < ApplicationController
     params[:tsd_file][:filename] = uploaded_file.original_filename
     @tsd_file = TsdFile.new(tsd_file_params)
 
-    if @tsd_file.save
-      if @tsd_file.write_to_disk(filecontent)
-        redirect_to @tsd_file.forecast_snapshot, notice: 'TSD file was successfully created.'
-      else
-        # do something
-      end
-    else
-      render :new
+    begin
+      @tsd_file.save or raise StandardError, 'save failed'
+      @tsd_file.write_to_disk(filecontent) or raise StandardError, 'disk write failed'
+    rescue StandardError => e
+      @tsd_file.destroy if e.message == 'disk write failed'
+      bar if e.message == 'save failed'
     end
+    redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was successfully created.'
+##      redirect_to @tsd_file.forecast_snapshot, error: 'TSD file NOT created.'
   end
 
   # PATCH/PUT /tsd_files/1
@@ -49,17 +50,8 @@ class TsdFilesController < ApplicationController
 
   # DELETE /tsd_files/1
   def destroy
-    fs = @tsd_file.forecast_snapshot
-    path = File.join(ENV['DATA_PATH'], tsd_rel_filepath(@tsd_file.filename))
-    begin
-      File.delete(path)
-    rescue StandardError => e
-      Rails.logger.error e.message
-      redirect_to forecast_snapshot_path(fs), notice: "Failed to remove TSD file #{path}: #{e.message}"
-      return
-    end
     @tsd_file.destroy
-    redirect_to forecast_snapshot_path(fs), notice: 'TSD file was successfully destroyed.'
+    redirect_to edit_forecast_snapshot_path(@fs), notice: 'TSD file was successfully destroyed.'
   end
 
   private
@@ -71,6 +63,6 @@ class TsdFilesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def tsd_file_params
-      params.require(:tsd_file).permit(:filename, :latest, :forecast_snapshot_id)
+      params.require(:tsd_file).permit(:filename, :latest_forecast, :forecast_snapshot_id)
     end
 end

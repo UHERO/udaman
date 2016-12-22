@@ -5,11 +5,11 @@ RSpec.describe "tsd_files/index", type: :view do
     assign(:tsd_files, [
       TsdFile.create!(
         :path => "Path",
-        :latest => false
+        :latest_forecast => false
       ),
       TsdFile.create!(
         :path => "Path",
-        :latest => false
+        :latest_forecast => false
       )
     ])
   end

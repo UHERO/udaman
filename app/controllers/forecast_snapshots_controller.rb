@@ -11,6 +11,7 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots/1
   def show
+    @tsd_files = @forecast_snapshot.tsd_files.all
   end
 
   # GET /forecast_snapshots/new

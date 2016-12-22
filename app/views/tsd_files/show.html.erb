@@ -2,12 +2,12 @@
 
 <p>
   <strong>Path:</strong>
-  <%= @tsd_file.path %>
+  <%= @tsd_file.filename %>
 </p>
 
 <p>
-  <strong>Latest:</strong>
-  <%= @tsd_file.latest ? 'Y' : 'N' %>
+  <strong>Latest forecast:</strong>
+  <%= @tsd_file.latest_forecast ? 'Y' : 'N' %>
 </p>
 
 <p>
@@ -15,5 +15,5 @@
   <%= @fs ? link_to(@fs.name, @fs) : 'None' %>
 </p>
 
-<%= link_to 'Destroy', @tsd_file, method: :delete, data: { confirm: "Destroy #{@tsd_file.path}: Are you sure??" } %> |
+<%= link_to 'Destroy', @tsd_file, method: :delete, data: { confirm: "Destroy #{@tsd_file.filename}: Are you sure??" } %> |
 <%= link_to 'Back', tsd_files_path %>

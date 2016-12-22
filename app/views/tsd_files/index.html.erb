@@ -15,8 +15,8 @@
   <tbody>
     <% @tsd_files.each do |tsd_file| %>
       <tr>
-        <td><%= tsd_file.path %></td>
-        <td><%= tsd_file.latest ? 'Y' : 'N' %></td>
+        <td><%= tsd_file.filename %></td>
+        <td><%= tsd_file.latest_forecast ? 'Y' : 'N' %></td>
         <td><%= tsd_file.forecast_snapshot ? link_to(tsd_file.forecast_snapshot.name, tsd_file.forecast_snapshot) : 'None' %></td>
         <td><%= link_to 'Show', tsd_file %></td>
       </tr>
