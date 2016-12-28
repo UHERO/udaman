@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161221235041) do
+ActiveRecord::Schema.define(version: 20161228000328) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -252,6 +252,7 @@ ActiveRecord::Schema.define(version: 20161221235041) do
     t.boolean  "real"
     t.string   "frequency_transform",     limit: 255
     t.integer  "measurement_id",          limit: 4
+    t.boolean  "restricted",                            default: false
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree

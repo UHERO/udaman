@@ -237,7 +237,8 @@ class SeriesController < ApplicationController
           :seasonally_adjusted,
           :percent,
           :real,
-          :frequency_transform
+          :frequency_transform,
+          :restricted
       )
     end
 
