@@ -2,7 +2,7 @@ class ForecastSnapshotsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_forecast_snapshot, only: [:show, :edit, :update, :destroy, :new_assoc_tsd]
+  before_action :set_forecast_snapshot, only: [:show, :edit, :update, :destroy]
 
   # GET /forecast_snapshots
   def index

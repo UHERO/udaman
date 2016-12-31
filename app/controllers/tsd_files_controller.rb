@@ -2,7 +2,7 @@ class TsdFilesController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_tsd_file, only: [:show, :edit, :update, :destroy, :unassociate]
+  before_action :set_tsd_file, only: [:show, :edit, :update, :destroy]
 
   # GET /tsd_files
   def index
@@ -24,20 +24,15 @@ class TsdFilesController < ApplicationController
   def create
     uploaded_file = params[:tsd_file][:filename]
     filecontent = uploaded_file.read
-## validate filecontent
+## validate filecontent.. here, or in model?
     params[:tsd_file][:filename] = uploaded_file.original_filename
     @tsd_file = TsdFile.new(tsd_file_params)
-
-    begin
-      @tsd_file.save or raise StandardError, 'save failed'
-      @tsd_file.write_to_disk(filecontent) or raise StandardError, 'disk write failed'
-    rescue StandardError => e
-      @tsd_file.destroy if e.message == 'disk write failed'
-      bar if e.message == 'save failed'
+    if @tsd_file.store_tsd(filecontent)
+      redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was successfully created.'
+    else
+      ###
     end
-    redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was successfully created.'
-##      redirect_to @tsd_file.forecast_snapshot, error: 'TSD file NOT created.'
-  end
+ end
 
   # PATCH/PUT /tsd_files/1
   def update

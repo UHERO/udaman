@@ -7,6 +7,22 @@ class TsdFile < ActiveRecord::Base
     'tsd_files'
   end
 
+  def store_tsd(filecontent)
+    begin
+      self.save or raise StandardError, 'TSD object save failed'
+      self.write_to_disk(filecontent) or raise StandardError, 'TSD file disk write failed'
+    rescue StandardError => e
+      self.delete if e.message =~ /disk write failed/
+      return false
+    end
+    true
+  end
+
+  def retrieve_content
+    read_from_disk
+  end
+
+private
   def write_to_disk(content)
     path = File.join(ENV['DATA_PATH'], tsd_rel_filepath(self.filename, true))
     begin
@@ -24,6 +40,7 @@ class TsdFile < ActiveRecord::Base
       content = File.open(path, 'r') { |f| f.read }
     rescue StandardError => e
       Rails.logger.error e.message
+      puts ">>>>>>> dEBUF path=#{path}"
       return false
     end
 	return content
@@ -40,7 +57,6 @@ class TsdFile < ActiveRecord::Base
 	return true
   end
 
-private
   def tsd_rel_filepath(name)
     string = self.created_at.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
     hash = Digest::MD5.new << string
