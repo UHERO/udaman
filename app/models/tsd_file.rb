@@ -13,7 +13,6 @@ class TsdFile < ActiveRecord::Base
       File.open(path, 'wb') { |f| f.write(content) }
     rescue StandardError => e
       Rails.logger.error e.message
-      ## redirect_to forecast_snapshot_path(self.forecast_snapshot), notice: "Failed to write TSD file #{path}: #{e.message}"
       return false
     end
 	return true
@@ -25,8 +24,6 @@ class TsdFile < ActiveRecord::Base
       content = File.open(path, 'r') { |f| f.read }
     rescue StandardError => e
       Rails.logger.error e.message
-      #redirect_to self.forecast_snapshot
-          #notice: "Failed to read TSD file #{path}: #{e.message}"
       return false
     end
 	return content
@@ -38,14 +35,13 @@ class TsdFile < ActiveRecord::Base
       File.delete(path)
     rescue StandardError => e
       Rails.logger.error e.message
-      #redirect_to forecast_snapshot_path(self.forecast_snapshot), notice: "Failed to remove TSD file #{path}: #{e.message}"
       return false  ## prevents destruction of the model object
     end
 	return true
   end
 
 private
-  def tsd_rel_filepath(name, foo=false)
+  def tsd_rel_filepath(name)
     string = self.created_at.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
     hash = Digest::MD5.new << string
     File.join(TsdFile.path_prefix, hash.to_s+'_'+name)
