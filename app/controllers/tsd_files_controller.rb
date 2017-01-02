@@ -30,7 +30,7 @@ class TsdFilesController < ApplicationController
     if @tsd_file.store_tsd(filecontent)
       redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was successfully created.'
     else
-      ###
+      redirect_to @tsd_file.forecast_snapshot, error: 'TSD file NOT created.'
     end
  end
 
