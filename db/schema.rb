@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161212220211) do
+ActiveRecord::Schema.define(version: 20161228000328) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -167,6 +167,25 @@ ActiveRecord::Schema.define(version: 20161212220211) do
     t.string   "mimetype",                limit: 255
   end
 
+  create_table "export_series", force: :cascade do |t|
+    t.integer "export_id",  limit: 4
+    t.integer "series_id",  limit: 4
+    t.integer "list_order", limit: 4
+  end
+
+  add_index "export_series", ["export_id", "series_id"], name: "index_export_series_on_export_id_and_series_id", unique: true, using: :btree
+  add_index "export_series", ["export_id"], name: "index_export_series_on_export_id", using: :btree
+  add_index "export_series", ["series_id"], name: "index_export_series_on_series_id", using: :btree
+
+  create_table "exports", force: :cascade do |t|
+    t.string   "name",       limit: 255
+    t.integer  "created_by", limit: 4
+    t.integer  "updated_by", limit: 4
+    t.integer  "owned_by",   limit: 4
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+  end
+
   create_table "geographies", force: :cascade do |t|
     t.string   "fips",               limit: 255
     t.string   "display_name",       limit: 255
@@ -233,6 +252,7 @@ ActiveRecord::Schema.define(version: 20161212220211) do
     t.boolean  "real"
     t.string   "frequency_transform",     limit: 255
     t.integer  "measurement_id",          limit: 4
+    t.boolean  "restricted",                            default: false
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree

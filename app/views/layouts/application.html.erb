@@ -18,15 +18,13 @@
   	<%= 
   	render 'devise/menu/login_items' 
   	%> | 
-    <% if current_user.admin_user? %>
-  	  <a href="/prognoz_data_files">Prognoz Output Files</a> |
-    <% end %>
     <% if current_user.internal_user? %>
   	<a href="/series">Data Series</a> |
   	<a href="/data_source_downloads">Downloads</a> |
     <a href="/investigate_visual">Investigation Dashboard</a> |
     <a href="/data_lists">Data Lists</a> |
-  	Search 
+    <a href="/exports">Exports</a> |
+  	Search
   	
   	<div id="search" style="display:inline">
   		<%= render :partial => '/layouts/series_search' %>
