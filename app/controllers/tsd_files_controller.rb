@@ -11,7 +11,7 @@ class TsdFilesController < ApplicationController
 
   # GET /tsd_files/1
   def show
-    @filecontent = @tsd_file.read_from_disk
+    @filecontent = @tsd_file.retrieve_content
   end
 
   # GET /tsd_files/new
@@ -23,14 +23,14 @@ class TsdFilesController < ApplicationController
   # POST /tsd_files
   def create
     uploaded_file = params[:tsd_file][:filename]
-    filecontent = uploaded_file.read
+    file_content = uploaded_file.read
 ## validate filecontent.. here, or in model?
     params[:tsd_file][:filename] = uploaded_file.original_filename
     @tsd_file = TsdFile.new(tsd_file_params)
-    if @tsd_file.store_tsd(filecontent)
+    if @tsd_file.store_tsd(file_content)
       redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was successfully created.'
     else
-      redirect_to @tsd_file.forecast_snapshot, error: 'TSD file NOT created.'
+      redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was not successfully created.'
     end
  end
 

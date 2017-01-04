@@ -183,8 +183,9 @@ class DataListsController < ApplicationController
       return
     end
     list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order)
+    list_order ||= 0
     @data_list.measurements<< measurement
-    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order)
+    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order + 1)
     respond_to do |format|
       format.html { redirect_to edit_data_list_url(@data_list.id) }
       format.js {}
@@ -251,6 +252,7 @@ class DataListsController < ApplicationController
         next
       end
       measurements[i].update list_order: new_order
+      new_order += 1
     end
     id_to_remove = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id]).id
     DataListMeasurement.destroy(id_to_remove)

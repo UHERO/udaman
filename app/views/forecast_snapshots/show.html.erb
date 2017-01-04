@@ -6,8 +6,19 @@
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
 <% @tsd_files.each do |tsd| %>
 <hr/>
-<h3><%= tsd.filename %></h3>
-<pre>
-  <%= tsd.retrieve_content %>
-</pre>
+<h3><%= tsd.filename %> <%= 'Latest' if tsd.latest_forecast %></h3>
+    <p>Names:</p>
+    <ul>
+      <% tsd.get_all_series.each do |series| %>
+          <li>
+            <ul>
+              <li>Name: <%= series[:name] %></li>
+              <li>Description: <%= series[:description] %></li>
+              <li>Data: <%= series[:data] %></li>
+              <li>Start Date: <%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %></li>
+              <li>Frequency: <%= series[:frequency] %></li>
+            </ul>
+          </li>
+      <% end %>
+    </ul>
 <% end %>

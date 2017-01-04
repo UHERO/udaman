@@ -2,6 +2,7 @@ UheroDb::Application.routes.draw do
 
   resources :tsd_files
   resources :forecast_snapshots
+  resources :exports
   resources :measurements
   resources :api_applications
   resources :sources
@@ -10,6 +11,7 @@ UheroDb::Application.routes.draw do
   resources :geographies
 
   get 'data_points/:series_id/:date_string' => 'data_points#show'
+  get 'exports/:id/add_series/:series_id' => 'exports#add_series'
 
   root :to => 'series#index'
 
