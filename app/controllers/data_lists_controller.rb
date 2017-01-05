@@ -15,23 +15,24 @@ class DataListsController < ApplicationController
   end
 
   # GET /data_lists/1
-  # GET /data_lists/1.xml
   def show
-    @data_list = DataList.joins('left join users on users.id = data_lists.owned_by')
-                     .select("data_lists.*, coalesce(users.email, 'Unassigned') as owner")
-                     .find_by(id: params[:id])
-
-    respond_to do |format|
-      format.csv { render :layout => false }
-      format.html # show.html.erb
-      format.xml  { render :xml => @data_list }
-    end
+    @freq = params[:freq]
+    @freq ||= 'A'
+    @county = params[:county]
+    @county ||= 'HI'
+    @seasonally_adjusted = params[:seasonally_adjusted]
+    @seasonally_adjusted ||= 'T'
+    @data_list = DataList.find_by id: params[:id]
+    render 'super_table'
   end
   
   def super_table
     @freq = params[:freq]
+    @freq ||= 'A'
     @county = params[:county]
-    @seasonal = params[:seasonal]
+    @county ||= 'HI'
+    @seasonally_adjusted = params[:seasonally_adjusted]
+    @seasonally_adjusted ||= 'T'
     @data_list = DataList.find_by id: params[:id]
     # @series_to_chart = @data_list.series_names
     # frequency = @series_to_chart[0][-1]
