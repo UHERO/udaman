@@ -75,42 +75,35 @@ class DataList < ActiveRecord::Base
     series_data
   end
 
-  def get_all_series_data_with_changes(frequency_suffix = nil, county_switch = nil, seasonal = nil)
-    puts "seasonal: #{seasonal}"
+  def get_all_series_data_with_changes(frequency_suffix = 'A', county_switch = 'HI', seasonally_adjusted = 'T')
+    puts "seasonally adjusted: #{seasonally_adjusted}"
     series_data = {}
-    series_names.each do |s| # gets series names map for ea series listed in data list
-
-      mnemonic = s.split('@')[0]
-      if seasonal == 'T'
-        mnemonic = s.split('@')[0].downcase.chomp('ns')
-      elsif seasonal == 'F'
-        mnemonic = s.split('@')[0].downcase.chomp('ns').concat('ns')
+    measurements.each do |m|
+      series = m.series
+      if seasonally_adjusted == 'T'
+        series = series.where("name NOT REGEXP 'NS'") 
+      elsif seasonally_adjusted == 'F'
+        series = series.where("name REGEXP 'NS'")
+      end
+      
+      series = series.where("name REGEXP '@#{county_switch}.#{frequency_suffix}'")
+      
+      if series.nil?
+        next
       end
 
-      mnemonic.upcase! # for aesthetics/readability
-      county_switch.nil? ? county = s.split('@')[1].split('.')[0] : county = county_switch #dt - grab county from series name
-      series_front = mnemonic + '@' + county + '.'
-      frequency_suffix.nil? ? s = series_front + s.split('.')[1] : s = series_front + frequency_suffix
-
-      series = s.ts
-
-      if series.nil?
-        series_data[s] = {}
-      else
-        # declare variables used within blocks
-        all_changes, yoy, ytd, yoy_diff, data, as = nil
-
+      series.each do |s|
         all_changes = {}
-        yoy = series.yoy(series.id).data
-        ytd = series.ytd(series.id).data
-        yoy_diff = series.scaled_yoy_diff(series.id).data
-        data = series.scaled_data
+        yoy = s.yoy(s.id).data
+        ytd = s.ytd(s.id).data
+        yoy_diff = s.scaled_yoy_diff(s.id).data
+        data = s.scaled_data
         data.keys.sort.each do |date|
           all_changes[date] = {:value => data[date], :yoy => yoy[date], :ytd => ytd[date], :yoy_diff => yoy_diff[date]}
         end
-        as = AremosSeries.get(s.upcase)
+        as = AremosSeries.get(s.name.upcase)
         desc = as.nil? ? '' : as.description
-        series_data[s] = {:data => all_changes, :id => series.id, :desc => desc}
+        series_data[s.name] = {:data => all_changes, :id => s.id, :desc => desc}
       end
     end
     series_data
