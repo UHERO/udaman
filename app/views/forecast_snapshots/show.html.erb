@@ -4,9 +4,10 @@
 <%= link_to 'Back', forecast_snapshots_path %>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
+<div id="charts_container"></div>
 <% @tsd_files.each do |tsd| %>
-<hr/>
-<h3><%= tsd.filename %> <%= 'Latest' if tsd.latest_forecast %></h3>
+    <hr/>
+    <h3><%= tsd.filename %> <%= 'Latest' if tsd.latest_forecast %></h3>
     <p>Names:</p>
     <ul>
       <% tsd.get_all_series.each do |series| %>
@@ -22,3 +23,66 @@
       <% end %>
     </ul>
 <% end %>
+
+<script>
+  var all_data = [];
+  <% @tsd_files.each do |tsd| %>
+  <% tsd.get_all_series.each do |series| %>
+  all_data.push({
+    series: '<%= series[:name] %>',
+    title: '<%= series[:description] %>',
+    frequency: '<%= series[:frequency] %>',
+    start: '<%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+    <% if tsd.latest_forecast %>
+    latest: [<% series[:data].each do |e| %> <%= e != '               ' ? e.to_f : '' %>, <% end %>],
+    <% else %>
+    previous: [<% series[:data].each do |e| %> <%= e != '               ' ? e.to_f : '' %>, <% end %>],
+    <% end %>
+  });
+  <% end %>
+  <% end %>
+
+
+  // Remove empty array items
+  for (var i = 0; i < all_data.length; i++) {
+    var previousData, latestData;
+    if (all_data[i].previous) {
+      previousData = all_data[i].previous.filter(function(e) { return e !== '' });
+      all_data[i].filter_previous = previousData;
+    }
+    if (all_data[i].latest) {
+      latestData = all_data[i].latest.filter(function(e) { return e !== '' });
+      all_data[i].filter_latest = latestData;
+    }
+  }
+
+  // Consolidate objects belonging to same series
+  var chart_data = [];
+  all_data.forEach(function(value) {
+    var exist = chart_data.filter(function(e, i) {
+      return e.series === value.series;
+    });
+    if (exist.length) {
+      var existIndex = chart_data.indexOf(exist[0]);
+      chart_data[existIndex].filter_latest = value.filter_latest;
+    } else {
+      chart_data.push(value);
+    }
+  });
+
+  $(document).ready(function() {
+    for(i = 0; i < chart_data.length; i++) {
+      $('div#charts_container').append('<div id="' + i + '"/>');
+
+      $('#' + i).highcharts({
+        title: {
+          text: 'Test'
+        }
+      });
+    }
+  });
+
+  console.log(all_data);
+  console.log('chart data', chart_data);
+</script>
+
