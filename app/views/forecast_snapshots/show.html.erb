@@ -5,24 +5,6 @@
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
 <div id="charts_container"></div>
-<% @tsd_files.each do |tsd| %>
-    <hr/>
-    <h3><%= tsd.filename %> <%= 'Latest' if tsd.latest_forecast %></h3>
-    <p>Names:</p>
-    <ul>
-      <% tsd.get_all_series.each do |series| %>
-          <li>
-            <ul>
-              <li>Name: <%= series[:name] %></li>
-              <li>Description: <%= series[:description] %></li>
-              <li>Data: <%= series[:data] %></li>
-              <li>Start Date: <%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %></li>
-              <li>Frequency: <%= series[:frequency] %></li>
-            </ul>
-          </li>
-      <% end %>
-    </ul>
-<% end %>
 
 <script>
   // Create array of series objects
@@ -36,41 +18,28 @@
     start: '<%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
     <% if tsd.latest_forecast %>
     // If data value is empty, return an empty string; if '1.000000E+0015' (AREMOS missing value) return null. Otherwise, return a float.
-    latest: [<% series[:data].each do |e| %> <% if e != '               ' %> <%= e === '1.000000E+0015' ? null : e.to_f %>, <% else %> <%= '' %>, <% end %><% end %>],
+    latest: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     <% else %>
-    previous: [<% series[:data].each do |e| %> <% if e != '               ' %> <%= e === '1.000000E+0015' ? null : e.to_f %>, <% else %> <%= '' %>, <% end %><% end %>],
+    previous: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     <% end %>
   });
   <% end %>
   <% end %>
 
 
-  // Remove empty strings, added by TSDs, from end of array only.
+  // Remove nulls, added by empty strings at end of TSDs, from end of array only.
   for (var i = 0; i < all_data.length; i++) {
-    var previousData, latestData;
     if (all_data[i].previous) {
-      previousData = all_data[i].previous.reverse();
-      var prevLength = previousData.length;
-      for (var j = 0; j < prevLength; j++) {
-        if (previousData[j] === '') {
-          previousData.slice(j + 1, prevLength);
-        } else {
-          break;
-        }
-      }
-      all_data[i].filter_previous = previousData.reverse();
+      var previousData = all_data[i].previous.reduceRight(function(result, a) {
+        return result.length === 0 && a === null ? result : [a].concat(result);
+      }, []);
+      all_data[i].filter_previous = previousData;
     }
     if (all_data[i].latest) {
-      latestData = all_data[i].latest.reverse();
-      var latestLength = latestData.length;
-      for (var j = 0; j < latestLength; j++) {
-        if (latestData[j] === '') {
-          latestData.slice(j + 1, latestLength);
-        } else {
-          break;
-        }
-      }
-      all_data[i].filter_latest = latestData.reverse();
+      var latestData = all_data[i].latest.reduceRight(function(result, a) {
+        return result.length === 0 && a === null ? result : [a].concat(result);
+      }, []);
+      all_data[i].filter_latest = latestData;
     }
   }
 
@@ -93,21 +62,30 @@
     }
   });
 
-  // Calculate YOY percentage change in latest forecast, if latest is not available, use previous forecast values
+  // Calculate YOY percentage change in latest forecast
+  // If latest is not available, use previous forecast values
   for (i = 0; i < chart_data.length; i++) {
     if (chart_data[i].frequency === 'A') {
       if (chart_data[i].filter_latest) {
         chart_data[i].percChange = [];
-        mapYoy(chart_data[i].filter_latest, chart_data[i].percChange);
+        yoyA(chart_data[i].filter_latest, chart_data[i].percChange);
       } else if (!chart_data[i].filter_latest && chart_data[i].filter_previous) {
         chart_data[i].percChange = [];
-        mapYoy(chart_data[i].filter_previous, chart_data[i].percChange);
+        yoyA(chart_data[i].filter_previous, chart_data[i].percChange);
+      }
+    } else if (chart_data[i].frequency === 'Q') {
+      if (chart_data[i].filter_latest) {
+        chart_data[i].percChange = [null, null, null, null];
+        yoyQ(chart_data[i].filter_latest, chart_data[i].percChange);
+      } else if (!chart_data[i].filter_latest && chart_data[i].filter_previous) {
+        chart_data[i].percChange = [null, null, null, null];
+        yoyQ(chart_data[i].filter_previous, chart_data[i].percChange);
       }
     }
   }
 
   // Function to calculate YOY % change (annual)
-  function mapYoy(observations, yoy) {
+  function yoyA(observations, yoy) {
     var prevObservationValue = null;
     observations.map(function (observationValue) {
       if (prevObservationValue) {
@@ -117,6 +95,17 @@
       }
       prevObservationValue = observationValue;
     });
+  }
+
+  // Function to calculate YOY % change (quarter)
+  function yoyQ(observations, yoy) {
+    for (var j = 4; j < observations.length; j++) {
+      if (observations[j] === null || observations[j - 4] === null) {
+        yoy.push(null);
+      } else {
+        yoy.push( ((observations[j] - observations[j - 4]) / observations[j - 4]) * 100 );
+      }
+    }
   }
 
   $(document).ready(function() {
@@ -241,8 +230,4 @@
       });
     }
   });
-
-  console.log(all_data);
-  console.log('chart data', chart_data);
 </script>
-
