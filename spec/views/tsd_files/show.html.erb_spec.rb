@@ -8,7 +8,7 @@ RSpec.describe "tsd_files/show", type: :view do
     ))
   end
 
-  it "renders attributes in <p>" do
+  xit "renders attributes in <p>" do
     render
     expect(rendered).to match(/Path/)
     expect(rendered).to match(/false/)

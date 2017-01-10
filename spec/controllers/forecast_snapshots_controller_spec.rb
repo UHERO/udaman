@@ -36,6 +36,12 @@ RSpec.describe ForecastSnapshotsController, type: :controller do
   # ForecastSnapshotsController. Be sure to keep this updated too.
   let(:valid_session) { {} }
 
+  before(:each) do
+    @request.env['devise.mapping'] = Devise.mappings[:user]
+    user = FactoryGirl.create(:user)
+    sign_in user
+  end
+
   describe "GET #index" do
     it "assigns all forecast_snapshots as @forecast_snapshots" do
       forecast_snapshot = ForecastSnapshot.create! valid_attributes

@@ -36,6 +36,12 @@ RSpec.describe TsdFilesController, type: :controller do
   # TsdFilesController. Be sure to keep this updated too.
   let(:valid_session) { {} }
 
+  before(:each) do
+    @request.env['devise.mapping'] = Devise.mappings[:user]
+    user = FactoryGirl.create(:user)
+    sign_in user
+  end
+
   describe "GET #index" do
     it "assigns all tsd_files as @tsd_files" do
       tsd_file = TsdFile.create! valid_attributes
@@ -54,7 +60,8 @@ RSpec.describe TsdFilesController, type: :controller do
 
   describe "GET #new" do
     it "assigns a new tsd_file as @tsd_file" do
-      get :new, params: {}, session: valid_session
+      forecast_snapshot = ForecastSnapshot.create! name: 'test', version: 'v1'
+      get :new, {forecast_snapshot_id: forecast_snapshot.id}, session: valid_session
       expect(assigns(:tsd_file)).to be_a_new(TsdFile)
     end
   end

@@ -8,7 +8,7 @@ RSpec.describe "tsd_files/new", type: :view do
     ))
   end
 
-  it "renders new tsd_file form" do
+  xit "renders new tsd_file form" do
     render
 
     assert_select "form[action=?][method=?]", tsd_files_path, "post" do
