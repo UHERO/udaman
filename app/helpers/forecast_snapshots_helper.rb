@@ -1,0 +1,2 @@
+module ForecastSnapshotsHelper
+end

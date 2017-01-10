@@ -1,0 +1,29 @@
+<%= form_for(@tsd_file) do |f| %>
+  <% if @tsd_file.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@tsd_file.errors.count, "error") %> prohibited this tsd_file from being saved:</h2>
+
+      <ul>
+      <% @tsd_file.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    Associated Forecast Snapshot: <%= f.label @fs ? @fs.name : 'None' %>
+    <%= f.hidden_field :forecast_snapshot_id %>
+  </div>
+  <div class="field">
+    Select file:
+    <%= f.file_field :filename %>
+  </div>
+  <div class="field">
+    <%= f.label :latest_forecast %>
+    <%= f.check_box :latest_forecast %>
+  </div>
+  <div class="actions">
+    <%= f.submit 'Upload TSD file' %>
+  </div>
+<% end %>

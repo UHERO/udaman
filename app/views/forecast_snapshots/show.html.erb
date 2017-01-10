@@ -1,0 +1,233 @@
+<p id="notice"><%= notice %></p>
+
+<%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'Back', forecast_snapshots_path %>
+
+<h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
+<div id="charts_container"></div>
+
+<script>
+  // Create array of series objects
+  var all_data = [];
+  <% @tsd_files.each do |tsd| %>
+  <% tsd.get_all_series.each do |series| %>
+  all_data.push({
+    series: '<%= series[:name] %>',
+    title: '<%= series[:description] %>'.toLowerCase(),
+    frequency: '<%= series[:frequency] %>',
+    start: '<%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+    <% if tsd.latest_forecast %>
+    // If data value is empty, return an empty string; if '1.000000E+0015' (AREMOS missing value) return null. Otherwise, return a float.
+    latest: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+    <% else %>
+    previous: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+    <% end %>
+  });
+  <% end %>
+  <% end %>
+
+
+  // Remove nulls, added by empty strings at end of TSDs, from end of array only.
+  for (var i = 0; i < all_data.length; i++) {
+    if (all_data[i].previous) {
+      var previousData = all_data[i].previous.reduceRight(function(result, a) {
+        return result.length === 0 && a === null ? result : [a].concat(result);
+      }, []);
+      all_data[i].filter_previous = previousData;
+    }
+    if (all_data[i].latest) {
+      var latestData = all_data[i].latest.reduceRight(function(result, a) {
+        return result.length === 0 && a === null ? result : [a].concat(result);
+      }, []);
+      all_data[i].filter_latest = latestData;
+    }
+  }
+
+  // Consolidate objects belonging to same series
+  var chart_data = [];
+  all_data.forEach(function(value) {
+    var exist = chart_data.filter(function(e, i) {
+      return e.series === value.series;
+    });
+    if (exist.length) {
+      var existIndex = chart_data.indexOf(exist[0]);
+      if (!chart_data[existIndex].hasOwnProperty('filter_latest')) {
+        chart_data[existIndex].filter_latest = value.filter_latest;
+      }
+      if (!chart_data[existIndex].hasOwnProperty('filter_previous')) {
+        chart_data[existIndex].filter_previous = value.filter_previous;
+      }
+    } else {
+      chart_data.push(value);
+    }
+  });
+
+  // Calculate YOY percentage change in latest forecast
+  // If latest is not available, use previous forecast values
+  for (i = 0; i < chart_data.length; i++) {
+    if (chart_data[i].frequency === 'A') {
+      if (chart_data[i].filter_latest) {
+        chart_data[i].percChange = [];
+        yoyA(chart_data[i].filter_latest, chart_data[i].percChange);
+      } else if (!chart_data[i].filter_latest && chart_data[i].filter_previous) {
+        chart_data[i].percChange = [];
+        yoyA(chart_data[i].filter_previous, chart_data[i].percChange);
+      }
+    } else if (chart_data[i].frequency === 'Q') {
+      if (chart_data[i].filter_latest) {
+        chart_data[i].percChange = [null, null, null, null];
+        yoyQ(chart_data[i].filter_latest, chart_data[i].percChange);
+      } else if (!chart_data[i].filter_latest && chart_data[i].filter_previous) {
+        chart_data[i].percChange = [null, null, null, null];
+        yoyQ(chart_data[i].filter_previous, chart_data[i].percChange);
+      }
+    }
+  }
+
+  // Function to calculate YOY % change (annual)
+  function yoyA(observations, yoy) {
+    var prevObservationValue = null;
+    observations.map(function (observationValue) {
+      if (prevObservationValue) {
+        yoy.push( ((observationValue - prevObservationValue) / prevObservationValue) * 100);
+      } else {
+        yoy.push(null);
+      }
+      prevObservationValue = observationValue;
+    });
+  }
+
+  // Function to calculate YOY % change (quarter)
+  function yoyQ(observations, yoy) {
+    for (var j = 4; j < observations.length; j++) {
+      if (observations[j] === null || observations[j - 4] === null) {
+        yoy.push(null);
+      } else {
+        yoy.push( ((observations[j] - observations[j - 4]) / observations[j - 4]) * 100 );
+      }
+    }
+  }
+
+  $(document).ready(function() {
+    Highcharts.setOptions({
+      lang: {
+        thousandsSep: ','
+      }
+    });
+
+    for(i = 0; i < chart_data.length; i++) {
+      // Create a div container for each chart
+      $('div#charts_container').append('<div id="' + i + '"/>');
+
+      // Set intervals and frequency. User to format xAxis labels and tooltips
+      var interval, intervalUnit, dateLabel, frequency;
+      if (chart_data[i].frequency === 'A') {
+        interval = 1;
+        intervalUnit = 'year';
+        dateLabel = {year: '%Y'};
+        frequency = 'A'
+      } else if (chart_data[i].frequency === 'Q') {
+        interval = 3;
+        intervalUnit = 'month';
+        dateLabel = {month: '%b %Y'};
+        frequency = 'Q'
+      }
+
+      // Create a highchart for each series
+      $('#' + i).highcharts({
+        title: {
+          text: chart_data[i].title + ' (' + chart_data[i].series + ')',
+          align: 'left',
+          useHTML: true,
+          style: {
+            textTransform: 'capitalize'
+          }
+        },
+        credits: {
+          enabled: false
+        },
+        plotOptions: {
+          line: {
+            marker: {
+              enabled: false
+            }
+          },
+          series: {
+            pointStart: Date.parse(chart_data[i].start),
+            pointInterval: interval,
+            pointIntervalUnit: intervalUnit,
+            events: {
+              legendItemClick: function() {
+                return false; // Prevent series from being toggled on/off
+              }
+            }
+          }
+        },
+        xAxis: {
+          type: 'datetime',
+          dateTimeLabelFormats: dateLabel
+        },
+        yAxis: [{
+          labels: {
+            format: '{value:,.2f}'
+          }
+        }, {
+          title: {
+            text: '% Change in Forecast'
+          },
+          labels: {
+            format: '{value:,.2f}'
+          },
+          opposite: true
+        }],
+        tooltip: {
+          shared: true,
+          formatter: function () {
+            var s = '<b>';
+            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jan') {
+              s = s + 'Q1'
+            }
+            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Apr') {
+              s = s + 'Q2'
+            }
+            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jul') {
+              s = s + 'Q3'
+            }
+            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Oct') {
+              s = s + 'Q4'
+            }
+            s = s + ' ' + Highcharts.dateFormat('%Y', this.x) + '</b>';
+            $.each(this.points, function (i, point) {
+              s += '<br><span style="color:' + point.series.color + '">\u25CF</span>' + point.series.name + ': ' + Highcharts.numberFormat(point.y);
+            });
+            return s;
+          }
+        },
+        series: [{
+          name: 'Previous Forecast',
+          type: 'line',
+          dashStyle: 'solid',
+          color: '#1D667F',
+          data: chart_data[i].filter_previous,
+          yAxis: 0,
+          zIndex: 2
+        }, {
+          name: 'Latest Forecast',
+          type: 'line',
+          color: '#F6A01B',
+          dashStyle: 'dash',
+          data: chart_data[i].filter_latest,
+          yAxis: 0,
+          zIndex: 3
+        }, {
+          name: 'Percent Change in Forecast',
+          type: 'column',
+          color: '#737373',
+          data: chart_data[i].percChange,
+          yAxis: 1,
+          zIndex: 1
+        }]
+      });
+    }
+  });
+</script>

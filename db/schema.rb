@@ -186,6 +186,15 @@ ActiveRecord::Schema.define(version: 20161228000328) do
     t.datetime "updated_at",             null: false
   end
 
+  create_table "forecast_snapshots", force: :cascade do |t|
+    t.string   "name",       limit: 255
+    t.string   "version",    limit: 255
+    t.text     "comments",   limit: 65535
+    t.boolean  "published"
+    t.datetime "created_at",               null: false
+    t.datetime "updated_at",               null: false
+  end
+
   create_table "geographies", force: :cascade do |t|
     t.string   "fips",               limit: 255
     t.string   "display_name",       limit: 255
@@ -272,6 +281,14 @@ ActiveRecord::Schema.define(version: 20161228000328) do
     t.string   "formula",     limit: 255
     t.datetime "created_at",              null: false
     t.datetime "updated_at",              null: false
+  end
+
+  create_table "tsd_files", force: :cascade do |t|
+    t.integer  "forecast_snapshot_id", limit: 4
+    t.string   "filename",             limit: 255
+    t.boolean  "latest_forecast"
+    t.datetime "created_at",                       null: false
+    t.datetime "updated_at",                       null: false
   end
 
   create_table "users", force: :cascade do |t|
