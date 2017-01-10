@@ -1,0 +1,44 @@
+<%= form_for(@forecast_snapshot) do |f| %>
+  <% if @forecast_snapshot.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@forecast_snapshot.errors.count, "error") %> prohibited this forecast_snapshot from being saved:</h2>
+
+      <ul>
+      <% @forecast_snapshot.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :name %><br>
+    <%= f.text_field :name %>
+    Published?
+    <%= f.check_box :published %>
+  </div>
+  <div class="field">
+    <%= f.label :version %><br>
+    <%= f.text_field :version %>
+  </div>
+  <div class="field">
+    <%= f.label :comments %><br>
+    <%= f.text_area :comments %>
+  </div>
+    <div class="actions">
+    <%= f.submit 'Save forecast snapshot metadata' %>
+  </div>
+<% end %>
+
+<p>
+  <h3>Associated TSD files:</h3>
+<ul>
+  <% @forecast_snapshot.tsd_files.all.each do |tsd| %>
+      <li><%= link_to tsd.filename, tsd %>
+        [ <%= link_to 'Destroy', tsd, method: :delete, data: { confirm: "Destroy #{tsd.filename}: Are you sure??" } %> ]
+      </li>
+  <% end %>
+ [ <%= link_to 'Add new TSD file', :controller => :tsd_files, :action => :new, :forecast_snapshot_id => @forecast_snapshot.id %> ]
+</ul>
+</p>
+

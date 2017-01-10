@@ -54,6 +54,8 @@ gem 'stringex', '~> 2.6'
 gem 'nokogiri'
 # gem 'sqlite3-ruby', :require => 'sqlite3'
 # gem 'aws-s3', :require => 'aws/s3'
+# Highcharts gem for forecast snapshot
+gem 'highcharts-rails'
 
 # Bundle gems for the local environment. Make sure to
 # put test-only gems in this group so their generators
@@ -77,6 +79,8 @@ group :development, :test do
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
+  gem 'ruby-debug-ide'
+  gem 'debase'
 end
 
 group :test do

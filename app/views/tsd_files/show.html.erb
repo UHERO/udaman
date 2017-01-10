@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Path:</strong>
+  <%= @tsd_file.filename %>
+</p>
+
+<p>
+  <strong>Latest forecast:</strong>
+  <%= @tsd_file.latest_forecast ? 'Y' : 'N' %>
+</p>
+
+<p>
+  <strong>Forecast snapshot:</strong>
+  <%= @fs ? link_to(@fs.name, @fs) : 'None' %>
+</p>
+
+<%= link_to 'Destroy', @tsd_file, method: :delete, data: { confirm: "Destroy #{@tsd_file.filename}: Are you sure??" } %> |
+<%= link_to 'Back', tsd_files_path %>

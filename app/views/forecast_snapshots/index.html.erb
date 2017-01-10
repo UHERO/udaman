@@ -1,0 +1,37 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Forecast Snapshots</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Version</th>
+      <th>Comments</th>
+      <th>Published</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @forecast_snapshots.each do |fs| %>
+      <tr>
+        <td><%= fs.name %></td>
+        <td align="center"><%= fs.version %></td>
+        <td><%= fs.comments %></td>
+        <td align="center"><%= fs.published ? 'Y' : 'N' %></td>
+        <td><%= link_to 'Show', fs %></td>
+        <% if current_user.admin_user? %>
+           <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
+        <% end %>
+        <% if current_user.dev_user? %>
+           <td><%= link_to 'Destroy', fs, method: :delete, data: { confirm: "Destroy #{fs.name}: Are you sure??" } %></td>
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Forecast snapshot', new_forecast_snapshot_path %>
