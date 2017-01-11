@@ -13,8 +13,9 @@
   <% tsd.get_all_series.each do |series| %>
   all_data.push({
     series: '<%= series[:name] %>',
-    title: '<%= series[:description] %>'.toLowerCase(),
+    title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
     frequency: '<%= series[:frequency] %>',
+    units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
     start: '<%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
     <% if tsd.latest_forecast %>
     // If data value is empty, return an empty string; if '1.000000E+0015' (AREMOS missing value) return null. Otherwise, return a float.
@@ -25,7 +26,6 @@
   });
   <% end %>
   <% end %>
-
 
   // Remove nulls, added by empty strings at end of TSDs, from end of array only.
   for (var i = 0; i < all_data.length; i++) {
@@ -168,6 +168,9 @@
           dateTimeLabelFormats: dateLabel
         },
         yAxis: [{
+          title: {
+            text: chart_data[i].units
+          },
           labels: {
             format: '{value:,.2f}'
           }
