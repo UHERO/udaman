@@ -11,16 +11,9 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots/1
   def show
-    @new_fc_tsd_file = @forecast_snapshot.new_forecast_tsd_filename
-    @new_fc_tsd_label = @forecast_snapshot.new_forecast_tsd_label
-    @old_fc_tsd_file = @forecast_snapshot.old_forecast_tsd_filename
-    @old_fc_tsd_label = @forecast_snapshot.old_forecast_tsd_label
-    @history_tsd_file = @forecast_snapshot.history_tsd_filename
-    @history_tsd_label = @forecast_snapshot.history_tsd_label
-    tsd1 = TsdFile.new(:forecast_snapshot_id => @forecast_snapshot.id, :filename => @new_fc_tsd_file)
-    tsd2 = TsdFile.new(:forecast_snapshot_id => @forecast_snapshot.id, :filename => @old_fc_tsd_file)
-    tsd3 = TsdFile.new(:forecast_snapshot_id => @forecast_snapshot.id, :filename => @history_tsd_file)
-    @tsd_files = [tsd1, tsd2, tsd3]
+    @tsd_files = [ @forecast_snapshot.new_forecast_tsd,
+                   @forecast_snapshot.old_forecast_tsd,
+                   @forecast_snapshot.history_tsd ]
   end
 
   # GET /forecast_snapshots/new
@@ -99,7 +92,7 @@ class ForecastSnapshotsController < ApplicationController
       params.require(:forecast_snapshot).permit!#(:name, :version, :comments, :published,
                                                 #:new_forecast_tsd_filename,
                                                 #:new_forecast_tsd_label,
-                                                #:old_forecast_tsd_filename,
+                                                #:old_forecast_ts-d_filename,
                                                 #:old_forecast_tsd_label,
                                                 #:history_tsd_filename,
                                                 #:history_tsd_label)
