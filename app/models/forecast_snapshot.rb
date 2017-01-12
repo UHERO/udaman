@@ -1,5 +1,5 @@
 class ForecastSnapshot < ActiveRecord::Base
-  before_destroy :delete_files_from_disk
+  ##before_destroy :delete_files_from_disk
 
   def path(filename)
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(filename))
@@ -26,10 +26,6 @@ class ForecastSnapshot < ActiveRecord::Base
       return false
     end
     true
-  end
-
-  def update_fs
-    ## implement this
   end
 
 private
