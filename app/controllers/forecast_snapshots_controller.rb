@@ -11,7 +11,12 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots/1
   def show
-    @tsd_files = @forecast_snapshot.tsd_files.all
+    @new_fc_tsd_file = @forecast_snapshot.new_forecast_tsd_filename
+    @new_fc_tsd_label = @forecast_snapshot.new_forecast_tsd_label
+    @old_fc_tsd_file = @forecast_snapshot.old_forecast_tsd_filename
+    @old_fc_tsd_label = @forecast_snapshot.old_forecast_tsd_label
+    @history_tsd_file = @forecast_snapshot.history_tsd_filename
+    @history_tsd_label = @forecast_snapshot.history_tsd_label
   end
 
   # GET /forecast_snapshots/new
@@ -26,9 +31,20 @@ class ForecastSnapshotsController < ApplicationController
   # POST /forecast_snapshots
   def create
     @forecast_snapshot = ForecastSnapshot.new(forecast_snapshot_params)
-
-    if @forecast_snapshot.save
-      redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully created.'
+    if params[:new_fc_filething]
+      newfile = params[:new_fc_filething]
+      @forecast_snapshot.new_forecast_tsd_filename = newfile.original_filename
+    end
+    if params[:old_fc_filething]
+      oldfile = params[:old_fc_filething]
+      @forecast_snapshot.old_forecast_tsd_filename = oldfile.original_filename
+    end
+    if params[:history_filething]
+      histfile = params[:history_filething]
+      @forecast_snapshot.history_tsd_filename = histfile.original_filename
+    end
+    if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
+      redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
     else
       render :new
     end
@@ -36,7 +52,19 @@ class ForecastSnapshotsController < ApplicationController
 
   # PATCH/PUT /forecast_snapshots/1
   def update
-    if @forecast_snapshot.update(forecast_snapshot_params)
+    if params[:new_fc_filething]
+      newfile = params[:new_fc_filething]
+      @forecast_snapshot.new_forecast_tsd_filename = newfile.original_filename
+    end
+    if params[:old_fc_filething]
+      oldfile = params[:old_fc_filething]
+      @forecast_snapshot.old_forecast_tsd_filename = oldfile.original_filename
+    end
+    if params[:history_filething]
+      histfile = params[:history_filething]
+      @forecast_snapshot.history_tsd_filename = histfile.original_filename
+    end
+    if @forecast_snapshot.update_fs(forecast_snapshot_params)
       redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully updated.'
     else
       render :edit
@@ -57,6 +85,12 @@ class ForecastSnapshotsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def forecast_snapshot_params
-      params.require(:forecast_snapshot).permit(:name, :version, :comments, :published)
+      params.require(:forecast_snapshot).permit(:name, :version, :comments, :published,
+                                                #:new_fc_filething,
+                                                :new_forecast_tsd_label,
+                                                #:old_fc_filething,
+                                                :old_forecast_tsd_label,
+                                                #:history_filething,
+                                                :history_tsd_label)
     end
 end
