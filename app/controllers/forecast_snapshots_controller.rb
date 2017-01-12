@@ -17,7 +17,10 @@ class ForecastSnapshotsController < ApplicationController
     @old_fc_tsd_label = @forecast_snapshot.old_forecast_tsd_label
     @history_tsd_file = @forecast_snapshot.history_tsd_filename
     @history_tsd_label = @forecast_snapshot.history_tsd_label
-    @tsd_files = [@new_fc_tsd_file, @old_fc_tsd_file, @history_tsd_file]
+    tsd1 = TsdFile.new(:forecast_snapshot_id => @forecast_snapshot.id, :filename => @new_fc_tsd_file)
+    tsd2 = TsdFile.new(:forecast_snapshot_id => @forecast_snapshot.id, :filename => @old_fc_tsd_file)
+    tsd3 = TsdFile.new(:forecast_snapshot_id => @forecast_snapshot.id, :filename => @history_tsd_file)
+    @tsd_files = [tsd1, tsd2, tsd3]
   end
 
   # GET /forecast_snapshots/new
