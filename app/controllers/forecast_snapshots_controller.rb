@@ -30,26 +30,20 @@ class ForecastSnapshotsController < ApplicationController
 
   # POST /forecast_snapshots
   def create
-    puts ">>>>>>>> entered create"
-
     @forecast_snapshot = ForecastSnapshot.new(forecast_snapshot_params)
 
     if forecast_snapshot_params[:new_forecast_tsd_filename]
-      puts ">>>>>>>> new file defined"
       newfile = forecast_snapshot_params[:new_forecast_tsd_filename]
       @forecast_snapshot.new_forecast_tsd_filename = newfile.original_filename
     end
     if forecast_snapshot_params[:old_forecast_tsd_filename]
-      puts ">>>>>>>> old file defined"
       oldfile = forecast_snapshot_params[:old_forecast_tsd_filename]
       @forecast_snapshot.old_forecast_tsd_filename = oldfile.original_filename
     end
     if forecast_snapshot_params[:history_tsd_filename]
-      puts ">>>>>>>> hist file defined"
       histfile = forecast_snapshot_params[:history_tsd_filename]
       @forecast_snapshot.history_tsd_filename = histfile.original_filename
     end
-    puts ">>>>>>>> before store_fs()"
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
       redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
     else
@@ -59,18 +53,19 @@ class ForecastSnapshotsController < ApplicationController
 
   # PATCH/PUT /forecast_snapshots/1
   def update
+    unless @forecast_snapshot.update(forecast_snapshot_params)
+      render :edit
+    end
+
     if forecast_snapshot_params[:new_forecast_tsd_filename]
-      puts ">>>>>>>> new file defined"
       newfile = forecast_snapshot_params[:new_forecast_tsd_filename]
       @forecast_snapshot.new_forecast_tsd_filename = newfile.original_filename
     end
     if forecast_snapshot_params[:old_forecast_tsd_filename]
-      puts ">>>>>>>> old file defined"
       oldfile = forecast_snapshot_params[:old_forecast_tsd_filename]
       @forecast_snapshot.old_forecast_tsd_filename = oldfile.original_filename
     end
     if forecast_snapshot_params[:history_tsd_filename]
-      puts ">>>>>>>> hist file defined"
       histfile = forecast_snapshot_params[:history_tsd_filename]
       @forecast_snapshot.history_tsd_filename = histfile.original_filename
     end
