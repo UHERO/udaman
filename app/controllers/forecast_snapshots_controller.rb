@@ -89,12 +89,12 @@ class ForecastSnapshotsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def forecast_snapshot_params
-      params.require(:forecast_snapshot).permit!#(:name, :version, :comments, :published,
-                                                #:new_forecast_tsd_filename,
-                                                #:new_forecast_tsd_label,
-                                                #:old_forecast_ts-d_filename,
-                                                #:old_forecast_tsd_label,
-                                                #:history_tsd_filename,
-                                                #:history_tsd_label)
+      params.require(:forecast_snapshot).permit(:name, :version, :comments, :published,
+                                                :new_forecast_tsd_filename,
+                                                :new_forecast_tsd_label,
+                                                :old_forecast_tsd_filename,
+                                                :old_forecast_tsd_label,
+                                                :history_tsd_filename,
+                                                :history_tsd_label)
     end
 end
