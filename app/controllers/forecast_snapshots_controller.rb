@@ -17,6 +17,7 @@ class ForecastSnapshotsController < ApplicationController
     @old_fc_tsd_label = @forecast_snapshot.old_forecast_tsd_label
     @history_tsd_file = @forecast_snapshot.history_tsd_filename
     @history_tsd_label = @forecast_snapshot.history_tsd_label
+    @tsd_files = [@new_fc_tsd_file, @old_fc_tsd_file, @history_tsd_file]
   end
 
   # GET /forecast_snapshots/new
@@ -44,6 +45,7 @@ class ForecastSnapshotsController < ApplicationController
       histfile = forecast_snapshot_params[:history_tsd_filename]
       @forecast_snapshot.history_tsd_filename = histfile.original_filename
     end
+
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
       redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
     else
@@ -69,6 +71,7 @@ class ForecastSnapshotsController < ApplicationController
       histfile = forecast_snapshot_params[:history_tsd_filename]
       @forecast_snapshot.history_tsd_filename = histfile.original_filename
     end
+
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
       redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully updated.'
     else
