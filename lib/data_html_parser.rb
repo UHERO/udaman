@@ -17,7 +17,7 @@ class DataHtmlParser
   
   def get_bls_series(code, frequency = nil)
     @code = code
-    @url = 'http://data.bls.gov/pdq/SurveyOutputServlet'
+    @url = 'https://data.bls.gov/pdq/SurveyOutputServlet'
     @post_parameters = {
         :data_tool =>'srgate',
         :delimeter =>'tab',
@@ -115,6 +115,8 @@ class DataHtmlParser
       url = URI(@url)
       
       http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = url.scheme == 'https'
+      http.ssl_timeout = 60
       if @post_parameters.nil? or @post_parameters.length == 0
         @content = fetch(@url).read_body
       else
