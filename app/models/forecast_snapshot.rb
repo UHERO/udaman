@@ -27,13 +27,13 @@ class ForecastSnapshot < ActiveRecord::Base
     begin
       self.save or raise StandardError, 'FS object save failed'
       if newfile
-        write_file_to_disk(self.new_forecast_tsd_filename, new_tsd_content) or raise StandardError, 'TSD file disk write failed'
+        write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) or raise StandardError, 'TSD file disk write failed'
       end
       if oldfile
-        write_file_to_disk(self.old_forecast_tsd_filename, old_tsd_content) or raise StandardError, 'TSD file disk write failed'
+        write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) or raise StandardError, 'TSD file disk write failed'
       end
       if histfile
-        write_file_to_disk(self.history_tsd_filename, hist_tsd_content) or raise StandardError, 'TSD file disk write failed'
+        write_file_to_disk(history_tsd_filename, hist_tsd_content) or raise StandardError, 'TSD file disk write failed'
       end
     rescue StandardError => e
       self.delete if e.message =~ /disk write failed/
@@ -42,7 +42,19 @@ class ForecastSnapshot < ActiveRecord::Base
     true
   end
 
-private
+  def delete_new_forecast_tsd_file
+    new_forecast_tsd_filename ? delete_file_from_disk(new_forecast_tsd_filename) : true
+  end
+
+  def delete_old_forecast_tsd_file
+    old_forecast_tsd_filename ? delete_file_from_disk(old_forecast_tsd_filename) : true
+  end
+
+  def delete_history_tsd_file
+    history_tsd_filename ? delete_file_from_disk(history_tsd_filename) : true
+  end
+
+  private
   def write_file_to_disk(name, content)
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
@@ -63,17 +75,20 @@ private
     content
   end
 
-  def delete_files_from_disk
-
+  def delete_file_from_disk(name)
     begin
-      File.delete(path(self.new_forecast_tsd_filename)) if self.new_forecast_tsd_filename
-      File.delete(path(self.old_forecast_tsd_filename)) if self.old_forecast_tsd_filename
-      File.delete(path(self.history_tsd_filename)) if self.history_tsd_filename
+      File.delete(path(name))
     rescue StandardError => e
       Rails.logger.error e.message
-      return false  ## prevents destruction of the model object
+      return false
     end
     true
+  end
+
+  def delete_files_from_disk
+      delete_new_forecast_tsd_file &&
+      delete_old_forecast_tsd_file &&
+      delete_history_tsd_file
   end
 
   def tsd_rel_filepath(name)

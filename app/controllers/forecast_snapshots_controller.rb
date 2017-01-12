@@ -51,6 +51,10 @@ class ForecastSnapshotsController < ApplicationController
 
   # PATCH/PUT /forecast_snapshots/1
   def update
+    @forecast_snapshot.delete_new_forecast_tsd_file if forecast_snapshot_params[:new_forecast_tsd_filename]
+    @forecast_snapshot.delete_old_forecast_tsd_file if forecast_snapshot_params[:old_forecast_tsd_filename]
+    @forecast_snapshot.delete_history_tsd_file if forecast_snapshot_params[:history_tsd_filename]
+
     unless @forecast_snapshot.update(forecast_snapshot_params)
       render :edit
     end
