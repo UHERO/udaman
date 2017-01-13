@@ -17,6 +17,13 @@ module Authorization
     check_authorization
   end
 
+  def check_forecast_snapshot_authorization
+    if current_user.heco? && (%w(index show).include?(params[:action]))
+      return
+    end
+    check_authorization
+  end
+
   def check_authorization
     unless current_user.internal_user?
       redirect_to :back, flash: { error: 'Not authorized to view' }

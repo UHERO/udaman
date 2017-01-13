@@ -21,10 +21,6 @@ class User < ActiveRecord::Base
   # Setup accessible (or protected) attributes for your model
   #attr_accessible :email, :password, :password_confirmation, :remember_me
 
-  def heco_user?
-    self.heco? || self.internal? || self.admin? || self.dev?
-  end
-
   def internal_user?
     self.internal? || self.admin? || self.dev?
   end

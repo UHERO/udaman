@@ -1,7 +1,7 @@
 class ForecastSnapshotsController < ApplicationController
   include Authorization
 
-  before_action :check_authorization
+  before_action :check_forecast_snapshot_authorization
   before_action :set_forecast_snapshot, only: [:show, :edit, :update, :destroy]
 
   # GET /forecast_snapshots
