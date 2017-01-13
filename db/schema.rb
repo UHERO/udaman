@@ -132,12 +132,6 @@ ActiveRecord::Schema.define(version: 20170111205811) do
     t.date     "date",                                       null: false
   end
 
-  create_table "data_portal_names", id: false, force: :cascade do |t|
-    t.string "prefix",           limit: 255
-    t.string "units",            limit: 255
-    t.string "data_portal_name", limit: 255
-  end
-
   create_table "data_source_downloads", force: :cascade do |t|
     t.string   "url",             limit: 255
     t.text     "post_parameters", limit: 65535
