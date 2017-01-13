@@ -22,6 +22,15 @@ ActiveRecord::Schema.define(version: 20170111205811) do
     t.string   "github_nickname", limit: 255
   end
 
+  create_table "api_users", force: :cascade do |t|
+    t.string   "key",        limit: 255
+    t.string   "email",      limit: 255
+    t.string   "name",       limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+    t.string   "hostname",   limit: 255
+  end
+
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
     t.string   "frequency",          limit: 255
