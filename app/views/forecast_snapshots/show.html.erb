@@ -7,43 +7,70 @@
 <div id="charts_container"></div>
 
 <script>
+  // TSD labels used for chart series' names
+  var history_label = '<%= @forecast_snapshot.history_tsd_label %>',
+      old_forecast_label = '<%= @forecast_snapshot.old_forecast_tsd_label %>',
+      new_forecast_label = '<%= @forecast_snapshot.new_forecast_tsd_label %>';
+
   // Create array of series objects
   var all_data = [];
-  <% @tsd_files.each do |tsd| %>
-  <% tsd.get_all_series.each do |series| %>
+
+  <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
+  all_data.push({
+      series: '<%= series[:name] %>',
+      title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
+      frequency: '<%= series[:frequency] %>',
+      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      history_start: '<%= @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+      history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+    });
+  <% end %>
+
+  <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
   all_data.push({
     series: '<%= series[:name] %>',
     title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
     frequency: '<%= series[:frequency] %>',
     units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
-    start: '<%= tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
-    <% if tsd.latest_forecast %>
-    // If data value is empty, return an empty string; if '1.000000E+0015' (AREMOS missing value) return null. Otherwise, return a float.
-    latest: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
-    <% else %>
-    previous: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
-    <% end %>
+    old_forecast_start: '<%= @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+    old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
   });
   <% end %>
+
+  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
+  all_data.push({
+    series: '<%= series[:name] %>',
+    title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
+    frequency: '<%= series[:frequency] %>',
+    units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+    new_forecast_start: '<%= @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+    new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+  });
   <% end %>
 
   // Remove nulls, added by empty strings at end of TSDs, from end of array only.
   for (var i = 0; i < all_data.length; i++) {
-    if (all_data[i].previous) {
-      var previousData = all_data[i].previous.reduceRight(function(result, a) {
+    if (all_data[i].history) {
+      var historyData = all_data[i].history.reduceRight(function(result, a) {
         return result.length === 0 && a === null ? result : [a].concat(result);
       }, []);
-      all_data[i].filter_previous = previousData;
+      all_data[i].filter_history = historyData;
     }
-    if (all_data[i].latest) {
-      var latestData = all_data[i].latest.reduceRight(function(result, a) {
+    if (all_data[i].old_forecast) {
+      var oldForecastData = all_data[i].old_forecast.reduceRight(function(result, a) {
         return result.length === 0 && a === null ? result : [a].concat(result);
       }, []);
-      all_data[i].filter_latest = latestData;
+      all_data[i].filter_old_forecast = oldForecastData;
+    }
+    if (all_data[i].new_forecast) {
+      var newForecastData = all_data[i].new_forecast.reduceRight(function(result, a) {
+        return result.length === 0 && a === null ? result : [a].concat(result);
+      }, []);
+      all_data[i].filter_new_forecast = newForecastData;
     }
   }
 
-  // Consolidate objects belonging to same series
+  // Consolidate objects belonging to the same series
   var chart_data = [];
   all_data.forEach(function(value) {
     var exist = chart_data.filter(function(e, i) {
@@ -51,37 +78,55 @@
     });
     if (exist.length) {
       var existIndex = chart_data.indexOf(exist[0]);
-      if (!chart_data[existIndex].hasOwnProperty('filter_latest')) {
-        chart_data[existIndex].filter_latest = value.filter_latest;
+      if (!chart_data[existIndex].hasOwnProperty('filter_history') && value.filter_history) {
+        chart_data[existIndex].filter_history = value.filter_history;
       }
-      if (!chart_data[existIndex].hasOwnProperty('filter_previous')) {
-        chart_data[existIndex].filter_previous = value.filter_previous;
+      if (!chart_data[existIndex].hasOwnProperty('history_start') && value.history_start) {
+        chart_data[existIndex].history_start = value.history_start;
+      }
+      if (!chart_data[existIndex].hasOwnProperty('filter_old_forecast') && value.filter_old_forecast) {
+        chart_data[existIndex].filter_old_forecast = value.filter_old_forecast;
+      }
+      if (!chart_data[existIndex].hasOwnProperty('old_forecast_start') && value.old_forecast_start) {
+        chart_data[existIndex].old_forecast_start = value.old_forecast_start;
+      }
+      if (!chart_data[existIndex].hasOwnProperty('filter_new_forecast') && value.filter_new_forecast) {
+        chart_data[existIndex].filter_new_forecast = value.filter_new_forecast;
+      }
+      if (!chart_data[existIndex].hasOwnProperty('new_forecast_start') && value.new_forecast_start) {
+        chart_data[existIndex].new_forecast_start = value.new_forecast_start;
       }
     } else {
       chart_data.push(value);
     }
   });
 
-  // Calculate YOY percentage change in latest forecast
-  // If latest is not available, use previous forecast values
+  // Calculate YOY percentage change in new and old forecast
   for (i = 0; i < chart_data.length; i++) {
     if (chart_data[i].frequency === 'A') {
-      if (chart_data[i].filter_latest) {
-        chart_data[i].percChange = [];
-        yoyA(chart_data[i].filter_latest, chart_data[i].percChange);
-      } else if (!chart_data[i].filter_latest && chart_data[i].filter_previous) {
-        chart_data[i].percChange = [];
-        yoyA(chart_data[i].filter_previous, chart_data[i].percChange);
-      }
+      chart_data[i].new_forecast_yoy = [];
+      chart_data[i].old_forecast_yoy = [];
+      yoyA(chart_data[i].filter_new_forecast, chart_data[i].new_forecast_yoy);
+      yoyA(chart_data[i].filter_old_forecast, chart_data[i].old_forecast_yoy);
     } else if (chart_data[i].frequency === 'Q') {
-      if (chart_data[i].filter_latest) {
-        chart_data[i].percChange = [null, null, null, null];
-        yoyQ(chart_data[i].filter_latest, chart_data[i].percChange);
-      } else if (!chart_data[i].filter_latest && chart_data[i].filter_previous) {
-        chart_data[i].percChange = [null, null, null, null];
-        yoyQ(chart_data[i].filter_previous, chart_data[i].percChange);
-      }
+      chart_data[i].new_forecast_yoy = [];
+      chart_data[i].old_forecast_yoy = [];
+      yoyQ(chart_data[i].filter_new_forecast, chart_data[i].new_forecast_yoy);
+      yoyQ(chart_data[i].filter_old_forecast, chart_data[i].old_forecast_yoy);
     }
+    chart_data[i].start_date_chart = '';
+    chart_data[i].start_date_chart = minDate(chart_data[i].history_start, chart_data[i].old_forecast_start, chart_data[i].new_forecast_start);
+  }
+
+  function minDate(history_date, old_date, new_date) {
+    var min = history_date;
+    if (old_date < min) {
+      min = old_date;
+    }
+    if (new_date < min) {
+      min = new_date;
+    }
+    return min;
   }
 
   // Function to calculate YOY % change (annual)
@@ -136,7 +181,7 @@
       // Create a highchart for each series
       $('#' + i).highcharts({
         title: {
-          text: chart_data[i].title + ' (' + chart_data[i].series + ')',
+          text: i + 1 + '. '+ chart_data[i].title + ' (' + chart_data[i].series + ')',
           align: 'left',
           useHTML: true,
           style: {
@@ -153,7 +198,7 @@
             }
           },
           series: {
-            pointStart: Date.parse(chart_data[i].start),
+            pointStart: Date.parse(chart_data[i].start_date_chart),
             pointInterval: interval,
             pointIntervalUnit: intervalUnit,
             events: {
@@ -207,28 +252,42 @@
           }
         },
         series: [{
-          name: 'Previous Forecast',
+          name: history_label,
           type: 'line',
-          dashStyle: 'solid',
-          color: '#1D667F',
-          data: chart_data[i].filter_previous,
-          yAxis: 0,
-          zIndex: 2
-        }, {
-          name: 'Latest Forecast',
-          type: 'line',
-          color: '#F6A01B',
           dashStyle: 'dash',
-          data: chart_data[i].filter_latest,
+          data: chart_data[i].filter_history,
+          yAxis: 0,
+          zIndex: 4
+        },{
+          name: old_forecast_label,
+          type: 'line',
+          dashStyle: 'dash',
+          color: '#F6A01B',
+          data: chart_data[i].filter_old_forecast,
           yAxis: 0,
           zIndex: 3
         }, {
-          name: 'Percent Change in Forecast',
+          name: new_forecast_label,
+          type: 'line',
+          color: '#1D667F',
+          data: chart_data[i].filter_new_forecast,
+          yAxis: 0,
+          zIndex: 2
+        }, {
+          name: 'YOY % Change in ' + new_forecast_label,
           type: 'column',
           color: '#737373',
-          data: chart_data[i].percChange,
+          data: chart_data[i].new_forecast_yoy,
           yAxis: 1,
           zIndex: 1
+        }, {
+          name: 'YOY % Change in ' + old_forecast_label,
+          showInLegend: false,
+          type: 'column',
+          color: 'transparent',
+          borderColor: 'transparent',
+          data: chart_data[i].old_forecast_yoy,
+          yAxis: 1
         }]
       });
     }

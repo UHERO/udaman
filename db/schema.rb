@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20161228000328) do
+ActiveRecord::Schema.define(version: 20170111205811) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -20,6 +20,15 @@ ActiveRecord::Schema.define(version: 20161228000328) do
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
     t.string   "github_nickname", limit: 255
+  end
+
+  create_table "api_users", force: :cascade do |t|
+    t.string   "key",        limit: 255
+    t.string   "email",      limit: 255
+    t.string   "name",       limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+    t.string   "hostname",   limit: 255
   end
 
   create_table "aremos_series", force: :cascade do |t|
@@ -187,12 +196,18 @@ ActiveRecord::Schema.define(version: 20161228000328) do
   end
 
   create_table "forecast_snapshots", force: :cascade do |t|
-    t.string   "name",       limit: 255
-    t.string   "version",    limit: 255
-    t.text     "comments",   limit: 65535
+    t.string   "name",                      limit: 255
+    t.string   "version",                   limit: 255
+    t.text     "comments",                  limit: 65535
     t.boolean  "published"
-    t.datetime "created_at",               null: false
-    t.datetime "updated_at",               null: false
+    t.datetime "created_at",                              null: false
+    t.datetime "updated_at",                              null: false
+    t.string   "new_forecast_tsd_filename", limit: 255
+    t.string   "new_forecast_tsd_label",    limit: 255
+    t.string   "old_forecast_tsd_filename", limit: 255
+    t.string   "old_forecast_tsd_label",    limit: 255
+    t.string   "history_tsd_filename",      limit: 255
+    t.string   "history_tsd_label",         limit: 255
   end
 
   create_table "geographies", force: :cascade do |t|
