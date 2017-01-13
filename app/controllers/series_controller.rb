@@ -31,6 +31,10 @@ class SeriesController < ApplicationController
   end
 
   def index
+    if current_user.heco?
+      redirect_to :controller => :forecast_snapshots, :action => :index
+      return
+    end
     unless current_user.internal_user?
       render text: 'Your current role only gets to see this page.', layout: true
       return

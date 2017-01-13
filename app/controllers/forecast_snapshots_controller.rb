@@ -1,12 +1,16 @@
 class ForecastSnapshotsController < ApplicationController
   include Authorization
 
-  before_action :check_authorization
+  before_action :check_forecast_snapshot_authorization
   before_action :set_forecast_snapshot, only: [:show, :edit, :update, :destroy]
 
   # GET /forecast_snapshots
   def index
-    @forecast_snapshots = ForecastSnapshot.all
+    if current_user.internal_user?
+      @forecast_snapshots = ForecastSnapshot.all
+    else
+      @forecast_snapshots = ForecastSnapshot.where(:published => true)
+    end
   end
 
   # GET /forecast_snapshots/1
