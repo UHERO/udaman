@@ -9,7 +9,7 @@ class ForecastSnapshotsController < ApplicationController
     if current_user.internal_user?
       @forecast_snapshots = ForecastSnapshot.all
     else
-      @forecast_snapshots = ForecastSnapshot.where { |fs| fs.published }
+      @forecast_snapshots = ForecastSnapshot.where(:published => true)
     end
   end
 
