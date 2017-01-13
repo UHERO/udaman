@@ -6,7 +6,11 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots
   def index
-    @forecast_snapshots = ForecastSnapshot.all
+    if current_user.internal_user?
+      @forecast_snapshots = ForecastSnapshot.all
+    else
+      @forecast_snapshots = ForecastSnapshot.where { |fs| fs.published }
+    end
   end
 
   # GET /forecast_snapshots/1
