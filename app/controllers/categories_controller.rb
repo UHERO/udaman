@@ -49,35 +49,35 @@ class CategoriesController < ApplicationController
   end
 
   def up
-    siblings_array = @category.siblings.to_a.sort_by{|sib| sib.order}
+    siblings_array = @category.siblings.to_a.sort_by { |sib| sib.list_order }
     old_index = siblings_array.index(@category)
     siblings_array.each_index do |i|
       if old_index - 1 == i
-        siblings_array[i].update order: i + 1
+        siblings_array[i].update list_order: i + 1
         next
       end
       if old_index == i
-        siblings_array[i].update order: i - 1
+        siblings_array[i].update list_order: i - 1
         next
       end
-      siblings_array[i].update order: i
+      siblings_array[i].update list_order: i
     end
     redirect_to categories_url
   end
 
   def down
-    siblings_array = @category.siblings.to_a.sort_by{|sib| sib.order}
+    siblings_array = @category.siblings.to_a.sort_by { |sib| sib.list_order }
     old_index = siblings_array.index(@category)
     siblings_array.each_index do |i|
       if old_index + 1 == i
-        siblings_array[i].update order: i - 1
+        siblings_array[i].update list_order: i - 1
         next
       end
       if old_index == i
-        siblings_array[i].update order: i + 1
+        siblings_array[i].update list_order: i + 1
         next
       end
-      siblings_array[i].update order: i
+      siblings_array[i].update list_order: i
     end
     redirect_to categories_url
   end
