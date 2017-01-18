@@ -4,7 +4,7 @@ module CategoriesHelper
       return "<li>#{show_list_item(root, first, last)}</li>"
     end
 
-    categories = (root.children.to_a).sort_by!{|cat| cat.order}
+    categories = (root.children.to_a).sort_by!{ |cat| cat.list_order }
     category_strings = []
     categories.each_index{|i| category_strings.push(show_table(categories[i], i == 0, i + 1 == categories.length))}
 
