@@ -14,12 +14,14 @@
 
   // Create array of series objects
   var all_data = [];
+
   <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
-  <% @mnemonic = series[:name] + '.' + series[:frequency] %>
-  all_data.push({
+    <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% @forecast_snapshot.check_restricted(mnemonic) %>
+    all_data.push({
       series: '<%= series[:name] %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(@mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(@mnemonic) %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
       history_start: '<%= @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
@@ -28,29 +30,31 @@
   <% end %>
 
   <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
-  <% @forecast_snapshot.check_restricted(@mnemonic) %>
-  all_data.push({
-    series: '<%= series[:name] %>',
-    id: '<%= @forecast_snapshot.retrieve_series_id(@mnemonic) %>',
-    title: '<%= @forecast_snapshot.retrieve_name(@mnemonic) %>',
-    frequency: '<%= series[:frequency] %>',
-    units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
-    old_forecast_start: '<%= @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
-    old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
-  });
+    <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% @forecast_snapshot.check_restricted(mnemonic) %>
+    all_data.push({
+      series: '<%= series[:name] %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
+      frequency: '<%= series[:frequency] %>',
+      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      old_forecast_start: '<%= @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+      old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+    });
   <% end %>
 
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
-  <% @forecast_snapshot.check_restricted(@mnemonic) %>
-  all_data.push({
-    series: '<%= series[:name] %>',
-    id: '<%= @forecast_snapshot.retrieve_series_id(@mnemonic) %>',
-    title: '<%= @forecast_snapshot.retrieve_name(@mnemonic) %>',
-    frequency: '<%= series[:frequency] %>',
-    units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
-    new_forecast_start: '<%= @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
-    new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
-  });
+    <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% @forecast_snapshot.check_restricted(mnemonic) %>
+    all_data.push({
+      series: '<%= series[:name] %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
+      frequency: '<%= series[:frequency] %>',
+      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      new_forecast_start: '<%= @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+      new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+    });
   <% end %>
 
   // Remove nulls, added by empty strings at end of TSDs, from end of array only.
