@@ -16,9 +16,11 @@
   var all_data = [];
 
   <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
+  <% @forecast_snapshot.check_restricted(series[:name] + '.' + series[:frequency]) %>
   all_data.push({
       series: '<%= series[:name] %>',
-      title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
+      id: '<%= @forecast_snapshot.retrieve_seriesId(series[:name] + '.' + series[:frequency]) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(series[:name] + '.' + series[:frequency]) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
       history_start: '<%= @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
@@ -27,9 +29,11 @@
   <% end %>
 
   <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
+  <% @forecast_snapshot.check_restricted(series[:name] + '.' + series[:frequency]) %>
   all_data.push({
     series: '<%= series[:name] %>',
-    title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
+    id: '<%= @forecast_snapshot.retrieve_seriesId(series[:name] + '.' + series[:frequency]) %>',
+    title: '<%= @forecast_snapshot.retrieve_name(series[:name] + '.' + series[:frequency]) %>',
     frequency: '<%= series[:frequency] %>',
     units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
     old_forecast_start: '<%= @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
@@ -38,9 +42,11 @@
   <% end %>
 
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
+  <% @forecast_snapshot.check_restricted(series[:name] + '.' + series[:frequency]) %>
   all_data.push({
     series: '<%= series[:name] %>',
-    title: '<%= @forecast_snapshot.retrieve_name(series[:name][/[^@]*/]) %>',
+    id: '<%= @forecast_snapshot.retrieve_seriesId(series[:name] + '.' + series[:frequency]) %>',
+    title: '<%= @forecast_snapshot.retrieve_name(series[:name] + '.' + series[:frequency]) %>',
     frequency: '<%= series[:frequency] %>',
     units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
     new_forecast_start: '<%= @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
@@ -217,8 +223,11 @@
 
       // Create a highchart for each series
       $('#' + i).highcharts({
+        chart: {
+          alignTicks: false
+        },
         title: {
-          text: i + 1 + '. '+ chart_data[i].title + ' (' + chart_data[i].series + ')',
+          text: 1 + i + '. ' + '<a href="http://data.uhero.hawaii.edu/#/series/' + chart_data[i].id + '" target="_blank">' + chart_data[i].title + ' (' + chart_data[i].series + ')' + '</a>',
           align: 'left',
           useHTML: true,
           style: {
@@ -255,7 +264,9 @@
           },
           labels: {
             format: '{value:,.2f}'
-          }
+          },
+          minPadding: 0,
+          maxPadding: 0
         }, {
           title: {
             text: '% Change in Forecast'
@@ -263,10 +274,14 @@
           labels: {
             format: '{value:,.2f}'
           },
-          opposite: true
+          gridLineWidth: 0,
+          opposite: true,
+          minPadding: 0,
+          maxPadding: 0
         }],
         tooltip: {
           shared: true,
+          hideDelay: 50,
           formatter: function () {
             var s = '<b>';
             if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jan') {
@@ -347,8 +362,14 @@
 
         // Add a plot line at the last history point and every year after that is divisible by 5
         for (var i = 0; i < plotLineRange.length; i++) {
-          if (+Highcharts.dateFormat('%Y', plotLineRange[i]) % 5 === 0 || plotLineRange[i] === lastHistoryDate) {
-            xAxis.addPlotLine({value: plotLineRange[i], color: '#ADADAD', width: 1, dashStyle: 'LongDash'});
+          if (frequency === 'A') {
+            if (+Highcharts.dateFormat('%Y', plotLineRange[i]) % 5 === 0 || plotLineRange[i] === lastHistoryDate) {
+              xAxis.addPlotLine({value: plotLineRange[i], color: '#ADADAD', width: 1, dashStyle: 'LongDash'});
+            }
+          } else if (frequency === 'Q') {
+            if ((Highcharts.dateFormat('%b', plotLineRange[i]) === 'Jan' && +Highcharts.dateFormat('%Y', plotLineRange[i]) % 5 === 0) || plotLineRange[i] === lastHistoryDate) {
+              xAxis.addPlotLine({value: plotLineRange[i], color: '#ADADAD', width: 1, dashStyle: 'LongDash'});
+            };
           }
         }
       });

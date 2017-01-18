@@ -4,12 +4,12 @@ class ForecastSnapshot < ActiveRecord::Base
   before_destroy :delete_files_from_disk
 
   # Get series name from series mnemonic
-  def retrieve_name(prefix)
-    m = Measurement.find_by(prefix: prefix.chomp('NS'))
-    if m.nil?
+  def retrieve_name(name)
+    s = Series.find_by(name: name)
+    if s.nil?
       return ''
     end
-    m.data_portal_name
+    s.dataPortalName
   end
 
   # Get series units
@@ -19,6 +19,23 @@ class ForecastSnapshot < ActiveRecord::Base
       return 'Values'
     end
     m.units_label_short
+  end
+
+  # Get series ID for each series
+  def retrieve_seriesId(name)
+    s = Series.find_by(name: name)
+    if s.nil?
+      return ''
+    end
+    s.id
+  end
+
+  # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
+  def check_restricted(name)
+    s = Series.find_by(name: name)
+    if s.restricted
+      s.update_attributes({:restricted => false})
+    end
   end
 
   def path(filename)
