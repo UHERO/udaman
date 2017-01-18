@@ -14,10 +14,10 @@ module CategoriesHelper
   end
 
   def show_list_item(leaf, first, last)
-    data_list_section = ''
-    data_list_section = link_to('Add DataList', edit_category_path(leaf)) if current_user.admin_user?
-    unless leaf.data_list.nil?
+    if leaf.data_list
       data_list_section = link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
+    else
+      data_list_section = 'No Data List'
     end
 
     "<strong>#{leaf.name}</strong> (" <<

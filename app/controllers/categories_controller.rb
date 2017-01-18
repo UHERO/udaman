@@ -26,7 +26,7 @@ class CategoriesController < ApplicationController
   def create
     @category = Category.new(category_params)
 
-    if @category.save
+    if @category.store_cat
       redirect_to @category, notice: 'Category was successfully created.'
     else
       render :new
@@ -90,6 +90,6 @@ class CategoriesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def category_params
-      params.require(:category).permit(:name, :parent_id, :data_list_id, :order, :default_handle, :default_freq)
+      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_handle, :default_freq)
     end
 end
