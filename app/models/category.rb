@@ -1,16 +1,16 @@
 class Category < ActiveRecord::Base
   has_ancestry
-
   belongs_to :data_list
+  before_save :set_list_order
 
-  def store_cat
-    self.order = 0
+  def set_list_order
+    return if self.list_order
+    self.list_order = 0
     # Even if parent_id is nil this does the right thing.
-    last_child = Category.where(ancestry: parent_id).order('categories.order desc').limit(1)[0]
-    if last_child && last_child.order
-      self.order = last_child.order + 1
+    last_sib = Category.where(ancestry: parent_id).order('list_order desc').first
+    if last_sib && last_sib.list_order
+      self.list_order = last_sib.list_order + 1
     end
-    save
   end
 
   def name_with_depth
