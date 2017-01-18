@@ -14,13 +14,12 @@
 
   // Create array of series objects
   var all_data = [];
-
   <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
-  <% @forecast_snapshot.check_restricted(series[:name] + '.' + series[:frequency]) %>
+  <% @mnemonic = series[:name] + '.' + series[:frequency] %>
   all_data.push({
       series: '<%= series[:name] %>',
-      id: '<%= @forecast_snapshot.retrieve_seriesId(series[:name] + '.' + series[:frequency]) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(series[:name] + '.' + series[:frequency]) %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(@mnemonic) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(@mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
       history_start: '<%= @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
@@ -29,11 +28,11 @@
   <% end %>
 
   <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
-  <% @forecast_snapshot.check_restricted(series[:name] + '.' + series[:frequency]) %>
+  <% @forecast_snapshot.check_restricted(@mnemonic) %>
   all_data.push({
     series: '<%= series[:name] %>',
-    id: '<%= @forecast_snapshot.retrieve_seriesId(series[:name] + '.' + series[:frequency]) %>',
-    title: '<%= @forecast_snapshot.retrieve_name(series[:name] + '.' + series[:frequency]) %>',
+    id: '<%= @forecast_snapshot.retrieve_series_id(@mnemonic) %>',
+    title: '<%= @forecast_snapshot.retrieve_name(@mnemonic) %>',
     frequency: '<%= series[:frequency] %>',
     units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
     old_forecast_start: '<%= @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
@@ -42,11 +41,11 @@
   <% end %>
 
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
-  <% @forecast_snapshot.check_restricted(series[:name] + '.' + series[:frequency]) %>
+  <% @forecast_snapshot.check_restricted(@mnemonic) %>
   all_data.push({
     series: '<%= series[:name] %>',
-    id: '<%= @forecast_snapshot.retrieve_seriesId(series[:name] + '.' + series[:frequency]) %>',
-    title: '<%= @forecast_snapshot.retrieve_name(series[:name] + '.' + series[:frequency]) %>',
+    id: '<%= @forecast_snapshot.retrieve_series_id(@mnemonic) %>',
+    title: '<%= @forecast_snapshot.retrieve_name(@mnemonic) %>',
     frequency: '<%= series[:frequency] %>',
     units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
     new_forecast_start: '<%= @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',

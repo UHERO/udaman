@@ -7,7 +7,8 @@ class ForecastSnapshot < ActiveRecord::Base
   def retrieve_name(name)
     s = Series.find_by(name: name)
     if s.nil?
-      return ''
+      m = Measurement.find_by(prefix: name[/[^@]*/])
+      return m.data_portal_name
     end
     s.dataPortalName
   end
@@ -22,7 +23,7 @@ class ForecastSnapshot < ActiveRecord::Base
   end
 
   # Get series ID for each series
-  def retrieve_seriesId(name)
+  def retrieve_series_id(name)
     s = Series.find_by(name: name)
     if s.nil?
       return ''
