@@ -32,7 +32,7 @@ class XlsFileProcessor
       col = @col_processor.compute(index, @cached_files, handle, sheet)
 
       #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
-      worksheet = @cached_files.xls(handle, sheet, path)
+      worksheet = @cached_files.xls(handle, sheet, path, date)
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
