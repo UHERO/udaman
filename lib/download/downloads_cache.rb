@@ -14,7 +14,7 @@ class DownloadsCache
     @new_data = nil
   end
 
-  def xls(handle, sheet, path = nil)
+  def xls(handle, sheet, path = nil, date = nil)
     #puts "DEBUG: xls "+self.__id__.to_s+"//"+self.object_id.to_s+" ## "+(handle || "nil")+" :: "+(sheet || "nil")+" :: "+(path || "nil")
 
     if path.nil?
@@ -40,20 +40,22 @@ class DownloadsCache
 
     if @xls[@cache_handle][sheet].nil?
       #if sheet not present, only other sheets were used so far
-      set_xls_sheet
+      set_xls_sheet date
     else
       Rails.logger.debug 'DEBUG: NOT call set_xls_sheet'
     end
     @xls[@cache_handle][sheet]
   end
 
-  def set_xls_sheet
+  def set_xls_sheet(date)
     @new_data = true
     file_extension = @cache_handle.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = @sheet.split(':')
     if sheet_parts[0] == 'sheet_num' #and excel.default_sheet != excel.sheets[sheet_parts[1].to_i - 1]
       excel.default_sheet = excel.sheets[sheet_parts[1].to_i - 1] 
+    elsif sheet_parts[0] == 'sheet_name'
+      excel.default_sheet = get_month_name(date) if sheet_parts[1].upcase == 'M3'
     else
       begin
         excel.default_sheet = @sheet unless excel.default_sheet == @sheet 
@@ -71,6 +73,10 @@ class DownloadsCache
     end
     @xls[@cache_handle] ||= {}
     @xls[@cache_handle][@sheet] = excel.to_matrix.to_a
+  end
+
+  def get_month_name(date)
+    date.to_date.strftime('%^b')
   end
 
   def download_results
