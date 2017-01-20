@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170111205811) do
+ActiveRecord::Schema.define(version: 20170118231649) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -20,15 +20,6 @@ ActiveRecord::Schema.define(version: 20170111205811) do
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
     t.string   "github_nickname", limit: 255
-  end
-
-  create_table "api_users", force: :cascade do |t|
-    t.string   "key",        limit: 255
-    t.string   "email",      limit: 255
-    t.string   "name",       limit: 255
-    t.datetime "created_at",             null: false
-    t.datetime "updated_at",             null: false
-    t.string   "hostname",   limit: 255
   end
 
   create_table "aremos_series", force: :cascade do |t|
@@ -62,6 +53,7 @@ ActiveRecord::Schema.define(version: 20170111205811) do
     t.integer  "data_list_id",   limit: 4
     t.datetime "created_at",                 null: false
     t.datetime "updated_at",                 null: false
+    t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4
     t.string   "ancestry",       limit: 255
     t.string   "default_handle", limit: 255

@@ -4,7 +4,7 @@ module CategoriesHelper
       return "<li>#{show_list_item(root, first, last)}</li>"
     end
 
-    categories = (root.children.to_a).sort_by!{|cat| cat.order}
+    categories = (root.children.to_a).sort_by!{ |cat| cat.list_order }
     category_strings = []
     categories.each_index{|i| category_strings.push(show_table(categories[i], i == 0, i + 1 == categories.length))}
 
@@ -14,10 +14,10 @@ module CategoriesHelper
   end
 
   def show_list_item(leaf, first, last)
-    data_list_section = ''
-    data_list_section = link_to('Add DataList', edit_category_path(leaf)) if current_user.admin_user?
-    unless leaf.data_list.nil?
+    if leaf.data_list
       data_list_section = link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
+    else
+      data_list_section = 'No Data List'
     end
 
     "<strong>#{leaf.name}</strong> (" <<
