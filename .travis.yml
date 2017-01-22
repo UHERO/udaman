@@ -12,5 +12,7 @@ addons:
     - mysql-client-core-5.6
     - mysql-client-5.6
 
+bundler_args: --without production
+
 before_script:
   - mysql -u root -e 'create database uhero_db_test;'
