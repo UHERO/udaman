@@ -11,7 +11,7 @@ module Authorization
   end
 
   def check_data_list_authorization
-    if current_user.internal_user? && (%w(index new create).include?(params[:action]) || owns_data_list?(params[:id]))
+    if current_user.internal_user? && (%w(index new create create_copy).include?(params[:action]) || owns_data_list?(params[:id]))
       return
     end
     check_authorization

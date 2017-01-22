@@ -9,6 +9,7 @@
     <th></th>
     <th></th>
     <th></th>
+    <th></th>
   </tr>
 
 <% @data_lists.each do |data_list| %>
@@ -19,6 +20,7 @@
     <% if current_user.admin_user? || data_list.owned_by == current_user.id %>
       <td><%= link_to 'Edit', edit_data_list_path(data_list) %></td>
     <% end %>
+    <td><%= link_to 'Duplicate', duplicate_data_list_path(data_list) %></td>
     <% if current_user.dev_user? || data_list.owned_by == current_user.id %>
       <td><%= link_to 'Destroy', data_list, :method => :delete, data: { confirm: "Destroy #{data_list.name}: Are you sure??"} %></td>
     <% end %>
