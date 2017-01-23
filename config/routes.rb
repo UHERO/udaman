@@ -81,7 +81,11 @@ UheroDb::Application.routes.draw do
   resources :prognoz_data_files
   resources :series_data_files
   resources :dashboards
-  resources :data_lists 
+  resources :data_lists do
+    member do
+      get 'duplicate'
+    end
+  end
 
   get 'broken_data_sources' => 'dashboards#broken_data_sources'
   get 'search_data_sources' => 'dashboards#search_data_sources'
