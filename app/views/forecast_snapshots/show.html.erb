@@ -117,14 +117,14 @@
       leftPadAnnual(chart_data[i]);
       chart_data[i].new_forecast_yoy = [];
       chart_data[i].old_forecast_yoy = [];
-      yoyA(chart_data[i].filter_new_forecast, chart_data[i].new_forecast_yoy);
-      yoyA(chart_data[i].filter_old_forecast, chart_data[i].old_forecast_yoy);
+      chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 1);
+      chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 1);
     } else if (chart_data[i].frequency === 'Q') {
       leftPadQuarterly(chart_data[i]);
       chart_data[i].new_forecast_yoy = [];
       chart_data[i].old_forecast_yoy = [];
-      yoyQ(chart_data[i].filter_new_forecast, chart_data[i].new_forecast_yoy);
-      yoyQ(chart_data[i].filter_old_forecast, chart_data[i].old_forecast_yoy);
+      chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 4);
+      chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 4);
     }
   }
 
@@ -174,27 +174,18 @@
   }
 
   // Function to calculate YOY % change (annual)
-  function yoyA(observations, yoy) {
-    var prevObservationValue = null;
-    observations.map(function (observationValue) {
-      if (prevObservationValue) {
-        yoy.push( ((observationValue - prevObservationValue) / prevObservationValue) * 100);
-      } else {
-        yoy.push(null);
-      }
-      prevObservationValue = observationValue;
+  // Returns a yoy series from the given observations
+  function yoy(observations, observationsPerYear) {
+    return observations.map(function (value, index, observations) {
+        if (index < observationsPerYear) {
+            return null;
+        }
+        var previousValue = observations[index - observationsPerYear];
+        if (isNaN(parseFloat(value)) || isNaN(parseFloat(previousValue))) {
+            return null;
+        }
+        return (value - previousValue)/previousValue * 100;
     });
-  }
-
-  // Function to calculate YOY % change (quarter)
-  function yoyQ(observations, yoy) {
-    for (var j = 4; j < observations.length; j++) {
-      if (observations[j] === null || observations[j - 4] === null) {
-        yoy.push(null);
-      } else {
-        yoy.push( ((observations[j] - observations[j - 4]) / observations[j - 4]) * 100 );
-      }
-    }
   }
 
   $(document).ready(function() {
