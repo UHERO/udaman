@@ -126,6 +126,15 @@ class DataListsController < ApplicationController
     end
   end
 
+  def duplicate
+    original_data_list = DataList.find_by id: params[:id]
+    new_data_list = original_data_list.dup
+    new_data_list.name = original_data_list.name + ' (copy)'
+    new_data_list.measurements = original_data_list.measurements
+    new_data_list.save
+    redirect_to edit_data_list_url(new_data_list.id)
+  end
+
   # GET /data_lists/1/edit
   def edit
     @data_list = DataList.find_by id: params[:id]
