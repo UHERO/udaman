@@ -34,10 +34,14 @@
             <tr><th>Prefix</th><th>Data Portal Name</th><th></th><th></th></tr>
           </thead>
           <tbody>
-          <% @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}.map{|m| m.measurement}.each do |measurement| %>
+          <% @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}.map{|m| [m.measurement, m.indent]}.each do |measurement, ind|
+                indstring = ''
+                indstring += '|&nbsp; ' if ind =~ /[12]$/
+                indstring += '|&nbsp; ' if ind == 'indent2'
+          %>
               <tr>
                 <td><%= measurement.prefix %></td>
-                <td><%= measurement.data_portal_name %></td>
+                <td><%= indstring.html_safe + measurement.data_portal_name %></td>
                 <td><%= link_to 'Up', {controller: :data_lists, action: :move_measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
                 <td><%= link_to 'Down', {controller: :data_lists, action: :move_measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
                 <td><%= link_to 'Remove', {controller: :data_lists, action: :remove_measurement, id: @data_list, measurement_id: measurement.id}, remote: true, data: {remove: true} %></td>
