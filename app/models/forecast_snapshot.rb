@@ -10,7 +10,7 @@ class ForecastSnapshot < ActiveRecord::Base
       m = Measurement.find_by(prefix: name[/[^@]*/])
       return m.data_portal_name
     end
-    s.dataPortalName
+    s.aremos_series.description.titlecase
   end
 
   # Get series units
