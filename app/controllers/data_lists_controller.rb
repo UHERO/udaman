@@ -270,6 +270,12 @@ class DataListsController < ApplicationController
     DataListMeasurement.destroy(id_to_remove)
   end
 
+  def set_measurement_indent
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+  end
+
   private
     def data_list_params
       params.require(:data_list)
