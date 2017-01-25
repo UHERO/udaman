@@ -274,12 +274,14 @@ class DataListsController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
+    dlm = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id])
+    dlm.update(indent: 'indent'+params[:indent].to_s)
   end
 
   private
     def data_list_params
       params.require(:data_list)
-          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id)
+          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent)
     end
 
     def set_dates(frequency, params)
