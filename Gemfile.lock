@@ -105,6 +105,8 @@ GEM
     faraday (0.11.0)
       multipart-post (>= 1.2, < 3)
     ffi (1.9.17)
+    font-awesome-sass (4.7.0)
+      sass (>= 3.2)
     globalid (0.3.7)
       activesupport (>= 4.1.0)
     highcharts-rails (4.2.5)
@@ -328,6 +330,7 @@ DEPENDENCIES
   devise (~> 4.0)
   factory_girl_rails (~> 4.7)
   faker (~> 1.6)
+  font-awesome-sass
   highcharts-rails
   highline (~> 1.6.0)
   httpclient
