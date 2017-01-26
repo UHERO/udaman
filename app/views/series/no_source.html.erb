@@ -1,0 +1,28 @@
+<%= will_paginate @series %>
+
+<h1>Listing Series without a Source</h1>
+
+<table>
+  <thead>
+  <tr>
+    <th>Series</th>
+    <th>Description</th>
+    <th colspan="2"></th>
+    <th>Data Source Definitions</th>
+  </tr>
+  </thead>
+
+  <tbody>
+  <% @series.each do |series| %>
+      <tr>
+        <td><%= series.name %></td>
+        <td><%= series.dataPortalName.nil? ? series.measurement.data_portal_name : series.dataPortalName %></td>
+        <td><%= link_to 'Show', series %></td>
+        <td><%= link_to 'Edit', edit_series_path(series) %></td>
+        <td><%= series.data_sources.map { |ds| ds['eval'] }.join('<br />').html_safe %></td>
+      </tr>
+  <% end %>
+  </tbody>
+</table>
+
+<%= will_paginate @series %>
