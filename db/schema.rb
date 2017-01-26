@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170118231649) do
+ActiveRecord::Schema.define(version: 20170125231654) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -122,6 +122,12 @@ ActiveRecord::Schema.define(version: 20170118231649) do
     t.float    "yoy",             limit: 53
     t.float    "ytd",             limit: 53
     t.date     "date",                                       null: false
+  end
+
+  create_table "data_portal_names", id: false, force: :cascade do |t|
+    t.string "prefix",           limit: 255
+    t.string "units",            limit: 255
+    t.string "data_portal_name", limit: 255
   end
 
   create_table "data_source_downloads", force: :cascade do |t|
@@ -263,11 +269,14 @@ ActiveRecord::Schema.define(version: 20170118231649) do
     t.string   "frequency_transform",     limit: 255
     t.integer  "measurement_id",          limit: 4
     t.boolean  "restricted",                            default: false
+    t.integer  "source_id",               limit: 4
+    t.string   "source_link",             limit: 255
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
+  add_index "series", ["source_id"], name: "fk_rails_6f2f66e327", using: :btree
 
   create_table "sources", force: :cascade do |t|
     t.string   "description", limit: 255
@@ -315,4 +324,5 @@ ActiveRecord::Schema.define(version: 20170118231649) do
 
   add_foreign_key "authorizations", "users"
   add_foreign_key "series", "measurements"
+  add_foreign_key "series", "sources"
 end

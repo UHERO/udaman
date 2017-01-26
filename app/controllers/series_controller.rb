@@ -242,7 +242,9 @@ class SeriesController < ApplicationController
           :percent,
           :real,
           :frequency_transform,
-          :restricted
+          :restricted,
+          :source_id,
+          :source_link
       )
     end
 
