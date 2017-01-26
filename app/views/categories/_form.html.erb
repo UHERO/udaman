@@ -24,7 +24,7 @@
     <%= f.collection_select :data_list_id, DataList.all, :id, :name, {:include_blank => true} %>
   </div>
   <div class="field">
-    <%= f.label :default_handle %><br>
+    <%= f.label :default_handle, 'Default geo' %><br>
     <%= f.text_field :default_handle %>
   </div>
   <div class="field">
