@@ -36,10 +36,16 @@ google.visualization.events.addListener(chart, 'select', function() {
 <p class="notice"><%= notice %></p>
 
 <div id="summary_area">
-	<h3>Series:</h3>
 	<h3><%= @series.name %></h3>
 	<h3><%= @desc %></h3>
   <h3><%= @series.description %></h3>
+
+  <table>
+    <tr><td>Data Portal Status</td><td><%= @series.restricted ? 'restricted' : 'public' %></td></tr>
+    <tr><td>Source Description</td><td><%= @series.source.description unless @series.source.nil? %></td></tr>
+    <tr><td>Source Link</td><td><%= @series.source_link %></td></tr>
+  </table>
+
 	<div id="navigation">
     <% if current_user.internal_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
