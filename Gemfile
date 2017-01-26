@@ -30,6 +30,7 @@ gem 'net-sftp'
 gem 'dalli', '~> 2.7'
 gem 'rails-assets-select2', :source => 'https://rails-assets.org'
 gem 'ancestry'
+gem 'font-awesome-sass'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 #gem 'devise-encryptable', '~> 0.2'
