@@ -72,7 +72,7 @@ div.field, div.actions {
 #summary_area {position:absolute; width:350px; padding:20px 0 0 15px; }
 #details_mask {position:absolute; width:530px; height:300px; margin-left:370px; padding:10px 0 0 0; background-color:#FFFFFF; opacity:0.9;}
 #details_area {position:absolute; width:530px; margin-left:370px; padding:10px 0 0 0;}
-#navigation {}
+#navigation { padding-top: 20px }
 #summary_area h1 {font-size:72px; line-height:60px; margin:0 0 20px 0;}
 #summary_area h2 {font-size:50px; line-height:50px; margin:0 0 20px 0;}
 td.label {font-weight:bold; padding-right:10px; text-align:right; vertical-align:top;}
