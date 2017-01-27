@@ -7,3 +7,5 @@ $ ->
     row.insertAfter(row.next());
   $("a[data-remote][data-remove]").on "ajax:success", (e, data, status, xhr) ->
     $(this).parents("tr:first").remove()
+  $("a[data-remote][data-indent]").on "ajax:success", (e, data, status, xhr) ->
+    $(this).parents("tr:first").find("td span.indentation").html(data.the_indent)
