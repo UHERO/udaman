@@ -1,7 +1,7 @@
 class DataListsController < ApplicationController
   include Authorization
 
-  MAXINDENT = 2
+  MAXINDENT = 3
 
   before_action :check_data_list_authorization
 
