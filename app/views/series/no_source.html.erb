@@ -16,7 +16,7 @@
   <% @series.each do |series| %>
       <tr>
         <td><%= series.name %></td>
-        <td><%= series.dataPortalName.nil? ? series.measurement.data_portal_name : series.dataPortalName %></td>
+        <td><%= series.dataPortalName || series.measurement.data_portal_name %></td>
         <td><%= link_to 'Show', series %></td>
         <td><%= link_to 'Edit', edit_series_path(series) %></td>
         <td><%= series.data_sources.map { |ds| ds['eval'] }.join('<br />').html_safe %></td>
