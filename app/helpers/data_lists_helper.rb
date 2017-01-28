@@ -67,16 +67,11 @@ module DataListsHelper
     end
     return new_words.join(" ")
   end
-  
+
+  def make_indentation(n)
+    ## HTML string below needs to keep internal quotes as single, because it gets embedded in JSON
+    ## Start at 1 because if n == 0, this gives (correct) empty result, whereas 0..0 incorrectly iterates once
+    (1..n).map{ "<i class='fa fa-minus' aria-hidden='true'></i> " }.join.html_safe
+  end
+
 end
-
-
-# array2d = []
-# array2d.push([""] + sorted_names)
-# dates_array.each do |date|
-#   array2d.push([date] + sorted_names.map {|series_name| series_data[series_name][date]})
-# end
-# csv << [""] + sorted_names
-# dates_array.each do |date|
-#   csv << [date] + sorted_names.map {|series_name| series_data[series_name][date]}
-# end

@@ -1,6 +1,8 @@
 class DataListsController < ApplicationController
   include Authorization
 
+  MAXINDENT = 3
+
   before_action :check_data_list_authorization
 
   # GET /data_lists
@@ -192,10 +194,12 @@ class DataListsController < ApplicationController
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end
-    list_order = DataListMeasurement.where(data_list_id: @data_list.id).maximum(:list_order)
-    list_order ||= 0
+    last_dlm = DataListMeasurement.where(data_list_id: @data_list.id).order('list_order desc').first
+    list_order = last_dlm ? last_dlm.list_order : 0
+    indent = last_dlm && last_dlm.indent ? last_dlm.indent : 'indent0'
     @data_list.measurements<< measurement
-    DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: measurement.id).update(list_order: list_order + 1)
+    DataListMeasurement.find_by(data_list_id: @data_list.id,
+                                measurement_id: measurement.id).update(list_order: list_order + 1, indent: indent)
     respond_to do |format|
       format.html { redirect_to edit_data_list_url(@data_list.id) }
       format.js {}
@@ -268,10 +272,26 @@ class DataListsController < ApplicationController
     DataListMeasurement.destroy(id_to_remove)
   end
 
+  def set_measurement_indent
+    dlm = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id])
+    current_indent = dlm.indent ? dlm.indent[-1].to_i : 0
+    new_indent = params[:indent_in_out] == 'in' ? current_indent + 1 : current_indent - 1
+    if new_indent < 0 || new_indent > MAXINDENT
+      respond_to do |format|
+        format.js { render nothing: true, status: 200 }
+      end
+      return
+    end
+    respond_to do |format|
+      format.json { render json: '{ "the_indent": "%s" }' % view_context.make_indentation(new_indent), status: 200 }
+    end
+    dlm.update(indent: 'indent'+new_indent.to_s)
+  end
+
   private
     def data_list_params
       params.require(:data_list)
-          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id)
+          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
     end
 
     def set_dates(frequency, params)

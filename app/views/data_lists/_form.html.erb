@@ -31,15 +31,19 @@
         <h2>List of Measurements</h2>
         <table>
           <thead>
-            <tr><th>Prefix</th><th>Data Portal Name</th><th></th><th></th></tr>
+          <tr><th>Prefix</th><th>Data Portal Name</th><th colspan="2">Move</th><th colspan="2">Indent</th><th></th></tr>
           </thead>
           <tbody>
-          <% @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}.map{|m| m.measurement}.each do |measurement| %>
+          <% @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}.map{|m| [m.measurement, m.indent]}.each do |measurement, ind|
+                indent_i = ind ? ind[-1].to_i : 0
+          %>
               <tr>
                 <td><%= measurement.prefix %></td>
-                <td><%= measurement.data_portal_name %></td>
+                <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= measurement.data_portal_name %></td>
                 <td><%= link_to 'Up', {controller: :data_lists, action: :move_measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
                 <td><%= link_to 'Down', {controller: :data_lists, action: :move_measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
+                <td><%= link_to '<<'.html_safe, {controller: :data_lists, action: :set_measurement_indent, id: @data_list, measurement_id: measurement.id, indent_in_out: 'out'}, remote: true, data: {indent: 1} %></td>
+                <td><%= link_to '>>'.html_safe, {controller: :data_lists, action: :set_measurement_indent, id: @data_list, measurement_id: measurement.id, indent_in_out: 'in'}, remote: true, data: {indent: 1} %></td>
                 <td><%= link_to 'Remove', {controller: :data_lists, action: :remove_measurement, id: @data_list, measurement_id: measurement.id}, remote: true, data: {remove: true} %></td>
               </tr>
           <% end %>
