@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170125231654) do
+ActiveRecord::Schema.define(version: 20170128002701) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -246,7 +246,7 @@ ActiveRecord::Schema.define(version: 20170125231654) do
   create_table "series", force: :cascade do |t|
     t.string   "name",                    limit: 255
     t.string   "frequency",               limit: 255
-    t.string   "description",             limit: 255
+    t.text     "description",             limit: 65535
     t.integer  "units",                   limit: 4
     t.boolean  "seasonally_adjusted"
     t.string   "last_demetra_datestring", limit: 255
