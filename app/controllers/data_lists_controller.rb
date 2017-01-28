@@ -274,24 +274,24 @@ class DataListsController < ApplicationController
 
   def set_measurement_indent
     dlm = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id])
-    curind = dlm.indent ? dlm.indent[-1].to_i : 0
-    newind = params[:indded] == 'plus' ? curind + 1 : curind - 1
-    if newind < 0 || newind > MAXINDENT
+    current_indent = dlm.indent ? dlm.indent[-1].to_i : 0
+    new_indent = params[:indent_in_out] == 'in' ? current_indent + 1 : current_indent - 1
+    if new_indent < 0 || new_indent > MAXINDENT
       respond_to do |format|
         format.js { render nothing: true, status: 200 }
       end
       return
     end
     respond_to do |format|
-      format.json { render json: '{ "the_indent": "%s" }' % view_context.make_indentation(newind), status: 200 }
+      format.json { render json: '{ "the_indent": "%s" }' % view_context.make_indentation(new_indent), status: 200 }
     end
-    dlm.update(indent: 'indent'+newind.to_s)
+    dlm.update(indent: 'indent'+new_indent.to_s)
   end
 
   private
     def data_list_params
       params.require(:data_list)
-          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indded)
+          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
     end
 
     def set_dates(frequency, params)
