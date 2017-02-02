@@ -35,7 +35,7 @@ class ForecastSnapshot < ActiveRecord::Base
   ##   Seems like this method (and others here?) should really be in Series, but leaving that for another time. -dji
   def unrestrict_series(name)
     s = Series.find_by(name: name)
-    if s && s.restricted
+    if !s.nil? && s.restricted
       s.update_attributes({:restricted => false})
     end
   end
