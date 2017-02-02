@@ -32,6 +32,7 @@ class ForecastSnapshot < ActiveRecord::Base
   end
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
+  ##   Seems like this method (and others here?) should really be in Series, but leaving that for another time. -dji
   def unrestrict_series(name)
     s = Series.find_by(name: name)
     if s && s.restricted
