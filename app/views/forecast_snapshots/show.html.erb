@@ -17,7 +17,7 @@
 
   <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% @forecast_snapshot.check_restricted(mnemonic) %>
+    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
@@ -31,7 +31,7 @@
 
   <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% @forecast_snapshot.check_restricted(mnemonic) %>
+    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
@@ -45,7 +45,7 @@
 
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% @forecast_snapshot.check_restricted(mnemonic) %>
+    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',

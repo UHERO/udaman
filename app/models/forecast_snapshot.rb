@@ -32,7 +32,7 @@ class ForecastSnapshot < ActiveRecord::Base
   end
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
-  def check_restricted(name)
+  def unrestrict_series(name)
     s = Series.find_by(name: name)
     if s && s.restricted
       s.update_attributes({:restricted => false})
