@@ -15,7 +15,10 @@
   // Create array of series objects
   var all_data = [];
 
+  <% start_date = '2020-01-01' %>
   <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
+    <% series_start = @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% start_date = series_start if start_date > series_start %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
@@ -24,13 +27,15 @@
       title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
-      history_start: '<%= @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+      history_start: '<%= series_start %>',
       history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
   <% end %>
 
   <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% series_start = @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% start_date = series_start if start_date > series_start %>
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
@@ -38,13 +43,15 @@
       title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
-      old_forecast_start: '<%= @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+      old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
   <% end %>
 
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% series_start = @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% start_date = series_start if start_date > series_start %>
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
@@ -52,7 +59,7 @@
       title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
-      new_forecast_start: '<%= @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>',
+      new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
   <% end %>
@@ -81,6 +88,7 @@
 
   // Consolidate objects belonging to the same series
   var chart_data = [];
+  var start_date = "<%= start_date %>";
   all_data.forEach(function(value) {
     var exist = chart_data.filter(function(e, i) {
       return e.series === value.series;
@@ -112,7 +120,7 @@
 
   // Calculate YOY percentage change in new and old forecast
   for (i = 0; i < chart_data.length; i++) {
-    chart_data[i].start_date_chart = minDate(chart_data[i].history_start, chart_data[i].old_forecast_start, chart_data[i].new_forecast_start);
+    chart_data[i].start_date_chart = start_date;
     if (chart_data[i].frequency === 'A') {
       leftPadAnnual(chart_data[i]);
       chart_data[i].new_forecast_yoy = [];
