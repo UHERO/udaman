@@ -43,7 +43,8 @@ google.visualization.events.addListener(chart, 'select', function() {
   <table>
     <tr><td>Data Portal Status</td><td><%= @series.restricted ? 'restricted' : 'public' %></td></tr>
     <tr><td>Source Description</td><td><%= @series.source.description unless @series.source.nil? %></td></tr>
-    <tr><td>Source Link</td><td><%= @series.source_link %></td></tr>
+    <tr><td>Source Link</td><td><%= (@series.source_link.nil? || @series.source_link.empty?) ? (@series.source.link unless @series.source.nil?) : @series.source_link %></td></tr>
+    <tr><td>Source Details</td><td><%= @series.source_detail.description unless @series.source_detail.nil? %></td></tr>
   </table>
 
 	<div id="navigation">

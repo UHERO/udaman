@@ -24,6 +24,7 @@ class Series < ActiveRecord::Base
 
   belongs_to :measurement, inverse_of: :series
   belongs_to :source, inverse_of: :series
+  belongs_to :source_detail, inverse_of: :series
 
   def as_json(options = {})
     as = AremosSeries.get(self.name)

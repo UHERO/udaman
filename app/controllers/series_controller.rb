@@ -248,7 +248,8 @@ class SeriesController < ApplicationController
           :frequency_transform,
           :restricted,
           :source_id,
-          :source_link
+          :source_link,
+          :source_detail_id
       )
     end
 

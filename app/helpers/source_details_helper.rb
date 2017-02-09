@@ -1,0 +1,2 @@
+module SourceDetailsHelper
+end
