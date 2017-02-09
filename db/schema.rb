@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170128002701) do
+ActiveRecord::Schema.define(version: 20170209020004) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -20,6 +20,15 @@ ActiveRecord::Schema.define(version: 20170128002701) do
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
     t.string   "github_nickname", limit: 255
+  end
+
+  create_table "api_users", force: :cascade do |t|
+    t.string   "key",        limit: 255
+    t.string   "email",      limit: 255
+    t.string   "name",       limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+    t.string   "hostname",   limit: 255
   end
 
   create_table "aremos_series", force: :cascade do |t|
@@ -66,6 +75,7 @@ ActiveRecord::Schema.define(version: 20170128002701) do
     t.integer "data_list_id",   limit: 4
     t.integer "measurement_id", limit: 4
     t.integer "list_order",     limit: 4
+    t.string  "indent",         limit: 7
   end
 
   add_index "data_list_measurements", ["data_list_id", "measurement_id"], name: "index_data_list_measurements_on_data_list_id_and_measurement_id", unique: true, using: :btree
@@ -271,12 +281,20 @@ ActiveRecord::Schema.define(version: 20170128002701) do
     t.boolean  "restricted",                            default: false
     t.integer  "source_id",               limit: 4
     t.string   "source_link",             limit: 255
+    t.integer  "source_detail_id",        limit: 4
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
+  add_index "series", ["source_detail_id"], name: "fk_rails_36c9ba7209", using: :btree
   add_index "series", ["source_id"], name: "fk_rails_6f2f66e327", using: :btree
+
+  create_table "source_details", force: :cascade do |t|
+    t.text     "description", limit: 65535
+    t.datetime "created_at",                null: false
+    t.datetime "updated_at",                null: false
+  end
 
   create_table "sources", force: :cascade do |t|
     t.string   "description", limit: 255
@@ -324,5 +342,6 @@ ActiveRecord::Schema.define(version: 20170128002701) do
 
   add_foreign_key "authorizations", "users"
   add_foreign_key "series", "measurements"
+  add_foreign_key "series", "source_details"
   add_foreign_key "series", "sources"
 end
