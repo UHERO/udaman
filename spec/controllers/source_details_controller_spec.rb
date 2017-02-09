@@ -37,7 +37,7 @@ RSpec.describe SourceDetailsController, type: :controller do
   let(:valid_session) { {} }
 
   describe "GET #index" do
-    it "assigns all source_details as @source_details" do
+    xit "assigns all source_details as @source_details" do
       source_detail = SourceDetail.create! valid_attributes
       get :index, params: {}, session: valid_session
       expect(assigns(:source_details)).to eq([source_detail])
@@ -53,14 +53,14 @@ RSpec.describe SourceDetailsController, type: :controller do
   end
 
   describe "GET #new" do
-    it "assigns a new source_detail as @source_detail" do
+    xit "assigns a new source_detail as @source_detail" do
       get :new, params: {}, session: valid_session
       expect(assigns(:source_detail)).to be_a_new(SourceDetail)
     end
   end
 
   describe "GET #edit" do
-    it "assigns the requested source_detail as @source_detail" do
+    xit "assigns the requested source_detail as @source_detail" do
       source_detail = SourceDetail.create! valid_attributes
       get :edit, params: {id: source_detail.to_param}, session: valid_session
       expect(assigns(:source_detail)).to eq(source_detail)
