@@ -16,7 +16,7 @@
       <%= f.text_field :name %>
     </div>
     <div class="field">
-      <%= f.label 'Data Portal Name' %><br/>
+      <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
       <%= f.text_field :dataPortalName %>
     </div>
     <div class="field">
@@ -24,15 +24,15 @@
       <%= f.text_field :description %>
     </div>
     <div class="field">
-      <%= f.label 'Units (1, 1000)' %><br/>
+      <%= f.label :units, 'Units (1, 1000)' %><br/>
       <%= f.text_field :units %>
     </div>
     <div class="field">
-      <%= f.label 'Units Label (e.g., Percent)' %><br/>
+      <%= f.label :unitsLabel, 'Units Label (e.g., Percent)' %><br/>
       <%= f.text_field :unitsLabel %>
     </div>
     <div class="field">
-      <%= f.label 'Units Label Short (e.g., %)' %><br/>
+      <%= f.label :unitsLabelShort, 'Units Label Short (e.g., %)' %><br/>
       <%= f.text_field :unitsLabelShort %>
     </div>
     <div class="field">
@@ -40,7 +40,7 @@
       <%= f.collection_select :source_id, Source.all, :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
-      <%= f.label 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
+      <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
       <%= f.text_field :source_link %>
     </div>
     <div class="field">
@@ -52,23 +52,23 @@
       <%= f.text_area :investigation_notes %>
     </div>
     <div class="field">
-      <%= f.label 'Seasonally Adjusted' %><br/>
+      <%= f.label :seasonally_adjusted, 'Seasonally Adjusted' %><br/>
       <%= f.check_box :seasonally_adjusted %>
     </div>
     <div class="field">
-      <%= f.label 'Percent (prevents calculation of growth rate)' %><br/>
+      <%= f.label :percent, 'Percent (prevents calculation of growth rate)' %><br/>
       <%= f.check_box :percent %>
     </div>
     <div class="field">
-      <%= f.label 'Real (prevents adjustment for inflation)' %><br/>
+      <%= f.label :real, 'Real (prevents adjustment for inflation)' %><br/>
       <%= f.check_box :real %>
     </div>
     <div class="field">
-      <%= f.label 'Frequency Transformation Method (average, sum, or last)' %><br/>
+      <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %><br/>
       <%= f.text_field :frequency_transform %>
     </div>
     <div class="field">
-      <%= f.label 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
+      <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
       <%= f.check_box :restricted %>
     </div>
     <div class="actions">
