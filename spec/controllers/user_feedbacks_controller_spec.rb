@@ -36,6 +36,12 @@ RSpec.describe UserFeedbacksController, type: :controller do
   # UserFeedbacksController. Be sure to keep this updated too.
   let(:valid_session) { {} }
 
+  before(:each) do
+    @request.env['devise.mapping'] = Devise.mappings[:user]
+    user = FactoryGirl.create(:user)
+    sign_in user
+  end
+
   describe "GET #index" do
     it "assigns all user_feedbacks as @user_feedbacks" do
       user_feedback = UserFeedback.create! valid_attributes
