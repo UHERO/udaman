@@ -37,7 +37,7 @@ RSpec.describe UserFeedbacksController, type: :controller do
   let(:valid_session) { {} }
 
   describe "GET #index" do
-    xit "assigns all user_feedbacks as @user_feedbacks" do
+    it "assigns all user_feedbacks as @user_feedbacks" do
       user_feedback = UserFeedback.create! valid_attributes
       get :index, params: {}, session: valid_session
       expect(assigns(:user_feedbacks)).to eq([user_feedback])
@@ -53,14 +53,14 @@ RSpec.describe UserFeedbacksController, type: :controller do
   end
 
   describe "GET #new" do
-    xit "assigns a new user_feedback as @user_feedback" do
+    it "assigns a new user_feedback as @user_feedback" do
       get :new, params: {}, session: valid_session
       expect(assigns(:user_feedback)).to be_a_new(UserFeedback)
     end
   end
 
   describe "GET #edit" do
-    xit "assigns the requested user_feedback as @user_feedback" do
+    it "assigns the requested user_feedback as @user_feedback" do
       user_feedback = UserFeedback.create! valid_attributes
       get :edit, params: {id: user_feedback.to_param}, session: valid_session
       expect(assigns(:user_feedback)).to eq(user_feedback)
