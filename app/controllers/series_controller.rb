@@ -69,6 +69,10 @@ class SeriesController < ApplicationController
     @series = Series.where('source_id IS NULL').order(:name).paginate(page: params[:page], per_page: 50)
   end
 
+  def no_source_no_restrict
+    @series = Series.where('source_id IS NULL and restricted = false').order(:name).paginate(page: params[:page], per_page: 50)
+  end
+
   def json_with_change
     @series = Series.find_by id: params[:id]
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
