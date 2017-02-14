@@ -78,8 +78,8 @@ UheroDb::Application.routes.draw do
   post 'series/bulk', to: 'series#bulk_create'
   get 'series/stale', to: 'series#stale'
   get 'series/no_source', to: 'series#no_source'
+  get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
   get 'series/quarantine', to: 'series#quarantine'
-
 
   resources :series
 

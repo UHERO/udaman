@@ -1,4 +1,10 @@
+<%= will_paginate @forecast_snapshots %>
+
 <p id="notice"><%= notice %></p>
+
+<% if current_user.internal_user? %>
+    <%= link_to 'New Forecast snapshot', new_forecast_snapshot_path %>
+<% end %>
 
 <h1>Listing Forecast Snapshots</h1>
 
@@ -11,6 +17,8 @@
       <% if current_user.internal_user? %>
         <th>Published</th>
       <% end %>
+      <th>Created</th>
+      <th>Updated</th>
       <th colspan="3"></th>
     </tr>
   </thead>
@@ -24,6 +32,8 @@
         <% if current_user.internal_user? %>
           <td align="center"><%= fs.published ? 'Y' : 'N' %></td>
         <% end %>
+        <td><%= fs.created_at.localtime.strftime("%m/%d/%y") %></td>
+        <td><%= fs.updated_at.localtime.strftime("%m/%d/%y") %></td>
         <td><%= link_to 'Show', fs %></td>
         <% if current_user.admin_user? %>
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
@@ -37,6 +47,4 @@
 </table>
 <br>
 
-<% if current_user.internal_user? %>
-  <%= link_to 'New Forecast snapshot', new_forecast_snapshot_path %>
-<% end %>
+<%= will_paginate @forecast_snapshots %>

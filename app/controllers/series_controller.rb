@@ -69,6 +69,10 @@ class SeriesController < ApplicationController
     @series = Series.where('source_id IS NULL').order(:name).paginate(page: params[:page], per_page: 50)
   end
 
+  def no_source_no_restrict
+    @series = Series.where('source_id IS NULL and restricted = false').order(:name).paginate(page: params[:page], per_page: 50)
+  end
+
   def quarantine
     @series = Series.where(quarantined: true, restricted: false).order(:name).paginate(page: params[:page], per_page: 50)
   end
