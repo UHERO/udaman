@@ -11,11 +11,14 @@
       <%= link_to 'Create Series', controller: 'series', action: 'new' %>
       <%= link_to 'Bulk Series Create', controller: 'series', action: 'bulk_new' %>
     </div>
+    <div>
       <br />
-      <div>
-        <%= link_to 'Series with no Source', controller: :series, action: 'no_source' %>
-        <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %>
-      </div>
+      <%= link_to 'Series with no Source', controller: :series, action: 'no_source' %>
+      <br />
+      <%= link_to 'Unrestricted series with no Source', controller: :series, action: 'no_source_no_restrict' %>
+      <br />
+      <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %>
+    </div>
   <% end %>
 </div>
 <div id="details_mask"></div>
