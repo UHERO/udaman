@@ -6,10 +6,16 @@
 		<%= raw navigation_by_letter %>
 	</div>
   <% if current_user.internal_user? %>
+      <br />
     <div>
       <%= link_to 'Create Series', controller: 'series', action: 'new' %>
       <%= link_to 'Bulk Series Create', controller: 'series', action: 'bulk_new' %>
     </div>
+      <br />
+      <div>
+        <%= link_to 'Series with no Source', controller: :series, action: 'no_source' %>
+        <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %>
+      </div>
   <% end %>
 </div>
 <div id="details_mask"></div>

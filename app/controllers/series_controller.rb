@@ -73,6 +73,22 @@ class SeriesController < ApplicationController
     @series = Series.where('source_id IS NULL and restricted = false').order(:name).paginate(page: params[:page], per_page: 50)
   end
 
+  def quarantine
+    @series = Series.where(quarantined: true, restricted: false).order(:name).paginate(page: params[:page], per_page: 50)
+  end
+
+  def add_to_quarantine
+    @series = Series.find_by id: params[:id]
+    @series.update! quarantined: true
+    redirect_to action: :show, id: params[:id]
+  end
+
+  def remove_from_quarantine
+    @series = Series.find_by id: params[:id]
+    @series.update! quarantined: false
+    redirect_to action: :show, id: params[:id]
+  end
+
   def json_with_change
     @series = Series.find_by id: params[:id]
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
