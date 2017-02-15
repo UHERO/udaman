@@ -60,6 +60,6 @@ class MeasurementsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def measurement_params
-      params.require(:measurement).permit(:prefix, :data_portal_name, :units_label, :units_label_short, :percent, :real, :notes, :unrestricted, :in_categories)
+      params.require(:measurement).permit(:prefix, :data_portal_name, :units_label, :units_label_short, :percent, :real, :notes, :unrestricted)
     end
 end
