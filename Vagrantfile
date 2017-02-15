@@ -28,6 +28,8 @@ Vagrant.configure('2') do |config|
 
   # Forwarded port mapping for http
   config.vm.network 'forwarded_port', guest: 3000, host: 3000
+  # Forwarded port mapping for rest-api
+  config.vm.network 'forwarded_port', guest: 8080, host: 8080
   # Forwarded port mapping for debugging
   config.vm.network 'forwarded_port', guest: 1234, host: 11234, auto_correct: true
 
