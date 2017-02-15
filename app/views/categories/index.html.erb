@@ -4,7 +4,7 @@
 
 <%= link_to 'New Category', new_category_path if current_user.admin_user? %>
 
-<ul>
+<ul style='list-style:none'>
   <% @category_roots.sort_by!{ |cat| cat.list_order }.each_index do |i| %>
       <%= show_table(@category_roots[i], i == 0, i + 1 == @category_roots.length).html_safe %>
   <% end %>
