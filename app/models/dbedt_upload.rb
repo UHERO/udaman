@@ -15,6 +15,7 @@ class DbedtUpload < ActiveRecord::Base
     series_file_content = series_file.read if series_file
     self.cats_filename = make_filename('cats')
     self.series_filename = make_filename('series')
+    self.upload_at = Time.now
 ## validate file content
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
@@ -31,8 +32,8 @@ class DbedtUpload < ActiveRecord::Base
     true
   end
 
-  def retrieve_content(name)
-    read_file_from_disk(name)
+  def retrieve_content(type)
+    read_file_from_disk(type)
   end
 
   def delete_cats_file
@@ -75,12 +76,11 @@ private
   end
 
   def delete_files_from_disk
-    delete_cats_file &&
-    delete_series_file
+    delete_cats_file && delete_series_file
   end
 
   def make_filename(type)
-    Time.now.to_formatted_s+' '+type
+    Time.now.to_formatted_s+'_'+type
   end
 
   def rel_fspath(type)

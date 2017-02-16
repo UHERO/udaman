@@ -6,17 +6,21 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads
   def index
+    @new_dbedt_upload = DbedtUpload.new()
     @dbedt_uploads = DbedtUpload.all.order('upload_at desc')
   end
 
   # GET /dbedt_uploads/1
   def show
-    @filecontent = @dbedt_upload.retrieve_content
+    @file_content = @dbedt_upload.retrieve_content(params[:filetype])
+    respond_to do |format|
+      format.any { render nothing: true }
+      ##format.xml  { render :xml => @file_content }
+    end
   end
 
   # GET /dbedt_uploads/new
   def new
-    @dbedt_upload = DbedtUpload.new()
   end
 
   # POST /dbedt_uploads
@@ -31,7 +35,7 @@ class DbedtUploadsController < ApplicationController
     end
 
     if @dbedt_upload.store_upload_files(cats_file, series_file)
-      redirect_to @dbedt_upload, notice: 'DBEDT upload was successfully stored.'
+      redirect_to :action => 'index', notice: 'DBEDT upload was successfully stored.'
     else
       render :new
     end
@@ -44,7 +48,7 @@ class DbedtUploadsController < ApplicationController
   # DELETE /dbedt_uploads/1
   def destroy
     @dbedt_upload.destroy
-    redirect_to edit_dbedt_upload_path(@dbedt_upload), notice: 'DBEDT upload was successfully destroyed.'
+    redirect_to :action => 'index', notice: 'DBEDT upload was successfully destroyed.'
   end
 
   private
@@ -55,6 +59,6 @@ class DbedtUploadsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def dbedt_upload_params
-      params.require(:dbedt_upload).permit(:cats_filename, :series_filename)
+      params.require(:dbedt_upload).permit(:filetype, :cats_filename, :series_filename)
     end
 end

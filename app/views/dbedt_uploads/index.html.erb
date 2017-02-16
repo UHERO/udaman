@@ -1,0 +1,48 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Listing Source Details</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Uploaded at</th>
+      <th>Categories file</th>
+      <th>Series data file</th>
+      <th colspan="100%"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+      <tr style="background-color:lightblue">
+        <td colspan="100%">
+          <%= form_for(@new_dbedt_upload) do |f| %>
+              <% if @new_dbedt_upload.errors.any? %>
+                  <div id="error_explanation">
+                    <h2><%= pluralize(@new_dbedt_upload.errors.count, "error") %> prohibited this DBEDT upload from being saved:</h2>
+
+                    <ul>
+                      <% @new_dbedt_upload.errors.full_messages.each do |message| %>
+                          <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+              <% end %>
+              Categories file <%= f.file_field :cats_filename %><br/>
+              Series data file <%= f.file_field :series_filename %>
+              <div class="actions">
+                <%= f.submit 'Upload files' %>
+              </div>
+          <% end %>
+        </td>
+      </tr>
+    <% @dbedt_uploads.each do |dbedt_upload|
+       timestamp = dbedt_upload.upload_at.to_s %>
+      <tr>
+        <td><%= timestamp %></td>
+        <td><%= link_to 'Cats', :action => 'show', :filename =>  %></td>
+        <td><%= link_to 'Data', 'somethingelse' %></td>
+        <td><%= link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
