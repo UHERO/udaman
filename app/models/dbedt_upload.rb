@@ -16,6 +16,7 @@ class DbedtUpload < ActiveRecord::Base
     self.cats_filename = make_filename('cats')
     self.series_filename = make_filename('series')
     self.upload_at = Time.now
+    self.active = true
 ## validate file content
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
@@ -30,6 +31,11 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
     true
+  end
+
+  def make_active
+    DbedtUpload.find_by(active: true).update! active: false
+    self.update! active: true
   end
 
   def retrieve_content(type)

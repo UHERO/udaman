@@ -2,7 +2,7 @@ class DbedtUploadsController < ApplicationController
   include Authorization
 
   before_action :check_dbedt_upload_authorization
-  before_action :set_dbedt_upload, only: [:show, :edit, :update, :destroy]
+  before_action :set_dbedt_upload, only: [:show, :edit, :update, :make_active, :destroy]
 
   # GET /dbedt_uploads
   def index
@@ -39,6 +39,11 @@ class DbedtUploadsController < ApplicationController
     else
       render :new
     end
+  end
+
+  def make_active
+    @dbedt_upload.make_active
+    redirect_to :action => 'index'
   end
 
   # PATCH/PUT /dbedt_uploads/1
