@@ -2,14 +2,6 @@ class DbedtUpload < ActiveRecord::Base
   require 'date'
   before_destroy :delete_files_from_disk
 
-  def DbedtUpload.path_prefix
-    'dbedt_files'
-  end
-
-  def path(name)
-    File.join(ENV['DATA_PATH'], DbedtUpload.path_prefix, name)
-  end
-
   def store_upload_files(cats_file, series_file)
     cats_file_content = cats_file.read if cats_file
     series_file_content = series_file.read if series_file
@@ -39,11 +31,19 @@ class DbedtUpload < ActiveRecord::Base
     self.update! active: true
   end
 
-  def retrieve_cats_file()
+  def cats_file_abspath
+    path(cats_filename)
+  end
+
+  def series_file_abspath
+    path(series_filename)
+  end
+
+  def retrieve_cats_file
     read_file_from_disk(cats_filename)
   end
 
-  def retrieve_series_file()
+  def retrieve_series_file
     read_file_from_disk(series_filename)
   end
 
@@ -56,6 +56,14 @@ class DbedtUpload < ActiveRecord::Base
   end
 
 private
+  def path_prefix
+    'dbedt_files'
+  end
+
+  def path(name)
+    File.join(ENV['DATA_PATH'], path_prefix, name)
+  end
+
   def write_file_to_disk(name, content)
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }

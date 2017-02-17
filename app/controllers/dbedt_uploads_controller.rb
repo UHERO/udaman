@@ -6,23 +6,23 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads
   def index
-    @new_dbedt_upload = DbedtUpload.new()
+    @new_dbedt_upload = DbedtUpload.new
     @dbedt_uploads = DbedtUpload.all.order('upload_at desc')
   end
 
   # GET /dbedt_uploads/1
   def show
-    puts "DEBUG >>>>>> filetype=|#{params[:filetype]}|id=#{params[:id]}|"
+#    puts "DEBUG >>>>>> filetype=|#{params[:filetype]}|id=#{params[:id]}|"
     if params[:filetype] == 'cats'
-      @file_content = @dbedt_upload.retrieve_cats_file
+      send_file @dbedt_upload.cats_file_abspath
     else
-      @file_content = @dbedt_upload.retrieve_series_file
+      send_file @dbedt_upload.series_file_abspath
     end
 
-    respond_to do |format|
-      format.text { render text: @file_content }
-      ##format.xml  { render :xml => @file_content }
-    end
+#    respond_to do |format|
+#      format.text { render text: @file_content }
+#      ##format.xml  { render :xml => @file_content }
+#    end
   end
 
   # GET /dbedt_uploads/new
