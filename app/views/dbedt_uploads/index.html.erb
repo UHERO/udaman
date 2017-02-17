@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Listing Source Details</h1>
+<h1>DBEDT File Uploads</h1>
 
 <table>
   <thead>
@@ -14,7 +14,6 @@
 
   <tbody>
       <tr style="background-color:lightblue">
-        <td colspan="100%">
           <%= form_for(@new_dbedt_upload) do |f| %>
               <% if @new_dbedt_upload.errors.any? %>
                   <div id="error_explanation">
@@ -27,20 +26,17 @@
                     </ul>
                   </div>
               <% end %>
-              Categories file <%= f.file_field :cats_filename %><br/>
-              Series data file <%= f.file_field :series_filename %>
-              <div class="actions">
-                <%= f.submit 'Upload files' %>
-              </div>
-          <% end %>
-        </td>
+            <td><div class="actions"><%= f.submit 'Upload files' %></div></td>
+        <td><%= f.file_field :cats_filename %></td>
+        <td><%= f.file_field :series_filename %></td>
+        <% end %>
       </tr>
     <% @dbedt_uploads.each do |dbedt_upload|
        timestamp = dbedt_upload.upload_at.to_s %>
       <tr>
         <td><%= timestamp %></td>
-        <td><%= link_to 'Cats', :action => 'show', :filename =>  %></td>
-        <td><%= link_to 'Data', 'somethingelse' %></td>
+        <td><%= link_to 'Categories file', :action => 'show', :filename => 'cats' %></td>
+        <td><%= link_to 'Data series file',  :action => 'show', :filename => 'series' %></td>
         <td><%= link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" } %></td>
       </tr>
     <% end %>
