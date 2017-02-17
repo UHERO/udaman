@@ -13,8 +13,8 @@ class DbedtUpload < ActiveRecord::Base
   def store_upload_files(cats_file, series_file)
     cats_file_content = cats_file.read if cats_file
     series_file_content = series_file.read if series_file
-    self.cats_filename = make_filename('cats')
-    self.series_filename = make_filename('series')
+    self.cats_filename = DbedtUpload.make_filename('cats')
+    self.series_filename = DbedtUpload.make_filename('series')
     self.upload_at = Time.now
     self.make_active
 ## validate file content
@@ -39,9 +39,12 @@ class DbedtUpload < ActiveRecord::Base
     self.update! active: true
   end
 
-  def retrieve_content(type)
-    puts "DEBUG >>>>>> enter retrieve content"
-    read_file_from_disk(type)
+  def retrieve_cats_file()
+    read_file_from_disk(cats_filename)
+  end
+
+  def retrieve_series_file()
+    read_file_from_disk(series_filename)
   end
 
   def delete_cats_file
@@ -87,8 +90,12 @@ private
     delete_cats_file && delete_series_file
   end
 
-  def make_filename(type)
+  def DbedtUpload.make_filename(type)
     Time.now.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type
+  end
+
+  def make_filename(type)
+    upload_at.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type
   end
 
 end
