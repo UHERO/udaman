@@ -2,7 +2,7 @@ class DbedtUploadsController < ApplicationController
   include Authorization
 
   before_action :check_dbedt_upload_authorization
-  before_action :set_dbedt_upload, only: [:show, :edit, :update, :make_active, :destroy]
+  before_action :set_dbedt_upload, only: [:show, :make_active, :destroy]
 
   # GET /dbedt_uploads
   def index
@@ -12,7 +12,9 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads/1
   def show
-    @file_content = @dbedt_upload.retrieve_content(params[:filetype])
+    puts "DEBUG >>>>>> filetype=|#{dbedt_upload_params[:active]}|id=#{dbedt_upload_params[:id]}|"
+    @file_content = @dbedt_upload.retrieve_content(dbedt_upload_params[:active])
+    puts "DEBUG >>>>>> file content length #{@file_content.size}"
     respond_to do |format|
       format.any { render nothing: true }
       ##format.xml  { render :xml => @file_content }
@@ -64,6 +66,7 @@ class DbedtUploadsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def dbedt_upload_params
-      params.require(:dbedt_upload).permit(:filetype, :cats_filename, :series_filename)
+      params.require(:dbedt_upload).permit(:active, :filetype, :cats_filename, :series_filename)
+        ##  params.permit(:active, :filetype, :cats_filename, :series_filename)
     end
 end

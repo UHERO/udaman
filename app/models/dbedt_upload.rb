@@ -6,8 +6,8 @@ class DbedtUpload < ActiveRecord::Base
     'dbedt_files'
   end
 
-  def path(type)
-    File.join(ENV['DATA_PATH'], rel_fspath(type))
+  def path(name)
+    File.join(ENV['DATA_PATH'], DbedtUpload.path_prefix, name)
   end
 
   def store_upload_files(cats_file, series_file)
@@ -16,7 +16,7 @@ class DbedtUpload < ActiveRecord::Base
     self.cats_filename = make_filename('cats')
     self.series_filename = make_filename('series')
     self.upload_at = Time.now
-    self.active = true
+    self.make_active
 ## validate file content
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
@@ -34,11 +34,13 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def make_active
-    DbedtUpload.find_by(active: true).update! active: false
+    active = DbedtUpload.where(active: true).first
+    active.update! active: false if !active.nil?
     self.update! active: true
   end
 
   def retrieve_content(type)
+    puts "DEBUG >>>>>> enter retrieve content"
     read_file_from_disk(type)
   end
 
@@ -86,10 +88,7 @@ private
   end
 
   def make_filename(type)
-    Time.now.to_formatted_s+'_'+type
+    Time.now.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type
   end
 
-  def rel_fspath(type)
-    File.join(DbedtUpload.path_prefix, make_filename(type))
-  end
 end

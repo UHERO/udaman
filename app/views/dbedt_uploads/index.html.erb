@@ -5,10 +5,10 @@
 <table>
   <thead>
     <tr>
-      <th>Uploaded at</th>
+      <th>Active</th>
       <th>Categories file</th>
       <th>Series data file</th>
-      <th>Active</th>
+      <th>Uploaded at</th>
       <th colspan="100%"></th>
     </tr>
   </thead>
@@ -27,20 +27,20 @@
                     </ul>
                   </div>
               <% end %>
-            <td><div class="actions"><%= f.submit 'Upload files' %></div></td>
+        <td></td>
         <td><%= f.file_field :cats_filename %></td>
         <td><%= f.file_field :series_filename %></td>
-        <td></td>
+        <td><div class="actions"><%= f.submit 'Upload files' %></div></td>
         <% end %>
       </tr>
     <% @dbedt_uploads.each do |dbedt_upload|
        timestamp = dbedt_upload.upload_at.localtime.strftime("%Y-%m-%d %H:%M:%S") %>
       <tr>
+        <td align="center"><%= dbedt_upload.active ? 'X' : link_to('Go', :action => 'make_active', :id => dbedt_upload) %></td>
+        <td><%= link_to 'Categories file', {:action => 'show', :id => dbedt_upload, :active => 'cats'} %></td>
+        <td><%= link_to 'Data series file', {:action => 'show', :id => dbedt_upload, :active => 'series'} %></td>
         <td><%= timestamp %></td>
-        <td><%= link_to 'Categories file', :action => 'show', :filetype => 'cats' %></td>
-        <td><%= link_to 'Data series file',  :action => 'show', :filetype => 'series' %></td>
-        <td align="center"><%= dbedt_upload.active ? 'X' : link_to('Make active', :action => 'make_active', :id => dbedt_upload) %></td>
-        <td><%= link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" } %></td>
+        <td><%= link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload of #{timestamp}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>
