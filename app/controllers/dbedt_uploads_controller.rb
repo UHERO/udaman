@@ -12,7 +12,6 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads/1
   def show
-#    puts "DEBUG >>>>>> filetype=|#{params[:filetype]}|id=#{params[:id]}|"
     if params[:filetype] == 'cats'
       send_file @dbedt_upload.cats_file_abspath
     else
@@ -43,7 +42,7 @@ class DbedtUploadsController < ApplicationController
     if @dbedt_upload.store_upload_files(cats_file, series_file)
       redirect_to :action => 'index', notice: 'DBEDT upload was successfully stored.'
     else
-      render :new
+      render :index
     end
   end
 
@@ -58,7 +57,9 @@ class DbedtUploadsController < ApplicationController
 
   # DELETE /dbedt_uploads/1
   def destroy
-    @dbedt_upload.destroy
+    if @dbedt_upload.destroy
+      DbedtUpload.make_latest_active if @dbedt_upload.active
+    end
     redirect_to :action => 'index', notice: 'DBEDT upload was successfully destroyed.'
   end
 

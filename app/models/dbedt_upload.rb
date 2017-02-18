@@ -5,8 +5,12 @@ class DbedtUpload < ActiveRecord::Base
   def store_upload_files(cats_file, series_file)
     cats_file_content = cats_file.read if cats_file
     series_file_content = series_file.read if series_file
-    self.cats_filename = DbedtUpload.make_filename('cats')
-    self.series_filename = DbedtUpload.make_filename('series')
+
+    cats_file_ext = cats_file.original_filename.split('.')[-1]
+    series_file_ext = series_file.original_filename.split('.')[-1]
+    self.cats_filename = DbedtUpload.make_filename('cats', cats_file_ext)
+    self.series_filename = DbedtUpload.make_filename('series', series_file_ext)
+
     self.upload_at = Time.now
     self.make_active
 ## validate file content
@@ -23,6 +27,13 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
     true
+  end
+
+  def DbedtUpload.make_latest_active
+    uploads = DbedtUpload.all.order('upload_at desc')
+    if uploads && uploads.first
+      uploads.first.make_active
+    end
   end
 
   def make_active
@@ -48,11 +59,17 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def delete_cats_file
-    cats_filename ? delete_file_from_disk(cats_filename) : true
+    if cats_filename && File.exists?(cats_file_abspath)
+      return delete_file_from_disk(cats_filename)
+    end
+    true
   end
 
   def delete_series_file
-    series_filename ? delete_file_from_disk(series_filename) : true
+    if series_filename && File.exists?(series_file_abspath)
+      return delete_file_from_disk(series_filename)
+    end
+    true
   end
 
 private
@@ -62,6 +79,12 @@ private
 
   def path(name)
     File.join(ENV['DATA_PATH'], path_prefix, name)
+  end
+
+  def DbedtUpload.make_filename(type, ext)
+    ## a VERY rough heuristic for whether we have a correct file extention
+    ext = ext.length > 4 ? '' : '.'+ext
+    Time.now.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type+ext
   end
 
   def write_file_to_disk(name, content)
@@ -96,14 +119,6 @@ private
 
   def delete_files_from_disk
     delete_cats_file && delete_series_file
-  end
-
-  def DbedtUpload.make_filename(type)
-    Time.now.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type
-  end
-
-  def make_filename(type)
-    upload_at.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type
   end
 
 end
