@@ -66,6 +66,6 @@ class DbedtUploadsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def dbedt_upload_params
-      params.require(:dbedt_upload).permit(:active, :filetype, :cats_filename, :series_filename)
+      params.require(:dbedt_upload).permit(:filetype, :cats_filename, :series_filename)
     end
 end
