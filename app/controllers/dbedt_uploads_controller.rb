@@ -35,7 +35,7 @@ class DbedtUploadsController < ApplicationController
     end
 
     if @dbedt_upload.store_upload_files(cats_file, series_file)
-      redirect_to :action => 'index', notice: 'DBEDT upload was successfully stored.'
+      redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
     else
       render :index
     end
@@ -55,7 +55,7 @@ class DbedtUploadsController < ApplicationController
     if @dbedt_upload.destroy
       DbedtUpload.make_latest_active if @dbedt_upload.active
     end
-    redirect_to :action => 'index', notice: 'DBEDT upload was successfully destroyed.'
+    redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully destroyed.')
   end
 
   private

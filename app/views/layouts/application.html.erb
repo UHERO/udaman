@@ -17,8 +17,8 @@
   <div id="top-level-nav">
   	<%= 
   	render 'devise/menu/login_items' 
-  	%> | 
-    <% if current_user.internal_user? %>
+  	%>
+    <% if current_user.internal_user? %> |
   	<a href="/series">Data Series</a> |
   	<a href="/data_source_downloads">Downloads</a> |
     <a href="/investigate_visual">Investigation Dashboard</a> |

@@ -18,7 +18,7 @@
           <%= form_for(@new_dbedt_upload) do |f| %>
               <% if @new_dbedt_upload.errors.any? %>
                   <div id="error_explanation">
-                    <h2><%= pluralize(@new_dbedt_upload.errors.count, "error") %> prohibited this DBEDT upload from being saved:</h2>
+                    <h2><%= pluralize(@new_dbedt_upload.errors.count, 'error') %> prohibited this DBEDT upload from being saved:</h2>
 
                     <ul>
                       <% @new_dbedt_upload.errors.full_messages.each do |message| %>
@@ -34,7 +34,7 @@
         <% end %>
       </tr>
     <% @dbedt_uploads.each do |dbedt_upload|
-       timestamp = dbedt_upload.upload_at.localtime.strftime("%Y-%m-%d %H:%M:%S") %>
+       timestamp = dbedt_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>
       <tr>
         <td align="center">
           <%= dbedt_upload.active ?
