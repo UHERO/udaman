@@ -17,11 +17,6 @@ class DbedtUploadsController < ApplicationController
     else
       send_file @dbedt_upload.series_file_abspath
     end
-
-#    respond_to do |format|
-#      format.text { render text: @file_content }
-#      ##format.xml  { render :xml => @file_content }
-#    end
   end
 
   # GET /dbedt_uploads/new
