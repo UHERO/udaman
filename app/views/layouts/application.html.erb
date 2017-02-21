@@ -17,8 +17,8 @@
   <div id="top-level-nav">
   	<%= 
   	render 'devise/menu/login_items' 
-  	%> | 
-    <% if current_user.internal_user? %>
+  	%>
+    <% if current_user.internal_user? %> |
   	<a href="/series">Data Series</a> |
   	<a href="/data_source_downloads">Downloads</a> |
     <a href="/investigate_visual">Investigation Dashboard</a> |
@@ -42,6 +42,8 @@
   <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a>
   <% if current_user.dev_user? %>
     <a href="/tsd_files" title="Edit Forecast Snapshot TSD Files">Forecast Snapshot TSD Files</a>
+    | <a href="/dbedt_uploads" title="DBEDT Uploads">DBEDT Uploads</a>
+
   <% end %>
   </div>
     <% end %>
