@@ -1,5 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
+#
 
 # requires the following plugins:
 # vagrant plugin install vagrant-reload
