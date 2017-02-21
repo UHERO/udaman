@@ -1,0 +1,51 @@
+<p id="notice"><%= notice %></p>
+
+<h1>DBEDT File Uploads</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Active</th>
+      <th>Categories file</th>
+      <th>Data series file</th>
+      <th>Uploaded at</th>
+      <th colspan="100%"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+      <tr>
+          <%= form_for(@new_dbedt_upload) do |f| %>
+              <% if @new_dbedt_upload.errors.any? %>
+                  <div id="error_explanation">
+                    <h2><%= pluralize(@new_dbedt_upload.errors.count, 'error') %> prohibited this DBEDT upload from being saved:</h2>
+
+                    <ul>
+                      <% @new_dbedt_upload.errors.full_messages.each do |message| %>
+                          <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+              <% end %>
+        <td></td>
+        <td><%= f.file_field :cats_filename %></td>
+        <td><%= f.file_field :series_filename %></td>
+        <td><div class="actions"><%= f.submit 'Upload files' %></div></td>
+        <% end %>
+      </tr>
+    <% @dbedt_uploads.each do |dbedt_upload|
+       timestamp = dbedt_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>
+      <tr>
+        <td align="center">
+          <%= dbedt_upload.active ?
+              '<i class="fa fa-dot-circle-o" aria-hidden="true"></i>'.html_safe :
+              link_to('<i class="fa fa-circle-o" aria-hidden="true"></i>'.html_safe, :action => 'make_active', :id => dbedt_upload) %>
+        </td>
+        <td><%= link_to 'Categories file', {:action => 'show', :id => dbedt_upload.id, :filetype => 'cats'} %></td>
+        <td><%= link_to 'Data series file', {:action => 'show', :id => dbedt_upload.id, :filetype => 'series'} %></td>
+        <td><%= timestamp %></td>
+        <td><%= link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

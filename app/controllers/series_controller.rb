@@ -35,6 +35,10 @@ class SeriesController < ApplicationController
       redirect_to :controller => :forecast_snapshots, :action => :index
       return
     end
+    if current_user.dbedt?
+      redirect_to :controller => :dbedt_uploads, :action => :index
+      return
+    end
     unless current_user.internal_user?
       render text: 'Your current role only gets to see this page.', layout: true
       return
