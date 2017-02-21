@@ -23,7 +23,7 @@ gem 'sinatra_auth_github', :require => false
 gem 'rubyzip', '~> 1.0'
 gem 'capybara', '~> 2.7'
 gem 'selenium-webdriver'
-gem 'watir-webdriver'
+gem 'watir', '~> 6.0'
 gem 'whenever'
 gem 'mechanize'
 gem 'net-sftp'
