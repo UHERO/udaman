@@ -38,7 +38,7 @@ $(function() {
 				return false;
 			},
 			select: function( event, ui ) {
-				window.location.href = "/exports/" + <%= @export.id %> + "/add_series/"+ui.item.value;
+				window.location.href = "/measurements/" + <%= @measurement.id %> + "/add_series/"+ui.item.value;
 				this.value = ui.item.label;
 				return false;
 			}
@@ -48,11 +48,6 @@ $(function() {
 
 
 <div class="ui-widget">
-  <label for="add_series_field">Add Series to Export</label>
+  <label for="add_series_field">Add Series to Measurement</label>
 <input id="add_series_field" type="text" size="30" name="search">
 </div>
-
-
-
-
-
