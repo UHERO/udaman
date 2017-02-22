@@ -53,7 +53,7 @@
           <tbody>
           <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
               <tr>
-                <td><%= series.name %></td>
+                <td><%= link_to series.name, series, target: 'blank' %></td>
                 <td><%= link_to 'Remove', {controller: :measurements, action: :remove_series, id: @measurement, series_id: series.id}, remote: true, data: {remove: true} %></td>
               </tr>
           <% end %>

@@ -66,7 +66,7 @@ class ExportsController < ApplicationController
     @export = Export.find_by id: params[:id].to_i
     series = Series.find_by id: params[:series_id].to_i
     if @export.series.include?(series)
-      redirect_to edit_export_url(@export.id), notice: 'This Series is already in the list!'
+      redirect_to edit_export_url(@export.id), notice: 'This series is already in the list!'
       return
     end
     list_order = ExportSeries.where(export_id: @export.id).maximum(:list_order)
