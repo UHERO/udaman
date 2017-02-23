@@ -2,7 +2,7 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :destroy]
+  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :destroy]
 
   # GET /measurements
   def index
@@ -52,6 +52,29 @@ class MeasurementsController < ApplicationController
     redirect_to measurements_url, notice: 'Measurement was successfully destroyed.'
   end
 
+  def add_series
+    series = Series.find(params[:series_id])
+    if series.measurement_id == @measurement.id
+      redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
+      return
+    end
+    @measurement.series << series
+    respond_to do |format|
+      format.html { redirect_to edit_measurement_url(@measurement.id) }
+      format.js {}
+    end
+  end
+
+  def remove_series
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    series = Series.find(params[:series_id])
+    if series.measurement_id == @measurement.id
+      series.update! measurement_id: nil
+    end
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_measurement
@@ -62,8 +85,8 @@ class MeasurementsController < ApplicationController
     def measurement_params
       params.require(:measurement).permit(:prefix, :data_portal_name, :units_label,
                                           :units_label_short, :percent, :real, :notes,
-                                          :restricted, :unrestricted, :seasonally_adjusted,
-                                          :frequency_transform,
+                                          :restricted, :unrestricted, :series_id,
+                                          :seasonally_adjusted, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link)
     end
 end
