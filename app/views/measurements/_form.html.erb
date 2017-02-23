@@ -17,7 +17,7 @@
   </div>
   <div class="field">
     <%= f.label :data_portal_name, 'Data Portal Name' %><br>
-    <%= f.text_field :data_portal_name %>
+    <%= f.text_field :data_portal_name, :size => 80 %>
   </div>
   <div class="field">
     <%= f.label :units, 'Units (1, 1000)' %><br>
@@ -37,7 +37,7 @@
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
-    <%= f.text_field :source_link %>
+    <%= f.text_field :source_link, :size => 80 %>
   </div>
   <div class="field">
     <%= f.label :source_detail_id %><br>
