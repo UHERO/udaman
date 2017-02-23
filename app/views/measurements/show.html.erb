@@ -21,13 +21,43 @@
 </p>
 
 <p>
+  <strong>Source Description:</strong>
+  <%= @measurement.source.description.to_s if @measurement.source %>
+</p>
+
+<p>
+  <strong>Source Link:</strong>
+  <%= (@measurement.source_link.nil? || @measurement.source_link.empty?) ? (@measurement.source.link.to_s if @measurement.source) : @measurement.source_link %>
+</p>
+
+<p>
+  <strong>Source Details:</strong>
+  <%= @measurement.source_detail.description.to_s if @measurement.source_detail %>
+</p>
+
+<p>
+  <strong>Seasonally Adjusted:</strong>
+  <%= @measurement.seasonally_adjusted.to_s %>
+</p>
+
+<p>
   <strong>Percent:</strong>
-  <%= @measurement.percent %>
+  <%= @measurement.percent.to_s %>
 </p>
 
 <p>
   <strong>Real:</strong>
-  <%= @measurement.real %>
+  <%= @measurement.real.to_s %>
+</p>
+
+<p>
+  <strong>Frequency Transform:</strong>
+  <%= @measurement.frequency_transform %>
+</p>
+
+<p>
+  <strong>Restricted:</strong>
+  <%= @measurement.restricted.to_s %>
 </p>
 
 <p>

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170216003309) do
+ActiveRecord::Schema.define(version: 20170222040901) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -214,16 +214,25 @@ ActiveRecord::Schema.define(version: 20170216003309) do
   end
 
   create_table "measurements", force: :cascade do |t|
-    t.string   "prefix",            limit: 255,   null: false
-    t.string   "data_portal_name",  limit: 255
-    t.string   "units_label",       limit: 255
-    t.string   "units_label_short", limit: 255
+    t.string   "prefix",              limit: 255,   null: false
+    t.string   "data_portal_name",    limit: 255
+    t.string   "frequency_transform", limit: 255
+    t.string   "units_label",         limit: 255
+    t.string   "units_label_short",   limit: 255
     t.boolean  "percent"
     t.boolean  "real"
-    t.text     "notes",             limit: 65535
-    t.datetime "created_at",                      null: false
-    t.datetime "updated_at",                      null: false
+    t.boolean  "restricted"
+    t.boolean  "seasonally_adjusted"
+    t.integer  "source_detail_id",    limit: 4
+    t.integer  "source_id",           limit: 4
+    t.string   "source_link",         limit: 255
+    t.text     "notes",               limit: 65535
+    t.datetime "created_at",                        null: false
+    t.datetime "updated_at",                        null: false
   end
+
+  add_index "measurements", ["source_detail_id"], name: "fk_rails_f4c727584e", using: :btree
+  add_index "measurements", ["source_id"], name: "fk_rails_e96addabdb", using: :btree
 
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
@@ -344,6 +353,8 @@ ActiveRecord::Schema.define(version: 20170216003309) do
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
 
   add_foreign_key "authorizations", "users"
+  add_foreign_key "measurements", "source_details"
+  add_foreign_key "measurements", "sources"
   add_foreign_key "series", "measurements"
   add_foreign_key "series", "source_details"
   add_foreign_key "series", "sources"

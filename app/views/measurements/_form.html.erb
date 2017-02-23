@@ -16,8 +16,8 @@
     <%= f.text_field :prefix %>
   </div>
   <div class="field">
-    <%= f.label :data_portal_name %><br>
-    <%= f.text_field :data_portal_name %>
+    <%= f.label :data_portal_name, 'Data Portal Name' %><br>
+    <%= f.text_field :data_portal_name, :size => 80 %>
   </div>
   <div class="field">
     <%= f.label :units_label %><br>
@@ -28,12 +28,36 @@
     <%= f.text_field :units_label_short %>
   </div>
   <div class="field">
+    <%= f.label :source_id %><br>
+    <%= f.collection_select :source_id, Source.all, :id, :description, {:include_blank => true} %>
+  </div>
+  <div class="field">
+    <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
+    <%= f.text_field :source_link, :size => 80 %>
+  </div>
+  <div class="field">
+    <%= f.label :source_detail_id %><br>
+    <%= f.collection_select :source_detail_id, SourceDetail.all, :id, :description, {:include_blank => true} %>
+  </div>
+  <div class="field">
+    <%= f.label :seasonally_adjusted, 'Seasonally Adjusted' %><br/>
+    <%= f.check_box :seasonally_adjusted %>
+  </div>
+  <div class="field">
     <%= f.label :percent %><br>
     <%= f.check_box :percent %>
   </div>
   <div class="field">
     <%= f.label :real %><br>
     <%= f.check_box :real %>
+  </div>
+  <div class="field">
+    <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %><br/>
+    <%= f.text_field :frequency_transform %>
+  </div>
+  <div class="field">
+    <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
+    <%= f.check_box :restricted %>
   </div>
   <div class="field">
     <%= f.label :notes %><br>

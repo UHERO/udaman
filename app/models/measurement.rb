@@ -3,6 +3,9 @@ class Measurement < ActiveRecord::Base
   has_many :data_list_measurements
   has_many :data_lists, through: :data_list_measurements
 
+  belongs_to :source, inverse_of: :measurements
+  belongs_to :source_detail, inverse_of: :measurements
+
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"
   end
