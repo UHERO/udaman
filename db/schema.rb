@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170213202021) do
+ActiveRecord::Schema.define(version: 20170216003309) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -20,15 +20,6 @@ ActiveRecord::Schema.define(version: 20170213202021) do
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
     t.string   "github_nickname", limit: 255
-  end
-
-  create_table "api_users", force: :cascade do |t|
-    t.string   "key",        limit: 255
-    t.string   "email",      limit: 255
-    t.string   "name",       limit: 255
-    t.datetime "created_at",             null: false
-    t.datetime "updated_at",             null: false
-    t.string   "hostname",   limit: 255
   end
 
   create_table "aremos_series", force: :cascade do |t|
@@ -134,12 +125,6 @@ ActiveRecord::Schema.define(version: 20170213202021) do
     t.date     "date",                                       null: false
   end
 
-  create_table "data_portal_names", id: false, force: :cascade do |t|
-    t.string "prefix",           limit: 255
-    t.string "units",            limit: 255
-    t.string "data_portal_name", limit: 255
-  end
-
   create_table "data_source_downloads", force: :cascade do |t|
     t.string   "url",             limit: 255
     t.text     "post_parameters", limit: 65535
@@ -165,6 +150,13 @@ ActiveRecord::Schema.define(version: 20170213202021) do
   end
 
   add_index "data_sources", ["series_id"], name: "index_data_sources_on_series_id", using: :btree
+
+  create_table "dbedt_uploads", force: :cascade do |t|
+    t.datetime "upload_at"
+    t.boolean  "active"
+    t.string   "cats_filename",   limit: 255
+    t.string   "series_filename", limit: 255
+  end
 
   create_table "dsd_log_entries", force: :cascade do |t|
     t.integer  "data_source_download_id", limit: 4

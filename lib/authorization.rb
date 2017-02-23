@@ -24,6 +24,13 @@ module Authorization
     check_authorization
   end
 
+  def check_dbedt_upload_authorization
+    if current_user.dbedt?
+      return
+    end
+    check_authorization
+  end
+
   def check_authorization
     unless current_user.internal_user?
       redirect_to :back, flash: { error: 'Not authorized to view' }

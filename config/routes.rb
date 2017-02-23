@@ -11,6 +11,7 @@ UheroDb::Application.routes.draw do
   resources :transformations
   resources :categories
   resources :geographies
+  resources :dbedt_uploads
 
   get 'data_points/:series_id/:date_string' => 'data_points#show'
   get 'exports/:id/add_series/:series_id' => 'exports#add_series'
