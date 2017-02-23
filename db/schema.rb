@@ -217,7 +217,6 @@ ActiveRecord::Schema.define(version: 20170222040901) do
     t.string   "prefix",              limit: 255,   null: false
     t.string   "data_portal_name",    limit: 255
     t.string   "frequency_transform", limit: 255
-    t.integer  "units",               limit: 4
     t.string   "units_label",         limit: 255
     t.string   "units_label_short",   limit: 255
     t.boolean  "percent"
