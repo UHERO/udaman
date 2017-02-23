@@ -15,6 +15,7 @@ UheroDb::Application.routes.draw do
 
   get 'data_points/:series_id/:date_string' => 'data_points#show'
   get 'exports/:id/add_series/:series_id' => 'exports#add_series'
+  get 'measurements/:id/add_series/:series_id' => 'measurements#add_series'
 
   root :to => 'series#index'
 

@@ -42,4 +42,24 @@
   <div class="actions">
     <%= f.submit %>
   </div>
+
+
+    <% if request.path =~ /edit/ %>
+        <h2>List of Series</h2>
+        <table>
+          <thead>
+          <tr><th>Series</th><th></th><th></th></tr>
+          </thead>
+          <tbody>
+          <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
+              <tr>
+                <td><%= link_to series.name, series, target: '_blank' %></td>
+                <td><%= link_to 'Remove', {controller: :measurements, action: :remove_series, id: @measurement, series_id: series.id}, remote: true, data: {remove: true} %></td>
+              </tr>
+          <% end %>
+          </tbody>
+        </table>
+        <br />
+        <%= render 'add_series' %>
+    <% end %>
 <% end %>
