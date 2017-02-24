@@ -86,8 +86,8 @@ class MeasurementsController < ApplicationController
   end
 
   def propagate_save
-    fields = params[:the_fields]
-    series = params[:the_series]
+    fields = params[:propagate_fields]
+    series = params[:propagate_series]
     new_vals_hash = fields.select{|f| ALL_PROPAGATE_FIELDS.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
     series.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
 

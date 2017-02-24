@@ -9,10 +9,10 @@
 <tbody>
   <tr>
     <td>
-      <%= select_tag(:the_fields, options_for_select(@all_fields), multiple: true, size: @all_fields.length) %>
+      <%= select_tag(:propagate_fields, options_for_select(@all_fields), multiple: true, size: @all_fields.length) %>
     </td>
     <td>
-      <%= select_tag(:the_series, options_for_select(@measurement.series.map{|s| s.name }), multiple: true, size: @measurement.series.length) %>
+      <%= select_tag(:propagate_series, options_for_select(@measurement.series.map{|s| s.name }), multiple: true, size: @measurement.series.length) %>
     </td>
   </tr>
 <tr><td><%= hidden_field_tag('id', @measurement.id) + submit_tag('Propagate') %></td></tr>
