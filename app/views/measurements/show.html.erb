@@ -65,5 +65,6 @@
   <%= @measurement.notes %>
 </p>
 
+<%= link_to 'Propagate fields to series', { action: :propagate, id: @measurement } %> |
 <%= link_to 'Edit', edit_measurement_path(@measurement) %> |
 <%= link_to 'Back', measurements_path %>

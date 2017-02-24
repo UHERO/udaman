@@ -2,7 +2,13 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :destroy]
+  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
+                                         :propagate, :propagate_save, :destroy]
+
+  ALL_PROPAGATE_FIELDS = %w{data_portal_name units_label units_label_short
+                            source_id source_detail_id source_link
+                            seasonally_adjusted percent real restricted
+                            frequency_transform notes}
 
   # GET /measurements
   def index
@@ -75,7 +81,30 @@ class MeasurementsController < ApplicationController
     end
   end
 
+  def propagate
+    @all_fields = ALL_PROPAGATE_FIELDS
+  end
+
+  def propagate_save
+    fields = params[:the_fields]
+    series = params[:the_series]
+    new_vals_hash = fields.select{|f| ALL_PROPAGATE_FIELDS.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
+    series.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
+
+    respond_to do |format|
+      format.html { redirect_to(@measurement, notice: 'Fields propagated successfully.') }
+    end
+  end
+
   private
+    def translate(name)
+      trans_hash = {'data_portal_name' => 'dataPortalName',
+                    'units_label' => 'unitsLabel',
+                    'units_label_short' => 'unitsLabelShort',
+                    'notes' => 'investigation_notes'}
+      trans_hash[name] || name
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_measurement
       @measurement = Measurement.find(params[:id])
