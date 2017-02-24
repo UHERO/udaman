@@ -5,10 +5,20 @@ class MeasurementsController < ApplicationController
   before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
                                          :propagate, :propagate_save, :destroy]
 
-  ALL_PROPAGATE_FIELDS = %w{data_portal_name units_label units_label_short
-                            source_id source_detail_id source_link
-                            seasonally_adjusted percent real restricted
-                            frequency_transform notes}
+  ALL_PROPAGATE_FIELDS = [
+      ['Data portal name','data_portal_name'],
+      ['Units label','units_label'],
+      ['Units label, short','units_label_short'],
+      ['Source','source_id'],
+      ['Source detail','source_detail_id'],
+      ['Source link','source_link'],
+      ['Seasonally adjusted','seasonally_adjusted'],
+      ['Percent','percent'],
+      ['Real','real'],
+      ['Restricted','restricted'],
+      ['Frequency transform','frequency_transform'],
+      ['Notes','notes']
+  ]
 
   # GET /measurements
   def index
@@ -88,7 +98,8 @@ class MeasurementsController < ApplicationController
   def propagate_save
     fields = params[:propagate_fields]
     series = params[:propagate_series]
-    new_vals_hash = fields.select{|f| ALL_PROPAGATE_FIELDS.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
+    allowed_fields = ALL_PROPAGATE_FIELDS.map{|f| f[1] }
+    new_vals_hash = fields.select{|f| allowed_fields.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
     series.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
 
     respond_to do |format|
@@ -98,6 +109,7 @@ class MeasurementsController < ApplicationController
 
   private
     def translate(name)
+      # Translate column names from Measurement table form to Series table form
       trans_hash = {'data_portal_name' => 'dataPortalName',
                     'units_label' => 'unitsLabel',
                     'units_label_short' => 'unitsLabelShort',
