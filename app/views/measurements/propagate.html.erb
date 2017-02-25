@@ -1,6 +1,7 @@
 <h1>Propagate measurement fields</h1>
 
 <%= form_tag('/measurements/propagate_save', method: :post) do %>
+    <p>Swipe, Ctrl+Click, and Shift+Click to multiple select/unselect</p>
 <table>
   <tr>
     <th>Propagate these fields</th>
@@ -8,14 +9,16 @@
   </tr>
 <tbody>
   <tr>
-    <td>
+    <td style="border-bottom:none;">
       <%= select_tag(:propagate_fields, options_for_select(@all_fields), multiple: true, size: @all_fields.length) %>
     </td>
-    <td>
+    <td style="border-bottom:none;">
       <%= select_tag(:propagate_series, options_for_select(@measurement.series.map{|s| s.name }), multiple: true, size: @measurement.series.length) %>
     </td>
   </tr>
-<tr><td><%= hidden_field_tag('id', @measurement.id) + submit_tag('Propagate') %></td></tr>
+<tr><td style="border-bottom:none">
+  <%= hidden_field_tag('id', @measurement.id) + submit_tag('Propagate') %>
+</td></tr>
   </tbody>
 </table>
 <% end %>
