@@ -92,19 +92,16 @@ class MeasurementsController < ApplicationController
   end
 
   def propagate
-    @all_fields = ALL_PROPAGATE_FIELDS
-  end
-
-  def propagate_save
-    fields = params[:propagate_fields]
-    series = params[:propagate_series]
+    fields = params[:field_boxes]
+    series = params[:series_boxes]
     unless fields && series
       redirect_to({action: :propagate, id: @measurement, notice: 'Please select at least one field and at least one series'})
       return
     end
+
     allowed_fields = ALL_PROPAGATE_FIELDS.map{|f| f[1].to_s }
-    new_vals_hash = fields.select{|f| allowed_fields.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
-    series.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
+    new_vals_hash = fields.keys.select{|f| allowed_fields.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
+    series.keys.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
     redirect_to(@measurement, notice: 'Fields propagated successfully.')
   end
 
@@ -129,6 +126,7 @@ class MeasurementsController < ApplicationController
                                           :units_label_short, :percent, :real, :notes,
                                           :restricted, :unrestricted, :series_id,
                                           :seasonally_adjusted, :frequency_transform,
-                                          :source_detail_id, :source_id, :source_link)
+                                          :source_detail_id, :source_id, :source_link,
+                                          :field_boxes, :series_boxes)
     end
 end
