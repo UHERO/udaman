@@ -2,7 +2,11 @@
 
 <%= form_tag('/measurements/propagate', method: :post) do %>
 
-<p id="show_prefix">
+<p class="propagate_controls">
+  <a id="all_fields_check" href="javascript:void(0)" onClick="toggleAllFields();">Select all fields</a>
+</p>
+
+<p>
   <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[prefix]', 1) %></span>
   <strong>Prefix:</strong>
@@ -10,7 +14,7 @@
   </label>
 </p>
 
-<p id="show_data_portal_name">
+<p>
   <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1) %></span>
   <strong>Data Portal Name:</strong>
@@ -18,7 +22,7 @@
   </label>
 </p>
 
-<p id="show_units_label">
+<p>
   <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1) %></span>
   <strong>Units label:</strong>
@@ -107,6 +111,9 @@
 </p>
 
 <p>
+  <span class="propagate_controls">
+    <a id="all_series_check" href="javascript:void(0)" onClick="toggleAllSeries();">Select all series</a>
+  </span>
     <table>
       <thead>
       <tr>
