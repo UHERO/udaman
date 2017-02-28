@@ -3,7 +3,7 @@ class MeasurementsController < ApplicationController
 
   before_action :check_authorization
   before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
-                                         :propagate, :propagate_save, :destroy]
+                                         :propagate, :destroy]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
@@ -16,8 +16,7 @@ class MeasurementsController < ApplicationController
       ['Percent', :percent],
       ['Real', :real],
       ['Restricted', :restricted],
-      ['Frequency transform', :frequency_transform],
-      ['Notes', :notes]
+      ['Frequency transform', :frequency_transform]
   ]
 
   # GET /measurements
@@ -110,8 +109,7 @@ class MeasurementsController < ApplicationController
       # Translate column names from Measurement table form to Series table form
       trans_hash = {'data_portal_name' => 'dataPortalName',
                     'units_label' => 'unitsLabel',
-                    'units_label_short' => 'unitsLabelShort',
-                    'notes' => 'investigation_notes'}
+                    'units_label_short' => 'unitsLabelShort'}
       trans_hash[name] || name
     end
 

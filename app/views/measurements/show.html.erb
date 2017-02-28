@@ -103,11 +103,8 @@
 </p>
 
 <p>
-  <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[notes]', 1) %></span>
   <strong>Notes:</strong>
   <%= @measurement.notes %>
-  </label>
 </p>
 
 <p>
@@ -130,7 +127,6 @@
         <th>Real</th>
         <th>Restricted</th>
         <th>Freq Transform</th>
-        <th>Notes</th>
       </tr>
       </thead>
       <tbody>
@@ -149,7 +145,6 @@
             <td><%= series.real.to_s %></td>
             <td><%= series.restricted.to_s %></td>
             <td><%= series.frequency_transform.to_s %></td>
-            <td><%= series.investigation_notes.to_s %></td>
           </tr>
       <% end %>
       </tbody>
