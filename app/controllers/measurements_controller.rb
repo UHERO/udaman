@@ -94,15 +94,15 @@ class MeasurementsController < ApplicationController
   def propagate
     fields = params[:field_boxes]
     series = params[:series_boxes]
-    unless fields && series
-      redirect_to({action: :propagate, id: @measurement, notice: 'Please select at least one field and at least one series'})
+    allowed_fields = ALL_PROPAGATE_FIELDS.map{|f| f[1].to_s }
+    fields_to_update = fields.keys.select{|f| allowed_fields.include?(f) }
+    unless fields_to_update && series
+      redirect_to({action: :show, id: @measurement}, notice: 'Please select at least one field and at least one series')
       return
     end
-
-    allowed_fields = ALL_PROPAGATE_FIELDS.map{|f| f[1].to_s }
-    new_vals_hash = fields.keys.select{|f| allowed_fields.include?(f) }.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
+    new_vals_hash = fields_to_update.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
     series.keys.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
-    redirect_to(@measurement, notice: 'Fields propagated successfully.')
+    redirect_to(@measurement, notice: "Fields #{fields_to_update.join(', ')} propagated successfully.")
   end
 
   private

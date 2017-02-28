@@ -3,81 +3,107 @@
 <%= form_tag('/measurements/propagate', method: :post) do %>
 
 <p id="show_prefix">
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[prefix]', 1) %></span>
   <strong>Prefix:</strong>
   <%= @measurement.prefix %>
+  </label>
 </p>
 
 <p id="show_dataportalname">
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1) %></span>
-  <strong>Data portal name:</strong>
-  <%= @measurement.data_portal_name %>
+  <strong>Data Portal Name:</strong>
+   <%= @measurement.data_portal_name %>
+  </label>
 </p>
 
 <p id="show_unitslabel">
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1) %></span>
   <strong>Units label:</strong>
   <%= @measurement.units_label %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label_short]', 1) %></span>
   <strong>Units label, short:</strong>
   <%= @measurement.units_label_short %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[source_id]', 1) %></span>
   <strong>Source Description:</strong>
   <%= @measurement.source.description.to_s if @measurement.source %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[source_link]', 1) %></span>
   <strong>Source Link:</strong>
   <%= (@measurement.source_link.nil? || @measurement.source_link.empty?) ? (@measurement.source.link.to_s if @measurement.source) : @measurement.source_link %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[source_detail_id]', 1) %></span>
   <strong>Source Details:</strong>
   <%= @measurement.source_detail.description.to_s if @measurement.source_detail %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonally_adjusted]', 1) %></span>
   <strong>Seasonally Adjusted:</strong>
   <%= @measurement.seasonally_adjusted.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[percent]', 1) %></span>
   <strong>Percent:</strong>
   <%= @measurement.percent.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[real]', 1) %></span>
   <strong>Real:</strong>
   <%= @measurement.real.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[frequency_transform]', 1) %></span>
   <strong>Frequency Transform:</strong>
   <%= @measurement.frequency_transform %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[restricted]', 1) %></span>
   <strong>Restricted:</strong>
   <%= @measurement.restricted.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[notes]', 1) %></span>
   <strong>Notes:</strong>
   <%= @measurement.notes %>
+  </label>
 </p>
 
 <p>
@@ -91,8 +117,10 @@
       <tbody>
       <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
           <tr>
-            <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
-            <td><%= series.name %></td>
+            <label>
+              <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
+              <td><%= series.name %></td>
+            </label>
           </tr>
       <% end %>
       </tbody>
