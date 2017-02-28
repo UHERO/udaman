@@ -10,15 +10,15 @@
   </label>
 </p>
 
-<p id="show_dataportalname">
+<p id="show_data_portal_name">
   <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1) %></span>
   <strong>Data Portal Name:</strong>
-   <%= @measurement.data_portal_name %>
+   <%= @measurement.data_portal_name.to_s %>
   </label>
 </p>
 
-<p id="show_unitslabel">
+<p id="show_units_label">
   <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1) %></span>
   <strong>Units label:</strong>
@@ -112,15 +112,37 @@
       <tr>
         <th class="propagate_controls"></th>
         <th>Series</th>
+        <th>Data Portal Name</th>
+        <th>Units Label</th>
+        <th>Units Label, Short</th>
+        <th>Source</th>
+        <th>Source Details</th>
+        <th>Source Link</th>
+        <th>SA</th>
+        <th>Percent</th>
+        <th>Real</th>
+        <th>Restricted</th>
+        <th>Freq Transform</th>
+        <th>Notes</th>
       </tr>
       </thead>
       <tbody>
       <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
           <tr>
-            <label>
-              <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
-              <td><%= series.name %></td>
-            </label>
+            <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
+            <td><%= label_tag("series_boxes[#{series.name}]", series.name) %></td>
+            <td><%= series.dataPortalName.to_s %></td>
+            <td><%= series.unitsLabel.to_s %></td>
+            <td><%= series.unitsLabelShort.to_s %></td>
+            <td><%= series.source.description.to_s if series.source %></td>
+            <td><%= series.source_detail.description.to_s if series.source_detail %></td>
+            <td><%= (series.source_link.nil? || series.source_link.empty?) ? (series.source.link.to_s if series.source) : series.source_link %></td>
+            <td><%= series.seasonally_adjusted.to_s %></td>
+            <td><%= series.percent.to_s %></td>
+            <td><%= series.real.to_s %></td>
+            <td><%= series.restricted.to_s %></td>
+            <td><%= series.frequency_transform.to_s %></td>
+            <td><%= series.investigation_notes.to_s %></td>
           </tr>
       <% end %>
       </tbody>
