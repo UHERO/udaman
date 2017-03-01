@@ -1,63 +1,102 @@
 <p id="notice"><%= notice %></p>
 
+<%= form_tag('/measurements/propagate', method: :post) do %>
+
+<p class="propagate_controls">
+  <a id="all_fields_check" href="javascript:void(0)" onClick="toggleAllFields();">Select all fields</a>
+</p>
+
 <p>
   <strong>Prefix:</strong>
   <%= @measurement.prefix %>
 </p>
 
 <p>
-  <strong>Data portal name:</strong>
-  <%= @measurement.data_portal_name %>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1) %></span>
+  <strong>Data Portal Name:</strong>
+   <%= @measurement.data_portal_name.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1) %></span>
   <strong>Units label:</strong>
   <%= @measurement.units_label %>
+  </label>
 </p>
 
 <p>
-  <strong>Units label short:</strong>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label_short]', 1) %></span>
+  <strong>Units label, short:</strong>
   <%= @measurement.units_label_short %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_id]', 1) %></span>
   <strong>Source Description:</strong>
   <%= @measurement.source.description.to_s if @measurement.source %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_link]', 1) %></span>
   <strong>Source Link:</strong>
   <%= (@measurement.source_link.nil? || @measurement.source_link.empty?) ? (@measurement.source.link.to_s if @measurement.source) : @measurement.source_link %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_detail_id]', 1) %></span>
   <strong>Source Details:</strong>
   <%= @measurement.source_detail.description.to_s if @measurement.source_detail %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonally_adjusted]', 1) %></span>
   <strong>Seasonally Adjusted:</strong>
   <%= @measurement.seasonally_adjusted.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[percent]', 1) %></span>
   <strong>Percent:</strong>
   <%= @measurement.percent.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[real]', 1) %></span>
   <strong>Real:</strong>
   <%= @measurement.real.to_s %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[frequency_transform]', 1) %></span>
   <strong>Frequency Transform:</strong>
   <%= @measurement.frequency_transform %>
+  </label>
 </p>
 
 <p>
+  <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[restricted]', 1) %></span>
   <strong>Restricted:</strong>
   <%= @measurement.restricted.to_s %>
+  </label>
 </p>
 
 <p>
@@ -65,5 +104,51 @@
   <%= @measurement.notes %>
 </p>
 
+<p>
+  <span class="propagate_controls">
+    <a id="all_series_check" href="javascript:void(0)" onClick="toggleAllSeries();">Select all series</a>
+  </span>
+    <table>
+      <thead>
+      <tr>
+        <th class="propagate_controls"></th>
+        <th>Series</th>
+        <th>Data Portal Name</th>
+        <th>Units Label</th>
+        <th>Units Label, Short</th>
+        <th>Source</th>
+        <th>Source Details</th>
+        <th>Source Link</th>
+        <th>SA</th>
+        <th>Percent</th>
+        <th>Real</th>
+        <th>Restricted</th>
+        <th>Freq Transform</th>
+      </tr>
+      </thead>
+      <tbody>
+      <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
+          <tr>
+            <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
+            <td><%= label_tag("series_boxes[#{series.name}]", series.name) %></td>
+            <td><%= series.dataPortalName.to_s %></td>
+            <td><%= series.unitsLabel.to_s %></td>
+            <td><%= series.unitsLabelShort.to_s %></td>
+            <td><%= series.source.description.to_s if series.source %></td>
+            <td><%= series.source_detail.description.to_s if series.source_detail %></td>
+            <td><%= (series.source_link.nil? || series.source_link.empty?) ? (series.source.link.to_s if series.source) : series.source_link %></td>
+            <td><%= series.seasonally_adjusted.to_s %></td>
+            <td><%= series.percent.to_s %></td>
+            <td><%= series.real.to_s %></td>
+            <td><%= series.restricted.to_s %></td>
+            <td><%= series.frequency_transform.to_s %></td>
+          </tr>
+      <% end %>
+      </tbody>
+    </table>
+</p>
+<span class="propagate_controls" style=""><%= hidden_field_tag('id', @measurement.id) + submit_tag('Propagate selected fields to selected series') %></span>
+<% end %>
+<p></p>
 <%= link_to 'Edit', edit_measurement_path(@measurement) %> |
 <%= link_to 'Back', measurements_path %>
