@@ -39,10 +39,7 @@
   <span class="propagate_controls"><%= check_box_tag('field_boxes[source_id]', 1, false,
                                                      disabled: @measurement.source.nil? || @measurement.source.description.blank?) %></span>
   <strong>Source:</strong>
-  <%= if @measurement.source
-        @measurement.source.description.to_s+' ('+@measurement.source.link.to_s+')'
-      end
-  %>
+  <%= @measurement.source.description.to_s+' ('+@measurement.source.link.to_s+')' if @measurement.source %>
   </label>
 </p>
 
@@ -127,7 +124,7 @@
         <th>Units label</th>
         <th>Units label, short</th>
         <th>Source</th>
-        <th>Source link</th>
+        <th>Detailed source link</th>
         <th>Source detail</th>
         <th>SA</th>
         <th>Percent</th>
