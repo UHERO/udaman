@@ -99,7 +99,7 @@ class MeasurementsController < ApplicationController
     end
     allowed_fields = ALL_PROPAGATE_FIELDS.map{|f| f[1].to_s }
     fields_to_update = fields.keys.select{|f| allowed_fields.include?(f) }
-    unless fields_to_update
+    if fields_to_update.empty?
       redirect_to({action: :show, id: @measurement}, notice: 'No fields to update were found.')
       return
     end
