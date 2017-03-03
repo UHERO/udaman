@@ -16,7 +16,7 @@
     <%= f.text_field :prefix %>
   </div>
   <div class="field">
-    <%= f.label :data_portal_name, 'Data Portal Name' %><br>
+    <%= f.label :data_portal_name, 'Data portal name' %><br>
     <%= f.text_field :data_portal_name, :size => 80 %>
   </div>
   <div class="field">
@@ -24,7 +24,7 @@
     <%= f.text_field :units_label %>
   </div>
   <div class="field">
-    <%= f.label :units_label_short %><br>
+    <%= f.label :units_label_short, 'Units label, short' %><br>
     <%= f.text_field :units_label_short %>
   </div>
   <div class="field">
@@ -40,7 +40,7 @@
     <%= f.collection_select :source_detail_id, SourceDetail.all, :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
-    <%= f.label :seasonally_adjusted, 'Seasonally Adjusted' %><br/>
+    <%= f.label :seasonally_adjusted, 'Seasonally adjusted' %><br/>
     <%= f.check_box :seasonally_adjusted %>
   </div>
   <div class="field">
@@ -52,7 +52,7 @@
     <%= f.check_box :real %>
   </div>
   <div class="field">
-    <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %><br/>
+    <%= f.label :frequency_transform, 'Frequency transformation method (average, sum, or last)' %><br/>
     <%= f.text_field :frequency_transform %>
   </div>
   <div class="field">
@@ -70,6 +70,7 @@
 
     <% if request.path =~ /edit/ %>
         <h2>List of Series</h2>
+        <p><%= render 'add_series' %></p>
         <table>
           <thead>
           <tr><th>Series</th><th></th><th></th></tr>
@@ -83,7 +84,6 @@
           <% end %>
           </tbody>
         </table>
-        <br />
-        <%= render 'add_series' %>
+        <p></p>
     <% end %>
 <% end %>

@@ -7,7 +7,8 @@ function toggleAllFields() {
     var elements = document.querySelectorAll('[id^=field_boxes_]');
     if (me.innerHTML == 'Select all fields') {
         for (i=0; i < elements.length; i++) {
-            elements[i].checked = true;
+            // True for all except disabled boxes
+            elements[i].checked = !elements[i].disabled;
         }
         me.innerHTML = 'Unselect all fields';
     }
