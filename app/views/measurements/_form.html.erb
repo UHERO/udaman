@@ -70,6 +70,7 @@
 
     <% if request.path =~ /edit/ %>
         <h2>List of Series</h2>
+        <p><%= render 'add_series' %></p>
         <table>
           <thead>
           <tr><th>Series</th><th></th><th></th></tr>
@@ -83,7 +84,6 @@
           <% end %>
           </tbody>
         </table>
-        <br />
-        <%= render 'add_series' %>
+        <p></p>
     <% end %>
 <% end %>
