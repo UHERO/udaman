@@ -72,7 +72,7 @@ module SeriesExternalRelationship
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
           diff = a_diff(value, self.units_at(date))
           self.aremos_diff +=  diff
-          if diff != 0 && (Date.today - 1.year > date) && !quarantined && !restricted
+          if diff != 0 && (Date.today - 2.year > date) && !quarantined && !restricted
             self.update! quarantined: true
           end
           puts "#{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
