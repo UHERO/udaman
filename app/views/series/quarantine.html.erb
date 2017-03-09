@@ -2,12 +2,14 @@
 
 <h1>Listing Quarantined Series</h1>
 
+<p><%= link_to('Empty quarantine', controller: 'series', action: 'empty_quarantine', id: 0) %></p>
+
 <table>
   <thead>
   <tr>
     <th>Series</th>
     <th>Description</th>
-    <th colspan="2"></th>
+    <th colspan="3"></th>
     <th>Data Source Definitions</th>
   </tr>
   </thead>
@@ -19,6 +21,7 @@
         <td><%= series.dataPortalName || series.measurement.data_portal_name %></td>
         <td><%= link_to 'Show', series %></td>
         <td><%= link_to 'Edit', edit_series_path(series) %></td>
+        <td><%= link_to('Remove from quarantine', action: 'remove_from_quarantine', id: series.id, next_action: 'quarantine') %></td>
         <td><%= series.data_sources.map { |ds| ds['eval'] }.join('<br />').html_safe %></td>
       </tr>
   <% end %>
