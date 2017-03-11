@@ -83,7 +83,7 @@ class DataPoint < ActiveRecord::Base
       return true
     end
     series = self.series
-    if diff != 0 && (Date.today - 2.years > self.date) && !series.quarantined && !series.restricted
+    if (Date.today - 2.years > self.date) && !series.quarantined && !series.restricted
       series.update! quarantined: true
     end
     false
