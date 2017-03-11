@@ -79,7 +79,14 @@ class DataPoint < ActiveRecord::Base
   def same_value_as?(value)
     #used to round to 3 digits but not doing that anymore. May need to revert
     #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
-    self.value.round(10) == value.round(10)
+    if self.value.round(10) == value.round(10)
+      return true
+    end
+    series = self.series
+    if diff != 0 && (Date.today - 2.years > self.date) && !series.quarantined && !series.restricted
+      series.update! quarantined: true
+    end
+    false
     #self.value == value
   end
   
