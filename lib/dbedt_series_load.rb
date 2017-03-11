@@ -15,7 +15,7 @@ module DbedtSeriesLoad
             :description => row[1],
             :dataPortalName => row[1],
             :unitsLabel => row[8],
-            :source => Source.find_by(type: 'DBEDT', description: row[9]),
+            :source => Source.get_or_new_dbedt(row[9]),
         )
         this_series.save  ## Check
       end
