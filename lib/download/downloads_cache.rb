@@ -15,8 +15,6 @@ class DownloadsCache
   end
 
   def xls(handle, sheet, path = nil, date = nil)
-    #puts "DEBUG: xls "+self.__id__.to_s+"//"+self.object_id.to_s+" ## "+(handle || "nil")+" :: "+(sheet || "nil")+" :: "+(path || "nil")
-
     if path.nil?
       @got_handle ||= {}
       @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
@@ -33,16 +31,12 @@ class DownloadsCache
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
     if (@xls[@cache_handle].nil? and handle != 'manual')
       download_handle
-    else
-      Rails.logger.debug 'DEBUG: >>>>>>> NOT downloaded'
     end
     @xls[@cache_handle] ||= {}
 
     if @xls[@cache_handle][sheet].nil?
       #if sheet not present, only other sheets were used so far
       set_xls_sheet date
-    else
-      Rails.logger.debug 'DEBUG: NOT call set_xls_sheet'
     end
     @xls[@cache_handle][sheet]
   end
