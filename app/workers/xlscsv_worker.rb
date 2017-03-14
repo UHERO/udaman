@@ -3,8 +3,9 @@ class XlsCsvWorker
   include Sidekiq::Worker
   sidekiq_options queue: 'critical'
 
-  def perform(filename)
-    if system "xlsx2csv -s 1 -d tab #{filename} #{filename.split('.')[0]+'.csv'}"
+  def perform(file_path)
+    path_up_to_last_dot = file_path.split('.')[0..-2].join('')
+    if system "xlsx2csv -s 1 -d tab #{file_path} #{path_up_to_last_dot+'.csv'}"
       ## success
     else
       ## fail
