@@ -1,7 +1,7 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
   before_destroy :delete_files_from_disk
-  enum status: { processing: 'processing', ok: 'ok', fail: 'fail'}
+  enum status: { dbu_proc: 'dbu_proc', dbu_ok: 'dbu_ok', dbu_fail: 'dbu_fail'}
 
   def store_upload_files(cats_file, series_file)
     now = Time.now.localtime
@@ -17,18 +17,18 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     self.upload_at = Time.now
-    self.status = :processing
+    self.status = :dbu_proc
     self.make_active
 ## validate file content
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
-        XlsCsvWorker.perform_async(path(cats_filename))
+        XlsCsvWorker.perform_async(self.id, 'cats')
       end
       if series_file
         write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DBEDT upload disk write failed'
-        XlsCsvWorker.perform_async(path(series_filename))
+        XlsCsvWorker.perform_async(self.id, 'series')
       end
     rescue StandardError => e
       self.delete if e.message =~ /disk write failed/
@@ -50,6 +50,14 @@ class DbedtUpload < ActiveRecord::Base
     self.update! active: true
   end
 
+  def set_status_ok
+    self.status = :dbu_ok
+  end
+
+  def set_status_fail
+    self.status = :dbu_fail
+  end
+
   def cats_file_abspath
     path(cats_filename)
   end
@@ -68,6 +76,8 @@ class DbedtUpload < ActiveRecord::Base
 
   def delete_cats_file
     if cats_filename && File.exists?(cats_file_abspath)
+      path_up_to_ext = cats_file_abspath.split('.')[0..-2].join('')
+      Dir.glob(path_up_to_ext + '.*')
       return delete_file_from_disk(cats_filename)
     end
     true

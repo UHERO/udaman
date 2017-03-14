@@ -42,7 +42,7 @@
               '<i class="fa fa-dot-circle-o" aria-hidden="true"></i>'.html_safe :
               link_to('<i class="fa fa-circle-o" aria-hidden="true"></i>'.html_safe, :action => 'make_active', :id => dbedt_upload) %>
         </td>
-        <td class="upload_status" id="upload-<%= dbedt_upload.id %>"></td>
+        <td><span class="upload-status fa <%= make_fa_polling_classes(dbedt_upload.status) %>" id="upload-<%= dbedt_upload.id %>"></span></td>
         <td><%= link_to 'Categories file', {:action => 'show', :id => dbedt_upload.id, :filetype => 'cats'} %></td>
         <td><%= link_to 'Data series file', {:action => 'show', :id => dbedt_upload.id, :filetype => 'series'} %></td>
         <td><%= timestamp %></td>

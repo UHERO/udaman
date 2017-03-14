@@ -3,12 +3,15 @@ class XlsCsvWorker
   include Sidekiq::Worker
   sidekiq_options queue: 'critical'
 
-  def perform(file_path)
-    path_up_to_last_dot = file_path.split('.')[0..-2].join('')
+  def perform(dbu_id, which)
+    dbu = DbedtUpload.find(dbu_id)
+    file_split = file_path.split('.')
+    file_type = file_split[-1]
+    path_up_to_last_dot = file_split[0..-2].join('')
     if system "xlsx2csv -s 1 -d tab #{file_path} #{path_up_to_last_dot+'.csv'}"
-      ## success
+      dbu.set_status_ok
     else
-      ## fail
+      dbu.set_status_fail
     end
   end
 end
