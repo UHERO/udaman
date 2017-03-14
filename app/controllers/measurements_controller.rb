@@ -25,7 +25,7 @@ class MeasurementsController < ApplicationController
       @measurements = Measurement.includes(:series).where(:series => {:restricted => false}).order(:prefix)
       return
     end
-    @measurements = Measurement.all
+    @measurements = Measurement.order(:prefix).all
   end
 
   # GET /measurements/1
