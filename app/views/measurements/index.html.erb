@@ -2,7 +2,13 @@
 
 <h1>Listing Measurements</h1>
 
-<%= link_to 'Measurements in the Data Portal', measurements_path(:unrestricted => true) %>
+<p>
+  <%= link_to 'Measurements in the Data Portal', measurements_path(:unrestricted => true) %>
+</p>
+
+<p>
+  <%= link_to 'New Measurement', new_measurement_path %>
+</p>
 
 <table>
   <thead>
@@ -14,7 +20,7 @@
       <th>Percent</th>
       <th>Real</th>
       <th>Notes</th>
-      <th colspan="3"></th>
+      <th colspan="4"></th>
     </tr>
   </thead>
 
@@ -30,6 +36,7 @@
         <td><%= measurement.notes %></td>
         <td><%= link_to 'Show', measurement %></td>
         <td><%= link_to 'Edit', edit_measurement_path(measurement) %></td>
+        <td><%= link_to 'Duplicate', duplicate_measurement_path(measurement) %></td>
         <td><%= link_to 'Destroy', measurement, method: :delete, data: { confirm: 'Are you sure?' } %></td>
       </tr>
     <% end %>
