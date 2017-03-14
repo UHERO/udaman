@@ -2,7 +2,7 @@ class DbedtUploadsController < ApplicationController
   include Authorization
 
   before_action :check_dbedt_upload_authorization
-  before_action :set_dbedt_upload, only: [:show, :make_active, :destroy]
+  before_action :set_dbedt_upload, only: [:show, :status, :make_active, :destroy]
 
   # GET /dbedt_uploads
   def index
@@ -44,6 +44,12 @@ class DbedtUploadsController < ApplicationController
   def make_active
     @dbedt_upload.make_active
     redirect_to :action => 'index'
+  end
+
+  def status
+    respond_to do |format|
+      format.json { render json: '{ "the_status": "%s" }' % @dbedt_upload.status, status: 200 }
+    end
   end
 
   # PATCH/PUT /dbedt_uploads/1

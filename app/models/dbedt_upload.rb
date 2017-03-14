@@ -17,6 +17,7 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     self.upload_at = Time.now
+    self.status = :processing
     self.make_active
 ## validate file content
     begin
