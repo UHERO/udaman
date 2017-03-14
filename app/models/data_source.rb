@@ -150,7 +150,7 @@ class DataSource < ActiveRecord::Base
     def reload_source
       t = Time.now
       s = Kernel::eval self['eval']
-      base_year = base_year_from_eval_string(self['eval'])
+      base_year = base_year_from_eval_string(self['eval'], self.dependencies)
       if !base_year.nil? && base_year != self.series.base_year
         self.series.update(:base_year => base_year.to_i)
       end
@@ -160,7 +160,7 @@ class DataSource < ActiveRecord::Base
       self.update_attributes(:description => s.name[0,255], :last_run => Time.now, :runtime => (Time.now - t))
     end
 
-    def base_year_from_eval_string(eval_string)
+    def base_year_from_eval_string(eval_string, dependencies)
       if eval_string =~ /rebase/
         base_year = eval_string[/rebase\("(\d*)"/, 1]
         unless base_year.nil?
@@ -172,7 +172,7 @@ class DataSource < ActiveRecord::Base
         end
         return base_series.data.keys.sort[-1].year
       end
-      self.dependencies.each do |s|
+      dependencies.each do |s|
         ds = s.ts
         if !ds.nil? && ds.base_year > 0
           return ds.base_year
