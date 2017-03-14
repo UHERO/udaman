@@ -51,6 +51,15 @@ class MeasurementsController < ApplicationController
       render :new
     end
   end
+  
+  def duplicate
+    original_measurement = Measurement.find params[:id]
+    new_measurement = original_measurement.dup
+    new_measurement.prefix = original_measurement.prefix + ' (copy)'
+    new_measurement.series = original_measurement.series
+    new_measurement.save
+    redirect_to edit_measurement_url(new_measurement.id)
+  end
 
   # PATCH/PUT /measurements/1
   def update
