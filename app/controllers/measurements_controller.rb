@@ -25,7 +25,7 @@ class MeasurementsController < ApplicationController
       @measurements = Measurement.includes(:series).where(:series => {:restricted => false}).order(:prefix)
       return
     end
-    @measurements = Measurement.all
+    @measurements = Measurement.order(:prefix).all
   end
 
   # GET /measurements/1
@@ -50,6 +50,15 @@ class MeasurementsController < ApplicationController
     else
       render :new
     end
+  end
+  
+  def duplicate
+    original_measurement = Measurement.find params[:id]
+    new_measurement = original_measurement.dup
+    new_measurement.prefix = original_measurement.prefix + ' (copy)'
+    new_measurement.series = original_measurement.series
+    new_measurement.save
+    redirect_to edit_measurement_url(new_measurement.id)
   end
 
   # PATCH/PUT /measurements/1
