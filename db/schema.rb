@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170222040901) do
+ActiveRecord::Schema.define(version: 20170310132127) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -284,6 +284,7 @@ ActiveRecord::Schema.define(version: 20170222040901) do
     t.string   "source_link",             limit: 255
     t.integer  "source_detail_id",        limit: 4
     t.boolean  "quarantined",                           default: false
+    t.integer  "base_year",               limit: 4
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree

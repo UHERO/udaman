@@ -42,6 +42,8 @@ google.visualization.events.addListener(chart, 'select', function() {
 
   <table>
     <tr><td>Measurement</td><td><%= link_to(@series.measurement.prefix, @series.measurement) unless @series.measurement.nil? %></td></tr>
+    <tr><td>Data Portal Name</td><td><%= @series.dataPortalName %></td></tr>
+    <tr><td>Base Year</td><td><%= @series.base_year %></td></tr>
     <tr><td>Data Portal Status</td><td><%= @series.restricted ? 'restricted' : 'public' %></td></tr>
     <tr><td>Source Description</td><td><%= @series.source.description unless @series.source.nil? %></td></tr>
     <tr><td>Source Link</td><td><%= (@series.source_link.nil? || @series.source_link.empty?) ? (@series.source.link unless @series.source.nil?) : @series.source_link %></td></tr>
