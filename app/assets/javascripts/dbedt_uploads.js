@@ -12,13 +12,13 @@ $(function() {
                    // no update needed since the class is already set to processing
                    return;
                }
-               if (data === 'success') {
-                   $(element).removeClass('processing').addClass('success');
+               if (data === 'ok') {
+                   $(element).removeClass('processing').addClass('ok').addClass('fa-check');
                    clearInterval(intervalId);
                    return;
                }
                if (data === 'failure') {
-                   $(element).removeClass('processing').addClass('failure');
+                   $(element).removeClass('processing').addClass('fail').addClass('fa-times');
                    clearInterval(intervalId);
                }
            });

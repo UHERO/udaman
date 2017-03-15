@@ -1,7 +1,7 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
   before_destroy :delete_files_from_disk
-  enum status: { dbu_proc: 'dbu_proc', dbu_ok: 'dbu_ok', dbu_fail: 'dbu_fail'}
+  enum status: { processing: 'processing', ok: 'ok', fail: 'fail'}
 
   def store_upload_files(cats_file, series_file)
     now = Time.now.localtime
@@ -17,7 +17,7 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     self.upload_at = Time.now
-    self.status = :dbu_proc
+    self.status = :processing
     self.make_active
 ## validate file content
     begin
@@ -51,11 +51,11 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def set_status_ok
-    self.status = :dbu_ok
+    self.status = :ok
   end
 
   def set_status_fail
-    self.status = :dbu_fail
+    self.status = :fail
   end
 
   def cats_file_abspath
@@ -77,7 +77,7 @@ class DbedtUpload < ActiveRecord::Base
   def delete_cats_file
     if cats_filename && File.exists?(cats_file_abspath)
       r = true
-      Dir.glob(cats_filename.change_file_ext('*')) do |f|
+      Dir.glob(cats_file_abspath.change_file_ext('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
       return r
@@ -88,7 +88,7 @@ class DbedtUpload < ActiveRecord::Base
   def delete_series_file
     if series_filename && File.exists?(series_file_abspath)
       r = true
-      Dir.glob(series_filename.change_file_ext('*')) do |f|
+      Dir.glob(series_file_abspath.change_file_ext('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
       return r
