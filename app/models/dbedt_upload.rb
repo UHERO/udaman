@@ -1,7 +1,7 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
   before_destroy :delete_files_from_disk
-  enum status: { processing: 'processing', ok: 'ok', fail: 'fail'}
+  enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(cats_file, series_file)
     now = Time.now.localtime
@@ -9,15 +9,16 @@ class DbedtUpload < ActiveRecord::Base
       cats_file_content = cats_file.read
       cats_file_ext = cats_file.original_filename.split('.')[-1]
       self.cats_filename = DbedtUpload.make_filename(now, 'cats', cats_file_ext)
+      self.cats_status = :processing
     end
     if series_file
       series_file_content = series_file.read
       series_file_ext = series_file.original_filename.split('.')[-1]
       self.series_filename = DbedtUpload.make_filename(now, 'series', series_file_ext)
+      self.series_status = :processing
     end
 
     self.upload_at = Time.now
-    self.status = :processing
     self.make_active
 ## validate file content
     begin
@@ -50,12 +51,28 @@ class DbedtUpload < ActiveRecord::Base
     self.update! active: true
   end
 
-  def set_status_ok
-    self.status = :ok
+  def get_status(which)
+    if which == 'cats'
+      self.cats_status
+    else
+      self.series_status
+    end
   end
 
-  def set_status_fail
-    self.status = :fail
+  def set_status_ok(which)
+    if which == 'cats'
+      self.cats_status = :ok
+    else
+      self.series_status = :ok
+    end
+  end
+
+  def set_status_fail(which)
+    if which == 'cats'
+      self.cats_status = :fail
+    else
+      self.series_status = :fail
+    end
   end
 
   def cats_file_abspath

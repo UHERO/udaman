@@ -6,6 +6,7 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads
   def index
+    puts ">>>>>> DEBUG: enter index contrl action"
     @new_dbedt_upload = DbedtUpload.new
     @dbedt_uploads = DbedtUpload.all.order('upload_at desc')
   end
@@ -48,7 +49,7 @@ class DbedtUploadsController < ApplicationController
 
   def status
     respond_to do |format|
-      format.json { render json: '{ "the_status": "%s" }' % @dbedt_upload.status, status: 200 }
+      format.json { render json: '{ "the_status": "%s" }' % @dbedt_upload.get_status(params[:which]), status: 200 }
     end
   end
 
