@@ -6,7 +6,6 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads
   def index
-    puts ">>>>>> DEBUG: enter index contrl action"
     @new_dbedt_upload = DbedtUpload.new
     @dbedt_uploads = DbedtUpload.all.order('upload_at desc')
   end
@@ -27,6 +26,7 @@ class DbedtUploadsController < ApplicationController
   # POST /dbedt_uploads
   def create
     @dbedt_upload = DbedtUpload.new(dbedt_upload_params)
+    @new_dbedt_upload = DbedtUpload.new  ## just a decoy
 
     if dbedt_upload_params[:cats_filename]
       cats_file = dbedt_upload_params[:cats_filename]
@@ -38,7 +38,7 @@ class DbedtUploadsController < ApplicationController
     if @dbedt_upload.store_upload_files(cats_file, series_file)
       redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
     else
-      render :index
+      redirect_to action: 'index'
     end
   end
 

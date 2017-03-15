@@ -14,7 +14,7 @@
   </thead>
 
   <tbody>
-      <tr><% puts '>>>>>>>>>||%s||' % (@new_dbedt_upload.nil? ? 'nillll' : @new_dbedt_upload.to_s) %>
+      <tr>
           <%= form_for(@new_dbedt_upload) do |f| %>
               <% if @new_dbedt_upload.errors.any? %>
                   <div id="error_explanation">
