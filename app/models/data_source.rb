@@ -162,7 +162,7 @@ class DataSource < ActiveRecord::Base
 
     def base_year_from_eval_string(eval_string, dependencies)
       if eval_string =~ /rebase/
-        base_year = eval_string[/rebase\("(\d*)"/, 1]
+        base_year = eval_string[/rebase\("(\d*)/, 1]
         unless base_year.nil?
           return base_year.to_i
         end
