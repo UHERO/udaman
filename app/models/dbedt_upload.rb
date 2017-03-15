@@ -59,11 +59,11 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
-  def set_status_ok(which)
+  def set_status(which, status)
     if which == 'cats'
-      self.cats_status = :ok
+      self.cats_status = status
     else
-      self.series_status = :ok
+      self.series_status = status
     end
   end
 
