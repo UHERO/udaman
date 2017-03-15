@@ -76,16 +76,22 @@ class DbedtUpload < ActiveRecord::Base
 
   def delete_cats_file
     if cats_filename && File.exists?(cats_file_abspath)
-      path_up_to_ext = cats_file_abspath.split('.')[0..-2].join('')
-      Dir.glob(path_up_to_ext + '.*')
-      return delete_file_from_disk(cats_filename)
+      r = true
+      Dir.glob(cats_filename.change_file_ext('*')) do |f|
+        r &&= delete_file_from_disk(f)
+      end
+      return r
     end
     true
   end
 
   def delete_series_file
     if series_filename && File.exists?(series_file_abspath)
-      return delete_file_from_disk(series_filename)
+      r = true
+      Dir.glob(series_filename.change_file_ext('*')) do |f|
+        r &&= delete_file_from_disk(f)
+      end
+      return r
     end
     true
   end
