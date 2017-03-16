@@ -78,8 +78,8 @@ class String
   end
 
   def change_file_ext(ext)
-    ext = '.'+ext unless ext.empty? || ext =~ /^[.]/
-    File.join(File.dirname(self), File.basename(self, File.extname(self))+ext)
+    ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
+    File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
   end
 
 end
