@@ -10,7 +10,7 @@ class XlsCsvWorker
     dbu = DbedtUpload.find(dbu_id)
     abspath = (which == 'cats') ? dbu.cats_file_abspath : dbu.series_file_abspath
     #if system "xlsx2csv -s 1 -d tab #{abspath} #{abspath.change_file_ext('csv')}"
-    if system "cp #{abspath} #{abspath.change_file_ext('csv')}"
+    if system "sleep 4; cp #{abspath} #{abspath.change_file_ext('csv')}"
       puts ">>> cp WORKED"
       dbu.set_status(which, :ok)
     else

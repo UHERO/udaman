@@ -1,7 +1,7 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
-
   before_destroy :delete_files_from_disk
+
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(cats_file, series_file)
@@ -62,18 +62,9 @@ class DbedtUpload < ActiveRecord::Base
 
   def set_status(which, status)
     if which == 'cats'
-      self.update_attribute(:cats_status, status)
+      self.update_attributes(:cats_status => status)
     else
-      self.update_attribute(:series_status, status)
-    end
-  end
-
-  ##### DELETE FOLLOWING IF ABOVE WORKS
-  def set_status_fail(which)
-    if which == 'cats'
-      self.cats_status = :fail
-    else
-      self.series_status = :fail
+      self.update_attributes(:series_status => status)
     end
   end
 
@@ -150,9 +141,9 @@ private
     content
   end
 
-  def delete_file_from_disk(name)
+  def delete_file_from_disk(abspath)
     begin
-      File.delete(path(name))
+      File.delete(abspath)
     rescue StandardError => e
       Rails.logger.error e.message
       return false

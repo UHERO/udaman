@@ -5,7 +5,7 @@ $(function() {
        var which = icon_args[0];
        var dbu_id = icon_args[1];
        // Check once a second
-       var intervalId = setInterval(updateClass, 1000);
+       var intervalId = setInterval(updateClass, 2000);
        function updateClass() {
            // TODO: send request to the right url
            $.get('/dbedt_uploads/' + dbu_id + '/status/' + which, function(data) {

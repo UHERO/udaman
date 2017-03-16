@@ -47,9 +47,7 @@ class DbedtUploadsController < ApplicationController
   end
 
   def status
-    respond_to do |format|
-      format.json { render json: '{ "the_status": "%s" }' % @dbedt_upload.get_status(params[:which]), status: 200 }
-    end
+    render text: @dbedt_upload.get_status(params[:which]), status: 200
   end
 
   # PATCH/PUT /dbedt_uploads/1
