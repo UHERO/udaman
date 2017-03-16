@@ -19,7 +19,7 @@ $(function() {
                    clearInterval(intervalId);
                    return;
                }
-               if (data === 'failure') {
+               if (data === 'fail') {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
                    clearInterval(intervalId);
                }
