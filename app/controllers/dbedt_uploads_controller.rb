@@ -26,7 +26,6 @@ class DbedtUploadsController < ApplicationController
   # POST /dbedt_uploads
   def create
     @dbedt_upload = DbedtUpload.new(dbedt_upload_params)
-    @new_dbedt_upload = DbedtUpload.new  ## just a decoy
 
     if dbedt_upload_params[:cats_filename]
       cats_file = dbedt_upload_params[:cats_filename]

@@ -1,5 +1,6 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
+
   before_destroy :delete_files_from_disk
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -61,12 +62,13 @@ class DbedtUpload < ActiveRecord::Base
 
   def set_status(which, status)
     if which == 'cats'
-      self.cats_status = status
+      self.update_attribute(:cats_status, status)
     else
-      self.series_status = status
+      self.update_attribute(:series_status, status)
     end
   end
 
+  ##### DELETE FOLLOWING IF ABOVE WORKS
   def set_status_fail(which)
     if which == 'cats'
       self.cats_status = :fail
