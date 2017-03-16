@@ -117,8 +117,8 @@ private
 
   def DbedtUpload.make_filename(time, type, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
-    ext = ext.length > 4 ? '' : '.'+ext
-    time.strftime('%Y-%m-%d-%H:%M:%S')+'_'+type+ext
+    ext = ext.length > 4 ? '' : '.' + ext
+    time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
   end
 
   def write_file_to_disk(name, content)
