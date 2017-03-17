@@ -139,7 +139,7 @@ class SeriesController < ApplicationController
   end
 
   def refresh_aremos
-    Series.find_by(id: params[:id]).aremos_match
+    Series.find_by(id: params[:id]).aremos_comparison
     redirect_to :action => 'show', id: params[:id]
   end
 
