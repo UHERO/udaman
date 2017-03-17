@@ -1,11 +1,9 @@
 $(function() {
    $('.upload-status.processing').each(function(_, element) {
-       // This assumes you give each upload-status element an id like "upload-123" where 123 is the dbedt_uploads_id
        var icon_args = $(element).attr('id').split('-');
        var which = icon_args[0];
        var dbu_id = icon_args[1];
-       // Check once a second
-       var intervalId = setInterval(updateClass, 2000);
+       var intervalId = setInterval(updateClass, 2000);  // Check once every 2 seconds
        function updateClass() {
            // TODO: send request to the right url
            $.get('/dbedt_uploads/' + dbu_id + '/status/' + which, function(data) {
