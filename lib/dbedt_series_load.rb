@@ -4,7 +4,8 @@ module DbedtSeriesLoad
   def DbedtSeriesLoad.slurp_csv(path)
     current_series = nil
     CSV.foreach(path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
-      name = 'DBEDT_'+row[0]+'@'+DbedtSeriesLoad.get_geo_code(row[3])+'.'+row[4]
+      this_series = nil
+      name = 'DBEDT_' + row[0] + '@' + DbedtSeriesLoad.get_geo_code(row[3]) + '.' + row[4]
 
       if current_series.nil? || name != current_series
         ## We've found beginning of next series, so create a new Series record
