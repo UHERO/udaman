@@ -22,16 +22,11 @@ class XlsFileProcessor
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
     path = @path_processor.nil? ? nil : @path_processor.compute(date)
-    Rails.logger.debug "DEBUG: In OBS_AT(#{index}): h:#{handle}, s:#{sheet}, p:|#{path}|"
 
-    # puts index
-    # puts path
-    # puts sheet
     begin
       row = @row_processor.compute(index, @cached_files, handle, sheet)
       col = @col_processor.compute(index, @cached_files, handle, sheet)
 
-      #puts "trying: h:#{handle}, s:#{sheet}, r:#{row}, c:#{col}, p:#{path}"
       worksheet = @cached_files.xls(handle, sheet, path, date)
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?

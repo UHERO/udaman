@@ -2,7 +2,7 @@ class DbedtUploadsController < ApplicationController
   include Authorization
 
   before_action :check_dbedt_upload_authorization
-  before_action :set_dbedt_upload, only: [:show, :make_active, :destroy]
+  before_action :set_dbedt_upload, only: [:show, :status, :make_active, :destroy]
 
   # GET /dbedt_uploads
   def index
@@ -37,13 +37,17 @@ class DbedtUploadsController < ApplicationController
     if @dbedt_upload.store_upload_files(cats_file, series_file)
       redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
     else
-      render :index
+      redirect_to action: 'index'
     end
   end
 
   def make_active
     @dbedt_upload.make_active
     redirect_to :action => 'index'
+  end
+
+  def status
+    render text: @dbedt_upload.get_status(params[:which]), status: 200
   end
 
   # PATCH/PUT /dbedt_uploads/1

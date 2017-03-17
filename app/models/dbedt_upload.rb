@@ -2,14 +2,22 @@ class DbedtUpload < ActiveRecord::Base
   require 'date'
   before_destroy :delete_files_from_disk
 
-  def store_upload_files(cats_file, series_file)
-    cats_file_content = cats_file.read if cats_file
-    series_file_content = series_file.read if series_file
+  enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
-    cats_file_ext = cats_file.original_filename.split('.')[-1]
-    series_file_ext = series_file.original_filename.split('.')[-1]
-    self.cats_filename = DbedtUpload.make_filename('cats', cats_file_ext)
-    self.series_filename = DbedtUpload.make_filename('series', series_file_ext)
+  def store_upload_files(cats_file, series_file)
+    now = Time.now.localtime
+    if cats_file
+      cats_file_content = cats_file.read
+      cats_file_ext = cats_file.original_filename.split('.')[-1]
+      self.cats_filename = DbedtUpload.make_filename(now, 'cats', cats_file_ext)
+      self.cats_status = :processing
+    end
+    if series_file
+      series_file_content = series_file.read
+      series_file_ext = series_file.original_filename.split('.')[-1]
+      self.series_filename = DbedtUpload.make_filename(now, 'series', series_file_ext)
+      self.series_status = :processing
+    end
 
     self.upload_at = Time.now
     self.make_active
@@ -18,9 +26,11 @@ class DbedtUpload < ActiveRecord::Base
       self.save or raise StandardError, 'DBEDT upload object save failed'
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
+        XlsCsvWorker.perform_async(self.id, 'cats')
       end
       if series_file
         write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DBEDT upload disk write failed'
+        XlsCsvWorker.perform_async(self.id, 'series')
       end
     rescue StandardError => e
       self.delete if e.message =~ /disk write failed/
@@ -42,6 +52,22 @@ class DbedtUpload < ActiveRecord::Base
     self.update! active: true
   end
 
+  def get_status(which)
+    if which == 'cats'
+      self.cats_status
+    else
+      self.series_status
+    end
+  end
+
+  def set_status(which, status)
+    if which == 'cats'
+      self.update_attributes(:cats_status => status)
+    else
+      self.update_attributes(:series_status => status)
+    end
+  end
+
   def cats_file_abspath
     path(cats_filename)
   end
@@ -60,14 +86,22 @@ class DbedtUpload < ActiveRecord::Base
 
   def delete_cats_file
     if cats_filename && File.exists?(cats_file_abspath)
-      return delete_file_from_disk(cats_filename)
+      r = true
+      Dir.glob(cats_file_abspath.change_file_ext('*')) do |f|
+        r &&= delete_file_from_disk(f)
+      end
+      return r
     end
     true
   end
 
   def delete_series_file
     if series_filename && File.exists?(series_file_abspath)
-      return delete_file_from_disk(series_filename)
+      r = true
+      Dir.glob(series_file_abspath.change_file_ext('*')) do |f|
+        r &&= delete_file_from_disk(f)
+      end
+      return r
     end
     true
   end
@@ -81,10 +115,10 @@ private
     File.join(ENV['DATA_PATH'], path_prefix, name)
   end
 
-  def DbedtUpload.make_filename(type, ext)
+  def DbedtUpload.make_filename(time, type, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
-    ext = ext.length > 4 ? '' : '.'+ext
-    Time.now.localtime.strftime('%Y-%m-%d_%H:%M:%S')+'_'+type+ext
+    ext = ext.length > 4 ? '' : '.' + ext
+    time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
   end
 
   def write_file_to_disk(name, content)
@@ -107,9 +141,9 @@ private
     content
   end
 
-  def delete_file_from_disk(name)
+  def delete_file_from_disk(abspath)
     begin
-      File.delete(path(name))
+      File.delete(abspath)
     rescue StandardError => e
       Rails.logger.error e.message
       return false

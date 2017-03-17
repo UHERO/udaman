@@ -302,8 +302,8 @@ GEM
       octokit (> 2.1.0)
       warden (> 1.0)
     watchr (0.7)
-    watir-webdriver (0.9.9)
-      selenium-webdriver (>= 2.46.2)
+    watir (6.2.0)
+      selenium-webdriver (~> 3.0)
     webrobots (0.1.2)
     websocket (1.2.3)
     whenever (0.9.7)
@@ -365,9 +365,9 @@ DEPENDENCIES
   stringex (~> 2.6)
   uglifier (~> 3.0)
   watchr
-  watir-webdriver
+  watir (~> 6.0)
   whenever
   will_paginate (~> 3.1.1)
 
 BUNDLED WITH
-   1.13.7
+   1.14.2
