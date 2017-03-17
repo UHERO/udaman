@@ -67,7 +67,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 
     <div id="series_controls">
       <%= link_to('Add to quarantine', action: 'add_to_quarantine', id: @series) unless @series.quarantined %>
-      <%= link_to('Remove from quarantine', action: 'remove_from_quarantine', id: @series) if @series.quarantined %>
+      <%= link_to('Unquarantine', action: 'remove_from_quarantine', id: @series) if @series.quarantined %>
     </div>
 
 		<div id="chart_div"></div>

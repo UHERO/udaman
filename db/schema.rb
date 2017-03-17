@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170310132127) do
+ActiveRecord::Schema.define(version: 20170314024858) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -125,6 +125,12 @@ ActiveRecord::Schema.define(version: 20170310132127) do
     t.date     "date",                                       null: false
   end
 
+  create_table "data_portal_names", id: false, force: :cascade do |t|
+    t.string "prefix",           limit: 255
+    t.string "units",            limit: 255
+    t.string "data_portal_name", limit: 255
+  end
+
   create_table "data_source_downloads", force: :cascade do |t|
     t.string   "url",             limit: 255
     t.text     "post_parameters", limit: 65535
@@ -154,6 +160,8 @@ ActiveRecord::Schema.define(version: 20170310132127) do
   create_table "dbedt_uploads", force: :cascade do |t|
     t.datetime "upload_at"
     t.boolean  "active"
+    t.string   "cats_status",     limit: 10
+    t.string   "series_status",   limit: 10
     t.string   "cats_filename",   limit: 255
     t.string   "series_filename", limit: 255
   end
@@ -300,6 +308,7 @@ ActiveRecord::Schema.define(version: 20170310132127) do
   end
 
   create_table "sources", force: :cascade do |t|
+    t.string   "source_type", limit: 255
     t.string   "description", limit: 255
     t.string   "link",        limit: 255
     t.datetime "created_at",              null: false
