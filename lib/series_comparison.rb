@@ -64,11 +64,6 @@ module SeriesComparison
     ret_val
   end
   
-  def aremos_match
-    self.aremos_comparison
-  end
-  
-  
   def matches_prognoz?
     sufficient_match? prognoz_output_data, true
     #identical_to? prognoz_output_data
