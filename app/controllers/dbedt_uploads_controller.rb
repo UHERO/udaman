@@ -12,11 +12,7 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads/1
   def show
-    if params[:filetype] == 'cats'
-      send_file @dbedt_upload.cats_file_abspath
-    else
-      send_file @dbedt_upload.series_file_abspath
-    end
+    send_file @dbedt_upload.file_abspath(params[:filetype])
   end
 
   # GET /dbedt_uploads/new

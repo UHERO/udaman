@@ -1,7 +1,7 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
  ## require 'DbedtLoadCats'
-  require 'DbedtLoadSeries'
+ ## require 'DbedtLoadSeries'
   before_destroy :delete_files_from_disk
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
@@ -49,9 +49,11 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def make_active
+    return unless cats_status == :ok && series_status == :ok
     active = DbedtUpload.where(active: true).first
     active.update! active: false if !active.nil?
-    self.update! active: true
+    self.update! load_status: :processing
+    DbedtLoadWorker.perform_async(self.id)
   end
 
   def get_status(which)
@@ -70,12 +72,12 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
-  def cats_file_abspath
-    path(cats_filename)
-  end
-
-  def series_file_abspath
-    path(series_filename)
+  def file_abspath(which)
+    if which == 'cats'
+      path(cats_filename)
+    else
+      path(series_filename)
+    end
   end
 
   def retrieve_cats_file
@@ -87,9 +89,9 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def delete_cats_file
-    if cats_filename && File.exists?(cats_file_abspath)
+    if cats_filename && File.exists?(file_abspath('cats'))
       r = true
-      Dir.glob(cats_file_abspath.change_file_ext('*')) do |f|
+      Dir.glob(file_abspath('cats').change_file_ext('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
       return r
@@ -98,9 +100,9 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def delete_series_file
-    if series_filename && File.exists?(series_file_abspath)
+    if series_filename && File.exists?(file_abspath('series'))
       r = true
-      Dir.glob(series_file_abspath.change_file_ext('*')) do |f|
+      Dir.glob(file_abspath('series').change_file_ext('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
       return r
