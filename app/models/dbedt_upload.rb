@@ -1,6 +1,6 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
-  require 'DbedtLoadCats'
+ ## require 'DbedtLoadCats'
   require 'DbedtLoadSeries'
   before_destroy :delete_files_from_disk
 
