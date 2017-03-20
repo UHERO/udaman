@@ -58,13 +58,6 @@ RSpec.describe FeatureTogglesController, type: :controller do
     end
   end
 
-  describe "GET #new" do
-    it "assigns a new feature_toggle as @feature_toggle" do
-      get :new, params: {}, session: valid_session
-      expect(assigns(:feature_toggle)).to be_a_new(FeatureToggle)
-    end
-  end
-
   describe "GET #edit" do
     it "assigns the requested feature_toggle as @feature_toggle" do
       feature_toggle = FeatureToggle.create! valid_attributes

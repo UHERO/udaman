@@ -14,10 +14,6 @@ RSpec.describe "feature_toggles/edit", type: :view do
 
     assert_select "form[action=?][method=?]", feature_toggle_path(@feature_toggle), "post" do
 
-      assert_select "input#feature_toggle_name[name=?]", "feature_toggle[name]"
-
-      assert_select "input#feature_toggle_description[name=?]", "feature_toggle[description]"
-
       assert_select "input#feature_toggle_status[name=?]", "feature_toggle[status]"
     end
   end

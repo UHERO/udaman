@@ -8,7 +8,7 @@
       <th>Name</th>
       <th>Description</th>
       <th>Status</th>
-      <th colspan="3"></th>
+      <th colspan="2"></th>
     </tr>
   </thead>
 
@@ -20,7 +20,6 @@
         <td><%= feature_toggle.status %></td>
         <td><%= link_to 'Show', feature_toggle %></td>
         <td><%= link_to 'Edit', edit_feature_toggle_path(feature_toggle) %></td>
-        <td><%= link_to 'Destroy', feature_toggle, method: :delete, data: { confirm: 'Are you sure?' } %></td>
       </tr>
     <% end %>
   </tbody>
@@ -28,4 +27,3 @@
 
 <br>
 
-<%= link_to 'New Feature toggle', new_feature_toggle_path %>
