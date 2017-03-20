@@ -39,9 +39,10 @@
                  <a href="/user_feedbacks" title="View Data Portal Feedback">Feedback</a>
   </div>
   <div id="chart-board-nav">
-  <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a>
+  <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a> |
+  <a href="/feature_toggles" title="Edit Feature Toggles">Feature Toggles</a>
   <% if current_user.dev_user? %>
-    <a href="/tsd_files" title="Edit Forecast Snapshot TSD Files">Forecast Snapshot TSD Files</a>
+    | <a href="/tsd_files" title="Edit Forecast Snapshot TSD Files">Forecast Snapshot TSD Files</a>
     | <a href="/dbedt_uploads" title="DBEDT Uploads">DBEDT Uploads</a>
 
   <% end %>

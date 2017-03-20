@@ -83,7 +83,9 @@ class DataPoint < ActiveRecord::Base
       return true
     end
     series = self.series
-    if (Date.today - 2.years > self.date) && !series.quarantined && !series.restricted
+
+    auto_quarantine_toggle = FeatureToggle.find_by(name: 'auto_quarantine') || FeatureToggle.new(status: true)
+    if auto_quarantine_toggle.status && (Date.today - 2.years > self.date) && !series.quarantined && !series.restricted
       series.update! quarantined: true
     end
     false
