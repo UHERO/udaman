@@ -174,7 +174,7 @@ class DataSource < ActiveRecord::Base
       end
       dependencies.each do |s|
         ds = s.ts
-        if !ds.nil? && ds.base_year > 0
+        if !ds.nil? && !ds.base_year.nil? && ds.base_year > 0
           return ds.base_year
         end
       end
