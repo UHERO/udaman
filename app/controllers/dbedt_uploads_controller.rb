@@ -37,9 +37,8 @@ class DbedtUploadsController < ApplicationController
     end
   end
 
-  def make_active
-    @dbedt_upload.make_active
-    redirect_to :action => 'index'
+  def active_status
+    render text: @dbedt_upload.active, status: 200
   end
 
   def status
@@ -52,9 +51,7 @@ class DbedtUploadsController < ApplicationController
 
   # DELETE /dbedt_uploads/1
   def destroy
-    if @dbedt_upload.destroy
-      DbedtUpload.make_latest_active if @dbedt_upload.active
-    end
+    @dbedt_upload.destroy
     redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully destroyed.')
   end
 

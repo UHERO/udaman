@@ -39,17 +39,13 @@ class DbedtUpload < ActiveRecord::Base
     true
   end
 
-  def DbedtUpload.make_latest_active
-    uploads = DbedtUpload.all.order('upload_at desc')
-    if uploads && uploads.first
-      uploads.first.make_active
-    end
-  end
-
-  def make_active
+  def set_active(status)
     return unless cats_status == :ok && series_status == :ok
-    DbedtUpload.where(:active => 'yes').update_all :active => 'no'
-    self.update! :active => :loading
+
+    if status == :yes
+      DbedtUpload.where(:active => :yes).update_all :active => :no
+      self.update! :active => :loading
+    end
     DbedtLoadWorker.perform_async(self.id)
   end
 
