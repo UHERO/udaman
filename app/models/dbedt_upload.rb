@@ -48,9 +48,8 @@ class DbedtUpload < ActiveRecord::Base
 
   def make_active
     return unless cats_status == :ok && series_status == :ok
-    active = DbedtUpload.where(active: true).first
-    active.update! active: false if !active.nil?
-    self.update! load_status: :processing
+    DbedtUpload.where(:active => 'yes').update_all :active => 'no'
+    self.update! :active => :loading
     DbedtLoadWorker.perform_async(self.id)
   end
 
