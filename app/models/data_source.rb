@@ -10,6 +10,8 @@ class DataSource < ActiveRecord::Base
                 :mapping => %w(last_run_in_seconds to_r),
                 :constructor => Proc.new { |t| Time.at(t) },
                 :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.at(t/1000.0) }
+
+  before_update :set_dependencies_without_save
                 
   #DataSource.where("eval LIKE '%load_from%'").all.each {|ds| puts "#{ds.series.name} - #{ds.eval}" }
   
@@ -281,4 +283,13 @@ class DataSource < ActiveRecord::Base
     # def at(date_string)
     #   data[date_string]
     # end
+  def set_dependencies_without_save
+    self.dependencies = []
+    self.description.split(' ').each do |word|
+      unless word.index('@').nil? or word.split('.')[-1].length > 1
+        self.dependencies.push(word)
+      end
+    end unless self.description.nil?
+    self.dependencies.uniq!
+  end
 end
