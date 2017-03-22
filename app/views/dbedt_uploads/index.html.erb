@@ -37,10 +37,10 @@
        timestamp = dbedt_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>
       <tr>
         <td align="center">
-          <%= if dbedt_upload.active == :no
+          <%= if dbedt_upload.active == 'no' && dbedt_upload.cats_status == 'ok' && dbedt_upload.series_status == 'ok'
                 link_to('<i class="load-status fa fa-circle-o" aria-hidden="true"></i>'.html_safe, :action => 'make_active', :id => dbedt_upload)
               else
-                "<i class='load-status #{make_fa_loading_classes(dbedt_upload.active)}' id='loading-#{dbedt_upload.id}' aria-hidden='true'></i>".html_safe
+                "<i class='load-status fa #{make_fa_loading_classes(dbedt_upload.active)}' id='loading-#{dbedt_upload.id}' aria-hidden='true'></i>".html_safe
               end
           %>
         </td>

@@ -14,6 +14,8 @@ module DbedtUploadsHelper
       'fa-refresh fa-spin loading'
     elsif active == 'yes'
       'fa-dot-circle-o load-yes'
+    elsif active == 'no'
+      'fa-circle-o load-no'
     elsif active == 'fail'
       'fa-times load-fail'
     end
