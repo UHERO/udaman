@@ -10,6 +10,7 @@ class DbedtLoadWorker
 
   def perform(dbu_id)
     dbu = DbedtUpload.find(dbu_id)
+    wipe_the_old_data()
     load_cats_csv(dbu.file_abspath('cats').change_file_ext('csv'))
     load_series_csv(dbu.file_abspath('series').change_file_ext('csv'))
   end
