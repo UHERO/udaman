@@ -14,5 +14,6 @@ class DbedtLoadWorker
 #    load_cats_csv(dbu.file_abspath('cats').change_file_ext('csv'))
 #    load_series_csv(dbu.file_abspath('series').change_file_ext('csv'))
     sleep(6)
+    rand(2) == 0 ? dbu.set_active(:fail) : dbu.set_active(:yes)
   end
 end
