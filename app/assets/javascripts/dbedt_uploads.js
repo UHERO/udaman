@@ -32,19 +32,19 @@ $(function() {
         var intervalId = setInterval(updateClass, 2000);  // Check once every 2 seconds
         function updateClass() {
             // TODO: send request to the right url
-            $.get('/dbedt_uploads/' + dbu_id + '/active_status, function(data) {
+            $.get('/dbedt_uploads/' + dbu_id + '/active_status', function(data) {
                 // data should be the content you deliver from the status endpoint
-                if (data === 'processing') {
+                if (data === 'loading') {
                     // no update needed since the class is already set to processing
                     return;
                 }
-                if (data === 'ok') {
-                    $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
+                if (data === 'yes') {
+                    $(element).removeClass('loading fa-refresh fa-spin').addClass('load-yes fa-dot-circle-o');
                     clearInterval(intervalId);
                     return;
                 }
                 if (data === 'fail') {
-                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
+                    $(element).removeClass('loading fa-refresh fa-spin').addClass('load-fail fa-times');
                     clearInterval(intervalId);
                 }
             });

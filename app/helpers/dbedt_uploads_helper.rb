@@ -12,10 +12,10 @@ module DbedtUploadsHelper
   def make_fa_loading_classes(active)
     if active == 'loading'
       'fa-refresh fa-spin loading'
-    elsif active == 'loadyes'
-      'fa-dot-circle-o loadyes'
-    elsif active == 'loadfail'
-      'fa-times loadfail'
+    elsif active == 'yes'
+      'fa-dot-circle-o load-yes'
+    elsif active == 'fail'
+      'fa-times load-fail'
     end
   end
 end
