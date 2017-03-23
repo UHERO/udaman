@@ -13,7 +13,11 @@ class DbedtLoadWorker
 #    wipe_the_old_data()
 #    load_cats_csv(dbu.file_abspath('cats').change_file_ext('csv'))
 #    load_series_csv(dbu.file_abspath('series').change_file_ext('csv'))
+  ### following stuff just for testing UI aspects
+    puts ">>>>> DEBUG : WORKER: here"
     sleep(6)
-    rand(2) == 0 ? dbu.set_active(:fail) : dbu.set_active(:yes)
+    x = rand(2)
+    puts ">>>>> DEBUG : WORKER: before set active"
+    dbu.set_active(x == 0 ? 'fail' : 'yes')
   end
 end

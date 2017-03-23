@@ -11,6 +11,7 @@ class XlsCsvWorker
     xls_path = dbu.file_abspath(which)
     csv_path = xls_path.change_file_ext('csv')
     if system "xlsx2csv.py -s 1 -d tab #{xls_path} #{csv_path}"
+      puts '>>>>> DEBUG: xlsx2csv succeeded'
       if system "rsync -t #{csv_path} deploy@uhero-worker.colo.hawaii.edu:/data/dbedt_files"
         dbu.set_status(which, :ok)
         return

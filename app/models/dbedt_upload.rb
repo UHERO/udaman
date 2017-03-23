@@ -20,7 +20,6 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     self.upload_at = Time.now
-    self.make_active
 ## validate file content
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
@@ -40,13 +39,14 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def set_active(status)
-    return unless cats_status == :ok && series_status == :ok
+    puts ">>>>> DEBUG:: setting active status to #{status}"
+    return unless cats_status == 'ok' && series_status == 'ok'
 
-    if status == :loading
-      DbedtUpload.where(:active => :yes).update_all :active => :no
+    if status == 'loading'
+      DbedtUpload.where(:active => 'yes').update_all :active => 'no'
+      DbedtLoadWorker.perform_async(self.id)
     end
     self.update! :active => status
-    DbedtLoadWorker.perform_async(self.id)
   end
 
   def get_status(which)
