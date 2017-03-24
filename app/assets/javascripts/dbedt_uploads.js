@@ -5,7 +5,6 @@ $(function() {
        var dbu_id = icon_args[1];
        var intervalId = setInterval(updateClass, 2000);  // Check once every 2 seconds
        function updateClass() {
-           // TODO: send request to the right url
            $.get('/dbedt_uploads/' + dbu_id + '/status/' + which, function(data) {
                // data should be the content you deliver from the status endpoint
                if (data === 'processing') {

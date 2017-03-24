@@ -12,7 +12,7 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads/1
   def show
-    send_file @dbedt_upload.file_abspath(params[:filetype])
+    send_file @dbedt_upload.absolute_path(params[:filetype])
   end
 
   # GET /dbedt_uploads/new
@@ -38,6 +38,7 @@ class DbedtUploadsController < ApplicationController
   end
 
   def make_active
+    @dbedt_upload.update :cats_status => 'processing', :series_status => 'processing'
     @dbedt_upload.set_active 'loading'
     redirect_to action: 'index'
   end

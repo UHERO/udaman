@@ -40,7 +40,6 @@ class DbedtUpload < ActiveRecord::Base
 
   def set_active(status)
     puts ">>>>> DEBUG:: setting active status to #{status}"
-    return unless cats_status == 'ok' && series_status == 'ok'
 
     if status == 'loading'
       DbedtUpload.where(:active => 'yes').update_all :active => 'no'
@@ -57,6 +56,10 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
+  def get_active_status()
+    
+  end
+
   def set_status(which, status)
     if which == 'cats'
       self.update_attributes(:cats_status => status)
@@ -65,7 +68,7 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
-  def file_abspath(which)
+  def absolute_path(which)
     if which == 'cats'
       path(cats_filename)
     else
@@ -82,9 +85,9 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def delete_cats_file
-    if cats_filename && File.exists?(file_abspath('cats'))
+    if cats_filename && File.exists?(absolute_path('cats'))
       r = true
-      Dir.glob(file_abspath('cats').change_file_ext('*')) do |f|
+      Dir.glob(absolute_path('cats').change_file_extension('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
       return r
@@ -93,9 +96,9 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def delete_series_file
-    if series_filename && File.exists?(file_abspath('series'))
+    if series_filename && File.exists?(absolute_path('series'))
       r = true
-      Dir.glob(file_abspath('series').change_file_ext('*')) do |f|
+      Dir.glob(absolute_path('series').change_file_extension('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
       return r

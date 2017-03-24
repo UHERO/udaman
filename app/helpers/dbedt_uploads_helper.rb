@@ -1,11 +1,15 @@
 module DbedtUploadsHelper
   def make_fa_processing_classes(status)
-    if status == 'processing'
-      'fa-refresh fa-spin processing'
-    elsif status == 'ok'
-      'fa-check ok'
-    elsif status == 'fail'
-      'fa-times fail'
+    case status
+      when 'processing'
+        'fa-refresh fa-spin processing'
+      when 'ok'
+        'fa-check ok'
+      when 'fail'
+        'fa-times fail'
+      else
+        puts "unknown processing status: #{status}"
+        'fa-times'
     end
   end
 

@@ -19,5 +19,6 @@ class DbedtLoadWorker
     x = rand(2)
     puts ">>>>> DEBUG : WORKER: before set active"
     dbu.set_active(x == 0 ? 'fail' : 'yes')
+
   end
 end

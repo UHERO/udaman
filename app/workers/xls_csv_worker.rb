@@ -7,15 +7,35 @@ class XlsCsvWorker
   sidekiq_options queue: 'critical'
 
   def perform(dbu_id, which)
-    dbu = DbedtUpload.find(dbu_id)
-    xls_path = dbu.file_abspath(which)
-    csv_path = xls_path.change_file_ext('csv')
-    if system "xlsx2csv.py -s 1 -d tab #{xls_path} #{csv_path}"
-      puts '>>>>> DEBUG: xlsx2csv succeeded'
-      if system "rsync -t #{csv_path} deploy@uhero-worker.colo.hawaii.edu:/data/dbedt_files"
-        dbu.set_status(which, :ok)
+    begin
+      dbu = DbedtUpload.find(dbu_id)
+      if dbu.nil?
+        puts "No DBEDT Upload with id = #{dbu_id}"
         return
       end
+      xls_path = dbu.absolute_path(which)
+      csv_path = xls_path.change_file_extension('csv')
+      if !File.exists?(xls_path) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{xls_path} /data/dbedt_files")
+          puts "Could not get xlsx file (#{dbu_id}:#{which}) from $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
+          dbu.set_status(which, :fail)
+          return
+        end
+      end
+      unless system "xlsx2csv.py -s 1 -d tab #{xls_path} #{csv_path}"
+        puts "Could not transform xlsx to csv (#{dbu_id}:#{which})"
+        dbu.set_status(which, :fail)
+        return
+      end
+      unless system "rsync -t #{csv_path} #{ENV['OTHER_WORKER']}:/data/dbedt_files"
+        puts "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
+        dbu.set_status(which, :fail)
+        return
+      end
+    # call the relevant loader
+      dbu.set_status(which, :ok)
+    rescue => error
+      puts error.message
+      puts error.backtrace
       dbu.set_status(which, :fail)
     end
   end
