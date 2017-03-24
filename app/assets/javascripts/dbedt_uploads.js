@@ -13,6 +13,13 @@ $(function() {
                }
                if (data === 'ok') {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
+                   // check if sibling is also ok. if ok, then make the active column accessible
+                   console.log('parent().siblings().has(i.fa-check)', $(element).parent().siblings().has('i.ok'));
+                   console.log('parent().siblings().has(a.waiting)', $(element).parent().siblings().has('a.waiting'));
+
+                   if ($(element).parent().siblings().has('i.fa-check').length === 1) {
+                       $(element).parent().siblings().has('a.waiting').children('a').removeClass('waiting');
+                   }
                    clearInterval(intervalId);
                    return;
                }

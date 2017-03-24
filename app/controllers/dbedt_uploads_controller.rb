@@ -23,28 +23,21 @@ class DbedtUploadsController < ApplicationController
   def create
     @dbedt_upload = DbedtUpload.new(dbedt_upload_params)
 
-    if dbedt_upload_params[:cats_filename]
-      cats_file = dbedt_upload_params[:cats_filename]
+    unless @dbedt_upload.store_upload_files(dbedt_upload_params[:cats_filename], dbedt_upload_params[:series_filename])
+      redirect_to(action: 'index')
+      return
     end
-    if dbedt_upload_params[:series_filename]
-      series_file = dbedt_upload_params[:series_filename]
-    end
-
-    if @dbedt_upload.store_upload_files(cats_file, series_file)
-      redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
-    else
-      redirect_to action: 'index'
-    end
+    redirect_to(action: 'index', notice: 'DBEDT upload was successfully stored.')
   end
 
   def make_active
     @dbedt_upload.update :cats_status => 'processing', :series_status => 'processing'
     @dbedt_upload.set_active 'loading'
-    redirect_to action: 'index'
+    redirect_to(action: 'index')
   end
 
   def active_status
-    render text: @dbedt_upload.active, status: 200
+    render(text: @dbedt_upload.active, status: 200)
   end
 
   def status

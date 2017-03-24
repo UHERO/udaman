@@ -56,10 +56,6 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
-  def get_active_status()
-    
-  end
-
   def set_status(which, status)
     if which == 'cats'
       self.update_attributes(:cats_status => status)

@@ -16,7 +16,7 @@ class XlsCsvWorker
       xls_path = dbu.absolute_path(which)
       csv_path = xls_path.change_file_extension('csv')
       if !File.exists?(xls_path) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{xls_path} /data/dbedt_files")
-          puts "Could not get xlsx file (#{dbu_id}:#{which}) from $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
+          puts "Could not get xlsx file ((#{xls_path}) #{dbu_id}:#{which}) from $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
           dbu.set_status(which, :fail)
           return
         end
@@ -26,7 +26,7 @@ class XlsCsvWorker
         dbu.set_status(which, :fail)
         return
       end
-      unless system "rsync -t #{csv_path} #{ENV['OTHER_WORKER']}:/data/dbedt_files"
+      if !ENV['OTHER_WORKER'].nil? && !system("rsync -t #{csv_path} #{ENV['OTHER_WORKER']}:/data/dbedt_files")
         puts "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
         dbu.set_status(which, :fail)
         return
@@ -37,6 +37,5 @@ class XlsCsvWorker
       puts error.message
       puts error.backtrace
       dbu.set_status(which, :fail)
-    end
   end
 end
