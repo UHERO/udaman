@@ -1,5 +1,6 @@
 class DbedtUpload < ActiveRecord::Base
   require 'date'
+  include DbedtLoadSeries
   before_destroy :delete_files_from_disk
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
@@ -25,11 +26,11 @@ class DbedtUpload < ActiveRecord::Base
       self.save or raise StandardError, 'DBEDT upload object save failed'
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
-        XlsCsvWorker.perform_async(self.id, 'cats')
+        XlsCsvWorker.perform_async(id, 'cats')
       end
       if series_file
         write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DBEDT upload disk write failed'
-        XlsCsvWorker.perform_async(self.id, 'series')
+        XlsCsvWorker.perform_async(id, 'series')
       end
     rescue StandardError => e
       self.delete if e.message =~ /disk write failed/
@@ -50,9 +51,9 @@ class DbedtUpload < ActiveRecord::Base
 
   def get_status(which)
     if which == 'cats'
-      self.cats_status
+      cats_status
     else
-      self.series_status
+      series_status
     end
   end
 
@@ -100,6 +101,64 @@ class DbedtUpload < ActiveRecord::Base
       return r
     end
     true
+  end
+
+  def load_series_csv
+    if !series_filename || !File.exists?(path(series_filename))
+      puts "bad filename (#{series_filename}) could not load series csv"
+      return
+    end
+
+    ds = DataSource.find_by(eval: "DbedtUpload.load(#{id})")
+    if ds.nil?
+      ds = DataSource.create(eval: "DbedtUpload.load(#{id})")
+    end
+
+    if DataPoint.where(data_source_id: ds.id).count > 0
+      puts 'data already loaded'
+      dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
+      DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
+      DataPoint.where(data_source_id: ds.id).update_all(current: true)
+      return
+    end
+
+    current_series = nil
+    data_points = []
+    CSV.foreach(path(series_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
+      name = 'DBEDT_' + row[0] + '@' + get_geo_code(row[3]) + '.' + row[4]
+      if current_series.nil? || current_series.name != name
+        source_id = Source.get_or_new_dbedt(row[9]).id
+        current_series = Series.find_by name: name
+        if current_series.nil?
+          current_series = Series.create(
+              name: name,
+              frequency: row[4],
+              description: row[1],
+              dataPortalName: row[1],
+              unitsLabel: row[8],
+              unitsLabelShort: row[8],
+              source_id: source_id,
+              decimals: row[10]
+          )
+        end
+        puts "series #{name} id: #{current_series.id}"
+      end
+      data_points.push({series_id: current_series.id, data_source_id: ds.id, date: get_date(row[5], row[6]), value: row[7]})
+    end
+    if data_points.length > 0 && !current_series.nil?
+      data_points.in_groups_of(1000) do |dps|
+        values = dps.compact.map {|dp| "(#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"}.join(',')
+        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
+      end
+    end
+    dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
+    DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
+    DataPoint.where(data_source_id: ds.id).update_all(current: true)
+  end
+
+  def DbedtUpload.load(id)
+    du = DbedtUpload.find_by(id: id)
+    du.load_series_csv
   end
 
 private

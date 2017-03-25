@@ -1,22 +1,17 @@
 $(function() {
    $('.upload-status.processing').each(function(_, element) {
        var icon_args = $(element).attr('id').split('-');
-       var which = icon_args[0];
+       var upload_type = icon_args[0];
        var dbu_id = icon_args[1];
-       var intervalId = setInterval(updateClass, 2000);  // Check once every 2 seconds
+       var intervalId = setInterval(updateClass, 2000);
        function updateClass() {
-           $.get('/dbedt_uploads/' + dbu_id + '/status/' + which, function(data) {
-               // data should be the content you deliver from the status endpoint
+           $.get('/dbedt_uploads/' + dbu_id + '/status/' + upload_type, function(data) {
                if (data === 'processing') {
                    // no update needed since the class is already set to processing
                    return;
                }
                if (data === 'ok') {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
-                   // check if sibling is also ok. if ok, then make the active column accessible
-                   console.log('parent().siblings().has(i.fa-check)', $(element).parent().siblings().has('i.ok'));
-                   console.log('parent().siblings().has(a.waiting)', $(element).parent().siblings().has('a.waiting'));
-
                    if ($(element).parent().siblings().has('i.fa-check').length === 1) {
                        $(element).parent().siblings().has('a.waiting').children('a').removeClass('waiting');
                    }

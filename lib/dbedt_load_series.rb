@@ -1,6 +1,7 @@
 module DbedtLoadSeries
   require 'csv'
 
+=begin
   def load_series_csv(path)
     current_series = nil
     CSV.foreach(path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
@@ -25,6 +26,7 @@ module DbedtLoadSeries
       this_series.data_points.create(date: get_date(row[5], row[6]), value: row[7])
     end
   end
+=end
 
   def get_geo_code(name)
     trans_hash = {
@@ -39,7 +41,7 @@ module DbedtLoadSeries
 
   def get_date(year, qm)
     if qm =~ /^M(\d+)/i
-      "#{year}-#{$1}-01"
+      "#{year}-%02d-01" % $1.to_i
     elsif qm =~ /^Q(\d+)/i
       quarter_month = '%02d' % (($1.to_i - 1) * 3 + 1)
       "#{year}-#{quarter_month}-01"

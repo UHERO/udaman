@@ -27,7 +27,7 @@ class DbedtUploadsController < ApplicationController
       redirect_to(action: 'index')
       return
     end
-    redirect_to(action: 'index', notice: 'DBEDT upload was successfully stored.')
+    redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
   end
 
   def make_active

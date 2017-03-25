@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170320165334) do
+ActiveRecord::Schema.define(version: 20170324231048) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -20,6 +20,15 @@ ActiveRecord::Schema.define(version: 20170320165334) do
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
     t.string   "github_nickname", limit: 255
+  end
+
+  create_table "api_users", force: :cascade do |t|
+    t.string   "key",        limit: 255
+    t.string   "email",      limit: 255
+    t.string   "name",       limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+    t.string   "hostname",   limit: 255
   end
 
   create_table "aremos_series", force: :cascade do |t|
@@ -301,6 +310,7 @@ ActiveRecord::Schema.define(version: 20170320165334) do
     t.integer  "source_detail_id",        limit: 4
     t.boolean  "quarantined",                           default: false
     t.integer  "base_year",               limit: 4
+    t.integer  "decimals",                limit: 4
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
