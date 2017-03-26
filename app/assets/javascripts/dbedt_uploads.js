@@ -14,6 +14,7 @@ $(function() {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
                    if ($(element).parent().siblings().has('i.fa-check').length === 1) {
                        $(element).parent().siblings().has('a.waiting').children('a').removeClass('waiting');
+                       location.reload();
                    }
                    clearInterval(intervalId);
                    return;

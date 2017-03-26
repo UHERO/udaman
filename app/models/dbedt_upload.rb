@@ -43,10 +43,14 @@ class DbedtUpload < ActiveRecord::Base
     puts ">>>>> DEBUG:: setting active status to #{status}"
 
     if status == 'loading'
-      DbedtUpload.where(:active => 'yes').update_all :active => 'no'
-      DbedtLoadWorker.perform_async(self.id)
     end
     self.update! :active => status
+  end
+
+  def make_active
+    DbedtUpload.update_all active: false
+    DbedtLoadWorker.perform_async(self.id)
+    self.update cats_status: 'processing'
   end
 
   def get_status(which)
@@ -183,6 +187,7 @@ class DbedtUpload < ActiveRecord::Base
       return
     end
 
+    puts 'loading data'
     current_series = nil
     current_measurement = nil
     data_points = []
@@ -201,6 +206,7 @@ class DbedtUpload < ActiveRecord::Base
       end
 
       if current_series.nil? || current_series.name != name
+        # need a fresh data_source for each series unless I make series - data_sources a many-to-many relationship
         source_id = Source.get_or_new_dbedt(row[9]).id
         current_series = Series.find_by name: name
         if current_series.nil?
@@ -217,7 +223,7 @@ class DbedtUpload < ActiveRecord::Base
           )
         end
       end
-      data_points.push({series_id: current_series.id, data_source_id: ds.id, date: get_date(row[5], row[6]), value: row[7]})
+      data_points.push({series_id: current_series.id, data_source_id: ds.id, date: get_date(row[5], row[6]), value: row[7], units: 1})
     end
     if data_points.length > 0 && !current_series.nil?
       data_points.in_groups_of(1000) do |dps|

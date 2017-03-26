@@ -31,8 +31,7 @@ class DbedtUploadsController < ApplicationController
   end
 
   def make_active
-    @dbedt_upload.update :cats_status => 'processing', :series_status => 'processing'
-    @dbedt_upload.set_active 'loading'
+    @dbedt_upload.make_active
     redirect_to(action: 'index')
   end
 

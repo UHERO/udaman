@@ -33,6 +33,9 @@ class XlsCsvWorker
     end
     dbu.load_csv(which)
     dbu.set_status(which, :ok)
+    if dbu.cats_status == :ok && dbu.series_status == :ok
+      dbu.update active: true
+    end
   rescue => error
     puts error.message
     puts error.backtrace
