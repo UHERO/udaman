@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170324231048) do
+ActiveRecord::Schema.define(version: 20170325043033) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -67,6 +67,8 @@ ActiveRecord::Schema.define(version: 20170324231048) do
     t.string   "ancestry",       limit: 255
     t.string   "default_handle", limit: 255
     t.string   "default_freq",   limit: 255
+    t.string   "meta",           limit: 255
+    t.string   "universe",       limit: 255
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree

@@ -103,6 +103,67 @@ class DbedtUpload < ActiveRecord::Base
     true
   end
 
+  def load_csv(which)
+    if which == 'cats'
+      return load_cats_csv
+    end
+    load_series_csv
+  end
+
+  def load_cats_csv
+    if !cats_filename || !File.exists?(path(cats_filename))
+      puts "bad filename (#{cats_filename}) could not load cats csv"
+      return
+    end
+
+    # remove categories and data_lists
+    Category.where('meta LIKE "DBEDT_%"').delete_all
+    DataList.where('name LIKE "DBEDT_%"').delete_all
+    category = nil
+    CSV.foreach(path(cats_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
+      # category entry
+      indicator_id = row[3]
+      parent_indicator_id = row[4]
+      parent_label = "DBEDT_#{parent_indicator_id}"
+      if row[2].nil?
+        category = Category.find_by(meta: "DBEDT_#{indicator_id}")
+        if category.nil?
+          ancestry = '60'
+          unless parent_indicator_id.nil?
+            parent_category = Category.find_by(meta: parent_label)
+            unless parent_category.nil?
+              ancestry = parent_category.ancestry + '/' + parent_category.id.to_s
+            end
+          end
+          category = Category.create(
+              meta: "DBEDT_#{indicator_id}",
+              universe: "DBEDT",
+              name: row[1],
+              ancestry: ancestry,
+              list_order: row[5]
+          )
+          puts "created category #{category.meta} in universt #{category.universe}"
+        end
+      end
+
+      # data_list_measurements entry
+      unless row[2].nil?
+        data_list = DataList.find_by(name: parent_label)
+        if data_list.nil?
+          data_list = DataList.create(name: parent_label)
+          unless category.nil?
+            category.update data_list_id: data_list.id
+          end
+        end
+        measurement = Measurement.find_by(prefix: "DBEDT_#{indicator_id}")
+        unless measurement.nil?
+          data_list.measurements << measurement
+          puts "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+        end
+      end
+    end
+  end
+
   def load_series_csv
     if !series_filename || !File.exists?(path(series_filename))
       puts "bad filename (#{series_filename}) could not load series csv"
@@ -155,7 +216,6 @@ class DbedtUpload < ActiveRecord::Base
               decimals: row[10]
           )
         end
-        puts "series #{name} id: #{current_series.id}"
       end
       data_points.push({series_id: current_series.id, data_source_id: ds.id, date: get_date(row[5], row[6]), value: row[7]})
     end

@@ -31,9 +31,7 @@ class XlsCsvWorker
       dbu.set_status(which, :fail)
       return
     end
-    if which == 'series'
-      dbu.load_series_csv
-    end
+    dbu.load_csv(which)
     dbu.set_status(which, :ok)
   rescue => error
     puts error.message
