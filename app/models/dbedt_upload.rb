@@ -123,9 +123,22 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     current_series = nil
+    current_measurement = nil
     data_points = []
+    measurements = []
     CSV.foreach(path(series_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
-      name = 'DBEDT_' + row[0] + '@' + get_geo_code(row[3]) + '.' + row[4]
+      prefix = "DBEDT_#{row[0]}"
+      name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
+      if current_measurement.nil? || current_measurement.prefix != prefix
+        current_measurement = Measurement.find_by prefix: prefix
+        if current_measurement.nil?
+          current_measurement = Measurement.create(
+              prefix: prefix,
+              data_portal_name: row[1]
+          )
+        end
+      end
+
       if current_series.nil? || current_series.name != name
         source_id = Source.get_or_new_dbedt(row[9]).id
         current_series = Series.find_by name: name
@@ -138,6 +151,7 @@ class DbedtUpload < ActiveRecord::Base
               unitsLabel: row[8],
               unitsLabelShort: row[8],
               source_id: source_id,
+              measurement_id: current_measurement.id,
               decimals: row[10]
           )
         end
