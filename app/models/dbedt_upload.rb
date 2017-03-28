@@ -146,7 +146,7 @@ class DbedtUpload < ActiveRecord::Base
               ancestry: ancestry,
               list_order: row[5]
           )
-          puts "created category #{category.meta} in universt #{category.universe}"
+          puts "created category #{category.meta} in universe #{category.universe}"
         end
       end
 
@@ -174,24 +174,21 @@ class DbedtUpload < ActiveRecord::Base
       return
     end
 
-    ds = DataSource.find_by(eval: "DbedtUpload.load(#{id})")
-    if ds.nil?
-      ds = DataSource.create(eval: "DbedtUpload.load(#{id})")
-    end
-
-    if DataPoint.where(data_source_id: ds.id).count > 0
+    # if data_sources exist => set their current: true
+    if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
       puts 'data already loaded'
-      dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
-      DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
-      DataPoint.where(data_source_id: ds.id).update_all(current: true)
+      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
+WHERE data_points.data_source_id IN (SELECT id FROM data_points WHERE eval LIKE 'DbedtUpload.load(%)');|
+      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
+WHERE data_points.data_source_id IN (SELECT id FROM data_points WHERE eval LIKE 'DbedtUpload.load(#{id}%)');|
       return
     end
 
     puts 'loading data'
     current_series = nil
+    current_data_source = nil
     current_measurement = nil
     data_points = []
-    measurements = []
     CSV.foreach(path(series_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
       name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
@@ -222,8 +219,17 @@ class DbedtUpload < ActiveRecord::Base
               decimals: row[10]
           )
         end
+        current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
+        if current_data_source.nil?
+          current_data_source = DataSource.create(
+              eval: "DbedtUpload.load(#{id}, #{current_series.id})",
+              series_id: current_series.id,
+              last_run: Time.now
+          )
+        end
+        current_data_source.update last_run_in_seconds: Time.now.to_i
       end
-      data_points.push({series_id: current_series.id, data_source_id: ds.id, date: get_date(row[5], row[6]), value: row[7], units: 1})
+      data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7], units: 1})
     end
     if data_points.length > 0 && !current_series.nil?
       data_points.in_groups_of(1000) do |dps|
@@ -233,7 +239,9 @@ class DbedtUpload < ActiveRecord::Base
     end
     dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
     DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
-    DataPoint.where(data_source_id: ds.id).update_all(current: true)
+    new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
+    DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
+    self.update(active: true)
   end
 
   def DbedtUpload.load(id)
