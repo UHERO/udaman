@@ -2,6 +2,7 @@ class DbedtUpload < ActiveRecord::Base
   require 'date'
   include DbedtLoadSeries
   before_destroy :delete_files_from_disk
+  before_destroy :delete_data_and_data_sources
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -116,8 +117,8 @@ class DbedtUpload < ActiveRecord::Base
 
   def load_cats_csv
     if !cats_filename || !File.exists?(path(cats_filename))
-      puts "bad filename (#{cats_filename}) could not load cats csv"
-      return
+      logger.warn "bad filename (#{cats_filename}) could not load cats csv"
+      return false
     end
 
     # remove categories and data_lists
@@ -146,7 +147,7 @@ class DbedtUpload < ActiveRecord::Base
               ancestry: ancestry,
               list_order: row[5]
           )
-          puts "created category #{category.meta} in universe #{category.universe}"
+          logger.info "created category #{category.meta} in universe #{category.universe}"
         end
       end
 
@@ -160,31 +161,36 @@ class DbedtUpload < ActiveRecord::Base
           end
         end
         measurement = Measurement.find_by(prefix: "DBEDT_#{indicator_id}")
-        unless measurement.nil?
-          data_list.measurements << measurement
-          puts "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+        if measurement.nil?
+          measurement = Measurement.create(
+              prefix: "DBEDT_#{indicator_id}",
+              data_portal_name: row[1]
+          )
         end
+        data_list.measurements << measurement
+        logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
+    true
   end
 
   def load_series_csv
     if !series_filename || !File.exists?(path(series_filename))
-      puts "bad filename (#{series_filename}) could not load series csv"
+      logger.warn "bad filename (#{series_filename}) could not load series csv"
       return
     end
 
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-      puts 'data already loaded'
+      logger.info 'data already loaded'
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
-WHERE data_points.data_source_id IN (SELECT id FROM data_points WHERE eval LIKE 'DbedtUpload.load(%)');|
+WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_points WHERE eval LIKE 'DbedtUpload.load(#{id}%)');|
+WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id}%)');|
       return
     end
 
-    puts 'loading data'
+    logger.info 'loading data'
     current_series = nil
     current_data_source = nil
     current_measurement = nil
@@ -216,24 +222,30 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_points WHERE eval LIKE 
               unitsLabelShort: row[8],
               source_id: source_id,
               measurement_id: current_measurement.id,
-              decimals: row[10]
+              decimals: row[10],
+              units: 1
           )
         end
         current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
         if current_data_source.nil?
           current_data_source = DataSource.create(
               eval: "DbedtUpload.load(#{id}, #{current_series.id})",
+              description: "DBEDT Upload #{id} for series #{current_series.id}",
               series_id: current_series.id,
               last_run: Time.now
           )
         end
         current_data_source.update last_run_in_seconds: Time.now.to_i
       end
-      data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7], units: 1})
+      data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7]})
     end
     if data_points.length > 0 && !current_series.nil?
       data_points.in_groups_of(1000) do |dps|
-        values = dps.compact.map {|dp| "(#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"}.join(',')
+        values = dps.compact.uniq{|dp|
+          dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
+        }.map {|dp|
+          "(#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
+        }.join(',')
         DbedtUpload.connection.execute(%Q|INSERT INTO data_points (series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
       end
     end
@@ -241,6 +253,8 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_points WHERE eval LIKE 
     DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
     new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
+    logger.info "should set upload to active"
+    DbedtUpload.update_all(active: false)
     self.update(active: true)
   end
 
@@ -296,6 +310,11 @@ private
 
   def delete_files_from_disk
     delete_cats_file && delete_series_file
+  end
+
+  def delete_data_and_data_sources
+    DbedtUpload.connection.execute %Q|DELETE FROM data_points WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
+    DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 
 end

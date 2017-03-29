@@ -47,9 +47,9 @@ class SeriesController < ApplicationController
     prefix = params.has_key?(:prefix) ? params[:prefix] : nil
     all = params.has_key?(:all) ? true : false
 
-    @all_series = Series.all.order(:name) if all
-    @all_series = Series.where(:frequency => frequency).order :name unless frequency.nil?
-    @all_series = Series.where('name Like ?', "#{prefix}%").order :name unless prefix.nil?
+    @all_series = Series.where('name NOT LIKE "DBEDT%"').order(:name) if all
+    @all_series = Series.where('name NOT LIKE "DBEDT%" AND frequency LIKE ?', frequency).order :name unless frequency.nil?
+    @all_series = Series.where('name LIKE ? AND name NOT LIKE "DBEDT%"', "#{prefix}%").order :name unless prefix.nil?
     # @all_series = Series.all(:conditions => ["name LIKE ?", "#{prefix}%"], :order => :name) unless prefix.nil?
     @all_series ||= [] 
   end
