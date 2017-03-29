@@ -16,6 +16,7 @@
       			<% seen.push(series_name) %>
       			<% color = colors.shift rescue color = "FFFFFF" %>
       			<% series = series_name.ts %>
+            <% next if series.nil? %>
       			<% missing = series.aremos_missing.nil? ? "N/A" : series.aremos_missing %>
       			<% diff = series.aremos_diff.nil? ? "N/A" : series.aremos_diff %>
       			<tr>

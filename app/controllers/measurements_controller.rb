@@ -22,10 +22,10 @@ class MeasurementsController < ApplicationController
   # GET /measurements
   def index
     if params[:unrestricted]
-      @measurements = Measurement.includes(:series).where(:series => {:restricted => false}).order(:prefix)
+      @measurements = Measurement.where('prefix NOT LIKE "DBEDT%"').includes(:series).where(:series => {:restricted => false}).order(:prefix)
       return
     end
-    @measurements = Measurement.order(:prefix).all
+    @measurements = Measurement.where('prefix NOT LIKE "DBEDT%"').order(:prefix).all
   end
 
   # GET /measurements/1

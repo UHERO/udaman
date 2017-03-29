@@ -2,7 +2,7 @@ class DbedtUploadsController < ApplicationController
   include Authorization
 
   before_action :check_dbedt_upload_authorization
-  before_action :set_dbedt_upload, only: [:show, :status, :make_active, :destroy]
+  before_action :set_dbedt_upload, only: [:show, :status, :active_status, :make_active, :destroy]
 
   # GET /dbedt_uploads
   def index
@@ -12,11 +12,7 @@ class DbedtUploadsController < ApplicationController
 
   # GET /dbedt_uploads/1
   def show
-    if params[:filetype] == 'cats'
-      send_file @dbedt_upload.cats_file_abspath
-    else
-      send_file @dbedt_upload.series_file_abspath
-    end
+    send_file @dbedt_upload.absolute_path(params[:filetype])
   end
 
   # GET /dbedt_uploads/new
@@ -27,23 +23,20 @@ class DbedtUploadsController < ApplicationController
   def create
     @dbedt_upload = DbedtUpload.new(dbedt_upload_params)
 
-    if dbedt_upload_params[:cats_filename]
-      cats_file = dbedt_upload_params[:cats_filename]
+    unless @dbedt_upload.store_upload_files(dbedt_upload_params[:cats_filename], dbedt_upload_params[:series_filename])
+      redirect_to(action: 'index')
+      return
     end
-    if dbedt_upload_params[:series_filename]
-      series_file = dbedt_upload_params[:series_filename]
-    end
-
-    if @dbedt_upload.store_upload_files(cats_file, series_file)
-      redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
-    else
-      redirect_to action: 'index'
-    end
+    redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
   end
 
   def make_active
     @dbedt_upload.make_active
-    redirect_to :action => 'index'
+    redirect_to(action: 'index')
+  end
+
+  def active_status
+    render(text: @dbedt_upload.active, status: 200)
   end
 
   def status
@@ -56,9 +49,7 @@ class DbedtUploadsController < ApplicationController
 
   # DELETE /dbedt_uploads/1
   def destroy
-    if @dbedt_upload.destroy
-      DbedtUpload.make_latest_active if @dbedt_upload.active
-    end
+    @dbedt_upload.destroy
     redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully destroyed.')
   end
 

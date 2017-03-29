@@ -19,6 +19,7 @@ UheroDb::Application.routes.draw do
   resources :dbedt_uploads do
     member do
       get 'status/:which' => 'dbedt_uploads#status'
+      get 'active_status' => 'dbedt_uploads#active_status'
     end
   end
 

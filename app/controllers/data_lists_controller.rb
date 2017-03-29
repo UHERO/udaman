@@ -8,7 +8,7 @@ class DataListsController < ApplicationController
   # GET /data_lists
   # GET /data_lists.xml
   def index
-    @data_lists = DataList.order(:name).all
+    @data_lists = DataList.where('name NOT LIKE "DBEDT%"').order(:name).all
 
     respond_to do |format|
       format.html # index.html.erb
