@@ -3,7 +3,7 @@ class MeasurementsController < ApplicationController
 
   before_action :check_authorization
   before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
-                                         :propagate, :destroy]
+                                         :propagate]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
@@ -68,12 +68,6 @@ class MeasurementsController < ApplicationController
     else
       render :edit
     end
-  end
-
-  # DELETE /measurements/1
-  def destroy
-    @measurement.destroy
-    redirect_to measurements_url, notice: 'Measurement was successfully destroyed.'
   end
 
   def add_series
