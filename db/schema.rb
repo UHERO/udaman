@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170325043033) do
+ActiveRecord::Schema.define(version: 20170327232639) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -239,6 +239,15 @@ ActiveRecord::Schema.define(version: 20170325043033) do
     t.datetime "created_at",                     null: false
     t.datetime "updated_at",                     null: false
   end
+
+  create_table "measurement_series", force: :cascade do |t|
+    t.integer "measurement_id", limit: 4
+    t.integer "series_id",      limit: 4
+  end
+
+  add_index "measurement_series", ["measurement_id", "series_id"], name: "index_measurement_series_on_measurement_id_and_series_id", unique: true, using: :btree
+  add_index "measurement_series", ["measurement_id"], name: "index_measurement_series_on_measurement_id", using: :btree
+  add_index "measurement_series", ["series_id"], name: "index_measurement_series_on_series_id", using: :btree
 
   create_table "measurements", force: :cascade do |t|
     t.string   "prefix",              limit: 255,   null: false
