@@ -72,7 +72,7 @@ class MeasurementsController < ApplicationController
 
   def add_series
     series = Series.find(params[:series_id])
-    if series.measurement_id == @measurement.id
+    if @measurement.series.include? series
       redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
       return
     end
@@ -88,9 +88,7 @@ class MeasurementsController < ApplicationController
       format.js { render nothing: true, status: 200 }
     end
     series = Series.find(params[:series_id])
-    if series.measurement_id == @measurement.id
-      series.update! measurement_id: nil
-    end
+    @measurement.series.destroy(series)
   end
 
   def propagate

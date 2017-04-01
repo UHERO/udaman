@@ -18,7 +18,7 @@
   <% @series.each do |series| %>
       <tr>
         <td><%= series.name %></td>
-        <td><%= series.dataPortalName || series.measurement.data_portal_name %></td>
+        <td><%= series.dataPortalName  %></td>
         <td><%= link_to 'Show', series %></td>
         <td><%= link_to 'Edit', edit_series_path(series) %></td>
         <td><%= link_to('Unquarantine', action: 'remove_from_quarantine', id: series.id, next_action: 'quarantine') %></td>
