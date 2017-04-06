@@ -34,9 +34,9 @@
           <tr><th>Prefix</th><th>Data Portal Name</th><th colspan="2">Move</th><th colspan="2">Indent</th><th colspan="3"></th></tr>
           </thead>
           <tbody>
-          <% @dl_measurements.each do |measurement, ind|
+          <% @data_list.data_list_measurements.to_a.sort_by{|m| m.list_order}.map{|m| [m.measurement, m.indent]}.each do |measurement, ind|
                 indent_i = ind ? ind[-1].to_i : 0
-              %>
+          %>
               <tr>
                 <td><%= measurement.prefix %></td>
                 <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= measurement.data_portal_name %></td>
