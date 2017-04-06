@@ -139,7 +139,15 @@ class DataListsController < ApplicationController
 
   # GET /data_lists/1/edit
   def edit
+    @dl_measurements = []
     @data_list = DataList.find_by id: params[:id]
+    @data_list.data_list_measurements.sort_by{|m| m.list_order}.each do |dlm|
+        if dlm.measurement.nil?
+          @data_list.data_list_measurements.destroy(dlm)
+          next
+        end
+        @dl_measurements << [dlm.measurement, dlm.indent]
+    end
   end
 
   # POST /data_lists
