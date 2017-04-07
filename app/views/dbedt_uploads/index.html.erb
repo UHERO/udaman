@@ -53,7 +53,10 @@
             <%= link_to 'Masterdatabase', {:action => 'show', :id => dbedt_upload.id, :filetype => 'series'} %>
         </td>
         <td><%= timestamp %></td>
-        <td><%= link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" } %></td>
+        <td><%= unless dbedt_upload.active
+                  link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
+                end %>
+        </td>
       </tr>
     <% end %>
   </tbody>
