@@ -167,11 +167,13 @@ class DataSource < ActiveRecord::Base
                                :last_error => nil,
                                :last_error_at => nil)
       rescue Exception => e
+        message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update_attributes(:last_run => t,
                                :runtime => nil,
-                               :last_error => e.message,
+                               :last_error => message,
                                :last_error_at => t)
-        logger.warn "reload source #{self.description} (#{self.id}): #{e.message}"
+        logger.warn "Reload source [#{self.description}] (#{self.id}): Error: #{message}"
+        return false
       end
     end
 
