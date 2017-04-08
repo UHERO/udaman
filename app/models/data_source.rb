@@ -149,16 +149,17 @@ class DataSource < ActiveRecord::Base
       self.set_color
     end
 
-    def reload_source
+    def reload_source(clear_first=false)
       t = Time.now
       s = Kernel::eval self['eval']
+      if clear_first
+        delete_data_points
+      end
       base_year = base_year_from_eval_string(self['eval'], self.dependencies)
       if !base_year.nil? && base_year != self.series.base_year
         self.series.update(:base_year => base_year.to_i)
       end
       self.series.update_data(s.data, self)
-      #self.update_attributes(:description => s.name, :last_run => Time.now, :data => s.data, :runtime => (Time.now - t))
-      #runtime is only updated here. could probably leave out of schema as well
       self.update_attributes(:description => s.name[0,255], :last_run => Time.now, :runtime => (Time.now - t))
     end
 
@@ -184,11 +185,7 @@ class DataSource < ActiveRecord::Base
     end
 
     def clear_and_reload_source
-      t = Time.now
-      s = Kernel::eval self.eval
-      delete_data_points
-      self.series.update_data(s.data, self)
-      self.update_attributes(:description => s.name[0,255], :last_run => Time.now, :runtime => (Time.now - t))
+      reload_source(true)
     end
     
     # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
