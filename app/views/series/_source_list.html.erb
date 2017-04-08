@@ -33,6 +33,12 @@
 						%>&nbsp;<span style="color:gray">(<%= 
 						"#{ds.runtime.round(2)}s" unless ds.runtime.nil? 
 					%>)</span>
+        <% if ds.last_error %>
+          <p>
+            <span style='color:red;cursor:pointer;cursor:hand;' title='<%= ds.last_error %>'>Last error<br/>
+              <%= ds.last_error_at.localtime.strftime('%m/%d/%y %H:%M:%S') %>
+            </span>
+        <% end %>
   		</td>
 		<td>
 			<h3><%= ds.id %></h3>
