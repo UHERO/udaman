@@ -456,14 +456,14 @@ class Series < ActiveRecord::Base
   def load_from(spreadsheet_path, sheet_to_load = nil)
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    raise SeriesReloadException if update_spreadsheet.load_error?
+    raise SeriesReloadException, 'load error' if update_spreadsheet.load_error?
     #return self if update_spreadsheet.load_error?
 
     unless update_spreadsheet.class == UpdateCSV
       default_sheet = update_spreadsheet.sheets.first
       update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load
     end
-    raise SeriesReloadException unless update_spreadsheet.update_formatted?
+    raise SeriesReloadException, 'update not formatted' unless update_spreadsheet.update_formatted?
     #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency

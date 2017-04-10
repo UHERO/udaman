@@ -37,18 +37,18 @@ class DataSourcesController < ApplicationController
     
     @data_source = DataSource.find_by id: params[:id]
     @data_source.update_attributes(:priority => params[:data_source][:priority].to_i)
-     if @data_source.update_attributes(:eval => params[:data_source][:eval])
-        @data_source.reload_source
-        redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
-      else
-        redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource had a problem'
-      end
+    if @data_source.update_attributes(:eval => params[:data_source][:eval])
+      @data_source.reload_source
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
+    else
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource had a problem'
+    end
   end
   
   def inline_update
-    #params.each { |key,value| puts "#{key}: #{value}" }
+      #params.each { |key,value| puts "#{key}: #{value}" }
     
-    @data_source = DataSource.find_by id: params[:id]
+     @data_source = DataSource.find_by id: params[:id]
      if @data_source.update_attributes(:eval => params[:data_source][:eval])
         begin
           @data_source.reload_source
