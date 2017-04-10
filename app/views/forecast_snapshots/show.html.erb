@@ -205,8 +205,8 @@
 
     for(i = 0; i < chart_data.length; i++) {
       // Create a div container for each chart
-      var n = i + 1; // Display/div number
-      $('div#charts_container').append('<div id="' + n + '"/>');
+      var chart_num = i + 1; // Display/div number
+      $('div#charts_container').append('<div id="' + chart_num + '"/>');
 
       // Set intervals and frequency. User to format xAxis labels and tooltips
       var interval, intervalUnit, dateLabel, frequency;
@@ -225,12 +225,12 @@
       }
 
       // Create a highchart for each series
-      $('#' + n).highcharts({
+      $('#' + chart_num).highcharts({
         chart: {
           alignTicks: false
         },
         title: {
-          text: n + '. ' + '<a href="http://data.uhero.hawaii.edu/#/series?id=' + chart_data[i].id + '" target="_blank">' + chart_data[i].title + ' (' + chart_data[i].series + ')' + '</a>',
+          text: chart_num + '. ' + '<a href="http://data.uhero.hawaii.edu/#/series?id=' + chart_data[i].id + '" target="_blank">' + chart_data[i].title + ' (' + chart_data[i].series + ')' + '</a>',
           align: 'left',
           useHTML: true,
           style: {
