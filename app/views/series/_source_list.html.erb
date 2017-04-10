@@ -35,9 +35,11 @@
 					%>)</span>
         <% if ds.last_error %>
           <p>
-            <span style='color:red;cursor:pointer;cursor:hand;' title='<%= ds.last_error %>'>Last error<br/>
+            <span style='color:red;' title='<%= ds.last_error %>'>Last error<br/>
               <%= ds.last_error_at.localtime.strftime('%m/%d/%y %H:%M:%S') %>
-            </span>
+            </span> <br/>
+            <%= ds.last_error %>
+          </p>
         <% end %>
   		</td>
 		<td>
