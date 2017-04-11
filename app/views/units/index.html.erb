@@ -2,6 +2,9 @@
 
 <h1>Listing Units</h1>
 
+<%= link_to 'New Unit', new_unit_path %>
+<p>
+
 <table>
   <thead>
     <tr>
@@ -16,14 +19,9 @@
       <tr>
         <td><%= unit.short_label %></td>
         <td><%= unit.long_label %></td>
-        <td><%= link_to 'Show', unit %></td>
         <td><%= link_to 'Edit', edit_unit_path(unit) %></td>
-        <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: "Destroy unit, short_label #{unit.short_label}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>
 </table>
-
-<br>
-
-<%= link_to 'New Unit', new_unit_path %>

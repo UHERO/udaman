@@ -6,5 +6,6 @@ class CreateUnits < ActiveRecord::Migration
 
       t.timestamps null: false
     end
+    add_index :units, [:short_label, :long_label], :unique => true
   end
 end

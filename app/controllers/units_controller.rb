@@ -3,7 +3,7 @@ class UnitsController < ApplicationController
 
   # GET /units
   def index
-    @units = Unit.all
+    @units = Unit.all.order(:short_label, :long_label)
   end
 
   # GET /units/1
@@ -21,21 +21,53 @@ class UnitsController < ApplicationController
 
   # POST /units
   def create
-    @unit = Unit.new(unit_params)
+    # Don't allow empty or whitespace strings in the db
+    if params[:unit][:short_label].blank?
+      params[:unit][:short_label] = nil
+    end
+    params[:unit][:long_label] = nil if params[:unit][:long_label].blank?
 
-    if @unit.save
+    @unit = Unit.new(unit_params)
+    error = 'Generic error'
+
+    begin
+      saved = @unit.save
+    rescue Exception => e
+      if e.message =~ /duplicate entry/i
+        error = 'Unit not saved: Duplicate entry'
+      else
+        error = "Unit not saved: #{e.message}"
+      end
+    end
+
+    if saved
       redirect_to @unit, notice: 'Unit was successfully created.'
     else
-      render :new
+     redirect_to({:action => :new}, notice: error)
     end
   end
 
   # PATCH/PUT /units/1
   def update
-    if @unit.update(unit_params)
+    # Don't allow empty  or whitespace strings in the db
+    params[:unit][:short_label] = nil if params[:unit][:short_label].blank?
+    params[:unit][:long_label] = nil if params[:unit][:long_label].blank?
+    error = 'Generic error'
+
+    begin
+      updated = @unit.update(unit_params)
+    rescue Exception => e
+      if e.message =~ /duplicate entry/i
+        error = 'Unit not saved: Duplicate entry'
+      else
+        error = "Unit not saved: #{e.message}"
+      end
+    end
+
+    if updated
       redirect_to @unit, notice: 'Unit was successfully updated.'
     else
-      render :edit
+      render({:action => :edit}, notice: error)
     end
   end
 
