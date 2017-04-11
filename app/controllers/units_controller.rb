@@ -22,13 +22,15 @@ class UnitsController < ApplicationController
   # POST /units
   def create
     # Don't allow empty or whitespace strings in the db
-    if params[:unit][:short_label].blank?
-      params[:unit][:short_label] = nil
+    if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
+      ## this matches whitespace-only as well
+      redirect_to({ :action => :new }, notice: 'Blank entries not allowed')
+      return
     end
-    params[:unit][:long_label] = nil if params[:unit][:long_label].blank?
-
+    params[:unit][:short_label].strip!
+    params[:unit][:long_label].strip!
     @unit = Unit.new(unit_params)
-    error = 'Generic error'
+    error = ''
 
     begin
       saved = @unit.save
@@ -43,15 +45,20 @@ class UnitsController < ApplicationController
     if saved
       redirect_to @unit, notice: 'Unit was successfully created.'
     else
-     redirect_to({:action => :new}, notice: error)
+      redirect_to({ :action => :new }, notice: error)
     end
   end
 
   # PATCH/PUT /units/1
   def update
-    # Don't allow empty  or whitespace strings in the db
-    params[:unit][:short_label] = nil if params[:unit][:short_label].blank?
-    params[:unit][:long_label] = nil if params[:unit][:long_label].blank?
+    # Don't allow empty or whitespace strings in the db
+    if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
+      ## this matches whitespace-only as well
+      redirect_to({ :action => :edit }, notice: 'Blank entries not allowed')
+      return
+    end
+    params[:unit][:short_label].strip!
+    params[:unit][:long_label].strip!
     error = 'Generic error'
 
     begin
