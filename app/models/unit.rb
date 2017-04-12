@@ -2,7 +2,7 @@ class Unit < ActiveRecord::Base
   before_destroy :unlink_referring_objects
 
   def make_menu_item
-    ('%s / %s' % [short_label || '-', long_label || '-']).html_safe
+    ('%s (%s)' % [long_label, short_label]).html_safe
   end
 
   private
