@@ -96,7 +96,7 @@ module SeriesRelationship
   #not recursive
   def new_dependents
     results = []
-    DataSource.where('description LIKE ?', "% #{self.name.gsub('%', "\\%")}%").each do |ds|
+    DataSource.where('description RLIKE ?', "[[:<:]]#{self.name.gsub('%', "\\%")}").each do |ds|
       s = Series.find_by id: ds.series_id
       results.push s.name
     end
