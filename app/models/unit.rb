@@ -1,7 +1,9 @@
 class Unit < ActiveRecord::Base
+  has_many :series
+  has_many :measurements
   before_destroy :unlink_referring_objects
 
-  def make_menu_item
+  def to_s
     ('%s (%s)' % [long_label, short_label]).html_safe
   end
 

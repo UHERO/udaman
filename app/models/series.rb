@@ -24,11 +24,10 @@ class Series < ActiveRecord::Base
 
   belongs_to :source, inverse_of: :series
   belongs_to :source_detail, inverse_of: :series
+  belongs_to :unit, inverse_of: :series
 
   has_many :measurement_series
   has_many :measurements, through: :measurement_series
-
-  has_one :unit
 
   def as_json(options = {})
     as = AremosSeries.get(self.name)

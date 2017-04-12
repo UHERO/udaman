@@ -36,6 +36,15 @@
 
 <p>
   <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[unit_id]', 1, false,
+                                                     disabled: @measurement.unit.nil?) %></span>
+        <strong>Unit:</strong>
+        <%= @measurement.unit.to_s %>
+  </label>
+</p>
+
+<p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[source_id]', 1, false,
                                                      disabled: @measurement.source.nil? || @measurement.source.description.blank?) %></span>
   <strong>Source:</strong>
@@ -123,6 +132,7 @@
         <th>Data portal name</th>
         <th>Units label</th>
         <th>Units label, short</th>
+        <th>Units</th>
         <th>Source</th>
         <th>Detailed source link</th>
         <th>Source detail</th>
@@ -141,6 +151,7 @@
             <td><%= series.dataPortalName.to_s %></td>
             <td><%= series.unitsLabel.to_s %></td>
             <td><%= series.unitsLabelShort.to_s %></td>
+            <td><%= series.unit.to_s if series.unit %></td>
             <td><%= series.source.description.to_s if series.source %></td>
             <td><%= series.source_link.to_s %></td>
             <td><%= series.source_detail.description.to_s if series.source_detail %></td>

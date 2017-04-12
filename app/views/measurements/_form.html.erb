@@ -29,7 +29,7 @@
   </div>
     <div class="field">
       <%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, Unit.all.order(:long_label, :short_label), :id, :make_menu_item, {:include_blank => true} %>
+      <%= f.collection_select :unit_id, Unit.all.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
   <div class="field">
     <%= f.label :source_id %><br>

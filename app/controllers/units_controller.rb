@@ -23,7 +23,6 @@ class UnitsController < ApplicationController
   def create
     # Don't allow empty or whitespace strings in the db
     if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
-      ## this matches whitespace-only as well
       redirect_to({ :action => :new }, notice: 'Blank entries not allowed')
       return
     end
@@ -53,7 +52,6 @@ class UnitsController < ApplicationController
   def update
     # Don't allow empty or whitespace strings in the db
     if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
-      ## this matches whitespace-only as well
       redirect_to({ :action => :edit }, notice: 'Blank entries not allowed')
       return
     end
