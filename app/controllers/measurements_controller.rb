@@ -9,6 +9,7 @@ class MeasurementsController < ApplicationController
       ['Data portal name', :data_portal_name],
       ['Units label', :units_label],
       ['Units label, short', :units_label_short],
+      ['Units', :unit_id],
       ['Source', :source_id],
       ['Source detail', :source_detail_id],
       ['Source link', :source_link],
@@ -126,7 +127,7 @@ class MeasurementsController < ApplicationController
     # Only allow a trusted parameter "white list" through.
     def measurement_params
       params.require(:measurement).permit(:prefix, :data_portal_name, :units_label,
-                                          :units_label_short, :percent, :real, :notes,
+                                          :units_label_short, :unit_id, :percent, :real, :notes,
                                           :restricted, :unrestricted, :series_id,
                                           :seasonally_adjusted, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link,
