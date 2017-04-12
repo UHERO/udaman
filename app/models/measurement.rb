@@ -9,6 +9,8 @@ class Measurement < ActiveRecord::Base
   has_many :series, -> {distinct}, through: :measurement_series
   accepts_nested_attributes_for :series
 
+  has_one :unit
+
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"
   end

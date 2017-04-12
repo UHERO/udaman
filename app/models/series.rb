@@ -28,6 +28,8 @@ class Series < ActiveRecord::Base
   has_many :measurement_series
   has_many :measurements, through: :measurement_series
 
+  has_one :unit
+
   def as_json(options = {})
     as = AremosSeries.get(self.name)
     desc = as.nil? ? '' : as.description
