@@ -7,8 +7,8 @@ class Unit < ActiveRecord::Base
 
   private
   def unlink_referring_objects
-    Series.where(:unit_id => self.id).each {|s| s.update(:unit_id => nil) }
-    Measurement.where(:unit_id => self.id).each {|m| m.update(:unit_id => nil) }
+    Series.where(:unit_id => self.id).update_all(:unit_id => nil)
+    Measurement.where(:unit_id => self.id).update_all(:unit_id => nil)
   end
 
 end
