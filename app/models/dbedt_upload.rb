@@ -166,6 +166,8 @@ class DbedtUpload < ActiveRecord::Base
               prefix: "DBEDT_#{indicator_id}",
               data_portal_name: row[0]
           )
+        elsif
+          measurement.update data_portal_name: row[0]
         end
         data_list.measurements << measurement
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
