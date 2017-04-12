@@ -27,6 +27,10 @@
     <%= f.label :units_label_short, 'Units label, short' %><br>
     <%= f.text_field :units_label_short %>
   </div>
+    <div class="field">
+      <%= f.label :unit_id %><br>
+      <%= f.collection_select :unit_id, Unit.all, :id, :make_menu_item, {:include_blank => true} %>
+    </div>
   <div class="field">
     <%= f.label :source_id %><br>
     <%= f.collection_select :source_id, Source.all, :id, :description, {:include_blank => true} %>
