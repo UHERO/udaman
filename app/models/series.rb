@@ -29,9 +29,9 @@ class Series < ActiveRecord::Base
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
-  enum seasonal_adjustment: { seas_adj: 'Seasonally-adjusted',
-                              non_seas_adj: 'Not-seasonally-adjusted',
-                              not_applicable: 'not-applicable' }
+  enum seasonal_adjustment: { seas_adj_not_applicable: 'Not-applicable',
+                              seas_adj: 'Seasonally-adjusted',
+                              non_seas_adj: 'Non-seasonally-adjusted' }
 
   def as_json(options = {})
     as = AremosSeries.get(self.name)
