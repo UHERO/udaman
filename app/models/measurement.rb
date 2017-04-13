@@ -1,4 +1,7 @@
 class Measurement < ActiveRecord::Base
+  enum seasonally_adjusted: { seas_adj: 'Seasonally-adjusted',
+                              non_seas_adj: 'Not-seasonally-adjusted',
+                              not_applicable: 'not-applicable' }
   has_many :data_list_measurements, dependent: :delete_all
   has_many :data_lists, through: :data_list_measurements
 
