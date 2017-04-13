@@ -4,6 +4,7 @@ class Measurement < ActiveRecord::Base
 
   belongs_to :source, inverse_of: :measurements
   belongs_to :source_detail, inverse_of: :measurements
+  belongs_to :unit, inverse_of: :measurements
 
   has_many :measurement_series, dependent: :delete_all
   has_many :series, -> {distinct}, through: :measurement_series

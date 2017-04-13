@@ -29,11 +29,15 @@
     </div>
     <div class="field">
       <%= f.label :unitsLabel, 'Units Label (e.g., Percent)' %><br/>
-      <%= f.text_field :unitsLabel %>
+      <%= f.text_field :unitsLabel, :disabled => true %>
     </div>
     <div class="field">
       <%= f.label :unitsLabelShort, 'Units Label Short (e.g., %)' %><br/>
-      <%= f.text_field :unitsLabelShort %>
+      <%= f.text_field :unitsLabelShort, :disabled => true %>
+    </div>
+    <div class="field">
+      <%= f.label :unit_id %><br>
+      <%= f.collection_select :unit_id, Unit.all.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :source_id %><br>
