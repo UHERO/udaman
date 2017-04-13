@@ -128,7 +128,7 @@ class DbedtUpload < ActiveRecord::Base
 
     # remove categories and data_lists
     Category.where('meta LIKE "DBEDT_%"').delete_all
-    DataList.where('name LIKE "DBEDT_%"').delete_all
+    DataList.where('name LIKE "DBEDT_%"').destroy_all
     category = nil
     CSV.foreach(path(cats_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
