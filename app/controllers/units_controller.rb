@@ -29,7 +29,7 @@ class UnitsController < ApplicationController
     params[:unit][:short_label].strip!
     params[:unit][:long_label].strip!
     @unit = Unit.new(unit_params)
-    error = ''
+    error = 'Unknown error'
 
     begin
       saved = @unit.save
@@ -57,7 +57,7 @@ class UnitsController < ApplicationController
     end
     params[:unit][:short_label].strip!
     params[:unit][:long_label].strip!
-    error = 'Generic error'
+    error = 'Unknown error'
 
     begin
       updated = @unit.update(unit_params)
