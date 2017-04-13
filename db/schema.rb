@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170407211245) do
+ActiveRecord::Schema.define(version: 20170411004343) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -248,6 +248,7 @@ ActiveRecord::Schema.define(version: 20170407211245) do
     t.string   "frequency_transform", limit: 255
     t.string   "units_label",         limit: 255
     t.string   "units_label_short",   limit: 255
+    t.integer  "unit_id",             limit: 4
     t.boolean  "percent"
     t.boolean  "real"
     t.boolean  "restricted"
@@ -262,6 +263,7 @@ ActiveRecord::Schema.define(version: 20170407211245) do
 
   add_index "measurements", ["source_detail_id"], name: "fk_rails_f4c727584e", using: :btree
   add_index "measurements", ["source_id"], name: "fk_rails_e96addabdb", using: :btree
+  add_index "measurements", ["unit_id"], name: "fk_rails_c5bad45aff", using: :btree
 
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
@@ -303,6 +305,7 @@ ActiveRecord::Schema.define(version: 20170407211245) do
     t.date     "last_demetra_date"
     t.string   "unitsLabel",              limit: 255
     t.string   "unitsLabelShort",         limit: 255
+    t.integer  "unit_id",                 limit: 4
     t.string   "dataPortalName",          limit: 255
     t.boolean  "percent"
     t.boolean  "real"
@@ -322,6 +325,7 @@ ActiveRecord::Schema.define(version: 20170407211245) do
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
   add_index "series", ["source_detail_id"], name: "fk_rails_36c9ba7209", using: :btree
   add_index "series", ["source_id"], name: "fk_rails_6f2f66e327", using: :btree
+  add_index "series", ["unit_id"], name: "fk_rails_1961e72b74", using: :btree
 
   create_table "source_details", force: :cascade do |t|
     t.text     "description", limit: 65535
@@ -352,6 +356,15 @@ ActiveRecord::Schema.define(version: 20170407211245) do
     t.datetime "created_at",                       null: false
     t.datetime "updated_at",                       null: false
   end
+
+  create_table "units", force: :cascade do |t|
+    t.string   "short_label", limit: 255
+    t.string   "long_label",  limit: 255
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+  end
+
+  add_index "units", ["short_label", "long_label"], name: "index_units_on_short_label_and_long_label", unique: true, using: :btree
 
   create_table "user_feedbacks", force: :cascade do |t|
     t.string   "name",       limit: 255
@@ -387,7 +400,9 @@ ActiveRecord::Schema.define(version: 20170407211245) do
   add_foreign_key "authorizations", "users"
   add_foreign_key "measurements", "source_details"
   add_foreign_key "measurements", "sources"
+  add_foreign_key "measurements", "units"
   add_foreign_key "series", "measurements"
   add_foreign_key "series", "source_details"
   add_foreign_key "series", "sources"
+  add_foreign_key "series", "units"
 end

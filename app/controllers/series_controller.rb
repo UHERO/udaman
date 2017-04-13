@@ -272,6 +272,7 @@ class SeriesController < ApplicationController
           :dataPortalName,
           :unitsLabel,
           :unitsLabelShort,
+          :unit_id,
           :seasonally_adjusted,
           :percent,
           :real,

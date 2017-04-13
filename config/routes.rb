@@ -1,5 +1,6 @@
 UheroDb::Application.routes.draw do
 
+  resources :units
   resources :feature_toggles
   resources :user_feedbacks
   resources :source_details

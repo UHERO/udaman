@@ -1,0 +1,14 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Short label:</strong>
+  <%= @unit.short_label %>
+</p>
+
+<p>
+  <strong>Long label:</strong>
+  <%= @unit.long_label %>
+</p>
+
+<%= link_to 'Edit', edit_unit_path(@unit) %> |
+<%= link_to 'Back', units_path %>
