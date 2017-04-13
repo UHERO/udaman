@@ -116,14 +116,19 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_cats_csv
-    if !cats_filename || !File.exists?(path(cats_filename))
-      logger.warn "bad filename (#{cats_filename}) could not load cats csv"
+    unless cats_filename
+      logger.warn 'no cats_filename'
+      return false
+    end
+
+    if !File.exists?(path(cats_filename)) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{path(cats_filename)} /data/dbedt_files")
+      logger.error "couldn't find file #{cats_filename}"
       return false
     end
 
     # remove categories and data_lists
     Category.where('meta LIKE "DBEDT_%"').delete_all
-    DataList.where('name LIKE "DBEDT_%"').delete_all
+    DataList.where('name LIKE "DBEDT_%"').destroy_all
     category = nil
     CSV.foreach(path(cats_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
@@ -177,9 +182,14 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_series_csv
-    if !series_filename || !File.exists?(path(series_filename))
-      logger.warn "bad filename (#{series_filename}) could not load series csv"
-      return
+    unless series_filename
+      logger.warn 'no series_filename'
+      return false
+    end
+
+    if !File.exists?(path(series_filename)) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{path(series_filename)} /data/dbedt_files")
+      logger.error "couldn't find file #{series_filename}"
+      return false
     end
 
     # if data_sources exist => set their current: true
