@@ -1,6 +1,6 @@
 class ChangeSeasonallyAdjustedType < ActiveRecord::Migration
   def change
-    change_column :series, :seasonally_adjusted, "ENUM('Seasonally-adjusted', 'Not-seasonally-adjusted', 'not-applicable')"
-    change_column :measurements, :seasonally_adjusted, "ENUM('Seasonally-adjusted', 'Not-seasonally-adjusted', 'not-applicable')"
+    add_column :series, :seasonal_adjustment, %q(ENUM('Seasonally-adjusted', 'Not-seasonally-adjusted', 'not-applicable')), after: :seasonally_adjusted
+    add_column :measurements, :seasonal_adjustment, %q(ENUM('Seasonally-adjusted', 'Not-seasonally-adjusted', 'not-applicable')), after: :seasonally_adjusted
   end
 end
