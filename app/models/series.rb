@@ -26,7 +26,7 @@ class Series < ActiveRecord::Base
   belongs_to :source_detail, inverse_of: :series
   belongs_to :unit, inverse_of: :series
 
-  has_many :measurement_series
+  has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
   def as_json(options = {})

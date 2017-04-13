@@ -1,6 +1,6 @@
 class DataList < ActiveRecord::Base
   has_and_belongs_to_many :series
-  has_many :data_list_measurements
+  has_many :data_list_measurements, dependent: :delete_all
   has_many :measurements, -> {distinct}, through: :data_list_measurements
   accepts_nested_attributes_for :measurements
 
