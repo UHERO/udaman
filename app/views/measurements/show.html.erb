@@ -81,6 +81,15 @@
 
 <p>
   <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonal_adjustment]', 1, false,
+                                                 disabled: @measurement.seasonal_adjustment.nil?) %></span>
+    <strong>Seasonal adjustment:</strong>
+    <%= @measurement[:seasonal_adjustment].to_s %>
+  </label>
+</p>
+
+    <p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[percent]', 1, false,
                                                      disabled: @measurement.percent.nil?) %></span>
   <strong>Percent:</strong>
@@ -137,6 +146,7 @@
         <th>Detailed source link</th>
         <th>Source detail</th>
         <th>SA</th>
+        <th>Seasonal Adjustment</th>
         <th>Percent</th>
         <th>Real</th>
         <th>Restricted</th>
@@ -156,6 +166,7 @@
             <td><%= series.source_link.to_s %></td>
             <td><%= series.source_detail.description.to_s if series.source_detail %></td>
             <td><%= series.seasonally_adjusted.to_s %></td>
+            <td><%= series[:seasonal_adjustment].to_s %></td>
             <td><%= series.percent.to_s %></td>
             <td><%= series.real.to_s %></td>
             <td><%= series.restricted.to_s %></td>
