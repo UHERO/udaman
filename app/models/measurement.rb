@@ -12,7 +12,7 @@ class Measurement < ActiveRecord::Base
 
   enum seasonal_adjustment: { seas_adj_not_applicable: 'not_applicable',
                               seas_adj: 'seasonally_adjusted',
-                              non_seas_adj: 'non_seasonally_adjusted' }
+                              not_seas_adj: 'not_seasonally_adjusted' }
 
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"

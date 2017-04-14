@@ -31,7 +31,7 @@ class Series < ActiveRecord::Base
 
   enum seasonal_adjustment: { seas_adj_not_applicable: 'not_applicable',
                               seas_adj: 'seasonally_adjusted',
-                              non_seas_adj: 'non_seasonally_adjusted' }
+                              not_seas_adj: 'not_seasonally_adjusted' }
 
   def as_json(options = {})
     as = AremosSeries.get(self.name)
