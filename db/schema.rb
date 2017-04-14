@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170411004343) do
+ActiveRecord::Schema.define(version: 220170413025713) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -253,6 +253,7 @@ ActiveRecord::Schema.define(version: 20170411004343) do
     t.boolean  "real"
     t.boolean  "restricted"
     t.boolean  "seasonally_adjusted"
+    t.string   "seasonal_adjustment", limit: 23
     t.integer  "source_detail_id",    limit: 4
     t.integer  "source_id",           limit: 4
     t.string   "source_link",         limit: 255
@@ -291,6 +292,7 @@ ActiveRecord::Schema.define(version: 20170411004343) do
     t.text     "description",             limit: 65535
     t.integer  "units",                   limit: 4
     t.boolean  "seasonally_adjusted"
+    t.string   "seasonal_adjustment",     limit: 23
     t.string   "last_demetra_datestring", limit: 255
     t.text     "factors",                 limit: 65535
     t.string   "factor_application",      limit: 255
