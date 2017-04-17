@@ -140,7 +140,7 @@ class DataSource < ActiveRecord::Base
     end
     
     def create_from_form
-      Series.eval Series.find_by(id: self.series_id).name, self.eval
+      Series.eval Series.find_by(id: self.series_id).name, self.eval, self.priority
       true
     end
 

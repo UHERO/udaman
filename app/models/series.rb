@@ -252,7 +252,7 @@ class Series < ActiveRecord::Base
     Series.get(series_name) || Series.create(name: series_name, frequency: frequency)
   end
 
-  def Series.store(series_name, series, desc=nil, eval_statement=nil)
+  def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
     #t = Time.now
     #puts series.frequency
     desc = series.name if desc.nil?
@@ -264,17 +264,17 @@ class Series < ActiveRecord::Base
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
     #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : SETTING UP STORE"
-    source = series_to_set.save_source(desc, eval_statement, series.data)
+    source = series_to_set.save_source(desc, eval_statement, series.data, priority)
     #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : DURATION OF STORE"
     source
   end
 
-  def Series.eval(series_name, eval_statement)
+  def Series.eval(series_name, eval_statement, priority=100)
     t = Time.now
     #begin
     new_series = Kernel::eval eval_statement
     #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : EVAL TIME"
-    Series.store series_name, new_series, new_series.name, eval_statement
+    Series.store series_name, new_series, new_series.name, eval_statement, priority
     #taking this out as well... not worth it to run
     #source.update_attributes(:runtime => (Time.now - t))
     puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}" 
@@ -286,7 +286,7 @@ class Series < ActiveRecord::Base
    #     puts "ERROR | #{series_name} | #{eval_statement}"
   end
   
-  def save_source(source_desc, eval_statement, data, last_run = Time.now)
+  def save_source(source_desc, eval_statement, data, priority=100, last_run = Time.now)
     source = nil
     #ss_time = Time.now          #timer
     data_sources.each do |ds|
@@ -299,8 +299,9 @@ class Series < ActiveRecord::Base
        
     if source.nil?
       data_sources.create(
-        :description => source_desc[0,255], 
+        :description => source_desc,
         :eval => eval_statement,
+        :priority => priority,
         #:data => data,
         :last_run => last_run
       )
