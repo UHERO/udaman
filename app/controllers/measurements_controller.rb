@@ -14,6 +14,7 @@ class MeasurementsController < ApplicationController
       ['Source detail', :source_detail_id],
       ['Source link', :source_link],
       ['Seasonally adjusted', :seasonally_adjusted],
+      ['Seasonal adjustment', :seasonal_adjustment],
       ['Percent', :percent],
       ['Real', :real],
       ['Restricted', :restricted],
@@ -129,7 +130,7 @@ class MeasurementsController < ApplicationController
       params.require(:measurement).permit(:prefix, :data_portal_name, :units_label,
                                           :units_label_short, :unit_id, :percent, :real, :notes,
                                           :restricted, :unrestricted, :series_id,
-                                          :seasonally_adjusted, :frequency_transform,
+                                          :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link,
                                           :field_boxes, :series_boxes)
     end

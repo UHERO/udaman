@@ -22,8 +22,7 @@ class DataListsController < ApplicationController
     @freq ||= 'A'
     @county = params[:county]
     @county ||= 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted]
-    @seasonally_adjusted ||= 'T'
+    @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
     @data_list = DataList.find_by id: params[:id]
     render 'super_table'
   end
@@ -33,8 +32,7 @@ class DataListsController < ApplicationController
     @freq ||= 'A'
     @county = params[:county]
     @county ||= 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted]
-    @seasonally_adjusted ||= 'T'
+    @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
     @data_list = DataList.find_by id: params[:id]
     # @series_to_chart = @data_list.series_names
     # frequency = @series_to_chart[0][-1]

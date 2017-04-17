@@ -60,6 +60,10 @@
       <%= f.check_box :seasonally_adjusted %>
     </div>
     <div class="field">
+      <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
+      <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
+    </div>
+    <div class="field">
       <%= f.label :percent, 'Percent (prevents calculation of growth rate)' %><br/>
       <%= f.check_box :percent %>
     </div>

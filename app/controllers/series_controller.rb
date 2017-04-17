@@ -274,6 +274,7 @@ class SeriesController < ApplicationController
           :unitsLabelShort,
           :unit_id,
           :seasonally_adjusted,
+          :seasonal_adjustment,
           :percent,
           :real,
           :frequency_transform,
