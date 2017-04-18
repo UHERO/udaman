@@ -253,46 +253,26 @@ class Series < ActiveRecord::Base
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
-    #t = Time.now
-    #puts series.frequency
     desc = series.name if desc.nil?
-    desc = 'Source Series Name is blank' if desc.nil? or desc == ''
-    # series_to_set = Series.get_or_new series_name
-    # series_to_set.update_attributes(
-    #   :frequency => series.frequency
-    # )
+    desc = 'Source Series Name is blank' if desc.blank?
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
-    #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : SETTING UP STORE"
     source = series_to_set.save_source(desc, eval_statement, series.data, priority)
-    #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : DURATION OF STORE"
     source
   end
 
   def Series.eval(series_name, eval_statement, priority=100)
     t = Time.now
-    #begin
     new_series = Kernel::eval eval_statement
-    #puts "#{"%.2f" % (Time.now - t)} :  : #{self.name} : EVAL TIME"
     Series.store series_name, new_series, new_series.name, eval_statement, priority
-    #taking this out as well... not worth it to run
-    #source.update_attributes(:runtime => (Time.now - t))
-    puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}" 
-    #rescue => e
-    #   Series.store series_name, Series.new_transformation(series_name, {}, Series.frequency_from_code(series_name[-1])), "Source Series rescued: #{e.message}", eval_statement
-    #   puts "#{"%.2f" % (Time.now - t)} | #{series_name} | #{eval_statement} | Source Series rescued, #{e.message}" 
-    #end
-    # rescue Exception 
-   #     puts "ERROR | #{series_name} | #{eval_statement}"
+    puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}"
   end
   
   def save_source(source_desc, eval_statement, data, priority=100, last_run = Time.now)
     source = nil
-    #ss_time = Time.now          #timer
     data_sources.each do |ds|
       if !eval_statement.nil? and !ds.eval.nil? and eval_statement.strip == ds.eval.strip
-        #ds.update_attributes(:data => data, :last_run => Time.now) 
-        ds.update_attributes(:last_run => Time.now) 
+        ds.update_attributes(:last_run => Time.now)
         source = ds 
       end
     end
@@ -302,23 +282,16 @@ class Series < ActiveRecord::Base
         :description => source_desc,
         :eval => eval_statement,
         :priority => priority,
-        #:data => data,
         :last_run => last_run
       )
     
       source = data_sources_by_last_run[-1]
       source.setup
     end
-    #puts "#{"%.2f" % (Time.now - ss_time)} : #{data.count} : #{self.name} : EVERYTHING BEFORE UPDATE DATA\n"
-
     update_data(data, source)
-    #puts "#{"%.2f" % (Time.now - ss_time)} : #{data.count} : #{self.name} : #{data_count} original data points SAVING SOURCE #{source_eval_statement}\n"
-    
     source
   end
   
-  #probably going to want tests
-
   def update_data(data, source)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
