@@ -20,14 +20,6 @@
     <%= f.text_field :data_portal_name, :size => 80 %>
   </div>
   <div class="field">
-    <%= f.label :table_prefix, 'Table prefix' %><br>
-    <%= f.text_field :table_prefix, :size => 80 %>
-  </div>
-  <div class="field">
-    <%= f.label :table_postfix, 'Table postfix' %><br>
-    <%= f.text_field :table_postfix, :size => 80 %>
-  </div>
-  <div class="field">
     <%= f.label :units_label %><br>
     <%= f.text_field :units_label, :disabled => true %>
   </div>
@@ -68,13 +60,9 @@
     <%= f.check_box :real %>
   </div>
   <div class="field">
-    <%= f.label :decimals %><br>
-    <%= f.number_field :decimals, :size => 1 %>
-  </div>
-  <div class="field">
     <%= f.label :frequency_transform, 'Frequency transformation method (average, sum, or last)' %><br/>
     <%= f.text_field :frequency_transform %>
-    </div>
+  </div>
   <div class="field">
     <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
     <%= f.check_box :restricted %>
