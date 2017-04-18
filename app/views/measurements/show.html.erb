@@ -7,10 +7,10 @@
   <a id="all_fields_check" href="javascript:void(0)" onClick="toggleAllFields();">Select all fields</a>
 </p>
 
-<% if @measurement.table_prefix %>
+<% unless @measurement.table_prefix.blank? %>
   <p><strong>Table prefix:</strong> <%= @measurement.table_prefix.to_s %></p>
 <% end %>
-<% if @measurement.table_postfix %>
+<% unless @measurement.table_postfix.blank? %>
   <p><strong>Table postfix:</strong> <%= @measurement.table_postfix.to_s %></p>
 <% end %>
 
