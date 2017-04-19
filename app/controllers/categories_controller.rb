@@ -2,7 +2,7 @@ class CategoriesController < ApplicationController
   include Authorization
   
   before_action :check_authorization
-  before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down]
+  before_action :set_category, only: [:show, :edit, :update, :destroy, :hide, :unhide, :up, :down]
 
   # GET /categories
   def index
@@ -46,6 +46,16 @@ class CategoriesController < ApplicationController
   def destroy
     @category.destroy
     redirect_to categories_url, notice: 'Category was successfully destroyed.'
+  end
+
+  def hide
+    @category.update_attributes(:hidden => true)
+    redirect_to categories_url
+  end
+
+  def unhide
+    @category.update_attributes(:hidden => false)
+    redirect_to categories_url
   end
 
   def up

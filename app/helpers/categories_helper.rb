@@ -31,9 +31,18 @@ private
       "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
       (current_user.admin_user? ? order_section(leaf, first, last) << ' - ' : '') <<
       (current_user.admin_user? ? link_to('Edit', edit_category_path(leaf)) << ' - ' : '') <<
-      (current_user.dev_user? ? link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" }) : '')
-
-    "<span #{'style="color:gray;"' if leaf.hidden}>#{display_text}</span>"
+      if current_user.dev_user?
+        if leaf.hidden
+          link_to('Unhide', :controller => :categories, action: :unhide, :id => leaf) << ' - '
+        else
+          link_to('Hide', :controller => :categories, action: :hide, :id => leaf) << ' - '
+        end <<
+        link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
+      end
+    if leaf.hidden
+      display_text += ' <span style="color:red;">***** HIDDEN *****</span>'
+    end
+    display_text
   end
 
   def order_section(leaf, first, last)
