@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025713) do
+ActiveRecord::Schema.define(version: 220170413025714) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -243,14 +243,17 @@ ActiveRecord::Schema.define(version: 220170413025713) do
   add_index "measurement_series", ["series_id"], name: "index_measurement_series_on_series_id", using: :btree
 
   create_table "measurements", force: :cascade do |t|
-    t.string   "prefix",              limit: 255,   null: false
+    t.string   "prefix",              limit: 255,               null: false
     t.string   "data_portal_name",    limit: 255
+    t.string   "table_prefix",        limit: 255
+    t.string   "table_postfix",       limit: 255
     t.string   "frequency_transform", limit: 255
     t.string   "units_label",         limit: 255
     t.string   "units_label_short",   limit: 255
     t.integer  "unit_id",             limit: 4
     t.boolean  "percent"
     t.boolean  "real"
+    t.integer  "decimals",            limit: 4,     default: 2
     t.boolean  "restricted"
     t.boolean  "seasonally_adjusted"
     t.string   "seasonal_adjustment", limit: 23
@@ -258,8 +261,8 @@ ActiveRecord::Schema.define(version: 220170413025713) do
     t.integer  "source_id",           limit: 4
     t.string   "source_link",         limit: 255
     t.text     "notes",               limit: 65535
-    t.datetime "created_at",                        null: false
-    t.datetime "updated_at",                        null: false
+    t.datetime "created_at",                                    null: false
+    t.datetime "updated_at",                                    null: false
   end
 
   add_index "measurements", ["source_detail_id"], name: "fk_rails_f4c727584e", using: :btree
@@ -311,6 +314,7 @@ ActiveRecord::Schema.define(version: 220170413025713) do
     t.string   "dataPortalName",          limit: 255
     t.boolean  "percent"
     t.boolean  "real"
+    t.integer  "decimals",                limit: 4,     default: 2
     t.string   "frequency_transform",     limit: 255
     t.integer  "measurement_id",          limit: 4
     t.boolean  "restricted",                            default: false
@@ -319,7 +323,6 @@ ActiveRecord::Schema.define(version: 220170413025713) do
     t.integer  "source_detail_id",        limit: 4
     t.boolean  "quarantined",                           default: false
     t.integer  "base_year",               limit: 4
-    t.integer  "decimals",                limit: 4
   end
 
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
