@@ -17,6 +17,7 @@ class MeasurementsController < ApplicationController
       ['Seasonal adjustment', :seasonal_adjustment],
       ['Percent', :percent],
       ['Real', :real],
+      ['Decimals', :decimals],
       ['Restricted', :restricted],
       ['Frequency transform', :frequency_transform]
   ]
@@ -127,9 +128,9 @@ class MeasurementsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def measurement_params
-      params.require(:measurement).permit(:prefix, :data_portal_name, :units_label,
+      params.require(:measurement).permit(:prefix, :data_portal_name, :table_prefix, :table_postfix, :units_label,
                                           :units_label_short, :unit_id, :percent, :real, :notes,
-                                          :restricted, :unrestricted, :series_id,
+                                          :restricted, :unrestricted, :series_id, :decimals,
                                           :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link,
                                           :field_boxes, :series_boxes)

@@ -7,6 +7,13 @@
   <a id="all_fields_check" href="javascript:void(0)" onClick="toggleAllFields();">Select all fields</a>
 </p>
 
+<% unless @measurement.table_prefix.blank? %>
+  <p><strong>Table prefix:</strong> <%= @measurement.table_prefix.to_s %></p>
+<% end %>
+<% unless @measurement.table_postfix.blank? %>
+  <p><strong>Table postfix:</strong> <%= @measurement.table_postfix.to_s %></p>
+<% end %>
+
 <p>
   <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1, false,
@@ -108,6 +115,15 @@
 
 <p>
   <label>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[decimals]', 1, false,
+                                                 disabled: @measurement.decimals.nil?) %></span>
+    <strong>Decimals:</strong>
+    <%= @measurement.decimals.to_s %>
+  </label>
+</p>
+
+<p>
+  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[frequency_transform]', 1, false,
                                                      disabled: @measurement.frequency_transform.blank?) %></span>
   <strong>Frequency transformation method (average, sum, or last):</strong>
@@ -149,6 +165,7 @@
         <th>Seasonal Adjustment</th>
         <th>Percent</th>
         <th>Real</th>
+        <th>Decimals</th>
         <th>Restricted</th>
         <th>Freq Transform</th>
       </tr>
@@ -169,6 +186,7 @@
             <td><%= series[:seasonal_adjustment].to_s %></td>
             <td><%= series.percent.to_s %></td>
             <td><%= series.real.to_s %></td>
+            <td><%= series.decimals.to_s %></td>
             <td><%= series.restricted.to_s %></td>
             <td><%= series.frequency_transform.to_s %></td>
           </tr>
