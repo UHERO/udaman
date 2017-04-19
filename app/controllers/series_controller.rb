@@ -277,6 +277,7 @@ class SeriesController < ApplicationController
           :seasonal_adjustment,
           :percent,
           :real,
+          :decimals,
           :frequency_transform,
           :restricted,
           :source_id,
