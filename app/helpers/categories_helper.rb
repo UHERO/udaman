@@ -26,13 +26,14 @@ private
       data_list_section = 'No Data List'
     end
 
-    "<strong>#{leaf.name}</strong> (" <<
-    data_list_section <<
-    ') ' <<
-    "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
-    (current_user.admin_user? ? order_section(leaf, first, last) << ' - ' : '') <<
-    (current_user.admin_user? ? link_to('Edit', edit_category_path(leaf)) << ' - ' : '') <<
-    (current_user.dev_user? ? link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" }) : '')
+    display_text =
+      "<strong>#{leaf.name}</strong> (" << data_list_section << ') ' <<
+      "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
+      (current_user.admin_user? ? order_section(leaf, first, last) << ' - ' : '') <<
+      (current_user.admin_user? ? link_to('Edit', edit_category_path(leaf)) << ' - ' : '') <<
+      (current_user.dev_user? ? link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" }) : '')
+
+    "<span #{'style="color:gray;"' if leaf.hidden}>#{display_text}</span>"
   end
 
   def order_section(leaf, first, last)
