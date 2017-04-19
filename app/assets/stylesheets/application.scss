@@ -73,7 +73,7 @@ div.field, div.actions {
 	border:1px solid black;*/
 	margin:0 0 0 10px;
 }
-#summary_area {position:absolute; width:350px; padding:20px 0 0 15px; overflow-x: scroll }
+#summary_area {position:absolute; width:350px; padding:20px 0 0 15px; overflow-x: auto }
 #details_mask {position:absolute; width:530px; height:300px; margin-left:370px; padding:10px 0 0 0; background-color:#FFFFFF; opacity:0.9;}
 #details_area {position:absolute; width:530px; margin-left:370px; padding:10px 0 0 0;}
 #navigation { padding-top: 20px }
