@@ -26,23 +26,23 @@ private
       data_list_section = 'No Data List'
     end
 
-    display_text =
-      "<strong>#{leaf.name}</strong> (" << data_list_section << ') ' <<
-      "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
-      (current_user.admin_user? ? order_section(leaf, first, last) << ' - ' : '') <<
-      (current_user.admin_user? ? link_to('Edit', edit_category_path(leaf)) << ' - ' : '') <<
-      if current_user.dev_user?
-        if leaf.hidden
-          link_to('Unhide', :controller => :categories, action: :unhide, :id => leaf) << ' - '
-        else
-          link_to('Hide', :controller => :categories, action: :hide, :id => leaf) << ' - '
-        end <<
-        link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
-      end
-    if leaf.hidden
-      display_text += ' <span style="color:red;">***** HIDDEN *****</span>'
+    name_part = "<strong>#{leaf.name}</strong> (#{data_list_section})"
+    name_part += " [#{leaf.default_handle}.#{leaf.default_freq}]" unless leaf.default_handle.blank? && leaf.default_freq.blank?
+    menu = []
+    if current_user.admin_user?
+      menu.push order_section(leaf, first, last)
+      menu.push link_to('Edit', edit_category_path(leaf))
     end
-    display_text
+    if current_user.dev_user?
+      if leaf.hidden
+        menu.push link_to('Unhide', :controller => :categories, action: :unhide, :id => leaf)
+      else
+        menu.push link_to('Hide', :controller => :categories, action: :hide, :id => leaf)
+      end
+      menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
+    end
+    menu.push '<span style="color:red;">***** HIDDEN *****</span>' if leaf.hidden
+    name_part + ' ' + menu.join(' - ')
   end
 
   def order_section(leaf, first, last)
