@@ -35,13 +35,13 @@ private
     end
     if current_user.dev_user?
       if leaf.hidden
-        menu.push link_to('Unhide', :controller => :categories, action: :unhide, :id => leaf)
+        menu.push link_to('Unhide', {:controller => :categories, action: :unhide, :id => leaf}, remote: true, data: {unhide: 1})
       else
-        menu.push link_to('Hide', :controller => :categories, action: :hide, :id => leaf)
+        menu.push link_to('Hide', {:controller => :categories, action: :hide, :id => leaf}, remote: true, data: {hide: 1})
       end
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end
-    menu.push '<span style="color:red;">***** HIDDEN *****</span>' if leaf.hidden
+    menu.push '<span class="hidden_cat_label" style="display:none;">***** HIDDEN *****</span>' if leaf.hidden
     name_part + ' ' + menu.join(' - ')
   end
 

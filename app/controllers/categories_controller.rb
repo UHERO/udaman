@@ -49,13 +49,19 @@ class CategoriesController < ApplicationController
   end
 
   def hide
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
     @category.update_attributes(:hidden => true)
-    redirect_to categories_url
+    #redirect_to categories_url
   end
 
   def unhide
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
     @category.update_attributes(:hidden => false)
-    redirect_to categories_url
+    #redirect_to categories_url
   end
 
   def up
