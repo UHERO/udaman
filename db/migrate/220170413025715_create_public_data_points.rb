@@ -1,12 +1,14 @@
 class CreatePublicDataPoints < ActiveRecord::Migration
   def change
-    create_table :exports do |t|
-      t.belongs_to :series, index: true
-      t.belongs_to :data_source, index: true
+    create_table :public_data_points, id: false do |t|
+      t.belongs_to :series
       t.date :date
-      t.double :value
+      t.float :value, limit: 53
 
       t.timestamps null: false
     end
+    execute <<-SQL
+      ALTER TABLE public_data_points DROP PRIMARY KEY, ADD PRIMARY KEY(`series_id`, `date`);
+    SQL
   end
 end
