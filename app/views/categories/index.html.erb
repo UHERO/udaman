@@ -4,7 +4,7 @@
 
 <%= link_to 'New Category', new_category_path if current_user.admin_user? %>
 <p>
-<span id="toggle_all" style="cursor:pointer;cursor:hand;">Collapse all</span>
+<span id="toggle_all" style="cursor:pointer;cursor:hand;">Expand all</span>
 </p>
 <ul style='list-style:none'>
   <% @category_roots.sort_by!{ |cat| cat.list_order }.each_index do |i| %>

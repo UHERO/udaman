@@ -13,7 +13,7 @@ module CategoriesHelper
     }
 
     '<li><span class="toggler" style="cursor:pointer;cursor:hand;"><i class="fa fa-plus-square" aria-hidden="true"></i></span> ' <<
-    show_list_item(root, first, last) << "\n"+'<ul class="collapsible" style="list-style:none;">' <<
+    show_list_item(root, first, last) << "\n"+'<ul class="collapsible" style="display:none;list-style:none;">' <<
     category_strings.join("\n") <<
     '</ul></li>'+"\n"
   end
