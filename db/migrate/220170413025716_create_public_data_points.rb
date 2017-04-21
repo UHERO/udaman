@@ -8,7 +8,7 @@ class CreatePublicDataPoints < ActiveRecord::Migration
       t.timestamps null: false
     end
     execute <<-SQL
-      ALTER TABLE public_data_points DROP PRIMARY KEY, ADD PRIMARY KEY(`series_id`, `date`);
+      ALTER TABLE public_data_points ADD PRIMARY KEY(`series_id`, `date`);
     SQL
   end
 end
