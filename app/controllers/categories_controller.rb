@@ -2,7 +2,7 @@ class CategoriesController < ApplicationController
   include Authorization
   
   before_action :check_authorization
-  before_action :set_category, only: [:show, :edit, :update, :destroy, :hide, :unhide, :up, :down]
+  before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down, :toggle_hidden]
 
   # GET /categories
   def index
@@ -48,20 +48,11 @@ class CategoriesController < ApplicationController
     redirect_to categories_url, notice: 'Category was successfully destroyed.'
   end
 
-  def hide
+  def toggle_hidden
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @category.update_attributes(:hidden => true)
-    #redirect_to categories_url
-  end
-
-  def unhide
-    respond_to do |format|
-      format.js { render nothing: true, status: 200 }
-    end
-    @category.update_attributes(:hidden => false)
-    #redirect_to categories_url
+    @category.update_attributes(:hidden => !@category.hidden)
   end
 
   def up

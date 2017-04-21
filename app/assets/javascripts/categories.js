@@ -23,10 +23,12 @@ $(function() {
             $(this).html('Expand all');
         }
     });
-    $("a[data-remote][data-hide]").on("ajax:success", function(e, data, status, xhr) {
-        $(this).find("span.hidden_cat_label").show();
-    });
-    $("a[data-remote][data-unhide]").on("ajax:success", function(e, data, status, xhr) {
-        $(this).find("span.hidden_cat_label").hide();
+    $("a[data-remote][data-toggle]").on("ajax:success", function(e, data, status, xhr) {
+        $(this).siblings("span.hidden_cat_label").toggle();
+        if ($(this).html() === 'Unhide') {
+            $(this).html('Hide');
+            return;
+        }
+        $(this).html('Unhide');
     });
 });
