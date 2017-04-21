@@ -41,7 +41,8 @@ private
       end
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end
-    menu.push '<span class="hidden_cat_label" style="display:none;">***** HIDDEN *****</span>' if leaf.hidden
+    display = leaf.hidden ? '' : 'display:none;'
+    menu.push "<span class='hidden_cat_label' style='#{display}'>***** HIDDEN *****</span>"
     name_part + ' ' + menu.join(' - ')
   end
 
