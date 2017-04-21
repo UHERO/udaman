@@ -2,7 +2,7 @@ class CategoriesController < ApplicationController
   include Authorization
   
   before_action :check_authorization
-  before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down]
+  before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down, :toggle_hidden]
 
   # GET /categories
   def index
@@ -48,6 +48,13 @@ class CategoriesController < ApplicationController
     redirect_to categories_url, notice: 'Category was successfully destroyed.'
   end
 
+  def toggle_hidden
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    @category.update_attributes(:hidden => !@category.hidden)
+  end
+
   def up
     siblings_array = @category.siblings.to_a.sort_by { |sib| sib.list_order }
     old_index = siblings_array.index(@category)
@@ -90,6 +97,6 @@ class CategoriesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def category_params
-      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_handle, :default_freq)
+      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_handle, :default_freq, :hidden)
     end
 end

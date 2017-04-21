@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025714) do
+ActiveRecord::Schema.define(version: 220170413025715) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -51,8 +51,9 @@ ActiveRecord::Schema.define(version: 220170413025714) do
   create_table "categories", force: :cascade do |t|
     t.string   "name",           limit: 255
     t.integer  "data_list_id",   limit: 4
-    t.datetime "created_at",                 null: false
-    t.datetime "updated_at",                 null: false
+    t.datetime "created_at",                                 null: false
+    t.datetime "updated_at",                                 null: false
+    t.boolean  "hidden",                     default: false
     t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4
     t.string   "ancestry",       limit: 255

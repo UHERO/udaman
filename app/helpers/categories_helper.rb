@@ -26,13 +26,24 @@ private
       data_list_section = 'No Data List'
     end
 
-    "<strong>#{leaf.name}</strong> (" <<
-    data_list_section <<
-    ') ' <<
-    "[#{leaf.default_handle}.#{leaf.default_freq}] " <<
-    (current_user.admin_user? ? order_section(leaf, first, last) << ' - ' : '') <<
-    (current_user.admin_user? ? link_to('Edit', edit_category_path(leaf)) << ' - ' : '') <<
-    (current_user.dev_user? ? link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" }) : '')
+    name_part = "<strong>#{leaf.name}</strong> (#{data_list_section})"
+    name_part += " [#{leaf.default_handle}.#{leaf.default_freq}]" unless leaf.default_handle.blank? && leaf.default_freq.blank?
+    menu = []
+    if current_user.admin_user?
+      menu.push order_section(leaf, first, last)
+      menu.push link_to('Edit', edit_category_path(leaf))
+    end
+    if current_user.dev_user?
+      if leaf.hidden
+        menu.push link_to('Unhide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
+      else
+        menu.push link_to('Hide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
+      end
+      menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
+    end
+    display = leaf.hidden ? '' : 'display:none;'
+    menu.push "<span class='hidden_cat_label' style='#{display}'>***** HIDDEN *****</span>"
+    name_part + ' ' + menu.join(' - ')
   end
 
   def order_section(leaf, first, last)
