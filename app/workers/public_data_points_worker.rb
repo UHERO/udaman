@@ -23,7 +23,7 @@ class PublicDataPointsWorker
       and d.current
       and p.created_at is null ; /* dp doesn't exist in public_data_points yet */
 
-      delete public_data_points
+      delete p  /* Can only use later-defined alias here, not full table name. Weird. */
       from public_data_points p
         join series s on s.id = p.series_id
         left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
