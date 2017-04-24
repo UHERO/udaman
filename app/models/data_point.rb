@@ -4,13 +4,13 @@ class DataPoint < ActiveRecord::Base
   belongs_to :data_source
   
   def upd(value, data_source)
-    return self                                     if trying_to_replace_with_nil?(value) #scen 0
-    return update_timestamp                         if same_as_current_data_point?(value, data_source) #scen 1
+    return self             if trying_to_replace_with_nil?(value) #scen 0
+    return update_timestamp if same_as_current_data_point?(value, data_source) #scen 1
     prior_dp = nil
     # this one can take a lot of time
     changed = value_or_source_has_changed? value, data_source
     prior_dp = restore_prior_dp(value, data_source) if changed
-    return                                 unless prior_dp.nil?
+    return unless prior_dp.nil?
     create_new_dp(value, data_source)         #scen 3
   end
   
