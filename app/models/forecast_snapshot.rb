@@ -7,8 +7,9 @@ class ForecastSnapshot < ActiveRecord::Base
   def retrieve_name(name)
     s = Series.find_by(name: name)
     if s.nil?
-      m = Measurement.find_by(prefix: name[/[^@]*/])
-      return m.data_portal_name
+      prefix = name[/[^@]*/]
+      like_series = Series.find_by("name LIKE '#{prefix}@%'")
+      return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
     end
     s.aremos_series.description.titlecase
   end
@@ -115,7 +116,7 @@ class ForecastSnapshot < ActiveRecord::Base
       File.delete(path(name))
     rescue StandardError => e
       Rails.logger.error e.message
-      return false
+      return false unless e.message =~ /no such file/i
     end
     true
   end
