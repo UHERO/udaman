@@ -39,7 +39,7 @@
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
         <% end %>
         <% if current_user.dev_user? %>
-           <td><%= link_to 'Destroy', fs, method: :delete, data: { confirm: "Destroy #{fs.name}: Are you sure??" } %></td>
+           <td><%= link_to 'Destroy', fs, method: :delete, data: { confirm: "Destroy #{fs.name}, version #{fs.version}: Are you sure??" } %></td>
         <% end %>
       </tr>
     <% end %>
