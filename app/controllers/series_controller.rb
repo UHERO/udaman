@@ -5,7 +5,7 @@ class SeriesController < ApplicationController
 
   # GET /series/new
   def new
-    @series = Series.new
+    @series = Series.new(units: 1)
   end
 
   # GET /series/bulk
