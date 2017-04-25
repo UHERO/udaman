@@ -115,10 +115,8 @@ class ForecastSnapshot < ActiveRecord::Base
     begin
       File.delete(path(name))
     rescue StandardError => e
-      if e.message !~ /no such file/i
-        Rails.logger.error e.message
-        return false
-      end
+      Rails.logger.error e.message
+      return false unless e.message =~ /no such file/i
     end
     true
   end
