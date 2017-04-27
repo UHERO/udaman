@@ -59,6 +59,10 @@ class DashboardsController < ApplicationController
   
   def investigate_visual
     @diff_data = []
+    if Rails.env == 'development'
+      @to_investigate = []
+      return
+    end
     @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
   end
 
