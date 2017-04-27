@@ -1,8 +1,8 @@
 class DashboardsController < ApplicationController
   include Authorization
 
-  before_action :check_authorization, except: [:investigate_visual]#, :update_public_dp]
-  skip_before_action :authenticate_user!, only: [:investigate_visual]#, :update_public_dp]
+  before_action :check_authorization, except: [:investigate_visual]
+  skip_before_action :authenticate_user!, only: [:investigate_visual]
 
   def index
     @series_count = Series.count
@@ -59,10 +59,6 @@ class DashboardsController < ApplicationController
   
   def investigate_visual
     @diff_data = []
-    if Rails.env == 'development'
-      @to_investigate = []
-      return
-    end
     @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
   end
 
