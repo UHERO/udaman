@@ -185,7 +185,7 @@ class DataPoint < ActiveRecord::Base
       and d.current
       and p.created_at is null ; /* dp doesn't exist in public_data_points yet */
 
-      delete p  /* Can only use below-defined alias here, not full table name. Weird. */
+      delete p
       from public_data_points p
         join series s on s.id = p.series_id
         left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current

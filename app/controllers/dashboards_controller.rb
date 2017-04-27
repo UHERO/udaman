@@ -1,8 +1,8 @@
 class DashboardsController < ApplicationController
   include Authorization
 
-  before_action :check_authorization, except: [:investigate_visual]
-  skip_before_action :authenticate_user!, only: [:investigate_visual]
+  before_action :check_authorization, except: [:investigate_visual]#, :update_public_dp]
+  skip_before_action :authenticate_user!, only: [:investigate_visual]#, :update_public_dp]
 
   def index
     @series_count = Series.count
@@ -67,7 +67,8 @@ class DashboardsController < ApplicationController
   end
 
   def update_public_dp
-    DataPoint.update_public_data_points
+    #DataPoint.update_public_data_points
+    sleep(6)
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
