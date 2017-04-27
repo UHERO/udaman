@@ -67,8 +67,7 @@ class DashboardsController < ApplicationController
   end
 
   def update_public_dp
-    #DataPoint.update_public_data_points
-    sleep(6)
+    DataPoint.update_public_data_points
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
