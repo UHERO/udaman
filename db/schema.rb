@@ -302,7 +302,6 @@ ActiveRecord::Schema.define(version: 220170413025716) do
     t.string   "name",                    limit: 255
     t.string   "frequency",               limit: 255
     t.text     "description",             limit: 65535
-    t.integer  "units",                   limit: 4
     t.boolean  "seasonally_adjusted"
     t.string   "seasonal_adjustment",     limit: 23
     t.string   "last_demetra_datestring", limit: 255
@@ -320,6 +319,7 @@ ActiveRecord::Schema.define(version: 220170413025716) do
     t.string   "unitsLabel",              limit: 255
     t.string   "unitsLabelShort",         limit: 255
     t.integer  "unit_id",                 limit: 4
+    t.integer  "units",                   limit: 4,     default: 1,     null: false
     t.string   "dataPortalName",          limit: 255
     t.boolean  "percent"
     t.boolean  "real"
