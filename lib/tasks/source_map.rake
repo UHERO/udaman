@@ -109,6 +109,10 @@ task :reload_bea_series_only => :environment do
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
+task :update_public_data_points => :environment do
+  DataPoint.update_public_data_points
+end
+
 task :daily_history_load => :environment do
   t = Time.now
   Series.load_all_series_from "#{ENV['DATA_PATH']}/rawdata/History/AgricultureForNewDB.xls"

@@ -59,7 +59,18 @@ class DashboardsController < ApplicationController
   
   def investigate_visual
     @diff_data = []
+    if Rails.env == 'development'
+      @to_investigate = []
+      return
+    end
     @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
+  end
+
+  def update_public_dp
+    DataPoint.update_public_data_points
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
   end
 
   def export_tsd
@@ -77,9 +88,11 @@ class DashboardsController < ApplicationController
   end
   
   def investigate_no_source
-    #@no_source = DataSource.where('eval NOT LIKE '%load_from_download%'').select([:eval, :series_id]).joins('JOIN series ON series.id = series_id').where('aremos_missing > 0 OR ABS(aremos_diff) > 0').group(:name).all.sort
-
-    @no_source = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0').joins('JOIN data_sources ON series.id = series_id').where("eval NOT LIKE '%load_from_download%'").group(:name).order(:name).all
+    @no_source = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0')
+                     .joins('JOIN data_sources ON series.id = series_id')
+                     .where("eval NOT LIKE '%load_from_download%'")
+                     .group(:name)
+                     .order(:name).all
   end
   
   def mapping

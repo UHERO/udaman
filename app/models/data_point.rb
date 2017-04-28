@@ -4,13 +4,13 @@ class DataPoint < ActiveRecord::Base
   belongs_to :data_source
   
   def upd(value, data_source)
-    return self                                     if trying_to_replace_with_nil?(value) #scen 0
-    return update_timestamp                         if same_as_current_data_point?(value, data_source) #scen 1
+    return self             if trying_to_replace_with_nil?(value) #scen 0
+    return update_timestamp if same_as_current_data_point?(value, data_source) #scen 1
     prior_dp = nil
     # this one can take a lot of time
     changed = value_or_source_has_changed? value, data_source
     prior_dp = restore_prior_dp(value, data_source) if changed
-    return                                 unless prior_dp.nil?
+    return unless prior_dp.nil?
     create_new_dp(value, data_source)         #scen 3
   end
   
@@ -165,5 +165,40 @@ class DataPoint < ActiveRecord::Base
     #dps_to_delete.each { |dp| puts "#{dp.series_id} : #{dp.date_string} : #{dp.value}"; dp.delete }
     DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
   end
-  
+
+  def DataPoint.update_public_data_points
+    t = Time.now
+    ActiveRecord::Base.transaction do
+      ActiveRecord::Base.connection.execute %q(
+        update public_data_points p
+          join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
+          join series s on s.id = d.series_id
+        set p.value = d.value, p.updated_at = d.updated_at
+        where not s.quarantined
+        and d.updated_at > p.updated_at ;
+      )
+      ActiveRecord::Base.connection.execute %q(
+        insert into public_data_points (series_id, date, value, created_at, updated_at)
+        select d.series_id, d.date, d.value, d.created_at, coalesce(d.updated_at, d.created_at)
+        from data_points d
+          join series s on s.id = d.series_id
+          left join public_data_points p on d.series_id = p.series_id and d.date = p.date
+        where not s.quarantined
+        and d.current
+        and p.created_at is null ; /* dp doesn't exist in public_data_points yet */
+      )
+      ActiveRecord::Base.connection.execute %q(
+        delete p
+        from public_data_points p
+          join series s on s.id = p.series_id
+          left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
+        where not s.quarantined
+        and d.created_at is null ; /* dp no longer exists in data_points */
+      )
+    end
+    CSV.open('public/rake_time.csv', 'a') do |csv|
+      csv << ['update_public_data_points', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s]
+    end
+  end
+
 end
