@@ -50,15 +50,15 @@ task :categories_backup => :environment do
   misc_dir = File.join(ENV['DATA_PATH'], 'misc')
   new_dump = File.join(misc_dir, 'new_dump.sql')
   latest = File.join(misc_dir, 'latest_categories.sql')
-  unless system %Q(rm -f #{new_dump}; mysqldump -u$DB_USER -p$DB_PASSWORD -h$DB_HOST uhero_db_dev categories > #{new_dump})
-    logger.warn "Categories_backup task: mysqldump fail: #{$?.to_s}"
+  unless system(%Q{rm -f #{new_dump}; mysqldump -u$DB_USER -p$DB_PASSWORD -h$DB_HOST uhero_db_dev categories > #{new_dump}})
+    Rails.logger.warn "Categories_backup task: mysqldump fail: #{$?.to_s}"
     return
   end
-  cats_have_changed = !system %Q(bash -c 'diff <(grep INSERT #{latest}) <(grep INSERT #{new_dump}) > /dev/null')
+  cats_have_changed = !system(%Q{bash -c 'diff <(grep INSERT #{latest}) <(grep INSERT #{new_dump}) > /dev/null 2>&1'})
   if cats_have_changed
     prev_latest = File.join(misc_dir, 'prev_latest_categories.sql')
-    File.rename(prev_latest, File.join(misc_dir, 'prev_prev_latest_categories.sql'))
-    File.rename(latest, prev_latest)
-    File.rename(new_dump, latest)
+    File.rename(prev_latest, File.join(misc_dir, 'prev_prev_latest_categories.sql')) rescue ''
+    File.rename(latest, prev_latest) rescue ''
+    File.rename(new_dump, latest) rescue ''
   end
 end
