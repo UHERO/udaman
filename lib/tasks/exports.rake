@@ -49,15 +49,16 @@ end
 task :categories_backup => :environment do
   misc_dir = File.join(ENV['DATA_PATH'], 'misc')
   new_dump = File.join(misc_dir, 'new_dump.sql')
-  latest_cats = File.join(misc_dir, 'latest_categories.sql')
+  latest = File.join(misc_dir, 'latest_categories.sql')
   unless system %Q(rm -f #{new_dump}; mysqldump -u$DB_USER -p$DB_PASSWORD uhero_db_dev categories > #{new_dump})
-    ## do something
+    logger.warn "Categories_backup task: mysqldump fail: #{$?.to_s}"
+    return
   end
-  cats_have_changed = !system %Q(bash -c 'diff <(grep INSERT #{latest_cats}) <(grep INSERT #{new_dump}) > /dev/null')
+  cats_have_changed = !system %Q(bash -c 'diff <(grep INSERT #{latest}) <(grep INSERT #{new_dump}) > /dev/null')
   if cats_have_changed
     prev_latest = File.join(misc_dir, 'prev_latest_categories.sql')
     File.rename(prev_latest, File.join(misc_dir, 'prev_prev_latest_categories.sql'))
-    File.rename(latest_cats, prev_latest)
-    File.rename(new_dump, latest_cats)
+    File.rename(latest, prev_latest)
+    File.rename(new_dump, latest)
   end
 end
