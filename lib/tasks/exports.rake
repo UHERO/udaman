@@ -50,7 +50,7 @@ task :categories_backup => :environment do
   misc_dir = File.join(ENV['DATA_PATH'], 'misc')
   new_dump = File.join(misc_dir, 'new_dump.sql')
   latest = File.join(misc_dir, 'latest_categories.sql')
-  unless system %Q(rm -f #{new_dump}; mysqldump -u$DB_USER -p$DB_PASSWORD uhero_db_dev categories > #{new_dump})
+  unless system %Q(rm -f #{new_dump}; mysqldump -u$DB_USER -p$DB_PASSWORD -h$DB_HOST uhero_db_dev categories > #{new_dump})
     logger.warn "Categories_backup task: mysqldump fail: #{$?.to_s}"
     return
   end
