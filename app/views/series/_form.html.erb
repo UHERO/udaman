@@ -11,10 +11,12 @@
         </div>
     <% end %>
 
-    <div class="field">
-      Name<br/>
-      <%= @series.name %>
-    </div>
+    <% if request.path =~ /new/ %>
+      <div class="field">
+        <%= f.label :name, 'Name' %><br/>
+        <%= f.text_field :name, :size => 40 %>
+      </div>
+    <% end %>
     <div class="field">
       <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
       <%= f.text_field :dataPortalName, :size => 80 %>
