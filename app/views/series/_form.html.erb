@@ -13,8 +13,10 @@
 
     <% if request.path =~ /new/ %>
       <div class="field">
-        <%= f.label :name, 'Name' %><br/>
-        <%= f.text_field :name, :size => 40 %>
+        <%= f.label :name, 'Name: Prefix' %><br/>
+        <%= text_field_tag 'name_parts[name_prefix]', nil, :size => 20 %> @
+        <%= select :name_parts, :name_geo, Geography.all.collect {|g| [ g.handle, g.handle ] }, {:include_blank => false} %> .
+        <%= select :name_parts, :name_freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
       </div>
     <% end %>
     <div class="field">
