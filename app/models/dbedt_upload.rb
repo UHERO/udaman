@@ -41,10 +41,6 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def set_active(status)
-    puts ">>>>> DEBUG:: setting active status to #{status}"
-
-    if status == 'loading'
-    end
     self.update! :active => status
   end
 
@@ -147,7 +143,7 @@ class DbedtUpload < ActiveRecord::Base
           end
           category = Category.create(
               meta: "DBEDT_#{indicator_id}",
-              universe: "DBEDT",
+              universe: 'DBEDT',
               name: row[1],
               ancestry: ancestry,
               list_order: row[5]
@@ -175,6 +171,8 @@ class DbedtUpload < ActiveRecord::Base
           measurement.update data_portal_name: row[0]
         end
         data_list.measurements << measurement
+        dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
+        dlm.update(list_order: row[5].to_i) if dlm
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
