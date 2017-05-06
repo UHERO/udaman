@@ -15,7 +15,10 @@ class SeriesController < ApplicationController
   # POST /series
   def create
     @series = Series.new(series_params.except(:name_parts).merge(name: build_name(params[:name_parts])))
-
+    if @series.name =~ /^@/
+      redirect_to({:action => :new}, :notice => 'Series NOT SAVED - empty prefix')
+      return
+    end
     if @series.save
       redirect_to @series, notice: 'Series was successfully created.'
     else

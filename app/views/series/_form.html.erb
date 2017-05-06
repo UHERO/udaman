@@ -11,7 +11,7 @@
         </div>
     <% end %>
 
-    <% if request.path =~ /new/ %>
+    <% if request.path !~ /edit/ %>
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[name_prefix]', nil, :size => 20 %> @
