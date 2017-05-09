@@ -173,13 +173,15 @@ class DataPoint < ActiveRecord::Base
         update public_data_points p
           join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
           join series s on s.id = d.series_id
-        set p.value = d.value, p.updated_at = d.updated_at
+        set p.value = d.value,
+            p.pseudo_history = d.pseudo_history,
+            p.updated_at = d.updated_at
         where not s.quarantined
         and d.updated_at > p.updated_at ;
       )
       ActiveRecord::Base.connection.execute %q(
-        insert into public_data_points (series_id, date, value, created_at, updated_at)
-        select d.series_id, d.date, d.value, d.created_at, coalesce(d.updated_at, d.created_at)
+        insert into public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
+        select d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
         from data_points d
           join series s on s.id = d.series_id
           left join public_data_points p on d.series_id = p.series_id and d.date = p.date
