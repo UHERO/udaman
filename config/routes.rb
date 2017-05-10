@@ -111,7 +111,7 @@ UheroDb::Application.routes.draw do
   get 'send_prognoz_export' => 'prognoz_data_files#send_prognoz_export'
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
-  get 'update_public_dp' => 'dashboards#update_public_dp'
+  post 'update_public_dp' => 'dashboards#update_public_dp'
   get 'investigate_no_source' => 'dashboards#investigate_no_source'
   get 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
   get 'export_tsd' => 'dashboards#export_tsd'
