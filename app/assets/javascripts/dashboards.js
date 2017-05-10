@@ -1,6 +1,8 @@
 $(function() {
-    $("a[data-remote][data-pdpupdate]").on("ajax:success", function(e, data, status, xhr) {
+    $(".button-with-indicator").on("ajax:success", function() {
         $("#pdp-indicator").removeClass('fa-refresh fa-spin').addClass('fa-check');
     });
-    $("#pdp-link").click(function(){ $("#pdp-indicator-span").show(); });
+    $(".button-with-indicator input").click(function(){
+        $("#pdp-indicator").show().removeClass('fa-check').addClass('fa-refresh fa-spin');
+    });
 });
