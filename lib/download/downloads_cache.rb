@@ -84,23 +84,20 @@ class DownloadsCache
     raise "the download for handle '#{@handle} failed with status code #{@download_results[@handle][:status]} when attempt to reach #{@dsd.url}" if @download_results[@handle] and @download_results[@handle][:status] != 200
   end
 
-  #this manual logic is getting ugly. should probably take out the option handling stuff and file caching and separate from download process, etc
   def csv(handle, path = nil)
     @dsd = DataSourceDownload.get(handle)
-    raise "handle '#{handle}' does not exist" if @dsd.nil? and handle != "manual"
-    path = (handle == "manual") ? DataSourceDownload.flex(path) : @dsd.save_path_flex    
+    raise "handle '#{handle}' does not exist" if @dsd.nil? and handle != 'manual'
+    path = (handle == 'manual') ? DataSourceDownload.flex(path) : @dsd.save_path_flex
     @handle = handle
     @csv ||= {}
     if @csv[path].nil? 
       download_handle unless @dsd.nil?
-      #puts path
       begin
         @csv[path] = CSV.read(path)
         @new_data = true
       rescue
         #resolve one ugly known file formatting problem with faster csv
         alternate_csv_load = alternate_fastercsv_read(path) #rescue condition if this fails
-        #return "READ_ERROR:CSV FORMAT OR FILE PROBLEM" if alternate_csv_load.nil? 
         @csv[path] = alternate_csv_load
         @new_data = true
       end
@@ -126,7 +123,6 @@ class DownloadsCache
     end
     csv_file.close
     csv_data
-    # return [] #not sure about this change. Used to be nil. but got too time consuming
   end
 
   def text(handle)
