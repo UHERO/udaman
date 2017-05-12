@@ -18,9 +18,8 @@ class CsvFileProcessor
     csv_2d_array = @cached_files.csv(handle, @options[:path])
     date = @date_processor.compute(index)
   
-    #puts "trying: h:#{handle}, r:#{row}, c:#{col}, p:#{@options[:path]}"
     observation_value = parse_cell(csv_2d_array, row, col)
-    return "END" if observation_value == "BREAK IN DATA"
+    return 'END' if observation_value == 'BREAK IN DATA'
     {date => observation_value}
   
   end
@@ -28,13 +27,12 @@ class CsvFileProcessor
   def parse_cell(csv_2d_array, row, col)
     begin
       cell_value = csv_2d_array[row-1][col-1]
-      #puts cell_value
-      return Float cell_value.gsub(",","") if cell_value.class == String
+      return Float cell_value.gsub(',','') if cell_value.class == String
       return Float cell_value
     rescue   
       #known data values that should be suppressed as nils... may need to separate these by file being read in
-      return nil if ["(D) ", "(L) ", "(N) ", "(T)", "(T) ", " --- ", "(L)", "(D)", "(NA)"].include? cell_value
-      return "BREAK IN DATA"
+      return nil if ['(D) ', '(L) ', '(N) ', '(T)', '(T) ', ' --- ', '(L)', '(D)', '(NA)'].include? cell_value
+      return 'BREAK IN DATA'
     end
   end
 

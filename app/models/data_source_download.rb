@@ -76,26 +76,18 @@ class DataSourceDownload < ActiveRecord::Base
   #this needs to be fixed
   def download_changed?
     self.download
-    #puts self.download_log[-1][:changed].to_s+" "+save_path
-    #return self.download_log[-1][:changed] unless self.download_log[-1][:changed].nil?
     true
   end
 
   def download
-    #self.download_log ||= []
-    #some will only respond to certain user agents... this may have to be updated
     resp = nil
-    #loop seems to allow cookie to be downloaded... maybe more effective way to do this?
     if post_parameters.nil? or post_parameters.length == 0
       resp = RestClient.get URI.encode(url.strip)
     else
       resp = RestClient.post URI.encode(url.strip), post_parameters
     end
-    puts 'downloaded'
-    #not sure why I was raising this exception. Want to note the failed downloads and continue
-    #raise DownloadException if resp.header.status_code != 200
     status = resp.code
-    if status == 200 #successful download
+    if status == 200
       data_changed = content_changed?(resp.to_str)
 
       backup if data_changed
@@ -119,14 +111,12 @@ class DataSourceDownload < ActiveRecord::Base
   end
 
   def content_changed?(new_content)
-    puts 'checking for changed content'
     return true if !File::exists? save_path_flex
     previous_download = open(save_path_flex, 'rb').read
     previous_download != new_content
   end
 
   def backup
-    puts 'backing up'
     return if !File::exists? save_path_flex
     Dir.mkdir save_path_flex+'_vintages' unless File::directory?(save_path_flex+'_vintages')
     filename = save_path_flex.split('/')[-1]
