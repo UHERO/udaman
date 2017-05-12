@@ -14,6 +14,18 @@ class DownloadsCache
     @new_data = nil
   end
 
+  def write_cache
+    @xls.keys.each do |handle|
+      Rails.cache.fetch(handle) { Marshal.dump(@xls[handle]) }
+    end
+    @csv.keys.each do |handle|
+      Rails.cache.fetch(handle) { Marshal.dump(@csv[handle]) }
+    end
+    @text.keys.each do |handle|
+      Rails.cache.fetch(handle) { Marshal.dump(@text[handle]) }
+    end
+  end
+
   def xls(handle, sheet, path = nil, date = nil)
     if path.nil?
       @got_handle ||= {}
@@ -29,7 +41,7 @@ class DownloadsCache
     @xls ||= {}
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if (@xls[@cache_handle].nil? and handle != 'manual')
+    if @xls[@cache_handle].nil? and handle != 'manual'
       download_handle
     end
     @xls[@cache_handle] ||= {}
@@ -100,8 +112,7 @@ class DownloadsCache
         @new_data = true
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        alternate_csv_load = alternate_fastercsv_read(path) #rescue condition if this fails
-        #return "READ_ERROR:CSV FORMAT OR FILE PROBLEM" if alternate_csv_load.nil? 
+        alternate_csv_load = alternate_fastercsv_read(path)
         @csv[path] = alternate_csv_load
         @new_data = true
       end

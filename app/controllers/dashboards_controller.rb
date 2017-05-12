@@ -105,13 +105,7 @@ class DashboardsController < ApplicationController
   end
   
   def d_cache
-    #begin
       @cache = Series.get_cached_files
-      #@xls_count = @cache.get_cache[:xls].count
-      #@cache = Series.open_cached_files if @cache.nil?
-    #rescue NameError => e
-      #@cache = Series.open_cached_files
-    #end
   end
     
   def construction

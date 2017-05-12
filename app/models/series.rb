@@ -622,9 +622,13 @@ class Series < ActiveRecord::Base
   
   def Series.write_cached_files(cached_files)
     t = Time.now
-    cached_files.reset_new_data
-    puts "#{Time.now - t} | Wrote downloads to cache"
-    Rails.cache.fetch('downloads') {Marshal.dump(cached_files)}
+    begin
+      cached_files.write_cache
+      cached_files.reset_new_data
+      puts "#{Time.now - t} | Wrote downloads to Rails cache"
+    rescue Exception => e
+      Rails.logger.warn "Write to Rails cache failed: #{e.message}"
+    end
   end
   
   def Series.get_cached_files
