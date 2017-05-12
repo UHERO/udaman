@@ -296,25 +296,17 @@ class Series < ActiveRecord::Base
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
     #instead of calling in save_source
-    #p_time = Time.now
     data.delete_if {|_,value| value.nil?}
 
     # make sure data keys are in Date format
     formatted_data = {}
     data.each_pair {|date, value| formatted_data[Date.parse date.to_s] = value}
     data = formatted_data
-
     observation_dates = data.keys
-    #puts "#{"%.2f" % (Time.now - p_time)} : #{current_data_points.count} : #{self.name} : PRUNING DATAPOINTS"
-    
-    #cdp_time = Time.now         #timer
     current_data_points.each do |dp|
       dp.upd(data[dp.date], source)
     end
     observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
-    #puts "#{"%.2f" % (Time.now - cdp_time)} : #{current_data_points.count} : #{self.name} : UPDATING CURRENT DATAPOINTS"
-
-    #od_time = Time.now             #timer
     observation_dates.each do |date|
       data_points.create(
         :date => date,
@@ -324,28 +316,17 @@ class Series < ActiveRecord::Base
         :data_source_id => source.id
       )
     end
-    #puts "#{"%.2f" % (Time.now - od_time)} : #{observation_dates.count} : #{self.name} : CREATING MISSING OBSERVATION DATES"
-        
-    #update_data_hash
-
-    #a_time = Time.now
-    # this one also takes a long time.
+    DataPoint.update_public_data_points(self.id) unless self.quarantined?
     aremos_comparison #if we can take out this save, might speed things up a little
-    #puts "#{"%.2f" % (Time.now - a_time)} : #{observation_dates.count} : #{self.name} : AREMOS COMPARISON"
     []
   end
-  
+
   def update_data_hash
     data_hash = {}
-    #dh_time = Time.now            #timer
     data_points.each do |dp|
-      #puts "#{dp.date_string}: #{dp.value} (#{dp.current})"
       data_hash[dp.date.to_s] = dp.value if dp.current
     end
-    #puts "#{"%.2f" % (Time.now - dh_time)} : #{data_points.count} : #{self.name} : UPDATING DATA HASH FROM (ALL DATA POINTS)"
-    #s_time = Time.now
     self.save
-    #puts "#{"%.2f" % (Time.now - s_time)} : #{data_hash.count} : #{self.name} : SAVING SERIES"    
   end
   
   def data
