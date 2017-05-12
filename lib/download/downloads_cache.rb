@@ -28,7 +28,7 @@ class DownloadsCache
     @xls ||= {}
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if (@xls[@cache_handle].nil? and handle != 'manual')
+    if @xls[@cache_handle].nil? and handle != 'manual'
       download_handle
     end
     @xls[@cache_handle] ||= {}
