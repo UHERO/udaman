@@ -19,24 +19,19 @@ module SeriesExternalRelationship
   end
   
   def a_diff(value, series_value)
-    # diff_trunc = (value - series_value.aremos_trunc).abs  
-    # diff_round = (value - series_value.single_precision.aremos_round).abs  
-    # diff_sci = (value - series_value.single_precision.to_sci).abs
-    # return diff_sci if diff_sci < diff_round and diff_sci < diff_trunc  
-    # diff_first = diff_trunc < diff_round ? diff_trunc : diff_round
-    # diff_second = diff_first < diff_sci ? diff_first : diff_sci
-    
-    diff_trunc = (value - series_value.aremos_trunc).abs.round(3)  
+    diff_trunc = (value - series_value.aremos_trunc).abs.round(3)
     diff_sig_5 = (value.sig_digits(5).round(3) - series_value.sig_digits(5).round(3)).abs
     diff_sig_6 = (value.sig_digits(6).round(3) - series_value.sig_digits(6).round(3)).abs
 
     diff_first = diff_trunc < diff_sig_5 ? diff_trunc : diff_sig_5
     diff_second = diff_first < diff_sig_6 ? diff_first : diff_sig_6
         
-    #diffsecond used to have to be greater than 0.001. Turned down sensitivity... on 4/12/13 to address the big subtraction problem
     diff_second > 0.01 ? diff_second : 0
   end
-  
+
+  # It seems awfully confusing that this class method exists alongside the one above, the two
+  # being identical except for an order of mag in the return statement. Is one of them wrong?
+  # Do we really need both? -dji
   def Series.a_diff(value, series_value)    
     diff_trunc = (value - series_value.aremos_trunc).abs.round(3)  
     diff_sig_5 = (value.sig_digits(5).round(3) - series_value.sig_digits(5).round(3)).abs
@@ -66,7 +61,6 @@ module SeriesExternalRelationship
 
       self.aremos_missing = missing_keys.count
       self.aremos_diff = 0
-      #self.units ||= 1
       as.data.each do |date, value|
         unless self.data[date].nil?
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
@@ -76,7 +70,6 @@ module SeriesExternalRelationship
         end
       end
       self.save if save_series
-      #puts "Compared #{self.name}: Missing: #{self.aremos_missing} Diff:#{self.aremos_diff}"
       return {:missing => self.aremos_missing, :diff => self.aremos_diff}
     rescue Exception => e
       puts e.message

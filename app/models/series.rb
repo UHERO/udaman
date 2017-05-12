@@ -640,7 +640,7 @@ class Series < ActiveRecord::Base
     cache = Rails.cache.fetch('downloads')
     puts "#{Time.now - t} | Got Downloads from Cache " unless cache.nil?
     return DownloadsCache.new if cache.nil?
-    return Marshal.load(cache)
+    Marshal.load(cache)
   end
     
   def at(date)
