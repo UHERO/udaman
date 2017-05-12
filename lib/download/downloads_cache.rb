@@ -33,11 +33,11 @@ class DownloadsCache
     end
     @xls[@cache_handle] ||= {}
 
-    if @xls[@cache_handle][sheet].nil?
+    if @xls[@cache_handle][@sheet].nil?
       #if sheet not present, only other sheets were used so far
       set_xls_sheet date
     end
-    @xls[@cache_handle][sheet]
+    @xls[@cache_handle][@sheet]
   end
 
   def set_xls_sheet(date)
