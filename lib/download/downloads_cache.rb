@@ -105,7 +105,6 @@ class DownloadsCache
     @csv[path]
   end
 
-
   def alternate_fastercsv_read(path)
     csv_data = []
     csv_file = open path, 'r'
