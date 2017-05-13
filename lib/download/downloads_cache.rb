@@ -1,10 +1,20 @@
-#CSV STUFF IS WEIRD... TRY TO CLEAN UP
-
 class DownloadsCache
-  def get_cache
-    {:csv => @csv, :xls => @xls, :text => @text}
+  def initialize
+    @cache = {}
   end
-  
+
+  def csv_count
+    @cache.keys.select {|key| key =~ /^csv/ }.count
+  end
+
+  def xls_count
+    @cache.keys.select {|key| key =~ /^xls/ }.count
+  end
+
+  def text_count
+    @cache.keys.select {|key| key =~ /^text/ }.count
+  end
+
   def new_data?
     !@new_data.nil?
   end
@@ -14,14 +24,8 @@ class DownloadsCache
   end
 
   def write_cache
-    @xls.keys.each do |handle|
-      Rails.cache.fetch(handle) { Marshal.dump(@xls[handle]) }
-    end
-    @csv.keys.each do |handle|
-      Rails.cache.fetch(handle) { Marshal.dump(@csv[handle]) }
-    end
-    @text.keys.each do |handle|
-      Rails.cache.fetch(handle) { Marshal.dump(@text[handle]) }
+    @cache.keys.each do |handle|
+      Rails.cache.fetch(handle, expires_in: 6.hours) { Marshal.dump(@cache[handle]) }
     end
   end
 
@@ -47,37 +51,35 @@ class DownloadsCache
 
     if @xls[@cache_handle][@sheet].nil?
       #if sheet not present, only other sheets were used so far
-      set_xls_sheet date
+      set_xls_sheet(sheet, date)
     end
     @xls[@cache_handle][@sheet]
   end
 
-  def set_xls_sheet(date)
+  def set_xls_sheet(sheet, date)
     @new_data = true
     file_extension = @cache_handle.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
-    sheet_parts = @sheet.split(':')
-    if sheet_parts[0] == 'sheet_num' #and excel.default_sheet != excel.sheets[sheet_parts[1].to_i - 1]
+    sheet_parts = sheet.split(':')
+    if sheet_parts[0] == 'sheet_num'
       excel.default_sheet = excel.sheets[sheet_parts[1].to_i - 1] 
     elsif sheet_parts[0] == 'sheet_name'
       excel.default_sheet = get_month_name(date) if sheet_parts[1].upcase == 'M3'
     else
       begin
-        excel.default_sheet = @sheet unless excel.default_sheet == @sheet 
+        excel.default_sheet = sheet unless excel.default_sheet == sheet
       rescue RangeError
         # added sheetnames to allow for sheetnames separated by "[or]" (case insensitive)
-        sheetnames = @sheet.split(/\[[oO][rR]\]/).collect! {|sheet| sheet.downcase} 
-        # whitespace_hidden_sheet_index = (excel.sheets.map {|sheet| sheet.strip.downcase}).index(@sheet.downcase)
-        whitespace_hidden_sheet_index = excel.sheets.index {|sheet| sheetnames.include?(sheet.strip.downcase)}
+        sheetnames = sheet.split(/\[[oO][rR]\]/).collect! {|s| s.downcase}
+        whitespace_hidden_sheet_index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase)}
         if whitespace_hidden_sheet_index.nil?
-          raise "sheet '#{@sheet}' does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
+          raise "sheet '#{sheet}' does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
         else
           excel.default_sheet = excel.sheets[whitespace_hidden_sheet_index]
         end
       end
     end
-    @xls[@cache_handle] ||= {}
-    @xls[@cache_handle][@sheet] = excel.to_matrix.to_a
+    @xls[@cache_handle][sheet] = excel.to_matrix.to_a
   end
 
   def get_month_name(date)
