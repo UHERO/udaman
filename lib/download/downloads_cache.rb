@@ -109,7 +109,7 @@ class DownloadsCache
         @new_data = true
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        alternate_csv_load = alternate_fastercsv_read(path)
+        alternate_csv_load = alternate_fastercsv_read(path) #rescue condition if this fails
         @csv[path] = alternate_csv_load
         @new_data = true
       end
