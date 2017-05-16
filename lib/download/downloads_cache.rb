@@ -104,13 +104,10 @@ class DownloadsCache
     if path.nil?
       @got_handle ||= {}
       @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
-      raise "handle '#{handle}' does not exist" if @dsd.nil?
-      path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
+      raise "handle '#{handle}' does not exist" if @dsd.nil? && handle != 'manual'
+      path = @dsd.save_path_flex if handle != 'manual'
       @got_handle[handle] = @dsd
     end
- #   @dsd = DataSourceDownload.get(handle)
-  #  raise "handle '#{handle}' does not exist" if @dsd.nil? and handle != 'manual'
-   # path = (handle == 'manual') ? DataSourceDownload.flex(path) : @dsd.save_path_flex
     @handle = handle
     key = make_cache_key('csv', handle)
     if @cache[key].nil?
