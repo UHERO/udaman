@@ -159,48 +159,62 @@ class DataPoint < ActiveRecord::Base
     end
   end
 
-  #have not tested as is. This is created from a one time job. Need to test again
   def DataPoint.delete_all_created_on(date)
-    #dps_to_delete = DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date_string}')")
-    #dps_to_delete.each { |dp| puts "#{dp.series_id} : #{dp.date_string} : #{dp.value}"; dp.delete }
     DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
   end
 
-  def DataPoint.update_public_data_points
+  def DataPoint.update_public_data_points(series = nil)
+    return false if series && series.quarantined?
+
     t = Time.now
+    update_query = %Q(
+      update public_data_points p
+        join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
+        join series s on s.id = d.series_id
+      set p.value = d.value,
+          p.pseudo_history = d.pseudo_history,
+          p.updated_at = d.updated_at
+      where not s.quarantined
+      and d.updated_at > p.updated_at
+      #{' and s.id = ? ' if series} ;
+    )
+    insert_query = %Q(
+      insert into public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
+      select d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
+      from data_points d
+        join series s on s.id = d.series_id
+        left join public_data_points p on d.series_id = p.series_id and d.date = p.date
+      where not s.quarantined
+      and d.current
+      and p.created_at is null  /* dp doesn't exist in public_data_points yet */
+      #{' and s.id = ? ' if series} ;
+    )
+    delete_query = %Q(
+      delete p
+      from public_data_points p
+        join series s on s.id = p.series_id
+        left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
+      where not s.quarantined
+      and d.created_at is null  /* dp no longer exists in data_points */
+      #{' and s.id = ? ' if series} ;
+    )
     ActiveRecord::Base.transaction do
-      ActiveRecord::Base.connection.execute %q(
-        update public_data_points p
-          join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
-          join series s on s.id = d.series_id
-        set p.value = d.value,
-            p.pseudo_history = d.pseudo_history,
-            p.updated_at = d.updated_at
-        where not s.quarantined
-        and d.updated_at > p.updated_at ;
-      )
-      ActiveRecord::Base.connection.execute %q(
-        insert into public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
-        select d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
-        from data_points d
-          join series s on s.id = d.series_id
-          left join public_data_points p on d.series_id = p.series_id and d.date = p.date
-        where not s.quarantined
-        and d.current
-        and p.created_at is null ; /* dp doesn't exist in public_data_points yet */
-      )
-      ActiveRecord::Base.connection.execute %q(
-        delete p
-        from public_data_points p
-          join series s on s.id = p.series_id
-          left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
-        where not s.quarantined
-        and d.created_at is null ; /* dp no longer exists in data_points */
-      )
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
+      series ? stmt.execute(series.id) : stmt.execute
+      stmt.close
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(insert_query)
+      series ? stmt.execute(series.id) : stmt.execute
+      stmt.close
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(delete_query)
+      series ? stmt.execute(series.id) : stmt.execute
+      stmt.close
     end
-    CSV.open('public/rake_time.csv', 'a') do |csv|
-      csv << ['update_public_data_points', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s]
+    if series.nil?
+      CSV.open('public/rake_time.csv', 'a') do |csv|
+        csv << ['update_public_data_points', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s]
+      end
     end
+    true
   end
 
 end
