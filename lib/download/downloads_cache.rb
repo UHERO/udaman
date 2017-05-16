@@ -34,26 +34,19 @@ class DownloadsCache
       @got_handle ||= {}
       @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
       raise "handle '#{handle}' does not exist" if @dsd.nil?
-      path = (@dsd.extract_path_flex.nil? or @dsd.extract_path_flex == '') ? @dsd.save_path_flex : @dsd.extract_path_flex
+      path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
       @got_handle[handle] = @dsd
     end
     
     @cache_handle = path
     @handle = handle    
     @sheet = sheet
-    @xls ||= {}
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
     if @xls[@cache_handle].nil? and handle != 'manual'
       download_handle
     end
-    @xls[@cache_handle] ||= {}
-
-    if @xls[@cache_handle][@sheet].nil?
-      #if sheet not present, only other sheets were used so far
-      set_xls_sheet(sheet, date)
-    end
-    @xls[@cache_handle][@sheet]
+    @cache[make_cache_key('xls', @cache_handle, @sheet)] || set_xls_sheet(sheet, date)
   end
 
   def set_xls_sheet(sheet, date)
@@ -79,7 +72,13 @@ class DownloadsCache
         end
       end
     end
-    @xls[@cache_handle][sheet] = excel.to_matrix.to_a
+    @cache[make_cache_key('xls', @cache_handle, sheet)] = excel.to_matrix.to_a
+  end
+
+  def make_cache_key(file_type, handle, sheet=nil)
+    items = [file_type, handle]
+    items.push(sheet) if sheet
+    items.join('|')
   end
 
   def get_month_name(date)
@@ -99,24 +98,30 @@ class DownloadsCache
   end
 
   def csv(handle, path = nil)
-    @dsd = DataSourceDownload.get(handle)
-    raise "handle '#{handle}' does not exist" if @dsd.nil? and handle != 'manual'
-    path = (handle == 'manual') ? DataSourceDownload.flex(path) : @dsd.save_path_flex
+    if path.nil?
+      @got_handle ||= {}
+      @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
+      raise "handle '#{handle}' does not exist" if @dsd.nil?
+      path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
+      @got_handle[handle] = @dsd
+    end
+ #   @dsd = DataSourceDownload.get(handle)
+  #  raise "handle '#{handle}' does not exist" if @dsd.nil? and handle != 'manual'
+   # path = (handle == 'manual') ? DataSourceDownload.flex(path) : @dsd.save_path_flex
     @handle = handle
-    @csv ||= {}
-    if @csv[path].nil? 
+    key = make_cache_key('csv', handle)
+    if @cache[key].nil?
       download_handle unless @dsd.nil?
       begin
-        @csv[path] = CSV.read(path)
+        @cache[key] = CSV.read(path)
         @new_data = true
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        alternate_csv_load = alternate_fastercsv_read(path) #rescue condition if this fails
-        @csv[path] = alternate_csv_load
+        @cache[key] = alternate_fastercsv_read(path)
         @new_data = true
       end
     end
-    @csv[path]
+    @cache[key]
   end
 
   def alternate_fastercsv_read(path)
