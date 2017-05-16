@@ -80,7 +80,8 @@ class DownloadsCache
   end
 
   def download_results
-    @download_results ||= {}
+    dlr_key = make_cache_key('dlresults', nil)
+    @download_results || get_files_cache(dlr_key)
   end
 
   def csv(handle, path = nil)
@@ -133,6 +134,7 @@ class DownloadsCache
 private
   def download_handle
     t = Time.now
+    @download_results ||= {}
     @download_results[@handle] = @dsd.download
     handle_key = make_cache_key('handle', @handle)
     set_files_cache(handle_key, @download_results[@handle])
