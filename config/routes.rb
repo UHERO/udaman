@@ -167,7 +167,6 @@ UheroDb::Application.routes.draw do
   get 'prudential_list_q' => 'dashboards#prudential_list_q'
   
   get 'mapping' => 'dashboards#mapping'
-  get 'cache' => 'dashboards#d_cache'
 
   get 'listseries/search' => 'listseries#search'
   get 'listseries/re' =>'listseries#redir'

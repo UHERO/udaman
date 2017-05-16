@@ -104,10 +104,6 @@ class DashboardsController < ApplicationController
     @pattern_and_load = (@pattern & @load)
   end
   
-  def d_cache
-      @cache = Series.get_cached_files
-  end
-    
   def construction
     @series_to_chart = %w(KPPRVNS@HI.M KPPRVADDNS@HI.M KPPRVRSDNS@HI.M KPPRVCOMNS@HI.M KPPRVNS@HON.M KPPRVADDNS@HON.M 
 KPPRVRSDNS@HON.M KPPRVCOMNS@HON.M KPPRVNS@HAW.M KPPRVADDNS@HAW.M KPPRVRSDNS@HAW.M KPPRVCOMNS@HAW.M KPPRVNS@MAU.M 
