@@ -1,18 +1,14 @@
 class DownloadsCache
-  def initialize
-    @cache = {}
-  end
-
   def csv_count
-    @cache.keys.select {|key| key =~ /^csv/ }.count
+    0
   end
 
   def xls_count
-    @cache.keys.select {|key| key =~ /^xls/ }.count
+    0
   end
 
   def text_count
-    @cache.keys.select {|key| key =~ /^text/ }.count
+    0
   end
 
   def new_data?
@@ -23,18 +19,13 @@ class DownloadsCache
     @new_data = nil
   end
 
-  def write_cache
-    @cache.keys.each do |handle|
-      Rails.cache.fetch(handle, expires_in: 6.hours) { Marshal.dump(@cache[handle]) }
-    end
-  end
-
   def get_files_cache(key)
     Rails.cache.fetch(key)
   end
 
   def set_files_cache(key, value)
     Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
+    value
   end
 
   def xls(handle, sheet, path = nil, date = nil)
@@ -84,9 +75,7 @@ class DownloadsCache
       end
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
-    value = excel.to_matrix.to_a
-    set_files_cache(sheet_key, value)
-    value
+    set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
   def make_cache_key(file_type, handle, sheet=nil)
