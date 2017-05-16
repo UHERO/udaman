@@ -43,8 +43,9 @@ class DownloadsCache
     @sheet = sheet
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if @xls[@cache_handle].nil? and handle != 'manual'
+    if @cache[make_cache_key('xls', @cache_handle)].nil? && handle != 'manual'
       download_handle
+      @cache[make_cache_key('xls', @cache_handle)] = 1; ## Marker to show that file is downloaded
     end
     @cache[make_cache_key('xls', @cache_handle, @sheet)] || set_xls_sheet(sheet, date)
   end
@@ -76,9 +77,9 @@ class DownloadsCache
   end
 
   def make_cache_key(file_type, handle, sheet=nil)
-    items = [file_type, handle]
-    items.push(sheet) if sheet
-    items.join('|')
+    parts = [file_type, handle]
+    parts.push(sheet) if sheet
+    parts.join('|')
   end
 
   def get_month_name(date)
@@ -94,7 +95,9 @@ class DownloadsCache
     @download_results ||= {}
     @download_results[@handle] = @dsd.download 
     puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
-    raise "the download for handle '#{@handle} failed with status code #{@download_results[@handle][:status]} when attempt to reach #{@dsd.url}" if @download_results[@handle] and @download_results[@handle][:status] != 200
+    if @download_results[@handle] && @download_results[@handle][:status] != 200
+      raise "the download for handle '#{@handle}' failed with status code #{@download_results[@handle][:status]} (url=#{@dsd.url})"
+    end
   end
 
   def csv(handle, path = nil)
@@ -148,13 +151,13 @@ class DownloadsCache
     raise "handle '#{handle}' does not exist" if @dsd.nil?
     
     @handle = handle
-    @text ||= {}
-    if @text[handle].nil?
+    key = make_cache_key('txt', handle)
+    if @cache[key].nil?
       download_handle
-      @text[handle] = get_text_rows
+      @cache[key] = get_text_rows
       @new_data = true
     end
-    @text[handle]
+    @cache[key]
   end
 
   def get_text_rows
