@@ -29,6 +29,14 @@ class DownloadsCache
     end
   end
 
+  def get_rails_cache(key)
+    Rails.cache.fetch(key)
+  end
+
+  def set_rails_cache(key, value)
+    Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
+  end
+
   def xls(handle, sheet, path = nil, date = nil)
     if path.nil?
       @got_handle ||= {}
@@ -41,13 +49,15 @@ class DownloadsCache
     @cache_handle = path
     @handle = handle    
     @sheet = sheet
+    file_key = make_cache_key('xls', @cache_handle)
+    sheet_key = make_cache_key('xls', @cache_handle, @sheet)
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if @cache[make_cache_key('xls', @cache_handle)].nil? && handle != 'manual'
+    if get_rails_cache(file_key).nil? && handle != 'manual'
       download_handle
-      @cache[make_cache_key('xls', @cache_handle)] = 1; ## Marker to show that file is downloaded
+      set_rails_cache(file_key, 1)  ## Marker to show that file is downloaded
     end
-    @cache[make_cache_key('xls', @cache_handle, @sheet)] || set_xls_sheet(sheet, date)
+    get_rails_cache(sheet_key) || set_xls_sheet(sheet, date)
   end
 
   def set_xls_sheet(sheet, date)
@@ -73,7 +83,8 @@ class DownloadsCache
         end
       end
     end
-    @cache[make_cache_key('xls', @cache_handle, sheet)] = excel.to_matrix.to_a
+    sheet_key = make_cache_key('xls', @cache_handle, sheet)
+    set_rails_cache(sheet_key, excel.to_matrix.to_a)
   end
 
   def make_cache_key(file_type, handle, sheet=nil)

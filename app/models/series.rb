@@ -505,7 +505,6 @@ class Series < ActiveRecord::Base
       dp = DownloadProcessor.new(handle, options, cached_files)
       series_data = dp.get_data
     rescue => e
-      Series.write_cached_files cached_files if cached_files.new_data?
       raise e
     end
     Series.write_cached_files cached_files if cached_files.new_data?
@@ -523,7 +522,6 @@ class Series < ActiveRecord::Base
       dp = DownloadProcessor.new('manual', options.merge({:path => file }), cached_files)
       series_data = dp.get_data
     rescue => e
-      Series.write_cached_files cached_files if cached_files.new_data?
       raise e
     end
       Series.write_cached_files cached_files if cached_files.new_data?
@@ -540,7 +538,6 @@ class Series < ActiveRecord::Base
       dp = DownloadProcessor.new(handle, options, cached_files)
       series_data = dp.get_data
     rescue => e
-      Series.write_cached_files cached_files if cached_files.new_data?
       raise e
     end
     Series.write_cached_files cached_files if cached_files.new_data?
@@ -632,10 +629,11 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_cached_files
-    #won't need these three module invocations in productions
-    DownloadsCache
-    DataSourceDownload
-    DsdLogEntry
+    # EXPERIMENT: try to remove these three lines which I don't know what they do, and see if they are needed. -dji
+    #   But more likely this method is going away anyway, so it's moot.
+    #DownloadsCache
+    #DataSourceDownload
+    #DsdLogEntry
     t = Time.now
     #this is pretty good for now. Will eventually want to redo cache strategy to write directly to cache with individual keys
     #the larger file sizes really slow the system down, even though this is still a performance boost
