@@ -1,23 +1,4 @@
 class DownloadsCache
-  def csv_count
-    0
-  end
-
-  def xls_count
-    0
-  end
-
-  def text_count
-    0
-  end
-
-  def new_data?
-    !@new_data.nil?
-  end
-  
-  def reset_new_data
-    @new_data = nil
-  end
 
   def xls(handle, sheet, path = nil, date = nil)
     if path.nil?
@@ -69,16 +50,6 @@ class DownloadsCache
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
-  def make_cache_key(file_type, handle, sheet=nil)
-    parts = [file_type, handle]
-    parts.push(sheet) if sheet
-    parts.join('|')
-  end
-
-  def get_month_name(date)
-    date.to_date.strftime('%^b')
-  end
-
   def download_results
     dlr_key = make_cache_key('dlresults', nil)
     @download_results || get_files_cache(dlr_key)
@@ -94,18 +65,19 @@ class DownloadsCache
     end
     @handle = handle
     file_key = make_cache_key('csv', @cache_handle)
-    if @cache[file_key].nil?
+    value = get_files_cache(file_key).nil?
+    if value.nil?
       download_handle unless @dsd.nil?
       begin
-        set_files_cache(file_key, CSV.read(path))
-        @new_data = true
+        value = CSV.read(path)
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        @cache[file_key] = alternate_fastercsv_read(path)
-        @new_data = true
+        value = alternate_fastercsv_read(path)
+      ensure
+        set_files_cache(file_key, value)
       end
     end
-    @cache[file_key]
+    value
   end
 
   def text(handle)
@@ -145,6 +117,7 @@ private
   end
 
   def alternate_fastercsv_read(path)
+  def alternate_fastercsv_read(path)
     csv_data = []
     csv_file = open path, 'r'
     while (line = csv_file.gets)
@@ -163,13 +136,24 @@ private
     csv_data
   end
 
+  def make_cache_key(file_type, handle, sheet=nil)
+    parts = [file_type, handle]
+    parts.push(sheet) if sheet
+    parts.join('|')
+  end
+
   def get_files_cache(key)
-    Marshal.load(Rails.cache.fetch(key))
+    value = Rails.cache.fetch(key)
+    value.nil? ? nil : Marshal.load(value)
   end
 
   def set_files_cache(key, value)
     Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
     value
+  end
+
+  def get_month_name(date)
+    date.to_date.strftime('%^b')
   end
 
 end
