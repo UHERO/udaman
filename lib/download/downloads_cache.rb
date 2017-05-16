@@ -29,11 +29,11 @@ class DownloadsCache
     end
   end
 
-  def get_rails_cache(key)
+  def get_files_cache(key)
     Rails.cache.fetch(key)
   end
 
-  def set_rails_cache(key, value)
+  def set_files_cache(key, value)
     Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
   end
 
@@ -53,11 +53,11 @@ class DownloadsCache
     sheet_key = make_cache_key('xls', @cache_handle, @sheet)
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if get_rails_cache(file_key).nil? && handle != 'manual'
+    if get_files_cache(file_key).nil? && handle != 'manual'
       download_handle
-      set_rails_cache(file_key, 1)  ## Marker to show that file is downloaded
+      set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
     end
-    get_rails_cache(sheet_key) || set_xls_sheet(sheet, date)
+    get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
   end
 
   def set_xls_sheet(sheet, date)
@@ -84,7 +84,9 @@ class DownloadsCache
       end
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
-    set_rails_cache(sheet_key, excel.to_matrix.to_a)
+    value = excel.to_matrix.to_a
+    set_files_cache(sheet_key, value)
+    value
   end
 
   def make_cache_key(file_type, handle, sheet=nil)
@@ -120,19 +122,19 @@ class DownloadsCache
       @got_handle[handle] = @dsd
     end
     @handle = handle
-    key = make_cache_key('csv', handle)
-    if @cache[key].nil?
+    file_key = make_cache_key('csv', @cache_handle)
+    if @cache[file_key].nil?
       download_handle unless @dsd.nil?
       begin
-        @cache[key] = CSV.read(path)
+        set_files_cache(file_key, CSV.read(path))
         @new_data = true
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        @cache[key] = alternate_fastercsv_read(path)
+        @cache[file_key] = alternate_fastercsv_read(path)
         @new_data = true
       end
     end
-    @cache[key]
+    @cache[file_key]
   end
 
   def alternate_fastercsv_read(path)
