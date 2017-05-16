@@ -501,13 +501,11 @@ class Series < ActiveRecord::Base
   #download fresh
   def Series.load_from_download(handle, options, cached_files = nil)
     begin
-      cached_files = Series.get_cached_files if cached_files.nil?
-      dp = DownloadProcessor.new(handle, options, cached_files)
+      dp = DownloadProcessor.new(handle, options)
       series_data = dp.get_data
     rescue => e
       raise e
     end
-    Series.write_cached_files cached_files if cached_files.new_data?
     Series.new_transformation("loaded from download #{handle} with options:#{options}", series_data, Series.frequency_from_code(options[:frequency]))
   end
   
@@ -517,14 +515,12 @@ class Series < ActiveRecord::Base
   def Series.load_from_file(file, options, cached_files = nil)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     begin
-      cached_files = Series.get_cached_files if cached_files.nil?
       %x(chmod 766 #{file}) unless file.include? '%'
-      dp = DownloadProcessor.new('manual', options.merge({:path => file }), cached_files)
+      dp = DownloadProcessor.new('manual', options.merge({:path => file }))
       series_data = dp.get_data
     rescue => e
       raise e
     end
-      Series.write_cached_files cached_files if cached_files.new_data?
       Series.new_transformation("loaded from file #{file} with options:#{options}", series_data, Series.frequency_from_code(options[:frequency]))
   end
   
@@ -534,13 +530,11 @@ class Series < ActiveRecord::Base
   
   def load_from_download(handle, options, cached_files = nil)
     begin
-      cached_files = Series.get_cached_files if cached_files.nil?
-      dp = DownloadProcessor.new(handle, options, cached_files)
+      dp = DownloadProcessor.new(handle, options)
       series_data = dp.get_data
     rescue => e
       raise e
     end
-    Series.write_cached_files cached_files if cached_files.new_data?
     new_transformation("loaded from download #{handle} with options:#{options}", series_data)
   end
   
@@ -627,7 +621,7 @@ class Series < ActiveRecord::Base
       Rails.logger.warn "Write to Rails cache failed: #{e.message}"
     end
   end
-  
+
   def Series.get_cached_files
     # EXPERIMENT: try to remove these three lines which I don't know what they do, and see if they are needed. -dji
     #   But more likely this method is going away anyway, so it's moot.
@@ -637,14 +631,14 @@ class Series < ActiveRecord::Base
     t = Time.now
     #this is pretty good for now. Will eventually want to redo cache strategy to write directly to cache with individual keys
     #the larger file sizes really slow the system down, even though this is still a performance boost
-    #may also be able to dump directly now that Marshal knows about the classes? 
-    #also that class logic will work by itself. 
+    #may also be able to dump directly now that Marshal knows about the classes?
+    #also that class logic will work by itself.
     cache = Rails.cache.fetch('downloads')
     puts "#{Time.now - t} | Got Downloads from Cache " unless cache.nil?
     return DownloadsCache.new if cache.nil?
     Marshal.load(cache)
   end
-    
+
   def at(date)
     data[date]
   end
@@ -673,7 +667,7 @@ class Series < ActiveRecord::Base
   #   color_order = ["FFCC99", "CCFFFF", "99CCFF", "CC99FF", "FFFF99", "CCFFCC", "FF99CC", "CCCCFF", "9999FF", "99FFCC"]
   #   colors
   # end
-  
+
   def print
     data.sort.each do |date, value|
       puts "#{date}: #{value}"

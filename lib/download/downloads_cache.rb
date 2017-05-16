@@ -19,15 +19,6 @@ class DownloadsCache
     @new_data = nil
   end
 
-  def get_files_cache(key)
-    Rails.cache.fetch(key)
-  end
-
-  def set_files_cache(key, value)
-    Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
-    value
-  end
-
   def xls(handle, sheet, path = nil, date = nil)
     if path.nil?
       @got_handle ||= {}
@@ -92,16 +83,6 @@ class DownloadsCache
     @download_results ||= {}
   end
 
-  def download_handle
-    t = Time.now
-    @download_results ||= {}
-    @download_results[@handle] = @dsd.download 
-    puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
-    if @download_results[@handle] && @download_results[@handle][:status] != 200
-      raise "the download for handle '#{@handle}' failed with status code #{@download_results[@handle][:status]} (url=#{@dsd.url})"
-    end
-  end
-
   def csv(handle, path = nil)
     if path.nil?
       @got_handle ||= {}
@@ -126,25 +107,6 @@ class DownloadsCache
     @cache[file_key]
   end
 
-  def alternate_fastercsv_read(path)
-    csv_data = []
-    csv_file = open path, 'r'
-    while (line = csv_file.gets)
-      begin
-        next unless line.index('HYPERLINK').nil?
-        # valid encoding solution is to deal with xA0 characters from this stack overflow post
-        # http://stackoverflow.com/questions/8710444/is-there-a-way-in-ruby-1-9-to-remove-invalid-byte-sequences-from-strings
-        csv_data.push(CSV.parse_line(line.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')))
-      rescue
-        puts 'CSV is having a problem with the following line'
-        puts line
-        csv_data.push([])
-      end
-    end
-    csv_file.close
-    csv_data
-  end
-
   def text(handle)
     @dsd = DataSourceDownload.get(handle)
     raise "handle '#{handle}' does not exist" if @dsd.nil?
@@ -167,4 +129,45 @@ class DownloadsCache
     end
     text_rows
   end
+
+private
+  def download_handle
+    t = Time.now
+    @download_results[@handle] = @dsd.download
+    handle_key = make_cache_key('handle', @handle)
+    set_files_cache(handle_key, @download_results[@handle])
+    puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
+    if @download_results[@handle] && @download_results[@handle][:status] != 200
+      raise "the download for handle '#{@handle}' failed with status code #{@download_results[@handle][:status]} (url=#{@dsd.url})"
+    end
+  end
+
+  def alternate_fastercsv_read(path)
+    csv_data = []
+    csv_file = open path, 'r'
+    while (line = csv_file.gets)
+      begin
+        next unless line.index('HYPERLINK').nil?
+        # valid encoding solution is to deal with xA0 characters from this stack overflow post
+        # http://stackoverflow.com/questions/8710444/is-there-a-way-in-ruby-1-9-to-remove-invalid-byte-sequences-from-strings
+        csv_data.push(CSV.parse_line(line.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')))
+      rescue
+        puts 'CSV is having a problem with the following line'
+        puts line
+        csv_data.push([])
+      end
+    end
+    csv_file.close
+    csv_data
+  end
+
+  def get_files_cache(key)
+    Marshal.load(Rails.cache.fetch(key))
+  end
+
+  def set_files_cache(key, value)
+    Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
+    value
+  end
+
 end
