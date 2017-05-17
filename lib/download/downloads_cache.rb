@@ -86,12 +86,12 @@ class DownloadsCache
     
     @handle = handle
     key = make_cache_key('txt', handle)
-    if @cache[key].nil?
+    value = get_files_cache(key).nil?
       download_handle
-      @cache[key] = get_text_rows
-      @new_data = true
+      value = get_text_rows
+      set_files_cache(key, value)
     end
-    @cache[key]
+    value
   end
 
   def get_text_rows
