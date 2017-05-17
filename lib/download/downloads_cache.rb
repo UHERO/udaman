@@ -51,8 +51,8 @@ class DownloadsCache
   end
 
   def download_results
-    dlr_key = make_cache_key('dlresults', nil)
-    @download_results || get_files_cache(dlr_key)
+    key = make_cache_key('download','results')
+    get_files_cache(key) || {}
   end
 
   def csv(handle, path = nil)
@@ -86,7 +86,8 @@ class DownloadsCache
     
     @handle = handle
     key = make_cache_key('txt', handle)
-    value = get_files_cache(key).nil?
+    value = get_files_cache(key)
+    if value.nil?
       download_handle
       value = get_text_rows
       set_files_cache(key, value)
@@ -106,17 +107,17 @@ class DownloadsCache
 private
   def download_handle
     t = Time.now
-    @download_results ||= {}
-    @download_results[@handle] = @dsd.download
-    handle_key = make_cache_key('handle', @handle)
-    set_files_cache(handle_key, @download_results[@handle])
+    key = make_cache_key('download','results')
+    results = get_files_cache(key) || {}
+    dsd_log = results[@handle] = @dsd.download
     puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
-    if @download_results[@handle] && @download_results[@handle][:status] != 200
-      raise "the download for handle '#{@handle}' failed with status code #{@download_results[@handle][:status]} (url=#{@dsd.url})"
+    set_files_cache(key, results, {}) ## pass empty options hash to turn off expiration timer -dji
+
+    if dsd_log && dsd_log[:status] != 200
+      raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dsd.url})"
     end
   end
 
-  def alternate_fastercsv_read(path)
   def alternate_fastercsv_read(path)
     csv_data = []
     csv_file = open path, 'r'
@@ -147,8 +148,9 @@ private
     value.nil? ? nil : Marshal.load(value)
   end
 
-  def set_files_cache(key, value)
-    Rails.cache.fetch(key, expires_in: 6.hours) { Marshal.dump(value) }
+  def set_files_cache(key, value, options=nil)
+    options ||= { expires_in: 6.hours }
+    Rails.cache.write(key, Marshal.dump(value), options)
     value
   end
 
