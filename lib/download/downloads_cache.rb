@@ -24,7 +24,6 @@ class DownloadsCache
   end
 
   def set_xls_sheet(sheet, date)
-    @new_data = true
     file_extension = @cache_handle.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = sheet.split(':')
@@ -111,7 +110,7 @@ private
     results = get_files_cache(key) || {}
     dsd_log = results[@handle] = @dsd.download
     puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
-    set_files_cache(key, results, {}) ## pass empty options hash to turn off expiration timer -dji
+    set_files_cache(key, results, {}) ## pass empty options hash to diable expiration timer -dji
 
     if dsd_log && dsd_log[:status] != 200
       raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dsd.url})"
