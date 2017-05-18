@@ -63,8 +63,8 @@ class DownloadsCache
       @got_handle[handle] = @dsd
     end
     @handle = handle
-    file_key = make_cache_key('csv', @cache_handle)
-    value = get_files_cache(file_key).nil?
+    file_key = make_cache_key('csv', path)
+    value = get_files_cache(file_key)
     if value.nil?
       download_handle unless @dsd.nil?
       begin
