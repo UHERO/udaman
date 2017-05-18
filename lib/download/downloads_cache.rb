@@ -16,7 +16,7 @@ class DownloadsCache
     sheet_key = make_cache_key('xls', @cache_handle, @sheet)
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if get_files_cache(file_key).nil? && handle != 'manual'
+    if handle != 'manual' && get_files_cache(file_key).nil?
       download_handle
       set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
     end
