@@ -82,7 +82,7 @@ class DownloadsCache
   def text(handle)
     @dsd = DataSourceDownload.get(handle)
     raise "handle '#{handle}' does not exist" if @dsd.nil?
-    
+
     @handle = handle
     key = make_cache_key('txt', handle)
     value = get_files_cache(key)
@@ -98,7 +98,7 @@ class DownloadsCache
     f = open @dsd.save_path_flex, 'r'
     text_rows = []
     while (row = f.gets)
-      text_rows.push row 
+      text_rows.push row
     end
     text_rows
   end
