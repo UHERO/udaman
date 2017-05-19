@@ -110,7 +110,7 @@ private
     results = get_files_cache(key) || {}
     dsd_log = results[@handle] = @dsd.download
     puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
-    set_files_cache(key, results, {}) ## pass empty options hash to diable expiration timer -dji
+    set_files_cache(key, results, {}) ## pass empty options hash to disable expiration timer -dji
 
     if dsd_log && dsd_log[:status] != 200
       raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dsd.url})"
