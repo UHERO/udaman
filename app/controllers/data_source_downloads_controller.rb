@@ -8,9 +8,9 @@ class DataSourceDownloadsController < ApplicationController
     @output_files = DataSourceDownload.order(:url).all
     @domain_hash = {}
     @output_files.each do |dsd|
-      @domain_hash[dsd.url.split("/")[2]] ||= []
-      @domain_hash[dsd.url.split("/")[2]].push(dsd.save_path) if dsd.handle.nil?
-      @domain_hash[dsd.url.split("/")[2]].push(dsd.handle) unless dsd.handle.nil?
+      @domain_hash[dsd.url.split('/')[2]] ||= []
+      @domain_hash[dsd.url.split('/')[2]].push(dsd.save_path) if dsd.handle.nil?
+      @domain_hash[dsd.url.split('/')[2]].push(dsd.handle) unless dsd.handle.nil?
     end
   end
 
@@ -34,7 +34,7 @@ class DataSourceDownloadsController < ApplicationController
     respond_to do |format|
       if @output_file.update! data_source_download_params
         @output_file.process_post_params(post_params)
-        #@output_file.update_attributes(:post_parameters => params[:data_source_download])
+
         format.html { redirect_to( :action => 'index',
                         :notice => 'Data Source Download successfully updated.') }
         format.xml  { head :ok }
