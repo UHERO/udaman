@@ -1,5 +1,5 @@
 <div id="summary_area">
-	<h1>Add Download</h1>
+	<h2>Add Download</h2>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
@@ -26,7 +26,13 @@
 			<div id="save_path_message"></div>
 			<%= f.text_field :save_path, :size => 100, 'data-test-save-path': 'save_path_message'%>
 		</div>
-		
+
+    <div class="field">
+      <%= f.label :keep_sheet %>
+      <div id="keep_sheet_message"></div>
+      <%= f.text_field :keep_sheet, :size => 30, 'data-test-keep-sheet': 'keep_sheet_message'%>
+    </div>
+
 		<div class="field">
 			<%= f.label :post_parameters %>
 			<div id="post_parameters_message"></div>

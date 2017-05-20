@@ -2,6 +2,7 @@ class DataSourceDownloadsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
+  before_action :set_data_source_download, only: [:show, :edit, :update, :destroy, :download]
 
   def index
     @output_files = DataSourceDownload.order(:url).all
@@ -17,17 +18,9 @@ class DataSourceDownloadsController < ApplicationController
     @output_file = DataSourceDownload.new
   end
 
-  def show
-    @output_file = DataSourceDownload.find_by id: params[:id]
-  end
-
-  def edit
-    @output_file = DataSourceDownload.find_by id: params[:id]
-  end
-  
   def create
     post_params = params[:data_source_download].delete(:post_parameters)
-    @output_file = DataSourceDownload.new clean_post_parameters
+    @output_file = DataSourceDownload.new data_source_download_params
     if @output_file.save
       @output_file.process_post_params(post_params)
       redirect_to :action => 'index'
@@ -37,17 +30,16 @@ class DataSourceDownloadsController < ApplicationController
   end
   
   def update
-    @output_file = DataSourceDownload.find_by id: params[:id]
     post_params = params[:data_source_download].delete(:post_parameters)
     respond_to do |format|
-      if @output_file.update! clean_post_parameters
+      if @output_file.update! data_source_download_params
         @output_file.process_post_params(post_params)
         #@output_file.update_attributes(:post_parameters => params[:data_source_download])
         format.html { redirect_to( :action => 'index',
                         :notice => 'Data Source Download successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render :action => "edit" }
+        format.html { render :action => 'edit' }
         format.xml  { render :xml => @output_file.errors,
                       :status => :unprocessable_entity }
       end
@@ -55,17 +47,15 @@ class DataSourceDownloadsController < ApplicationController
   end
 
   def destroy
-    @output_file = DataSourceDownload.find_by id: params[:id]
-    @output_file.destroy    
+    @output_file.destroy
     redirect_to :action => 'index'
   end
   
   def download
-    @output_file = DataSourceDownload.find_by id: params[:id]
     respond_to do |format|
       begin
         @output_file.download 
-        flash[:notice] = "Data Source Download successfully updated."
+        flash[:notice] = 'Data Source Download successfully updated.'
         format.html { redirect_to( :action => 'index') }
       rescue Exception => e
         flash[:notice] = "Something went wrong: #{e.message}"
@@ -90,7 +80,11 @@ class DataSourceDownloadsController < ApplicationController
   end
 
   private
-    def clean_post_parameters
-      params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :notes)
+    def set_data_source_download
+      @output_file = DataSourceDownload.find_by id: params[:id]
+    end
+
+    def data_source_download_params
+      params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :keep_sheet, :notes)
     end
 end
