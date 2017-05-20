@@ -80,11 +80,12 @@ class DataSourceDownloadsController < ApplicationController
   end
 
   private
-    def set_data_source_download
-      @output_file = DataSourceDownload.find_by id: params[:id]
-    end
+  def data_source_download_params
+    params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :keep_sheet, :notes)
+  end
 
-    def data_source_download_params
-      params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :keep_sheet, :notes)
-    end
+  def set_data_source_download
+    @output_file = DataSourceDownload.find_by id: params[:id]
+  end
+
 end
