@@ -160,7 +160,7 @@ class Packager
     end
     
     #@download_results hash: key-handle name value-hash[:time,:url,:location,:type,:status,:changed]
-    @download_results = Series.get_cached_files.download_results
+    @download_results = DownloadsCache.download_results
     series
   end
 
