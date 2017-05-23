@@ -28,9 +28,8 @@
 		</div>
 
     <div class="field">
-      <%= f.label :keep_sheet %>
-      <div id="keep_sheet_message"></div>
-      <%= f.text_field :keep_sheet, :size => 30, 'data-test-keep-sheet': 'keep_sheet_message'%>
+      <%= f.label :sheet_override %> (1-indexed sheet position number)
+      <%= f.text_field :sheet_override, :size => 20 %>
     </div>
 
 		<div class="field">
