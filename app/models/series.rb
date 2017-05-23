@@ -34,7 +34,7 @@ class Series < ActiveRecord::Base
                               not_seas_adj: 'not_seasonally_adjusted' }
 
   after_create do
-    self.update frequency: (Series.frequency_from_code(self.name.split('.').pop || self.frequency)
+    self.update frequency: (Series.frequency_from_code(self.name.split('.').pop) || self.frequency)
   end
 
   def as_json(options = {})
