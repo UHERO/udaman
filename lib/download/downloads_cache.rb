@@ -48,6 +48,15 @@ class DownloadsCache
         end
       end
     end
+    keeper = @dsd.keep_sheet
+    unless keeper.blank?
+      if excel.sheets.index {|s| s == keeper }
+        excel.sheets.select {|s| s != keeper }.each {|s| excel.sheets.delete(s) }
+        excel.default_sheet = excel.sheets[0]  ## keeper should be the only one left.
+      else
+        raise "keep_sheet '#{keeper}' does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
+      end
+    end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
