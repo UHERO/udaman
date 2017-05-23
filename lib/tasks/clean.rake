@@ -103,3 +103,13 @@ task :build_exports_from_data_lists => :environment do
     end
   end
 end
+
+desc 'Reset incorrect frequency columns'
+task :reset_frequency_columns => :environment do
+  ActiveRecord::Base.connection.execute('UPDATE series SET frequency = "year" WHERE UPPER(RIGHT(name, 1)) LIKE "A";')
+  ActiveRecord::Base.connection.execute('UPDATE series SET frequency = "semi" WHERE UPPER(RIGHT(name, 1)) LIKE "S";')
+  ActiveRecord::Base.connection.execute('UPDATE series SET frequency = "quarter" WHERE UPPER(RIGHT(name, 1)) LIKE "Q";')
+  ActiveRecord::Base.connection.execute('UPDATE series SET frequency = "month" WHERE UPPER(RIGHT(name, 1)) LIKE "M";')
+  ActiveRecord::Base.connection.execute('UPDATE series SET frequency = "week" WHERE UPPER(RIGHT(name, 1)) LIKE "W";')
+  ActiveRecord::Base.connection.execute('UPDATE series SET frequency = "day" WHERE UPPER(RIGHT(name, 1)) LIKE "D";')
+end
