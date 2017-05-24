@@ -173,9 +173,9 @@ class DataPoint < ActiveRecord::Base
         join series s on s.id = d.series_id
       set p.value = d.value,
           p.pseudo_history = d.pseudo_history,
-          p.updated_at = d.updated_at
+          p.updated_at = coalesce(d.updated_at, now())
       where not s.quarantined
-      and d.updated_at > p.updated_at
+      and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
     )
     insert_query = %Q(
