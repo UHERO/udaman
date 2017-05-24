@@ -31,29 +31,20 @@ class DownloadsCache
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = sheet.split(':')
     override = @dsd.sheet_override.to_i
-    if override > 0
-      if excel.sheets[override - 1]
-        excel.default_sheet = excel.sheets[override - 1]
-      else
-        raise "override sheet number #{override} does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
-      end
-    elsif sheet_parts[0] == 'sheet_num'
-      excel.default_sheet = excel.sheets[sheet_parts[1].to_i - 1]
-    elsif sheet_parts[0] == 'sheet_name'
-      excel.default_sheet = get_month_name(date) if sheet_parts[1].upcase == 'M3'
-    else
-      begin
-        excel.default_sheet = sheet unless excel.default_sheet == sheet
-      rescue RangeError
-        # added sheetnames to allow for sheetnames separated by "[or]" (case insensitive)
-        sheetnames = sheet.split(/\[[oO][rR]\]/).collect! {|s| s.downcase}
-        whitespace_hidden_sheet_index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase)}
-        if whitespace_hidden_sheet_index.nil?
-          raise "sheet '#{sheet}' does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
-        else
-          excel.default_sheet = excel.sheets[whitespace_hidden_sheet_index]
-        end
-      end
+    def_sheet = case
+      when override > 0 then excel.sheets[override - 1]
+      when sheet_parts[0] == 'sheet_num' then excel.sheets[sheet_parts[1].to_i - 1]
+      when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then get_month_name(date)
+      when sheet =~ /\[or\]/i then
+        sheetnames = sheet.split(/\[or\]/i).collect! {|s| s.strip.downcase }
+        index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase) }
+        index.nil? ? nil : excel.sheets[index]
+      else sheet
+    end
+    begin
+      excel.default_sheet = def_sheet
+    rescue RangeError, ArgumentError
+      raise "sheet spec '#{sheet}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
