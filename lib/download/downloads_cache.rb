@@ -43,7 +43,7 @@ class DownloadsCache
     end
     begin
       excel.default_sheet = def_sheet
-    rescue RangeError, ArgumentError
+    rescue
       raise "sheet spec '#{sheet}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
