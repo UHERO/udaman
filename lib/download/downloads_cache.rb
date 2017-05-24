@@ -30,8 +30,15 @@ class DownloadsCache
     file_extension = @cache_handle.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = sheet.split(':')
-    if sheet_parts[0] == 'sheet_num'
-      excel.default_sheet = excel.sheets[sheet_parts[1].to_i - 1] 
+    override = @dsd.sheet_override.to_i
+    if override > 0
+      if excel.sheets[override - 1]
+        excel.default_sheet = excel.sheets[override - 1]
+      else
+        raise "override sheet number #{override} does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
+      end
+    elsif sheet_parts[0] == 'sheet_num'
+      excel.default_sheet = excel.sheets[sheet_parts[1].to_i - 1]
     elsif sheet_parts[0] == 'sheet_name'
       excel.default_sheet = get_month_name(date) if sheet_parts[1].upcase == 'M3'
     else
@@ -46,15 +53,6 @@ class DownloadsCache
         else
           excel.default_sheet = excel.sheets[whitespace_hidden_sheet_index]
         end
-      end
-    end
-    keeper = @dsd.keep_sheet
-    unless keeper.blank?
-      if excel.sheets.index {|s| s == keeper }
-        excel.sheets.select {|s| s != keeper }.each {|s| excel.sheets.delete(s) }
-        excel.default_sheet = excel.sheets[0]  ## keeper should be the only one left.
-      else
-        raise "keep_sheet '#{keeper}' does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
       end
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
