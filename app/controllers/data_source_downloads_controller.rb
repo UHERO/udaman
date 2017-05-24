@@ -81,7 +81,7 @@ class DataSourceDownloadsController < ApplicationController
 
   private
   def data_source_download_params
-    params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :keep_sheet, :notes)
+    params.require(:data_source_download).permit(:handle, :file_to_extract, :url, :save_path, :sheet_override, :notes)
   end
 
   def set_data_source_download
