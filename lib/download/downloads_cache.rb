@@ -1,7 +1,7 @@
 class DownloadsCache
 
   def xls(handle, sheet, path = nil, date = nil)
-    Rails.logger.debug "... Entered method csv ... handle=#{handle}, sheet=#{sheet}, path=#{path}"
+    Rails.logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}"
     if path.nil?
       @got_handle ||= {}
       @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
@@ -30,27 +30,32 @@ class DownloadsCache
     file_extension = @cache_handle.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = sheet.split(':')
-    override = @dsd.sheet_override.to_i
     def_sheet = case
-      when override > 0 then
+      when !@dsd.sheet_override.blank? then
+        override = @dsd.sheet_override
         puts ">>>>>>>>>> DEBUG: OVERRIDE FOR #{@handle}: |#{override}|"
-        excel.sheets[override - 1]
+        index = excel.sheets.index {|s| override.downcase == s.strip.downcase }
+        index.nil? ? nil : excel.sheets[index]
       when sheet_parts[0] == 'sheet_num' then
         puts ">>>>>>>>>> DEBUG: SHEET NUM FOR #{@handle}: |#{sheet_parts[1]}|"
         excel.sheets[sheet_parts[1].to_i - 1]
       when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then
         get_month_name(date)
       when sheet =~ /\[or\]/i then
+        puts ">>>>>>>>>> DEBUG: SHEET NAME with OR #{@handle}: |#{sheet}|"
         sheetnames = sheet.split(/\[or\]/i).collect! {|s| s.strip.downcase }
         index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase) }
         index.nil? ? nil : excel.sheets[index]
-      else sheet
+      else # explicit sheet name given, but check case-insensitively
+        puts ">>>>>>>>>> DEBUG: SHEET NAME AS IS #{@handle}: |#{sheet}|"
+        index = excel.sheets.index {|s| sheet.downcase == s.strip.downcase }
+        index.nil? ? nil : excel.sheets[index]
     end
 puts ">>>>>>>> DEBUGGGG>>> all sheets are |#{excel.sheets.to_s}|; def sheet is |#{def_sheet}|"
     begin
       excel.default_sheet = def_sheet
     rescue
-      raise "sheet spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
+      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
