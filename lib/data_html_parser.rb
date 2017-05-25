@@ -38,10 +38,10 @@ class DataHtmlParser
   # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=RegionalData&KeyCode=TPI_SI&GeoFIPS=15000&ResultFormat=JSON&
   # NIPA Test
   # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=NIPA&TableID=6&Frequency=A&Year=X&GeoFIPS=15001&ResultFormat=JSON&
-  def get_bea_series(code, region)
+  def get_bea_series(dataset, parameters)
     api_key = '66533E32-0B70-4EF6-B367-05662C3B7CA8'
-    fips = {:HI => '15000', :HON => '15003', :HAW => '15001', :MAU => '15009', :KAU => '15007', :US => '00000', :CA => '06000'}[region]
-    @url = "http://www.bea.gov/api/data/?&UserID=#{api_key}&method=GetData&datasetname=RegionalData&KeyCode=#{code}&GeoFIPS=#{fips}&ResultFormat=JSON&"
+    query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
+    @url = "http://www.bea.gov/api/data/?&UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     @doc = self.download
     new_data = {}
     bea_data = JSON.parse self.content
