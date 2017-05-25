@@ -32,19 +32,25 @@ class DownloadsCache
     sheet_parts = sheet.split(':')
     override = @dsd.sheet_override.to_i
     def_sheet = case
-      when override > 0 then excel.sheets[override - 1]
-      when sheet_parts[0] == 'sheet_num' then excel.sheets[sheet_parts[1].to_i - 1]
-      when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then get_month_name(date)
+      when override > 0 then
+        puts ">>>>>>>>>> DEBUG: OVERRIDE FOR #{@handle}: |#{override}|"
+        excel.sheets[override - 1]
+      when sheet_parts[0] == 'sheet_num' then
+        puts ">>>>>>>>>> DEBUG: SHEET NUM FOR #{@handle}: |#{sheet_parts[1]}|"
+        excel.sheets[sheet_parts[1].to_i - 1]
+      when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then
+        get_month_name(date)
       when sheet =~ /\[or\]/i then
         sheetnames = sheet.split(/\[or\]/i).collect! {|s| s.strip.downcase }
         index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase) }
         index.nil? ? nil : excel.sheets[index]
       else sheet
     end
+puts ">>>>>>>> DEBUGGGG>>> all sheets are |#{excel.sheets.to_s}|; def sheet is |#{def_sheet}|"
     begin
       excel.default_sheet = def_sheet
     rescue
-      raise "sheet spec '#{sheet}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
+      raise "sheet spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
