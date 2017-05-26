@@ -32,26 +32,21 @@ class DownloadsCache
     sheet_parts = sheet.split(':')
     def_sheet = case
       when !@dsd.sheet_override.blank? then
-        override = @dsd.sheet_override
-        puts ">>>>>>>>>> DEBUG: OVERRIDE FOR #{@handle}: |#{override}|"
-        index = excel.sheets.index {|s| override.downcase == s.strip.downcase }
+        override = @dsd.sheet_override.strip.downcase
+        index = excel.sheets.index {|s| override == s.strip.downcase }
         index.nil? ? nil : excel.sheets[index]
       when sheet_parts[0] == 'sheet_num' then
-        puts ">>>>>>>>>> DEBUG: SHEET NUM FOR #{@handle}: |#{sheet_parts[1]}|"
         excel.sheets[sheet_parts[1].to_i - 1]
       when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then
         get_month_name(date)
       when sheet =~ /\[or\]/i then
-        puts ">>>>>>>>>> DEBUG: SHEET NAME with OR #{@handle}: |#{sheet}|"
         sheetnames = sheet.split(/\[or\]/i).collect! {|s| s.strip.downcase }
         index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase) }
         index.nil? ? nil : excel.sheets[index]
       else # explicit sheet name given, but check case-insensitively
-        puts ">>>>>>>>>> DEBUG: SHEET NAME AS IS #{@handle}: |#{sheet}|"
         index = excel.sheets.index {|s| sheet.downcase == s.strip.downcase }
         index.nil? ? nil : excel.sheets[index]
     end
-puts ">>>>>>>> DEBUGGGG>>> all sheets are |#{excel.sheets.to_s}|; def sheet is |#{def_sheet}|"
     begin
       excel.default_sheet = def_sheet
     rescue
