@@ -52,6 +52,7 @@ class DownloadsCache
     rescue
       raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
+    ## Cache key uses uses sheet rather than def_sheet, because otherwise "upstream" code won't find stuff in the cache -dji
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
