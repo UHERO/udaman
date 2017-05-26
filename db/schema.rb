@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025718) do
+ActiveRecord::Schema.define(version: 220170413025719) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -142,6 +142,7 @@ ActiveRecord::Schema.define(version: 220170413025718) do
     t.datetime "updated_at"
     t.string   "handle",          limit: 255
     t.string   "file_to_extract", limit: 255
+    t.string   "sheet_override",  limit: 255
     t.text     "notes",           limit: 65535
   end
 
