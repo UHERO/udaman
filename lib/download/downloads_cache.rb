@@ -11,8 +11,8 @@ class DownloadsCache
     end
     
     @cache_handle = path
-    @handle = handle    
-    @sheet = sheet
+    @handle = handle
+    @sheet = @dsd.sheet_override.blank? ? sheet : @dsd.sheet_override.strip
     file_key = make_cache_key('xls', @cache_handle)
     sheet_key = make_cache_key('xls', @cache_handle, @sheet)
 
@@ -22,7 +22,7 @@ class DownloadsCache
       download_handle
       set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
     end
-    get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
+    get_files_cache(sheet_key) || set_xls_sheet(@sheet, date)
   end
 
   def set_xls_sheet(sheet, date)
@@ -31,10 +31,6 @@ class DownloadsCache
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = sheet.split(':')
     def_sheet = case
-      when !@dsd.sheet_override.blank? then
-        override = @dsd.sheet_override.strip.downcase
-        index = excel.sheets.index {|s| override == s.strip.downcase }
-        index.nil? ? nil : excel.sheets[index]
       when sheet_parts[0] == 'sheet_num' then
         excel.sheets[sheet_parts[1].to_i - 1]
       when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then
@@ -52,7 +48,6 @@ class DownloadsCache
     rescue
       raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
-    ## Cache key uses uses sheet rather than def_sheet, because otherwise "upstream" code won't find stuff in the cache -dji
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
