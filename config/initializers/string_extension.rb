@@ -39,6 +39,10 @@ class String
     # Series.store self, new_series, new_series.name, eval_statement
     # puts "#{"%.2f" % (Time.now - t)} | #{new_series.data.count} | #{self} | #{eval_statement}"
   end
+
+  def is_numeric?
+    true if Float self rescue false
+  end
   
   def pdf
     PrognozDataFile.where(:filename => /Data_#{self}.xls$/)[0]
