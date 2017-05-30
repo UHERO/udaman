@@ -47,7 +47,7 @@ class DataHtmlParser
     bea_data = JSON.parse self.content
     bea_data['BEAAPI']['Results']['Data'].each do |d| 
       time_period = d['TimePeriod']
-      new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = d['DataValue'].to_f unless d['DataValue'].nil?
+      new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = d['DataValue'].to_f if d['DataValue'].is_numeric?
     end
     new_data
   end
