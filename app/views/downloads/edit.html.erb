@@ -57,7 +57,7 @@
       console.log('Value to send: ' + $(this).val());
       var divToChange = $(this).data(dataAttr);
       $('#' + divToChange).html('Validating input ...');
-      $.post('<%= url_for controller: :data_source_downloads, :only_path => false %>/' + action,
+      $.post('<%= url_for controller: :downloads, :only_path => false %>/' + action,
           {change_to: $(this).val()},
           function(data) {
             $('#' + divToChange).html(data);
