@@ -6,7 +6,7 @@ h2,
 div#summary_area h2 {font-size:30px;}
 </style>
 <h1 style="font-size:45px"><%= @output_file.handle %></h1>
-<h3><%= link_to 'Edit', edit_data_source_download_path(@output_file) %></h3>
+<h3><%= link_to 'Edit', edit_download_path(@output_file) %></h3>
 <div id="summary_area">
 	<% unless @output_file.dsd_log_entries.nil? %>
 	<h2 class="handle-h2">Download Log</h2>
