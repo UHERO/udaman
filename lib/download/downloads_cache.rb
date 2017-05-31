@@ -1,7 +1,7 @@
 class DownloadsCache
 
   def xls(handle, sheet, path = nil, date = nil)
-    Rails.logger.debug "... Entered method csv ... handle=#{handle}, sheet=#{sheet}, path=#{path}"
+    Rails.logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}"
     if path.nil?
       @got_handle ||= {}
       @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
@@ -11,8 +11,8 @@ class DownloadsCache
     end
     
     @cache_handle = path
-    @handle = handle    
-    @sheet = sheet
+    @handle = handle
+    @sheet = @dsd.sheet_override.blank? ? sheet : @dsd.sheet_override.strip
     file_key = make_cache_key('xls', @cache_handle)
     sheet_key = make_cache_key('xls', @cache_handle, @sheet)
 
@@ -22,7 +22,7 @@ class DownloadsCache
       download_handle
       set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
     end
-    get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
+    get_files_cache(sheet_key) || set_xls_sheet(@sheet, date)
   end
 
   def set_xls_sheet(sheet, date)
@@ -30,23 +30,23 @@ class DownloadsCache
     file_extension = @cache_handle.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
     sheet_parts = sheet.split(':')
-    if sheet_parts[0] == 'sheet_num'
-      excel.default_sheet = excel.sheets[sheet_parts[1].to_i - 1] 
-    elsif sheet_parts[0] == 'sheet_name'
-      excel.default_sheet = get_month_name(date) if sheet_parts[1].upcase == 'M3'
-    else
-      begin
-        excel.default_sheet = sheet unless excel.default_sheet == sheet
-      rescue RangeError
-        # added sheetnames to allow for sheetnames separated by "[or]" (case insensitive)
-        sheetnames = sheet.split(/\[[oO][rR]\]/).collect! {|s| s.downcase}
-        whitespace_hidden_sheet_index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase)}
-        if whitespace_hidden_sheet_index.nil?
-          raise "sheet '#{sheet}' does not exist in workbook '#{@dsd.save_path_flex}' [Handle: #{@handle}]"
-        else
-          excel.default_sheet = excel.sheets[whitespace_hidden_sheet_index]
-        end
-      end
+    def_sheet = case
+      when sheet_parts[0] == 'sheet_num' then
+        excel.sheets[sheet_parts[1].to_i - 1]
+      when sheet_parts[0] == 'sheet_name' && sheet_parts[1].upcase == 'M3' then
+        get_month_name(date)
+      when sheet =~ /\[or\]/i then
+        sheetnames = sheet.split(/\[or\]/i).collect! {|s| s.strip.downcase }
+        index = excel.sheets.index {|s| sheetnames.include?(s.strip.downcase) }
+        index.nil? ? nil : excel.sheets[index]
+      else # explicit sheet name given, but check case-insensitively
+        index = excel.sheets.index {|s| sheet.downcase == s.strip.downcase }
+        index.nil? ? nil : excel.sheets[index]
+    end
+    begin
+      excel.default_sheet = def_sheet
+    rescue
+      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
     sheet_key = make_cache_key('xls', @cache_handle, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
