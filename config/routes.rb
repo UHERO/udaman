@@ -174,10 +174,10 @@ UheroDb::Application.routes.draw do
   
   get 'autocomplete' => 'series#autocomplete_search'
 
-  post 'data_source_downloads/test_url' => 'data_source_downloads#test_url'
-  post 'data_source_downloads/test_save_path' => 'data_source_downloads#test_save_path'
-  post 'data_source_downloads/test_post_params' => 'data_source_downloads#test_post_params'
-  resources :data_source_downloads
+  post 'downloads/test_url' => 'downloads#test_url'
+  post 'downloads/test_save_path' => 'downloads#test_save_path'
+  post 'downloads/test_post_params' => 'downloads#test_post_params'
+  resources :downloads
 
   #match 'path' => 'controller#method'
   # The priority is based upon order of creation:
