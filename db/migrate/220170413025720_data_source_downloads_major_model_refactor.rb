@@ -1,4 +1,4 @@
-class NewDownloadsAndBridge < ActiveRecord::Migration
+class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
   def up
     rename_table :data_source_downloads, :downloads
     create_table :data_source_downloads do |t|
