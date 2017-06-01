@@ -1,5 +1,5 @@
 class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
-  def up
+  def self.up
     rename_table :data_source_downloads, :downloads
     create_table :data_source_downloads do |t|
       t.belongs_to :data_source
@@ -9,7 +9,7 @@ class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
     end
     add_index :data_source_downloads, [:data_source_id, :download_id], unique: true
   end
-  def down
+  def self.down
     drop_table :data_source_downloads
     rename_table :downloads, :data_source_downloads
   end

@@ -129,23 +129,33 @@ class DataSource < ActiveRecord::Base
       self.set_color
     end
 
+    def changed?(download)
+      true
+    end
+
     def reload_source(clear_first=false)
       t = Time.now
+      dload = nil
+      if self['eval'] =~ /load_from_download[\s(]*"([^"]+)"/
+        dload = self.downloads.where(handle: $1)
+      end
       begin
-        s = Kernel::eval self['eval']
-        if clear_first
-          delete_data_points
+        if changed?(dload)
+          s = Kernel::eval self['eval']
+          if clear_first
+            delete_data_points
+          end
+          base_year = base_year_from_eval_string(self['eval'], self.dependencies)
+          if !base_year.nil? && base_year != self.series.base_year
+            self.series.update(:base_year => base_year.to_i)
+          end
+          self.series.update_data(s.data, self)
+          self.update_attributes(:description => s.name,
+                                 :last_run => t,
+                                 :runtime => (Time.now - t),
+                                 :last_error => nil,
+                                 :last_error_at => nil)
         end
-        base_year = base_year_from_eval_string(self['eval'], self.dependencies)
-        if !base_year.nil? && base_year != self.series.base_year
-          self.series.update(:base_year => base_year.to_i)
-        end
-        self.series.update_data(s.data, self)
-        self.update_attributes(:description => s.name,
-                               :last_run => t,
-                               :runtime => (Time.now - t),
-                               :last_error => nil,
-                               :last_error_at => nil)
       rescue Exception => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update_attributes(:last_run => t,

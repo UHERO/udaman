@@ -482,8 +482,6 @@ class Series < ActiveRecord::Base
     new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end
   
-  #if smart update or other process sets a global cache object for a session, use that. Otherwise
-  #download fresh
   def Series.load_from_download(handle, options, cached_files = nil)
     begin
       dp = DownloadProcessor.new(handle, options)

@@ -21,7 +21,15 @@ class DownloadProcessor
   end
 
   def get_data
-    return TextFileProcessor.new(@handle,@options, @cached_files).get_data if @file_type == 'txt' #and validate_text
+    if @file_type == 'txt'
+      return TextFileProcessor.new(@handle,@options, @cached_files).get_data
+    end
+    begin
+      changed = EvalHack.source_changed?
+    rescue
+      changed = true ## err on the side of reloading -dji
+    end
+    return nil unless changed
     get_data_spreadsheet
   end
 
