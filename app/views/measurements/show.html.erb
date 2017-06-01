@@ -16,8 +16,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1, false,
-                                                     disabled: @measurement.data_portal_name.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[data_portal_name]', 1, false) %></span>
   <strong>Data portal name:</strong>
    <%= @measurement.data_portal_name.to_s %>
   </label>
@@ -25,8 +24,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1, false,
-                                                     disabled: @measurement.units_label.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1, false) %></span>
   <strong>Units label:</strong>
   <%= @measurement.units_label.to_s %>
   </label>
@@ -34,8 +32,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label_short]', 1, false,
-                                                     disabled: @measurement.units_label_short.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label_short]', 1, false) %></span>
   <strong>Units label, short:</strong>
   <%= @measurement.units_label_short.to_s %>
   </label>
@@ -43,8 +40,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[unit_id]', 1, false,
-                                                     disabled: @measurement.unit.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[unit_id]', 1, false) %></span>
         <strong>Units:</strong>
         <%= @measurement.unit.to_s %>
   </label>
@@ -52,8 +48,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_id]', 1, false,
-                                                     disabled: @measurement.source.nil? || @measurement.source.description.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_id]', 1, false) %></span>
   <strong>Source:</strong>
   <%= @measurement.source.description.to_s+' ('+@measurement.source.link.to_s+')' if @measurement.source %>
   </label>
@@ -61,8 +56,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_link]', 1, false,
-                                                     disabled: @measurement.source_link.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_link]', 1, false) %></span>
   <strong>Detailed source Link (more specific than the default for the above source):</strong>
   <%= @measurement.source_link %>
   </label>
@@ -70,8 +64,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_detail_id]', 1, false,
-                                                     disabled: @measurement.source_detail.nil? || @measurement.source_detail.description.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[source_detail_id]', 1, false) %></span>
   <strong>Source detail:</strong>
   <%= @measurement.source_detail.description.to_s if @measurement.source_detail %>
   </label>
@@ -79,8 +72,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonally_adjusted]', 1, false,
-                                                     disabled: @measurement.seasonally_adjusted.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonally_adjusted]', 1, false) %></span>
   <strong>Seasonally adjusted:</strong>
   <%= @measurement.seasonally_adjusted.to_s %>
   </label>
@@ -88,8 +80,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonal_adjustment]', 1, false,
-                                                 disabled: @measurement.seasonal_adjustment.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonal_adjustment]', 1, false) %></span>
     <strong>Seasonal adjustment:</strong>
     <%= @measurement[:seasonal_adjustment].to_s %>
   </label>
@@ -97,8 +88,7 @@
 
     <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[percent]', 1, false,
-                                                     disabled: @measurement.percent.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[percent]', 1, false) %></span>
   <strong>Percent:</strong>
   <%= @measurement.percent.to_s %>
   </label>
@@ -106,8 +96,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[real]', 1, false,
-                                                     disabled: @measurement.real.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[real]', 1, false) %></span>
   <strong>Real:</strong>
   <%= @measurement.real.to_s %>
   </label>
@@ -115,8 +104,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[decimals]', 1, false,
-                                                 disabled: @measurement.decimals.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[decimals]', 1, false) %></span>
     <strong>Decimals:</strong>
     <%= @measurement.decimals.to_s %>
   </label>
@@ -124,8 +112,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[frequency_transform]', 1, false,
-                                                     disabled: @measurement.frequency_transform.blank?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[frequency_transform]', 1, false) %></span>
   <strong>Frequency transformation method (average, sum, or last):</strong>
   <%= @measurement.frequency_transform.to_s %>
   </label>
@@ -133,8 +120,7 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[restricted]', 1, false,
-                                                     disabled: @measurement.restricted.nil?) %></span>
+  <span class="propagate_controls"><%= check_box_tag('field_boxes[restricted]', 1, false) %></span>
   <strong>Restricted:</strong>
   <%= @measurement.restricted.to_s %>
   </label>
