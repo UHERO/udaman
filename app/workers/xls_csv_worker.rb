@@ -33,7 +33,7 @@ class XlsCsvWorker
       dbu.load_csv(which)
       dbu.set_status(which, :ok)
       if dbu.cats_status == :ok && dbu.series_status == :ok
-        dbu.update active: true
+        dbu.update_attributes(active: true, last_error: nil, last_error_at: nil)
       end
     rescue => error
       logger.error error.message
