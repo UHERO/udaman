@@ -12,7 +12,7 @@ class DbedtLoadWorker
       dbu.update active: true, cats_status: :ok
       return
     end
-    logger.warn "loading cats failed"
+    logger.warn 'loading cats failed'
     dbu.update cats_status: :fail
   end
 end

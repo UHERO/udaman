@@ -66,11 +66,13 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
-  def absolute_path(which)
+  def absolute_path(which=nil)
     if which == 'cats'
       path(cats_filename)
-    else
+    elsif which == 'series'
       path(series_filename)
+    else
+      path
     end
   end
 
@@ -117,7 +119,7 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
 
-    if !File.exists?(path(cats_filename)) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{path(cats_filename)} /data/dbedt_files")
+    if !File.exists?(path(cats_filename)) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + path(cats_filename)} #{absolute_path}")
       logger.error "couldn't find file #{cats_filename}"
       return false
     end
@@ -185,7 +187,7 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
 
-    if !File.exists?(path(series_filename)) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{path(series_filename)} /data/dbedt_files")
+    if !File.exists?(path(series_filename)) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + path(series_filename)} #{absolute_path}")
       logger.error "couldn't find file #{series_filename}"
       return false
     end
@@ -278,8 +280,10 @@ private
     'dbedt_files'
   end
 
-  def path(name)
-    File.join(ENV['DATA_PATH'], path_prefix, name)
+  def path(name=nil)
+    parts = [ENV['DATA_PATH'], path_prefix]
+    parts.push(name) unless name.blank?
+    File.join(parts)
   end
 
   def DbedtUpload.make_filename(time, type, ext)
@@ -323,7 +327,8 @@ private
   end
 
   def delete_data_and_data_sources
-    DbedtUpload.connection.execute %Q|DELETE FROM data_points WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
+    DbedtUpload.connection.execute %Q|DELETE FROM data_points
+WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 
