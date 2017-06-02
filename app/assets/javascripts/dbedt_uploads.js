@@ -1,4 +1,7 @@
 $(function() {
+   $("#upload-files-button").click(function(){
+       $(".controls").hide();
+   });
    $('.upload-status.processing').each(function(_, element) {
        var icon_args = $(element).attr('id').split('-');
        var upload_type = icon_args[0];
@@ -17,6 +20,9 @@ $(function() {
                        location.reload();
                    }
                    clearInterval(intervalId);
+                   if ($('.upload-status.processing').length == 0) {
+                       $('.controls').show();
+                   }
                    return;
                }
                if (data === 'fail') {
@@ -26,8 +32,6 @@ $(function() {
            });
        }
    });
-});
-$(function() {
     $('.load-status.loading').each(function(_, element) {
         var icon_args = $(element).attr('id').split('-');
         var dbu_id = icon_args[1];

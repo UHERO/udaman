@@ -28,7 +28,7 @@
         <td></td>
         <td><%= f.file_field :cats_filename %></td>
         <td><%= f.file_field :series_filename %></td>
-        <td><div class="actions"><%= f.submit 'Upload files' %></div></td>
+        <td><div class="actions"><%= f.submit 'Upload files', id: 'upload-files-button' %></div></td>
         <% end %>
       </tr>
     <% @dbedt_uploads.each do |dbedt_upload|
@@ -39,7 +39,7 @@
             if dbedt_upload.active
               "<i class='load-status fa fa-dot-circle-o' id='loading-#{dbedt_upload.id}' aria-hidden='true'></i>".html_safe
             elsif dbedt_upload.cats_status == 'ok' && dbedt_upload.series_status == 'ok'
-              link_to('<i class="load-status fa fa-circle-o" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => dbedt_upload}, title: 'Make active')
+              link_to('<i class="load-status controls fa fa-circle-o" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => dbedt_upload}, title: 'Make active')
             elsif dbedt_upload.cats_status != 'fail' && dbedt_upload.series_status != 'fail'
               '<span class="waiting"><i class="load-status fa fa-dot-circle-o" aria-hidden="true"></i></span>'.html_safe
             end
@@ -55,7 +55,7 @@
         <td><%= timestamp %></td>
         <td><%= unless dbedt_upload.active
                   if dbedt_upload.cats_status != 'processing' && dbedt_upload.series_status != 'processing'
-                    link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
+                    link_to 'Destroy', dbedt_upload, method: :delete, class: :controls, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
                   end
                 end %>
         </td>
