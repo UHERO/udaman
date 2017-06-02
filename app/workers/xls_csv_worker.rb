@@ -20,25 +20,26 @@ class XlsCsvWorker
         dbu.set_status(which, :fail)
         return
       end
-    end
-    unless system "xlsx2csv.py -s 1 -d tab -c utf-8  #{xls_path} #{csv_path}"
-      logger.error "Could not transform xlsx to csv (#{dbu_id}:#{which})"
+      unless system "xlsx2csv.py -s 1 -d tab -c utf-8  #{xls_path} #{csv_path}"
+        logger.error "Could not transform xlsx to csv (#{dbu_id}:#{which})"
+        dbu.set_status(which, :fail)
+        return
+      end
+      if !ENV['OTHER_WORKER'].nil? && !system("rsync -t #{csv_path} #{ENV['OTHER_WORKER'] + ':' + dbu.absolute_path}")
+        logger.error "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
+        dbu.set_status(which, :fail)
+        return
+      end
+      dbu.load_csv(which)
+      dbu.set_status(which, :ok)
+      if dbu.cats_status == :ok && dbu.series_status == :ok
+        dbu.update active: true
+      end
+    rescue => error
+      logger.error error.message
+      logger.error error.backtrace
+      dbu.update_attributes(last_error: error.message, last_error_at: Time.now)
       dbu.set_status(which, :fail)
-      return
     end
-    if !ENV['OTHER_WORKER'].nil? && !system("rsync -t #{csv_path} #{ENV['OTHER_WORKER'] + ':' + dbu.absolute_path}")
-      logger.error "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{ENV['OTHER_WORKER']}"
-      dbu.set_status(which, :fail)
-      return
-    end
-    dbu.load_csv(which)
-    dbu.set_status(which, :ok)
-    if dbu.cats_status == :ok && dbu.series_status == :ok
-      dbu.update active: true
-    end
-  rescue => error
-    logger.error error.message
-    logger.error error.backtrace
-    dbu.set_status(which, :fail)
   end
 end
