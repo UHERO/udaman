@@ -54,7 +54,9 @@
         </td>
         <td><%= timestamp %></td>
         <td><%= unless dbedt_upload.active
-                  link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
+                  if dbedt_upload.cats_status != 'processing' && dbedt_upload.series_status != 'processing'
+                    link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
+                  end
                 end %>
         </td>
       </tr>
