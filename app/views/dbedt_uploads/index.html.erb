@@ -60,12 +60,15 @@
         <td>
           <span class="controls" style="display:<%= controls_display %>;">
           <%= unless dbedt_upload.active
-                if dbedt_upload.cats_status != 'processing' && dbedt_upload.series_status != 'processing'
                   link_to 'Destroy', dbedt_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
-                end
               end %>
           </span>
         </td>
+        <% if current_user.dev_user? && dbedt_upload.last_error %>
+          <td>
+            <span style="color:red;"><%= "#{dbedt_upload.last_error} (#{dbedt_upload.last_error_at})" %></span>
+          </td>
+        <% end %>
       </tr>
     <% end %>
   </tbody>
