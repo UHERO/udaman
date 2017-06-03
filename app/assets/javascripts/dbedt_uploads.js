@@ -1,7 +1,4 @@
 $(function() {
-   $("#upload-files-button").click(function(){
-       $(".controls").hide();
-   });
    $('.upload-status.processing').each(function(_, element) {
        var icon_args = $(element).attr('id').split('-');
        var upload_type = icon_args[0];
