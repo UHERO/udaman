@@ -189,7 +189,7 @@ class DbedtUpload < ActiveRecord::Base
     true
   end
 
-  def load_series_csv
+  def load_series_csv(run_active_settings=false)
     unless series_filename
       logger.warn 'no series_filename'
       return false
@@ -273,12 +273,13 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
     new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
-    self.make_active_settings
+
+    self.make_active_settings if run_active_settings
   end
 
   def DbedtUpload.load(id)
     du = DbedtUpload.find_by(id: id)
-    du.load_series_csv
+    du.load_series_csv(true)
   end
 
 private
