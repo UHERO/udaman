@@ -50,6 +50,14 @@ class DbedtUpload < ActiveRecord::Base
     self.update cats_status: 'processing'
   end
 
+  def make_active_settings
+    logger.debug 'running make_active_settings'
+    DbedtUpload.update_all active: false
+    self.update active: true, last_error: nil, last_error_at: nil
+    logger.debug 'calling DataPoint.update_public_data_points'
+    DataPoint.update_public_data_points
+  end
+
   def get_status(which)
     if which == 'cats'
       cats_status
@@ -265,9 +273,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
     new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
-    logger.info "should set upload to active"
-    DbedtUpload.update_all(active: false)
-    self.update(active: true)
+    self.make_active_settings
   end
 
   def DbedtUpload.load(id)
