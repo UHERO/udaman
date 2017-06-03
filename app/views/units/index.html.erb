@@ -15,7 +15,7 @@
   </thead>
 
   <tbody>
-    <% @units.each do |unit| %>
+    <% @units.order(:short_label, :long_label).each do |unit| %>
       <tr>
         <td><%= unit.short_label %></td>
         <td><%= unit.long_label %></td>
