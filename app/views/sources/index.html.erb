@@ -15,7 +15,7 @@
   </thead>
 
   <tbody>
-    <% @sources.order(:description).each do |source| %>
+    <% @sources.each do |source| %>
       <tr>
         <td><%= source.description %></td>
         <td><%= source.link %></td>

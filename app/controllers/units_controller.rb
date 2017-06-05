@@ -3,7 +3,7 @@ class UnitsController < ApplicationController
 
   # GET /units
   def index
-    @units = Unit.all.order(:short_label, :long_label)
+    @units = Unit.order(:short_label, :long_label).all
   end
 
   # GET /units/1

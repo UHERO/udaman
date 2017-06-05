@@ -11,7 +11,7 @@
   </thead>
 
   <tbody>
-    <% @source_details.order(:description).each do |source_detail| %>
+    <% @source_details.each do |source_detail| %>
       <tr>
         <td><%= source_detail.description %></td>
         <td><%= link_to 'Show', source_detail %></td>

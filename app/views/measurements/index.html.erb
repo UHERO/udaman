@@ -25,7 +25,7 @@
   </thead>
 
   <tbody>
-    <% @measurements.order(:prefix).each do |measurement| %>
+    <% @measurements.each do |measurement| %>
       <tr>
         <td><%= measurement.prefix %></td>
         <td><%= measurement.data_portal_name %></td>

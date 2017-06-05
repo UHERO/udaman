@@ -14,7 +14,7 @@
   </thead>
 
   <tbody>
-    <% @geographies.order(:display_name).each do |geography| %>
+    <% @geographies.each do |geography| %>
       <tr>
         <td><%= geography.fips %></td>
         <td><%= geography.display_name %></td>
