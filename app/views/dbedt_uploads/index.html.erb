@@ -65,7 +65,7 @@
         </td>
         <% if current_user.dev_user? && dbedt_upload.last_error %>
           <td>
-            <span style="color:red;"><%= "#{dbedt_upload.last_error} (#{dbedt_upload.last_error_at})" %></span>
+            <span style="color:red;"><%= "#{dbedt_upload.last_error} (#{dbedt_upload.last_error_at.to_s})" %></span>
           </td>
         <% end %>
       </tr>

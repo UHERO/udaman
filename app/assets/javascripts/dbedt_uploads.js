@@ -16,10 +16,10 @@ $(function() {
                        $(element).parent().siblings().has('span.waiting').children('span').removeClass('waiting');
                        location.reload();
                    }
-                   clearInterval(intervalId);
                    if ($('.upload-status.processing').length == 0) {
                        $('.controls').show();
                    }
+                   clearInterval(intervalId);
                    return;
                }
                if (data === 'fail') {
