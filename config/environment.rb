@@ -8,4 +8,4 @@ ENV['LOAD_UPDATE_SPREADSHEET_PATTERNS_TO_DB'] = 'false'
 
 # Sets the default environment variables
 ENV['DEFAULT_DATA_PATH'] = '/Users/uhero/Documents/data'
-ENV['DATA_PATH'] = ENV['DATA_PATH'] || ENV['DEFAULT_DATA_PATH']
+ENV['DATA_PATH'] ||= ENV['DEFAULT_DATA_PATH']
