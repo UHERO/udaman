@@ -12,7 +12,7 @@
     <th></th>
   </tr>
 
-<% @data_lists.each do |data_list| %>
+<% @data_lists.order(:name).each do |data_list| %>
   <tr>
     <td><%= data_list.name %></td>
     <td><%= data_list.measurements.count %></td>

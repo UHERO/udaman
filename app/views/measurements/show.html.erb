@@ -24,22 +24,6 @@
 
 <p>
   <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label]', 1, false) %></span>
-  <strong>Units label:</strong>
-  <%= @measurement.units_label.to_s %>
-  </label>
-</p>
-
-<p>
-  <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[units_label_short]', 1, false) %></span>
-  <strong>Units label, short:</strong>
-  <%= @measurement.units_label_short.to_s %>
-  </label>
-</p>
-
-<p>
-  <label>
   <span class="propagate_controls"><%= check_box_tag('field_boxes[unit_id]', 1, false) %></span>
         <strong>Units:</strong>
         <%= @measurement.unit.to_s %>
@@ -67,14 +51,6 @@
   <span class="propagate_controls"><%= check_box_tag('field_boxes[source_detail_id]', 1, false) %></span>
   <strong>Source detail:</strong>
   <%= @measurement.source_detail.description.to_s if @measurement.source_detail %>
-  </label>
-</p>
-
-<p>
-  <label>
-  <span class="propagate_controls"><%= check_box_tag('field_boxes[seasonally_adjusted]', 1, false) %></span>
-  <strong>Seasonally adjusted:</strong>
-  <%= @measurement.seasonally_adjusted.to_s %>
   </label>
 </p>
 
@@ -141,13 +117,10 @@
         <th class="propagate_controls"></th>
         <th>Series</th>
         <th>Data portal name</th>
-        <th>Units label</th>
-        <th>Units label, short</th>
         <th>Units</th>
         <th>Source</th>
         <th>Detailed source link</th>
         <th>Source detail</th>
-        <th>SA</th>
         <th>Seasonal Adjustment</th>
         <th>Percent</th>
         <th>Real</th>
@@ -162,13 +135,10 @@
             <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
             <td><%= label_tag("series_boxes[#{series.name}]", series.name) %></td>
             <td><%= series.dataPortalName.to_s %></td>
-            <td><%= series.unitsLabel.to_s %></td>
-            <td><%= series.unitsLabelShort.to_s %></td>
             <td><%= series.unit.to_s if series.unit %></td>
             <td><%= series.source.description.to_s if series.source %></td>
             <td><%= series.source_link.to_s %></td>
             <td><%= series.source_detail.description.to_s if series.source_detail %></td>
-            <td><%= series.seasonally_adjusted.to_s %></td>
             <td><%= series[:seasonal_adjustment].to_s %></td>
             <td><%= series.percent.to_s %></td>
             <td><%= series.real.to_s %></td>
