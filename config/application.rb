@@ -43,7 +43,7 @@ module UheroDb
     config.encoding = 'utf-8'
 
     config.log_formatter = proc do |sev, time, progname, msg|
-      ">>>>> #{time.strftime('%F %T')} [#{progname ? progname+' '+sev : sev}]: #{msg}\n"
+      "#{time.strftime('%F %T')} [#{progname ? sev+' '+progname : sev}]: #{msg}\n"
     end
   end
 end
