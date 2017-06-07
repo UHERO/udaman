@@ -131,8 +131,9 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
 
-    if !File.exists?(path(cats_filename)) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + path(cats_filename)} #{absolute_path}")
-      logger.error { "couldn't find file #{cats_filename}" }
+    cats_csv_path = path(cats_filename).change_file_extension('csv')
+    if !File.exists?(cats_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
+      logger.error { "couldn't find file #{cats_csv_path}" }
       return false
     end
 
@@ -140,7 +141,7 @@ class DbedtUpload < ActiveRecord::Base
     Category.where('meta LIKE "DBEDT_%"').delete_all
     DataList.where('name LIKE "DBEDT_%"').destroy_all
     category = nil
-    CSV.foreach(path(cats_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
+    CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
       indicator_id = row[3]
       parent_indicator_id = row[4]
@@ -199,8 +200,9 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
 
-    if !File.exists?(path(series_filename)) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + path(series_filename)} #{absolute_path}")
-      logger.error "couldn't find file #{series_filename}"
+    series_csv_path = path(series_filename).change_file_extension('csv')
+    if !File.exists?(series_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
+      logger.error "couldn't find file #{series_csv_path}"
       return false
     end
 
@@ -219,7 +221,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     current_data_source = nil
     current_measurement = nil
     data_points = []
-    CSV.foreach(path(series_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
+    CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
       name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
       if current_measurement.nil? || current_measurement.prefix != prefix
