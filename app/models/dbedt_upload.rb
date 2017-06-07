@@ -51,11 +51,13 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def make_active_settings
-    logger.debug 'running make_active_settings'
+    logger.debug('>>>>>>>>>') { 'ENTER make_active_settings' }
+    puts '>>>>>>>>> '+ 'ENTER make_active_settings'
+    DataPoint.update_public_data_points
+    logger.debug('>>>>>>>>>') {  'DONE DataPoint.update_public_data_points' }
+    puts '>>>>>>>>> '+ 'DONE DataPoint.update_public_data_points'
     DbedtUpload.update_all active: false
     self.update active: true, last_error: nil, last_error_at: nil
-    logger.debug 'calling DataPoint.update_public_data_points'
-    DataPoint.update_public_data_points
   end
 
   def get_status(which)
@@ -123,12 +125,12 @@ class DbedtUpload < ActiveRecord::Base
 
   def load_cats_csv
     unless cats_filename
-      logger.warn 'no cats_filename'
+      logger.error { 'no cats_filename' }
       return false
     end
 
     if !File.exists?(path(cats_filename)) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + path(cats_filename)} #{absolute_path}")
-      logger.error "couldn't find file #{cats_filename}"
+      logger.error { "couldn't find file #{cats_filename}" }
       return false
     end
 
@@ -191,7 +193,7 @@ class DbedtUpload < ActiveRecord::Base
 
   def load_series_csv(run_active_settings=false)
     unless series_filename
-      logger.warn 'no series_filename'
+      logger.error { 'no series_filename' }
       return false
     end
 

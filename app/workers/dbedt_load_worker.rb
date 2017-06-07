@@ -6,14 +6,25 @@ class DbedtLoadWorker
   sidekiq_options queue: 'critical'
 
   def perform(dbu_id)
-    dbu = DbedtUpload.find(dbu_id)
-    dbu.load_series_csv
-    if dbu.load_cats_csv
-      dbu.update cats_status: :ok
+    begin
+      dbu = DbedtUpload.find(dbu_id)
+      unless dbu
+        raise "No DbedtUpload found with id=#{dbu_id}"
+      end
+      unless dbu.load_series_csv
+        raise 'Some error in load_series_csv'
+        ## make this more specific later by pushing exception throw down into method -dji
+      end
+      unless dbu.load_cats_csv
+        raise 'Some error in load_cats_csv'
+        ## make this more specific later by pushing exception throw down into method -dji
+      end
       dbu.make_active_settings
-      return
+      dbu.update(cats_status: :ok, last_error: nil, last_error_at: nil)
+      logger.info('DbedtLoadWorker') { "DbedtUpload id=#{dbu_id} loaded as active" }
+    rescue => error
+      dbu.update(cats_status: :fail, last_error: error.message, last_error_at: Time.now)
+      logger.warn('DbedtLoadWorker') { "loading cats failed: #{error.message}" }
     end
-    logger.warn 'loading cats failed'
-    dbu.update cats_status: :fail
   end
 end
