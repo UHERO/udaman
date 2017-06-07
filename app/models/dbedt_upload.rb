@@ -126,6 +126,7 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_cats_csv
+    logger.info { 'starting load_cats_csv' }
     unless cats_filename
       logger.error { 'no cats_filename' }
       return false
@@ -195,25 +196,29 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_series_csv(run_active_settings=false)
+    logger.info { 'starting load_series_csv' }
     unless series_filename
       logger.error { 'no series_filename' }
+      puts '>>>>>>>>> '+ 'no series_filename'
       return false
     end
 
     series_csv_path = path(series_filename).change_file_extension('csv')
     if !File.exists?(series_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
       logger.error "couldn't find file #{series_csv_path}"
+      puts '>>>>>>>>> '+ "couldnt find file #{series_csv_path}"
       return false
     end
 
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-      logger.info 'data already loaded'
+      logger.info { 'data already loaded' }
+      puts '>>>>>>>>> '+ 'data already loaded'
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
 WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id}%)');|
-      return
+WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id},%)');|
+      return true
     end
 
     logger.info 'loading data'

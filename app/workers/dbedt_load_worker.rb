@@ -24,7 +24,7 @@ class DbedtLoadWorker
       logger.info('DbedtLoadWorker') { "DbedtUpload id=#{dbu_id} loaded as active" }
     rescue => error
       dbu.update(cats_status: :fail, last_error: error.message, last_error_at: Time.now)
-      logger.warn('DbedtLoadWorker') { "loading cats failed: #{error.message}" }
+      logger.error('DbedtLoadWorker') { "loading cats failed: #{error.message}" }
     end
   end
 end
