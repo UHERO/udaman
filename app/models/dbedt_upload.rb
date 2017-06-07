@@ -53,7 +53,9 @@ class DbedtUpload < ActiveRecord::Base
   def make_active_settings
     logger.debug('>>>>>>>>>') { 'ENTER make_active_settings' }
     puts '>>>>>>>>> '+ 'ENTER make_active_settings'
-    DataPoint.update_public_data_points
+    unless DataPoint.update_public_data_points
+      return false
+    end
     logger.debug('>>>>>>>>>') {  'DONE DataPoint.update_public_data_points' }
     puts '>>>>>>>>> '+ 'DONE DataPoint.update_public_data_points'
     DbedtUpload.update_all active: false
@@ -276,7 +278,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
 
-    self.make_active_settings if run_active_settings
+    run_active_settings ? self.make_active_settings : true
   end
 
   def DbedtUpload.load(id)

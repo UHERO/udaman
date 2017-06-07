@@ -24,6 +24,9 @@ $(function() {
                }
                if (data === 'fail') {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
+                   if ($('.upload-status.processing').length == 0) {
+                       $('.controls').show();
+                   }
                    clearInterval(intervalId);
                }
            });
