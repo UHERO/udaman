@@ -5,8 +5,6 @@ RSpec.describe "measurements/new", :type => :view do
     assign(:measurement, Measurement.new(
       :prefix => "MyString",
       :data_portal_name => "MyString",
-      :units_label => "MyString",
-      :units_label_short => "MyString",
       :percent => false,
       :real => false,
       :notes => "MyText"
@@ -21,10 +19,6 @@ RSpec.describe "measurements/new", :type => :view do
       assert_select "input#measurement_prefix[name=?]", "measurement[prefix]"
 
       assert_select "input#measurement_data_portal_name[name=?]", "measurement[data_portal_name]"
-
-      assert_select "input#measurement_units_label[name=?]", "measurement[units_label]"
-
-      assert_select "input#measurement_units_label_short[name=?]", "measurement[units_label_short]"
 
       assert_select "input#measurement_percent[name=?]", "measurement[percent]"
 

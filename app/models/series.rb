@@ -880,7 +880,7 @@ class Series < ActiveRecord::Base
     name_where = (search_parts.map {|s| "name LIKE '%#{s}%'"}).join (' AND ')
     desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
 
-    series_results = Series.where("(#{name_where}) OR (#{desc_where})").limit(num_results)
+    series_results = Series.where("(#{name_where}) OR (#{desc_where}) AND name NOT LIKE 'DBEDT%'").limit(num_results)
 
     aremos_desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
     aremos_desc_results = AremosSeries.where(aremos_desc_where).limit(num_results)

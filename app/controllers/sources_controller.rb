@@ -6,7 +6,7 @@ class SourcesController < ApplicationController
 
   # GET /sources
   def index
-    @sources = Source.all
+    @sources = Source.order(:description).all
   end
 
   # GET /sources/1

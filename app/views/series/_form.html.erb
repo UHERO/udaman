@@ -32,20 +32,12 @@
       <%= f.text_field :units %>
     </div>
     <div class="field">
-      <%= f.label :unitsLabel, 'Units Label (e.g., Percent)' %><br/>
-      <%= f.text_field :unitsLabel, :disabled => true %>
-    </div>
-    <div class="field">
-      <%= f.label :unitsLabelShort, 'Units Label Short (e.g., %)' %><br/>
-      <%= f.text_field :unitsLabelShort, :disabled => true %>
-    </div>
-    <div class="field">
       <%= f.label :unit_id %><br>
       <%= f.collection_select :unit_id, Unit.all.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :source_id %><br>
-      <%= f.collection_select :source_id, Source.all, :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_id, Source.all.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
@@ -53,15 +45,11 @@
     </div>
     <div class="field">
       <%= f.label :source_detail_id %><br>
-      <%= f.collection_select :source_detail_id, SourceDetail.all, :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_detail_id, SourceDetail.all.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
-    </div>
-    <div class="field">
-      <%= f.label :seasonally_adjusted, 'Seasonally Adjusted' %><br/>
-      <%= f.check_box :seasonally_adjusted %>
     </div>
     <div class="field">
       <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>

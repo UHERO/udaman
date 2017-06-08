@@ -27,21 +27,13 @@
     <%= f.label :table_postfix, 'Table postfix' %><br>
     <%= f.text_field :table_postfix, :size => 80 %>
   </div>
-  <div class="field">
-    <%= f.label :units_label %><br>
-    <%= f.text_field :units_label, :disabled => true %>
-  </div>
-  <div class="field">
-    <%= f.label :units_label_short, 'Units label, short' %><br>
-    <%= f.text_field :units_label_short, :disabled => true %>
-  </div>
     <div class="field">
       <%= f.label :unit_id %><br>
       <%= f.collection_select :unit_id, Unit.all.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
   <div class="field">
     <%= f.label :source_id %><br>
-    <%= f.collection_select :source_id, Source.all, :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_id, Source.all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
@@ -49,11 +41,7 @@
   </div>
   <div class="field">
     <%= f.label :source_detail_id %><br>
-    <%= f.collection_select :source_detail_id, SourceDetail.all, :id, :description, {:include_blank => true} %>
-  </div>
-  <div class="field">
-    <%= f.label :seasonally_adjusted, 'Seasonally adjusted' %><br/>
-    <%= f.check_box :seasonally_adjusted %>
+    <%= f.collection_select :source_detail_id, SourceDetail.all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
