@@ -83,21 +83,20 @@ class Download < ActiveRecord::Base
 
   def download
     resp = nil
-    Rails.logger.debug '... Entered method dsd.download'
+    logger.debug { '... Entered method dsd.download' }
     if post_parameters.nil? or post_parameters.length == 0
-      Rails.logger.debug "... Calling RestClient to get #{url.strip}"
+      logger.debug { "... Calling RestClient to get #{url.strip}" }
       resp = RestClient.get URI.encode(url.strip)
     else
-      Rails.logger.debug "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters}"
+      logger.debug { "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters}" }
       resp = RestClient.post URI.encode(url.strip), post_parameters
     end
     status = resp.code
+    data_changed = false
     if status == 200
-      Rails.logger.debug '... RestClient download succeeded (status 200)'
+      logger.debug { '... RestClient download succeeded (status 200)' }
       data_changed = content_changed?(resp.to_str)
-
       backup if data_changed
-
       open(save_path_flex, 'wb') { |file| file.write resp.to_str }
       save_path_flex.unzip if save_path_flex[-3..-1] == 'zip'
     end
@@ -118,8 +117,8 @@ class Download < ActiveRecord::Base
 
   def content_changed?(new_content)
     return true if !File::exists? save_path_flex
-    previous_download = open(save_path_flex, 'rb').read
-    previous_download != new_content
+    current_content = open(save_path_flex, 'rb').read
+    new_content != current_content
   end
 
   def backup
