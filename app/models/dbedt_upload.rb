@@ -52,12 +52,10 @@ class DbedtUpload < ActiveRecord::Base
 
   def make_active_settings
     logger.debug('>>>>>>>>>') { 'ENTER make_active_settings' }
-    puts '>>>>>>>>> '+ 'ENTER make_active_settings'
     unless DataPoint.update_public_data_points
       return false
     end
     logger.debug('>>>>>>>>>') {  'DONE DataPoint.update_public_data_points' }
-    puts '>>>>>>>>> '+ 'DONE DataPoint.update_public_data_points'
     DbedtUpload.update_all active: false
     self.update active: true, last_error: nil, last_error_at: nil
   end

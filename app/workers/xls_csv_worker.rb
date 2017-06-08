@@ -8,7 +8,6 @@ class XlsCsvWorker
 
   def perform(dbu_id, which)
     logger.debug { "ENTER perform async: id=#{dbu_id}, which=#{which}" }
-    puts ">>>>>>>>> ENTER perform async:puts id=#{dbu_id}, which=#{which}"
     dbu = DbedtUpload.find(dbu_id)
     if dbu.nil?
       logger.error('XlsCsvWorker') { "No DBEDT Upload with id = #{dbu_id}" }
@@ -27,7 +26,6 @@ class XlsCsvWorker
         end
       end
       logger.debug('>>>>>>>>>') { '%s: before xls2csv' % which }
-      puts '>>>>>>>>>puts!! ' + '%s: before xls2csv' % which
       unless system "xlsx2csv.py -s 1 -d tab -c utf-8  #{xls_path} #{csv_path}"
         raise "Could not transform xlsx to csv (#{dbu_id}:#{which})"
       end
@@ -35,17 +33,12 @@ class XlsCsvWorker
         raise "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{other_worker}"
       end
       logger.debug('>>>>>>>>>') { '%s: before load_csv' % which }
-      puts '>>>>>>>>>puts!! ' + '%s: before load_csv' % which
       dbu.load_csv(which)
       dbu = DbedtUpload.find(dbu.id) ## reload dbu to get updated other_proc_status -dji
       other_proc_status = (which == 'cats') ? dbu.series_status : dbu.cats_status
       if other_proc_status == 'ok'
         logger.debug('>>>>>>>>>') { '%s: calling make_active_settings' % which  }
-        puts '>>>>>>>>>puts!! ' + '%s: calling make_active_settings' % which
         dbu.make_active_settings
-        puts '>>>>>>>>>puts!! ' + '%s: DONE make_active_settings' % which
-      else
-        puts '>>>>>>>>>puts!! ' + "%s: DIDNT CALL! make_active_settings, stati are |cats=#{dbu.cats_status}|series=#{dbu.series_status}|" % which
       end
       dbu.set_status(which, :ok)
     rescue => error
