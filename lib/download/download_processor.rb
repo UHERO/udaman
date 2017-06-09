@@ -11,7 +11,7 @@ class DownloadProcessor
   def initialize(handle, options)
     raise 'File type must be specified when initializing a Download Processor' if options[:file_type].nil?
     raise 'File path must be specified when initializing a manual Download Processor' if handle == 'manual' and options[:path].nil?
-    @cached_files = DownloadsCache.new
+    @cached_files = DownloadsCache.new(handle, options[:path])
     @handle = handle
     @options = options
     @file_type = options[:file_type]
@@ -22,7 +22,7 @@ class DownloadProcessor
 
   def get_data
     if @file_type == 'txt'
-      return TextFileProcessor.new(@handle,@options, @cached_files).get_data
+      return TextFileProcessor.new(@handle, @options, @cached_files).get_data
     end
     get_data_spreadsheet
   end
@@ -62,7 +62,6 @@ class DownloadProcessor
   def read_date_from_file(start_row, start_col)
     #assumption is that these will not be files with dates to process. just static file and sheet strings
     #assuming that date is a recognizable format to ruby
-    puts @cached_files.csv(@handle)[start_row-1][start_col-1].to_s + 'is csv' if @file_type == 'csv'
     date_cell = nil
     date_cell = @cached_files.csv(@handle)[start_row-1][start_col-1] if @file_type == 'csv'
     date_cell = @cached_files.xls(@handle, @options[:sheet]).cell(start_row, start_col) if @file_type == 'xls'

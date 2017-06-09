@@ -1,7 +1,10 @@
 class DownloadsCache
 
-  def xls(handle, sheet, path = nil, date = nil)
-    logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+  def initialize(handle, path = nil)
+    set_instance_vars(handle, path)
+  end
+
+  def set_instance_vars(handle, path = nil)
     if path.nil?
       @got_handle ||= {}
       @dsd = @got_handle[handle] || Download.get(handle)
@@ -9,9 +12,13 @@ class DownloadsCache
       path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
       @got_handle[handle] = @dsd
     end
-    
     @cache_handle = path
     @handle = handle
+  end
+
+  def xls(handle, sheet, path = nil, date = nil)
+    logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    set_instance_vars(handle, path)
     @sheet = @dsd.sheet_override.blank? ? sheet : @dsd.sheet_override.strip
     file_key = make_cache_key('xls', @cache_handle)
     sheet_key = make_cache_key('xls', @cache_handle, @sheet)
@@ -60,24 +67,17 @@ class DownloadsCache
 
   def csv(handle, path = nil)
     logger.debug { "... Entered method csv ... handle=#{handle}, path=#{path}" }
-    if path.nil?
-      @got_handle ||= {}
-      @dsd = @got_handle[handle] || Download.get(handle)
-      raise "handle '#{handle}' does not exist" if @dsd.nil? && handle != 'manual'
-      path = @dsd.save_path_flex if handle != 'manual'
-      @got_handle[handle] = @dsd
-    end
-    @handle = handle
-    file_key = make_cache_key('csv', path)
+    set_instance_vars(handle, path)
+    file_key = make_cache_key('csv', @cache_handle)
     value = get_files_cache(file_key)
     if value.nil?
       logger.debug { "!!! csv cache miss for file_key=#{file_key}" }
       download_handle unless @dsd.nil?
       begin
-        value = CSV.read(path)
+        value = CSV.read(@cache_handle)
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        value = alternate_fastercsv_read(path)
+        value = alternate_fastercsv_read(@cache_handle)
       ensure
         set_files_cache(file_key, value)
       end
@@ -116,7 +116,7 @@ class DownloadsCache
     key = make_cache_key('download','results')
     results = get_files_cache(key) || {}
     dsd_log = results[@handle] = @dsd.download
-    puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
+    logger.info { "#{Time.now - t} | cache miss: downloaded #{@handle}" }
     set_files_cache(key, results, {}) ## pass empty options hash to disable expiration timer -dji
 
     if dsd_log && dsd_log[:status] != 200

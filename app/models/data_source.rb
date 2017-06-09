@@ -138,6 +138,7 @@ class DataSource < ActiveRecord::Base
       dload = nil
       if self['eval'] =~ /load_from_download[\s(]*"([^"]+)"/
         dload = self.downloads.where(handle: $1)
+        dsd_id = self.data_source_downloads.where(download_id: dload.id).pluck(:id)
       end
       begin
         if changed?(dload)
