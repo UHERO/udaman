@@ -1,27 +1,26 @@
 class DownloadsCache
 
   def initialize(handle, path = nil)
+    @got_download = {}
     set_instance_vars(handle, path)
   end
 
   def set_instance_vars(handle, path = nil)
     if path.nil?
-      @got_handle ||= {}
-      @dsd = @got_handle[handle] || Download.get(handle)
-      raise "handle '#{handle}' does not exist" if @dsd.nil?
+      @dsd = @got_download[handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
       path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
-      @got_handle[handle] = @dsd
+      @got_download[handle] = @dsd
     end
-    @cache_handle = path
     @handle = handle
+    @path = path
   end
 
   def xls(handle, sheet, path = nil, date = nil)
-    logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    logger.debug { "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     set_instance_vars(handle, path)
     @sheet = @dsd.sheet_override.blank? ? sheet : @dsd.sheet_override.strip
-    file_key = make_cache_key('xls', @cache_handle)
-    sheet_key = make_cache_key('xls', @cache_handle, @sheet)
+    file_key = make_cache_key('xls', @path)
+    sheet_key = make_cache_key('xls', @path, @sheet)
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
     if handle != 'manual' && !Rails.cache.exist?(file_key)
@@ -34,8 +33,8 @@ class DownloadsCache
 
   def set_xls_sheet(sheet, date)
     logger.debug { "... Entered method set_xls_sheet ... sheet=#{sheet}, date=#{date}" }
-    file_extension = @cache_handle.split('.')[-1]
-    excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
+    file_extension = @path.split('.')[-1]
+    excel = file_extension == 'xlsx' ? Roo::Excelx.new(@path) : Roo::Excel.new(@path)
     sheet_parts = sheet.split(':')
     def_sheet = case
       when sheet_parts[0] == 'sheet_num' then
@@ -55,12 +54,12 @@ class DownloadsCache
     rescue
       raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
     end
-    sheet_key = make_cache_key('xls', @cache_handle, sheet)
+    sheet_key = make_cache_key('xls', @path, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
   def download_results
-    Rails.logger.debug '... Entered method download_results'
+    logger.debug { '... Entered method download_results' }
     key = make_cache_key('download','results')
     get_files_cache(key) || {}
   end
@@ -68,16 +67,16 @@ class DownloadsCache
   def csv(handle, path = nil)
     logger.debug { "... Entered method csv ... handle=#{handle}, path=#{path}" }
     set_instance_vars(handle, path)
-    file_key = make_cache_key('csv', @cache_handle)
+    file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
       logger.debug { "!!! csv cache miss for file_key=#{file_key}" }
       download_handle unless @dsd.nil?
       begin
-        value = CSV.read(@cache_handle)
+        value = CSV.read(@path)
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        value = alternate_fastercsv_read(@cache_handle)
+        value = alternate_fastercsv_read(@path)
       ensure
         set_files_cache(file_key, value)
       end

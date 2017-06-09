@@ -588,7 +588,7 @@ class Series < ActiveRecord::Base
   def original_url
     self.data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
-        return DataSourceDownload.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
+        return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
       end
     end
     nil
