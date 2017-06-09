@@ -75,12 +75,6 @@ class Download < ActiveRecord::Base
     path
   end
 
-  #this needs to be fixed
-  def download_changed?
-    self.download
-    true
-  end
-
   def download
     resp = nil
     logger.debug { '... Entered method dsd.download' }

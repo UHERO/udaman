@@ -15,9 +15,16 @@ class DownloadProcessor
     @handle = handle
     @options = options
     @file_type = options[:file_type]
-    raise 'not a valid file type option' if %w(txt csv xls xlsx).index(@file_type).nil?
+    raise 'not a valid file type option' unless %w(txt csv xls xlsx).include?(@file_type)
     @spreadsheet = CsvFileProcessor.new(handle, options, parse_date_options, @cached_files) if @file_type == 'csv' and validate_csv
     @spreadsheet = XlsFileProcessor.new(handle, options, parse_date_options, @cached_files) if (@file_type == 'xls' or @file_type == 'xlsx') and validate_xls
+  end
+
+  def download_changed?
+    log = @cached_files.download_handle
+    if log.dl_changed
+      #what
+    end
   end
 
   def get_data

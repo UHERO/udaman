@@ -71,7 +71,7 @@ class DownloadsCache
     value = get_files_cache(file_key)
     if value.nil?
       logger.debug { "!!! csv cache miss for file_key=#{file_key}" }
-      download_handle unless @dsd.nil?
+      download_handle
       begin
         value = CSV.read(@path)
       rescue
@@ -87,7 +87,7 @@ class DownloadsCache
   def text(handle)
     logger.debug { "... Entered method text ... handle=#{handle}" }
     set_instance_vars(handle, nil)
-    file_key = make_cache_key('txt', @handle)
+    file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?
       logger.debug { "!!! txt cache miss for file_key=#{file_key}" }
@@ -119,6 +119,7 @@ class DownloadsCache
     if dsd_log && dsd_log[:status] != 200
       raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dsd.url})"
     end
+    dsd_log
   end
 
   def alternate_fastercsv_read(path)
