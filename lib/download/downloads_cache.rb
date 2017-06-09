@@ -86,10 +86,8 @@ class DownloadsCache
 
   def text(handle)
     logger.debug { "... Entered method text ... handle=#{handle}" }
-    @dsd = Download.get(handle)
-    raise "handle '#{handle}' does not exist" if @dsd.nil?
-    @handle = handle
-    file_key = make_cache_key('txt', handle)
+    set_instance_vars(handle, nil)
+    file_key = make_cache_key('txt', @handle)
     value = get_files_cache(file_key)
     if value.nil?
       logger.debug { "!!! txt cache miss for file_key=#{file_key}" }
