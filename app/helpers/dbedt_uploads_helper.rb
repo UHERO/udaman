@@ -24,4 +24,9 @@ module DbedtUploadsHelper
       'fa-times load-fail'
     end
   end
+
+  def now_processing?
+    ## true if anything is currently in processing
+    !DbedtUpload.where(%q(cats_status = 'processing' or series_status = 'processing')).empty?
+  end
 end

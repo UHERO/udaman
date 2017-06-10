@@ -50,6 +50,15 @@ class DbedtUpload < ActiveRecord::Base
     self.update cats_status: 'processing'
   end
 
+  def make_active_settings
+    unless DataPoint.update_public_data_points
+      return false
+    end
+    logger.debug { 'DONE DataPoint.update_public_data_points' }
+    DbedtUpload.update_all active: false
+    self.update active: true, last_error: nil, last_error_at: nil
+  end
+
   def get_status(which)
     if which == 'cats'
       cats_status
@@ -66,11 +75,13 @@ class DbedtUpload < ActiveRecord::Base
     end
   end
 
-  def absolute_path(which)
+  def absolute_path(which=nil)
     if which == 'cats'
       path(cats_filename)
-    else
+    elsif which == 'series'
       path(series_filename)
+    else
+      path
     end
   end
 
@@ -112,13 +123,15 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_cats_csv
+    logger.info { 'starting load_cats_csv' }
     unless cats_filename
-      logger.warn 'no cats_filename'
+      logger.error { 'no cats_filename' }
       return false
     end
 
-    if !File.exists?(path(cats_filename)) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{path(cats_filename)} /data/dbedt_files")
-      logger.error "couldn't find file #{cats_filename}"
+    cats_csv_path = path(cats_filename).change_file_extension('csv')
+    if !File.exists?(cats_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
+      logger.error { "couldn't find file #{cats_csv_path}" }
       return false
     end
 
@@ -126,7 +139,7 @@ class DbedtUpload < ActiveRecord::Base
     Category.where('meta LIKE "DBEDT_%"').delete_all
     DataList.where('name LIKE "DBEDT_%"').destroy_all
     category = nil
-    CSV.foreach(path(cats_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
+    CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
       indicator_id = row[3]
       parent_indicator_id = row[4]
@@ -179,25 +192,27 @@ class DbedtUpload < ActiveRecord::Base
     true
   end
 
-  def load_series_csv
+  def load_series_csv(run_active_settings=false)
+    logger.info { 'starting load_series_csv' }
     unless series_filename
-      logger.warn 'no series_filename'
+      logger.error { 'no series_filename' }
       return false
     end
 
-    if !File.exists?(path(series_filename)) && !system("rsync -t #{ENV['OTHER_WORKER']}:#{path(series_filename)} /data/dbedt_files")
-      logger.error "couldn't find file #{series_filename}"
+    series_csv_path = path(series_filename).change_file_extension('csv')
+    if !File.exists?(series_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
+      logger.error "couldn't find file #{series_csv_path}"
       return false
     end
 
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-      logger.info 'data already loaded'
+      logger.info { 'data already loaded' }
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
 WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id}%)');|
-      return
+WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id},%)');|
+      return true
     end
 
     logger.info 'loading data'
@@ -205,7 +220,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     current_data_source = nil
     current_measurement = nil
     data_points = []
-    CSV.foreach(path(series_filename.change_file_extension('csv')), {col_sep: "\t", headers: true, return_headers: false}) do |row|
+    CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
       name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
       if current_measurement.nil? || current_measurement.prefix != prefix
@@ -263,14 +278,13 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
     new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
-    logger.info "should set upload to active"
-    DbedtUpload.update_all(active: false)
-    self.update(active: true)
+
+    run_active_settings ? self.make_active_settings : true
   end
 
   def DbedtUpload.load(id)
     du = DbedtUpload.find_by(id: id)
-    du.load_series_csv
+    du.load_series_csv(true)
   end
 
 private
@@ -278,8 +292,10 @@ private
     'dbedt_files'
   end
 
-  def path(name)
-    File.join(ENV['DATA_PATH'], path_prefix, name)
+  def path(name=nil)
+    parts = [ENV['DATA_PATH'], path_prefix]
+    parts.push(name) unless name.blank?
+    File.join(parts)
   end
 
   def DbedtUpload.make_filename(time, type, ext)
@@ -323,7 +339,8 @@ private
   end
 
   def delete_data_and_data_sources
-    DbedtUpload.connection.execute %Q|DELETE FROM data_points WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
+    DbedtUpload.connection.execute %Q|DELETE FROM data_points
+WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 
