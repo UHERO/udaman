@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025719) do
+ActiveRecord::Schema.define(version: 220170413025720) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -170,6 +170,8 @@ ActiveRecord::Schema.define(version: 220170413025719) do
     t.string   "series_status",   limit: 10
     t.string   "cats_filename",   limit: 255
     t.string   "series_filename", limit: 255
+    t.string   "last_error",      limit: 255
+    t.datetime "last_error_at"
   end
 
   create_table "dsd_log_entries", force: :cascade do |t|

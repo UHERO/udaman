@@ -16,18 +16,22 @@ $(function() {
                        $(element).parent().siblings().has('span.waiting').children('span').removeClass('waiting');
                        location.reload();
                    }
+                   if ($('.upload-status.processing').length == 0) {
+                       $('.controls').show();
+                   }
                    clearInterval(intervalId);
                    return;
                }
                if (data === 'fail') {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
+                   if ($('.upload-status.processing').length == 0) {
+                       $('.controls').show();
+                   }
                    clearInterval(intervalId);
                }
            });
        }
    });
-});
-$(function() {
     $('.load-status.loading').each(function(_, element) {
         var icon_args = $(element).attr('id').split('-');
         var dbu_id = icon_args[1];
