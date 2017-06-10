@@ -21,8 +21,9 @@ class DownloadProcessor
   end
 
   def download_changed?
+    return false if @handle == 'manual'
     log = @cached_files.download_handle
-    if log.dl_changed
+    if log && log.dl_changed
       #what
     end
   end

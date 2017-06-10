@@ -7,9 +7,9 @@ class DownloadsCache
 
   def set_instance_vars(handle, path = nil)
     if path.nil?
-      @dsd = @got_download[handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
-      path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
-      @got_download[handle] = @dsd
+      @dload = @got_download[handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
+      path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
+      @got_download[handle] = @dload
     end
     @handle = handle
     @path = path
@@ -18,7 +18,7 @@ class DownloadsCache
   def xls(handle, sheet, path = nil, date = nil)
     logger.debug { "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     set_instance_vars(handle, path)
-    @sheet = @dsd.sheet_override.blank? ? sheet : @dsd.sheet_override.strip
+    @sheet = @dload.sheet_override.blank? ? sheet : @dload.sheet_override.strip
     file_key = make_cache_key('xls', @path)
     sheet_key = make_cache_key('xls', @path, @sheet)
 
@@ -52,7 +52,7 @@ class DownloadsCache
     begin
       excel.default_sheet = def_sheet
     rescue
-      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
+      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dload.save_path_flex}' [handle: #{@handle}]"
     end
     sheet_key = make_cache_key('xls', @path, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
@@ -99,7 +99,7 @@ class DownloadsCache
   end
 
   def get_text_rows
-    f = open @dsd.save_path_flex, 'r'
+    f = open @dload.save_path_flex, 'r'
     text_rows = []
     while (row = f.gets)
       text_rows.push row
@@ -110,14 +110,16 @@ class DownloadsCache
   def download_handle
     logger.debug { "... Entered method download_handle ... @handle=#{@handle}" }
     t = Time.now
+    return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
+
     key = make_cache_key('download','results')
     results = get_files_cache(key) || {}
-    dsd_log = results[@handle] = @dsd.download
+    dsd_log = results[@handle] = @dload.download
     logger.info { "#{Time.now - t} | cache miss: downloaded #{@handle}" }
     set_files_cache(key, results, {}) ## pass empty options hash to disable expiration timer -dji
 
     if dsd_log && dsd_log[:status] != 200
-      raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dsd.url})"
+      raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dload.url})"
     end
     dsd_log
   end

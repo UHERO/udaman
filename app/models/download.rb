@@ -88,11 +88,17 @@ class Download < ActiveRecord::Base
     status = resp.code
     data_changed = false
     if status == 200
+      now = Time.now
       logger.debug { '... RestClient download succeeded (status 200)' }
+      upd_times = { last_download_at: now }
       data_changed = content_changed?(resp.to_str)
-      backup if data_changed
+      if data_changed
+        backup
+        upd_times.merge(last_change_at: now)
+      end
       open(save_path_flex, 'wb') { |file| file.write resp.to_str }
       save_path_flex.unzip if save_path_flex[-3..-1] == 'zip'
+      self.update upd_times
     end
     #logging section
     download_time = Time.now
