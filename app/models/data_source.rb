@@ -131,20 +131,27 @@ class DataSource < ActiveRecord::Base
     end
 
     def reload_source(clear_first=false)
+      logger.info { "Beginning reload of data source #{description}" }
       t = Time.now
       dload = dsd = options = nil
-      if self['eval'] =~ /load_from_download[\s(]*"([^"]+)"/
-        dload = Download.get($1)
-        if self['eval'] =~ /({(\s*:\w+\s*=>\s*"[^"]+"\s*,?)+\s*})/  ## extract the options hash
-          options = eval $1  ## sick :=P -dji
-          options = Hash[options.sort].to_json.downcase ## slick. serialize hash in key-sorted order. -dji
-        end
-        dsd = self.data_source_downloads.where(download_id: dload.id)  ## find bridge entry
-        if dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
-          return true ## no need to reload - nothing has changed
-        end
-      end
       begin
+        if self['eval'] =~ /load_from_download[\s(]*"([^"]+)"/
+          handle = $1
+          dload = Download.get(handle) || raise("No such handle #{handle} (data source id=#{id})")
+          unless dload.last_download_at && dload.last_change_at
+            DownloadsCache.new(handle).download_handle ## force download, to update Download model -dji
+          end
+          if self['eval'] =~ /({(\s*:\w+\s*=>\s*"[^"]+"\s*,?)+\s*})/  ## extract the options hash
+            options = eval $1  ## sick :=P
+            options = Hash[options.sort].to_json.downcase ## slick. serialize hash in key-sorted order. -dji
+          end
+          dsd = DataSourceDownload.get_or_new(id, dload.id)  ## bridge entry
+          if dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
+            logger.debug { "Skipping reload of data source #{description} - nothing has changed" }
+            return true
+          end
+        end
+        logger.debug { "Beginning ACTUAL reload of data source #{description}" }
         s = Kernel::eval self['eval']
         if clear_first
           delete_data_points
@@ -160,14 +167,14 @@ class DataSource < ActiveRecord::Base
                                :last_error => nil,
                                :last_error_at => nil)
 
-        dsd.update(last_file_change_used: dload.last_change_at, last_options_used: options) if dsd
+        dsd.update(last_file_vers_used: dload.last_change_at, last_eval_options_used: options)
       rescue Exception => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update_attributes(:last_run => t,
                                :runtime => nil,
                                :last_error => message,
                                :last_error_at => t)
-        logger.warn "Reload source [#{self.description}] (#{self.id}): Error: #{message}"
+        logger.error { "Reload source [#{self.description}] (#{self.id}): Error: #{message}" }
         return false
       end
       true
