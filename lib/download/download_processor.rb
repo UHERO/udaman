@@ -20,14 +20,6 @@ class DownloadProcessor
     @spreadsheet = XlsFileProcessor.new(handle, options, parse_date_options, @cached_files) if (@file_type == 'xls' or @file_type == 'xlsx') and validate_xls
   end
 
-  def download_changed?
-    return false if @handle == 'manual'
-    log = @cached_files.download_handle
-    if log && log.dl_changed
-      #what
-    end
-  end
-
   def get_data
     if @file_type == 'txt'
       return TextFileProcessor.new(@handle, @options, @cached_files).get_data
