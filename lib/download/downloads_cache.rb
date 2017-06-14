@@ -6,6 +6,7 @@ class DownloadsCache
   end
 
   def set_instance_vars(handle, path = nil)
+    @dload = nil
     if path.nil?
       @dload = @got_download[handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
@@ -18,7 +19,7 @@ class DownloadsCache
   def xls(handle, sheet, path = nil, date = nil)
     Rails.logger.debug { "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     set_instance_vars(handle, path)
-    @sheet = @dload.sheet_override.blank? ? sheet : @dload.sheet_override.strip
+    @sheet = (@dload.nil? || @dload.sheet_override.blank?) ? sheet : @dload.sheet_override.strip
     file_key = make_cache_key('xls', @path)
     sheet_key = make_cache_key('xls', @path, @sheet)
 
