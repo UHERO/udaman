@@ -94,11 +94,11 @@ class Download < ActiveRecord::Base
       data_changed = content_changed?(resp.to_str)
       if data_changed || last_change_at.nil?
         backup
-        update_times.merge(last_change_at: now)
+        update_times.merge!(last_change_at: now)
       end
       open(save_path_flex, 'wb') { |file| file.write resp.to_str }
       save_path_flex.unzip if save_path_flex[-3..-1] == 'zip'
-      self.update update_times
+      self.update(update_times)
     end
     #logging section
     download_time = Time.now

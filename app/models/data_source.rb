@@ -141,11 +141,12 @@ class DataSource < ActiveRecord::Base
           unless dload.last_download_at && dload.last_change_at
             DownloadsCache.new(handle).download_handle ## force download, to update Download model -dji
           end
-          if self['eval'] =~ /({(\s*:\w+\s*=>\s*"[^"]+"\s*,?)+\s*})/  ## extract the options hash
-            options = eval $1  ## sick :=P
+          if self['eval'] =~ /({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/  ## extract the options hash
+            options = Kernel::eval $1  ## sick :=P
             options = Hash[options.sort].to_json.downcase ## slick. serialize hash in key-sorted order. -dji
           end
           dsd = DataSourceDownload.get_or_new(id, dload.id)  ## bridge entry
+          logger.debug { ">>>>> got or newed: #{dsd.last_file_vers_used} ::: #{dsd.last_eval_options_used}" }
           if dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
             logger.debug { "Skipping reload of data source #{description} - nothing has changed" }
             return true

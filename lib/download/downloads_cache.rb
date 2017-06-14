@@ -16,7 +16,7 @@ class DownloadsCache
   end
 
   def xls(handle, sheet, path = nil, date = nil)
-    logger.debug { "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    Rails.logger.debug { "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     set_instance_vars(handle, path)
     @sheet = @dload.sheet_override.blank? ? sheet : @dload.sheet_override.strip
     file_key = make_cache_key('xls', @path)
@@ -24,7 +24,7 @@ class DownloadsCache
 
     #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
     if handle != 'manual' && !Rails.cache.exist?(file_key)
-      logger.debug { "!!! xls cache miss for file_key=#{file_key}" }
+      Rails.logger.debug { "!!! xls cache miss for file_key=#{file_key}" }
       download_handle
       set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
     end
@@ -32,7 +32,7 @@ class DownloadsCache
   end
 
   def set_xls_sheet(sheet, date)
-    logger.debug { "... Entered method set_xls_sheet ... sheet=#{sheet}, date=#{date}" }
+    Rails.logger.debug { "... Entered method set_xls_sheet ... sheet=#{sheet}, date=#{date}" }
     file_extension = @path.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@path) : Roo::Excel.new(@path)
     sheet_parts = sheet.split(':')
@@ -59,18 +59,18 @@ class DownloadsCache
   end
 
   def download_results
-    logger.debug { '... Entered method download_results' }
+    Rails.logger.debug { '... Entered method download_results' }
     key = make_cache_key('download','results')
     get_files_cache(key) || {}
   end
 
   def csv(handle, path = nil)
-    logger.debug { "... Entered method csv ... handle=#{handle}, path=#{path}" }
+    Rails.logger.debug { "... Entered method csv ... handle=#{handle}, path=#{path}" }
     set_instance_vars(handle, path)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
-      logger.debug { "!!! csv cache miss for file_key=#{file_key}" }
+      Rails.logger.debug { "!!! csv cache miss for file_key=#{file_key}" }
       download_handle
       begin
         value = CSV.read(@path)
@@ -85,12 +85,12 @@ class DownloadsCache
   end
 
   def text(handle)
-    logger.debug { "... Entered method text ... handle=#{handle}" }
+    Rails.logger.debug { "... Entered method text ... handle=#{handle}" }
     set_instance_vars(handle, nil)
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?
-      logger.debug { "!!! txt cache miss for file_key=#{file_key}" }
+      Rails.logger.debug { "!!! txt cache miss for file_key=#{file_key}" }
       download_handle
       value = get_text_rows
       set_files_cache(file_key, value)
@@ -108,14 +108,14 @@ class DownloadsCache
   end
 
   def download_handle
-    logger.debug { "... Entered method download_handle ... @handle=#{@handle}" }
+    Rails.logger.debug { "... Entered method download_handle ... @handle=#{@handle}" }
     t = Time.now
-    return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
+##    return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
 
     key = make_cache_key('download','results')
     results = get_files_cache(key) || {}
     dsd_log = results[@handle] = @dload.download
-    logger.info { "#{Time.now - t} | cache miss: downloaded #{@handle}" }
+    Rails.logger.info { "#{Time.now - t} | cache miss: downloaded #{@handle}" }
     set_files_cache(key, results, {}) ## pass empty options hash to disable expiration timer -dji
 
     if dsd_log && dsd_log[:status] != 200
@@ -150,13 +150,13 @@ class DownloadsCache
   end
 
   def get_files_cache(key)
-    logger.debug { "<<< Entered method get_files_cache, key=#{key}" }
+    Rails.logger.debug { "<<< Entered method get_files_cache, key=#{key}" }
     value = Rails.cache.fetch(key)
     value.nil? ? nil : Marshal.load(value)
   end
 
   def set_files_cache(key, value, options=nil)
-    logger.debug { ">>> Entered method set_files_cache, key=#{key}" }
+    Rails.logger.debug { ">>> Entered method set_files_cache, key=#{key}" }
     options ||= { expires_in: 6.hours }
     Rails.cache.write(key, Marshal.dump(value), options)
     value
