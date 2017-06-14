@@ -146,7 +146,6 @@ class DataSource < ActiveRecord::Base
             options = Hash[options.sort].to_json.downcase ## slick. serialize hash in key-sorted order. -dji
           end
           dsd = DataSourceDownload.get_or_new(id, dload.id)  ## bridge entry
-          logger.debug { ">>>>> got or newed: #{dsd.last_file_vers_used} ::: #{dsd.last_eval_options_used}" }
           if dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
             logger.debug { "Skipping reload of data source #{description} - nothing has changed" }
             return true
@@ -168,7 +167,7 @@ class DataSource < ActiveRecord::Base
                                :last_error => nil,
                                :last_error_at => nil)
 
-        dsd.update(last_file_vers_used: dload.last_change_at, last_eval_options_used: options)
+        dsd.update(last_file_vers_used: dload.last_change_at, last_eval_options_used: options) if dsd
       rescue Exception => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update_attributes(:last_run => t,
