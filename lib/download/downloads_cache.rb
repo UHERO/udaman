@@ -2,6 +2,7 @@ class DownloadsCache
 
   def xls(handle, sheet, path = nil, date = nil)
     Rails.logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}"
+    @dsd = nil
     if path.nil?
       @got_handle ||= {}
       @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
@@ -12,7 +13,7 @@ class DownloadsCache
     
     @cache_handle = path
     @handle = handle
-    @sheet = @dsd.sheet_override.blank? ? sheet : @dsd.sheet_override.strip
+    @sheet = (@dsd.nil? || @dsd.sheet_override.blank?) ? sheet : @dsd.sheet_override.strip
     file_key = make_cache_key('xls', @cache_handle)
     sheet_key = make_cache_key('xls', @cache_handle, @sheet)
 
