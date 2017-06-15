@@ -30,7 +30,8 @@ class DownloadsCache
     @dsd = DataSourceDownload.get_or_new(data_source.id, @dload.id)  ## bridge entry
     options_serial = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
     if @dload.last_change_at <= @dsd.last_file_vers_used && options_serial == @dsd.last_eval_options_used
-      raise "Skipping reload of data source #{data_source.description} - nothing has changed" }
+      ## Use EOFError as a convenient surrogate to mean nothing more to do here. -dji
+      raise EOFError, "Skipping reload of data source #{data_source.description}, nothing changed" }
     end
   end
 

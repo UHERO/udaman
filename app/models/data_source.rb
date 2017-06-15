@@ -167,14 +167,14 @@ class DataSource < ActiveRecord::Base
           dl_proc.dl_cache.dsd.update(last_file_vers_used: dl_proc.dl_cache.dload.last_change_at,
                                       last_eval_options_used: options)
         end
-      rescue => e
+      rescue => e  ## Cascade: first record metadata in the db, then reraise for more specific outcomes. -dji
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update(:last_run => t,
                     :runtime => nil,
                     :last_error => message,
                     :last_error_at => t)
         raise e.class, message
-      rescue NothingChangedException => e
+      rescue EOFError => e  ## EOFError is a surrogate to mean there was nothing to do. -dji
         logger.info { "Reload source [#{description}] (#{id}): #{e.message}" }
         return true
       rescue => e
