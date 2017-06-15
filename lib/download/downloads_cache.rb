@@ -1,31 +1,37 @@
 class DownloadsCache
 
   def initialize(handle = nil, options = nil)
-    set_instance_vars(handle, options && options[:path])
-    if options
-      data_source = DataSource.find(options[:data_source]) || raise("No data source with id='#{options[:data_source]}' found")
-      dsd = DataSourceDownload.get_or_new(data_source.id, @dload.id)  ## bridge entry
-      if @dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
-        logger.debug { "Skipping reload of data source #{description} - nothing has changed" }
-        raise 'foo'
-      end
-    end
     @got_download = {}
+    set_instance_vars(handle, options && options[:path])
+    if options && @dload
+      check_new_data(options)
+    end
   end
 
   def set_instance_vars(handle, path = nil)
     Rails.logger.debug { "... Entered method set_instance_vars: handle=#{handle}, path=#{path}" }
     @dload = nil
-    if path.nil?
+    if path.nil?  ## this means that handle != 'manual'
       @dload = @got_download[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
       unless @dload.last_download_at && @dload.last_change_at
-        download_handle ## force download, to update Download model -dji
+        download_handle ## force file download, to update Download model -dji
       end
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
       @got_download[handle] = @dload
     end
     @handle = handle
     @path = path
+  end
+
+  def check_new_data(options)
+    ds_id = options.delete :data_source  ## get DS id and also remove item from options hash
+    return unless ds_id
+    data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
+    dsd = DataSourceDownload.get_or_new(data_source.id, @dload.id)  ## bridge entry
+    options_serial = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
+    if @dload.last_change_at <= dsd.last_file_vers_used && options_serial == dsd.last_eval_options_used
+      raise "Skipping reload of data source #{data_source.description} - nothing has changed" }
+    end
   end
 
   def xls(handle, sheet, path = nil, date = nil)
