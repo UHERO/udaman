@@ -491,9 +491,6 @@ class Series < ActiveRecord::Base
     options[:data_source] ? { dl_proc: dp, series: s } : s
   end
   
-  #the other problem with these "SERIES" style transformations is that they overwrite the units calculations. Can also build that into the 
-  #series definition as necessary
-
   def Series.load_from_file(file, options, cached_files = nil)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
