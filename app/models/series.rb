@@ -483,13 +483,12 @@ class Series < ActiveRecord::Base
   end
   
   def Series.load_from_download(handle, options, cached_files = nil)
-    begin
-      dp = DownloadProcessor.new(handle, options)
-      series_data = dp.get_data
-    rescue => e
-      raise e
-    end
-    Series.new_transformation("loaded from download #{handle} with options:#{options}", series_data, Series.frequency_from_code(options[:frequency]))
+    dp = DownloadProcessor.new(handle, options)
+    series_data = dp.get_data
+    s = Series.new_transformation("loaded from download #{handle} with options:#{options}",
+                                  series_data,
+                                  Series.frequency_from_code(options[:frequency]))
+    options[:data_source] ? { dl_proc: dp, series: s } : s
   end
   
   #the other problem with these "SERIES" style transformations is that they overwrite the units calculations. Can also build that into the 
@@ -497,14 +496,13 @@ class Series < ActiveRecord::Base
 
   def Series.load_from_file(file, options, cached_files = nil)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
-    begin
-      %x(chmod 766 #{file}) unless file.include? '%'
-      dp = DownloadProcessor.new('manual', options.merge({:path => file }))
-      series_data = dp.get_data
-    rescue => e
-      raise e
-    end
-      Series.new_transformation("loaded from file #{file} with options:#{options}", series_data, Series.frequency_from_code(options[:frequency]))
+    %x(chmod 766 #{file}) unless file.include? '%'
+    dp = DownloadProcessor.new('manual', options.merge(:path => file))
+    series_data = dp.get_data
+    s = Series.new_transformation("loaded from file #{file} with options:#{options}",
+                                  series_data,
+                                  Series.frequency_from_code(options[:frequency]))
+    options[:data_source] ? { dl_proc: dp, series: s } : s
   end
   
   def load_from_pattern_id(id)
@@ -512,13 +510,10 @@ class Series < ActiveRecord::Base
   end
   
   def load_from_download(handle, options, cached_files = nil)
-    begin
-      dp = DownloadProcessor.new(handle, options)
-      series_data = dp.get_data
-    rescue => e
-      raise e
-    end
-    new_transformation("loaded from download #{handle} with options:#{options}", series_data)
+    dp = DownloadProcessor.new(handle, options)
+    series_data = dp.get_data
+    s = new_transformation("loaded from download #{handle} with options:#{options}", series_data)
+    options[:data_source] ? { dl_proc: dp, series: s } : s
   end
   
   def Series.load_from_bea(frequency, dataset, parameters)

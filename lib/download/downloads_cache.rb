@@ -2,6 +2,7 @@ class DownloadsCache
 
   def initialize(handle = nil, options = nil)
     @got_download = {}
+    @dload = @dsd = nil
     set_instance_vars(handle, options && options[:path])
     if options && @dload
       check_new_data(options)
@@ -10,7 +11,6 @@ class DownloadsCache
 
   def set_instance_vars(handle, path = nil)
     Rails.logger.debug { "... Entered method set_instance_vars: handle=#{handle}, path=#{path}" }
-    @dload = nil
     if path.nil?  ## this means that handle != 'manual'
       @dload = @got_download[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
       unless @dload.last_download_at && @dload.last_change_at
@@ -27,9 +27,9 @@ class DownloadsCache
     ds_id = options.delete :data_source  ## get DS id and also remove item from options hash
     return unless ds_id
     data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
-    dsd = DataSourceDownload.get_or_new(data_source.id, @dload.id)  ## bridge entry
+    @dsd = DataSourceDownload.get_or_new(data_source.id, @dload.id)  ## bridge entry
     options_serial = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
-    if @dload.last_change_at <= dsd.last_file_vers_used && options_serial == dsd.last_eval_options_used
+    if @dload.last_change_at <= @dsd.last_file_vers_used && options_serial == @dsd.last_eval_options_used
       raise "Skipping reload of data source #{data_source.description} - nothing has changed" }
     end
   end
@@ -129,7 +129,7 @@ class DownloadsCache
   def download_handle
     Rails.logger.debug { "... Entered method download_handle: @handle=#{@handle}" }
     t = Time.now
-    return nil if @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
+    return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
 
     key = make_cache_key('download','results')
     results = get_files_cache(key) || {}
@@ -183,6 +183,14 @@ class DownloadsCache
 
   def get_month_name(date)
     date.to_date.strftime('%^b')
+  end
+
+  def dsd
+    @dsd
+  end
+
+  def dload
+    @dload
   end
 
 end

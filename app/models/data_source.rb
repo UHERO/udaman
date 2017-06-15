@@ -134,14 +134,20 @@ class DataSource < ActiveRecord::Base
       logger.info { "Begin reload of data source #{description}" }
       t = Time.now
       eval_stmt = self['eval']
-      options = nil
+      options = dl_proc = nil
       options_match = %r/({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/
       begin
         if eval_stmt =~ options_match  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           eval_stmt.sub(options_match, options.merge(data_source: id).to_s) ## injection hack :=P -dji
         end
-        s = Kernel::eval eval_stmt
+        result = Kernel::eval eval_stmt
+        if result.class == Hash
+          dl_proc = result[:dl_proc]
+          s = result[:series]
+        else
+          s = result
+        end
         if clear_first
           delete_data_points
         end
@@ -150,20 +156,29 @@ class DataSource < ActiveRecord::Base
           self.series.update(:base_year => base_year.to_i)
         end
         self.series.update_data(s.data, self)
-        self.update_attributes(:description => s.name,
-                               :last_run => t,
-                               :runtime => (Time.now - t),
-                               :last_error => nil,
-                               :last_error_at => nil)
+        self.update(:description => s.name,
+                    :last_run => t,
+                    :runtime => (Time.now - t),
+                    :last_error => nil,
+                    :last_error_at => nil)
 
-####        dsd.update(last_file_vers_used: dload.last_change_at, last_eval_options_used: options) if dsd
-      rescue Exception => e
+        ## Finally, update the DataSourceDownload stuff that is buried in DownloadProcessor
+        if dl_proc && dl_proc.dl_cache.dsd && dl_proc.dl_cache.dload
+          dl_proc.dl_cache.dsd.update(last_file_vers_used: dl_proc.dl_cache.dload.last_change_at,
+                                      last_eval_options_used: options)
+        end
+      rescue => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
-        self.update_attributes(:last_run => t,
-                               :runtime => nil,
-                               :last_error => message,
-                               :last_error_at => t)
-        logger.error { "Reload source [#{self.description}] (#{self.id}): Error: #{message}" }
+        self.update(:last_run => t,
+                    :runtime => nil,
+                    :last_error => message,
+                    :last_error_at => t)
+        raise e.class, message
+      rescue NothingChangedException => e
+        logger.info { "Reload source [#{description}] (#{id}): #{e.message}" }
+        return true
+      rescue => e
+        logger.error { "Reload source [#{description}] (#{id}): Error: #{e.message}" }
         return false
       end
       true
