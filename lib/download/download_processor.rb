@@ -11,7 +11,7 @@ class DownloadProcessor
   def initialize(handle, options)
     raise 'File type must be specified when initializing a Download Processor' if options[:file_type].nil?
     raise 'File path must be specified when initializing a manual Download Processor' if handle == 'manual' and options[:path].nil?
-    @cached_files = DownloadsCache.new(handle, options[:path])
+    @cached_files = DownloadsCache.new(handle, options)
     @handle = handle
     @options = options
     @file_type = options[:file_type]

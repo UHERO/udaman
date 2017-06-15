@@ -5,10 +5,10 @@ class XlsFileProcessor
   #job of this object is to coordinate all of the other processor objects for the mapping
   def initialize(handle, options, date_info, cached_files)
     @cached_files = cached_files
-    @handle = handle
-    @options = options
-    @row_processor = IntegerPatternProcessor.new(options[:row]) 
-    @col_processor = IntegerPatternProcessor.new(options[:col]) 
+    #@handle = handle
+    #@options = options
+    @row_processor = IntegerPatternProcessor.new(options[:row])
+    @col_processor = IntegerPatternProcessor.new(options[:col])
     @handle_processor = StringWithDatePatternProcessor.new handle
     @path_processor = options[:path].nil? ? nil : StringWithDatePatternProcessor.new(options[:path])
     @sheet_processor = StringWithDatePatternProcessor.new options[:sheet]

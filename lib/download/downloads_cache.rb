@@ -1,14 +1,26 @@
 class DownloadsCache
 
-  def initialize(handle, path = nil)
+  def initialize(handle = nil, options = nil)
+    set_instance_vars(handle, options && options[:path])
+    if options
+      data_source = DataSource.find(options[:data_source]) || raise("No data source with id='#{options[:data_source]}' found")
+      dsd = DataSourceDownload.get_or_new(data_source.id, @dload.id)  ## bridge entry
+      if @dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
+        logger.debug { "Skipping reload of data source #{description} - nothing has changed" }
+        raise 'foo'
+      end
+    end
     @got_download = {}
-    set_instance_vars(handle, path)
   end
 
   def set_instance_vars(handle, path = nil)
+    Rails.logger.debug { "... Entered method set_instance_vars: handle=#{handle}, path=#{path}" }
     @dload = nil
     if path.nil?
-      @dload = @got_download[handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
+      @dload = @got_download[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
+      unless @dload.last_download_at && @dload.last_change_at
+        download_handle ## force download, to update Download model -dji
+      end
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
       @got_download[handle] = @dload
     end
@@ -17,7 +29,7 @@ class DownloadsCache
   end
 
   def xls(handle, sheet, path = nil, date = nil)
-    Rails.logger.debug { "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     set_instance_vars(handle, path)
     @sheet = (@dload.nil? || @dload.sheet_override.blank?) ? sheet : @dload.sheet_override.strip
     file_key = make_cache_key('xls', @path)
@@ -33,7 +45,7 @@ class DownloadsCache
   end
 
   def set_xls_sheet(sheet, date)
-    Rails.logger.debug { "... Entered method set_xls_sheet ... sheet=#{sheet}, date=#{date}" }
+    Rails.logger.debug { "... Entered method set_xls_sheet: sheet=#{sheet}, date=#{date}" }
     file_extension = @path.split('.')[-1]
     excel = file_extension == 'xlsx' ? Roo::Excelx.new(@path) : Roo::Excel.new(@path)
     sheet_parts = sheet.split(':')
@@ -66,7 +78,7 @@ class DownloadsCache
   end
 
   def csv(handle, path = nil)
-    Rails.logger.debug { "... Entered method csv ... handle=#{handle}, path=#{path}" }
+    Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
     set_instance_vars(handle, path)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
@@ -86,7 +98,7 @@ class DownloadsCache
   end
 
   def text(handle)
-    Rails.logger.debug { "... Entered method text ... handle=#{handle}" }
+    Rails.logger.debug { "... Entered method text: handle=#{handle}" }
     set_instance_vars(handle, nil)
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
@@ -109,9 +121,9 @@ class DownloadsCache
   end
 
   def download_handle
-    Rails.logger.debug { "... Entered method download_handle ... @handle=#{@handle}" }
+    Rails.logger.debug { "... Entered method download_handle: @handle=#{@handle}" }
     t = Time.now
-##    return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
+    return nil if @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
 
     key = make_cache_key('download','results')
     results = get_files_cache(key) || {}

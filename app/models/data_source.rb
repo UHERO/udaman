@@ -131,32 +131,21 @@ class DataSource < ActiveRecord::Base
     end
 
     def reload_source(clear_first=false)
-      logger.info { "Beginning reload of data source #{description}" }
+      logger.info { "Begin reload of data source #{description}" }
       t = Time.now
-      dload = dsd = options = nil
+      eval_stmt = self['eval']
+      options = nil
+      options_match = %r/({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/
       begin
-        if self['eval'] =~ /load_from_download[\s(]*"([^"]+)"/
-          handle = $1
-          dload = Download.get(handle) || raise("No such handle #{handle} (data source id=#{id})")
-          unless dload.last_download_at && dload.last_change_at
-            DownloadsCache.new(handle).download_handle ## force download, to update Download model -dji
-          end
-          if self['eval'] =~ /({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/  ## extract the options hash
-            options = Kernel::eval $1  ## sick :=P
-            options = Hash[options.sort].to_json.downcase ## slick. serialize hash in key-sorted order. -dji
-          end
-          dsd = DataSourceDownload.get_or_new(id, dload.id)  ## bridge entry
-          if dload.last_change_at <= dsd.last_file_vers_used && options == dsd.last_eval_options_used
-            logger.debug { "Skipping reload of data source #{description} - nothing has changed" }
-            return true
-          end
+        if eval_stmt =~ options_match  ## extract the options hash
+          options = Kernel::eval $1    ## reconstitute
+          eval_stmt.sub(options_match, options.merge(data_source: id).to_s) ## injection hack :=P -dji
         end
-        logger.debug { "Beginning ACTUAL reload of data source #{description}" }
-        s = Kernel::eval self['eval']
+        s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
         end
-        base_year = base_year_from_eval_string(self['eval'], self.dependencies)
+        base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
           self.series.update(:base_year => base_year.to_i)
         end
@@ -167,7 +156,7 @@ class DataSource < ActiveRecord::Base
                                :last_error => nil,
                                :last_error_at => nil)
 
-        dsd.update(last_file_vers_used: dload.last_change_at, last_eval_options_used: options) if dsd
+####        dsd.update(last_file_vers_used: dload.last_change_at, last_eval_options_used: options) if dsd
       rescue Exception => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update_attributes(:last_run => t,
