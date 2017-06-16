@@ -7,7 +7,7 @@ if false
 @bucket_keys.each do |key| 
 	%>
 <h1 style="color:#066A8A">
-	<% dsd = DataSourceDownload.get(key) %>
+	<% dsd = Download.get(key) %>
 	<%= 
 		link_to("HANDLE: #{key}", {:controller => :downloads, :action => :show, :id => dsd.id}, :target => "_blank") unless key.nil? or dsd.nil? 
 	%>
