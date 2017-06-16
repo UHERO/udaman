@@ -1,2 +1,2 @@
-module DownloadsHelper
+module DataSourceDownloadsHelper
 end
