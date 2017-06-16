@@ -8,7 +8,7 @@ class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
       t.belongs_to :data_source
       t.belongs_to :download
       t.datetime :last_file_vers_used, null: false, default: Time.at(0)
-      t.string :last_eval_options_used
+      t.string :last_eval_options_used, limit: 1000
     end
     add_index :data_source_downloads, [:data_source_id, :download_id], unique: true
   end
