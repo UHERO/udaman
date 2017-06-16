@@ -137,8 +137,8 @@ ActiveRecord::Schema.define(version: 220170413025721) do
   create_table "data_source_downloads", force: :cascade do |t|
     t.integer  "data_source_id",         limit: 4
     t.integer  "download_id",            limit: 4
-    t.datetime "last_file_vers_used",                default: '1970-01-01 00:00:00', null: false
-    t.string   "last_eval_options_used", limit: 255
+    t.datetime "last_file_vers_used",                 default: '1970-01-01 00:00:00', null: false
+    t.string   "last_eval_options_used", limit: 1000
   end
 
   add_index "data_source_downloads", ["data_source_id", "download_id"], name: "index_data_source_downloads_on_data_source_id_and_download_id", unique: true, using: :btree
