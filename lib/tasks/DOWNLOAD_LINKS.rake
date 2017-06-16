@@ -66,7 +66,7 @@ task :update_bea_links => :environment do
       b.link(:id => 'showDownload').click
       sleep(2)
       new_url = b.link(:text => 'CSV Download your table in CSV format.').href
-      dsd = DataSourceDownload.get(handle)
+      dsd = Download.get(handle)
       puts new_url
       puts dsd.url
       unless dsd.url == new_url
@@ -85,7 +85,7 @@ end
 
 task :update_seats_links => :environment do  
   t = Time.now
-  seats_links = DataSourceDownload.where("handle LIKE 'SEATS%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '').gsub('%20', ' ') }
+  seats_links = Download.where("handle LIKE 'SEATS%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '').gsub('%20', ' ') }
 
   require 'mechanize'
   agent = Mechanize.new
@@ -110,7 +110,7 @@ task :update_seats_links => :environment do
         url = 'http://www.hawaiitourismauthority.org' + href.gsub('%20',' ')
         save_path = "#{ENV['DATA_PATH']}/rawdata/TOUR_SEATS_" + month.upcase + year.to_s[2..4] + '.' + href.split('.')[-1]
         handle = "SEATS_#{month.upcase}#{year.to_s[2..4]}@hawaiitourismauthority.org"
-        dsd = DataSourceDownload.new(:handle => handle, :url => url, :save_path => save_path)
+        dsd = Download.new(:handle => handle, :url => url, :save_path => save_path)
         if dsd.download[:status] == 200
           dsd.save
           PackagerMailer.download_link_notification(handle, url, save_path, true).deliver
@@ -134,7 +134,7 @@ task :update_vis_history_links => :environment do
   search_page = 'http://www.hawaiitourismauthority.org/research/reports/historical-visitor-statistics/'
   link_search_string = 'Monthly Final'
     
-  seats_links = DataSourceDownload.where("handle LIKE '#{handle_fragment}%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '').gsub('%20', ' ') }
+  seats_links = Download.where("handle LIKE '#{handle_fragment}%'").map { |dsd| dsd.url.gsub('http://www.hawaiitourismauthority.org', '').gsub('%20', ' ') }
   
   require 'mechanize'
   agent = Mechanize.new
@@ -158,7 +158,7 @@ task :update_vis_history_links => :environment do
         url = 'http://www.hawaiitourismauthority.org' + href.gsub('%20',' ')
         save_path = "#{ENV['DATA_PATH']}/rawdata/TOUR_HIST" + year.to_s[2..4] + '.' + href.split('.')[-1]
         handle = "TOUR_HIST#{year.to_s[2..4]}@hawaiitourismauthority.org"
-        dsd = DataSourceDownload.new(:handle => handle, :url => url, :save_path => save_path)
+        dsd = Download.new(:handle => handle, :url => url, :save_path => save_path)
         if dsd.download[:status] == 200
           dsd.save
           PackagerMailer.download_link_notification(handle, url, save_path, true).deliver

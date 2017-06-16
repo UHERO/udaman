@@ -2,9 +2,9 @@ require 'spec_helper'
 
 describe DownloadsCache do
   before(:each) do
-    @dsd = mock "data_source_download"
+    @dsd = mock "download"
     @dsd.stub(:download).and_return(nil)
-    DataSourceDownload.stub!(:get).and_return(@dsd)
+    Download.stub!(:get).and_return(@dsd)
     @dc = DownloadsCache.new
   end
   

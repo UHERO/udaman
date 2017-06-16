@@ -10,9 +10,9 @@ describe DownloadProcessor do
   
   describe "behavior tests" do
     before(:each) do
-      @dsd = mock "data_source_download"
+      @dsd = mock "download"
       @dsd.stub(:download).and_return(nil)
-      DataSourceDownload.stub!(:get).and_return(@dsd)
+      Download.stub!(:get).and_return(@dsd)
     end
   
     describe "xls tests" do
@@ -252,10 +252,10 @@ describe DownloadProcessor do
     
     describe "error conditions past handle and validation" do
       before (:each) do
-        @dsd = mock "data_source_download"
+        @dsd = mock "download"
         @dsd.stub(:download).and_return({:status => 500})
         @dsd.stub(:url).and_return("http://broken_download.com")
-        DataSourceDownload.stub!(:get).and_return(@dsd)
+        Download.stub!(:get).and_return(@dsd)
         @dsd.stub(:save_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/datafiles/specs/downloads/pattern.xls")
         @dsd.stub(:extract_path_flex).and_return(nil)
       end
