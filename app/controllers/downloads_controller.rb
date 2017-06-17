@@ -20,12 +20,16 @@ class DownloadsController < ApplicationController
   def create
     post_params = params[:download].delete(:post_parameters)
     @output_file = Download.new download_params
-    if @output_file.save
-      @output_file.process_post_params(post_params)
-      redirect_to :action => 'index'
-    else
+    begin
+      @output_file.save
+      @output_file.process_post_params post_params
+      @output_file.link_data_sources
+    rescue => e
+      logger.error { "Error on download create: #{e.message}" }
       render :action => 'new'
+      return
     end
+    redirect_to :action => 'index'
   end
   
   def update
