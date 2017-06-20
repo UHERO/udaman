@@ -38,6 +38,8 @@ class XlsFileProcessor
       return 'END' if e.message[0..5] == 'handle' and @handle_processor.date_sensitive?
       return {} if e.message[0..20] == 'could not find header' and ['Condo only'].include? e.message.split(': ')[1][1..-2]
       raise e
+    rescue EOFError => e
+      raise e
     rescue IOError => e
       Rails.logger.error e.message
       return 'END' if e.message[0..3] == 'file' and !@path_processor.nil? and @path_processor.date_sensitive?

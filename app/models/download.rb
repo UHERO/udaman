@@ -12,8 +12,7 @@ class Download < ActiveRecord::Base
 
   def link_data_sources
     DataSource.where("eval like '%#{handle}%'").all.each do |ds|
-      DataSourceDownload.find_by(data_source_id: ds.id, download_id: id) ||
-          DataSourceDownload.create(data_source_id: ds.id, download_id: id)
+      DataSourceDownload.get_or_new(ds.id, self.id)  ## creates the bridge link if it doesn't exist
     end
   end
 
