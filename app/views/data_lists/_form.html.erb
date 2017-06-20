@@ -46,6 +46,7 @@
                 <td><%= link_to '>>'.html_safe, {controller: :data_lists, action: :set_measurement_indent, id: @data_list, measurement_id: measurement.id, indent_in_out: 'in'}, remote: true, data: {indent: 1} %></td>
 
                 <td><%= link_to 'Duplicate', duplicate_measurement_path(measurement) %></td>
+                <td><%= link_to 'Show', measurement %></td>
                 <td><%= link_to 'Edit', edit_measurement_path(measurement) %></td>
                 <td><%= link_to 'Remove', {controller: :data_lists, action: :remove_measurement, id: @data_list, measurement_id: measurement.id}, remote: true, data: {remove: true} %></td>
               </tr>
