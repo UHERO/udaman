@@ -10,7 +10,7 @@ task :rebuild => :environment do
     DataPoint.delete_all
     DataSource.delete_all
     Series.delete_all
-    DataSourceDownload.delete_all
+    Download.delete_all
     DsdLogEntry.delete_all
    
     puts "\n\n------LOADING UDAMAN ARCHIVE-------\n\n"
@@ -170,10 +170,10 @@ end
 
 task :output_active_downloads => :environment do
   File.open('lib/tasks/REBUILD_DOWNLOADS.rb', 'w') do |file|
-    DsdLogEntry.maximum(:time, :group => :data_source_download_id).each do |dsd_id, time|
+    DsdLogEntry.maximum(:time, :group => :download_id).each do |dsd_id, time|
       if time > (Date.today - 10.day)
         puts "wrote: #{dsd_id}"
-        file.puts DataSourceDownload.find_by(id: dsd_id).update_statement
+        file.puts Download.find_by(id: dsd_id).update_statement
       end
     end 
   end

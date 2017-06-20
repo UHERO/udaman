@@ -91,7 +91,7 @@ task :gen_investigate_csv => :environment do
   
   CSV.open('public/download_results.csv', 'wb') do |csv|
     csv << %w{id handle time status changed url}
-    DataSourceDownload.all.each do |dsd|
+    Download.all.each do |dsd|
       puts dsd.handle.to_s
       next if dsd.dsd_log_entries == []
       last_log = dsd.dsd_log_entries.order(:time).last
@@ -136,7 +136,7 @@ task :gen_daily_summary => :environment do
   
   CSV.open('public/download_results.csv', 'wb') do |csv|
     csv << %w(id handle time status changed url)
-    DataSourceDownload.all.each do |dsd|
+    Download.all.each do |dsd|
       puts dsd.handle
       next if dsd.dsd_log_entries.nil?
       last_log = dsd.dsd_log_entries.order(:time).last

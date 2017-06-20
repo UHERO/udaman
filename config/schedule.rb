@@ -98,7 +98,7 @@ end
 
 #bring down pv file daily
 every 1.day, :at => '9:15 am' do
-  runner 'DataSourceDownload.get(\'PV_HON@hawaii.gov\').download'
+  runner 'Download.get(\'PV_HON@hawaii.gov\').download'
 end
 
 #alternatives in case of emergency

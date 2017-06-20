@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe DataSourceDownloadsController do
+describe DownloadsController do
 
   describe "GET 'index'" do
     xit "should be successful" do
