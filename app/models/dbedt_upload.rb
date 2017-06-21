@@ -136,8 +136,8 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     # remove categories and data_lists
-    Category.where('meta LIKE "DBEDT_%"').delete_all
-    DataList.where('name LIKE "DBEDT_%"').destroy_all
+    Category.where(universe: 'DBEDT').delete_all
+    DataList.where(universe: 'DBEDT').destroy_all
     category = nil
     CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
@@ -169,7 +169,7 @@ class DbedtUpload < ActiveRecord::Base
       unless row[2].nil?
         data_list = DataList.find_by(name: parent_label)
         if data_list.nil?
-          data_list = DataList.create(name: parent_label)
+          data_list = DataList.create(name: parent_label, universe: 'DBEDT')
           unless category.nil?
             category.update data_list_id: data_list.id
           end
@@ -178,6 +178,7 @@ class DbedtUpload < ActiveRecord::Base
         if measurement.nil?
           measurement = Measurement.create(
               prefix: "DBEDT_#{indicator_id}",
+              universe: 'DBEDT',
               data_portal_name: row[0]
           )
         elsif
