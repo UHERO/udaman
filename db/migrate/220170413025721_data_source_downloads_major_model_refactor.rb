@@ -1,5 +1,6 @@
 class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
   def self.up
+    drop_table :downloads if table_exists? :downloads
     rename_table :data_source_downloads, :downloads
     add_column :downloads, :last_download_at, :datetime, after: :updated_at
     add_column :downloads, :last_change_at, :datetime, after: :last_download_at
@@ -13,7 +14,7 @@ class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
     add_index :data_source_downloads, [:data_source_id, :download_id], unique: true
   end
   def self.down
-    drop_table :data_source_downloads
+    drop_table :data_source_downloads if table_exists? :data_source_downloads
     remove_column :downloads, :last_download_at, :datetime
     remove_column :downloads, :last_change_at, :datetime
     rename_table :downloads, :data_source_downloads

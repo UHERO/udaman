@@ -5,7 +5,7 @@ class DownloadsCache
     @handle_template = handle_template  ## can be a literal handle, or one with wildcards
     @dload = @dsd = @data_source = nil
     ds_id = options && options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
-    @options = options
+    @options = options  ## nb content affected by previous delete
     if ds_id
       @data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
     end
