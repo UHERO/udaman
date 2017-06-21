@@ -24,6 +24,9 @@
     <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
   </div>
   <div class="actions">
+    <% if request.path =~ /edit/ %>
+      <%= f.hidden_field :universe, value: 'UHERO' %>
+    <% end %>
     <%= f.submit %>
   </div>
 <% end %>
@@ -57,7 +60,7 @@
         <%= form_for(@data_list, url: {action: 'add_measurement', id: @data_list.id}) do |f2| %>
             <div class="field">
               <%= f2.label :measurements %><br>
-              <%= f2.collection_select :measurement_ids, Measurement.all.where("prefix NOT LIKE 'DBEDT%'").order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
+              <%= f2.collection_select :measurement_ids, Measurement.all.where(universe: 'UHERO').order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
             </div>
             <div class="actions">
               <%= f2.submit 'Add Measurement' %>

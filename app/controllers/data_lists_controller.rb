@@ -297,7 +297,7 @@ class DataListsController < ApplicationController
   private
     def data_list_params
       params.require(:data_list)
-          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
+          .permit(:universe, :name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
     end
 
     def set_dates(frequency, params)

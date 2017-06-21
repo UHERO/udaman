@@ -72,6 +72,9 @@
     <%= f.text_area :notes %>
   </div>
   <div class="actions">
+    <% if request.path =~ /new/ %>
+      <%= f.hidden_field :universe, value: 'UHERO' %>
+    <% end %>
     <%= f.submit %>
   </div>
 

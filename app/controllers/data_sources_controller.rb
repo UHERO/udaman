@@ -74,6 +74,6 @@ class DataSourcesController < ApplicationController
 
   private
     def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority)
+      params.require(:data_source).permit(:universe, :series_id, :eval, :priority)
     end
 end

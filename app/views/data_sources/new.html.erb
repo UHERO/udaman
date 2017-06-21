@@ -1,5 +1,5 @@
 <div id="summary_area">
-	<h2>Add Data Source <%= @series.name %></h2>
+	<h3>Add Data Source <%= @series.name %></h3>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
@@ -14,6 +14,7 @@
       <%= ds.number_field :priority, :size => 3 %>
 		</div>
 		<div class="actions">
+      <%= ds.hidden_field :universe, value: 'UHERO' %>
       <%= ds.hidden_field :series_id %>
 			<%= ds.submit %>
 		</div>
