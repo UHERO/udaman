@@ -50,7 +50,7 @@ class XlsFileProcessor
     if observation_value == 'BREAK IN DATA'
       return @handle_processor.date_sensitive? ? {} : 'END';
     end
-    return {date => observation_value}
+    {date => observation_value}
   end
 
   def parse_cell(cell_value)
