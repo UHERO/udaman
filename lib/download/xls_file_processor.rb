@@ -28,21 +28,20 @@ class XlsFileProcessor
       col = @col_processor.compute(index, @cached_files, handle, sheet)
 
       worksheet = @cached_files.xls(handle, sheet, path, date)
+    rescue EOFError
+      return {} ## data point skipped because file and data source defn have not changed. -dji
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
       #not sure if this is the right thing to do. Will get an indication from the daily download checks, but not sure if will see if you just 
       #load the data other than missing some values... not gonna do this just yet because it was rake that errored out not the series. might try to
       #do a rake trace next time it breaks to check better
-      #return 'END' if (e.message[0..5] == 'handle' or e.message[0..22] == 'the download for handle') and @handle_processor.date_sensitive?
-      return 'END' if e.message[0..5] == 'handle' and @handle_processor.date_sensitive?
-      return {} if e.message[0..20] == 'could not find header' and ['Condo only'].include? e.message.split(': ')[1][1..-2]
-      raise e
-    rescue EOFError => e
+      return 'END' if e.message =~ /^handle/ and @handle_processor.date_sensitive?
+      return {} if e.message =~ /^could not find header/ and ['Condo only'].include? e.message.split(': ')[1][1..-2]
       raise e
     rescue IOError => e
       Rails.logger.error e.message
-      return 'END' if e.message[0..3] == 'file' and !@path_processor.nil? and @path_processor.date_sensitive?
+      return 'END' if e.message =~ /^file/ and !@path_processor.nil? and @path_processor.date_sensitive?
       raise e
     end
 

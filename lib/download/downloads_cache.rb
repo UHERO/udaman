@@ -2,7 +2,7 @@ class DownloadsCache
 
   def initialize(handle_template = nil, options = nil)
     @got_download = {}
-    @got_dsd = {}
+    @got_bridge = {}
     @handle_template = handle_template  ## can be a literal handle, or one with wildcards
     @dload = @dsd = @data_source = ds_id = nil
     @options = options
@@ -15,43 +15,33 @@ class DownloadsCache
     end
   end
 
-  def set_instance_vars(handle, path = nil)
-    Rails.logger.debug { "... Entered method set_instance_vars: handle=#{handle}, path=#{path}" }
+  def setup_and_check(handle, path = nil)
+    Rails.logger.debug { "... Entered method setup_and_check: handle=#{handle}, path=#{path}" }
     if path.nil?  ## this means that handle != 'manual'
       @dload = @got_download[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
       @got_download[handle] = @dload
       unless @dload.last_download_at && @dload.last_change_at
         download_handle ## rare case: force file download, to update Download model -dji
       end
+      if @data_source
+        bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
+        @dsd = @got_bridge[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)  ## bridge entry
+        @got_bridge[bridge_key] = @dsd
+
+        if @dload.last_change_at <= @dsd.last_file_vers_used && @options == @dsd.last_eval_options_used
+          ## EOFError used as a convenient surrogate to mean 'nothing more to do here'. -dji
+          raise EOFError, "Skipping reload of data source #{@data_source.description}, nothing changed"
+        end
+      end
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
     end
     @handle = handle
     @path = path
-    if @data_source
-      dsd_key = @data_source.id.to_s + '_' + @dload.id.to_s
-      @dsd = @got_dsd[dsd_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)  ## bridge entry
-      @got_dsd[dsd_key] = @dsd
-
-      if @dload.last_change_at <= @dsd.last_file_vers_used && @options == @dsd.last_eval_options_used
-        ## Use EOFError as a convenient surrogate to mean 'nothing more to do here'. -dji
-        raise EOFError, "Skipping reload of data source #{@data_source.description}, nothing changed"
-      end
-    end
   end
-
-#  def check_new_data
-#    return unless @data_source && @options
-#    dsd_key = @data_source.id.to_s + '_' + @dload.id.to_s
-#    @dsd = @got_dsd[dsd_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)  ## bridge entry
-#    if @dload.last_change_at <= @dsd.last_file_vers_used && @options == @dsd.last_eval_options_used
-#      ## Use EOFError as a convenient surrogate to mean 'nothing more to do here'. -dji
-#      raise EOFError, "Skipping reload of data source #{@data_source.description}, nothing changed"
-#    end
-#  end
 
   def xls(handle, sheet, path = nil, date = nil)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
-    set_instance_vars(handle, path)
+    setup_and_check(handle, path)
     @sheet = (@dload.nil? || @dload.sheet_override.blank?) ? sheet : @dload.sheet_override.strip
     file_key = make_cache_key('xls', @path)
     sheet_key = make_cache_key('xls', @path, @sheet)
@@ -99,7 +89,7 @@ class DownloadsCache
 
   def csv(handle, path = nil)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
-    set_instance_vars(handle, path)
+    setup_and_check(handle, path)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -119,7 +109,7 @@ class DownloadsCache
 
   def text(handle)
     Rails.logger.debug { "... Entered method text: handle=#{handle}" }
-    set_instance_vars(handle, nil)
+    setup_and_check(handle, nil)
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?

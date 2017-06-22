@@ -11,17 +11,19 @@ class CsvFileProcessor
 
   def observation_at(index)
     handle = @handle_processor.compute(index)
-  
-    row = @row_processor.compute(index, @cached_files, handle)
-    col = @col_processor.compute(index, @cached_files, handle)
-    
-    csv_2d_array = @cached_files.csv(handle, @options[:path])
-    date = @date_processor.compute(index)
-  
+    begin
+      date = @date_processor.compute(index)
+      row = @row_processor.compute(index, @cached_files, handle)
+      col = @col_processor.compute(index, @cached_files, handle)
+
+      csv_2d_array = @cached_files.csv(handle, @options[:path])
+    rescue => e
+      Rails.logger.error "CsvFileProcessor: #{e.message}"
+      raise e
+    end
     observation_value = parse_cell(csv_2d_array, row, col)
     return 'END' if observation_value == 'BREAK IN DATA'
     {date => observation_value}
-  
   end
 
   def parse_cell(csv_2d_array, row, col)
