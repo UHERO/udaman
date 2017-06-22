@@ -10,13 +10,15 @@ class CsvFileProcessor
   end
 
   def observation_at(index)
-    handle = @handle_processor.compute(index)
     begin
+      handle = @handle_processor.compute(index)
       date = @date_processor.compute(index)
       row = @row_processor.compute(index, @cached_files, handle)
       col = @col_processor.compute(index, @cached_files, handle)
 
       csv_2d_array = @cached_files.csv(handle, @options[:path])
+    rescue EOFError
+      return {} ## data point skipped because file and data source defn have not changed. -dji
     rescue => e
       Rails.logger.error "CsvFileProcessor: #{e.message}"
       raise e

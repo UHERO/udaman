@@ -2,7 +2,7 @@ class DownloadsCache
 
   def initialize(options = nil)
     @obj_cache = {}
-    @dload = @dsd = @data_source = ds_id = nil
+    @dload = @data_source = ds_id = nil
     @options = options
     if options
       ds_id = options.delete :data_source  ## get DS id (if any) and also remove from options hash
@@ -18,20 +18,20 @@ class DownloadsCache
     if path.nil?  ## this means that handle != 'manual'
       @dload = @obj_cache[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
       @obj_cache[handle] = @dload
-      unless @dload.last_download_at && @dload.last_change_at
-        download_handle ## rare case: force file download, to update Download model -dji
-      end
+      path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
+
+      download_handle
+
       if @data_source
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
-        @dsd = @obj_cache[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)  ## bridge entry
-        @obj_cache[bridge_key] = @dsd
+        dsd = @obj_cache[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
+        @obj_cache[bridge_key] = dsd
 
-        if @dload.last_change_at <= @dsd.last_file_vers_used && @options == @dsd.last_eval_options_used
+        if @dload.last_change_at <= dsd.last_file_vers_used && @options == dsd.last_eval_options_used
           ## EOFError used as a convenient surrogate to mean 'nothing more to do here'. -dji
           raise EOFError, "Skipping reload of data source #{@data_source.description}, nothing changed"
         end
       end
-      path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
     end
     @handle = handle
     @path = path
@@ -40,15 +40,9 @@ class DownloadsCache
   def xls(handle, sheet, path = nil, date = nil)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     setup_and_check(handle, path)
+    set_files_cache(make_cache_key('xls', @path), 1)  ## Marker to show that file is downloaded
     @sheet = (@dload.nil? || @dload.sheet_override.blank?) ? sheet : @dload.sheet_override.strip
-    file_key = make_cache_key('xls', @path)
     sheet_key = make_cache_key('xls', @path, @sheet)
-
-    if handle != 'manual' && !Rails.cache.exist?(file_key)
-      Rails.logger.debug { "!!! xls cache miss for file_key=#{file_key}" }
-      download_handle
-      set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
-    end
     get_files_cache(sheet_key) || set_xls_sheet(@sheet, date)
   end
 
@@ -79,20 +73,12 @@ class DownloadsCache
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
-  def download_results
-    Rails.logger.debug { '... Entered method download_results' }
-    key = make_cache_key('download','results')
-    get_files_cache(key) || {}
-  end
-
   def csv(handle, path = nil)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
     setup_and_check(handle, path)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
-      Rails.logger.debug { "!!! csv cache miss for file_key=#{file_key}" }
-      download_handle
       begin
         value = CSV.read(@path)
       rescue
@@ -111,8 +97,6 @@ class DownloadsCache
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?
-      Rails.logger.debug { "!!! txt cache miss for file_key=#{file_key}" }
-      download_handle
       value = get_text_rows
       set_files_cache(file_key, value)
     end
@@ -143,6 +127,12 @@ class DownloadsCache
       raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dload.url})"
     end
     dsd_log
+  end
+
+  def download_results
+    Rails.logger.debug { '... Entered method download_results' }
+    key = make_cache_key('download','results')
+    get_files_cache(key) || {}
   end
 
   def alternate_fastercsv_read(path)
@@ -187,11 +177,11 @@ class DownloadsCache
     date.to_date.strftime('%^b')
   end
 
-  def dsd
+  def dsd_needthis?
     @dsd
   end
 
-  def dload
+  def dload_needthis?
     @dload
   end
 

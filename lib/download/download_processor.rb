@@ -20,7 +20,7 @@ class DownloadProcessor
     @spreadsheet = XlsFileProcessor.new(handle, options, parse_date_options, @cached_files) if (@file_type == 'xls' or @file_type == 'xlsx') and validate_xls
   end
 
-  def dl_cache
+  def dl_cache_needthis?
     @cached_files
   end
 
