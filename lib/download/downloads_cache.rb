@@ -1,9 +1,7 @@
 class DownloadsCache
 
-  def initialize(handle_template = nil, options = nil)
-    @got_download = {}
-    @got_bridge = {}
-    @handle_template = handle_template  ## can be a literal handle, or one with wildcards
+  def initialize(options = nil)
+    @obj_cache = {}
     @dload = @dsd = @data_source = ds_id = nil
     @options = options
     if options
@@ -18,15 +16,15 @@ class DownloadsCache
   def setup_and_check(handle, path = nil)
     Rails.logger.debug { "... Entered method setup_and_check: handle=#{handle}, path=#{path}" }
     if path.nil?  ## this means that handle != 'manual'
-      @dload = @got_download[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
-      @got_download[handle] = @dload
+      @dload = @obj_cache[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
+      @obj_cache[handle] = @dload
       unless @dload.last_download_at && @dload.last_change_at
         download_handle ## rare case: force file download, to update Download model -dji
       end
       if @data_source
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
-        @dsd = @got_bridge[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)  ## bridge entry
-        @got_bridge[bridge_key] = @dsd
+        @dsd = @obj_cache[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)  ## bridge entry
+        @obj_cache[bridge_key] = @dsd
 
         if @dload.last_change_at <= @dsd.last_file_vers_used && @options == @dsd.last_eval_options_used
           ## EOFError used as a convenient surrogate to mean 'nothing more to do here'. -dji
