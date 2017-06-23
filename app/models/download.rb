@@ -10,12 +10,6 @@ class Download < ActiveRecord::Base
 
   DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
 
-  def link_data_sources
-    DataSource.where("eval like '%#{handle}%'").all.each do |ds|
-      DataSourceDownload.get_or_new(ds.id, self.id)  ## creates the bridge link if it doesn't exist
-    end
-  end
-
   def Download.default_data_path
     DEFAULT_DATA_PATH
   end

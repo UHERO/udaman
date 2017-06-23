@@ -130,7 +130,7 @@ class DataSource < ActiveRecord::Base
       self.set_color
     end
 
-    def reload_source(clear_first=false)
+    def reload_source(clear_first = false)
       logger.info { "Begin reload of data source #{description}" }
       t = Time.now
       eval_stmt = self['eval']
