@@ -27,7 +27,7 @@ class XlsFileProcessor
       row = @row_processor.compute(index, @cached_files, handle, sheet)
       col = @col_processor.compute(index, @cached_files, handle, sheet)
 
-      worksheet = @cached_files.xls(handle, sheet, path, date)
+      worksheet = @cached_files.xls(handle, sheet, path, date, true)
     rescue EOFError
       return {} ## data point skipped because file and data source defn have not changed. -dji
     rescue RuntimeError => e
@@ -49,6 +49,7 @@ class XlsFileProcessor
     if observation_value == 'BREAK IN DATA'
       return @handle_processor.date_sensitive? ? {} : 'END';
     end
+    @cached_files.update_last_used
     {date => observation_value}
   end
 

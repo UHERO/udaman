@@ -134,20 +134,14 @@ class DataSource < ActiveRecord::Base
       logger.info { "Begin reload of data source #{description}" }
       t = Time.now
       eval_stmt = self['eval']
-      options = dl_proc = nil
+      options = nil
       options_match = %r/({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/
       begin
         if eval_stmt =~ options_match  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           eval_stmt.sub(options_match, options.merge(data_source: id).to_s) ## injection hack :=P -dji
         end
-        result = Kernel::eval eval_stmt
-        if result.class == Hash
-          dl_proc = result[:dl_proc]
-          s = result[:series]
-        else
-          s = result
-        end
+        s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
         end
@@ -162,23 +156,13 @@ class DataSource < ActiveRecord::Base
                     :last_error => nil,
                     :last_error_at => nil)
 
-        ## Finally, update the DataSourceDownload stuff that is buried in DownloadProcessor
-        if dl_proc && dl_proc.dl_cache.dsd && dl_proc.dl_cache.dload
-          dl_proc.dl_cache.dsd.update(last_file_vers_used: dl_proc.dl_cache.dload.last_change_at,
-                                      last_eval_options_used: options)
-        end
-      rescue => e  ## Cascade: first record metadata in the db, then reraise for more specific outcomes. -dji
+      rescue => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update(:last_run => t,
                     :runtime => nil,
                     :last_error => message,
                     :last_error_at => t)
-        raise e.class, message
-      rescue EOFError => e  ## EOFError is a surrogate to mean there was nothing to do. -dji
-        logger.info { "Reload source [#{description}] (#{id}): #{e.message}" }
-        return true
-      rescue => e
-        logger.error { "Reload source [#{description}] (#{id}): Error: #{e.message}" }
+        logger.error { "Reload source [#{description}] (#{id}): Error: #{message}" }
         return false
       end
       true

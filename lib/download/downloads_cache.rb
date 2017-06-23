@@ -2,7 +2,7 @@ class DownloadsCache
 
   def initialize(options = nil)
     @obj_cache = {}
-    @dload = @data_source = ds_id = nil
+    @dload = @dsd = @data_source = ds_id = nil
     @options = options
     if options
       ds_id = options.delete :data_source  ## get DS id (if any) and also remove from options hash
@@ -13,7 +13,7 @@ class DownloadsCache
     end
   end
 
-  def setup_and_check(handle, path = nil)
+  def setup_and_check(handle, path = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method setup_and_check: handle=#{handle}, path=#{path}" }
     if path.nil?  ## this means that handle != 'manual'
       @dload = @obj_cache[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
@@ -22,14 +22,12 @@ class DownloadsCache
 
       download_handle
 
-      if @data_source
+      if @data_source && raise_eof
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
-        dsd = @obj_cache[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
-        @obj_cache[bridge_key] = dsd
-
-        if @dload.last_change_at <= dsd.last_file_vers_used && @options == dsd.last_eval_options_used
-          ## EOFError used as a convenient surrogate to mean 'nothing more to do here'. -dji
-          raise EOFError, "Skipping reload of data source #{@data_source.description}, nothing changed"
+        @dsd = @obj_cache[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
+        @obj_cache[bridge_key] = @dsd
+        if @dload.last_change_at <= @dsd.last_file_vers_used && @options == @dsd.last_eval_options_used
+          raise EOFError ## used as a convenient surrogate to mean 'nothing more to do here'. -dji
         end
       end
     end
@@ -37,13 +35,22 @@ class DownloadsCache
     @path = path
   end
 
-  def xls(handle, sheet, path = nil, date = nil)
+  def update_last_used
+    return unless @dsd
+    ## Remember if this object has updated the dsd recently and don't redo an identical one. -dji
+    return if @obj_cache['last_file'] == @dload.last_change_at && @obj_cache['last_eval'] == @options
+    @obj_cache['last_file'] = @dload.last_change_at
+    @obj_cache['last_eval'] = @options
+    @dsd.update last_file_vers_used: @obj_cache['last_file'], last_eval_options_used: @obj_cache['last_eval']
+  end
+
+  def xls(handle, sheet, path = nil, date = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
-    setup_and_check(handle, path)
+    setup_and_check(handle, path, raise_eof)
     set_files_cache(make_cache_key('xls', @path), 1)  ## Marker to show that file is downloaded
-    @sheet = (@dload.nil? || @dload.sheet_override.blank?) ? sheet : @dload.sheet_override.strip
-    sheet_key = make_cache_key('xls', @path, @sheet)
-    get_files_cache(sheet_key) || set_xls_sheet(@sheet, date)
+    sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
+    sheet_key = make_cache_key('xls', @path, sheet)
+    get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
   end
 
   def set_xls_sheet(sheet, date)
@@ -73,9 +80,9 @@ class DownloadsCache
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
-  def csv(handle, path = nil)
+  def csv(handle, path = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
-    setup_and_check(handle, path)
+    setup_and_check(handle, path, raise_eof)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -91,9 +98,9 @@ class DownloadsCache
     value
   end
 
-  def text(handle)
+  def text(handle, raise_eof = false)
     Rails.logger.debug { "... Entered method text: handle=#{handle}" }
-    setup_and_check(handle, nil)
+    setup_and_check(handle, nil, raise_eof)
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -175,14 +182,6 @@ class DownloadsCache
 
   def get_month_name(date)
     date.to_date.strftime('%^b')
-  end
-
-  def dsd_needthis?
-    @dsd
-  end
-
-  def dload_needthis?
-    @dload
   end
 
 end

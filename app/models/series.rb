@@ -485,10 +485,9 @@ class Series < ActiveRecord::Base
   def Series.load_from_download(handle, options, cached_files = nil)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    s = Series.new_transformation("loaded from download #{handle} with options:#{options}",
-                                  series_data,
-                                  Series.frequency_from_code(options[:frequency]))
-    options[:data_source] ? { dl_proc: dp, series: s } : s
+    Series.new_transformation("loaded from download #{handle} with options:#{options}",
+                               series_data,
+                               Series.frequency_from_code(options[:frequency]))
   end
   
   def Series.load_from_file(file, options, cached_files = nil)
@@ -496,10 +495,9 @@ class Series < ActiveRecord::Base
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    s = Series.new_transformation("loaded from file #{file} with options:#{options}",
-                                  series_data,
-                                  Series.frequency_from_code(options[:frequency]))
-    options[:data_source] ? { dl_proc: dp, series: s } : s
+    Series.new_transformation("loaded from file #{file} with options:#{options}",
+                               series_data,
+                               Series.frequency_from_code(options[:frequency]))
   end
   
   def load_from_pattern_id(id)
@@ -509,8 +507,7 @@ class Series < ActiveRecord::Base
   def load_from_download(handle, options, cached_files = nil)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    s = new_transformation("loaded from download #{handle} with options:#{options}", series_data)
-    options[:data_source] ? { dl_proc: dp, series: s } : s
+    new_transformation("loaded from download #{handle} with options:#{options}", series_data)
   end
   
   def Series.load_from_bea(frequency, dataset, parameters)

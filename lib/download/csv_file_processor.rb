@@ -16,7 +16,7 @@ class CsvFileProcessor
       row = @row_processor.compute(index, @cached_files, handle)
       col = @col_processor.compute(index, @cached_files, handle)
 
-      csv_2d_array = @cached_files.csv(handle, @options[:path])
+      csv_2d_array = @cached_files.csv(handle, @options[:path], true)
     rescue EOFError
       return {} ## data point skipped because file and data source defn have not changed. -dji
     rescue => e
@@ -25,6 +25,7 @@ class CsvFileProcessor
     end
     observation_value = parse_cell(csv_2d_array, row, col)
     return 'END' if observation_value == 'BREAK IN DATA'
+    @cached_files.update_last_used
     {date => observation_value}
   end
 

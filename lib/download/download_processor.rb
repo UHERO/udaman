@@ -20,10 +20,6 @@ class DownloadProcessor
     @spreadsheet = XlsFileProcessor.new(handle, options, parse_date_options, @cached_files) if (@file_type == 'xls' or @file_type == 'xlsx') and validate_xls
   end
 
-  def dl_cache_needthis?
-    @cached_files
-  end
-
   def get_data
     if @file_type == 'txt'
       return TextFileProcessor.new(@handle, @options, @cached_files).get_data
@@ -48,9 +44,8 @@ class DownloadProcessor
   # design...
   def parse_date_options
     date_info = {}
-    date_info[:start] = @options[:start_date] unless @options[:start_date].nil?
-    date_info[:start] = read_date_from_file(@options[:start_row], @options[:start_col]) if @options[:start_date].nil?
-    date_info[:start] = adjust_for_frequency(date_info[:start])
+    start_date = @options[:start_date] || read_date_from_file(@options[:start_row], @options[:start_col])
+    date_info[:start] = adjust_for_frequency(start_date)
     date_info[:rev] = @options[:rev] ? true : false
     date_info
   end
