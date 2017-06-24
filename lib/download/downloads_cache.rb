@@ -13,14 +13,14 @@ class DownloadsCache
     end
   end
 
-  def setup_and_check(handle, path = nil, raise_eof = false)
+  def setup_and_check(type, handle, path = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method setup_and_check: handle=#{handle}, path=#{path}" }
     if path.nil?  ## this means that handle != 'manual'
       @dload = @obj_cache[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
       @obj_cache[handle] = @dload
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
-
-      download_handle
+      cache_key = make_cache_key(type, path)
+      download_handle unless files_cache_exists? cache_key
 
       if @data_source && raise_eof
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
@@ -46,8 +46,8 @@ class DownloadsCache
 
   def xls(handle, sheet, path = nil, date = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
-    setup_and_check(handle, path, raise_eof)
-    set_files_cache(make_cache_key('xls', @path), 1)  ## Marker to show that file is downloaded
+    setup_and_check('xls', handle, path, raise_eof)
+    set_files_cache(make_cache_key('xls', @path), 1)  ## Marker to show that xls file is downloaded
     sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
     sheet_key = make_cache_key('xls', @path, sheet)
     get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
@@ -82,7 +82,7 @@ class DownloadsCache
 
   def csv(handle, path = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
-    setup_and_check(handle, path, raise_eof)
+    setup_and_check('csv', handle, path, raise_eof)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -100,7 +100,7 @@ class DownloadsCache
 
   def text(handle, raise_eof = false)
     Rails.logger.debug { "... Entered method text: handle=#{handle}" }
-    setup_and_check(handle, nil, raise_eof)
+    setup_and_check('txt', handle, nil, raise_eof)
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -178,6 +178,10 @@ class DownloadsCache
     options ||= { expires_in: 6.hours }
     Rails.cache.write(key, Marshal.dump(value), options)
     value
+  end
+
+  def files_cache_exists?(key)
+    Rails.cache.exist?(key)
   end
 
   def get_month_name(date)
