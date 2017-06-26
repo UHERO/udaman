@@ -24,9 +24,6 @@
     <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
   </div>
   <div class="actions">
-    <% if request.path =~ /new/ %>
-      <%= f.hidden_field :universe, value: 'UHERO' %>
-    <% end %>
     <%= f.submit %>
   </div>
 <% end %>

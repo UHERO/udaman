@@ -25,10 +25,10 @@ class MeasurementsController < ApplicationController
   # GET /measurements
   def index
     if params[:unrestricted]
-      @measurements = Measurement.where('prefix NOT LIKE "DBEDT%"').includes(:series).where(:series => {:restricted => false}).order(:prefix)
+      @measurements = Measurement.where(universe: 'UHERO').includes(:series).where(:series => {:restricted => false}).order(:prefix)
       return
     end
-    @measurements = Measurement.where('prefix NOT LIKE "DBEDT%"').order(:prefix).all
+    @measurements = Measurement.where(universe: 'UHERO').order(:prefix).all
   end
 
   # GET /measurements/1
@@ -128,7 +128,7 @@ class MeasurementsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def measurement_params
-      params.require(:measurement).permit(:universe, :prefix, :data_portal_name, :table_prefix, :table_postfix, :units_label,
+      params.require(:measurement).permit(:prefix, :data_portal_name, :table_prefix, :table_postfix, :units_label,
                                           :units_label_short, :unit_id, :percent, :real, :notes,
                                           :restricted, :unrestricted, :series_id, :decimals,
                                           :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,

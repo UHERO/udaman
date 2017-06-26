@@ -8,7 +8,7 @@ class DataListsController < ApplicationController
   # GET /data_lists
   # GET /data_lists.xml
   def index
-    @data_lists = DataList.where('name NOT LIKE "DBEDT%"').order(:name).all
+    @data_lists = DataList.where(universe: 'UHERO').order(:name).all
 
     respond_to do |format|
       format.html # index.html.erb
@@ -297,7 +297,7 @@ class DataListsController < ApplicationController
   private
     def data_list_params
       params.require(:data_list)
-          .permit(:universe, :name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
+          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
     end
 
     def set_dates(frequency, params)

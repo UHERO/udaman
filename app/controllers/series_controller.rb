@@ -50,11 +50,13 @@ class SeriesController < ApplicationController
     prefix = params.has_key?(:prefix) ? params[:prefix] : nil
     all = params.has_key?(:all) ? true : false
 
-    @all_series = Series.where('name NOT LIKE "DBEDT%"').order(:name) if all
-    @all_series = Series.where('name NOT LIKE "DBEDT%" AND frequency LIKE ?', frequency).order :name unless frequency.nil?
-    @all_series = Series.where('name LIKE ? AND name NOT LIKE "DBEDT%"', "#{prefix}%").order :name unless prefix.nil?
-    # @all_series = Series.all(:conditions => ["name LIKE ?", "#{prefix}%"], :order => :name) unless prefix.nil?
-    @all_series ||= [] 
+    @all_series =
+      case
+        when all then Series.where(universe: 'UHERO').order(:name)
+        when frequency then Series.where('universe = "UHERO" AND frequency LIKE ?', frequency).order(:name)
+        when prefix then Series.where('universe = "UHERO" AND name LIKE ?', "#{prefix}%").order(:name)
+        else []
+      end
   end
 
   def show
@@ -158,9 +160,8 @@ class SeriesController < ApplicationController
   end
   
   def autocomplete_search
-    #render :json => {"hi" => params[:term]}
-    render :json => (Series.web_search(params[:term]).map {|s| {:label => (s[:name] + ':' + s[:description]), :value => s[:series_id] } })
-    #render :json => Series.web_search(params[:term]).map {|s| s[:name] }
+    render :json => Series.web_search(params[:term])
+                        .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
   end
 
   def comparison_graph
