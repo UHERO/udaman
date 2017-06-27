@@ -75,7 +75,7 @@ class Series < ActiveRecord::Base
   def Series.last_observation_buckets(frequency)
     obs_buckets = {}
     mod_buckets = {}
-    results = Series.where(:frequency => frequency).select('data, updated_at')
+    results = Series.where(universe: 'UHERO', frequency: frequency).select('data, updated_at')
     results.each do |s|
       last_date = s.last_observation.nil? ? 'no data' : s.last_observation[0..6]
       last_update = s.updated_at.nil? ? 'never' : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
@@ -109,7 +109,7 @@ class Series < ActiveRecord::Base
   
   def Series.frequency_hash
     frequency_hash = {}
-    all_names = Series.select('name, frequency')
+    all_names = Series.where(universe: 'UHERO').select('name, frequency')
     all_names.each do |s|
       frequency_hash[s.frequency] ||= []
       frequency_hash[s.frequency].push(s.name)
@@ -836,7 +836,7 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_all_series_from_website(url_string)
-    series_from_website = (DataSource.where("eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
+    series_from_website = (DataSource.where("universe = 'UHERO' AND eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
     all_series_from_website = series_from_website.map {|s| s.name }
 
     series_from_website.each do |s|
@@ -911,13 +911,13 @@ class Series < ActiveRecord::Base
   def Series.assign_dependency_depth
     # reset dependency_depth
     ActiveRecord::Base.connection.execute('UPDATE series s SET dependency_depth = 0;')
-    previous_depth_count = Series.where(dependency_depth: 0).count
+    previous_depth_count = Series.where(universe: 'UHERO', dependency_depth: 0).count
 
     # first level of dependencies
     first_level_sql = "UPDATE series s SET dependency_depth = 1
       WHERE EXISTS (SELECT 1 FROM data_sources ds  WHERE ds.`dependencies` LIKE CONCAT('% ', s.`name`, '%'));"
     ActiveRecord::Base.connection.execute(first_level_sql)
-    current_depth_count = Series.where(dependency_depth: 1).count
+    current_depth_count = Series.where(universe: 'UHERO', dependency_depth: 1).count
 
     previous_depth = 1
     until current_depth_count == previous_depth_count
@@ -928,12 +928,14 @@ class Series < ActiveRecord::Base
                         AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%'));]
       ActiveRecord::Base.connection.execute next_level_sql
       previous_depth_count = current_depth_count
-      current_depth_count = Series.where(dependency_depth: previous_depth + 1).count
+      current_depth_count = Series.where(universe: 'UHERO', dependency_depth: previous_depth + 1).count
       previous_depth += 1
     end
 
     # notify if the dependency tree did not terminate
-    PackagerMailer.circular_series_notification Series.where dependency_depth: previous_depth if current_depth_count > 0
+    if current_depth_count > 0
+      PackagerMailer.circular_series_notification(Series.where(universe: 'UHERO', dependency_depth: previous_depth))
+    end
   end
 
   # recursive incrementer of dependency_depth
