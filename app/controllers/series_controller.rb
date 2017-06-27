@@ -52,9 +52,9 @@ class SeriesController < ApplicationController
 
     @all_series =
       case
-        when all then Series.where(universe: 'UHERO').order(:name)
+        when prefix then    Series.where('universe = "UHERO" AND name LIKE ?', "#{prefix}%").order(:name)
         when frequency then Series.where('universe = "UHERO" AND frequency LIKE ?', frequency).order(:name)
-        when prefix then Series.where('universe = "UHERO" AND name LIKE ?', "#{prefix}%").order(:name)
+        when all then       Series.where(universe: 'UHERO').order(:name)
         else []
       end
   end
