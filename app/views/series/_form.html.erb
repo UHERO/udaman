@@ -15,7 +15,7 @@
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[name_prefix]', nil, :size => 20 %> @
-        <%= select :name_parts, :name_geo, Geography.all.collect {|g| [ g.handle, g.handle ] }, {:include_blank => false} %> .
+        <%= select :name_parts, :name_geo, Geography.where(universe: 'UHERO').all.collect {|g| [ g.handle, g.handle ] }, {:include_blank => false} %> .
         <%= select :name_parts, :name_freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
       </div>
     <% end %>
@@ -37,7 +37,7 @@
     </div>
     <div class="field">
       <%= f.label :source_id %><br>
-      <%= f.collection_select :source_id, Source.all.order(:description), :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_id, Source.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
@@ -45,7 +45,7 @@
     </div>
     <div class="field">
       <%= f.label :source_detail_id %><br>
-      <%= f.collection_select :source_detail_id, SourceDetail.all.order(:description), :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :investigation_notes %><br/>

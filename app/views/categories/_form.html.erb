@@ -23,7 +23,7 @@
   </div>
   <div class="field">
     <%= f.label :data_list_id %><br>
-    <%= f.collection_select :data_list_id, DataList.all.where(universe: 'UHERO').order(:name), :id, :name, {:include_blank => true} %>
+    <%= f.collection_select :data_list_id, DataList.where(universe: 'UHERO').all.order(:name), :id, :name, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :default_handle, 'Default geo' %><br>
