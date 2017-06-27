@@ -179,8 +179,8 @@ class DataPoint < ActiveRecord::Base
       #{' and s.id = ? ' if series} ;
     )
     insert_query = %Q(
-      insert into public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
-      select d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
+      insert into public_data_points (universe, series_id, date, value, pseudo_history, created_at, updated_at)
+      select d.universe, d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
       from data_points d
         join series s on s.id = d.series_id
         left join public_data_points p on d.series_id = p.series_id and d.date = p.date
