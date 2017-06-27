@@ -75,15 +75,18 @@ class SeriesController < ApplicationController
   end
 
   def no_source
-    @series = Series.where('source_id IS NULL').order(:name).paginate(page: params[:page], per_page: 50)
+    @series = Series.where(universe: 'UHERO', source_id: nil)
+                    .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def no_source_no_restrict
-    @series = Series.where('source_id IS NULL and restricted = false').order(:name).paginate(page: params[:page], per_page: 50)
+    @series = Series.where(universe: 'UHERO', source_id: nil, restricted: false)
+                    .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def quarantine
-    @series = Series.where(quarantined: true, restricted: false).order(:name).paginate(page: params[:page], per_page: 50)
+    @series = Series.where(universe: 'UHERO', quarantined: true, restricted: false)
+                    .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def add_to_quarantine
@@ -100,7 +103,7 @@ class SeriesController < ApplicationController
   end
 
   def empty_quarantine
-    Series.update_all quarantined: false
+    Series.where(universe: 'UHERO').update_all quarantined: false
     redirect_to action: :quarantine
   end
 
@@ -161,7 +164,7 @@ class SeriesController < ApplicationController
   
   def autocomplete_search
     render :json => Series.web_search(params[:term])
-                        .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
+                          .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
   end
 
   def comparison_graph
@@ -263,7 +266,10 @@ class SeriesController < ApplicationController
   end
 
   def stale
-    @stale_series = Series.joins(:data_sources).where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i).pluck(:id, :name)
+    @stale_series = Series.where(universe: 'UHERO')
+                          .joins(:data_sources)
+                          .where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
+                          .pluck(:id, :name)
   end
 
   private

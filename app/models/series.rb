@@ -89,7 +89,7 @@ class Series < ActiveRecord::Base
   
   def Series.all_names
     all_names_array = []
-    all_names = Series.select(:name).all
+    all_names = Series.where(universe: 'UHERO').select(:name).all
     all_names.each {|s| all_names_array.push(s.name)}
     all_names_array
   end
@@ -948,7 +948,7 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.reload_by_dependency_depth(series_list = Series.all)
+  def Series.reload_by_dependency_depth(series_list = Series.where(universe: 'UHERO').all)
     require 'redis'
     redis = Redis.new
     puts 'Starting Reload by Dependency Depth'
@@ -968,7 +968,7 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.check_for_stalled_reload(series_size = Series.all.count)
+  def Series.check_for_stalled_reload(series_size = Series.where(universe: 'UHERO').all.count)
     require 'redis'
     require 'sidekiq/api'
     redis = Redis.new
