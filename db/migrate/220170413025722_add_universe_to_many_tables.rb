@@ -12,5 +12,15 @@ class AddUniverseToManyTables < ActiveRecord::Migration
     add_column :source_details, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
     add_column :sources, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
     add_column :users, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
+    add_index :categories, :universe
+    add_index :data_lists, :universe
+    add_index :data_points, :universe
+    add_index :data_sources, :universe
+    add_index :measurements, :universe
+    add_index :public_data_points, :universe
+    add_index :series, :universe
+    add_index :source_details, :universe
+    add_index :sources, :universe
+    add_index :users, :universe
   end
 end
