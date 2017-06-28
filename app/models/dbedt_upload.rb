@@ -130,7 +130,7 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     cats_csv_path = path(cats_filename).change_file_extension('csv')
-    if !File.exists?(cats_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
+    unless File.exists?(cats_csv_path) || ENV['OTHER_WORKER'] && system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
       logger.error { "DBEDT Upload id=#{id}: couldn't find file #{cats_csv_path}" }
       return false
     end
@@ -201,7 +201,7 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     series_csv_path = path(series_filename).change_file_extension('csv')
-    if !File.exists?(series_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
+    unless File.exists?(series_csv_path) || ENV['OTHER_WORKER'] && system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
       logger.error { "DBEDT Upload id=#{id}: couldn't find file #{series_csv_path}" }
       return false
     end
