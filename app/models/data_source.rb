@@ -1,20 +1,19 @@
 class DataSource < ActiveRecord::Base
-  #serialize :data, Hash
   serialize :dependencies, Array
   
   belongs_to :series
   has_many :data_points
-  
-  composed_of :last_run,
+  has_many :data_source_downloads, dependent: :delete_all
+  has_many :downloads, -> {distinct}, through: :data_source_downloads
+
+  composed_of   :last_run,
                 :class_name => 'Time',
                 :mapping => %w(last_run_in_seconds to_r),
                 :constructor => Proc.new { |t| Time.at(t) },
                 :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.at(t/1000.0) }
 
   before_update :set_dependencies_without_save
-                
-  #DataSource.where("eval LIKE '%load_from%'").all.each {|ds| puts "#{ds.series.name} - #{ds.eval}" }
-  
+
     def DataSource.type_buckets
       type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
       all_evals = DataSource.all_evals
@@ -38,7 +37,7 @@ class DataSource < ActiveRecord::Base
     #but this should not happen, so not worried
     def DataSource.all_evals
       all_descriptions_array = []
-      all_descriptions = DataSource.select(:eval).all
+      all_descriptions = DataSource.where(universe: 'UHERO').select(:eval).all
       all_descriptions.each {|ds| all_descriptions_array.push(ds.eval)}
       all_descriptions_array
     end
@@ -79,25 +78,6 @@ class DataSource < ActiveRecord::Base
       series_names.push 'NTTOURNS@HI.M'
       series_names.uniq
     end
-    
-    # History
-    # DataSource.where("eval LIKE '%sic%'").limit(5).each {|ds| puts ds.eval}; 0 (gets bls and bea SIC)
-    # DataSource.where("eval LIKE '%permits%'").limit(5).each {|ds| puts ds.eval}; 0
-    # DataSource.where("eval LIKE '%const%'").limit(5).each {|ds| puts ds.eval}; 0
-    # prices SIC
-    # Various 
-    # YL
-    
-    # Manual
-    # DataSource.where("eval LIKE '%agriculture%'").limit(10).each {|ds| puts ds.eval}
-    # DataSource.where("eval LIKE '%Kauai%'").limit(5).each {|ds| puts ds.eval}
-    # CAFRS?
-    # DataSource.where("eval LIKE '%HBR%'").limit(5).each {|ds| puts ds.eval}
-    # DataSource.where("eval LIKE '%prud%'").limit(5).each {|ds| puts ds.eval}
-    # DataSource.where("eval LIKE '%census%'").limit(5).each {|ds| puts ds.eval}
-    # DataSource.where("eval LIKE '%trms%'").limit(5).each {|ds| puts ds.eval}
-    # DataSource.where("eval LIKE '%vexp%'").limit(5).each {|ds| puts ds.eval}
-    # DataSource.where("eval LIKE '%hud%'").limit(5).each {|ds| puts ds.eval}; 0
     
     def DataSource.all_pattern_series_names
       series_names = []

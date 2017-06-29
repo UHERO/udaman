@@ -5,7 +5,7 @@ class DownloadsCache
     @dsd = nil
     if path.nil?
       @got_handle ||= {}
-      @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
+      @dsd = @got_handle[handle] || Download.get(handle)
       raise "handle '#{handle}' does not exist" if @dsd.nil?
       path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
       @got_handle[handle] = @dsd
@@ -63,7 +63,7 @@ class DownloadsCache
     Rails.logger.debug "... Entered method csv ... handle=#{handle}, path=#{path}"
     if path.nil?
       @got_handle ||= {}
-      @dsd = @got_handle[handle] || DataSourceDownload.get(handle)
+      @dsd = @got_handle[handle] || Download.get(handle)
       raise "handle '#{handle}' does not exist" if @dsd.nil? && handle != 'manual'
       path = @dsd.save_path_flex if handle != 'manual'
       @got_handle[handle] = @dsd
@@ -88,7 +88,7 @@ class DownloadsCache
 
   def text(handle)
     Rails.logger.debug "... Entered method text ... handle=#{handle}"
-    @dsd = DataSourceDownload.get(handle)
+    @dsd = Download.get(handle)
     raise "handle '#{handle}' does not exist" if @dsd.nil?
     @handle = handle
     file_key = make_cache_key('txt', handle)

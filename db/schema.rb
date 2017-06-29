@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025720) do
+ActiveRecord::Schema.define(version: 220170413025722) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -49,10 +49,11 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   add_index "authorizations", ["user_id"], name: "fk_rails_4ecef5b8c5", using: :btree
 
   create_table "categories", force: :cascade do |t|
+    t.string   "universe",       limit: 5,   default: "UHERO"
     t.string   "name",           limit: 255
     t.integer  "data_list_id",   limit: 4
-    t.datetime "created_at",                                 null: false
-    t.datetime "updated_at",                                 null: false
+    t.datetime "created_at",                                   null: false
+    t.datetime "updated_at",                                   null: false
     t.boolean  "hidden",                     default: false
     t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4
@@ -60,10 +61,10 @@ ActiveRecord::Schema.define(version: 220170413025720) do
     t.string   "default_handle", limit: 255
     t.string   "default_freq",   limit: 255
     t.string   "meta",           limit: 255
-    t.string   "universe",       limit: 255
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
+  add_index "categories", ["universe"], name: "index_categories_on_universe", using: :btree
 
   create_table "data_list_measurements", force: :cascade do |t|
     t.integer "data_list_id",   limit: 4
@@ -77,6 +78,7 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   add_index "data_list_measurements", ["measurement_id"], name: "index_data_list_measurements_on_measurement_id", using: :btree
 
   create_table "data_lists", force: :cascade do |t|
+    t.string   "universe",   limit: 5,     default: "UHERO", null: false
     t.string   "name",       limit: 255
     t.text     "list",       limit: 65535
     t.integer  "startyear",  limit: 4
@@ -89,6 +91,8 @@ ActiveRecord::Schema.define(version: 220170413025720) do
     t.integer  "updated_by", limit: 4
     t.integer  "owned_by",   limit: 4
   end
+
+  add_index "data_lists", ["universe"], name: "index_data_lists_on_universe", using: :btree
 
   create_table "data_lists_series", id: false, force: :cascade do |t|
     t.integer "data_list_id", limit: 4, null: false
@@ -112,21 +116,24 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   create_table "data_points", id: false, force: :cascade do |t|
-    t.integer  "id",              limit: 4,  default: 0,     null: false
-    t.integer  "series_id",       limit: 4,                  null: false
+    t.integer  "id",              limit: 4,  default: 0,       null: false
+    t.string   "universe",        limit: 5,  default: "UHERO", null: false
+    t.integer  "series_id",       limit: 4,                    null: false
     t.float    "value",           limit: 53
     t.boolean  "current"
-    t.integer  "data_source_id",  limit: 4,                  null: false
+    t.integer  "data_source_id",  limit: 4,                    null: false
     t.datetime "history"
-    t.datetime "created_at",                                 null: false
+    t.datetime "created_at",                                   null: false
     t.datetime "updated_at"
     t.integer  "restore_counter", limit: 4,  default: 0
     t.boolean  "pseudo_history",             default: false
     t.float    "change",          limit: 53
     t.float    "yoy",             limit: 53
     t.float    "ytd",             limit: 53
-    t.date     "date",                                       null: false
+    t.date     "date",                                         null: false
   end
+
+  add_index "data_points", ["universe"], name: "index_data_points_on_universe", using: :btree
 
   create_table "data_portal_names", id: false, force: :cascade do |t|
     t.string "prefix",           limit: 255
@@ -135,18 +142,16 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   create_table "data_source_downloads", force: :cascade do |t|
-    t.string   "url",             limit: 255
-    t.text     "post_parameters", limit: 65535
-    t.string   "save_path",       limit: 255
-    t.datetime "created_at"
-    t.datetime "updated_at"
-    t.string   "handle",          limit: 255
-    t.string   "file_to_extract", limit: 255
-    t.string   "sheet_override",  limit: 255
-    t.text     "notes",           limit: 65535
+    t.integer  "data_source_id",         limit: 4
+    t.integer  "download_id",            limit: 4
+    t.datetime "last_file_vers_used",                 default: '1970-01-01 00:00:00', null: false
+    t.string   "last_eval_options_used", limit: 1000
   end
 
+  add_index "data_source_downloads", ["data_source_id", "download_id"], name: "index_data_source_downloads_on_data_source_id_and_download_id", unique: true, using: :btree
+
   create_table "data_sources", force: :cascade do |t|
+    t.string   "universe",            limit: 5,                              default: "UHERO", null: false
     t.integer  "series_id",           limit: 4
     t.text     "description",         limit: 65535
     t.text     "eval",                limit: 65535
@@ -162,6 +167,7 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   add_index "data_sources", ["series_id"], name: "index_data_sources_on_series_id", using: :btree
+  add_index "data_sources", ["universe"], name: "index_data_sources_on_universe", using: :btree
 
   create_table "dbedt_uploads", force: :cascade do |t|
     t.datetime "upload_at"
@@ -174,16 +180,30 @@ ActiveRecord::Schema.define(version: 220170413025720) do
     t.datetime "last_error_at"
   end
 
+  create_table "downloads", force: :cascade do |t|
+    t.string   "url",              limit: 255
+    t.text     "post_parameters",  limit: 65535
+    t.string   "save_path",        limit: 255
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.datetime "last_download_at"
+    t.datetime "last_change_at"
+    t.string   "handle",           limit: 255
+    t.string   "file_to_extract",  limit: 255
+    t.string   "sheet_override",   limit: 255
+    t.text     "notes",            limit: 65535
+  end
+
   create_table "dsd_log_entries", force: :cascade do |t|
-    t.integer  "data_source_download_id", limit: 4
+    t.integer  "download_id", limit: 4
     t.datetime "time"
-    t.string   "url",                     limit: 255
-    t.string   "location",                limit: 255
-    t.integer  "status",                  limit: 4
+    t.string   "url",         limit: 255
+    t.string   "location",    limit: 255
+    t.integer  "status",      limit: 4
     t.boolean  "dl_changed"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "mimetype",                limit: 255
+    t.string   "mimetype",    limit: 255
   end
 
   create_table "export_series", force: :cascade do |t|
@@ -206,11 +226,12 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   create_table "feature_toggles", force: :cascade do |t|
+    t.string   "universe",    limit: 5,   default: "UHERO", null: false
     t.string   "name",        limit: 255
     t.string   "description", limit: 255
     t.boolean  "status"
-    t.datetime "created_at",              null: false
-    t.datetime "updated_at",              null: false
+    t.datetime "created_at",                                null: false
+    t.datetime "updated_at",                                null: false
   end
 
   create_table "forecast_snapshots", force: :cascade do |t|
@@ -229,12 +250,13 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   create_table "geographies", force: :cascade do |t|
+    t.string   "universe",           limit: 5,   default: "UHERO", null: false
     t.string   "fips",               limit: 255
     t.string   "display_name",       limit: 255
     t.string   "display_name_short", limit: 255
     t.string   "handle",             limit: 255
-    t.datetime "created_at",                     null: false
-    t.datetime "updated_at",                     null: false
+    t.datetime "created_at",                                       null: false
+    t.datetime "updated_at",                                       null: false
   end
 
   create_table "measurement_series", force: :cascade do |t|
@@ -247,7 +269,8 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   add_index "measurement_series", ["series_id"], name: "index_measurement_series_on_series_id", using: :btree
 
   create_table "measurements", force: :cascade do |t|
-    t.string   "prefix",              limit: 255,               null: false
+    t.string   "universe",            limit: 5,     default: "UHERO", null: false
+    t.string   "prefix",              limit: 255,                     null: false
     t.string   "data_portal_name",    limit: 255
     t.string   "table_prefix",        limit: 255
     t.string   "table_postfix",       limit: 255
@@ -265,13 +288,14 @@ ActiveRecord::Schema.define(version: 220170413025720) do
     t.integer  "source_id",           limit: 4
     t.string   "source_link",         limit: 255
     t.text     "notes",               limit: 65535
-    t.datetime "created_at",                                    null: false
-    t.datetime "updated_at",                                    null: false
+    t.datetime "created_at",                                          null: false
+    t.datetime "updated_at",                                          null: false
   end
 
   add_index "measurements", ["source_detail_id"], name: "fk_rails_f4c727584e", using: :btree
   add_index "measurements", ["source_id"], name: "fk_rails_e96addabdb", using: :btree
   add_index "measurements", ["unit_id"], name: "fk_rails_c5bad45aff", using: :btree
+  add_index "measurements", ["universe"], name: "index_measurements_on_universe", using: :btree
 
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
@@ -294,15 +318,19 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   create_table "public_data_points", id: false, force: :cascade do |t|
-    t.integer  "series_id",      limit: 4,  default: 0,     null: false
-    t.date     "date",                                      null: false
+    t.string   "universe",       limit: 5,  default: "UHERO", null: false
+    t.integer  "series_id",      limit: 4,  default: 0,       null: false
+    t.date     "date",                                        null: false
     t.float    "value",          limit: 53
-    t.boolean  "pseudo_history",            default: false, null: false
-    t.datetime "created_at",                                null: false
-    t.datetime "updated_at",                                null: false
+    t.boolean  "pseudo_history",            default: false,   null: false
+    t.datetime "created_at",                                  null: false
+    t.datetime "updated_at",                                  null: false
   end
 
+  add_index "public_data_points", ["universe"], name: "index_public_data_points_on_universe", using: :btree
+
   create_table "series", force: :cascade do |t|
+    t.string   "universe",                limit: 5,     default: "UHERO", null: false
     t.string   "name",                    limit: 255
     t.string   "frequency",               limit: 255
     t.text     "description",             limit: 65535
@@ -323,7 +351,7 @@ ActiveRecord::Schema.define(version: 220170413025720) do
     t.string   "unitsLabel",              limit: 255
     t.string   "unitsLabelShort",         limit: 255
     t.integer  "unit_id",                 limit: 4
-    t.integer  "units",                   limit: 4,     default: 1,     null: false
+    t.integer  "units",                   limit: 4,     default: 1,       null: false
     t.string   "dataPortalName",          limit: 255
     t.boolean  "percent"
     t.boolean  "real"
@@ -344,20 +372,27 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   add_index "series", ["source_detail_id"], name: "fk_rails_36c9ba7209", using: :btree
   add_index "series", ["source_id"], name: "fk_rails_6f2f66e327", using: :btree
   add_index "series", ["unit_id"], name: "fk_rails_1961e72b74", using: :btree
+  add_index "series", ["universe"], name: "index_series_on_universe", using: :btree
 
   create_table "source_details", force: :cascade do |t|
+    t.string   "universe",    limit: 5,     default: "UHERO", null: false
     t.text     "description", limit: 65535
-    t.datetime "created_at",                null: false
-    t.datetime "updated_at",                null: false
+    t.datetime "created_at",                                  null: false
+    t.datetime "updated_at",                                  null: false
   end
 
+  add_index "source_details", ["universe"], name: "index_source_details_on_universe", using: :btree
+
   create_table "sources", force: :cascade do |t|
+    t.string   "universe",    limit: 5,   default: "UHERO", null: false
     t.string   "source_type", limit: 255
     t.string   "description", limit: 255
     t.string   "link",        limit: 255
-    t.datetime "created_at",              null: false
-    t.datetime "updated_at",              null: false
+    t.datetime "created_at",                                null: false
+    t.datetime "updated_at",                                null: false
   end
+
+  add_index "sources", ["universe"], name: "index_sources_on_universe", using: :btree
 
   create_table "transformations", force: :cascade do |t|
     t.string   "key",         limit: 255
@@ -395,9 +430,10 @@ ActiveRecord::Schema.define(version: 220170413025720) do
   end
 
   create_table "users", force: :cascade do |t|
-    t.string   "email",                  limit: 255, default: "", null: false
-    t.string   "encrypted_password",     limit: 128, default: "", null: false
-    t.string   "password_salt",          limit: 255, default: "", null: false
+    t.string   "universe",               limit: 5,   default: "UHERO", null: false
+    t.string   "email",                  limit: 255, default: "",      null: false
+    t.string   "encrypted_password",     limit: 128, default: "",      null: false
+    t.string   "password_salt",          limit: 255, default: "",      null: false
     t.string   "reset_password_token",   limit: 255
     t.string   "remember_token",         limit: 255
     t.datetime "remember_created_at"
@@ -414,6 +450,7 @@ ActiveRecord::Schema.define(version: 220170413025720) do
 
   add_index "users", ["email"], name: "index_users_on_email", unique: true, using: :btree
   add_index "users", ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true, using: :btree
+  add_index "users", ["universe"], name: "index_users_on_universe", using: :btree
 
   add_foreign_key "authorizations", "users"
   add_foreign_key "measurements", "source_details"
