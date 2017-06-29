@@ -1,5 +1,5 @@
 class AddUniverseToManyTables < ActiveRecord::Migration
-  def change
+  def self.up
     change_column :categories, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), default: 'UHERO', after: :id
     add_column :data_lists, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
     add_column :data_points, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
@@ -22,5 +22,20 @@ class AddUniverseToManyTables < ActiveRecord::Migration
     add_index :source_details, :universe
     add_index :sources, :universe
     add_index :users, :universe
+  end
+  def self.down
+    change_column :categories, :universe, :string, after: :meta
+    remove_index :categories, :universe
+    remove_column :data_lists, :universe
+    remove_column :data_points, :universe
+    remove_column :data_sources, :universe
+    remove_column :feature_toggles, :universe
+    remove_column :geographies, :universe
+    remove_column :measurements, :universe
+    remove_column :public_data_points, :universe
+    remove_column :series, :universe
+    remove_column :source_details, :universe
+    remove_column :sources, :universe
+    remove_column :users, :universe
   end
 end
