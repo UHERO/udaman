@@ -182,10 +182,10 @@ class DbedtUpload < ActiveRecord::Base
               prefix: "DBEDT_#{indicator_id}",
               data_portal_name: row[0]
           )
-        elsif
+          data_list.measurements << measurement
+        else
           measurement.update data_portal_name: row[0]
         end
-        data_list.measurements << measurement
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
         dlm.update(list_order: row[5].to_i) if dlm
         logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
