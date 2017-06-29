@@ -52,6 +52,7 @@ class DbedtUpload < ActiveRecord::Base
 
   def make_active_settings
     unless DataPoint.update_public_data_points
+      logger.debug { 'FAILED to update public_data_points' }
       return false
     end
     logger.debug { 'DONE DataPoint.update_public_data_points' }

@@ -164,8 +164,10 @@ class DataPoint < ActiveRecord::Base
   end
 
   def DataPoint.update_public_data_points(series = nil)
-    return false if series && series.quarantined?
-
+    if series && series.quarantined?
+      logger.info { "Did not update public data points because series #{series.name} is quarantined" }
+      return false
+    end
     t = Time.now
     update_query = %Q(
       update public_data_points p
