@@ -1,6 +1,6 @@
 class User < ActiveRecord::Base
   enum role: {
-      data_portal_user: 'data_portal_user',
+      user: 'user',
       heco: 'heco',
       internal: 'internal',
       admin: 'admin',
