@@ -2,7 +2,7 @@ class User < ActiveRecord::Base
   enum role: {
       data_portal_user: 'data_portal_user',
       heco: 'heco',
-      dbedt: 'dbedt',
+      #dbedt: 'dbedt',
       internal: 'internal',
       admin: 'admin',
       dev: 'dev'
@@ -22,21 +22,23 @@ class User < ActiveRecord::Base
   # Setup accessible (or protected) attributes for your model
   #attr_accessible :email, :password, :password_confirmation, :remember_me
 
+  def dbedt?
+    universe == 'DBEDT' && (admin? || dev?)
+  end
+
+  def nta?
+    universe == 'NTA' && (admin? || dev?)
+  end
+
   def internal_user?
-    self.internal? || self.admin? || self.dev?
+    universe == 'UHERO' && (internal? || admin? || dev?)
   end
 
   def admin_user?
-    self.admin? || self.dev?
+    universe == 'UHERO' && (admin? || dev?)
   end
 
   def dev_user?
-    self.dev?
+    universe == 'UHERO' && dev?
   end
-
-#registration email is still not working. maybe email about it later.
-
-#to create users User.create!(:email => "your@email.com", :password => "secret", :password_confirmation => "secret")
-#to make customized views
-#script/generate devise_views
 end
