@@ -37,54 +37,6 @@ UheroDb::Application.routes.draw do
     mount Sidekiq::Web => '/sidekiq'
   end
 
-  # get "prognoz_data_files/index"
-  # 
-  # get "prognoz_data_files/new"
-  # 
-  # get "prognoz_data_files/show"
-  # 
-  # get "prognoz_data_files/edit"
-  # 
-  # get "prognoz_data_files/create"
-  # 
-  # get "prognoz_data_files/update"
-  # 
-  # get "prognoz_data_files/destroy"
-  # 
-  # get "prognoz_data_files/load_from_file"
-  # 
-  # get "prognoz_data_files/write_xls"
-  # 
-  # get "data_sources/source"
-  # 
-  # get "data_sources/delete"
-  # 
-  # get "data_sources/new"
-  # 
-  # get "data_sources/create"
-  # 
-  # get "data_source_downloads/index"
-  # 
-  # get "data_source_downloads/new"
-  # 
-  # get "data_source_downloads/show"
-  # 
-  # get "data_source_downloads/edit"
-  # 
-  # get "data_source_downloads/update"
-  # 
-  # get "data_source_downloads/destroy"
-  # 
-  # get "data_source_downloads/download"
-  # 
-  # get "data_source_downloads/test_url"
-  # 
-  # get "data_source_downloads/test_save_path"
-  # 
-  # get "data_source_downloads/test_post_params"
-  # 
-  # get "dashboards/index"
-
   #map.devise_for :users
   
   get 'series/bulk', to: 'series#bulk_new'
@@ -174,10 +126,10 @@ UheroDb::Application.routes.draw do
   
   get 'autocomplete' => 'series#autocomplete_search'
 
-  post 'data_source_downloads/test_url' => 'data_source_downloads#test_url'
-  post 'data_source_downloads/test_save_path' => 'data_source_downloads#test_save_path'
-  post 'data_source_downloads/test_post_params' => 'data_source_downloads#test_post_params'
-  resources :data_source_downloads
+  post 'downloads/test_url' => 'downloads#test_url'
+  post 'downloads/test_save_path' => 'downloads#test_save_path'
+  post 'downloads/test_post_params' => 'downloads#test_post_params'
+  resources :downloads
 
   #match 'path' => 'controller#method'
   # The priority is based upon order of creation:
