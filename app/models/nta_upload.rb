@@ -1,4 +1,4 @@
-class DbedtUpload < ActiveRecord::Base
+class NtaUpload < ActiveRecord::Base
   require 'date'
   before_destroy :delete_files_from_disk
   before_destroy :delete_data_and_data_sources
@@ -10,26 +10,26 @@ class DbedtUpload < ActiveRecord::Base
     if cats_file
       cats_file_content = cats_file.read
       cats_file_ext = cats_file.original_filename.split('.')[-1]
-      self.cats_filename = DbedtUpload.make_filename(now, 'cats', cats_file_ext)
+      self.cats_filename = NtaUpload.make_filename(now, 'cats', cats_file_ext)
       self.cats_status = :processing
     end
     if series_file
       series_file_content = series_file.read
       series_file_ext = series_file.original_filename.split('.')[-1]
-      self.series_filename = DbedtUpload.make_filename(now, 'series', series_file_ext)
+      self.series_filename = NtaUpload.make_filename(now, 'series', series_file_ext)
       self.series_status = :processing
     end
 
     self.upload_at = Time.now
 ## validate file content
     begin
-      self.save or raise StandardError, 'DBEDT upload object save failed'
+      self.save or raise StandardError, 'NTA upload object save failed'
       if cats_file
-        write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
+        write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'NTA upload disk write failed'
         XlsCsvWorker.perform_async(id, 'cats')
       end
       if series_file
-        write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DBEDT upload disk write failed'
+        write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'NTA upload disk write failed'
         XlsCsvWorker.perform_async(id, 'series')
       end
     rescue StandardError => e
@@ -44,8 +44,8 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def make_active
-    DbedtUpload.update_all active: false
-    DbedtLoadWorker.perform_async(self.id)
+    NtaUpload.update_all active: false
+    NtaLoadWorker.perform_async(self.id)
     self.update cats_status: 'processing'
   end
 
@@ -54,7 +54,7 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
     logger.debug { 'DONE DataPoint.update_public_data_points' }
-    DbedtUpload.update_all active: false
+    NtaUpload.update_all active: false
     self.update active: true, last_error: nil, last_error_at: nil
   end
 
@@ -135,16 +135,16 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     # remove categories and data_lists
-    Category.where('meta LIKE "DBEDT_%"').delete_all
-    DataList.where('name LIKE "DBEDT_%"').destroy_all
+    Category.where('meta LIKE "NTA_%"').delete_all
+    DataList.where('name LIKE "NTA_%"').destroy_all
     category = nil
     CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
       indicator_id = row[3]
       parent_indicator_id = row[4]
-      parent_label = "DBEDT_#{parent_indicator_id}"
+      parent_label = "NTA_#{parent_indicator_id}"
       if row[2].nil?
-        category = Category.find_by(meta: "DBEDT_#{indicator_id}")
+        category = Category.find_by(meta: "NTA_#{indicator_id}")
         if category.nil?
           ancestry = '60'
           unless parent_indicator_id.nil?
@@ -154,8 +154,8 @@ class DbedtUpload < ActiveRecord::Base
             end
           end
           category = Category.create(
-              meta: "DBEDT_#{indicator_id}",
-              universe: 'DBEDT',
+              meta: "NTA_#{indicator_id}",
+              universe: 'NTA',
               name: row[1],
               ancestry: ancestry,
               list_order: row[5]
@@ -173,10 +173,10 @@ class DbedtUpload < ActiveRecord::Base
             category.update data_list_id: data_list.id
           end
         end
-        measurement = Measurement.find_by(prefix: "DBEDT_#{indicator_id}")
+        measurement = Measurement.find_by(prefix: "NTA_#{indicator_id}")
         if measurement.nil?
           measurement = Measurement.create(
-              prefix: "DBEDT_#{indicator_id}",
+              prefix: "NTA_#{indicator_id}",
               data_portal_name: row[0]
           )
         elsif
@@ -205,12 +205,12 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     # if data_sources exist => set their current: true
-    if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
+    if DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").count > 0
       logger.info { 'data already loaded' }
-      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
-      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id},%)');|
+      NtaUpload.connection.execute %Q|UPDATE data_points SET current = 0
+WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(%)');|
+      NtaUpload.connection.execute %Q|UPDATE data_points SET current = 1
+WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{id},%)');|
       return true
     end
 
@@ -220,7 +220,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     current_measurement = nil
     data_points = []
     CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
-      prefix = "DBEDT_#{row[0]}"
+      prefix = "NTA_#{row[0]}"
       name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
       if current_measurement.nil? || current_measurement.prefix != prefix
         current_measurement = Measurement.find_by prefix: prefix
@@ -234,7 +234,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
 
       if current_series.nil? || current_series.name != name
         # need a fresh data_source for each series unless I make series - data_sources a many-to-many relationship
-        source_id = Source.get_or_new_dbedt(row[9]).id
+        source_id = Source.get_or_new_nta(row[9]).id
         current_series = Series.find_by name: name
         if current_series.nil?
           current_series = Series.create(
@@ -250,11 +250,11 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
               units: 1
           )
         end
-        current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
+        current_data_source = DataSource.find_by eval: "NtaUpload.load(#{id}, #{current_series.id})"
         if current_data_source.nil?
           current_data_source = DataSource.create(
-              eval: "DbedtUpload.load(#{id}, #{current_series.id})",
-              description: "DBEDT Upload #{id} for series #{current_series.id}",
+              eval: "NtaUpload.load(#{id}, #{current_series.id})",
+              description: "NTA Upload #{id} for series #{current_series.id}",
               series_id: current_series.id,
               last_run: Time.now
           )
@@ -270,25 +270,25 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         }.map {|dp|
           "(#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
         }.join(',')
-        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
+        NtaUpload.connection.execute(%Q|INSERT INTO data_points (series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
       end
     end
-    dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
-    DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
-    new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
-    DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
+    nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
+    DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
+    new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
+    DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
 
     run_active_settings ? self.make_active_settings : true
   end
 
-  def DbedtUpload.load(id)
-    du = DbedtUpload.find_by(id: id)
+  def NtaUpload.load(id)
+    du = NtaUpload.find_by(id: id)
     du.load_series_csv(true)
   end
 
 private
   def path_prefix
-    'dbedt_files'
+    'nta_files'
   end
 
   def path(name=nil)
@@ -297,7 +297,7 @@ private
     File.join(parts)
   end
 
-  def DbedtUpload.make_filename(time, type, ext)
+  def NtaUpload.make_filename(time, type, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
     ext = ext.length > 4 ? '' : '.' + ext
     time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
@@ -338,9 +338,9 @@ private
   end
 
   def delete_data_and_data_sources
-    DbedtUpload.connection.execute %Q|DELETE FROM data_points
-WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
-    DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
+    NtaUpload.connection.execute %Q|DELETE FROM data_points
+WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');|
+    DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
   end
 
 end
