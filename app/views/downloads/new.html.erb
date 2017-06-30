@@ -1,11 +1,9 @@
 <div id="summary_area">
-	<h2>Edit Download</h2>
-  <h4><%= link_to 'Show', action: :show, id: @output_file %></h4>
+	<h2>Add Download</h2>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
 	<%= form_for @output_file do |f| %>
-	
 		<div class="field">
 			<%= f.label :handle %>
 			<%= f.text_field :handle, :size => 100 %>
@@ -34,17 +32,11 @@
       <%= f.text_field :sheet_override, :size => 40 %>
     </div>
 
-    <div class="field">
+		<div class="field">
 			<%= f.label :post_parameters %>
 			<div id="post_parameters_message"></div>
-			<%= f.text_area :post_parameters, :value => (@output_file.post_param_string + ' '), :size => '72x20', 'data-test-post-params': 'post_parameters_message' %>
+			<%= f.text_area :post_parameters, :value => " \n  ", :size => '72x20', 'data-test-post-params': 'post_parameters_message' %>
 		</div>
-	
-		<div class="field">
-			<%= f.label :notes %><br />
-			<%= f.text_area :notes, :size => '72x10'%>
-		</div>
-		
 		<div class="actions">
 			<%= f.submit %>
 		</div>
@@ -57,7 +49,7 @@
       console.log('Value to send: ' + $(this).val());
       var divToChange = $(this).data(dataAttr);
       $('#' + divToChange).html('Validating input ...');
-      $.post('<%= url_for controller: :data_source_downloads, :only_path => false %>/' + action,
+      $.post('<%= url_for controller: :downloads, :only_path => false %>/' + action,
           {change_to: $(this).val()},
           function(data) {
             $('#' + divToChange).html(data);
