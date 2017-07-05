@@ -1,7 +1,6 @@
 class CsvFileProcessor
   def initialize(handle, options, date_info, cached_files)
     @cached_files = cached_files
-    @handle = handle
     @options = options
     @row_processor = IntegerPatternProcessor.new options[:row]
     @col_processor = IntegerPatternProcessor.new options[:col]

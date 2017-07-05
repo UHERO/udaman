@@ -14,9 +14,9 @@ class DownloadsCache
   end
 
   def setup_and_check(type, handle, path = nil, raise_eof = false)
-    Rails.logger.debug { "... Entered method setup_and_check: handle=#{handle}, path=#{path}" }
+    Rails.logger.debug { "... Entered method setup_and_check: type=#{type}, handle=#{handle}, path=#{path}" }
     if path.nil?  ## this means that handle != 'manual'
-      @dload = @obj_cache[handle] || Download.get(handle) || raise("No handle '#{handle}' found")
+      @dload = @obj_cache[handle] || Download.get(handle) || raise("No Download handle '#{handle}' found")
       @obj_cache[handle] = @dload
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
       cache_key = make_cache_key(type, path)
