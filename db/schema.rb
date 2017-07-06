@@ -430,11 +430,11 @@ ActiveRecord::Schema.define(version: 220170413025723) do
   end
 
   create_table "users", force: :cascade do |t|
-    t.string   "universe",               limit: 5,   default: "UHERO", null: false
-    t.string   "role",                   limit: 8,   default: "user",  null: false
-    t.string   "email",                  limit: 255, default: "",      null: false
-    t.string   "encrypted_password",     limit: 128, default: "",      null: false
-    t.string   "password_salt",          limit: 255, default: "",      null: false
+    t.string   "universe",               limit: 5,   default: "UHERO",    null: false
+    t.string   "role",                   limit: 8,   default: "external", null: false
+    t.string   "email",                  limit: 255, default: "",         null: false
+    t.string   "encrypted_password",     limit: 128, default: "",         null: false
+    t.string   "password_salt",          limit: 255, default: "",         null: false
     t.string   "reset_password_token",   limit: 255
     t.string   "remember_token",         limit: 255
     t.datetime "remember_created_at"
