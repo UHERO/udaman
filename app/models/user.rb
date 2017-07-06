@@ -1,6 +1,6 @@
 class User < ActiveRecord::Base
   enum role: {
-      user: 'user',
+      external: 'external',
       heco: 'heco',
       internal: 'internal',
       admin: 'admin',
@@ -22,11 +22,11 @@ class User < ActiveRecord::Base
   #attr_accessible :email, :password, :password_confirmation, :remember_me
 
   def dbedt?
-    universe == 'DBEDT' && (admin? || dev?)
+    universe == 'DBEDT' && external?
   end
 
   def nta?
-    universe == 'NTA' && (admin? || dev?)
+    universe == 'NTA' && external?
   end
 
   def internal_user?
