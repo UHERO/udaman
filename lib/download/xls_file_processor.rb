@@ -44,6 +44,7 @@ class XlsFileProcessor
       raise e
     end
 
+    Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
     observation_value = parse_cell(worksheet.cell(row,col))
     if observation_value == 'BREAK IN DATA'
       return @handle_processor.date_sensitive? ? {} : 'END';

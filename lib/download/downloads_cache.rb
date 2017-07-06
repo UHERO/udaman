@@ -21,8 +21,10 @@ class DownloadsCache
       @handle = handle
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
       cache_key = make_cache_key(type, path)
-      download_handle unless files_cache_exists? cache_key
-
+      unless files_cache_exists? cache_key
+        download_handle
+        set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
+      end
       if @data_source && raise_eof
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
         @dsd = @obj_cache[bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
@@ -47,7 +49,6 @@ class DownloadsCache
   def xls(handle, sheet, path = nil, date = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
     setup_and_check('xls', handle, path, raise_eof)
-    set_files_cache(make_cache_key('xls', @path), 1)  ## Marker to show that xls file is downloaded
     sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
     sheet_key = make_cache_key('xls', @path, sheet)
     get_files_cache(sheet_key) || set_xls_sheet(sheet, date)

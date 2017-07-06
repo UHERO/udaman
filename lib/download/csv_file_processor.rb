@@ -23,6 +23,7 @@ class CsvFileProcessor
       Rails.logger.error "CsvFileProcessor: #{e.message}"
       raise e
     end
+    Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
     observation_value = parse_cell(csv_2d_array, row, col)
     return 'END' if observation_value == 'BREAK IN DATA'
     @cached_files.update_last_used
