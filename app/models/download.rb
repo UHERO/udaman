@@ -117,13 +117,8 @@ class Download < ActiveRecord::Base
 
   def content_changed?(new_content)
     return true if !File::exists? save_path_flex
-<<<<<<< HEAD
     current_content = open(save_path_flex, 'rb').read
     new_content != current_content
-=======
-    previous_download = open(save_path_flex, 'rb').read
-    previous_download != new_content
->>>>>>> ab07ff61a519aaaa388a8407c6dbda8ba1b01d46
   end
 
   def backup
