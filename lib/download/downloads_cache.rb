@@ -18,6 +18,7 @@ class DownloadsCache
     if path.nil?  ## this means that handle != 'manual'
       @dload = @obj_cache[handle] || Download.get(handle) || raise("No Download handle '#{handle}' found")
       @obj_cache[handle] = @dload
+      @handle = handle
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
       cache_key = make_cache_key(type, path)
       download_handle unless files_cache_exists? cache_key
@@ -31,7 +32,6 @@ class DownloadsCache
         end
       end
     end
-    @handle = handle
     @path = path
   end
 
