@@ -17,6 +17,7 @@ class CsvFileProcessor
 
       csv_2d_array = @cached_files.csv(handle, @options[:path], true)
     rescue EOFError
+      Rails.logger.debug { "Skipping data point for handle=#{handle}, date=#{date} because source has not changed" }
       return {} ## data point skipped because file and data source defn have not changed. -dji
     rescue => e
       Rails.logger.error "CsvFileProcessor: #{e.message}"

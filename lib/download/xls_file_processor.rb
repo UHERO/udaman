@@ -27,6 +27,7 @@ class XlsFileProcessor
 
       worksheet = @cached_files.xls(handle, sheet, path, date, true)
     rescue EOFError
+      Rails.logger.debug { "Skipping data point for handle=#{handle}, date=#{date} because source has not changed" }
       return {} ## data point skipped because file and data source defn have not changed. -dji
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
