@@ -33,7 +33,7 @@
     </div>
   <div class="field">
     <%= f.label :source_id %><br>
-    <%= f.collection_select :source_id, Source.all.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_id, Source.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
@@ -41,7 +41,7 @@
   </div>
   <div class="field">
     <%= f.label :source_detail_id %><br>
-    <%= f.collection_select :source_detail_id, SourceDetail.all.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>

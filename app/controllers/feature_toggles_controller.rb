@@ -3,7 +3,7 @@ class FeatureTogglesController < ApplicationController
 
   # GET /feature_toggles
   def index
-    @feature_toggles = FeatureToggle.all
+    @feature_toggles = FeatureToggle.where(universe: 'UHERO').all
   end
 
   # GET /feature_toggles/1
