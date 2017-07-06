@@ -3,7 +3,7 @@ class SourceDetailsController < ApplicationController
 
   # GET /source_details
   def index
-    @source_details = SourceDetail.order(:description).all
+    @source_details = SourceDetail.where(universe: 'UHERO').order(:description).all
   end
 
   # GET /source_details/1
