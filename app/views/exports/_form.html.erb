@@ -40,7 +40,7 @@
 
   <div class="field">
     <%= f.label :owned_by %><br />
-    <%= f.select(:owned_by, User.all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
+    <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
   </div>
   <div class="actions">
     <%= f.submit %>
