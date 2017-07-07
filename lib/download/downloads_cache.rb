@@ -40,10 +40,10 @@ class DownloadsCache
   def update_last_used
     return unless @dsd
     ## Remember if this object has updated the dsd recently and don't redo an identical one. -dji
-    return if @obj_cache['last_file'] == @dload.last_change_at && @obj_cache['last_eval'] == @options
+    return if @obj_cache['last_file'] == @dload.last_change_at && @obj_cache['last_opts'] == @options
     @obj_cache['last_file'] = @dload.last_change_at
-    @obj_cache['last_eval'] = @options
-    @dsd.update last_file_vers_used: @obj_cache['last_file'], last_eval_options_used: @obj_cache['last_eval']
+    @obj_cache['last_opts'] = @options
+    @dsd.update last_file_vers_used: @obj_cache['last_file'], last_eval_options_used: @obj_cache['last_opts']
   end
 
   def xls(handle, sheet, path = nil, date = nil, raise_eof = false)

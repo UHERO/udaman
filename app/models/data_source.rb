@@ -132,7 +132,7 @@ class DataSource < ActiveRecord::Base
     def reload_source(clear_first = false)
       logger.info { "Begin reload of data source #{description}" }
       t = Time.now
-      eval_stmt = self['eval']
+      eval_stmt = self['eval'].dup
       options = nil
       options_match = %r/({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/
       begin

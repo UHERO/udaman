@@ -26,9 +26,10 @@ class XlsFileProcessor
       col = @col_processor.compute(index, @cached_files, handle, sheet)
 
       worksheet = @cached_files.xls(handle, sheet, path, date, true)
+      observation_value = parse_cell(worksheet.cell(row,col))
     rescue EOFError
-      Rails.logger.debug { "Skipping data point for handle=#{handle}, date=#{date} because source has not changed" }
-      return {} ## data point skipped because file and data source defn have not changed. -dji
+      Rails.logger.debug { "... Skipping data point for handle=#{handle} at date=#{date} because source has not changed" }
+      observation_value = 'SKIP DATA'
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
@@ -44,12 +45,10 @@ class XlsFileProcessor
       raise e
     end
 
-    Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
-    observation_value = parse_cell(worksheet.cell(row,col))
-    if observation_value == 'BREAK IN DATA'
+    if observation_value == 'BREAK IN DATA' || observation_value == 'SKIP DATA'
       return @handle_processor.date_sensitive? ? {} : 'END';
     end
-    @cached_files.update_last_used
+    Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
     {date => observation_value}
   end
 
