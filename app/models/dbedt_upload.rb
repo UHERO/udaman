@@ -182,9 +182,11 @@ class DbedtUpload < ActiveRecord::Base
               prefix: "DBEDT_#{indicator_id}",
               data_portal_name: row[0]
           )
-          data_list.measurements << measurement
         else
           measurement.update data_portal_name: row[0]
+        end
+        if data_list.measurements.where(id: measurement.id).empty?
+          data_list.measurements << measurement
         end
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
         dlm.update(list_order: row[5].to_i) if dlm
