@@ -51,6 +51,7 @@ class DbedtUpload < ActiveRecord::Base
 
   def make_active_settings
     unless DataPoint.update_public_data_points
+      logger.debug { 'FAILED to update public_data_points' }
       return false
     end
     logger.debug { 'DONE DataPoint.update_public_data_points' }
@@ -122,21 +123,21 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_cats_csv
-    logger.info { 'starting load_cats_csv' }
+    logger.debug { 'starting load_cats_csv' }
     unless cats_filename
-      logger.error { 'no cats_filename' }
+      logger.error { "DBEDT Upload id=#{id}: no cats_filename" }
       return false
     end
 
     cats_csv_path = path(cats_filename).change_file_extension('csv')
-    if !File.exists?(cats_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
-      logger.error { "couldn't find file #{cats_csv_path}" }
+    unless File.exists?(cats_csv_path) || ENV['OTHER_WORKER'] && system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
+      logger.error { "DBEDT Upload id=#{id}: couldn't find file #{cats_csv_path}" }
       return false
     end
 
     # remove categories and data_lists
-    Category.where('meta LIKE "DBEDT_%"').delete_all
-    DataList.where('name LIKE "DBEDT_%"').destroy_all
+    Category.where(universe: 'DBEDT').delete_all
+    DataList.where(universe: 'DBEDT').destroy_all
     category = nil
     CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       # category entry
@@ -160,7 +161,7 @@ class DbedtUpload < ActiveRecord::Base
               ancestry: ancestry,
               list_order: row[5]
           )
-          logger.info "created category #{category.meta} in universe #{category.universe}"
+          logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
         end
       end
 
@@ -168,7 +169,7 @@ class DbedtUpload < ActiveRecord::Base
       unless row[2].nil?
         data_list = DataList.find_by(name: parent_label)
         if data_list.nil?
-          data_list = DataList.create(name: parent_label)
+          data_list = DataList.create(name: parent_label, universe: 'DBEDT')
           unless category.nil?
             category.update data_list_id: data_list.id
           end
@@ -176,37 +177,40 @@ class DbedtUpload < ActiveRecord::Base
         measurement = Measurement.find_by(prefix: "DBEDT_#{indicator_id}")
         if measurement.nil?
           measurement = Measurement.create(
+              universe: 'DBEDT',
               prefix: "DBEDT_#{indicator_id}",
               data_portal_name: row[0]
           )
-        elsif
+        else
           measurement.update data_portal_name: row[0]
         end
-        data_list.measurements << measurement
+        if data_list.measurements.where(id: measurement.id).empty?
+          data_list.measurements << measurement
+        end
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
         dlm.update(list_order: row[5].to_i) if dlm
-        logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+        logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
       end
     end
     true
   end
 
   def load_series_csv(run_active_settings=false)
-    logger.info { 'starting load_series_csv' }
+    logger.debug { 'starting load_series_csv' }
     unless series_filename
-      logger.error { 'no series_filename' }
+      logger.error { "DBEDT Upload id=#{id}: no series_filename" }
       return false
     end
 
     series_csv_path = path(series_filename).change_file_extension('csv')
-    if !File.exists?(series_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
-      logger.error "couldn't find file #{series_csv_path}"
+    unless File.exists?(series_csv_path) || ENV['OTHER_WORKER'] && system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
+      logger.error { "DBEDT Upload id=#{id}: couldn't find file #{series_csv_path}" }
       return false
     end
 
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-      logger.info { 'data already loaded' }
+      logger.debug { 'DBEDT data already loaded' }
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
 WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
@@ -214,7 +218,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       return true
     end
 
-    logger.info 'loading data'
+    logger.debug { 'loading DBEDT data' }
     current_series = nil
     current_data_source = nil
     current_measurement = nil
@@ -226,6 +230,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         current_measurement = Measurement.find_by prefix: prefix
         if current_measurement.nil?
           current_measurement = Measurement.create(
+              universe: 'DBEDT',
               prefix: prefix,
               data_portal_name: row[1]
           )
@@ -238,6 +243,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         current_series = Series.find_by name: name
         if current_series.nil?
           current_series = Series.create(
+              universe: 'DBEDT',
               name: name,
               frequency: row[4],
               description: row[1],
@@ -253,6 +259,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
         if current_data_source.nil?
           current_data_source = DataSource.create(
+              universe: 'DBEDT',
               eval: "DbedtUpload.load(#{id}, #{current_series.id})",
               description: "DBEDT Upload #{id} for series #{current_series.id}",
               series_id: current_series.id,
@@ -268,9 +275,9 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         values = dps.compact.uniq{|dp|
           dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
         }.map {|dp|
-          "(#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
+          "('DBEDT',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
         }.join(',')
-        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
+        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (universe, series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
       end
     end
     dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
