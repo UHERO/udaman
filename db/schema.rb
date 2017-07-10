@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025723) do
+ActiveRecord::Schema.define(version: 220170413025724) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -49,7 +49,7 @@ ActiveRecord::Schema.define(version: 220170413025723) do
   add_index "authorizations", ["user_id"], name: "fk_rails_4ecef5b8c5", using: :btree
 
   create_table "categories", force: :cascade do |t|
-    t.string   "universe",       limit: 5,   default: "UHERO"
+    t.string   "universe",       limit: 5,   default: "UHERO", null: false
     t.string   "name",           limit: 255
     t.integer  "data_list_id",   limit: 4
     t.datetime "created_at",                                   null: false
@@ -385,7 +385,6 @@ ActiveRecord::Schema.define(version: 220170413025723) do
 
   create_table "sources", force: :cascade do |t|
     t.string   "universe",    limit: 5,   default: "UHERO", null: false
-    t.string   "source_type", limit: 255
     t.string   "description", limit: 255
     t.string   "link",        limit: 255
     t.datetime "created_at",                                null: false
