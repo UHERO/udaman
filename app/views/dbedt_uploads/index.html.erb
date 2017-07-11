@@ -40,19 +40,19 @@
           <span class="controls" style="display:<%= controls_display %>;">
           <%=
             if dbedt_upload.active
-              "<i class='load-status fa fa-dot-circle-o' id='loading-#{dbedt_upload.id}' aria-hidden='true'></i>".html_safe
+              "<i class='dbedt-load-status fa fa-dot-circle-o' id='loading-#{dbedt_upload.id}' aria-hidden='true'></i>".html_safe
             elsif dbedt_upload.cats_status == 'ok' && dbedt_upload.series_status == 'ok'
-              link_to('<i class="load-status fa fa-circle-o" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => dbedt_upload}, title: 'Make active')
+              link_to('<i class="dbedt-load-status fa fa-circle-o" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => dbedt_upload}, title: 'Make active')
             elsif dbedt_upload.cats_status != 'fail' && dbedt_upload.series_status != 'fail'
-              '<span class="waiting"><i class="load-status fa fa-dot-circle-o" aria-hidden="true"></i></span>'.html_safe
+              '<span class="waiting"><i class="dbedt-load-status fa fa-dot-circle-o" aria-hidden="true"></i></span>'.html_safe
             end
           %>
           </span>
         </td>
-        <td><i class="upload-status fa <%= make_fa_processing_classes(dbedt_upload.cats_status) %>" id="cats-<%= dbedt_upload.id %>" aria-hidden="true"></i>
+        <td><i class="dbedt-upload-status fa <%= make_fa_processing_classes(dbedt_upload.cats_status) %>" id="cats-<%= dbedt_upload.id %>" aria-hidden="true"></i>
             <%= link_to 'Variablelist', {:action => 'show', :id => dbedt_upload.id, :filetype => 'cats'} %>
         </td>
-        <td><i class="upload-status fa <%= make_fa_processing_classes(dbedt_upload.series_status) %>" id="series-<%= dbedt_upload.id %>" aria-hidden="true"></i>
+        <td><i class="dbedt-upload-status fa <%= make_fa_processing_classes(dbedt_upload.series_status) %>" id="series-<%= dbedt_upload.id %>" aria-hidden="true"></i>
             <%= link_to 'Masterdatabase', {:action => 'show', :id => dbedt_upload.id, :filetype => 'series'} %>
         </td>
         <td><%= timestamp %></td>
