@@ -17,8 +17,7 @@ class NtaUpload < ActiveRecord::Base
     begin
       self.save or raise StandardError, 'NTA upload object save failed'
       write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'NTA upload disk write failed'
-      NtaCsvWorker.perform_async(id)
-      ###set_status('series', :ok)  ### TEMP: during development
+      NtaCsvWorker.perform_async(id, 'series')
     rescue => e
       self.delete if e.message =~ /disk write failed/
       return false

@@ -1,5 +1,5 @@
 $(function() {
-   $('.upload-status.processing').each(function(_, element) {
+   $('.nta-upload-status.processing').each(function(_, element) {
        var icon_args = $(element).attr('id').split('-');
        var upload_type = icon_args[0];
        var dbu_id = icon_args[1];
@@ -16,7 +16,7 @@ $(function() {
                        $(element).parent().siblings().has('span.waiting').children('span').removeClass('waiting');
                        location.reload();
                    }
-                   if ($('.upload-status.processing').length == 0) {
+                   if ($('.nta-upload-status.processing').length == 0) {
                        $('.controls').show();
                    }
                    clearInterval(intervalId);
@@ -24,7 +24,7 @@ $(function() {
                }
                if (data === 'fail') {
                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
-                   if ($('.upload-status.processing').length == 0) {
+                   if ($('.nta-upload-status.processing').length == 0) {
                        $('.controls').show();
                    }
                    clearInterval(intervalId);
@@ -32,7 +32,7 @@ $(function() {
            });
        }
    });
-    $('.load-status.loading').each(function(_, element) {
+    $('.nta-load-status.loading').each(function(_, element) {
         var icon_args = $(element).attr('id').split('-');
         var dbu_id = icon_args[1];
         var intervalId = setInterval(updateClass, 2000);  // Check once every 2 seconds

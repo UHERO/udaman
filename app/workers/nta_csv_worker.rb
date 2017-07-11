@@ -25,17 +25,17 @@ class NtaCsvWorker
           raise "Could not get xlsx file ((#{xls_path}) #{nta_id}:#{which}) from $OTHER_WORKER: #{other_worker}"
         end
       end
-      unless system "xlsx2csv.py -s 1 -d tab -c utf-8  #{xls_path} #{csv_path}"
+      unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
         raise "Could not transform xlsx to csv (#{nta_id}:#{which})"
       end
-      if other_worker && !system("rsync -t #{csv_path} #{other_worker + ':' + ntu.absolute_path}")
+      if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + ntu.absolute_path}")
         raise "Could not copy #{csv_path} for #{nta_id} to $OTHER_WORKER: #{other_worker}"
       end
       logger.debug { "NtaUpload #{which}: before load_csv" }
-      if ntu.load_csv(which) && ntu.make_active_settings
-        logger.info { "NtaUpload id=#{ntu.id} loaded, and active" }
+      #if ntu.load_csv(which) && ntu.make_active_settings
+      #  logger.info { "NtaUpload id=#{ntu.id} loaded, and active" }
         ntu.set_status(which, :ok)
-      end
+      #end
     rescue => error
       logger.error error.message
       logger.error error.backtrace
