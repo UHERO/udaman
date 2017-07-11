@@ -350,4 +350,28 @@ WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUploa
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 
+  def get_geo_code(name)
+    trans_hash = {
+        'Hawaii County' => 'HAW',
+        'Honolulu County' => 'HON',
+        'Maui County' => 'MAU',
+        'Kauai County' => 'KAU',
+        'Statewide' => 'HI',
+    }
+    trans_hash[name] || 'ERROR'
+  end
+
+  def get_date(year, qm)
+    if qm =~ /^M(\d+)/i
+      "#{year}-%02d-01" % $1.to_i
+    elsif qm =~ /^Q(\d+)/i
+      quarter_month = '%02d' % (($1.to_i - 1) * 3 + 1)
+      "#{year}-#{quarter_month}-01"
+    elsif qm.nil? || qm.empty? || qm =~ /A/i
+      "#{year}-01-01"
+    else
+      "#{year}-12-31"  ## use this as an error code? :=}
+    end
+  end
+
 end
