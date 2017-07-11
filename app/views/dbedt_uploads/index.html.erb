@@ -31,7 +31,7 @@
         <td><div class="actions"><%= f.submit 'Upload files', id: 'upload-files-button' %></div></td>
         <% end %>
       </tr>
-   <% controls_display = now_processing? ? 'none' : 'inline'
+   <% controls_display = dbedt_now_processing? ? 'none' : 'inline'
 
       @dbedt_uploads.each do |dbedt_upload|
         timestamp = dbedt_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>

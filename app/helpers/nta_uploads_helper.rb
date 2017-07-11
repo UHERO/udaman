@@ -25,7 +25,7 @@ module NtaUploadsHelper
     end
   end
 
-  def now_processing?
+  def nta_now_processing?
     ## true if anything is currently in processing
     !NtaUpload.where(%q(cats_status = 'processing' or series_status = 'processing')).empty?
   end

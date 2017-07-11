@@ -5,34 +5,21 @@ class NtaUpload < ActiveRecord::Base
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
-  def store_upload_files(cats_file, series_file)
+  def store_upload_files(series_file)
     now = Time.now.localtime
-    if cats_file
-      cats_file_content = cats_file.read
-      cats_file_ext = cats_file.original_filename.split('.')[-1]
-      self.cats_filename = NtaUpload.make_filename(now, 'cats', cats_file_ext)
-      self.cats_status = :processing
-    end
-    if series_file
-      series_file_content = series_file.read
-      series_file_ext = series_file.original_filename.split('.')[-1]
-      self.series_filename = NtaUpload.make_filename(now, 'series', series_file_ext)
-      self.series_status = :processing
-    end
+    return false unless series_file
+    series_file_content = series_file.read
+    series_file_ext = series_file.original_filename.split('.')[-1]
+    self.series_filename = NtaUpload.make_filename(now, 'series', series_file_ext)
+    self.series_status = :processing
 
     self.upload_at = Time.now
-## validate file content
     begin
       self.save or raise StandardError, 'NTA upload object save failed'
-      if cats_file
-        write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'NTA upload disk write failed'
-        XlsCsvWorker.perform_async(id, 'cats')
-      end
-      if series_file
-        write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'NTA upload disk write failed'
-        XlsCsvWorker.perform_async(id, 'series')
-      end
-    rescue StandardError => e
+      write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'NTA upload disk write failed'
+      NtaCsvWorker.perform_async(id)
+      ###set_status('series', :ok)  ### TEMP: during development
+    rescue => e
       self.delete if e.message =~ /disk write failed/
       return false
     end
@@ -44,15 +31,15 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def make_active
+    return true ##### TEMP: during development
     NtaUpload.update_all active: false
     NtaLoadWorker.perform_async(self.id)
     self.update cats_status: 'processing'
   end
 
   def make_active_settings
-    unless DataPoint.update_public_data_points
-      return false
-    end
+    return true ##### TEMP: during development
+    return false unless DataPoint.update_public_data_points
     logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
     self.update active: true, last_error: nil, last_error_at: nil
@@ -74,7 +61,7 @@ class NtaUpload < ActiveRecord::Base
     end
   end
 
-  def absolute_path(which=nil)
+  def absolute_path(which = nil)
     if which == 'cats'
       path(cats_filename)
     elsif which == 'series'
@@ -123,8 +110,8 @@ class NtaUpload < ActiveRecord::Base
 
   def load_cats_csv
     logger.info { 'starting load_cats_csv' }
-    unless cats_filename
-      logger.error { 'no cats_filename' }
+    unless series_filename
+      logger.error { 'no series_filename' }
       return false
     end
 
@@ -191,7 +178,7 @@ class NtaUpload < ActiveRecord::Base
     true
   end
 
-  def load_series_csv(run_active_settings=false)
+  def load_series_csv(run_active_settings = false)
     logger.info { 'starting load_series_csv' }
     unless series_filename
       logger.error { 'no series_filename' }
@@ -291,7 +278,7 @@ private
     'nta_files'
   end
 
-  def path(name=nil)
+  def path(name = nil)
     parts = [ENV['DATA_PATH'], path_prefix]
     parts.push(name) unless name.blank?
     File.join(parts)

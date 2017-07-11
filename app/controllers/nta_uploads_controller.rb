@@ -23,7 +23,7 @@ class NtaUploadsController < ApplicationController
   def create
     @nta_upload = NtaUpload.new(nta_upload_params)
 
-    unless @nta_upload.store_upload_files(nta_upload_params[:cats_filename], nta_upload_params[:series_filename])
+    unless @nta_upload.store_upload_files(nta_upload_params[:series_filename])
       redirect_to(action: 'index')
       return
     end
@@ -31,7 +31,7 @@ class NtaUploadsController < ApplicationController
   end
 
   def make_active
-    @nta_upload.make_active
+    false && @nta_upload.make_active  ### TEMP: during development
     redirect_to(action: 'index')
   end
 
@@ -61,6 +61,6 @@ class NtaUploadsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def nta_upload_params
-      params.require(:nta_upload).permit(:filetype, :cats_filename, :series_filename)
+      params.require(:nta_upload).permit(:filetype, :series_filename)
     end
 end

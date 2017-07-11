@@ -25,7 +25,7 @@ module DbedtUploadsHelper
     end
   end
 
-  def now_processing?
+  def dbedt_now_processing?
     ## true if anything is currently in processing
     !DbedtUpload.where(%q(cats_status = 'processing' or series_status = 'processing')).empty?
   end

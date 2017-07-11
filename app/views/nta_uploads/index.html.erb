@@ -4,8 +4,7 @@
   <thead>
     <tr>
       <th>Active</th>
-      <th>Variablelist</th>
-      <th>Masterdatabase</th>
+      <th>Database file</th>
       <th>Uploaded at</th>
       <th colspan="100%"></th>
     </tr>
@@ -26,12 +25,11 @@
                   </div>
               <% end %>
         <td></td>
-        <td><%= f.file_field :cats_filename %></td>
         <td><%= f.file_field :series_filename %></td>
         <td><div class="actions"><%= f.submit 'Upload files', id: 'upload-files-button' %></div></td>
         <% end %>
       </tr>
-   <% controls_display = now_processing? ? 'none' : 'inline'
+   <% controls_display = nta_now_processing? ? 'none' : 'inline'
 
       @nta_uploads.each do |nta_upload|
         timestamp = nta_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>
@@ -41,19 +39,16 @@
           <%=
             if nta_upload.active
               "<i class='load-status fa fa-dot-circle-o' id='loading-#{nta_upload.id}' aria-hidden='true'></i>".html_safe
-            elsif nta_upload.cats_status == 'ok' && nta_upload.series_status == 'ok'
+            elsif nta_upload.series_status == 'ok'
               link_to('<i class="load-status fa fa-circle-o" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => nta_upload}, title: 'Make active')
-            elsif nta_upload.cats_status != 'fail' && nta_upload.series_status != 'fail'
+            elsif nta_upload.series_status != 'fail'
               '<span class="waiting"><i class="load-status fa fa-dot-circle-o" aria-hidden="true"></i></span>'.html_safe
             end
           %>
           </span>
         </td>
-        <td><i class="upload-status fa <%= make_fa_processing_classes(nta_upload.cats_status) %>" id="cats-<%= nta_upload.id %>" aria-hidden="true"></i>
-            <%= link_to 'Variablelist', {:action => 'show', :id => nta_upload.id, :filetype => 'cats'} %>
-        </td>
         <td><i class="upload-status fa <%= make_fa_processing_classes(nta_upload.series_status) %>" id="series-<%= nta_upload.id %>" aria-hidden="true"></i>
-            <%= link_to 'Masterdatabase', {:action => 'show', :id => nta_upload.id, :filetype => 'series'} %>
+            <%= link_to 'Database file', {:action => 'show', :id => nta_upload.id, :filetype => 'series'} %>
         </td>
         <td><%= timestamp %></td>
         <td>
@@ -73,4 +68,4 @@
     <% end %>
   </tbody>
 </table>
-* Please note that because of caching, new data may take <strong>up to 10 minutes</strong> to be reflected in the data warehouse.
+* Please note that because of caching, new data may take <strong>up to 10 minutes</strong> to be reflected on the web.
