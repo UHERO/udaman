@@ -113,18 +113,18 @@ class NtaUpload < ActiveRecord::Base
       raise 'load_cats_csv: no series_filename'
     end
     csv_path = path(series_filename).change_file_extension('')
-    unless Dir.exists?(csv_path) || system("rsync -rt #{ENV['OTHER_WORKER'] + ':' + csv_path} #{absolute_path}")
+    unless Dir.exists?(csv_path) || ENV['OTHER_WORKER'] && system("rsync -rt #{ENV['OTHER_WORKER'] + ':' + csv_path} #{absolute_path}")
       raise "load_cats_csv: couldn't find csv dir #{csv_path}"
     end
     cats_path = File.join(csv_path, 'description.csv')
     unless File.exists?(cats_path)
       raise "load_cats_csv: couldn't find file #{cats_path}"
     end
-    # remove categories and data_lists
-    Category.where(universe: 'NTA').delete_all
+    # clean out the things, but not the root category
+    Category.where('universe = "NTA" and ancestry is not null').delete_all
     DataList.where(universe: 'NTA').destroy_all
+    root = Category.find_by(universe: 'NTA', ancestry: nil).pluck(:id)
 
-    root = Category.find_by(name: 'NTA Data Portal', ancestry: nil).pluck(:id)
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
 
@@ -136,48 +136,43 @@ class NtaUpload < ActiveRecord::Base
                     Category.create(universe: 'NTA', name: parent_cat_name, ancestry: root)
       order = nil  ###### fix this
       ancestry = "#{root}/#{parent_cat.id}"
-      end
       category = Category.find_by(universe: 'NTA', meta: data_list_name) ||
                   Category.create(universe: 'NTA', meta: data_list_name, name: long_name, ancestry: ancestry, list_order: order)
 
+###  units = ['2010 USD','%'].include?(row[3]) ? row[3] : nil
       # data_list & measurements entry
-  units = ['2010 USD','%'].include?(row[3]) ? row[3] : nil
-      DataList.find_by(universe: 'NTA', name: data_list_name) && raise("load_cats_csv: data list #{data_list_name} exists when it shouldn't")
       data_list = DataList.create(universe: 'NTA', name: data_list_name)
-      if data_list.nil?
-        data_list = DataList.create(name: parent_label)
-        unless category.nil?
-          category.update data_list_id: data_list.id
-        end
-      end
-      measurement = Measurement.find_by(prefix: "NTA_#{indicator_id}")
+      category.update data_list_id: data_list.id
+      measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name)
       if measurement.nil?
         measurement = Measurement.create(
-            prefix: "NTA_#{indicator_id}",
-            data_portal_name: row[0]
+            universe: 'NTA',
+            prefix: data_list_name,
+            data_portal_name: long_name
         )
-      elsif
-        measurement.update data_portal_name: row[0]
+      else
+        measurement.update data_portal_name: long_name
       end
-      data_list.measurements << measurement
-      dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
-      dlm.update(list_order: row[5].to_i) if dlm
-      logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+      if data_list.measurements.where(id: measurement.id).empty?
+        data_list.measurements << measurement
+        logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+      end
     end
     true
   end
 
   def load_series_csv(run_active_settings = false)
-    logger.info { 'starting load_series_csv' }
+    logger.debug { 'starting load_series_csv' }
     unless series_filename
-      logger.error { 'no series_filename' }
-      return false
+      raise 'load_series_csv: no series_filename'
     end
-
-    series_csv_path = path(series_filename).change_file_extension('csv')
-    if !File.exists?(series_csv_path) && !system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
-      logger.error "couldn't find file #{series_csv_path}"
-      return false
+    csv_path = path(series_filename).change_file_extension('')
+    unless Dir.exists?(csv_path) || ENV['OTHER_WORKER'] && system("rsync -rt #{ENV['OTHER_WORKER'] + ':' + csv_path} #{absolute_path}")
+      raise "load_series_csv: couldn't find csv dir #{csv_path}"
+    end
+    series_path = ###################### path(series_filename).change_file_extension('csv')
+    unless File.exists?(series_path)
+      raise "load_series_csv: couldn't find file #{series_path}"
     end
 
     # if data_sources exist => set their current: true
