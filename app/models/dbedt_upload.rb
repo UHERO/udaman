@@ -145,10 +145,10 @@ class DbedtUpload < ActiveRecord::Base
       indicator_id = row[3]
       parent_indicator_id = row[4]
       parent_label = "DBEDT_#{parent_indicator_id}"
-      if row[2].nil?
+      if row[2].blank?
         category = Category.find_by(meta: "DBEDT_#{indicator_id}")
         if category.nil?
-          ancestry = '60'
+          ancestry = Category.find_by(name: 'DBEDT Data Portal', ancestry: nil).pluck(:id) || raise('No DBEDT root category found')
           unless parent_indicator_id.nil?
             parent_category = Category.find_by(meta: parent_label)
             unless parent_category.nil?
@@ -167,7 +167,7 @@ class DbedtUpload < ActiveRecord::Base
       end
 
       # data_list_measurements entry
-      unless row[2].nil?
+      unless row[2].blank?
         data_list = DataList.find_by(name: parent_label)
         if data_list.nil?
           data_list = DataList.create(name: parent_label, universe: 'DBEDT')
