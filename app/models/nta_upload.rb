@@ -190,12 +190,21 @@ class NtaUpload < ActiveRecord::Base
     end
 
     logger.debug { 'loading NTA data' }
+    headers = nil
     current_series = nil
-    current_data_source = nil
+#    current_data_source = nil
     current_measurement = nil
     data_points = []
 
-    CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+    CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: true}) do |row|
+      unless headers
+        headers = row.dup
+        next
+      end
+      row_hash = {}
+      headers.each {|h| row_hash[h] = row.shift } ## convert row data to hash keyed on column header
+      ### how do we find out what the measurements are, so we can pull them out of row_hash?
+
       prefix = "NTA_#{row[0]}"
       name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
       if current_measurement.nil? || current_measurement.prefix != prefix
