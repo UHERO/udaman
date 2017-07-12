@@ -136,8 +136,8 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
 
-    # remove categories and data_lists
-    Category.where(universe: 'DBEDT').delete_all
+    # clean out the things, but not the root category
+    Category.where('universe = "DBEDT" and ancestry is not null').delete_all
     DataList.where(universe: 'DBEDT').destroy_all
     category = nil
     CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|

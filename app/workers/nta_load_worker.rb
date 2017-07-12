@@ -11,15 +11,9 @@ class NtaLoadWorker
       unless ntu
         raise "No NtaUpload found with id=#{nta_id}"
       end
-      unless ntu.load_series_csv
-        raise 'Some error in load_series_csv'
-        ########### make this more specific NOW! by pushing exception throw down into method -dji
-      end
+      ntu.load_series_csv
       logger.debug { "NtaUpload id=#{nta_id} DONE load series" }
-      unless ntu.load_cats_csv
-        raise 'Some error in load_cats_csv'
-        ########### make this more specific NOW! by pushing exception throw down into method -dji
-      end
+      ntu.load_cats_csv
       logger.debug { "NtaUpload id=#{nta_id} DONE load cats" }
       ntu.make_active_settings
       ntu.update(cats_status: :ok, last_error: nil, last_error_at: nil)

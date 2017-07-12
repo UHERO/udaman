@@ -134,13 +134,11 @@ class NtaUpload < ActiveRecord::Base
       parent_cat_name = row[4]
       parent_cat = Category.find_by(universe: 'NTA', name: parent_cat_name) ||
                     Category.create(universe: 'NTA', name: parent_cat_name, ancestry: root)
-      order = nil  ###### fix this
       ancestry = "#{root}/#{parent_cat.id}"
       category = Category.find_by(universe: 'NTA', meta: data_list_name) ||
-                  Category.create(universe: 'NTA', meta: data_list_name, name: long_name, ancestry: ancestry, list_order: order)
+                  Category.create(universe: 'NTA', meta: data_list_name, name: long_name, ancestry: ancestry)
 
-###  units = ['2010 USD','%'].include?(row[3]) ? row[3] : nil
-      # data_list & measurements entry
+      # data_list & measurements
       data_list = DataList.create(universe: 'NTA', name: data_list_name)
       category.update data_list_id: data_list.id
       measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name)
@@ -156,7 +154,9 @@ class NtaUpload < ActiveRecord::Base
       if data_list.measurements.where(id: measurement.id).empty?
         data_list.measurements << measurement
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+        ## No ordering is applied in this case because there is only one measurement per DL -dji
       end
+
     end
     true
   end
@@ -170,27 +170,32 @@ class NtaUpload < ActiveRecord::Base
     unless Dir.exists?(csv_path) || ENV['OTHER_WORKER'] && system("rsync -rt #{ENV['OTHER_WORKER'] + ':' + csv_path} #{absolute_path}")
       raise "load_series_csv: couldn't find csv dir #{csv_path}"
     end
-    series_path = ###################### path(series_filename).change_file_extension('csv')
+    series_path = File.join(csv_path, 'database.csv')
     unless File.exists?(series_path)
       raise "load_series_csv: couldn't find file #{series_path}"
     end
 
-    # if data_sources exist => set their current: true
+    # if data_sources exist => set their current flag to true
     if DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").count > 0
-      logger.info { 'data already loaded' }
-      NtaUpload.connection.execute %Q|UPDATE data_points SET current = 0
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(%)');|
-      NtaUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{id},%)');|
+      logger.debug { 'NTA data already loaded' }
+      NtaUpload.connection.execute <<~SQL
+        UPDATE data_points SET current = 0
+        WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(%)');
+      SQL
+      NtaUpload.connection.execute <<~SQL
+        UPDATE data_points SET current = 1
+        WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{id},%)');
+      SQL
       return true
     end
 
-    logger.info 'loading data'
+    logger.debug { 'loading NTA data' }
     current_series = nil
     current_data_source = nil
     current_measurement = nil
     data_points = []
-    CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+
+    CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "NTA_#{row[0]}"
       name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
       if current_measurement.nil? || current_measurement.prefix != prefix
@@ -234,14 +239,17 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       end
       data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7]})
     end
+
     if data_points.length > 0 && !current_series.nil?
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact.uniq{|dp|
           dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
         }.map {|dp|
-          "(#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
+          "('NTA',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
         }.join(',')
-        NtaUpload.connection.execute(%Q|INSERT INTO data_points (series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
+        NtaUpload.connection.execute <<~SQL
+          INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
+        SQL
       end
     end
     nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
@@ -258,12 +266,8 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
   end
 
 private
-  def path_prefix
-    'nta_files'
-  end
-
   def path(name = nil)
-    parts = [ENV['DATA_PATH'], path_prefix]
+    parts = [ENV['DATA_PATH'], 'nta_files']
     parts.push(name) unless name.blank?
     File.join(parts)
   end
