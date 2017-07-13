@@ -32,10 +32,10 @@ class NtaCsvWorker
         raise "Could not copy #{csv_path} for #{nta_id} to $OTHER_WORKER: #{other_worker}"
       end
       logger.debug { "NtaUpload #{which}: before load_csv" }
-      #if ntu.load_csv(which) && ntu.make_active_settings
-      #  logger.info { "NtaUpload id=#{ntu.id} loaded, and active" }
+      if ntu.load_csv(which) && ntu.make_active_settings
+        logger.info { "NtaUpload id=#{ntu.id} loaded, and active" }
         ntu.set_status(which, :ok)
-      #end
+      end
     rescue => error
       logger.error error.message
       logger.error error.backtrace

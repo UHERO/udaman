@@ -41,7 +41,7 @@ class NtaUpload < ActiveRecord::Base
     return false unless DataPoint.update_public_data_points
     logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
-    self.update active: true, last_error: nil, last_error_at: nil
+    self.update! active: true, last_error: nil, last_error_at: nil
   end
 
   def get_status(which)
@@ -107,7 +107,7 @@ class NtaUpload < ActiveRecord::Base
     # clean out the things, but not the root category
     Category.where('universe = "NTA" and ancestry is not null').delete_all
     DataList.where(universe: 'NTA').destroy_all
-    root = Category.find_by(universe: 'NTA', ancestry: nil).pluck(:id)
+    root = Category.find_by(universe: 'NTA', ancestry: nil).pluck(:id) || raise('No NTA root category found')
 
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
@@ -174,87 +174,55 @@ class NtaUpload < ActiveRecord::Base
     end
 
     logger.debug { 'loading NTA data' }
-    headers = nil
     current_series = nil
-#    current_data_source = nil
-    current_measurement = nil
+    current_data_source = nil
+#    current_measurement = nil
     data_points = []
 
+    ## get the column headers
+    headers = nil
     CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: true}) do |row|
-      unless headers
         headers = row.dup
-        next
-      end
-      row_hash = {}
-      headers.each {|h| row_hash[h] = row.shift } ## convert row data to hash keyed on column header
-      ### how do we find out what the measurements are, so we can pull them out of row_hash?
-
-      prefix = "NTA_#{row[0]}"
-      name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
-      if current_measurement.nil? || current_measurement.prefix != prefix
-        current_measurement = Measurement.find_by prefix: prefix
-        if current_measurement.nil?
-          current_measurement = Measurement.create(
-              prefix: prefix,
-              data_portal_name: row[1]
-          )
-        end
-      end
-
-      if current_series.nil? || current_series.name != name
-        # need a fresh data_source for each series unless I make series - data_sources a many-to-many relationship
-        source_id = Source.get_or_new_nta(row[9]).id
-        current_series = Series.find_by name: name
-        if current_series.nil?
-          current_series = Series.create(
-              name: name,
-              frequency: row[4],
-              description: row[1],
-              dataPortalName: row[1],
-              unitsLabel: row[8],
-              unitsLabelShort: row[8],
-              source_id: source_id,
-              measurement_id: current_measurement.id,
-              decimals: row[10],
-              units: 1
-          )
-        end
-        current_data_source = DataSource.find_by eval: "NtaUpload.load(#{id}, #{current_series.id})"
-        if current_data_source.nil?
-          current_data_source = DataSource.create(
-              eval: "NtaUpload.load(#{id}, #{current_series.id})",
-              description: "NTA Upload #{id} for series #{current_series.id}",
-              series_id: current_series.id,
-              last_run: Time.now
-          )
-        end
-        current_data_source.update last_run_in_seconds: Time.now.to_i
-      end
-      data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7]})
+        break
     end
 
-    if data_points.length > 0 && !current_series.nil?
-      data_points.in_groups_of(1000) do |dps|
-        values = dps.compact.uniq{|dp|
-          dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
-        }.map {|dp|
-          "('NTA',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
-        }.join(',')
-        NtaUpload.connection.execute <<~SQL
-          INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
-        SQL
+    ## extract indicator (= data_list & measurement) names from categories created in load_cats_csv stage
+    indicators = Category.where('universe = "NTA" and meta is not null').pluck(:meta).map {|s| s.sub(/^NTA_/,'') }
+    indicators.each do |ind_name|
+      CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+        row_hash = {}
+        ## convert row data array to hash keyed on column header
+        headers.each {|h| row_hash[h] = row.shift }
+      ### set up series, data_source, measurement
+        data_points.push({series_id: current_series.id,
+                          data_source_id: current_data_source.id,
+                          date: row_hash['year'],
+                          value: row_hash[ind_name]})
       end
-    end
-    nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
-    DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
-    new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
-    DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
 
-    run_active_settings ? self.make_active_settings : true
+      if data_points.length > 0 && !current_series.nil?
+        data_points.in_groups_of(1000) do |dps|
+          values = dps.compact.uniq{|dp|
+            dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
+          }.map {|dp|
+            "('NTA',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
+          }.join(',')
+          NtaUpload.connection.execute <<~SQL
+            INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
+          SQL
+        end
+      end
+      nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
+      DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
+      new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
+      DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
+
+      run_active_settings ? self.make_active_settings : true
+    end
   end
 
   def NtaUpload.load(id)
-    du = NtaUpload.find_by(id: id)
+    du = NtaUpload.find(id)
     du.load_series_csv(true)
   end
 
