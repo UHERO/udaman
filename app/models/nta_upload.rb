@@ -306,8 +306,10 @@ private
   end
 
   def delete_data_and_data_sources
-    NtaUpload.connection.execute %Q|DELETE FROM data_points
-WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');|
+    NtaUpload.connection.execute <<~SQL
+      DELETE FROM data_points
+      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
+    SQL
     DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
   end
 
