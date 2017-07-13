@@ -191,15 +191,17 @@ class NtaUpload < ActiveRecord::Base
         ## convert row data array to hash keyed on column header. convert all blank/empty to nil.
         headers.each {|h| cell = row.shift; row_data[h] = cell.blank? ? nil : cell  }
 
-        series_name = cat.meta + '@%s.A' % row_data['iso3166a'].strip
+        country = row_data['name'].strip
+        iso_handle = row_data['iso3166a'].strip
+        series_name = cat.meta + '@%s.A' % iso_handle
         if current_series.nil? || current_series.name != series_name
-#          source_id = Source.get_or_new_dbedt(row[9]).id
+#          source_id = Source.get_or_new_nta(row[9]).id
           current_series = Series.find_by(name: series_name) ||
                            Series.create(
                              universe: 'NTA',
                              name: series_name,
                              dataPortalName: cat.name,
-                             description: "#{cat.name}, #{row_data['name'].strip}",
+                             description: "#{cat.name} (#{country})",
                              frequency: 'A',
                              units: 1,
                              unitsLabel: 'foo',
@@ -211,7 +213,7 @@ class NtaUpload < ActiveRecord::Base
           current_data_source = DataSource.find_by(eval: current_ds_eval)
           if current_data_source.nil?
             current_data_source = DataSource.create(
-              universe: 'DBEDT',
+              universe: 'NTA',
               eval: current_ds_eval,
               description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
               series_id: current_series.id,
@@ -221,6 +223,9 @@ class NtaUpload < ActiveRecord::Base
           else
             current_data_source.update last_run_in_seconds: Time.now.to_i
           end
+          ## add geographies to db, but we don't use them otherwise
+          Geography.find_by(universe: 'NTA', handle: iso_handle) ||
+           Geography.create(universe: 'NTA', handle: iso_handle, display_name: country)
         end
         indicator_name = cat.meta.sub(/^NTA_/,'')
         data_points.push({series_id: current_series.id,
@@ -228,26 +233,25 @@ class NtaUpload < ActiveRecord::Base
                           date: row_data['year'].strip,
                           value: row_data[indicator_name]})
       end
-
-      if data_points.length > 0 && !current_series.nil?
-        data_points.in_groups_of(1000) do |dps|
-          values = dps.compact.uniq{|dp|
-            dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
-          }.map {|dp|
-            "('NTA',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
-          }.join(',')
-          NtaUpload.connection.execute <<~SQL
-            INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
-          SQL
-        end
-      end
-      nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
-      DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
-      new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
-      DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
-
-      run_active_settings ? self.make_active_settings : true
     end
+    if data_points.length > 0 && !current_series.nil?
+      data_points.in_groups_of(1000) do |dps|
+        values = dps.compact.uniq{|dp|
+          dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
+        }.map {|dp|
+          "('NTA',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
+        }.join(',')
+        NtaUpload.connection.execute <<~SQL
+            INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
+        SQL
+      end
+    end
+    nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
+    DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
+    new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
+    DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
+
+    run_active_settings ? self.make_active_settings : true
   end
 
   def NtaUpload.load(id)
