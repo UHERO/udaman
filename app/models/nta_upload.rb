@@ -112,10 +112,9 @@ class NtaUpload < ActiveRecord::Base
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
 
-      short_name = row[0]
-      long_name = row[1]
-      data_list_name = "NTA_#{short_name}"
-      parent_cat_name = row[4]
+      data_list_name = "NTA_#{row[0].strip}"
+      long_name = row[1].strip
+      parent_cat_name = row[4].strip
       parent_cat = Category.find_by(universe: 'NTA', name: parent_cat_name) ||
                     Category.create(universe: 'NTA', name: parent_cat_name, ancestry: root)
       ancestry = "#{root}/#{parent_cat.id}"
@@ -176,7 +175,6 @@ class NtaUpload < ActiveRecord::Base
     logger.debug { 'loading NTA data' }
     current_series = nil
     current_data_source = nil
-#    current_measurement = nil
     data_points = []
 
     ## get the column headers
@@ -186,18 +184,49 @@ class NtaUpload < ActiveRecord::Base
         break
     end
 
-    ## extract indicator (= data_list & measurement) names from categories created in load_cats_csv stage
-    indicators = Category.where('universe = "NTA" and meta is not null').pluck(:meta).map {|s| s.sub(/^NTA_/,'') }
-    indicators.each do |ind_name|
+    indicators = Category.where('universe = "NTA" and meta is not null')
+    indicators.each do |cat|
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
-        row_hash = {}
-        ## convert row data array to hash keyed on column header
-        headers.each {|h| row_hash[h] = row.shift }
-      ### set up series, data_source, measurement
+        row_data = {}
+        ## convert row data array to hash keyed on column header. convert all blank/empty to nil.
+        headers.each {|h| cell = row.shift; row_data[h] = cell.blank? ? nil : cell  }
+
+        series_name = cat.meta + '@%s.A' % row_data['iso3166a'].strip
+        if current_series.nil? || current_series.name != series_name
+#          source_id = Source.get_or_new_dbedt(row[9]).id
+          current_series = Series.find_by(name: series_name) ||
+                           Series.create(
+                             universe: 'NTA',
+                             name: series_name,
+                             dataPortalName: cat.name,
+                             description: "#{cat.name}, #{row_data['name'].strip}",
+                             frequency: 'A',
+                             units: 1,
+                             unitsLabel: 'foo',
+                             unitsLabelShort: 'bar',
+                             #source_id: nil,
+                             #measurement_id: current_measurement.id
+                         )
+          current_ds_eval = "NtaUpload.load(#{id}, #{current_series.id})"
+          current_data_source = DataSource.find_by(eval: current_ds_eval)
+          if current_data_source.nil?
+            current_data_source = DataSource.create(
+              universe: 'DBEDT',
+              eval: current_ds_eval,
+              description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
+              series_id: current_series.id,
+              last_run: Time.now,
+              last_run_in_seconds: Time.now.to_i
+            )
+          else
+            current_data_source.update last_run_in_seconds: Time.now.to_i
+          end
+        end
+        indicator_name = cat.meta.sub(/^NTA_/,'')
         data_points.push({series_id: current_series.id,
                           data_source_id: current_data_source.id,
-                          date: row_hash['year'],
-                          value: row_hash[ind_name]})
+                          date: row_data['year'].strip,
+                          value: row_data[indicator_name]})
       end
 
       if data_points.length > 0 && !current_series.nil?
