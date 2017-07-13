@@ -7,7 +7,7 @@ class NtaUploadsController < ApplicationController
   # GET /nta_uploads
   def index
     @new_nta_upload = NtaUpload.new
-    @nta_uploads = NtaUpload.all.order('upload_at desc')
+    @nta_uploads = NtaUpload.all.order(upload_at: :desc)
   end
 
   # GET /nta_uploads/1
