@@ -7,7 +7,7 @@ class DbedtUploadsController < ApplicationController
   # GET /dbedt_uploads
   def index
     @new_dbedt_upload = DbedtUpload.new
-    @dbedt_uploads = DbedtUpload.all.order('upload_at desc')
+    @dbedt_uploads = DbedtUpload.all.order(upload_at: :desc)
   end
 
   # GET /dbedt_uploads/1
