@@ -70,31 +70,15 @@ class NtaUpload < ActiveRecord::Base
     end
   end
 
-  def retrieve_cats_file
-    read_file_from_disk(cats_filename)
-  end
-
   def retrieve_series_file
     read_file_from_disk(series_filename)
   end
 
-  def delete_cats_file
-    if cats_filename && File.exists?(absolute_path('cats'))
-      r = true
-      Dir.glob(absolute_path('cats').change_file_extension('*')) do |f|
-        r &&= delete_file_from_disk(f)
-      end
-      return r
-    end
-    true
-  end
-
   def delete_series_file
-    if series_filename && File.exists?(absolute_path('series'))
-      r = true
-      Dir.glob(absolute_path('series').change_file_extension('*')) do |f|
-        r &&= delete_file_from_disk(f)
-      end
+    xlspath = absolute_path('series')
+    if series_filename && File.exists?(xlspath)
+      r = delete_file_from_disk xlspath
+      r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
       return r
     end
     true
@@ -318,12 +302,14 @@ private
   end
 
   def delete_files_from_disk
-    delete_cats_file && delete_series_file
+    delete_series_file
   end
 
   def delete_data_and_data_sources
-    NtaUpload.connection.execute %Q|DELETE FROM data_points
-WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');|
+    NtaUpload.connection.execute <<~SQL
+      DELETE FROM data_points
+      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
+    SQL
     DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
   end
 

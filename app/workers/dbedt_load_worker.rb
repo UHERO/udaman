@@ -22,7 +22,7 @@ class DbedtLoadWorker
       end
       logger.debug { "DbedtUpload id=#{dbu_id} DONE load cats" }
       dbu.make_active_settings
-      dbu.update(cats_status: :ok, last_error: nil, last_error_at: nil)
+      dbu.update!(cats_status: :ok, last_error: nil, last_error_at: nil)
       logger.info { "DbedtUpload id=#{dbu_id} loaded as active" }
     rescue => error
       dbu.update(cats_status: :fail, last_error: error.message, last_error_at: Time.now)

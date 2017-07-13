@@ -1,0 +1,71 @@
+<h1>NTA File Uploads</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Active</th>
+      <th>Database file</th>
+      <th>Uploaded at</th>
+      <th colspan="100%"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+      <tr>
+          <%= form_for(@new_nta_upload) do |f| %>
+              <% if @new_nta_upload.errors.any? %>
+                  <div id="error_explanation">
+                    <h2><%= pluralize(@new_nta_upload.errors.count, 'error') %> prohibited this NTA upload from being saved:</h2>
+
+                    <ul>
+                      <% @new_nta_upload.errors.full_messages.each do |message| %>
+                          <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+              <% end %>
+        <td></td>
+        <td><%= f.file_field :series_filename %></td>
+        <td><div class="actions"><%= f.submit 'Upload files', id: 'upload-files-button' %></div></td>
+        <% end %>
+      </tr>
+   <% controls_display = now_processing?(NtaUpload) ? 'none' : 'inline'
+
+      @nta_uploads.each do |nta_upload|
+        timestamp = nta_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>
+      <tr>
+        <td align="center">
+          <span class="controls" style="display:<%= controls_display %>;">
+          <%=
+            if nta_upload.active
+              "<i class='load-status fa fa-dot-circle-o' id='nta-#{nta_upload.id}' aria-hidden='true'></i>".html_safe
+            elsif nta_upload.series_status == 'ok'
+              link_to('<i class="load-status fa fa-circle-o" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => nta_upload}, title: 'Make active')
+            elsif nta_upload.series_status != 'fail'
+              '<span class="waiting"><i class="load-status fa fa-dot-circle-o" aria-hidden="true"></i></span>'.html_safe
+            end
+          %>
+          </span>
+        </td>
+        <td><i class="upload-status fa <%= make_fa_processing_classes(nta_upload.series_status) %>" id="nta-series-<%= nta_upload.id %>" aria-hidden="true"></i>
+            <%= link_to 'Database file', {:action => 'show', :id => nta_upload.id, :filetype => 'series'} %>
+        </td>
+        <td><%= timestamp %></td>
+        <td>
+          <span class="controls" style="display:<%= controls_display %>;">
+          <%= unless nta_upload.active
+                  link_to 'Destroy', nta_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
+              end %>
+          </span>
+        </td>
+        <% if current_user.dev_user? && nta_upload.last_error %>
+          <td>
+            <span style="color:red;"><%= "#{nta_upload.last_error} (#{nta_upload.last_error_at})" %></span>
+          </td>
+
+        <% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+* Please note that because of caching, new data may take <strong>up to 10 minutes</strong> to be reflected on the web.

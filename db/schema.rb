@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025724) do
+ActiveRecord::Schema.define(version: 220170413025725) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "name",            limit: 255
@@ -296,6 +296,16 @@ ActiveRecord::Schema.define(version: 220170413025724) do
   add_index "measurements", ["source_id"], name: "fk_rails_e96addabdb", using: :btree
   add_index "measurements", ["unit_id"], name: "fk_rails_c5bad45aff", using: :btree
   add_index "measurements", ["universe"], name: "index_measurements_on_universe", using: :btree
+
+  create_table "nta_uploads", force: :cascade do |t|
+    t.datetime "upload_at"
+    t.boolean  "active"
+    t.string   "cats_status",     limit: 10
+    t.string   "series_status",   limit: 10
+    t.string   "series_filename", limit: 255
+    t.string   "last_error",      limit: 255
+    t.datetime "last_error_at"
+  end
 
   create_table "packager_outputs", force: :cascade do |t|
     t.string   "path",          limit: 255
