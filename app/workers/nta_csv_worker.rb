@@ -5,6 +5,11 @@ class NtaCsvWorker
   include Sidekiq::Worker
   sidekiq_options queue: 'critical'
 
+  def initialize
+    ################# change this when testing done
+    logger.level = Logger::DEBUG
+  end
+
   def perform(nta_id, which)
     logger.debug { "ENTER perform async: id=#{nta_id}, which=#{which}" }
     ntu = NtaUpload.find(nta_id)

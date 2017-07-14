@@ -30,14 +30,14 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def make_active
-    return true ##### TEMP: during development
+    #return true ##### TEMP: during development
     NtaUpload.update_all active: false
     NtaLoadWorker.perform_async(self.id)
     self.update cats_status: 'processing'
   end
 
   def make_active_settings
-    return true ##### TEMP: during development
+    #return true ##### TEMP: during development
     return false unless DataPoint.update_public_data_points
     logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
@@ -107,7 +107,7 @@ class NtaUpload < ActiveRecord::Base
     # clean out the things, but not the root category
     Category.where('universe = "NTA" and ancestry is not null').delete_all
     DataList.where(universe: 'NTA').destroy_all
-    root = Category.find_by(universe: 'NTA', ancestry: nil).pluck(:id) || raise('No NTA root category found')
+    root = Category.find_by(universe: 'NTA', ancestry: nil).id rescue raise('No NTA root category found')
 
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
@@ -124,14 +124,14 @@ class NtaUpload < ActiveRecord::Base
       category.update data_list_id: data_list.id
 
       ## units
-      unit_str = row[3].strip
-      unit = unit_str.downcase == 'none' ? nil : Unit.get_or_new_nta(unit_str)
+      unit_str = row[3] && row[3].strip
+      unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new_nta(unit_str)
 
       ## source
       desc = link = nil
       if row[6] =~ /^(.*)(https?:.*)?$/
-        desc = $1.strip.blank? ? nil : $1.strip
-        link = $2.strip.blank? ? nil : $2.strip
+        desc = ($1 && !$1.blank?) ? $1.strip : nil
+        link = ($2 && !$2.blank?) ? $2.strip : nil
       end
       source = (desc || link) ? Source.get_or_new_nta(desc, link) : nil
 
