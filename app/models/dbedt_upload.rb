@@ -288,7 +288,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     run_active_settings ? self.make_active_settings : true
   end
 
-  def DbedtUpload.load(id)
+  def DbedtUpload.load(id, series_id)
     du = DbedtUpload.find_by(id: id)
     du.load_series_csv(true)
   end

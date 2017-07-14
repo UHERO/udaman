@@ -16,4 +16,10 @@ class Category < ActiveRecord::Base
   def name_with_depth
     "#{name} (#{depth})"
   end
+
+  def Category.get_or_new_nta(attrs, add_attrs = {})
+    attrs.merge!(universe: 'NTA')
+    Category.find_by(attrs) || Category.create(attrs.merge(add_attrs))
+  end
+
 end

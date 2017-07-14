@@ -107,7 +107,6 @@ class NtaUpload < ActiveRecord::Base
     # clean out the things, but not the root category
     Category.where('universe = "NTA" and ancestry is not null').delete_all
     DataList.where(universe: 'NTA').destroy_all
- ######################### what-all is destroyed by the above? what needs to be?
     root = Category.find_by(universe: 'NTA', ancestry: nil).pluck(:id) || raise('No NTA root category found')
 
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
@@ -116,21 +115,35 @@ class NtaUpload < ActiveRecord::Base
       data_list_name = "NTA_#{row[0].strip}"
       long_name = row[1].strip
       parent_cat_name = row[4].strip
-      parent_cat = Category.find_by(universe: 'NTA', name: parent_cat_name) ||
-                    Category.create(universe: 'NTA', name: parent_cat_name, ancestry: root)
+      parent_cat = Category.get_or_new_nta({ name: parent_cat_name }, { ancestry: root })
       ancestry = "#{root}/#{parent_cat.id}"
-      category = Category.find_by(universe: 'NTA', meta: data_list_name) ||
-                  Category.create(universe: 'NTA', meta: data_list_name, name: long_name, ancestry: ancestry)
+      category = Category.get_or_new_nta({ meta: data_list_name }, { name: long_name, ancestry: ancestry })
 
-      # data_list & measurements
+      ## data_list
       data_list = DataList.create(universe: 'NTA', name: data_list_name)
       category.update data_list_id: data_list.id
+
+      ## units
+      unit_str = row[3].strip
+      unit = unit_str.downcase == 'none' ? nil : Unit.get_or_new_nta(unit_str)
+
+      ## source
+      desc = link = nil
+      if row[6] =~ /^(.*)(https?:.*)?$/
+        desc = $1.strip.blank? ? nil : $1.strip
+        link = $2.strip.blank? ? nil : $2.strip
+      end
+      source = (desc || link) ? Source.get_or_new_nta(desc, link) : nil
+
+      ## measurement
       measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name)
       if measurement.nil?
         measurement = Measurement.create(
-            universe: 'NTA',
-            prefix: data_list_name,
-            data_portal_name: long_name
+          universe: 'NTA',
+          prefix: data_list_name,
+          data_portal_name: long_name,
+          unit_id: unit && unit.id,
+          source_id: source && source.id
         )
       else
         measurement.update data_portal_name: long_name
@@ -140,8 +153,6 @@ class NtaUpload < ActiveRecord::Base
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
         ## No ordering is applied in this case because there is only one measurement per DL -dji
       end
-      #########          source_id = Source.get_or_new_nta(row[9]).id
-
     end
     true
   end
@@ -195,9 +206,10 @@ class NtaUpload < ActiveRecord::Base
 
         country = row_data['name']
         iso_handle = row_data['iso3166a']
-        incgrp = row_data['incgrp2015']
+        series_name = cat.meta + '@%s.A' % iso_handle
         ## there should be only one measurement per data list
-        measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no DL and/or measurement for #{cat.name}")
+        measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.name}")
+        raise("load_series_csv: no measurement for #{cat.name}") unless measurement
 
         if current_series.nil? || current_series.name != series_name
             current_series = Series.find_by(name: series_name) ||
@@ -210,17 +222,16 @@ class NtaUpload < ActiveRecord::Base
                                unit_id: measurement.unit_id,
                                source_id: measurement.source_id
                            )
-        #### wow double check this guy
             if measurement.series.where(id: current_series.id).empty?
               measurement.series << current_series
               logger.debug "added series #{series_name} to measurement #{measurement.prefix}"
             end
-            current_ds_eval = "NtaUpload.load(#{id}, #{current_series.id})"
-            current_data_source = DataSource.find_by(eval: current_ds_eval)
+            eval_str = "NtaUpload.load(#{id}, #{current_series.id})"
+            current_data_source = DataSource.find_by(eval: eval_str)
             if current_data_source.nil?
               current_data_source = DataSource.create(
                 universe: 'NTA',
-                eval: current_ds_eval,
+                eval: eval_str,
                 description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
                 series_id: current_series.id,
                 last_run: Time.now,
@@ -230,9 +241,8 @@ class NtaUpload < ActiveRecord::Base
               current_data_source.update last_run_in_seconds: Time.now.to_i
             end
             ## add geographies to db, but we don't use them otherwise
-            Geography.find_by(universe: 'NTA', handle: iso_handle, incgrp2015: incgrp) ||
-             Geography.create(universe: 'NTA', handle: iso_handle, incgrp2015: incgrp,
-                         display_name: country, region: row_data['regn'], subregion: row_data['subregn'])
+            Geography.get_or_new_nta({ handle: iso_handle, incgrp2015: row_data['incgrp2015'] },
+                                     { display_name: country, region: row_data['regn'], subregion: row_data['subregn'] })
         end
         indicator_name = cat.meta.sub(/^NTA_/,'')
         data_points.push({series_id: current_series.id,
@@ -261,8 +271,9 @@ class NtaUpload < ActiveRecord::Base
     run_active_settings ? self.make_active_settings : true
   end
 
-  def NtaUpload.load(id)
+  def NtaUpload.load(id, series_id)
     du = NtaUpload.find(id)
+    du.load_cats_csv
     du.load_series_csv(true)
   end
 
