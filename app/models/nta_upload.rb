@@ -107,6 +107,7 @@ class NtaUpload < ActiveRecord::Base
     # clean out the things, but not the root category
     Category.where('universe = "NTA" and ancestry is not null').delete_all
     DataList.where(universe: 'NTA').destroy_all
+ ######################### what-all is destroyed by the above? what needs to be?
     root = Category.find_by(universe: 'NTA', ancestry: nil).pluck(:id) || raise('No NTA root category found')
 
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
@@ -139,6 +140,7 @@ class NtaUpload < ActiveRecord::Base
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
         ## No ordering is applied in this case because there is only one measurement per DL -dji
       end
+      #########          source_id = Source.get_or_new_nta(row[9]).id
 
     end
     true
@@ -172,7 +174,7 @@ class NtaUpload < ActiveRecord::Base
       return true
     end
 
-    logger.debug { 'loading NTA data' }
+    logger.debug { 'start loading NTA data' }
     current_series = nil
     current_data_source = nil
     data_points = []
@@ -188,61 +190,66 @@ class NtaUpload < ActiveRecord::Base
     indicators.each do |cat|
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
-        ## convert row data array to hash keyed on column header. convert all blank/empty to nil.
-        headers.each {|h| cell = row.shift; row_data[h] = cell.blank? ? nil : cell  }
+        ## convert row data array to hash keyed on column header. force all blank/empty to nil.
+        headers.each {|h| cell = row.shift; row_data[h] = cell.blank? ? nil : cell.strip  }
 
-        country = row_data['name'].strip
-        iso_handle = row_data['iso3166a'].strip
-        series_name = cat.meta + '@%s.A' % iso_handle
+        country = row_data['name']
+        iso_handle = row_data['iso3166a']
+        incgrp = row_data['incgrp2015']
+        ## there should be only one measurement per data list
+        measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no DL and/or measurement for #{cat.name}")
+
         if current_series.nil? || current_series.name != series_name
-#          source_id = Source.get_or_new_nta(row[9]).id
-          current_series = Series.find_by(name: series_name) ||
-                           Series.create(
-                             universe: 'NTA',
-                             name: series_name,
-                             dataPortalName: cat.name,
-                             description: "#{cat.name} (#{country})",
-                             frequency: 'A',
-                             units: 1,
-                             unitsLabel: 'foo',
-                             unitsLabelShort: 'bar',
-                             #source_id: nil,
-                             #measurement_id: current_measurement.id
-                         )
-          current_ds_eval = "NtaUpload.load(#{id}, #{current_series.id})"
-          current_data_source = DataSource.find_by(eval: current_ds_eval)
-          if current_data_source.nil?
-            current_data_source = DataSource.create(
-              universe: 'NTA',
-              eval: current_ds_eval,
-              description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
-              series_id: current_series.id,
-              last_run: Time.now,
-              last_run_in_seconds: Time.now.to_i
-            )
-          else
-            current_data_source.update last_run_in_seconds: Time.now.to_i
-          end
-          ## add geographies to db, but we don't use them otherwise
-          Geography.find_by(universe: 'NTA', handle: iso_handle) ||
-           Geography.create(universe: 'NTA', handle: iso_handle, display_name: country)
+            current_series = Series.find_by(name: series_name) ||
+                             Series.create(
+                               universe: 'NTA',
+                               name: series_name,
+                               dataPortalName: cat.name,
+                               description: "#{cat.name} (#{country})",
+                               frequency: 'year',
+                               unit_id: measurement.unit_id,
+                               source_id: measurement.source_id
+                           )
+        #### wow double check this guy
+            if measurement.series.where(id: current_series.id).empty?
+              measurement.series << current_series
+              logger.debug "added series #{series_name} to measurement #{measurement.prefix}"
+            end
+            current_ds_eval = "NtaUpload.load(#{id}, #{current_series.id})"
+            current_data_source = DataSource.find_by(eval: current_ds_eval)
+            if current_data_source.nil?
+              current_data_source = DataSource.create(
+                universe: 'NTA',
+                eval: current_ds_eval,
+                description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
+                series_id: current_series.id,
+                last_run: Time.now,
+                last_run_in_seconds: Time.now.to_i
+              )
+            else
+              current_data_source.update last_run_in_seconds: Time.now.to_i
+            end
+            ## add geographies to db, but we don't use them otherwise
+            Geography.find_by(universe: 'NTA', handle: iso_handle, incgrp2015: incgrp) ||
+             Geography.create(universe: 'NTA', handle: iso_handle, incgrp2015: incgrp,
+                         display_name: country, region: row_data['regn'], subregion: row_data['subregn'])
         end
         indicator_name = cat.meta.sub(/^NTA_/,'')
         data_points.push({series_id: current_series.id,
                           data_source_id: current_data_source.id,
-                          date: row_data['year'].strip,
-                          value: row_data[indicator_name]})
+                          date: row_data['year'] + '-01-01',
+                          value: row_data[indicator_name]}) if row_data[indicator_name]
       end
     end
-    if data_points.length > 0 && !current_series.nil?
+    if current_series && data_points.length > 0
       data_points.in_groups_of(1000) do |dps|
-        values = dps.compact.uniq{|dp|
-          dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
-        }.map {|dp|
-          "('NTA',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
-        }.join(',')
+        values = dps.compact
+                    .uniq {|dp| '%s %s %s' % [dp[:series_id], dp[:data_source_id], dp[:date]] }
+                    .map {|dp| %q('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false) %
+                               ['NTA', dp[:series_id], dp[:data_source_id], dp[:date], dp[:value]] }
+                    .join(',')
         NtaUpload.connection.execute <<~SQL
-            INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
+          INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
         SQL
       end
     end
