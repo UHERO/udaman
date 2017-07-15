@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe "api_applications/edit", type: :view do
   before(:each) do
     @api_application = assign(:api_application, ApiApplication.create!(
-      :name => "MyString",
+      :name => "MyString1",
       :hostname => "MyString",
       :api_key => "MyString"
     ))

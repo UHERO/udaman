@@ -4,12 +4,12 @@ RSpec.describe "api_applications/index", type: :view do
   before(:each) do
     assign(:api_applications, [
       ApiApplication.create!(
-        :name => "Name",
+        :name => "Name1",
         :hostname => "Hostname",
         :api_key => "Key"
       ),
       ApiApplication.create!(
-        :name => "Name",
+        :name => "Name2",
         :hostname => "Hostname",
         :api_key => "Key"
       )
