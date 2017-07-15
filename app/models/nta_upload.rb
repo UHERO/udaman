@@ -194,6 +194,10 @@ class NtaUpload < ActiveRecord::Base
 
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
+      ## only one measurement per data list per indicator category
+      measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.name}")
+      raise("load_series_csv: no measurement for #{cat.name}") unless measurement
+
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
         ## convert row data to a hash keyed on column header. force all blank/empty to nil.
@@ -201,10 +205,7 @@ class NtaUpload < ActiveRecord::Base
 
         country = row_data['name']
         iso_handle = row_data['iso3166a']
-        series_name = cat.meta + '@%s.A' % iso_handle
-        ## there should be only one measurement per data list
-        measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.name}")
-        raise("load_series_csv: no measurement for #{cat.name}") unless measurement
+        series_name = '%s@%s.A' % [measurement.prefix, iso_handle]
 
         if current_series.nil? || current_series.name != series_name
             current_series = Series.find_by(name: series_name) ||
