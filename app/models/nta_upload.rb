@@ -30,14 +30,14 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def make_active
-    #return true ##### TEMP: during development
+    return true ##### TEMP: during development
     NtaUpload.update_all active: false
     NtaLoadWorker.perform_async(self.id)
     self.update cats_status: 'processing'
   end
 
   def make_active_settings
-    #return true ##### TEMP: during development
+    return true ##### TEMP: during development
     return false unless DataPoint.update_public_data_points
     logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
@@ -129,7 +129,9 @@ class NtaUpload < ActiveRecord::Base
 
       ## source
       desc = link = nil
-      if row[6] =~ /^(.*)(https?:.*)?$/
+      ## advanced regex: ? following normal stuff means 0 or 1 of the preceding;
+      ##                 ? following another quantifier means "don't be greedy"
+      if row[6] =~ /^(.*?)(https?:.*)?$/
         desc = ($1 && !$1.blank?) ? $1.strip : nil
         link = ($2 && !$2.blank?) ? $2.strip : nil
       end
@@ -190,19 +192,12 @@ class NtaUpload < ActiveRecord::Base
     current_data_source = nil
     data_points = []
 
-    ## get the column headers
-    headers = nil
-    CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: true}) do |row|
-        headers = row.dup
-        break
-    end
-
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
-        ## convert row data array to hash keyed on column header. force all blank/empty to nil.
-        headers.each {|h| cell = row.shift; row_data[h] = cell.blank? ? nil : cell.strip  }
+        ## convert row data to a hash keyed on column header. force all blank/empty to nil.
+        row.to_a.each {|header, data| row_data[header.strip] = data.blank? ? nil : data.strip }
 
         country = row_data['name']
         iso_handle = row_data['iso3166a']
@@ -255,7 +250,7 @@ class NtaUpload < ActiveRecord::Base
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact
                     .uniq {|dp| '%s %s %s' % [dp[:series_id], dp[:data_source_id], dp[:date]] }
-                    .map {|dp| %q('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false) %
+                    .map {|dp| %q|('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false)| %
                                ['NTA', dp[:series_id], dp[:data_source_id], dp[:date], dp[:value]] }
                     .join(',')
         NtaUpload.connection.execute <<~SQL
