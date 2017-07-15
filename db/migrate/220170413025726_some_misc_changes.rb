@@ -7,6 +7,7 @@ class SomeMiscChanges < ActiveRecord::Migration
     add_column :geographies, :incgrp2015, :string, after: :subregion
     add_index :geographies, [:universe, :handle, :incgrp2015], :unique => true
     add_column :units, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
+    remove_index :units, [:short_label, :long_label]
     add_index :units, [:universe, :short_label, :long_label], :unique => true
   end
 end

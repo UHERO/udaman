@@ -11,16 +11,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025725) do
+ActiveRecord::Schema.define(version: 220170413025726) do
 
   create_table "api_applications", force: :cascade do |t|
+    t.string   "universe",        limit: 5,   default: "UHERO", null: false
     t.string   "name",            limit: 255
     t.string   "hostname",        limit: 255
     t.string   "api_key",         limit: 255
-    t.datetime "created_at",                  null: false
-    t.datetime "updated_at",                  null: false
+    t.datetime "created_at",                                    null: false
+    t.datetime "updated_at",                                    null: false
     t.string   "github_nickname", limit: 255
   end
+
+  add_index "api_applications", ["universe", "name"], name: "index_api_applications_on_universe_and_name", unique: true, using: :btree
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -255,9 +258,14 @@ ActiveRecord::Schema.define(version: 220170413025725) do
     t.string   "display_name",       limit: 255
     t.string   "display_name_short", limit: 255
     t.string   "handle",             limit: 255
+    t.string   "region",             limit: 255
+    t.string   "subregion",          limit: 255
+    t.string   "incgrp2015",         limit: 255
     t.datetime "created_at",                                       null: false
     t.datetime "updated_at",                                       null: false
   end
+
+  add_index "geographies", ["universe", "handle", "incgrp2015"], name: "index_geographies_on_universe_and_handle_and_incgrp2015", unique: true, using: :btree
 
   create_table "measurement_series", force: :cascade do |t|
     t.integer "measurement_id", limit: 4
@@ -420,13 +428,14 @@ ActiveRecord::Schema.define(version: 220170413025725) do
   end
 
   create_table "units", force: :cascade do |t|
+    t.string   "universe",    limit: 5,   default: "UHERO", null: false
     t.string   "short_label", limit: 255
     t.string   "long_label",  limit: 255
-    t.datetime "created_at",              null: false
-    t.datetime "updated_at",              null: false
+    t.datetime "created_at",                                null: false
+    t.datetime "updated_at",                                null: false
   end
 
-  add_index "units", ["short_label", "long_label"], name: "index_units_on_short_label_and_long_label", unique: true, using: :btree
+  add_index "units", ["universe", "short_label", "long_label"], name: "index_units_on_universe_and_short_label_and_long_label", unique: true, using: :btree
 
   create_table "user_feedbacks", force: :cascade do |t|
     t.string   "name",       limit: 255
