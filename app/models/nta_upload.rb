@@ -11,13 +11,13 @@ class NtaUpload < ActiveRecord::Base
     series_file_content = series_file.read
     series_file_ext = series_file.original_filename.split('.')[-1]
     self.series_filename = NtaUpload.make_filename(now, 'series', series_file_ext)
-    self.series_status = :processing
+    self.set_status('series', :processing)
 
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'NTA upload object save failed'
       write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'NTA upload disk write failed'
-      NtaCsvWorker.perform_async(id, 'series')
+      NtaCsvWorker.perform_async(id)
     rescue => e
       self.delete if e.message =~ /disk write failed/
       return false
@@ -30,14 +30,12 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def make_active
-    return true ##### TEMP: during development
     NtaUpload.update_all active: false
     NtaLoadWorker.perform_async(self.id)
     self.update cats_status: 'processing'
   end
 
   def make_active_settings
-    return true ##### TEMP: during development
     return false unless DataPoint.update_public_data_points
     logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
@@ -84,11 +82,13 @@ class NtaUpload < ActiveRecord::Base
     true
   end
 
-  def load_csv(which)
-    if which == 'cats'
-      return load_cats_csv
-    end
+  def full_load
+    load_cats_csv
+    logger.debug { "NtaLoadWorker id=#{self.id} DONE load cats" }
     load_series_csv
+    logger.debug { "NtaLoadWorker id=#{self.id} DONE load series" }
+    make_active_settings
+    logger.info { "NtaLoadWorker id=#{self.id} loaded as active" }
   end
 
   def load_cats_csv
@@ -159,7 +159,7 @@ class NtaUpload < ActiveRecord::Base
     true
   end
 
-  def load_series_csv(run_active_settings = false)
+  def load_series_csv
     logger.debug { 'starting load_series_csv' }
     unless series_filename
       raise 'load_series_csv: no series_filename'
@@ -175,15 +175,17 @@ class NtaUpload < ActiveRecord::Base
 
     # if data_sources exist => set their current flag to true
     if DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").count > 0
-      logger.debug { 'NTA data already loaded' }
+      logger.debug { 'NTA data already loaded; Resetting current column values' }
       NtaUpload.connection.execute <<~SQL
         UPDATE data_points SET current = 0
         WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(%)');
       SQL
+      logger.debug { 'Reset all to current = false' }
       NtaUpload.connection.execute <<~SQL
         UPDATE data_points SET current = 1
         WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{id},%)');
       SQL
+      logger.debug { 'Reset this upload to current = true' }
       return true
     end
 
@@ -195,8 +197,9 @@ class NtaUpload < ActiveRecord::Base
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
       ## only one measurement per data list per indicator category
-      measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.name}")
-      raise("load_series_csv: no measurement for #{cat.name}") unless measurement
+      measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.meta}")
+      raise("load_series_csv: no measurement for #{cat.meta}") unless measurement
+      prefix = measurement.prefix
 
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
@@ -205,15 +208,15 @@ class NtaUpload < ActiveRecord::Base
 
         country = row_data['name']
         iso_handle = row_data['iso3166a']
-        series_name = '%s@%s.A' % [measurement.prefix, iso_handle]
+        series_name = '%s@%s.A' % [prefix, iso_handle]
 
         if current_series.nil? || current_series.name != series_name
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
-                               dataPortalName: cat.name,
-                               description: "#{cat.name} (#{country})",
+                               dataPortalName: measurement.data_portal_name,
+                               description: "#{measurement.data_portal_name} (#{country})",
                                frequency: 'year',
                                unit_id: measurement.unit_id,
                                source_id: measurement.source_id
@@ -263,14 +266,11 @@ class NtaUpload < ActiveRecord::Base
     DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
     new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
-
-    run_active_settings ? self.make_active_settings : true
   end
 
   def NtaUpload.load(id, series_id)
-    du = NtaUpload.find(id)
-    du.load_cats_csv
-    du.load_series_csv(true)
+    du = NtaUpload.find(id) || raise("No NtaUpload found with id=#{id}")
+    du.full_load
   end
 
 private

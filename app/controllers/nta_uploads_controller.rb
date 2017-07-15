@@ -31,7 +31,7 @@ class NtaUploadsController < ApplicationController
   end
 
   def make_active
-    false && @nta_upload.make_active  ### TEMP: during development
+    @nta_upload.make_active
     redirect_to(action: 'index')
   end
 
