@@ -11,7 +11,7 @@ RSpec.describe "api_applications/show", type: :view do
 
   it "renders attributes in <p>" do
     render
-    expect(rendered).to match(/Name/)
+    expect(rendered).to match(/Name1/)
     expect(rendered).to match(/Hostname/)
     expect(rendered).to match(/Key/)
   end
