@@ -200,6 +200,7 @@ class NtaUpload < ActiveRecord::Base
       measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.meta}")
       raise("load_series_csv: no measurement for #{cat.meta}") unless measurement
       prefix = measurement.prefix
+      indicator_name = cat.meta.sub(/^NTA_/,'')
 
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
@@ -243,7 +244,6 @@ class NtaUpload < ActiveRecord::Base
             Geography.get_or_new_nta({ handle: iso_handle, incgrp2015: row_data['incgrp2015'] },
                                      { display_name: country, region: row_data['regn'], subregion: row_data['subregn'] })
         end
-        indicator_name = cat.meta.sub(/^NTA_/,'')
         data_points.push({series_id: current_series.id,
                           data_source_id: current_data_source.id,
                           date: row_data['year'] + '-01-01',
