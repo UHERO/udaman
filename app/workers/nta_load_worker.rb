@@ -14,9 +14,9 @@ class NtaLoadWorker
     begin
       upload = NtaUpload.find(nta_id) || raise("No NtaUpload found with id=#{nta_id}")
       upload.full_load
-      upload.update!(cats_status: :ok, last_error: nil, last_error_at: nil)
+      upload.update!(series_status: :ok, last_error: nil, last_error_at: nil)
     rescue => error
-      upload.update(cats_status: :fail, last_error: error.message, last_error_at: Time.now)
+      upload.update(series_status: :fail, last_error: error.message, last_error_at: Time.now)
       logger.error { "NtaLoadWorker load failed: #{error.message}" }
       logger.error error.backtrace
     end

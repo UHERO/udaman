@@ -32,7 +32,7 @@ class NtaUpload < ActiveRecord::Base
   def make_active
     NtaUpload.update_all active: false
     NtaLoadWorker.perform_async(self.id)
-    self.update cats_status: 'processing'
+    self.update series_status: 'processing'
   end
 
   def make_active_settings
