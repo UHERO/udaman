@@ -18,7 +18,7 @@ class CsvFileProcessor
       csv_2d_array = @cached_files.csv(handle, @options[:path], true)
       observation_value = parse_cell(csv_2d_array, row, col)
     rescue EOFError
-      Rails.logger.debug { "--- Skipping data point for handle=#{handle} ::: #{date} ::: because source has not changed" }
+      Rails.logger.debug { "------ Skipping data point for handle=#{handle} at date=#{date} because source has not changed" }
       observation_value = 'SKIP DATA'
     rescue => e
       Rails.logger.error "CsvFileProcessor: #{e.message}"

@@ -16,7 +16,7 @@ class DownloadsCache
   def setup_and_check(type, handle, path = nil, raise_eof = false)
     Rails.logger.debug { "... Entered method setup_and_check: type=#{type}, handle=#{handle}, path=#{path}" }
     if path.nil?  ## this means that handle != 'manual'
-      @dload = @cache[:dloads][handle] || Download.get(handle) || raise("No Download handle '#{handle}' found")
+      @dload = @cache[:dloads][handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
       @cache[:dloads][handle] = @dload
       @handle = handle
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
@@ -25,6 +25,7 @@ class DownloadsCache
         download_handle
         set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
       end
+      ## Now, figure out if we can skip over this source entirely because it hasn't changed.
       if @data_source && raise_eof
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
         dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
@@ -38,14 +39,16 @@ class DownloadsCache
   end
 
   def mark_handle_used(handle)
-    @cache[:used_dloads][handle] = @cache[:dloads][handle] || raise("NO DLOAD HANDLE #{handle}")
+    @cache[:used_dloads][handle] = @cache[:dloads][handle] || raise("No download handle #{handle} to mark")
   end
 
   def update_last_used
+    Rails.logger.debug { "/////////////////////////////// ENTER update last used: #{@handle}" }
     return if @cache[:dsds].empty?
     @cache[:used_dloads].values.each do |dload|
       bridge_key = @data_source.id.to_s + '_' + dload.id.to_s
-      dsd = @cache[:dsds][bridge_key] || raise("NO BRIDGE KEY #{bridge_key}")
+      Rails.logger.debug { "\\\\\\\\\\\\\\\\\\\\\\\\ update last used: bkey:#{bridge_key}" }
+      dsd = @cache[:dsds][bridge_key] || raise("No bridge key #{bridge_key}")
       dsd.update last_file_vers_used: dload.last_change_at, last_eval_options_used: @options
     end
   end
