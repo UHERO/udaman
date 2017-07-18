@@ -135,8 +135,8 @@ class DbedtUpload < ActiveRecord::Base
       return false
     end
 
-    # remove categories and data_lists
-    Category.where(universe: 'DBEDT').delete_all
+    # clean out the things, but not the root category
+    Category.where('universe = "DBEDT" and ancestry is not null').delete_all
     DataList.where(universe: 'DBEDT').destroy_all
     category = nil
     CSV.foreach(cats_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
@@ -144,10 +144,10 @@ class DbedtUpload < ActiveRecord::Base
       indicator_id = row[3]
       parent_indicator_id = row[4]
       parent_label = "DBEDT_#{parent_indicator_id}"
-      if row[2].nil?
+      if row[2].blank?
         category = Category.find_by(meta: "DBEDT_#{indicator_id}")
         if category.nil?
-          ancestry = '60'
+          ancestry = Category.find_by(name: 'DBEDT Data Portal', ancestry: nil).id rescue raise('No DBEDT root category found')
           unless parent_indicator_id.nil?
             parent_category = Category.find_by(meta: parent_label)
             unless parent_category.nil?
@@ -166,7 +166,7 @@ class DbedtUpload < ActiveRecord::Base
       end
 
       # data_list_measurements entry
-      unless row[2].nil?
+      unless row[2].blank?
         data_list = DataList.find_by(name: parent_label)
         if data_list.nil?
           data_list = DataList.create(name: parent_label, universe: 'DBEDT')
@@ -288,7 +288,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     run_active_settings ? self.make_active_settings : true
   end
 
-  def DbedtUpload.load(id)
+  def DbedtUpload.load(id, series_id)
     du = DbedtUpload.find_by(id: id)
     du.load_series_csv(true)
   end

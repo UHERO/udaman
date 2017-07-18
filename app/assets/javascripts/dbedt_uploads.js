@@ -13,7 +13,10 @@ $(function() {
                 }
                 if (data === 'ok') {
                     $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
-                    if ($(element).parent().siblings().has('i.fa-check').length === 1) {
+                    if (resource === 'nta') {
+                        location.reload();
+                    }
+                    else if ($(element).parent().siblings().has('i.fa-check').length === 1) {
                         $(element).parent().siblings().has('span.waiting').children('span').removeClass('waiting');
                         location.reload();
                     }
@@ -33,6 +36,7 @@ $(function() {
             });
         }
     });
+    /* *** THIS IS UNUSED CODE
     $('.load-status.loading').each(function(_, element) {
         var icon_args = $(element).attr('id').split('-');
         var resource = icon_args[0];
@@ -58,4 +62,5 @@ $(function() {
             });
         }
     });
+    */
 });
