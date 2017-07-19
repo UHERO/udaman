@@ -127,6 +127,9 @@ class NtaUpload < ActiveRecord::Base
       unit_str = row[3] && row[3].strip
       unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new_nta(unit_str)
 
+      ## percent
+      percent = row[5] =~ /growth rate/i ? false : true
+
       ## source
       desc = link = nil
       ## advanced regex: ? following normal stuff means 0 or 1 of the preceding;
@@ -145,6 +148,7 @@ class NtaUpload < ActiveRecord::Base
           prefix: data_list_name,
           data_portal_name: long_name,
           unit_id: unit && unit.id,
+          percent: percent,
           source_id: source && source.id
         )
       else
@@ -220,6 +224,7 @@ class NtaUpload < ActiveRecord::Base
                                description: "#{measurement.data_portal_name} (#{country})",
                                frequency: 'year',
                                unit_id: measurement.unit_id,
+                               percent: measurement.percent,
                                source_id: measurement.source_id
                            )
             if measurement.series.where(id: current_series.id).empty?
