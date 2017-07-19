@@ -5,7 +5,7 @@ class DownloadsCache
     @dload = @data_source = ds_id = nil
     @options = options
     if options
-      ds_id = options.delete :data_source  ## get DS id (if any) and also remove from options hash
+      ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
       @options = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
     end
     if ds_id
@@ -13,8 +13,9 @@ class DownloadsCache
     end
   end
 
-  def setup_and_check(type, handle, path = nil, raise_eof = false)
+  def setup_and_check(type, handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method setup_and_check: type=#{type}, handle=#{handle}, path=#{path}" }
+    skip = false
     if path.nil?  ## this means that handle != 'manual'
       @dload = @cache[:dloads][handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
       @cache[:dloads][handle] = @dload
@@ -26,16 +27,16 @@ class DownloadsCache
         set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
       end
       ## Now, figure out if we can skip over this source entirely because it hasn't changed.
-      if @data_source && raise_eof
+      if @data_source && skip_proc
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
         dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
         @cache[:dsds][bridge_key] = dsd
-        if @dload.last_change_at <= dsd.last_file_vers_used && @options == dsd.last_eval_options_used
-          raise EOFError ## used as a convenient surrogate to mean 'nothing more to do here'. -dji
-        end
+
+        skip = @dload.last_change_at <= dsd.last_file_vers_used && @options == dsd.last_eval_options_used
       end
     end
     @path = path
+    skip
   end
 
   def mark_handle_used(handle)
@@ -43,22 +44,21 @@ class DownloadsCache
   end
 
   def update_last_used
-    Rails.logger.debug { "/////////////////////////////// ENTER update last used: #{@handle}" }
     return if @cache[:dsds].empty?
     @cache[:used_dloads].values.each do |dload|
       bridge_key = @data_source.id.to_s + '_' + dload.id.to_s
-      Rails.logger.debug { "\\\\\\\\\\\\\\\\\\\\\\\\ update last used: bkey:#{bridge_key}" }
       dsd = @cache[:dsds][bridge_key] || raise("No bridge key #{bridge_key}")
       dsd.update last_file_vers_used: dload.last_change_at, last_eval_options_used: @options
     end
   end
 
-  def xls(handle, sheet, path = nil, date = nil, raise_eof = false)
+  def xls(handle, sheet, path = nil, date = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
-    setup_and_check('xls', handle, path, raise_eof)
+    skip = setup_and_check('xls', handle, path, skip_proc)
     sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
     sheet_key = make_cache_key('xls', @path, sheet)
-    get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
+    worksheet = get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
+    skip_proc ? [worksheet, skip] : worksheet
   end
 
   def set_xls_sheet(sheet, date)
@@ -88,9 +88,9 @@ class DownloadsCache
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
-  def csv(handle, path = nil, raise_eof = false)
+  def csv(handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
-    setup_and_check('csv', handle, path, raise_eof)
+    setup_and_check('csv', handle, path, skip_proc)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -106,9 +106,9 @@ class DownloadsCache
     value
   end
 
-  def text(handle, raise_eof = false)
+  def text(handle, skip_proc = false)
     Rails.logger.debug { "... Entered method text: handle=#{handle}" }
-    setup_and_check('txt', handle, nil, raise_eof)
+    setup_and_check('txt', handle, nil, skip_proc)
     file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?

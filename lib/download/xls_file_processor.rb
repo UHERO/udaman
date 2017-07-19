@@ -15,21 +15,17 @@ class XlsFileProcessor
 
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
-
     date = @date_processor.compute(index)
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
     path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    skip = observation_value = nil
 
     begin
       row = @row_processor.compute(index, @cached_files, handle, sheet)
       col = @col_processor.compute(index, @cached_files, handle, sheet)
-
-      worksheet = @cached_files.xls(handle, sheet, path, date, true)
-      observation_value = parse_cell(worksheet.cell(row,col))
-    rescue EOFError
-      Rails.logger.debug { "------ Skipping data point for handle=#{handle} at date=#{date} because source has not changed" }
-      observation_value = 'SKIP DATA'
+      (worksheet, skip) = @cached_files.xls(handle, sheet, path, date, true)
+      observation_value = parse_cell(worksheet.cell(row, col))
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
@@ -45,12 +41,14 @@ class XlsFileProcessor
       raise e
     end
 
-    if observation_value == 'BREAK IN DATA' || observation_value == 'SKIP DATA'
+    if observation_value == 'BREAK IN DATA'
       return @handle_processor.date_sensitive? ? {} : 'END';
     end
-    Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
-    @cached_files.mark_handle_used(handle)
-    {date => observation_value}
+    unless skip
+      Rails.logger.debug { "PROCESSING data point for handle=#{handle} at date=#{date}" }
+      @cached_files.mark_handle_used(handle)
+    end
+    { date: observation_value, skip: skip }
   end
 
   def parse_cell(cell_value)

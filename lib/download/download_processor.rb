@@ -33,7 +33,7 @@ class DownloadProcessor
     data = {}
     begin
       data_point = @spreadsheet.observation_at index
-      data.merge!(data_point) if data_point.class == Hash
+      data.merge!(data_point) if data_point.class == Hash && !data_point.delete(:skip)
       index += 1
     end until data_point.class == String or (!@options[:end_date].nil? and data_point.keys[0] == @options[:end_date])
     @cached_files.update_last_used
