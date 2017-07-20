@@ -374,24 +374,17 @@ from series s
      on substring(s.name, locate('@', s.name)+1, 3) = g.handle
     and s.universe = g.universe
   join measurements m
-     on substring(m.prefix, 1, locate('_regn', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
+     on substring(m.prefix, 1, locate('_regn_', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
     and m.data_portal_name = g.region
     and m.universe = s.universe
 where s.universe = 'NTA'
 
 /*** Create series NTA_<var>@<region>.A ***/
-   ****************************************************** REVIEW THIS ONE FOR BETTER WAY TO DO, LIKE INCGRP
--- insert series (universe, name, frequency, dataPortalName, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(substring(s.name, 1, locate('@', s.name)-1), '@', g.region, '.A'), 'year', 'Region', m.unit_id, m.percent, m.source_id, now(), now()
-from series s
-  join geographies g
-     on substring(s.name, locate('@', s.name)+1, 3) = g.handle
-    and s.universe = g.universe
-  join measurements m
-     on substring(m.prefix, 1, locate('_regn', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
-    and m.data_portal_name = g.region
-    and m.universe = s.universe
-where s.universe = 'NTA'
+-- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '@', g.region, '.A') as name, 'Region', 'year', m.unit_id, m.percent, m.source_id, now(), now()
+from measurements m join geographies g on m.universe = g.universe
+where m.universe = 'NTA'
+and m.data_portal_name = 'All countries'
 
 /*** Create measurements NTA_<var>_regn ***/
 -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
@@ -429,13 +422,12 @@ where m.universe = 'NTA'
 and m.data_portal_name = 'All countries'
 
 /*** Create series NTA_<var>@<incgrp2015>.A ***/
--- insert series (universe, name, frequency, dataPortalName, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(d.name, '@', replace(g.incgrp2015,'-','_'), '.A') as name,
-          'year', 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
-from data_lists d
-  join geographies g on d.universe = g.universe
-  join measurements m on m.prefix = d.name and m.universe = d.universe
-where d.universe = 'NTA'
+-- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '@', replace(g.incgrp2015,'-','_'), '.A') as name,
+          'Income Group', 'year', m.unit_id, m.percent, m.source_id, now(), now()
+from measurements m join geographies g on m.universe = g.universe
+where m.universe = 'NTA'
+and m.data_portal_name = 'All countries'
 
 SQL
 end
