@@ -359,14 +359,14 @@ private
 
 end
 =begin
--- insert measurements (universe, prefix, data_portal_name, unit_id, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.source_id, now(), now()
+-- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.percent, m.source_id, now(), now()
 from measurements m join geographies g on m.universe = g.universe
 where m.universe = 'NTA'
 and m.data_portal_name = 'All countries'
 
 -- insert measurement_series (measurement_id, series_id)
-select m.id, s.id
+select distinct m.id, s.id
 from series s
   join geographies g
      on substring(s.name, locate('@', s.name)+1, 3) = g.handle
@@ -386,6 +386,24 @@ from series s
   join measurements m
      on substring(m.prefix, 1, locate('_regn', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
     and m.data_portal_name = g.region
+    and m.universe = s.universe
+where s.universe = 'NTA'
+
+-- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
+from measurements m
+where m.universe = 'NTA'
+and m.data_portal_name = 'All countries'
+
+-- insert measurement_series (measurement_id, series_id)
+select distinct m.id, s.id
+from series s
+  join geographies g
+     on substring(s.name, locate('@', s.name)+1, locate('.', s.name)-locate('@', s.name)-1) = g.region
+    and s.universe = g.universe
+  join measurements m
+     on m.prefix = concat(substring(s.name, 1, locate('@', s.name)-1), '_regn')
+    and m.data_portal_name = 'Region' -- just for good luck
     and m.universe = s.universe
 where s.universe = 'NTA'
 
