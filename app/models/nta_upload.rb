@@ -357,14 +357,16 @@ private
     end
   end
 
-end
-=begin
+def sql_text_foo
+  return <<SQL
+/*** Create measurements NTA_<var>_regn_<region> ***/
 -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
 select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.percent, m.source_id, now(), now()
 from measurements m join geographies g on m.universe = g.universe
 where m.universe = 'NTA'
 and m.data_portal_name = 'All countries'
 
+/*** Associate measurements NTA_<var>_regn_<region> with series NTA_<var>@<country>.A in each region ***/
 -- insert measurement_series (measurement_id, series_id)
 select distinct m.id, s.id
 from series s
@@ -377,6 +379,7 @@ from series s
     and m.universe = s.universe
 where s.universe = 'NTA'
 
+/*** Create series NTA_<var>@<region>.A ***/
 -- insert series (universe, name, frequency, dataPortalName, unit_id, percent, source_id, created_at, updated_at)
 select distinct 'NTA', concat(substring(s.name, 1, locate('@', s.name)-1), '@', g.region, '.A'), 'year', 'Region', m.unit_id, m.percent, m.source_id, now(), now()
 from series s
@@ -389,12 +392,14 @@ from series s
     and m.universe = s.universe
 where s.universe = 'NTA'
 
+/*** Create measurements NTA_<var>_regn ***/
 -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
 select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
 from measurements m
 where m.universe = 'NTA'
 and m.data_portal_name = 'All countries'
 
+/*** Associate measurements NTA_<var>_regn with series NTA_<var>@<region>.A ***/
 -- insert measurement_series (measurement_id, series_id)
 select distinct m.id, s.id
 from series s
@@ -407,4 +412,23 @@ from series s
     and m.universe = s.universe
 where s.universe = 'NTA'
 
-=end
+/*** Create measurements NTA_<var>_incgrp2015_<incgrp2015> ***/
+-- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '_incgrp2015_', replace(g.incgrp2015,'-','_')) as pref,
+                     concat(g.incgrp2015, ' Income') as dpn, m.unit_id, m.percent, m.source_id, now(), now()
+from measurements m join geographies g on m.universe = g.universe
+where m.universe = 'NTA'
+and m.data_portal_name = 'All countries'
+
+/*** Create measurements NTA_<var>_incgrp2015 ***/
+-- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '_incgrp2015'), 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
+from measurements m
+where m.universe = 'NTA'
+and m.data_portal_name = 'All countries'
+
+
+SQL
+end
+
+end
