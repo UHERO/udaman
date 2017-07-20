@@ -380,6 +380,7 @@ from series s
 where s.universe = 'NTA'
 
 /*** Create series NTA_<var>@<region>.A ***/
+   ****************************************************** REVIEW THIS ONE FOR BETTER WAY TO DO, LIKE INCGRP
 -- insert series (universe, name, frequency, dataPortalName, unit_id, percent, source_id, created_at, updated_at)
 select distinct 'NTA', concat(substring(s.name, 1, locate('@', s.name)-1), '@', g.region, '.A'), 'year', 'Region', m.unit_id, m.percent, m.source_id, now(), now()
 from series s
@@ -427,6 +428,14 @@ from measurements m
 where m.universe = 'NTA'
 and m.data_portal_name = 'All countries'
 
+/*** Create series NTA_<var>@<incgrp2015>.A ***/
+-- insert series (universe, name, frequency, dataPortalName, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(d.name, '@', replace(g.incgrp2015,'-','_'), '.A') as name,
+          'year', 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
+from data_lists d
+  join geographies g on d.universe = g.universe
+  join measurements m on m.prefix = d.name and m.universe = d.universe
+where d.universe = 'NTA'
 
 SQL
 end
