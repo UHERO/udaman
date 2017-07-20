@@ -146,7 +146,7 @@ class NtaUpload < ActiveRecord::Base
         measurement = Measurement.create(
           universe: 'NTA',
           prefix: data_list_name,
-          data_portal_name: long_name,
+          data_portal_name: 'All countries',
           unit_id: unit && unit.id,
           percent: percent,
           source_id: source && source.id
@@ -358,3 +358,35 @@ private
   end
 
 end
+=begin
+-- insert measurements (universe, prefix, data_portal_name, unit_id, source_id, created_at, updated_at)
+select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.source_id, now(), now()
+from measurements m join geographies g on m.universe = g.universe
+where m.universe = 'NTA'
+and m.data_portal_name = 'All countries'
+
+-- insert measurement_series (measurement_id, series_id)
+select m.id, s.id
+from series s
+  join geographies g
+     on substring(s.name, locate('@', s.name)+1, 3) = g.handle
+    and s.universe = g.universe
+  join measurements m
+     on substring(m.prefix, 1, locate('_regn', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
+    and m.data_portal_name = g.region
+    and m.universe = s.universe
+where s.universe = 'NTA'
+
+-- insert series (universe, name, frequency, dataPortalName, unit_id, percent, source_id, created_at, updated_at)
+select distinct 'NTA', concat(substring(s.name, 1, locate('@', s.name)-1), '@', g.region, '.A'), 'year', 'Region', m.unit_id, m.percent, m.source_id, now(), now()
+from series s
+  join geographies g
+     on substring(s.name, locate('@', s.name)+1, 3) = g.handle
+    and s.universe = g.universe
+  join measurements m
+     on substring(m.prefix, 1, locate('_regn', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
+    and m.data_portal_name = g.region
+    and m.universe = s.universe
+where s.universe = 'NTA'
+
+=end
