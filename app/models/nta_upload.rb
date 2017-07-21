@@ -274,86 +274,7 @@ class NtaUpload < ActiveRecord::Base
     du.full_load
   end
 
-private
-  def path(name = nil)
-    parts = [ENV['DATA_PATH'], 'nta_files']
-    parts.push(name) unless name.blank?
-    File.join(parts)
-  end
-
-  def NtaUpload.make_filename(time, type, ext)
-    ## a VERY rough heuristic for whether we have a correct file extention
-    ext = ext.length > 4 ? '' : '.' + ext
-    time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
-  end
-
-  def write_file_to_disk(name, content)
-    begin
-      File.open(path(name), 'wb') { |f| f.write(content) }
-    rescue StandardError => e
-      Rails.logger.error e.message
-      return false
-    end
-    true
-  end
-
-  def read_file_from_disk(name)
-    begin
-      content = File.open(path(name), 'r') { |f| f.read }
-    rescue StandardError => e
-      Rails.logger.error e.message
-      return false
-    end
-    content
-  end
-
-  def delete_file_from_disk(abspath)
-    begin
-      File.delete(abspath)
-    rescue StandardError => e
-      Rails.logger.error e.message
-      return false
-    end
-    true
-  end
-
-  def delete_files_from_disk
-    delete_series_file
-  end
-
-  def delete_data_and_data_sources
-    NtaUpload.connection.execute <<~SQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
-    SQL
-    DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
-  end
-
-  def get_geo_code(name)
-    trans_hash = {
-        'Hawaii County' => 'HAW',
-        'Honolulu County' => 'HON',
-        'Maui County' => 'MAU',
-        'Kauai County' => 'KAU',
-        'Statewide' => 'HI',
-    }
-    trans_hash[name] || 'ERROR'
-  end
-
-  def get_date(year, qm)
-    if qm =~ /^M(\d+)/i
-      "#{year}-%02d-01" % $1.to_i
-    elsif qm =~ /^Q(\d+)/i
-      quarter_month = '%02d' % (($1.to_i - 1) * 3 + 1)
-      "#{year}-#{quarter_month}-01"
-    elsif qm.nil? || qm.empty? || qm =~ /A/i
-      "#{year}-01-01"
-    else
-      "#{year}-12-31"  ## use this as an error code? :=}
-    end
-  end
-
-  def sql_text_foo
+  def load_data_postproc
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn_<region> ***/
       -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
@@ -496,6 +417,85 @@ private
       where s1.universe = 'NTA'
       group by 1,2,3,4
     SQL
+  end
+
+private
+  def path(name = nil)
+    parts = [ENV['DATA_PATH'], 'nta_files']
+    parts.push(name) unless name.blank?
+    File.join(parts)
+  end
+
+  def NtaUpload.make_filename(time, type, ext)
+    ## a VERY rough heuristic for whether we have a correct file extention
+    ext = ext.length > 4 ? '' : '.' + ext
+    time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
+  end
+
+  def write_file_to_disk(name, content)
+    begin
+      File.open(path(name), 'wb') { |f| f.write(content) }
+    rescue StandardError => e
+      Rails.logger.error e.message
+      return false
+    end
+    true
+  end
+
+  def read_file_from_disk(name)
+    begin
+      content = File.open(path(name), 'r') { |f| f.read }
+    rescue StandardError => e
+      Rails.logger.error e.message
+      return false
+    end
+    content
+  end
+
+  def delete_file_from_disk(abspath)
+    begin
+      File.delete(abspath)
+    rescue StandardError => e
+      Rails.logger.error e.message
+      return false
+    end
+    true
+  end
+
+  def delete_files_from_disk
+    delete_series_file
+  end
+
+  def delete_data_and_data_sources
+    NtaUpload.connection.execute <<~SQL
+      DELETE FROM data_points
+      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
+    SQL
+    DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
+  end
+
+  def get_geo_code(name)
+    trans_hash = {
+        'Hawaii County' => 'HAW',
+        'Honolulu County' => 'HON',
+        'Maui County' => 'MAU',
+        'Kauai County' => 'KAU',
+        'Statewide' => 'HI',
+    }
+    trans_hash[name] || 'ERROR'
+  end
+
+  def get_date(year, qm)
+    if qm =~ /^M(\d+)/i
+      "#{year}-%02d-01" % $1.to_i
+    elsif qm =~ /^Q(\d+)/i
+      quarter_month = '%02d' % (($1.to_i - 1) * 3 + 1)
+      "#{year}-#{quarter_month}-01"
+    elsif qm.nil? || qm.empty? || qm =~ /A/i
+      "#{year}-01-01"
+    else
+      "#{year}-12-31"  ## use this as an error code? :=}
+    end
   end
 
 end
