@@ -469,21 +469,21 @@ from data_lists dl
     and dl.universe = m.universe
 where dl.universe = 'NTA'
 
-/*** Generating aggregate data points ***/
--- insert data_points (universe, series_id, `current`, `date`, `value`) -- what about data source?
-select distinct s1.universe, s2.name, dp.`current`, dp.`date`, avg(dp.`value`)
+/*** Generating aggregate region/income group data points ***/
+-- insert data_points (universe, series_id, `date`, `value`) -- what about current & data source?
+select distinct s1.universe, s2.id, dp.`date`, avg(dp.`value`)
 from data_points dp
   join series s1 on dp.series_id = s1.id -- country data series
   join geographies g
      on substring_index(substring_index(s1.name, '@', -1), '.', 1) = g.handle
     and g.universe = s1.universe
-  join series s2                         -- 'grouping' region/incgrp series
+  join series s2                         -- aggregate region/incgrp series
      on substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1) -- match prefixes
     and substring_index(substring_index(s2.name, '@', -1), '.', 1) in (g.region, g.incgrp2015)
     and s2.universe = s1.universe
 where s1.universe = 'NTA'
-group by 1,2,3,4 -- -------------------- this needs to change based on select clause - don't forget
-order by 1,2,3,4
+group by 1,2,3,4
+
 
 SQL
 end
