@@ -154,11 +154,7 @@ class NtaUpload < ActiveRecord::Base
       else
         measurement.update data_portal_name: long_name
       end
-      if data_list.measurements.where(id: measurement.id).empty?
-        data_list.measurements << measurement
-        logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
-        ## No ordering is applied in this case because there is only one measurement per DL -dji
-      end
+      ### Data lists and measurements will be associated later, in SQL code
     end
     true
   end
@@ -453,7 +449,27 @@ from series s
     and m.universe = s.universe
 where s.universe = 'NTA'
 
+/*** Associate all measurements NTA_<var> & NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
+-- insert data_list_measurements (data_list_id, measurement_id, indent)
+select distinct dl.id, m.id, 'indent0'
+from data_lists dl
+  join measurements m
+     on dl.name = substring_index(m.prefix, '_', 2)
+    and length(m.prefix)-length(replace(m.prefix, '_', '')) <= 2
+    and dl.universe = m.universe
+where dl.universe = 'NTA'
 
+/*** Associate all measurements NTA_<var>_{regn,incgrp2015}_{subcategory} with their data lists at indent 1 ***/
+-- insert data_list_measurements (data_list_id, measurement_id, indent)
+select distinct dl.id, m.id, 'indent1'
+from data_lists dl
+  join measurements m
+     on dl.name = substring_index(m.prefix, '_', 2)
+    and length(m.prefix)-length(replace(m.prefix, '_', '')) > 2
+    and dl.universe = m.universe
+where dl.universe = 'NTA'
+
+/*** Generating aggregate data points ***/
 -- insert data_points (universe, series_id, `current`, `date`, `value`) -- what about data source?
 select distinct s1.universe, s2.name, dp.`current`, dp.`date`, avg(dp.`value`)
 from data_points dp
@@ -462,9 +478,9 @@ from data_points dp
      on substring(s1.name, locate('@', s1.name)+1, 3) = g.handle
     and g.universe = s1.universe
   join series s2                         -- 'grouping' region/incgrp series
-    on substring(s2.name, 1, locate('@', s2.name)-1) = substring(s1.name, 1, locate('@', s1.name)-1) -- match prefixes
-   and substring(s2.name, locate('@', s2.name)+1, locate('.', s2.name)-locate('@', s2.name)-1) in (g.region, g.incgrp2015)
-   and s2.universe = s1.universe
+     on substring(s2.name, 1, locate('@', s2.name)-1) = substring(s1.name, 1, locate('@', s1.name)-1) -- match prefixes
+    and substring(s2.name, locate('@', s2.name)+1, locate('.', s2.name)-locate('@', s2.name)-1) in (g.region, g.incgrp2015)
+    and s2.universe = s1.universe
 where s1.universe = 'NTA'
 group by 1,2,3,4 -- -------------------- this needs to change based on select clause - don't forget
 order by 1,2,3,4
