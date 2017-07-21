@@ -370,7 +370,7 @@ from series s
      on substring(s.name, locate('@', s.name)+1, 3) = g.handle
     and s.universe = g.universe
   join measurements m
-     on substring(m.prefix, 1, locate('_regn_', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
+     on substring(m.prefix, 1, locate('_regn_', m.prefix)-1) = substring_index(s.name, '@', 1)
     and m.data_portal_name = g.region
     and m.universe = s.universe
 where s.universe = 'NTA'
@@ -397,7 +397,7 @@ from series s
      on substring(s.name, locate('@', s.name)+1, locate('.', s.name)-locate('@', s.name)-1) = g.region
     and s.universe = g.universe
   join measurements m
-     on m.prefix = concat(substring(s.name, 1, locate('@', s.name)-1), '_regn')
+     on m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
     and m.universe = s.universe
 where s.universe = 'NTA'
 
@@ -417,7 +417,7 @@ from series s
      on substring(s.name, locate('@', s.name)+1, 3) = g.handle
     and s.universe = g.universe
   join measurements m
-     on substring(m.prefix, 1, locate('_incgrp2015_', m.prefix)-1) = substring(s.name, 1, locate('@', s.name)-1)
+     on substring(m.prefix, 1, locate('_incgrp2015_', m.prefix)-1) = substring_index(s.name, '@', 1)
     and m.data_portal_name = concat(g.incgrp2015, ' Income')
     and m.universe = s.universe
 where s.universe = 'NTA'
@@ -445,7 +445,7 @@ from series s
      on substring(s.name, locate('@', s.name)+1, locate('.', s.name)-locate('@', s.name)-1) = g.incgrp2015
     and s.universe = g.universe
   join measurements m
-     on m.prefix = concat(substring(s.name, 1, locate('@', s.name)-1), '_incgrp2015')
+     on m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015')
     and m.universe = s.universe
 where s.universe = 'NTA'
 
