@@ -104,9 +104,14 @@ class NtaUpload < ActiveRecord::Base
     unless File.exists?(cats_path)
       raise "load_cats_csv: couldn't find file #{cats_path}"
     end
-    # clean out the things, but not the root category
-    Category.where('universe = "NTA" and ancestry is not null').delete_all
+
+    # Clean out all the things, but not the root category
+    delete_all_bridge_entries
+    Series.where(universe: 'NTA').destroy_all
+    Measurement.where(universe: 'NTA').destroy_all
     DataList.where(universe: 'NTA').destroy_all
+    Category.where('universe = "NTA" and ancestry is not null').delete_all
+
     root = Category.find_by(universe: 'NTA', ancestry: nil).id rescue raise('No NTA root category found')
 
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
@@ -274,10 +279,19 @@ class NtaUpload < ActiveRecord::Base
     du.full_load
   end
 
+  def delete_all_bridge_entries
+    NtaUpload.connection.execute <<~SQL
+      delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'NTA'
+    SQL
+  end
+
   def load_data_postproc
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn_<region> ***/
-      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m join geographies g on m.universe = g.universe
       where m.universe = 'NTA'
@@ -285,7 +299,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_regn_<region> with series NTA_<var>@<country>.A in each region ***/
-      -- insert measurement_series (measurement_id, series_id)
+      insert measurement_series (measurement_id, series_id)
       select distinct m.id, s.id
       from series s
         join geographies g
@@ -299,7 +313,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Create series NTA_<var>@<region>.A ***/
-      -- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
+      insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '@', g.region, '.A') as name, 'Region', 'year', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m join geographies g on m.universe = g.universe
       where m.universe = 'NTA'
@@ -307,7 +321,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn ***/
-      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
       where m.universe = 'NTA'
@@ -315,7 +329,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_regn with series NTA_<var>@<region>.A ***/
-      -- insert measurement_series (measurement_id, series_id)
+      insert measurement_series (measurement_id, series_id)
       select distinct m.id, s.id
       from series s
         join geographies g
@@ -328,7 +342,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_incgrp2015_<incgrp2015> ***/
-      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '_incgrp2015_', g.incgrp2015) as pref,
                            concat(g.incgrp2015, ' Income') as dpn, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m join geographies g on m.universe = g.universe
@@ -337,7 +351,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp2015_<incgrp2015> with series NTA_<var>@<country>.A in each income group ***/
-      -- insert measurement_series (measurement_id, series_id)
+      insert measurement_series (measurement_id, series_id)
       select distinct m.id, s.id
       from series s
         join geographies g
@@ -351,7 +365,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_incgrp2015 ***/
-      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '_incgrp2015'), 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
       where m.universe = 'NTA'
@@ -359,7 +373,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Create series NTA_<var>@<incgrp2015>.A ***/
-      -- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
+      insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '@', g.incgrp2015, '.A') as name,
                 'Income Group', 'year', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m join geographies g on m.universe = g.universe
@@ -368,7 +382,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp2015 with series NTA_<var>@<incgrp2015>.A ***/
-      -- insert measurement_series (measurement_id, series_id)
+      insert measurement_series (measurement_id, series_id)
       select distinct m.id, s.id
       from series s
         join geographies g
@@ -381,7 +395,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var> & NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
-      -- insert data_list_measurements (data_list_id, measurement_id, indent)
+      insert data_list_measurements (data_list_id, measurement_id, indent)
       select distinct dl.id, m.id, 'indent0'
       from data_lists dl
         join measurements m
@@ -392,7 +406,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp2015}_{subcategory} with their data lists at indent 1 ***/
-      -- insert data_list_measurements (data_list_id, measurement_id, indent)
+      insert data_list_measurements (data_list_id, measurement_id, indent)
       select distinct dl.id, m.id, 'indent1'
       from data_lists dl
         join measurements m
@@ -403,15 +417,15 @@ class NtaUpload < ActiveRecord::Base
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Generating aggregate region/income group data points ***/
-      -- insert data_points (universe, series_id, `date`, `value`) -- what about current & data source?
+      insert data_points (universe, series_id, `date`, `value`)
       select distinct s1.universe, s2.id, dp.`date`, avg(dp.`value`)
       from data_points dp
-        join series s1 on dp.series_id = s1.id -- country data series
+        join series s1 on dp.series_id = s1.id /* country data series */
         join geographies g
            on substring_index(substring_index(s1.name, '@', -1), '.', 1) = g.handle
           and g.universe = s1.universe
-        join series s2                         -- aggregate region/incgrp series
-           on substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1) -- match prefixes
+        join series s2                         /* aggregate region/incgrp series */
+           on substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1)
           and substring_index(substring_index(s2.name, '@', -1), '.', 1) in (g.region, g.incgrp2015)
           and s2.universe = s1.universe
       where s1.universe = 'NTA'
