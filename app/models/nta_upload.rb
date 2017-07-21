@@ -353,139 +353,149 @@ private
     end
   end
 
-def sql_text_foo
-  return <<SQL
-/*** Create measurements NTA_<var>_regn_<region> ***/
--- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.percent, m.source_id, now(), now()
-from measurements m join geographies g on m.universe = g.universe
-where m.universe = 'NTA'
-and m.data_portal_name = 'All countries'
-
-/*** Associate measurements NTA_<var>_regn_<region> with series NTA_<var>@<country>.A in each region ***/
--- insert measurement_series (measurement_id, series_id)
-select distinct m.id, s.id
-from series s
-  join geographies g
-     on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
-    and s.universe = g.universe
-  join measurements m
-     on substring_index(m.prefix, '_regn_', 1) = substring_index(s.name, '@', 1)
-    and m.data_portal_name = g.region
-    and m.universe = s.universe
-where s.universe = 'NTA'
-
-/*** Create series NTA_<var>@<region>.A ***/
--- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '@', g.region, '.A') as name, 'Region', 'year', m.unit_id, m.percent, m.source_id, now(), now()
-from measurements m join geographies g on m.universe = g.universe
-where m.universe = 'NTA'
-and m.data_portal_name = 'All countries'
-
-/*** Create measurements NTA_<var>_regn ***/
--- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
-from measurements m
-where m.universe = 'NTA'
-and m.data_portal_name = 'All countries'
-
-/*** Associate measurements NTA_<var>_regn with series NTA_<var>@<region>.A ***/
--- insert measurement_series (measurement_id, series_id)
-select distinct m.id, s.id
-from series s
-  join geographies g
-     on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.region
-    and s.universe = g.universe
-  join measurements m
-     on m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
-    and m.universe = s.universe
-where s.universe = 'NTA'
-
-/*** Create measurements NTA_<var>_incgrp2015_<incgrp2015> ***/
--- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '_incgrp2015_', g.incgrp2015) as pref,
-                     concat(g.incgrp2015, ' Income') as dpn, m.unit_id, m.percent, m.source_id, now(), now()
-from measurements m join geographies g on m.universe = g.universe
-where m.universe = 'NTA'
-and m.data_portal_name = 'All countries'
-
-/*** Associate measurements NTA_<var>_incgrp2015_<incgrp2015> with series NTA_<var>@<country>.A in each income group ***/
--- insert measurement_series (measurement_id, series_id)
-select distinct m.id, s.id
-from series s
-  join geographies g
-     on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
-    and s.universe = g.universe
-  join measurements m
-     on substring_index(m.prefix, '_incgrp2015_', 1) = substring_index(s.name, '@', 1)
-    and m.data_portal_name = concat(g.incgrp2015, ' Income')
-    and m.universe = s.universe
-where s.universe = 'NTA'
-
-/*** Create measurements NTA_<var>_incgrp2015 ***/
--- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '_incgrp2015'), 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
-from measurements m
-where m.universe = 'NTA'
-and m.data_portal_name = 'All countries'
-
-/*** Create series NTA_<var>@<incgrp2015>.A ***/
--- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
-select distinct 'NTA', concat(m.prefix, '@', g.incgrp2015, '.A') as name,
-          'Income Group', 'year', m.unit_id, m.percent, m.source_id, now(), now()
-from measurements m join geographies g on m.universe = g.universe
-where m.universe = 'NTA'
-and m.data_portal_name = 'All countries'
-
-/*** Associate measurements NTA_<var>_incgrp2015 with series NTA_<var>@<incgrp2015>.A ***/
--- insert measurement_series (measurement_id, series_id)
-select distinct m.id, s.id
-from series s
-  join geographies g
-     on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.incgrp2015
-    and s.universe = g.universe
-  join measurements m
-     on m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015')
-    and m.universe = s.universe
-where s.universe = 'NTA'
-
-/*** Associate all measurements NTA_<var> & NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
--- insert data_list_measurements (data_list_id, measurement_id, indent)
-select distinct dl.id, m.id, 'indent0'
-from data_lists dl
-  join measurements m
-     on dl.name = substring_index(m.prefix, '_', 2)
-    and length(m.prefix)-length(replace(m.prefix, '_', '')) <= 2
-    and dl.universe = m.universe
-where dl.universe = 'NTA'
-
-/*** Associate all measurements NTA_<var>_{regn,incgrp2015}_{subcategory} with their data lists at indent 1 ***/
--- insert data_list_measurements (data_list_id, measurement_id, indent)
-select distinct dl.id, m.id, 'indent1'
-from data_lists dl
-  join measurements m
-     on dl.name = substring_index(m.prefix, '_', 2)
-    and length(m.prefix)-length(replace(m.prefix, '_', '')) > 2
-    and dl.universe = m.universe
-where dl.universe = 'NTA'
-
-/*** Generating aggregate region/income group data points ***/
--- insert data_points (universe, series_id, `date`, `value`) -- what about current & data source?
-select distinct s1.universe, s2.id, dp.`date`, avg(dp.`value`)
-from data_points dp
-  join series s1 on dp.series_id = s1.id -- country data series
-  join geographies g
-     on substring_index(substring_index(s1.name, '@', -1), '.', 1) = g.handle
-    and g.universe = s1.universe
-  join series s2                         -- aggregate region/incgrp series
-     on substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1) -- match prefixes
-    and substring_index(substring_index(s2.name, '@', -1), '.', 1) in (g.region, g.incgrp2015)
-    and s2.universe = s1.universe
-where s1.universe = 'NTA'
-group by 1,2,3,4
-
-
-SQL
-end
+  def sql_text_foo
+    NtaUpload.connection.execute <<~SQL
+      /*** Create measurements NTA_<var>_regn_<region> ***/
+      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      select distinct 'NTA', concat(m.prefix, '_regn_', g.region), g.region, m.unit_id, m.percent, m.source_id, now(), now()
+      from measurements m join geographies g on m.universe = g.universe
+      where m.universe = 'NTA'
+      and m.data_portal_name = 'All countries'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_regn_<region> with series NTA_<var>@<country>.A in each region ***/
+      -- insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join geographies g
+           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
+          and s.universe = g.universe
+        join measurements m
+           on substring_index(m.prefix, '_regn_', 1) = substring_index(s.name, '@', 1)
+          and m.data_portal_name = g.region
+          and m.universe = s.universe
+      where s.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Create series NTA_<var>@<region>.A ***/
+      -- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
+      select distinct 'NTA', concat(m.prefix, '@', g.region, '.A') as name, 'Region', 'year', m.unit_id, m.percent, m.source_id, now(), now()
+      from measurements m join geographies g on m.universe = g.universe
+      where m.universe = 'NTA'
+      and m.data_portal_name = 'All countries'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Create measurements NTA_<var>_regn ***/
+      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
+      from measurements m
+      where m.universe = 'NTA'
+      and m.data_portal_name = 'All countries'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_regn with series NTA_<var>@<region>.A ***/
+      -- insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join geographies g
+           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.region
+          and s.universe = g.universe
+        join measurements m
+           on m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
+          and m.universe = s.universe
+      where s.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Create measurements NTA_<var>_incgrp2015_<incgrp2015> ***/
+      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      select distinct 'NTA', concat(m.prefix, '_incgrp2015_', g.incgrp2015) as pref,
+                           concat(g.incgrp2015, ' Income') as dpn, m.unit_id, m.percent, m.source_id, now(), now()
+      from measurements m join geographies g on m.universe = g.universe
+      where m.universe = 'NTA'
+      and m.data_portal_name = 'All countries'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_incgrp2015_<incgrp2015> with series NTA_<var>@<country>.A in each income group ***/
+      -- insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join geographies g
+           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
+          and s.universe = g.universe
+        join measurements m
+           on substring_index(m.prefix, '_incgrp2015_', 1) = substring_index(s.name, '@', 1)
+          and m.data_portal_name = concat(g.incgrp2015, ' Income')
+          and m.universe = s.universe
+      where s.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Create measurements NTA_<var>_incgrp2015 ***/
+      -- insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
+      select distinct 'NTA', concat(m.prefix, '_incgrp2015'), 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
+      from measurements m
+      where m.universe = 'NTA'
+      and m.data_portal_name = 'All countries'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Create series NTA_<var>@<incgrp2015>.A ***/
+      -- insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
+      select distinct 'NTA', concat(m.prefix, '@', g.incgrp2015, '.A') as name,
+                'Income Group', 'year', m.unit_id, m.percent, m.source_id, now(), now()
+      from measurements m join geographies g on m.universe = g.universe
+      where m.universe = 'NTA'
+      and m.data_portal_name = 'All countries'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_incgrp2015 with series NTA_<var>@<incgrp2015>.A ***/
+      -- insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join geographies g
+           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.incgrp2015
+          and s.universe = g.universe
+        join measurements m
+           on m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015')
+          and m.universe = s.universe
+      where s.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate all measurements NTA_<var> & NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
+      -- insert data_list_measurements (data_list_id, measurement_id, indent)
+      select distinct dl.id, m.id, 'indent0'
+      from data_lists dl
+        join measurements m
+           on dl.name = substring_index(m.prefix, '_', 2)
+          and length(m.prefix)-length(replace(m.prefix, '_', '')) <= 2
+          and dl.universe = m.universe
+      where dl.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate all measurements NTA_<var>_{regn,incgrp2015}_{subcategory} with their data lists at indent 1 ***/
+      -- insert data_list_measurements (data_list_id, measurement_id, indent)
+      select distinct dl.id, m.id, 'indent1'
+      from data_lists dl
+        join measurements m
+           on dl.name = substring_index(m.prefix, '_', 2)
+          and length(m.prefix)-length(replace(m.prefix, '_', '')) > 2
+          and dl.universe = m.universe
+      where dl.universe = 'NTA'
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Generating aggregate region/income group data points ***/
+      -- insert data_points (universe, series_id, `date`, `value`) -- what about current & data source?
+      select distinct s1.universe, s2.id, dp.`date`, avg(dp.`value`)
+      from data_points dp
+        join series s1 on dp.series_id = s1.id -- country data series
+        join geographies g
+           on substring_index(substring_index(s1.name, '@', -1), '.', 1) = g.handle
+          and g.universe = s1.universe
+        join series s2                         -- aggregate region/incgrp series
+           on substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1) -- match prefixes
+          and substring_index(substring_index(s2.name, '@', -1), '.', 1) in (g.region, g.incgrp2015)
+          and s2.universe = s1.universe
+      where s1.universe = 'NTA'
+      group by 1,2,3,4
+    SQL
+  end
 
 end
