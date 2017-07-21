@@ -370,7 +370,7 @@ from series s
      on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
     and s.universe = g.universe
   join measurements m
-     on substring(m.prefix, 1, locate('_regn_', m.prefix)-1) = substring_index(s.name, '@', 1)
+     on substring_index(m.prefix, '_regn_', 1) = substring_index(s.name, '@', 1)
     and m.data_portal_name = g.region
     and m.universe = s.universe
 where s.universe = 'NTA'
@@ -417,7 +417,7 @@ from series s
      on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
     and s.universe = g.universe
   join measurements m
-     on substring(m.prefix, 1, locate('_incgrp2015_', m.prefix)-1) = substring_index(s.name, '@', 1)
+     on substring_index(m.prefix, '_incgrp2015_', 1) = substring_index(s.name, '@', 1)
     and m.data_portal_name = concat(g.incgrp2015, ' Income')
     and m.universe = s.universe
 where s.universe = 'NTA'
