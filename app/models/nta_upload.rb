@@ -84,18 +84,23 @@ class NtaUpload < ActiveRecord::Base
 
   def full_load
     logger.debug { "NtaLoadWorker id=#{self.id} BEGIN full load #{Time.now}" }
+    puts "DEBUG: NtaLoadWorker BEGIN full load at #{Time.now}"
     load_cats_csv
     logger.debug { "NtaLoadWorker id=#{self.id} DONE load cats #{Time.now}" }
+    puts "DEBUG: NtaLoadWorker DONE load cats at #{Time.now}"
     load_series_csv
     logger.debug { "NtaLoadWorker id=#{self.id} DONE load series #{Time.now}" }
+    puts "DEBUG: NtaLoadWorker DONE load series at #{Time.now}"
     load_data_postproc
     logger.debug { "NtaLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
+    puts "DEBUG: NtaLoadWorker DONE load postproc at #{Time.now}"
     make_active_settings
     logger.info { "NtaLoadWorker id=#{self.id} loaded as active #{Time.now}" }
   end
 
   def load_cats_csv
     logger.debug { 'starting load_cats_csv' }
+    puts "DEBUG: NtaLoadWorker starting load_cats_csv at #{Time.now}"
     unless series_filename
       raise 'load_cats_csv: no series_filename'
     end
@@ -110,12 +115,15 @@ class NtaUpload < ActiveRecord::Base
 
     # Clean out all the things, but not the root category
     logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
+    puts "DEBUG: NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}"
     delete_all_bridge_entries
+    DataPoint.where(universe: 'NTA').destroy_all
     Series.where(universe: 'NTA').destroy_all
     Measurement.where(universe: 'NTA').destroy_all
     DataList.where(universe: 'NTA').destroy_all
     Category.where('universe = "NTA" and ancestry is not null').delete_all
     logger.debug { "NtaLoadWorker id=#{self.id} DONE DELETING THE WORLD #{Time.now}" }
+    puts "DEBUG: NtaLoadWorker id=#{self.id} DONE DELETING THE WORLD #{Time.now}"
 
     root = Category.find_by(universe: 'NTA', ancestry: nil).id rescue raise('No NTA root category found')
 
@@ -164,8 +172,8 @@ class NtaUpload < ActiveRecord::Base
       else
         measurement.update data_portal_name: long_name
       end
-      if data_list.measurements.where(id: measurement).empty?
-        DataListMeasurement.create(data_list_id: data_list, measurement_id: measurement, indent: 'indent0')
+      if data_list.measurements.where(id: measurement.id).empty?
+        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0')
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
@@ -174,6 +182,7 @@ class NtaUpload < ActiveRecord::Base
 
   def load_series_csv
     logger.debug { 'starting load_series_csv' }
+    puts "DEBUG: NtaLoadWorker starting load_series_csv at #{Time.now}"
     unless series_filename
       raise 'load_series_csv: no series_filename'
     end
@@ -297,6 +306,8 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def load_data_postproc
+    logger.debug { "DEBUG: NtaLoadWorker starting load_cats_postproc at #{Time.now}" }
+    puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_regn at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn ***/
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
@@ -305,6 +316,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_regn_<region> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn_<region> ***/
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
@@ -313,6 +325,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_incgrp2015 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_incgrp2015 ***/
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
@@ -321,6 +334,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_incgrp2015_<group> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_incgrp2015_<incgrp2015> ***/
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
@@ -330,6 +344,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc CREATE SERIES NTA_<var>@<region> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create series NTA_<var>@<region>.A ***/
       insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
@@ -338,6 +353,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc CREATE SERIES NTA_<var>@<incgrp2015> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create series NTA_<var>@<incgrp2015>.A ***/
       insert series (universe, name, dataPortalName, frequency, unit_id, percent, source_id, created_at, updated_at)
@@ -347,6 +363,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var> (all countries)
                               and NTA_<var>_regn_<region>
@@ -367,6 +384,7 @@ class NtaUpload < ActiveRecord::Base
           )
       where s.universe = 'NTA'
     SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE region series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_regn with series NTA_<var>@<region>.A ***/
       insert measurement_series (measurement_id, series_id)
@@ -380,6 +398,7 @@ class NtaUpload < ActiveRecord::Base
           and m.universe = s.universe
       where s.universe = 'NTA'
     SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE incgrp series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp2015 with series NTA_<var>@<incgrp2015>.A ***/
       insert measurement_series (measurement_id, series_id)
@@ -393,6 +412,7 @@ class NtaUpload < ActiveRecord::Base
           and m.universe = s.universe
       where s.universe = 'NTA'
     SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE data list meas indent0 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
       insert data_list_measurements (data_list_id, measurement_id, indent)
@@ -404,6 +424,7 @@ class NtaUpload < ActiveRecord::Base
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE data list meas indent1 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp2015}_{subcategory} with their data lists at indent 1 ***/
       insert data_list_measurements (data_list_id, measurement_id, indent)
@@ -415,6 +436,7 @@ class NtaUpload < ActiveRecord::Base
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
+    puts "DEBUG: load_cats_postproc AGGREGTE data ppoints at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Generating aggregate region/income group data points ***/
       insert data_points (universe, series_id, `date`, `value`)
@@ -429,7 +451,7 @@ class NtaUpload < ActiveRecord::Base
           and substring_index(substring_index(s2.name, '@', -1), '.', 1) in (g.region, g.incgrp2015)
           and s2.universe = s1.universe
       where s1.universe = 'NTA'
-      group by 1,2,3,4
+      group by 1,2,3
     SQL
   end
 
