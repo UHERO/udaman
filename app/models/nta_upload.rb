@@ -164,7 +164,10 @@ class NtaUpload < ActiveRecord::Base
       else
         measurement.update data_portal_name: long_name
       end
-      ### Data lists and measurements will be associated later, in SQL code
+      if data_list.measurements.where(id: measurement).empty?
+        DataListMeasurement.create(data_list_id: data_list, measurement_id: measurement, indent: 'indent0')
+        logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+      end
     end
     true
   end
@@ -391,13 +394,13 @@ class NtaUpload < ActiveRecord::Base
       where s.universe = 'NTA'
     SQL
     NtaUpload.connection.execute <<~SQL
-      /*** Associate all measurements NTA_<var> & NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
+      /*** Associate all measurements NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
       insert data_list_measurements (data_list_id, measurement_id, indent)
       select distinct dl.id, m.id, 'indent0'
       from data_lists dl
         join measurements m
            on dl.name = substring_index(m.prefix, '_', 2)
-          and length(m.prefix)-length(replace(m.prefix, '_', '')) <= 2
+          and length(m.prefix)-length(replace(m.prefix, '_', '')) = 2
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
