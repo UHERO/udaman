@@ -376,7 +376,7 @@ class NtaUpload < ActiveRecord::Base
       /*** Create data sources for the preceding series ***/
       insert data_sources (universe, series_id, created_at, updated_at, description, eval)
       select distinct 'NTA', s.id, now(), now(),
-          concat('NTA Upload #{id} for ', s.name, ' (', s.id, ')')
+          concat('NTA Upload #{id} for ', s.name, ' (', s.id, ')'),
           concat('NtaUpload.average(#{id}, "', g.region, '")')
       from series s
         join geographies g
@@ -398,7 +398,7 @@ class NtaUpload < ActiveRecord::Base
       /*** Create data sources for the preceding series ***/
       insert data_sources (universe, series_id, created_at, updated_at, description, eval)
       select distinct 'NTA', s.id, now(), now(),
-          concat('NTA Upload #{id} for ', s.name, ' (', s.id, ')')
+          concat('NTA Upload #{id} for ', s.name, ' (', s.id, ')'),
           concat('NtaUpload.average(#{id}, "', g.incgrp2015, '")')
       from series s
         join geographies g
@@ -483,7 +483,7 @@ class NtaUpload < ActiveRecord::Base
     NtaUpload.connection.execute <<~SQL
       /*** Generating aggregate region/income group data points ***/
       insert data_points (universe, series_id, data_source_id, created_at, `date`, `value`)
-      select distinct s1.universe, s2.id, ds.id, now(), dp.`date`, avg(dp.`value`)
+      select distinct dp.universe, s2.id, ds.id, now(), dp.`date`, avg(dp.`value`)
       from data_points dp
         join series s1 on dp.series_id = s1.id /* country data series */
         join geographies g
@@ -495,7 +495,7 @@ class NtaUpload < ActiveRecord::Base
           and s2.universe = s1.universe
         join data_sources ds
            on ds.series_id = s2.id
-      where s1.universe = 'NTA'
+      where dp.universe = 'NTA'
       group by 1,2,3,4,5
     SQL
   end
