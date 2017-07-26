@@ -423,12 +423,16 @@ class NtaUpload < ActiveRecord::Base
       select distinct m.id, s.id
       from series s
         join geographies g on g.id = s.geography_id
+        join geo_trees gt1 on s.geography_id = gt1.child_id
+        join geographies gr on gr.id = gt1.parent_id and gr.geotype = 'region1'
+        join geo_trees gt2 on s.geography_id = gt2.child_id
+        join geographies gi on gi.id = gt2.parent_id and gi.geotype = 'incrgrp1'
         join measurements m
            on m.universe = s.universe
           and (
             m.data_portal_name = 'All countries' OR
-            (substring_index(s.name, '@', 1) = substring_index(m.prefix, '_regn_', 1) and m.data_portal_name = ????) OR
-            (substring_index(s.name, '@', 1) = substring_index(m.prefix, '_incgrp2015_', 1) and m.data_portal_name = concat(g.incgrp2015, ' Income'))
+            m.prefix = concat(substring_index(s.name, '@', 1), '_regn_', gr.handle) OR
+            m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015_', gi.handle)
           )
       where s.universe = 'NTA'
       and g.region = 'region3'
