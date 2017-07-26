@@ -233,13 +233,13 @@ class NtaUpload < ActiveRecord::Base
 
         if current_series.nil? || current_series.name != series_name
             puts "..... create series #{series_name}"
-            geo_region = Geography.get_or_new_nta({ handle: row_data['regn'] }, { display_name: row_data['regn'], region: 'region1'})
+            geo_region = Geography.get_or_new_nta({ handle: row_data['regn'] }, { display_name: row_data['regn'], geotype: 'region1'})
             Geography.get_or_new_nta({ handle: row_data['subregn'] },
-                                     { display_name: row_data['subregn'], region: 'region2', parents: geo_region.id })
+                                     { display_name: row_data['subregn'], geotype: 'region2', parents: geo_region.id })
             geo_incgrp = Geography.get_or_new_nta({ handle: row_data['incgrp2015'].gsub('-','_') },
-                                                { display_name: '%s Income' % row_data['incgrp2015'], region: 'incgrp1' })
+                                                { display_name: '%s Income' % row_data['incgrp2015'], geotype: 'incgrp1' })
             geo_country = Geography.get_or_new_nta({ handle: iso_handle },
-                                   { display_name: country, region: 'region3', parents: [geo_region.id, geo_incgrp.id] })
+                                   { display_name: country, geotype: 'region3', parents: [geo_region.id, geo_incgrp.id] })
 
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
@@ -357,7 +357,7 @@ class NtaUpload < ActiveRecord::Base
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '_regn_', g.handle), g.display_name, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
-        join geographies g on m.universe = g.universe and g.region = 'region1'
+        join geographies g on m.universe = g.universe and g.geotype = 'region1'
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
@@ -376,7 +376,7 @@ class NtaUpload < ActiveRecord::Base
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '_incgrp2015_', g.handle), g.display_name, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
-        join geographies g on m.universe = g.universe and g.region = 'incgrp1'
+        join geographies g on m.universe = g.universe and g.geotype = 'incgrp1'
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
@@ -386,20 +386,9 @@ class NtaUpload < ActiveRecord::Base
       insert series (universe, `name`, dataPortalName, frequency, geography_id, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '@', g.handle, '.A'), 'Region', 'year', g.id, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
-        join geographies g on m.universe = g.universe and g.region = 'region1'
+        join geographies g on m.universe = g.universe and g.geotype = 'region1'
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
-    SQL
-    NtaUpload.connection.execute <<~SQL
-      /*** Create data sources for the preceding series ***/
-      insert data_sources (universe, series_id, created_at, updated_at, description, eval)
-      select distinct 'NTA', s.id, now(), now(),
-          concat('NTA Upload #{id} for ', s.name, ' (', s.id, ')'),
-          concat('NtaUpload.average(#{id}, "', g.handle, '")')
-      from series s
-        join geographies g on g.id = s.geography_id
-      where s.universe = 'NTA'
-      and g.region = 'region1'
     SQL
     puts "DEBUG: load_cats_postproc CREATE SERIES NTA_<var>@<incgrp2015> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -407,10 +396,11 @@ class NtaUpload < ActiveRecord::Base
       insert series (universe, `name`, dataPortalName, frequency, geography_id, unit_id, percent, source_id, created_at, updated_at)
       select distinct 'NTA', concat(m.prefix, '@', g.handle, '.A'), 'Income Group', 'year', g.id, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
-        join geographies g on m.universe = g.universe and g.region = 'incgrp1'
+        join geographies g on m.universe = g.universe and g.geotype = 'incgrp1'
       where m.universe = 'NTA'
       and m.data_portal_name = 'All countries'
     SQL
+    puts "DEBUG: load_cats_postproc CREATE DATA SOURCES for newly created series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Create data sources for the preceding series ***/
       insert data_sources (universe, series_id, created_at, updated_at, description, eval)
@@ -420,7 +410,7 @@ class NtaUpload < ActiveRecord::Base
       from series s
         join geographies g on g.id = s.geography_id
       where s.universe = 'NTA'
-      and g.region = 'incgrp1'
+      and g.geotype in ('region1', 'incgrp1')
     SQL
     #######################################################################################################################
     puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series at #{Time.now}"
@@ -437,7 +427,7 @@ class NtaUpload < ActiveRecord::Base
            on m.universe = s.universe
           and (
             m.data_portal_name = 'All countries' OR
-            (substring_index(s.name, '@', 1) = substring_index(m.prefix, '_regn_', 1) and m.data_portal_name = g.region) OR
+            (substring_index(s.name, '@', 1) = substring_index(m.prefix, '_regn_', 1) and m.data_portal_name = ????) OR
             (substring_index(s.name, '@', 1) = substring_index(m.prefix, '_incgrp2015_', 1) and m.data_portal_name = concat(g.incgrp2015, ' Income'))
           )
       where s.universe = 'NTA'
