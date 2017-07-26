@@ -232,7 +232,7 @@ class NtaUpload < ActiveRecord::Base
         series_name = '%s@%s.A' % [prefix, iso_handle]
 
         if current_series.nil? || current_series.name != series_name
-            puts "..... create series #{series_name}"
+            ###puts "..... create series #{series_name}"
             geo_region = Geography.get_or_new_nta({ handle: row_data['regn'] }, { display_name: row_data['regn'], geotype: 'region1'})
             Geography.get_or_new_nta({ handle: row_data['subregn'] },
                                      { display_name: row_data['subregn'], geotype: 'region2', parents: geo_region.id })
@@ -318,12 +318,6 @@ class NtaUpload < ActiveRecord::Base
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = '#{universe}'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = '#{universe}'
-    SQL
-    ActiveRecord::Base.connection.execute <<~SQL
-      delete from geographies where universe = '#{universe}'
-    SQL
-    ActiveRecord::Base.connection.execute <<~SQL
       delete from data_sources where universe = '#{universe}'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
@@ -334,6 +328,12 @@ class NtaUpload < ActiveRecord::Base
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from data_lists where universe = '#{universe}'
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = '#{universe}'
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete from geographies where universe = '#{universe}'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from categories where universe = '#{universe}' and ancestry is not null
@@ -493,14 +493,16 @@ class NtaUpload < ActiveRecord::Base
       select distinct dp.universe, s2.id, ds.id, now(), dp.`date`, avg(dp.`value`)
       from data_points dp
         join series s1 on dp.series_id = s1.id  /* country data series */
+        join geographies g on g.id = s1.geography_id
         join geo_trees gt
            on gt.child_id = s1.geography_id
           and gt.parent_id = s2.geography_id
         join series s2    /* aggregate region/incgrp series */
            on s2.universe = s1.universe
-          and substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1)
+        --  and substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1)
         join data_sources ds on ds.series_id = s2.id
       where dp.universe = 'NTA'
+      and g.geotype = 'region3'
       group by 1,2,3,4,5
     SQL
   end
