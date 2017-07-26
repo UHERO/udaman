@@ -412,7 +412,6 @@ class NtaUpload < ActiveRecord::Base
       where s.universe = 'NTA'
       and g.geotype in ('region1', 'incgrp1')
     SQL
-    #######################################################################################################################
     puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var> (all countries)
@@ -435,7 +434,7 @@ class NtaUpload < ActiveRecord::Base
             m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015_', gi.handle)
           )
       where s.universe = 'NTA'
-      and g.region = 'region3'
+      and g.geotype = 'region3'
     SQL
     puts "DEBUG: load_cats_postproc ASSOCIATE region series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -445,10 +444,10 @@ class NtaUpload < ActiveRecord::Base
       from series s
         join geographies g on g.id = s.geography_id
         join measurements m
-           on m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
-          and m.universe = s.universe
+           on m.universe = s.universe
+          and m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
       where s.universe = 'NTA'
-      and g.region = 'region1'
+      and g.geotype = 'region1'
     SQL
     puts "DEBUG: load_cats_postproc ASSOCIATE incgrp series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -458,10 +457,10 @@ class NtaUpload < ActiveRecord::Base
       from series s
         join geographies g on g.id = s.geography_id
         join measurements m
-           on m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015')
-          and m.universe = s.universe
+           on m.universe = s.universe
+          and m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015')
       where s.universe = 'NTA'
-      and g.region = 'incgrp1'
+      and g.geotype = 'incgrp1'
     SQL
     puts "DEBUG: load_cats_postproc ASSOCIATE data list meas indent0 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
