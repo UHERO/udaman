@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025726) do
+ActiveRecord::Schema.define(version: 220170413025727) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -252,20 +252,28 @@ ActiveRecord::Schema.define(version: 220170413025726) do
     t.string   "history_tsd_label",         limit: 255
   end
 
+  create_table "geo_trees", id: false, force: :cascade do |t|
+    t.integer "parent_id", limit: 4, null: false
+    t.integer "child_id",  limit: 4, null: false
+  end
+
+  add_index "geo_trees", ["child_id"], name: "fk_rails_5c6299c1f9", using: :btree
+  add_index "geo_trees", ["parent_id"], name: "fk_rails_20ee9a0990", using: :btree
+
   create_table "geographies", force: :cascade do |t|
     t.string   "universe",           limit: 5,   default: "UHERO", null: false
     t.string   "fips",               limit: 255
     t.string   "display_name",       limit: 255
     t.string   "display_name_short", limit: 255
     t.string   "handle",             limit: 255
-    t.string   "region",             limit: 255
+    t.string   "geotype",            limit: 255
     t.string   "subregion",          limit: 255
     t.string   "incgrp2015",         limit: 255
     t.datetime "created_at",                                       null: false
     t.datetime "updated_at",                                       null: false
   end
 
-  add_index "geographies", ["universe", "handle", "incgrp2015"], name: "index_geographies_on_universe_and_handle_and_incgrp2015", unique: true, using: :btree
+  add_index "geographies", ["universe", "handle"], name: "index_geographies_on_universe_and_handle", unique: true, using: :btree
 
   create_table "measurement_series", force: :cascade do |t|
     t.integer "measurement_id", limit: 4
@@ -371,6 +379,7 @@ ActiveRecord::Schema.define(version: 220170413025726) do
     t.integer  "unit_id",                 limit: 4
     t.integer  "units",                   limit: 4,     default: 1,       null: false
     t.string   "dataPortalName",          limit: 255
+    t.integer  "geography_id",            limit: 4
     t.boolean  "percent"
     t.boolean  "real"
     t.integer  "decimals",                limit: 4,     default: 2
@@ -384,6 +393,7 @@ ActiveRecord::Schema.define(version: 220170413025726) do
     t.integer  "base_year",               limit: 4
   end
 
+  add_index "series", ["geography_id"], name: "fk_rails_963076a967", using: :btree
   add_index "series", ["measurement_id"], name: "fk_rails_3e7bc49267", using: :btree
   add_index "series", ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
   add_index "series", ["name"], name: "index_series_on_name", unique: true, using: :btree
@@ -471,9 +481,12 @@ ActiveRecord::Schema.define(version: 220170413025726) do
   add_index "users", ["universe"], name: "index_users_on_universe", using: :btree
 
   add_foreign_key "authorizations", "users"
+  add_foreign_key "geo_trees", "geographies", column: "child_id"
+  add_foreign_key "geo_trees", "geographies", column: "parent_id"
   add_foreign_key "measurements", "source_details"
   add_foreign_key "measurements", "sources"
   add_foreign_key "measurements", "units"
+  add_foreign_key "series", "geographies"
   add_foreign_key "series", "measurements"
   add_foreign_key "series", "source_details"
   add_foreign_key "series", "sources"
