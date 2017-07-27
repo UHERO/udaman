@@ -90,7 +90,7 @@ class DownloadsCache
 
   def csv(handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
-    setup_and_check('csv', handle, path, skip_proc)
+    skip = setup_and_check('csv', handle, path, skip_proc)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
@@ -103,7 +103,7 @@ class DownloadsCache
         set_files_cache(file_key, value)
       end
     end
-    value
+    skip_proc ? [value, skip] : value
   end
 
   def text(handle, skip_proc = false)

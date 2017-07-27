@@ -14,23 +14,21 @@ class CsvFileProcessor
       date = @date_processor.compute(index)
       row = @row_processor.compute(index, @cached_files, handle)
       col = @col_processor.compute(index, @cached_files, handle)
-
-      csv_2d_array = @cached_files.csv(handle, @options[:path], true)
+      (csv_2d_array, skip) = @cached_files.csv(handle, @options[:path], true)
       observation_value = parse_cell(csv_2d_array, row, col)
-    rescue EOFError
-      Rails.logger.debug { "------ Skipping data point for handle=#{handle} at date=#{date} because source has not changed" }
-      observation_value = 'SKIP DATA'
     rescue => e
       Rails.logger.error "CsvFileProcessor: #{e.message}"
       raise e
     end
 
-    if observation_value == 'BREAK IN DATA' || observation_value == 'SKIP DATA'
+    if observation_value == 'BREAK IN DATA'
       return @handle_processor.date_sensitive? ? {} : 'END';
     end
-    Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
-    @cached_files.mark_handle_used(handle)
-    {date => observation_value}
+    unless skip
+      Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
+      @cached_files.mark_handle_used(handle)
+    end
+    { date => observation_value, skip: skip }
   end
 
   def parse_cell(csv_2d_array, row, col)
