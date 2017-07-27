@@ -412,27 +412,50 @@ class NtaUpload < ActiveRecord::Base
       where s.universe = 'NTA'
       and g.geotype in ('region1', 'incgrp1')
     SQL
-    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series at #{Time.now}"
+    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to All Countries at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var> (all countries)
-                              and NTA_<var>_regn_<region>
-                              and NTA_<var>_incgrp2015_<incgrp2015>
                       with series NTA_<var>@<country_iso>.A            ***/
       insert measurement_series (measurement_id, series_id)
       select distinct m.id, s.id
       from series s
         join geographies g on g.id = s.geography_id
-        join geo_trees gt1 on s.geography_id = gt1.child_id
-        join geographies gr on gr.id = gt1.parent_id and gr.geotype = 'region1'
-        join geo_trees gt2 on s.geography_id = gt2.child_id
-        join geographies gi on gi.id = gt2.parent_id and gi.geotype = 'incrgrp1'
         join measurements m
            on m.universe = s.universe
-          and (
-            m.data_portal_name = 'All countries' OR
-            m.prefix = concat(substring_index(s.name, '@', 1), '_regn_', gr.handle) OR
-            m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015_', gi.handle)
-          )
+          and m.prefix = substring_index(s.name, '@', 1)
+          and m.data_portal_name = 'All countries'
+      where s.universe = 'NTA'
+      and g.geotype = 'region3'
+    SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to *_regn_<region> at #{Time.now}"
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_regn_<region>
+                      with series NTA_<var>@<country_iso>.A            ***/
+      insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join geographies g on g.id = s.geography_id
+        join geo_trees gt on s.geography_id = gt.child_id
+        join geographies gr on gr.id = gt.parent_id and gr.geotype = 'region1'
+        join measurements m
+           on m.universe = s.universe
+          and m.prefix = concat(substring_index(s.name, '@', 1), '_regn_', gr.handle)
+      where s.universe = 'NTA'
+      and g.geotype = 'region3'
+    SQL
+    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to _incgrp2015_<group> at #{Time.now}"
+    NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_incgrp2015_<incgrp2015>
+                      with series NTA_<var>@<country_iso>.A            ***/
+      insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join geographies g on g.id = s.geography_id
+        join geo_trees gt on s.geography_id = gt.child_id
+        join geographies gi on gi.id = gt.parent_id and gi.geotype = 'incrgrp1'
+        join measurements m
+           on m.universe = s.universe
+          and m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015_', gi.handle)
       where s.universe = 'NTA'
       and g.geotype = 'region3'
     SQL
@@ -494,15 +517,24 @@ class NtaUpload < ActiveRecord::Base
       from data_points dp
         join series s1 on dp.series_id = s1.id  /* country data series */
         join geographies g on g.id = s1.geography_id
-        join geo_trees gt
-           on gt.child_id = s1.geography_id
-          and gt.parent_id = s2.geography_id
         join series s2    /* aggregate region/incgrp series */
            on s2.universe = s1.universe
         --  and substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1)
+        join measurement_series ms1 on s1.id = ms1.series_id
+        join measurements        m1 on m1.id = ms1.measurement_id and m1.data_portal_name = 'All countries'
+        join data_list_measurements dm1 on dm1.measurement_id = m1.id
+
+        join measurement_series ms2 on s2.id = ms2.series_id
+        join measurements        m2 on m2.id = ms2.measurement_id
+        join data_list_measurements dm2 on dm2.measurement_id = m2.id
+
+        join geo_trees gt
+           on gt.child_id = s1.geography_id
+          and gt.parent_id = s2.geography_id
         join data_sources ds on ds.series_id = s2.id
       where dp.universe = 'NTA'
       and g.geotype = 'region3'
+      and dm1.data_list_id = dm2.data_list_id
       group by 1,2,3,4,5
     SQL
   end
