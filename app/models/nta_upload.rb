@@ -452,7 +452,7 @@ class NtaUpload < ActiveRecord::Base
       from series s
         join geographies g on g.id = s.geography_id
         join geo_trees gt on s.geography_id = gt.child_id
-        join geographies gi on gi.id = gt.parent_id and gi.geotype = 'incrgrp1'
+        join geographies gi on gi.id = gt.parent_id and gi.geotype = 'incgrp1'
         join measurements m
            on m.universe = s.universe
           and m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp2015_', gi.handle)
@@ -519,9 +519,9 @@ class NtaUpload < ActiveRecord::Base
         join geographies g on g.id = s1.geography_id
         join series s2    /* aggregate region/incgrp series */
            on s2.universe = s1.universe
-        --  and substring_index(s2.name, '@', 1) = substring_index(s1.name, '@', 1)
+
         join measurement_series ms1 on s1.id = ms1.series_id
-        join measurements        m1 on m1.id = ms1.measurement_id and m1.data_portal_name = 'All countries'
+        join measurements        m1 on m1.id = ms1.measurement_id
         join data_list_measurements dm1 on dm1.measurement_id = m1.id
 
         join measurement_series ms2 on s2.id = ms2.series_id
