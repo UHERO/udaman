@@ -233,12 +233,13 @@ class NtaUpload < ActiveRecord::Base
 
         if current_series.nil? || current_series.name != series_name
             ###puts "..... create series #{series_name}"
-            geo_region = Geography.get_or_new_nta({ handle: row_data['regn'] }, { display_name: row_data['regn'], geotype: 'region1'})
-            Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(' ','_') },
+            geo_region = Geography.get_or_new_nta({ handle: row_data['regn'].gsub(/\W/, '_') },
+                                                  { display_name: row_data['regn'], geotype: 'region1'})
+            Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W/, '_') },
                                      { display_name: row_data['subregn'], geotype: 'region2', parents: geo_region.id })
-            geo_incgrp = Geography.get_or_new_nta({ handle: row_data['incgrp2015'].gsub('-','_') },
+            geo_incgrp = Geography.get_or_new_nta({ handle: row_data['incgrp2015'].gsub(/\W/, '_') },
                                                 { display_name: '%s Income' % row_data['incgrp2015'], geotype: 'incgrp1' })
-            geo_country = Geography.get_or_new_nta({ handle: iso_handle },
+            geo_country = Geography.get_or_new_nta({ handle: iso_handle.gsub(/\W/, '_') },
                                    { display_name: country, geotype: 'region3', parents: [geo_region.id, geo_incgrp.id] })
 
             current_series = Series.find_by(name: series_name) ||
@@ -517,8 +518,11 @@ class NtaUpload < ActiveRecord::Base
       from data_points dp
         join series s1 on dp.series_id = s1.id  /* country data series */
         join geographies g on g.id = s1.geography_id
-        join series s2    /* aggregate region/incgrp series */
-           on s2.universe = s1.universe
+        join series s2 on s2.universe = s1.universe  /* aggregate region/incgrp series */
+        join geo_trees gt
+           on gt.child_id = s1.geography_id
+          and gt.parent_id = s2.geography_id
+        join data_sources ds on ds.series_id = s2.id
 
         join measurement_series ms1 on s1.id = ms1.series_id
         join measurements        m1 on m1.id = ms1.measurement_id
@@ -527,11 +531,6 @@ class NtaUpload < ActiveRecord::Base
         join measurement_series ms2 on s2.id = ms2.series_id
         join measurements        m2 on m2.id = ms2.measurement_id
         join data_list_measurements dm2 on dm2.measurement_id = m2.id
-
-        join geo_trees gt
-           on gt.child_id = s1.geography_id
-          and gt.parent_id = s2.geography_id
-        join data_sources ds on ds.series_id = s2.id
       where dp.universe = 'NTA'
       and g.geotype = 'region3'
       and dm1.data_list_id = dm2.data_list_id
