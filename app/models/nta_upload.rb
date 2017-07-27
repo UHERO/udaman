@@ -275,6 +275,7 @@ class NtaUpload < ActiveRecord::Base
                           value: row_data[indicator_name]}) if row_data[indicator_name]
       end
     end
+    puts 'DEBUG: starting to load data points in batches of 1000'
     if current_series && data_points.length > 0
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact
@@ -287,10 +288,9 @@ class NtaUpload < ActiveRecord::Base
         SQL
       end
     end
-    puts "NOOOWWWWWWWW almost done.... 1"
+    puts 'DEBUG: Final data source updating'
     nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
     DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
-    puts "NOOOWWWWWWWW almost done.... 2"
     new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
   end
