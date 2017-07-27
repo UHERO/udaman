@@ -234,7 +234,7 @@ class NtaUpload < ActiveRecord::Base
         if current_series.nil? || current_series.name != series_name
             ###puts "..... create series #{series_name}"
             geo_region = Geography.get_or_new_nta({ handle: row_data['regn'] }, { display_name: row_data['regn'], geotype: 'region1'})
-            Geography.get_or_new_nta({ handle: row_data['subregn'] },
+            Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(' ','_') },
                                      { display_name: row_data['subregn'], geotype: 'region2', parents: geo_region.id })
             geo_incgrp = Geography.get_or_new_nta({ handle: row_data['incgrp2015'].gsub('-','_') },
                                                 { display_name: '%s Income' % row_data['incgrp2015'], geotype: 'incgrp1' })
