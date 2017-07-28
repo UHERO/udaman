@@ -42,13 +42,12 @@ class XlsFileProcessor
     end
 
     if observation_value == 'BREAK IN DATA'
-      return @handle_processor.date_sensitive? ? {} : 'END';
+      return @handle_processor.date_sensitive? ? { :skip => skip } : 'END';
     end
     unless skip
-      Rails.logger.debug { "PROCESSING data point for handle=#{handle} at date=#{date}" }
       @cached_files.mark_handle_used(handle)
     end
-    { date: observation_value, skip: skip }
+    { date => observation_value, :skip => skip }
   end
 
   def parse_cell(cell_value)

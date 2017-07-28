@@ -9,6 +9,8 @@ class CsvFileProcessor
   end
 
   def observation_at(index)
+    skip = observation_value = nil
+
     begin
       handle = @handle_processor.compute(index)
       date = @date_processor.compute(index)
@@ -22,13 +24,12 @@ class CsvFileProcessor
     end
 
     if observation_value == 'BREAK IN DATA'
-      return @handle_processor.date_sensitive? ? {} : 'END';
+      return @handle_processor.date_sensitive? ? { :skip => skip } : 'END';
     end
     unless skip
-      Rails.logger.debug { "PROCESSING data point for handle=#{handle}, date=#{date}" }
       @cached_files.mark_handle_used(handle)
     end
-    { date => observation_value, skip: skip }
+    { date => observation_value, :skip => skip }
   end
 
   def parse_cell(csv_2d_array, row, col)
