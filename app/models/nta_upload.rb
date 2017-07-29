@@ -246,7 +246,7 @@ class NtaUpload < ActiveRecord::Base
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
-                               dataPortalName: measurement.data_portal_name,
+                               dataPortalName: country,
                                frequency: 'year',
                                geography_id: geo_country.id,
                                unit_id: measurement.unit_id,
