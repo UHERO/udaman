@@ -158,7 +158,7 @@ class NtaUpload < ActiveRecord::Base
         measurement = Measurement.create(
           universe: 'NTA',
           prefix: data_list_name,
-          data_portal_name: 'All countries',
+          data_portal_name: 'All Countries',
           unit_id: unit && unit.id,
           percent: percent,
           source_id: source && source.id
@@ -350,7 +350,7 @@ class NtaUpload < ActiveRecord::Base
       select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
       where m.universe = 'NTA'
-      and m.data_portal_name = 'All countries'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_regn_<region> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -360,7 +360,7 @@ class NtaUpload < ActiveRecord::Base
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'region1'
       where m.universe = 'NTA'
-      and m.data_portal_name = 'All countries'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_incgrp2015 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -369,7 +369,7 @@ class NtaUpload < ActiveRecord::Base
       select distinct 'NTA', concat(m.prefix, '_incgrp2015'), 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
       where m.universe = 'NTA'
-      and m.data_portal_name = 'All countries'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_incgrp2015_<group> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -379,7 +379,7 @@ class NtaUpload < ActiveRecord::Base
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'incgrp1'
       where m.universe = 'NTA'
-      and m.data_portal_name = 'All countries'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE SERIES NTA_<var>@<region> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -389,7 +389,7 @@ class NtaUpload < ActiveRecord::Base
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'region1'
       where m.universe = 'NTA'
-      and m.data_portal_name = 'All countries'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE SERIES NTA_<var>@<incgrp2015> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -399,7 +399,7 @@ class NtaUpload < ActiveRecord::Base
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'incgrp1'
       where m.universe = 'NTA'
-      and m.data_portal_name = 'All countries'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE DATA SOURCES for newly created series at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -415,7 +415,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to All Countries at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
-      /*** Associate measurements NTA_<var> (all countries)
+      /*** Associate measurements NTA_<var> (All Countries)
                       with series NTA_<var>@<country_iso>.A            ***/
       insert measurement_series (measurement_id, series_id)
       select distinct m.id, s.id
@@ -424,7 +424,7 @@ class NtaUpload < ActiveRecord::Base
         join measurements m
            on m.universe = s.universe
           and m.prefix = substring_index(s.name, '@', 1)
-          and m.data_portal_name = 'All countries'
+          and m.data_portal_name = 'All Countries'
       where s.universe = 'NTA'
       and g.geotype = 'region3'
     SQL
@@ -489,8 +489,14 @@ class NtaUpload < ActiveRecord::Base
     puts "DEBUG: load_cats_postproc ASSOCIATE data list meas indent0 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp2015} with their data lists at indent 0 ***/
-      insert data_list_measurements (data_list_id, measurement_id, indent)
-      select distinct dl.id, m.id, 'indent0'
+      insert data_list_measurements (data_list_id, measurement_id, indent, list_order)
+      select distinct dl.id, m.id, 'indent0',
+          case m.data_portal_name
+            when 'Region' then 0
+            when 'Income Group' then 6
+            when 'All Countries' then 11
+            else 12
+          end
       from data_lists dl
         join measurements m
            on dl.name = substring_index(m.prefix, '_', 2)
@@ -501,8 +507,20 @@ class NtaUpload < ActiveRecord::Base
     puts "DEBUG: load_cats_postproc ASSOCIATE data list meas indent1 at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp2015}_{subcategory} with their data lists at indent 1 ***/
-      insert data_list_measurements (data_list_id, measurement_id, indent)
-      select distinct dl.id, m.id, 'indent1'
+      insert data_list_measurements (data_list_id, measurement_id, indent, list_order)
+      select distinct dl.id, m.id, 'indent1',
+          case m.data_portal_name
+              when 'Africa' then 1
+              when 'Americas' then 2
+              when 'Asia' then 3
+              when 'Europe' then 4
+              when 'Oceania' then 5
+              when 'High Income' then 7
+              when 'Upper-Middle Income' then 8
+              when 'Lower-Middle Income' then 9
+              when 'Low Income' then 10
+            else 12
+          end
       from data_lists dl
         join measurements m
            on dl.name = substring_index(m.prefix, '_', 2)
