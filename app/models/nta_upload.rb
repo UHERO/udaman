@@ -167,7 +167,7 @@ class NtaUpload < ActiveRecord::Base
         measurement.update data_portal_name: long_name
       end
       if data_list.measurements.where(id: measurement.id).empty?
-        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0')
+        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
@@ -494,7 +494,7 @@ class NtaUpload < ActiveRecord::Base
           case m.data_portal_name
             when 'Region' then 0
             when 'Income Group' then 6
-            when 'All Countries' then 11
+            /* All Countries is assigned list_order 11 above in Ruby code. Change there if necessary */
             else 12
           end
       from data_lists dl
