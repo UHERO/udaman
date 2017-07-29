@@ -116,7 +116,7 @@ class NtaUpload < ActiveRecord::Base
     # Clean out all the things, but not the root category
     logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     puts "DEBUG: NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}"
-    delete_universe('NTA')
+    delete_universe_nta
     puts "DEBUG: NtaLoadWorker id=#{self.id} DONE DELETING THE WORLD #{Time.now}"
 
     root = Category.find_by(universe: 'NTA', ancestry: nil).id rescue raise('No NTA root category found')
@@ -305,39 +305,39 @@ class NtaUpload < ActiveRecord::Base
     "#{id} #{group}"
   end
 
-  def delete_universe(universe)
+  def delete_universe_nta
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from public_data_points where universe = '#{universe}'
+      delete from public_data_points where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from data_points where universe = '#{universe}'
+      delete from data_points where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = '#{universe}'
+      delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = '#{universe}'
+      delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from data_sources where universe = '#{universe}'
+      delete from data_sources where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from series where universe = '#{universe}'
+      delete from series where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from measurements where universe = '#{universe}'
+      delete from measurements where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from data_lists where universe = '#{universe}'
+      delete from data_lists where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = '#{universe}'
+      delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from geographies where universe = '#{universe}'
+      delete from geographies where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from categories where universe = '#{universe}' and ancestry is not null
+      delete from categories where universe = 'NTA' and ancestry is not null
     SQL
   end
 
