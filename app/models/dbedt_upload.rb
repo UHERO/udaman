@@ -147,7 +147,7 @@ class DbedtUpload < ActiveRecord::Base
       if row[2].blank?
         category = Category.find_by(meta: "DBEDT_#{indicator_id}")
         if category.nil?
-          ancestry = Category.find_by(name: 'DBEDT Data Portal', ancestry: nil).id rescue raise('No DBEDT root category found')
+          ancestry = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
           unless parent_indicator_id.nil?
             parent_category = Category.find_by(meta: parent_label)
             unless parent_category.nil?
