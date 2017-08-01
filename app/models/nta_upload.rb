@@ -532,7 +532,7 @@ class NtaUpload < ActiveRecord::Base
     NtaUpload.connection.execute <<~SQL
       /*** Generating aggregate region/income group data points ***/
       insert data_points (universe, series_id, data_source_id, created_at, `date`, `value`)
-      select distinct dp.universe, s2.id, ds.id, now(), dp.`date`, avg(dp.`value`)
+      select distinct any_value(dp.universe), s2.id, any_value(ds.id), now(), dp.`date`, avg(dp.`value`)
       from data_points dp
         join series s1 on dp.series_id = s1.id  /* country data series */
         join geographies g on g.id = s1.geography_id
@@ -552,7 +552,7 @@ class NtaUpload < ActiveRecord::Base
       where dp.universe = 'NTA'
       and g.geotype = 'region3'
       and dm1.data_list_id = dm2.data_list_id
-      group by 1,2,3,4,5
+      group by s2.id, dp.`date`
     SQL
   end
 
