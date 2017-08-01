@@ -63,8 +63,12 @@ class DownloadsCache
 
   def set_xls_sheet(sheet, date)
     Rails.logger.debug { "... Entered method set_xls_sheet: sheet=#{sheet}, date=#{date}" }
-    file_extension = @path.split('.')[-1]
-    excel = file_extension == 'xlsx' ? Roo::Excelx.new(@path) : Roo::Excel.new(@path)
+    excel = begin
+              Roo::Spreadsheet.open(@path, extension: File.extname(@path))
+            rescue
+              flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
+              Roo::Spreadsheet.open(@path, extension: flip_ext)
+            end
     sheet_parts = sheet.split(':')
     def_sheet = case
       when sheet_parts[0] == 'sheet_num' then
