@@ -16,10 +16,9 @@
   <tbody>
     <% @exports.each do |export| %>
       <tr>
-        <td><%= export.name %></td>
+        <td><%= link_to export.name, export %></td>
         <td><%= export.series.count %></td>
         <td><%= link_to 'CSV', action: 'show', id: export, format: 'csv' %></td>
-        <td><%= link_to 'Show', export %></td>
         <td><%= link_to 'Table', action: 'show_table', id: export %></td>
         <td><%= link_to 'Edit', edit_export_path(export) %></td>
         <td><%= link_to 'Destroy', export, method: :delete, data: { confirm: 'Are you sure?' } %></td>

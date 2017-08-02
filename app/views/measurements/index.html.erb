@@ -28,13 +28,12 @@
     <% @measurements.each do |measurement| %>
       <tr>
         <td><%= measurement.prefix %></td>
-        <td><%= measurement.data_portal_name %></td>
+        <td><%= link_to measurement.data_portal_name, measurement %></td>
         <td><%= measurement.units_label %></td>
         <td><%= measurement.units_label_short %></td>
         <td><%= measurement.percent %></td>
         <td><%= measurement.real %></td>
         <td><%= measurement.notes %></td>
-        <td><%= link_to 'Show', measurement %></td>
         <td><%= link_to 'Edit', edit_measurement_path(measurement) %></td>
         <td><%= link_to 'Duplicate', duplicate_measurement_path(measurement) %></td>
       </tr>

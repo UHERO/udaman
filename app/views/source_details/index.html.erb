@@ -13,8 +13,7 @@
   <tbody>
     <% @source_details.each do |source_detail| %>
       <tr>
-        <td><%= source_detail.description %></td>
-        <td><%= link_to 'Show', source_detail %></td>
+        <td><%= link_to source_detail.description, source_detail %></td>
         <td><%= link_to 'Edit', edit_source_detail_path(source_detail) %></td>
         <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: 'Are you sure?' } %></td>
       </tr>
