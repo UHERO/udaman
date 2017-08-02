@@ -12,6 +12,7 @@ script/investigate_visual.png
 public/
 *.log
 *.out
+*.sql
 config/deploy.rb
 config/deploy/*
 Capfile

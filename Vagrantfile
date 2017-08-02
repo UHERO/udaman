@@ -15,6 +15,11 @@ Vagrant.configure('2') do |config|
   # https://docs.vagrantup.com.
   config.vm.synced_folder '.', '/vagrant', type: 'rsync', rsync__exclude: '.git/'
 
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 8192
+    v.cpus = 4
+  end
+
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = 'centos/6'
