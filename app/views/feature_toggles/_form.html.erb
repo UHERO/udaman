@@ -13,11 +13,11 @@
 
   <div class="field">
     <%= f.label :name %><br>
-    <%= @feature_toggle.name %>
+    <%= f.text_field :name, :size => 60 %>
   </div>
   <div class="field">
     <%= f.label :description %><br>
-    <%= @feature_toggle.description %>
+    <%= f.text_field :description, :size => 100 %>
   </div>
   <div class="field">
     <%= f.label :status %><br>

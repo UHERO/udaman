@@ -17,9 +17,8 @@
   <tbody>
     <% @sources.each do |source| %>
       <tr>
-        <td><%= link_to source.description, source %></td>
+        <td><%= link_to source.description, edit_source_path(source) %></td>
         <td><%= source.link %></td>
-        <td><%= link_to 'Edit', edit_source_path(source) %></td>
         <td><%= link_to 'Destroy', source, method: :delete, data: { confirm: "Destroy #{source.description}: Are you sure??" } %></td>
       </tr>
     <% end %>
