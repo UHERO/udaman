@@ -118,7 +118,7 @@ form button,
 table#search_results td {border:none;}
 
 /* anchor tags inside table cells will be highlighted and clickable across the whole width of the <td> cell */
-td a { display: block; text-decoration: none; }
+td a:link { display: block; text-decoration: none; }
 
 /* No underlining for links in top menu */
 div#top-level-nav a:link { text-decoration: none; }
