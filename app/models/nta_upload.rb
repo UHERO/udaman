@@ -116,7 +116,7 @@ class NtaUpload < ActiveRecord::Base
     # Clean out all the things, but not the root category
     logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     puts "DEBUG: NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}"
-    delete_universe_nta
+    NtaUpload.delete_universe_nta
     puts "DEBUG: NtaLoadWorker id=#{self.id} DONE DELETING THE WORLD #{Time.now}"
 
     root = Category.find_by(universe: 'NTA', ancestry: nil).id rescue raise('No NTA root category found')
@@ -234,13 +234,23 @@ class NtaUpload < ActiveRecord::Base
         if current_series.nil? || current_series.name != series_name
             ###puts "..... create series #{series_name}"
             geo_region = Geography.get_or_new_nta({ handle: row_data['regn'].gsub(/\W/, '_') },
-                                                  { display_name: row_data['regn'], geotype: 'region1'})
+                                                  { display_name: row_data['regn'],
+                                                    display_name_short: row_data['regn'],
+                                                    geotype: 'region1'})
             Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W/, '_') },
-                                     { display_name: row_data['subregn'], geotype: 'region2', parents: geo_region.id })
+                                     { display_name: row_data['subregn'],
+                                       display_name_short: row_data['subregn'],
+                                       geotype: 'region2',
+                                       parents: geo_region.id })
             geo_incgrp = Geography.get_or_new_nta({ handle: row_data['incgrp2015'].gsub(/\W/, '_') },
-                                                { display_name: '%s Income' % row_data['incgrp2015'], geotype: 'incgrp1' })
+                                                  { display_name: '%s Income' % row_data['incgrp2015'],
+                                                    display_name_short: '%s Income' % row_data['incgrp2015'],
+                                                    geotype: 'incgrp1' })
             geo_country = Geography.get_or_new_nta({ handle: iso_handle.gsub(/\W/, '_') },
-                                   { display_name: country, geotype: 'region3', parents: [geo_region.id, geo_incgrp.id] })
+                                                   { display_name: country,
+                                                     display_name_short: country,
+                                                     geotype: 'region3',
+                                                     parents: [geo_region.id, geo_incgrp.id] })
 
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
@@ -305,7 +315,7 @@ class NtaUpload < ActiveRecord::Base
     "#{id} #{group}"
   end
 
-  def delete_universe_nta
+  def NtaUpload.delete_universe_nta
     ActiveRecord::Base.connection.execute <<~SQL
       delete from public_data_points where universe = 'NTA'
     SQL
@@ -385,7 +395,7 @@ class NtaUpload < ActiveRecord::Base
     NtaUpload.connection.execute <<~SQL
       /*** Create series NTA_<var>@<region>.A ***/
       insert series (universe, `name`, dataPortalName, frequency, geography_id, unit_id, percent, source_id, created_at, updated_at)
-      select distinct 'NTA', concat(m.prefix, '@', g.handle, '.A'), 'Region', 'year', g.id, m.unit_id, m.percent, m.source_id, now(), now()
+      select distinct 'NTA', concat(m.prefix, '@', g.handle, '.A'), g.display_name, 'year', g.id, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'region1'
       where m.universe = 'NTA'
@@ -395,7 +405,7 @@ class NtaUpload < ActiveRecord::Base
     NtaUpload.connection.execute <<~SQL
       /*** Create series NTA_<var>@<incgrp2015>.A ***/
       insert series (universe, `name`, dataPortalName, frequency, geography_id, unit_id, percent, source_id, created_at, updated_at)
-      select distinct 'NTA', concat(m.prefix, '@', g.handle, '.A'), 'Income Group', 'year', g.id, m.unit_id, m.percent, m.source_id, now(), now()
+      select distinct 'NTA', concat(m.prefix, '@', g.handle, '.A'), g.display_name, 'year', g.id, m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'incgrp1'
       where m.universe = 'NTA'
