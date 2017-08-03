@@ -19,7 +19,8 @@ class XlsFileProcessor
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
     path = @path_processor.nil? ? nil : @path_processor.compute(date)
-    skip = observation_value = nil
+    observation_value = nil
+    skip = nil
 
     begin
       row = @row_processor.compute(index, @cached_files, handle, sheet)
