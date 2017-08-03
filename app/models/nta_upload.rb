@@ -280,7 +280,7 @@ class NtaUpload < ActiveRecord::Base
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact
                     .uniq {|dp| '%s %s %s' % [dp[:series_id], dp[:data_source_id], dp[:date]] }
-                    .map {|dp| %q|('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false)| %
+                    .map {|dp| %q|('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true)| %
                                ['NTA', dp[:series_id], dp[:data_source_id], dp[:date], dp[:value]] }
                     .join(',')
         NtaUpload.connection.execute <<~SQL
@@ -531,8 +531,8 @@ class NtaUpload < ActiveRecord::Base
     puts "DEBUG: load_cats_postproc AGGREGATE data points at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Generating aggregate region/income group data points ***/
-      insert data_points (universe, series_id, data_source_id, created_at, `date`, `value`)
-      select distinct any_value(dp.universe), s2.id, any_value(ds.id), now(), dp.`date`, avg(dp.`value`)
+      insert data_points (universe, series_id, data_source_id, created_at, `current`, `date`, `value`)
+      select distinct any_value(dp.universe), s2.id, any_value(ds.id), now(), true, dp.`date`, avg(dp.`value`)
       from data_points dp
         join series s1 on dp.series_id = s1.id  /* country data series */
         join geographies g on g.id = s1.geography_id
