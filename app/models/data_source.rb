@@ -1,4 +1,5 @@
 class DataSource < ActiveRecord::Base
+  require 'digest/md5'
   serialize :dependencies, Array
   
   belongs_to :series
@@ -134,11 +135,12 @@ class DataSource < ActiveRecord::Base
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
-      options_match = %r/({(\s*:\w+\s*=>\s*("[^"]*"|\d+)\s*,?)+\s*})/
+      options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*("[^"]*"|\d+)\s*,?)+\s*})/
       begin
         if eval_stmt =~ options_match  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
-          eval_stmt.sub!(options_match, options.merge(data_source: id).to_s) ## injection hack :=P -dji
+          hash = Digest::MD5.new << eval_stmt
+          eval_stmt.sub!(options_match, options.merge(data_source: id, eval_hash: hash).to_s) ## injection hack :=P -dji
         end
         s = Kernel::eval eval_stmt
         if clear_first

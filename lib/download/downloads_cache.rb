@@ -2,11 +2,14 @@ class DownloadsCache
 
   def initialize(options = nil)
     @cache = { dloads: {}, dsds: {}, used_dloads: {} }
-    @dload = @data_source = ds_id = nil
-    @options = options
+    @dload = nil
+    @data_source = nil
+    @evalhash = nil
+    ds_id = nil
     if options
       ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
-      @options = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
+#     @options = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
+      @evalhash = options.delete(:eval_hash)
     end
     if ds_id
       @data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
@@ -32,7 +35,7 @@ class DownloadsCache
         dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
         @cache[:dsds][bridge_key] = dsd
 
-        skip = @dload.last_change_at <= dsd.last_file_vers_used && @options == dsd.last_eval_options_used
+        skip = @dload.last_change_at <= dsd.last_file_vers_used && @evalhash == dsd.last_eval_options_used
       end
     end
     @path = path
@@ -48,7 +51,7 @@ class DownloadsCache
     @cache[:used_dloads].values.each do |dload|
       bridge_key = @data_source.id.to_s + '_' + dload.id.to_s
       dsd = @cache[:dsds][bridge_key] || raise("No bridge key #{bridge_key}")
-      dsd.update last_file_vers_used: dload.last_change_at, last_eval_options_used: @options
+      dsd.update last_file_vers_used: dload.last_change_at, last_eval_options_used: @evalhash
     end
   end
 
