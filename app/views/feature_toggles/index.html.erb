@@ -2,9 +2,6 @@
 
 <h1>Listing Feature Toggles</h1>
 
-<%= link_to 'New Feature Toggle', new_feature_toggle_path %>
-<p></p>
-
 <table>
   <thead>
     <tr>
@@ -18,7 +15,7 @@
     <% @feature_toggles.each do |feature_toggle| %>
       <tr>
         <td><%= feature_toggle.name %></td>
-        <td><%= link_to feature_toggle.description, edit_feature_toggle_path(feature_toggle) %></td>
+        <td><%= feature_toggle.description %></td>
         <td><%= feature_toggle.status %></td>
       </tr>
     <% end %>

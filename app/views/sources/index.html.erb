@@ -4,6 +4,8 @@
 <%= link_to 'Unrestricted series without a source', 'series/no_source_no_restrict' %>
 
 <h1>Listing Sources</h1>
+<%= link_to 'New Source', new_source_path %>
+<p></p>
 
 <table>
   <thead>
@@ -24,7 +26,3 @@
     <% end %>
   </tbody>
 </table>
-
-<br>
-
-<%= link_to 'New Source', new_source_path %>

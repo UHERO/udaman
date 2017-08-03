@@ -116,3 +116,10 @@ form button,
 #submit_search,
 #submit_transformation {border: 1px solid;}
 table#search_results td {border:none;}
+
+/* anchor tags inside table cells will be highlighted and clickable across the whole width of the <td> cell */
+td a { display: block; text-decoration: none; }
+
+/* No underlining for links in top menu */
+div#top-level-nav a:link { text-decoration: none; }
+div#chart-board-nav a:link { text-decoration: none; }
