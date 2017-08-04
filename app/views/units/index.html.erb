@@ -18,8 +18,7 @@
     <% @units.each do |unit| %>
       <tr>
         <td><%= unit.short_label %></td>
-        <td><%= unit.long_label %></td>
-        <td><%= link_to 'Edit', edit_unit_path(unit) %></td>
+        <td><%= link_to unit.long_label, edit_unit_path(unit) %></td>
         <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: "Destroy unit #{unit.to_s}.\n#{num_affected(unit)}. Are you sure??" } %></td>
       </tr>
     <% end %>

@@ -4,6 +4,8 @@
 <%= link_to 'Unrestricted series without a source', 'series/no_source_no_restrict' %>
 
 <h1>Listing Sources</h1>
+<%= link_to 'New Source', new_source_path %>
+<p></p>
 
 <table>
   <thead>
@@ -17,16 +19,10 @@
   <tbody>
     <% @sources.each do |source| %>
       <tr>
-        <td><%= source.description %></td>
+        <td><%= link_to source.description, edit_source_path(source) %></td>
         <td><%= source.link %></td>
-        <td><%= link_to 'Show', source %></td>
-        <td><%= link_to 'Edit', edit_source_path(source) %></td>
         <td><%= link_to 'Destroy', source, method: :delete, data: { confirm: "Destroy #{source.description}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>
 </table>
-
-<br>
-
-<%= link_to 'New Source', new_source_path %>

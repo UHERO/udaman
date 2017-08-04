@@ -8,7 +8,6 @@
       <th>Name</th>
       <th>Description</th>
       <th>Status</th>
-      <th colspan="2"></th>
     </tr>
   </thead>
 
@@ -18,12 +17,7 @@
         <td><%= feature_toggle.name %></td>
         <td><%= feature_toggle.description %></td>
         <td><%= feature_toggle.status %></td>
-        <td><%= link_to 'Show', feature_toggle %></td>
-        <td><%= link_to 'Edit', edit_feature_toggle_path(feature_toggle) %></td>
       </tr>
     <% end %>
   </tbody>
 </table>
-
-<br>
-
