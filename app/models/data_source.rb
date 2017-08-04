@@ -135,7 +135,7 @@ class DataSource < ActiveRecord::Base
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
-      options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*("[^"]*"|\d+)\s*,?)+\s*})/
+      options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
         if eval_stmt =~ options_match  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
