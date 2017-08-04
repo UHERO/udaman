@@ -8,7 +8,6 @@ class DownloadsCache
     ds_id = nil
     if options
       ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
-#     @options = Hash[options.sort].to_json.downcase  ## slick. serialize hash in key-sorted order. -dji
       @evalhash = options.delete(:eval_hash)
     end
     if ds_id

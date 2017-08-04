@@ -140,7 +140,7 @@ class DataSource < ActiveRecord::Base
         if eval_stmt =~ options_match  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
-          eval_stmt.sub!(options_match, options.merge(data_source: id, eval_hash: hash).to_s) ## injection hack :=P -dji
+          eval_stmt.sub!(options_match, options.merge(data_source: id, eval_hash: hash.to_s).to_s) ## injection hack :=P -dji
         end
         s = Kernel::eval eval_stmt
         if clear_first
