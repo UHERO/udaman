@@ -6,7 +6,7 @@ class NtaCsvWorker
   sidekiq_options queue: 'critical'
 
   def initialize
-    logger.level = Logger::DEBUG
+    logger.level = Logger::INFO ## DEBUG
   end
 
   def perform(nta_id)
