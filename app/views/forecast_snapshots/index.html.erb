@@ -26,7 +26,7 @@
   <tbody>
     <% @forecast_snapshots.each do |fs| %>
       <tr>
-        <td><%= fs.name %></td>
+        <td><%= link_to fs.name, fs %></td>
         <td align="center"><%= fs.version %></td>
         <td><%= fs.comments %></td>
         <% if current_user.internal_user? %>
@@ -34,7 +34,6 @@
         <% end %>
         <td><%= fs.created_at.localtime.strftime("%m/%d/%y") %></td>
         <td><%= fs.updated_at.localtime.strftime("%m/%d/%y") %></td>
-        <td><%= link_to 'Show', fs %></td>
         <% if current_user.admin_user? %>
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
         <% end %>

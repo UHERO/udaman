@@ -15,17 +15,17 @@
     <%= f.label :fips %><br>
     <%= f.text_field :fips %>
   </div>
+    <div class="field">
+      <%= f.label :handle %><br>
+      <%= f.text_field :handle %>
+    </div>
   <div class="field">
     <%= f.label :display_name %><br>
-    <%= f.text_field :display_name %>
+    <%= f.text_field :display_name, :size => 80 %>
   </div>
   <div class="field">
     <%= f.label :display_name_short %><br>
-    <%= f.text_field :display_name_short %>
-  </div>
-  <div class="field">
-    <%= f.label :handle %><br>
-    <%= f.text_field :handle %>
+    <%= f.text_field :display_name_short, :size => 30 %>
   </div>
   <div class="actions">
     <%= f.submit %>
