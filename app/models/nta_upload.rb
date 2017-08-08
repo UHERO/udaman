@@ -405,7 +405,7 @@ class NtaUpload < ActiveRecord::Base
       where m.universe = 'NTA'
       and m.data_portal_name like 'All Countries%'
     SQL
-    puts "DEBUG: load_cats_postproc UPDATE SERIES NTA_<var>@<region,incgrp>.A with Geo link at #{Time.now}"
+    puts "DEBUG: load_cats_postproc UPDATE GEO LINK FOR SERIES NTA_<var>@<region,incgrp>.A at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Update geography link for series NTA_<var>@<incgrp>.A ***/
       update series s
@@ -518,8 +518,8 @@ class NtaUpload < ActiveRecord::Base
               when 'Europe' then 4
               when 'Oceania' then 5
               when 'Low Income' then 7
-              when 'Lower-Middle Income' then 8
-              when 'Upper-Middle Income' then 9
+              when 'Lower Middle Income' then 8
+              when 'Upper Middle Income' then 9
               when 'High Income' then 10
             else 12
           end
@@ -529,32 +529,6 @@ class NtaUpload < ActiveRecord::Base
           and length(m.prefix)-length(replace(m.prefix, '_', '')) > 2
           and dl.universe = m.universe
       where dl.universe = 'NTA'
-    SQL
-    puts "DEBUG: load_cats_postproc AGGREGATE data points at #{Time.now}"
-    NtaUpload.connection.execute <<~SQL
-      /*** Generating aggregate region/income group data points ***/
-      insert data_points (universe, series_id, data_source_id, created_at, `current`, `date`, `value`)
-      select distinct any_value(dp.universe), s2.id, any_value(ds.id), now(), true, dp.`date`, avg(dp.`value`)
-      from data_points dp
-        join series s1 on dp.series_id = s1.id  /* country data series */
-        join geographies g on g.id = s1.geography_id
-        join series s2 on s2.universe = s1.universe  /* aggregate region/incgrp series */
-        join geo_trees gt
-           on gt.child_id = s1.geography_id
-          and gt.parent_id = s2.geography_id
-        join data_sources ds on ds.series_id = s2.id
-
-        join measurement_series ms1 on s1.id = ms1.series_id
-        join measurements        m1 on m1.id = ms1.measurement_id
-        join data_list_measurements dm1 on dm1.measurement_id = m1.id
-
-        join measurement_series ms2 on s2.id = ms2.series_id
-        join measurements        m2 on m2.id = ms2.measurement_id
-        join data_list_measurements dm2 on dm2.measurement_id = m2.id
-      where dp.universe = 'NTA'
-      and g.geotype = 'region3'
-      and dm1.data_list_id = dm2.data_list_id
-      group by s2.id, dp.`date`
     SQL
   end
 
@@ -611,30 +585,6 @@ private
       WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
     SQL
     DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
-  end
-
-  def get_geo_code(name)
-    trans_hash = {
-        'Hawaii County' => 'HAW',
-        'Honolulu County' => 'HON',
-        'Maui County' => 'MAU',
-        'Kauai County' => 'KAU',
-        'Statewide' => 'HI',
-    }
-    trans_hash[name] || 'ERROR'
-  end
-
-  def get_date(year, qm)
-    if qm =~ /^M(\d+)/i
-      "#{year}-%02d-01" % $1.to_i
-    elsif qm =~ /^Q(\d+)/i
-      quarter_month = '%02d' % (($1.to_i - 1) * 3 + 1)
-      "#{year}-#{quarter_month}-01"
-    elsif qm.nil? || qm.empty? || qm =~ /A/i
-      "#{year}-01-01"
-    else
-      "#{year}-12-31"  ## use this as an error code? :=}
-    end
   end
 
 end
