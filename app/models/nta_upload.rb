@@ -227,39 +227,22 @@ class NtaUpload < ActiveRecord::Base
         ## convert row data to a hash keyed on column header. force all blank/empty to nil.
         row.to_a.each {|header, data| row_data[header.strip] = data.blank? ? nil : data.strip }
 
-        country = row_data['name']
+        group = row_data['group']
+        next unless ['world','region','income group','country').include? group.downcase
+
         iso_handle = row_data['iso3166a']
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), iso_handle ]
 
         if current_series.nil? || current_series.name != series_name
             ###puts "..... create series #{series_name}"
-            geo_region = Geography.get_or_new_nta({ handle: row_data['regn'].gsub(/\W+/, '_') },
-                                                  { display_name: row_data['regn'],
-                                                    display_name_short: row_data['regn'],
-                                                    geotype: 'region1'})
-            Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W+/, '_') },
-                                     { display_name: row_data['subregn'],
-                                       display_name_short: row_data['subregn'],
-                                       geotype: 'region2',
-                                       parents: geo_region.id })
-            income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/\s*income$/i, '')
-            geo_incgrp = Geography.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
-                                                  { display_name: "#{income_grp} Income",
-                                                    display_name_short: "#{income_grp} Income",
-                                                    geotype: 'incgrp1' })
-            geo_country = Geography.get_or_new_nta({ handle: iso_handle.gsub(/\W+/, '_') },
-                                                   { display_name: country,
-                                                     display_name_short: country,
-                                                     geotype: 'region3',
-                                                     parents: [geo_region.id, geo_incgrp.id] })
-
+            geo_id = group.downcase == 'country' ? make_country_geos(row_data) : nil
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
-                               dataPortalName: '%s (%s)' % [ country, prefix.sub('NTA_','') ],
+                               dataPortalName: '%s (%s)' % [ row_data['name'], prefix.sub('NTA_','') ],
                                frequency: 'year',
-                               geography_id: geo_country.id,
+                               geography_id: geo_id,          ############ LATER UPDATE THE WORLD/REGION/INCGRP SERIES FIELD
                                unit_id: measurement.unit_id,
                                percent: measurement.percent,
                                source_id: measurement.source_id
@@ -304,6 +287,29 @@ class NtaUpload < ActiveRecord::Base
     DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
     new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
     DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
+  end
+
+  def make_country_geos(row_data)
+    geo_region = Geography.get_or_new_nta({ handle: row_data['regn'].gsub(/\W+/, '_') },
+                                          { display_name: row_data['regn'],
+                                            display_name_short: row_data['regn'],
+                                            geotype: 'region1'})
+    Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W+/, '_') },
+                             { display_name: row_data['subregn'],
+                               display_name_short: row_data['subregn'],
+                               geotype: 'region2',
+                               parents: geo_region.id })
+    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/\s*income$/i, '')
+    geo_incgrp = Geography.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
+                                          { display_name: "#{income_grp} Income",
+                                            display_name_short: "#{income_grp} Income",
+                                            geotype: 'incgrp1' })
+    geo_country = Geography.get_or_new_nta({ handle: row_data['iso3166a'].gsub(/\W+/, '_') },
+                                           { display_name: row_data['name'],
+                                             display_name_short: row_data['name'],
+                                             geotype: 'region3',
+                                             parents: [geo_region.id, geo_incgrp.id] })
+    geo_country.id
   end
 
   def NtaUpload.load(id, series_id)
