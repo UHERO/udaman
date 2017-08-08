@@ -228,7 +228,7 @@ class NtaUpload < ActiveRecord::Base
         row.to_a.each {|header, data| row_data[header.strip] = data.blank? ? nil : data.strip }
 
         group = row_data['group']
-        next unless ['world','region','income group','country').include? group.downcase
+        next unless ['world','region','income group','country'].include? group.downcase
 
         geo_part = row_data['iso3166a'] || row_data['name']
         geo_part = geo_part.sub(/.income.countries/i, '')    ## Clean up mainly for income group names
@@ -340,9 +340,6 @@ class NtaUpload < ActiveRecord::Base
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from units where universe = 'NTA'
-    SQL
-    ActiveRecord::Base.connection.execute <<~SQL
       delete from data_sources where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
@@ -353,6 +350,12 @@ class NtaUpload < ActiveRecord::Base
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from data_lists where universe = 'NTA'
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete from units where universe = 'NTA'
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete from sources where universe = 'NTA'
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = 'NTA'
@@ -407,7 +410,7 @@ class NtaUpload < ActiveRecord::Base
     SQL
     puts "DEBUG: load_cats_postproc UPDATE GEO LINK FOR SERIES NTA_<var>@<region,incgrp>.A at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
-      /*** Update geography link for series NTA_<var>@<incgrp>.A ***/
+      /*** Update geography link for series NTA_<var>@<region,incgrp>.A ***/
       update series s
         join geographies g
            on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
