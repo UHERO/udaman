@@ -124,9 +124,9 @@ class NtaUpload < ActiveRecord::Base
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
 
-      data_list_name = "NTA_#{row[0].strip}"
-      long_name = row[1].strip
-      parent_cat_name = row[4].strip
+      data_list_name = "NTA_#{row[0].to_ascii.strip}"
+      long_name = row[1].to_ascii.strip
+      parent_cat_name = row[4].to_ascii.strip
       parent_cat = Category.get_or_new_nta({ name: parent_cat_name }, { ancestry: root })
       ancestry = "#{root}/#{parent_cat.id}"
       category = Category.get_or_new_nta({ meta: data_list_name }, { name: long_name, ancestry: ancestry })
@@ -136,7 +136,7 @@ class NtaUpload < ActiveRecord::Base
       category.update data_list_id: data_list.id
 
       ## units
-      unit_str = row[3] && row[3].strip
+      unit_str = row[3] && row[3].to_ascii.strip
       unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new_nta(unit_str)
 
       ## percent
@@ -147,8 +147,8 @@ class NtaUpload < ActiveRecord::Base
       ## advanced regex: ? following normal stuff means 0 or 1 of the preceding;
       ##                 ? following another quantifier means "don't be greedy"
       if row[6] =~ /^(.*?)(https?:.*)?$/
-        desc = ($1 && !$1.blank?) ? $1.strip : nil
-        link = ($2 && !$2.blank?) ? $2.strip : nil
+        desc = ($1 && !$1.blank?) ? $1.to_ascii.strip : nil
+        link = ($2 && !$2.blank?) ? $2.to_ascii.strip : nil
       end
       source = (desc || link) ? Source.get_or_new_nta(desc, link) : nil
 
@@ -225,13 +225,14 @@ class NtaUpload < ActiveRecord::Base
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
         ## convert row data to a hash keyed on column header. force all blank/empty to nil.
-        row.to_a.each {|header, data| row_data[header.strip] = data.blank? ? nil : data.strip }
+        row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
 
         group = row_data['group'].downcase
         next unless ['world','region','income group','country'].include? group
 
         geo_part = row_data['iso3166a'] || row_data['name'].titlecase
-        geo_part.sub!(/.income.countries/i, '').gsub!(/\W+/, '_')  ## Clean up mainly for income group names
+        geo_part.sub!(/.income.countries/i, '')  ## Clean up for income group names
+        geo_part.gsub!(/\W+/, '_')
 
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), geo_part ]
 
