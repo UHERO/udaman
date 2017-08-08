@@ -158,7 +158,7 @@ class NtaUpload < ActiveRecord::Base
         measurement = Measurement.create(
           universe: 'NTA',
           prefix: data_list_name,
-          data_portal_name: 'All Countries (%s)' % data_list_name.sub('NTA_',''),
+          data_portal_name: 'All Countries',
           unit_id: unit && unit.id,
           percent: percent,
           source_id: source && source.id
@@ -227,19 +227,17 @@ class NtaUpload < ActiveRecord::Base
         ## convert row data to a hash keyed on column header. force all blank/empty to nil.
         row.to_a.each {|header, data| row_data[header.strip] = data.blank? ? nil : data.strip }
 
-        group = row_data['group']
-        next unless ['world','region','income group','country'].include? group.downcase
+        group = row_data['group'].downcase
+        next unless ['world','region','income group','country'].include? group
 
-        geo_part = row_data['iso3166a'] || row_data['name']
-        geo_part = geo_part.sub(/.income.countries/i, '')    ## Clean up mainly for income group names
-                           .titlecase
-                           .gsub(/\W+/, '_')
+        geo_part = row_data['iso3166a'] || row_data['name'].titlecase
+        geo_part.sub!(/.income.countries/i, '').gsub!(/\W+/, '_')  ## Clean up mainly for income group names
 
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), geo_part ]
 
         if current_series.nil? || current_series.name != series_name
             ###puts "..... create series #{series_name}"
-            geo_id = group.downcase == 'country' ? make_country_geos(row_data) : nil
+            geo_id = group == 'country' ? make_country_geos(row_data) : nil
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
                                universe: 'NTA',
@@ -377,7 +375,7 @@ class NtaUpload < ActiveRecord::Base
       select distinct 'NTA', concat(m.prefix, '_regn'), 'Region', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
       where m.universe = 'NTA'
-      and m.data_portal_name like 'All Countries%'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_regn_<region> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -387,7 +385,7 @@ class NtaUpload < ActiveRecord::Base
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'region1'
       where m.universe = 'NTA'
-      and m.data_portal_name like 'All Countries%'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_incgrp at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -396,7 +394,7 @@ class NtaUpload < ActiveRecord::Base
       select distinct 'NTA', concat(m.prefix, '_incgrp'), 'Income Group', m.unit_id, m.percent, m.source_id, now(), now()
       from measurements m
       where m.universe = 'NTA'
-      and m.data_portal_name like 'All Countries%'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc CREATE MEAS NTA_<var>_incgrp_<group> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -406,7 +404,7 @@ class NtaUpload < ActiveRecord::Base
       from measurements m
         join geographies g on m.universe = g.universe and g.geotype = 'incgrp1'
       where m.universe = 'NTA'
-      and m.data_portal_name like 'All Countries%'
+      and m.data_portal_name = 'All Countries'
     SQL
     puts "DEBUG: load_cats_postproc UPDATE GEO LINK FOR SERIES NTA_<var>@<region,incgrp>.A at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
@@ -429,7 +427,7 @@ class NtaUpload < ActiveRecord::Base
         join measurements m
            on m.universe = s.universe
           and m.prefix = substring_index(s.name, '@', 1)
-          and m.data_portal_name like 'All Countries%'
+          and m.data_portal_name = 'All Countries'
       where s.universe = 'NTA'
       and g.geotype = 'region3'
     SQL
@@ -504,8 +502,8 @@ class NtaUpload < ActiveRecord::Base
           end
       from data_lists dl
         join measurements m
-           on dl.name = substring_index(m.prefix, '_', 2)
-          and length(m.prefix)-length(replace(m.prefix, '_', '')) = 2
+           on (m.prefix like '%\_regn' or m.prefix like '%\_incgrp')
+          and dl.name = replace(replace(m.prefix, '_regn', ''), '_incgrp', '')
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
@@ -528,8 +526,8 @@ class NtaUpload < ActiveRecord::Base
           end
       from data_lists dl
         join measurements m
-           on dl.name = substring_index(m.prefix, '_', 2)
-          and length(m.prefix)-length(replace(m.prefix, '_', '')) > 2
+           on (m.prefix like '%\_regn\_%' or m.prefix like '%\_incgrp\_%')
+          and dl.name = substring_index(substring_index(m.prefix, '_regn_', 1), '_incgrp_', 1)
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
