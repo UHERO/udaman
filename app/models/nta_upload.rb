@@ -124,7 +124,7 @@ class NtaUpload < ActiveRecord::Base
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
 
-      data_list_name = "NTA_#{row[0].to_ascii.strip}"
+      data_list_name = 'NTA_%s' % row[0].to_ascii.strip
       long_name = row[1].to_ascii.strip
       parent_cat_name = row[4].to_ascii.strip
       parent_cat = Category.get_or_new_nta({ name: parent_cat_name }, { ancestry: root })
@@ -153,7 +153,7 @@ class NtaUpload < ActiveRecord::Base
       source = (desc || link) ? Source.get_or_new_nta(desc, link) : nil
 
       ## measurement
-      measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name)
+      measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name.gsub(/\W+/, '_'))
       if measurement.nil?
         measurement = Measurement.create(
           universe: 'NTA',
@@ -216,7 +216,7 @@ class NtaUpload < ActiveRecord::Base
 
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
-      puts "-----------> LOADING category #{cat.meta}"
+      puts "LOADING category #{cat.meta}\t\tat #{Time.now}"
       measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.meta}")
       raise("load_series_csv: no measurement for #{cat.meta}") unless measurement
       prefix = measurement.prefix
@@ -243,7 +243,7 @@ class NtaUpload < ActiveRecord::Base
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
-                               dataPortalName: '%s (%s)' % [ row_data['name'], prefix.sub('NTA_','') ],
+                               dataPortalName: '%s (%s)' % [ row_data['name'], indicator_name ],
                                frequency: 'year',
                                geography_id: geo_id,  #### Updated for Region/Income Group series below in post proc
                                unit_id: measurement.unit_id,
@@ -448,7 +448,7 @@ class NtaUpload < ActiveRecord::Base
       where s.universe = 'NTA'
       and g.geotype = 'region3'
     SQL
-    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to _incgrp_<group> at #{Time.now}"
+    puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to *_incgrp_<group> at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp_<incgrp>
                       with series NTA_<var>@<country_iso>.A            ***/
