@@ -131,6 +131,8 @@ class NtaUpload < ActiveRecord::Base
       ancestry = "#{root}/#{parent_cat.id}"
       category = Category.get_or_new_nta({ meta: data_list_name }, { name: long_name, ancestry: ancestry })
 
+      data_list_name.gsub!(/\W+/, '_')  ## From here down, slugify
+
       ## data_list
       data_list = DataList.create(universe: 'NTA', name: data_list_name)
       category.update data_list_id: data_list.id
@@ -153,7 +155,7 @@ class NtaUpload < ActiveRecord::Base
       source = (desc || link) ? Source.get_or_new_nta(desc, link) : nil
 
       ## measurement
-      measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name.gsub(/\W+/, '_'))
+      measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name)
       if measurement.nil?
         measurement = Measurement.create(
           universe: 'NTA',
@@ -216,7 +218,7 @@ class NtaUpload < ActiveRecord::Base
 
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
-      puts "LOADING category #{cat.meta}\t\tat #{Time.now}"
+      puts "LOADING category #{cat.meta}\t\t\tat #{Time.now}"
       measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.meta}")
       raise("load_series_csv: no measurement for #{cat.meta}") unless measurement
       prefix = measurement.prefix
@@ -415,7 +417,8 @@ class NtaUpload < ActiveRecord::Base
            on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
           and g.geotype like '%1' /* region1 and incgrp1 */
       set s.geography_id = g.id
-      where s.geography_id = null
+      where s.universe = 'NTA'
+      and s.geography_id is null
     SQL
     puts "DEBUG: load_cats_postproc ASSOCIATE country ISO series to All Countries at #{Time.now}"
     NtaUpload.connection.execute <<~SQL
