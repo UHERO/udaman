@@ -50,7 +50,7 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def make_active_settings
-    unless DataPoint.update_public_data_points
+    unless DataPoint.update_public_data_points 'DBEDT'
       logger.debug { 'FAILED to update public_data_points' }
       return false
     end

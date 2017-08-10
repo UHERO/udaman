@@ -16,7 +16,7 @@ class NtaLoadWorker
       upload.full_load
       upload.update!(series_status: :ok, last_error: nil, last_error_at: nil)
     rescue => error
-      upload.update(series_status: :fail, last_error: error.message, last_error_at: Time.now)
+      upload.update(series_status: :fail, last_error: error.message[0..254], last_error_at: Time.now)
       logger.error { "NtaLoadWorker load failed: #{error.message}" }
       logger.error error.backtrace
     end

@@ -320,7 +320,7 @@ class Series < ActiveRecord::Base
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(self) unless self.quarantined?
+    DataPoint.update_public_data_points('UHERO', self) unless self.quarantined?
     aremos_comparison #if we can take out this save, might speed things up a little
     []
   end

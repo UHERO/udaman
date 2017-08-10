@@ -38,8 +38,8 @@
                 indent_i = ind ? ind[-1].to_i : 0
               %>
               <tr>
-                <td><%= measurement.prefix %></td>
-                <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= link_to measurement.data_portal_name, measurement %></td>
+                <td><%= link_to measurement.prefix, measurement %></td>
+                <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= measurement.data_portal_name %></td>
                 <td><%= link_to 'Up', {controller: :data_lists, action: :move_measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
                 <td><%= link_to 'Down', {controller: :data_lists, action: :move_measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
                 <td><%= link_to '<<'.html_safe, {controller: :data_lists, action: :set_measurement_indent, id: @data_list, measurement_id: measurement.id, indent_in_out: 'out'}, remote: true, data: {indent: 1} %></td>
