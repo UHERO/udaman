@@ -40,7 +40,7 @@ class NtaCsvWorker
     rescue => error
       logger.error "NtaCsvWorker: #{error.message}"
       logger.error error.backtrace
-      upload.update(last_error: error.message, last_error_at: Time.now)
+      upload.update(last_error: error.message[0..254], last_error_at: Time.now)
       upload.set_status('series', :fail)
     end
   end

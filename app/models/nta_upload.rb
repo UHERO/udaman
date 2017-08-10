@@ -283,7 +283,7 @@ class NtaUpload < ActiveRecord::Base
                                ['NTA', dp[:series_id], dp[:data_source_id], dp[:date], dp[:value]] }
                     .join(',')
         NtaUpload.connection.execute <<~SQL
-          INSERT INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
+          REPLACE INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
         SQL
       end
     end
@@ -507,7 +507,7 @@ class NtaUpload < ActiveRecord::Base
       from data_lists dl
         join measurements m
            on (m.prefix like '%\_regn' or m.prefix like '%\_incgrp')
-          and dl.name = replace(replace(m.prefix, '_regn', ''), '_incgrp', '')
+          and dl.name = replace(replace(m.prefix, '_regn', ''), '_incgrp', '') /* replace either of two strings, whichever appears */
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
