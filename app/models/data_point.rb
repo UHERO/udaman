@@ -163,12 +163,13 @@ class DataPoint < ActiveRecord::Base
     DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
   end
 
-  def DataPoint.update_public_data_points(series = nil)
+  def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
     if series && series.quarantined?
       logger.info { "Did not update public data points because series #{series.name} is quarantined" }
       return false
     end
     t = Time.now
+    insert_type = universe == 'NTA' ? 'replace' : 'insert'
     update_query = %Q(
       update public_data_points p
         join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
@@ -176,17 +177,19 @@ class DataPoint < ActiveRecord::Base
       set p.value = d.value,
           p.pseudo_history = d.pseudo_history,
           p.updated_at = coalesce(d.updated_at, now())
-      where not s.quarantined
+      where p.universe = ?
+      and not s.quarantined
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
     )
     insert_query = %Q(
-      insert into public_data_points (universe, series_id, date, value, pseudo_history, created_at, updated_at)
+      #{insert_type} into public_data_points (universe, series_id, date, value, pseudo_history, created_at, updated_at)
       select d.universe, d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
       from data_points d
         join series s on s.id = d.series_id
         left join public_data_points p on d.series_id = p.series_id and d.date = p.date
-      where not s.quarantined
+      where d.universe = ?
+      and not s.quarantined
       and d.current
       and p.created_at is null  /* dp doesn't exist in public_data_points yet */
       #{' and s.id = ? ' if series} ;
@@ -196,19 +199,20 @@ class DataPoint < ActiveRecord::Base
       from public_data_points p
         join series s on s.id = p.series_id
         left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
-      where not s.quarantined
+      where p.universe = ?
+      and not s.quarantined
       and d.created_at is null  /* dp no longer exists in data_points */
       #{' and s.id = ? ' if series} ;
     )
     ActiveRecord::Base.transaction do
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
-      series ? stmt.execute(series.id) : stmt.execute
+      series ? stmt.execute(universe, series.id) : stmt.execute(universe)
       stmt.close
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(insert_query)
-      series ? stmt.execute(series.id) : stmt.execute
+      series ? stmt.execute(universe, series.id) : stmt.execute(universe)
       stmt.close
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(delete_query)
-      series ? stmt.execute(series.id) : stmt.execute
+      series ? stmt.execute(universe, series.id) : stmt.execute(universe)
       stmt.close
     end
     if series.nil?
