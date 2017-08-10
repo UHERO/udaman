@@ -36,7 +36,7 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def make_active_settings
-    return false unless DataPoint.update_public_data_points
+    return false unless DataPoint.update_public_data_points 'NTA'
     logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
     self.update! active: true, last_error: nil, last_error_at: nil
