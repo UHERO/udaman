@@ -1,35 +1,76 @@
 class DownloadsCache
 
-  def xls(handle, sheet, path = nil, date = nil)
-    Rails.logger.debug "... Entered method xls ... handle=#{handle}, sheet=#{sheet}, path=#{path}"
-    @dsd = nil
-    if path.nil?
-      @got_handle ||= {}
-      @dsd = @got_handle[handle] || Download.get(handle)
-      raise "handle '#{handle}' does not exist" if @dsd.nil?
-      path = @dsd.extract_path_flex.blank? ? @dsd.save_path_flex : @dsd.extract_path_flex
-      @got_handle[handle] = @dsd
+  def initialize(options = nil)
+    @cache = { dloads: {}, dsds: {}, used_dloads: {} }
+    @dload = nil
+    @data_source = nil
+    @evalhash = nil
+    ds_id = nil
+    if options
+      ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
+      @evalhash = options.delete(:eval_hash)
     end
-    
-    @cache_handle = path
-    @handle = handle
-    @sheet = (@dsd.nil? || @dsd.sheet_override.blank?) ? sheet : @dsd.sheet_override.strip
-    file_key = make_cache_key('xls', @cache_handle)
-    sheet_key = make_cache_key('xls', @cache_handle, @sheet)
+    if ds_id
+      @data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
+    end
+  end
 
-    #if handle in cache, it was downloaded recently... need to pull this handle logic out to make less hacky
-    if handle != 'manual' && !Rails.cache.exist?(file_key)
-      Rails.logger.debug "!!! xls cache miss for file_key=#{file_key}"
-      download_handle
-      set_files_cache(file_key, 1)  ## Marker to show that file is downloaded
+  def setup_and_check(type, handle, path = nil, skip_proc = false)
+    Rails.logger.debug { "... Entered method setup_and_check: type=#{type}, handle=#{handle}, path=#{path}" }
+    skip = false
+    if path.nil?  ## this means that handle != 'manual'
+      @dload = @cache[:dloads][handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
+      @cache[:dloads][handle] = @dload
+      @handle = handle
+      path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
+      cache_key = make_cache_key(type, path)
+      unless files_cache_exists? cache_key
+        download_handle
+        set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
+      end
+      ## Now, figure out if we can skip over this source entirely because it hasn't changed.
+      if @data_source && skip_proc
+        bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
+        dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
+        @cache[:dsds][bridge_key] = dsd
+
+        skip = @dload.last_change_at <= dsd.last_file_vers_used && @evalhash == dsd.last_eval_options_used
+      end
     end
-    get_files_cache(sheet_key) || set_xls_sheet(@sheet, date)
+    @path = path
+    skip
+  end
+
+  def mark_handle_used(handle)
+    @cache[:used_dloads][handle] = @cache[:dloads][handle] || raise("No download handle #{handle} to mark")
+  end
+
+  def update_last_used
+    return if @cache[:dsds].empty?
+    @cache[:used_dloads].values.each do |dload|
+      bridge_key = @data_source.id.to_s + '_' + dload.id.to_s
+      dsd = @cache[:dsds][bridge_key] || raise("No bridge key #{bridge_key}")
+      dsd.update last_file_vers_used: dload.last_change_at, last_eval_options_used: @evalhash
+    end
+  end
+
+  def xls(handle, sheet, path = nil, date = nil, skip_proc = false)
+    Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    skip = setup_and_check('xls', handle, path, skip_proc)
+    sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
+    sheet_key = make_cache_key('xls', @path, sheet)
+    worksheet = get_files_cache(sheet_key) || set_xls_sheet(sheet, date)
+    skip_proc ? [worksheet, skip] : worksheet
   end
 
   def set_xls_sheet(sheet, date)
-    Rails.logger.debug "... Entered method set_xls_sheet ... sheet=#{sheet}, date=#{date}"
-    file_extension = @cache_handle.split('.')[-1]
-    excel = file_extension == 'xlsx' ? Roo::Excelx.new(@cache_handle) : Roo::Excel.new(@cache_handle)
+    Rails.logger.debug { "... Entered method set_xls_sheet: sheet=#{sheet}, date=#{date}" }
+    excel = begin
+              Roo::Spreadsheet.open(@path, extension: File.extname(@path))
+            rescue
+              flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
+              Roo::Spreadsheet.open(@path, extension: flip_ext)
+            end
     sheet_parts = sheet.split(':')
     def_sheet = case
       when sheet_parts[0] == 'sheet_num' then
@@ -47,55 +88,36 @@ class DownloadsCache
     begin
       excel.default_sheet = def_sheet
     rescue
-      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dsd.save_path_flex}' [handle: #{@handle}]"
+      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dload.save_path_flex}' [handle: #{@handle}]"
     end
-    sheet_key = make_cache_key('xls', @cache_handle, sheet)
+    sheet_key = make_cache_key('xls', @path, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
   end
 
-  def download_results
-    Rails.logger.debug '... Entered method download_results'
-    key = make_cache_key('download','results')
-    get_files_cache(key) || {}
-  end
-
-  def csv(handle, path = nil)
-    Rails.logger.debug "... Entered method csv ... handle=#{handle}, path=#{path}"
-    if path.nil?
-      @got_handle ||= {}
-      @dsd = @got_handle[handle] || Download.get(handle)
-      raise "handle '#{handle}' does not exist" if @dsd.nil? && handle != 'manual'
-      path = @dsd.save_path_flex if handle != 'manual'
-      @got_handle[handle] = @dsd
-    end
-    @handle = handle
-    file_key = make_cache_key('csv', path)
+  def csv(handle, path = nil, skip_proc = false)
+    Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
+    skip = setup_and_check('csv', handle, path, skip_proc)
+    file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)
     if value.nil?
-      Rails.logger.debug "!!! csv cache miss for file_key=#{file_key}"
-      download_handle unless @dsd.nil?
       begin
-        value = CSV.read(path)
+        value = CSV.read(@path)
       rescue
         #resolve one ugly known file formatting problem with faster csv
-        value = alternate_fastercsv_read(path)
+        value = alternate_fastercsv_read(@path)
       ensure
         set_files_cache(file_key, value)
       end
     end
-    value
+    skip_proc ? [value, skip] : value
   end
 
-  def text(handle)
-    Rails.logger.debug "... Entered method text ... handle=#{handle}"
-    @dsd = Download.get(handle)
-    raise "handle '#{handle}' does not exist" if @dsd.nil?
-    @handle = handle
-    file_key = make_cache_key('txt', handle)
+  def text(handle, skip_proc = false)
+    Rails.logger.debug { "... Entered method text: handle=#{handle}" }
+    setup_and_check('txt', handle, nil, skip_proc)
+    file_key = make_cache_key('txt', @path)
     value = get_files_cache(file_key)
     if value.nil?
-      Rails.logger.debug "!!! txt cache miss for file_key=#{file_key}"
-      download_handle
       value = get_text_rows
       set_files_cache(file_key, value)
     end
@@ -103,7 +125,7 @@ class DownloadsCache
   end
 
   def get_text_rows
-    f = open @dsd.save_path_flex, 'r'
+    f = open @dload.save_path_flex, 'r'
     text_rows = []
     while (row = f.gets)
       text_rows.push row
@@ -112,17 +134,26 @@ class DownloadsCache
   end
 
   def download_handle
-    Rails.logger.debug "... Entered method download_handle ... @handle=#{@handle}"
+    Rails.logger.debug { "... Entered method download_handle: @handle=#{@handle}" }
     t = Time.now
+    return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
+
     key = make_cache_key('download','results')
     results = get_files_cache(key) || {}
-    dsd_log = results[@handle] = @dsd.download
-    puts "#{Time.now - t} | cache miss: downloaded #{@handle}"
+    dsd_log = results[@handle] = @dload.download
+    Rails.logger.info { "#{Time.now - t} | cache miss: downloaded #{@handle}" }
     set_files_cache(key, results, {}) ## pass empty options hash to disable expiration timer -dji
 
     if dsd_log && dsd_log[:status] != 200
-      raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dsd.url})"
+      raise "the download for handle '#{@handle}' failed with status code #{dsd_log[:status]} (url=#{@dload.url})"
     end
+    dsd_log
+  end
+
+  def download_results
+    Rails.logger.debug { '... Entered method download_results' }
+    key = make_cache_key('download','results')
+    get_files_cache(key) || {}
   end
 
   def alternate_fastercsv_read(path)
@@ -151,16 +182,20 @@ class DownloadsCache
   end
 
   def get_files_cache(key)
-    Rails.logger.debug "<<< Entered method get_files_cache, key=#{key}"
+    Rails.logger.debug { "<<< Entered method get_files_cache, key=#{key}" }
     value = Rails.cache.fetch(key)
     value.nil? ? nil : Marshal.load(value)
   end
 
   def set_files_cache(key, value, options=nil)
-    Rails.logger.debug ">>> Entered method set_files_cache, key=#{key}"
+    Rails.logger.debug { ">>> Entered method set_files_cache, key=#{key}" }
     options ||= { expires_in: 6.hours }
     Rails.cache.write(key, Marshal.dump(value), options)
     value
+  end
+
+  def files_cache_exists?(key)
+    Rails.cache.exist?(key)
   end
 
   def get_month_name(date)

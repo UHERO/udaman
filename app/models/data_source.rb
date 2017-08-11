@@ -1,4 +1,5 @@
 class DataSource < ActiveRecord::Base
+  require 'digest/md5'
   serialize :dependencies, Array
   
   belongs_to :series
@@ -129,32 +130,43 @@ class DataSource < ActiveRecord::Base
       self.set_color
     end
 
-    def reload_source(clear_first=false)
+    def reload_source(clear_first = false)
+      logger.info { "Begin reload of data source #{description}" }
       t = Time.now
+      eval_stmt = self['eval'].dup
+      options = nil
+      options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
-        s = Kernel::eval self['eval']
+        if eval_stmt =~ options_match  ## extract the options hash
+          options = Kernel::eval $1    ## reconstitute
+          hash = Digest::MD5.new << eval_stmt
+          eval_stmt.sub!(options_match, options.merge(data_source: id, eval_hash: hash.to_s).to_s) ## injection hack :=P -dji
+        end
+        s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
         end
-        base_year = base_year_from_eval_string(self['eval'], self.dependencies)
+        base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
           self.series.update(:base_year => base_year.to_i)
         end
         self.series.update_data(s.data, self)
-        self.update_attributes(:description => s.name,
-                               :last_run => t,
-                               :runtime => (Time.now - t),
-                               :last_error => nil,
-                               :last_error_at => nil)
-      rescue Exception => e
+        self.update(:description => s.name,
+                    :last_run => t,
+                    :runtime => (Time.now - t),
+                    :last_error => nil,
+                    :last_error_at => nil)
+
+      rescue => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
-        self.update_attributes(:last_run => t,
-                               :runtime => nil,
-                               :last_error => message,
-                               :last_error_at => t)
-        logger.warn "Reload source [#{self.description}] (#{self.id}): Error: #{message}"
+        self.update(:last_run => t,
+                    :runtime => nil,
+                    :last_error => message,
+                    :last_error_at => t)
+        logger.error { "Reload source [#{description}] (#{id}): Error: #{message}" }
         return false
       end
+      true
     end
 
     def base_year_from_eval_string(eval_string, dependencies)

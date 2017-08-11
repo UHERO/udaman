@@ -11,17 +11,19 @@ class DownloadProcessor
   def initialize(handle, options)
     raise 'File type must be specified when initializing a Download Processor' if options[:file_type].nil?
     raise 'File path must be specified when initializing a manual Download Processor' if handle == 'manual' and options[:path].nil?
-    @cached_files = DownloadsCache.new
+    @cached_files = DownloadsCache.new(options)
     @handle = handle
     @options = options
     @file_type = options[:file_type]
-    raise 'not a valid file type option' if %w(txt csv xls xlsx).index(@file_type).nil?
+    raise 'not a valid file type option' unless %w(txt csv xls xlsx).include?(@file_type)
     @spreadsheet = CsvFileProcessor.new(handle, options, parse_date_options, @cached_files) if @file_type == 'csv' and validate_csv
     @spreadsheet = XlsFileProcessor.new(handle, options, parse_date_options, @cached_files) if (@file_type == 'xls' or @file_type == 'xlsx') and validate_xls
   end
 
   def get_data
-    return TextFileProcessor.new(@handle,@options, @cached_files).get_data if @file_type == 'txt' #and validate_text
+    if @file_type == 'txt'
+      return TextFileProcessor.new(@handle, @options, @cached_files).get_data
+    end
     get_data_spreadsheet
   end
 
@@ -31,9 +33,12 @@ class DownloadProcessor
     data = {}
     begin
       data_point = @spreadsheet.observation_at index
-      data.merge!(data_point) if data_point.class == Hash
+      skip = data_point.class == Hash ? data_point.delete(:skip) : true
+      data.merge!(data_point) unless skip
+      Rails.logger.debug { (skip ? "----- SKIPPED " : "+++++ MERGED ") + "DATA POINT :::: #{data_point.to_s}" }
       index += 1
     end until data_point.class == String or (!@options[:end_date].nil? and data_point.keys[0] == @options[:end_date])
+    @cached_files.update_last_used
     data
   end
 
@@ -42,9 +47,8 @@ class DownloadProcessor
   # design...
   def parse_date_options
     date_info = {}
-    date_info[:start] = @options[:start_date] unless @options[:start_date].nil?
-    date_info[:start] = read_date_from_file(@options[:start_row], @options[:start_col]) if @options[:start_date].nil?
-    date_info[:start] = adjust_for_frequency(date_info[:start])
+    start_date = @options[:start_date] || read_date_from_file(@options[:start_row], @options[:start_col])
+    date_info[:start] = adjust_for_frequency(start_date)
     date_info[:rev] = @options[:rev] ? true : false
     date_info
   end
@@ -60,7 +64,6 @@ class DownloadProcessor
   def read_date_from_file(start_row, start_col)
     #assumption is that these will not be files with dates to process. just static file and sheet strings
     #assuming that date is a recognizable format to ruby
-    puts @cached_files.csv(@handle)[start_row-1][start_col-1].to_s + 'is csv' if @file_type == 'csv'
     date_cell = nil
     date_cell = @cached_files.csv(@handle)[start_row-1][start_col-1] if @file_type == 'csv'
     date_cell = @cached_files.xls(@handle, @options[:sheet]).cell(start_row, start_col) if @file_type == 'xls'

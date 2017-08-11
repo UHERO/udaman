@@ -5,10 +5,8 @@ class XlsFileProcessor
   #job of this object is to coordinate all of the other processor objects for the mapping
   def initialize(handle, options, date_info, cached_files)
     @cached_files = cached_files
-    @handle = handle
-    @options = options
-    @row_processor = IntegerPatternProcessor.new(options[:row]) 
-    @col_processor = IntegerPatternProcessor.new(options[:col]) 
+    @row_processor = IntegerPatternProcessor.new(options[:row])
+    @col_processor = IntegerPatternProcessor.new(options[:col])
     @handle_processor = StringWithDatePatternProcessor.new handle
     @path_processor = options[:path].nil? ? nil : StringWithDatePatternProcessor.new(options[:path])
     @sheet_processor = StringWithDatePatternProcessor.new options[:sheet]
@@ -17,38 +15,40 @@ class XlsFileProcessor
 
   extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
-
     date = @date_processor.compute(index)
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
     path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    observation_value = nil
+    skip = nil
 
     begin
       row = @row_processor.compute(index, @cached_files, handle, sheet)
       col = @col_processor.compute(index, @cached_files, handle, sheet)
-
-      worksheet = @cached_files.xls(handle, sheet, path, date)
+      (worksheet, skip) = @cached_files.xls(handle, sheet, path, date, true)
+      observation_value = parse_cell(worksheet.cell(row, col))
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
       #not sure if this is the right thing to do. Will get an indication from the daily download checks, but not sure if will see if you just 
       #load the data other than missing some values... not gonna do this just yet because it was rake that errored out not the series. might try to
       #do a rake trace next time it breaks to check better
-      #return 'END' if (e.message[0..5] == 'handle' or e.message[0..22] == 'the download for handle') and @handle_processor.date_sensitive?
-      return 'END' if e.message[0..5] == 'handle' and @handle_processor.date_sensitive?
-      return {} if e.message[0..20] == 'could not find header' and ['Condo only'].include? e.message.split(': ')[1][1..-2]
+      return 'END' if e.message =~ /^handle/ and @handle_processor.date_sensitive?
+      return {} if e.message =~ /^could not find header/ and ['Condo only'].include? e.message.split(': ')[1][1..-2]
       raise e
     rescue IOError => e
       Rails.logger.error e.message
-      return 'END' if e.message[0..3] == 'file' and !@path_processor.nil? and @path_processor.date_sensitive?
+      return 'END' if e.message =~ /^file/ and !@path_processor.nil? and @path_processor.date_sensitive?
       raise e
     end
 
-    observation_value = parse_cell(worksheet.cell(row,col))
     if observation_value == 'BREAK IN DATA'
-      return @handle_processor.date_sensitive? ? {} : 'END';
+      return @handle_processor.date_sensitive? ? { :skip => skip } : 'END';
     end
-    return {date => observation_value}
+    unless skip
+      @cached_files.mark_handle_used(handle)
+    end
+    { date => observation_value, :skip => skip }
   end
 
   def parse_cell(cell_value)
