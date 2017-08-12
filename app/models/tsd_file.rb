@@ -36,12 +36,14 @@ class TsdFile < ActiveRecord::Base
 
   def get_next_series
     raise  "You're not at the right position in the file" unless @last_line_type == :name_line
-    @series_hash = get_name_line_attributes
+    series_hash = get_name_line_attributes
     read_next_line
-    @series_hash.merge!(get_second_line_attributes)
+    series_hash.merge!(get_second_line_attributes)
     read_next_line
-    @series_hash[:data] = get_data
-    @series_hash
+    series_hash[:data] = get_data
+    series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency])
+    series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+    series_hash
   end
 
   def get_number
@@ -57,6 +59,14 @@ class TsdFile < ActiveRecord::Base
       end until last_line_type.nil?
     end
     name_array
+  end
+
+  def get_all_dates
+    dates = []
+    get_all_series.each do |s|
+      dates += s[:data_hash].keys
+    end
+    dates.sort.uniq
   end
 
   def get_all_series
@@ -251,7 +261,16 @@ class TsdFile < ActiveRecord::Base
     end
     data_hash
   end
-  
+
+  def yoy(data)
+    result = {}
+    data.sort.each do |date, value|
+      last_year_date = (Date.strptime(date, '%Y-%m-%d') - 1.year).strftime('%Y-%m-%d')
+      result[date] = (value-data[last_year_date])/data[last_year_date]*100 unless data[last_year_date].nil?
+    end
+    result
+  end
+
 private
   def write_to_disk(content)
     begin

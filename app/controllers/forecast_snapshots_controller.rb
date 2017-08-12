@@ -2,7 +2,8 @@ class ForecastSnapshotsController < ApplicationController
   include Authorization
 
   before_action :check_forecast_snapshot_authorization
-  before_action :set_forecast_snapshot, only: [:show, :edit, :update, :destroy]
+  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :update, :destroy]
+  before_action :set_tsd_files, only: [:show, :table]
 
   # GET /forecast_snapshots
   def index
@@ -15,9 +16,13 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots/1
   def show
-    @tsd_files = [ @forecast_snapshot.new_forecast_tsd,
-                   @forecast_snapshot.old_forecast_tsd,
-                   @forecast_snapshot.history_tsd ]
+    puts 'in show'
+    @forecast_snapshot.old_forecast_tsd
+  end
+
+  # GET /forecast_snapshots/1/table
+  def table
+    @all_dates = @forecast_snapshot.new_forecast_tsd.get_all_dates
   end
 
   # GET /forecast_snapshots/new
@@ -104,5 +109,11 @@ class ForecastSnapshotsController < ApplicationController
                                                 :old_forecast_tsd_label,
                                                 :history_tsd_filename,
                                                 :history_tsd_label)
+    end
+
+    def set_tsd_files
+      @tsd_files = [ @forecast_snapshot.new_forecast_tsd,
+                     @forecast_snapshot.old_forecast_tsd,
+                     @forecast_snapshot.history_tsd ]
     end
 end

@@ -1,0 +1,31 @@
+<p id="notice"><%= notice %></p>
+
+<%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'Back', forecast_snapshots_path %>
+
+<h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
+<p><%= @forecast_snapshot.created_at.localtime.strftime('%m/%d/%y') %></p>
+
+
+<table>
+  <tr>
+    <th></th>
+    <% @all_dates.each do |date| %>
+      <th><%= date %></th>
+    <% end %>
+  </tr>
+  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
+    <tr>
+      <td><%= s[:name] + '.' + s[:frequency] %></td>
+      <% @all_dates.each do |date| %>
+        <td><%= s[:data_hash][date].to_s || '' %></td>
+      <% end %>
+    </tr>
+    <tr>
+       <td> &nbsp; % Change</td>
+      <% @all_dates.each do |date| %>
+          <td><%= s[:yoy_hash][date].to_s || '' %></td>
+      <% end %>
+    </tr>
+  <% end %>
+</table>
