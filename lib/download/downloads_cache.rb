@@ -42,6 +42,7 @@ class DownloadsCache
   end
 
   def mark_handle_used(handle)
+    return unless handle =~ /@/
     @cache[:used_dloads][handle] = @cache[:dloads][handle] || raise("No download handle #{handle} to mark")
   end
 
