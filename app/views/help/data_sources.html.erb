@@ -1,0 +1,22 @@
+<h2>FRED Data Source options</h2>
+
+<p><code>Series.load_from_fred()</code> takes up to 3 arguments</p>
+
+<ol>
+  <li>Code (e.g., "MCOILBRENTEU")</li>
+  <li>Frequency: "A", "S", "Q", "M", "W", "D"</li>
+  <li>Aggregation Method: "avg", "sum", or "eop"</li>
+</ol>
+
+<p>
+  Example <strong>eval</strong>
+</p>
+
+<pre>
+Series.load_from_fred("MCOILBRENTEU", "Q", "avg")
+</pre>
+
+<p>
+  More details on frequency and aggregation methods at
+  <a href="https://research.stlouisfed.org/docs/api/fred/series_observations.html#frequency">https://research.stlouisfed.org/docs/api/fred/series_observations.html</a>
+</p>

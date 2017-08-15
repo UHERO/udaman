@@ -543,8 +543,8 @@ class Series < ActiveRecord::Base
     Series.new_transformation('days in time periods', series_data, self.frequency)
   end
   
-  def Series.load_from_fred(code, frequency)
-    series_data = DataHtmlParser.new.get_fred_series(code)
+  def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
+    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
     Series.new_transformation("loaded series : #{code} from FRED website", series_data, Series.frequency_from_code(frequency))
   end
   

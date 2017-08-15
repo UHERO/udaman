@@ -1,8 +1,12 @@
 class DataHtmlParser
 
-  def get_fred_series(code)
+  def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = '1030292ef115ba08c1778a606eb7a6cc'
     @url = "http://api.stlouisfed.org/fred/series/observations?series_id=#{code}&api_key=#{api_key}"
+    # frequencies: d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
+    @url += "&frequency=#{frequency.downcase.gsub(/^s$/, 'sa')}" unless frequency.nil?
+    # avg, sum, eop
+    @url += "&aggregation_method=#{aggregation_method.downcase}" unless aggregation_method.nil?
     @doc = self.download
     self.get_fred_data
   end
