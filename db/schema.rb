@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025727) do
+ActiveRecord::Schema.define(version: 220170413025728) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -67,6 +67,7 @@ ActiveRecord::Schema.define(version: 220170413025727) do
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
+  add_index "categories", ["name"], name: "index_categories_on_name", type: :fulltext
   add_index "categories", ["universe"], name: "index_categories_on_universe", using: :btree
 
   create_table "data_list_measurements", force: :cascade do |t|
