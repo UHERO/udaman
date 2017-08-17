@@ -15,7 +15,7 @@
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[name_prefix]', nil, :size => 20 %> @
-        <%= select :name_parts, :name_geo, Geography.where(universe: 'UHERO').all.collect {|g| [ g.handle, g.handle ] }, {:include_blank => false} %> .
+        <%= select :name_parts, :name_geo_id, Geography.where(universe: 'UHERO').all.collect {|g| ['%s (%s)' % [g.handle, g.display_name_short], g.id] }, {:include_blank => false} %> .
         <%= select :name_parts, :name_freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
       </div>
     <% end %>
