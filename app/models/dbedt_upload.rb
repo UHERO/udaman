@@ -218,6 +218,8 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       return true
     end
 
+    geo_id = Geography.find_by(universe: 'DBEDT').first.id
+
     logger.debug { 'loading DBEDT data' }
     current_series = nil
     current_data_source = nil
@@ -246,6 +248,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
               universe: 'DBEDT',
               name: name,
               frequency: row[4],
+              geography_id: geo_id,
               description: row[1],
               dataPortalName: row[1],
               unitsLabel: row[8],
