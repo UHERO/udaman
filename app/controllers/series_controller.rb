@@ -14,17 +14,12 @@ class SeriesController < ApplicationController
 
   # POST /series
   def create
-    name_parts = params[:name_parts]
-    if name_parts[:name_prefix].blank?
+    if series_params[:name_parts][:name_prefix].blank?
       redirect_to({:action => :new}, :notice => 'Series NOT SAVED - empty prefix')
       return
     end
-    geo_id = name_parts[:name_geo_id]
-    geo = Geography.find(geo_id) || raise('No geography found for series creation')
-    @series = Series.new(series_params.except(:name_parts)
-                             .merge(name: build_name(name_parts.merge(geo: geo.handle)))
-                             .merge(geography_id: geo_id))
-    if @series.save
+    @series = Series.create_new(series_params)
+    if @series
       redirect_to @series, notice: 'Series was successfully created.'
     else
       render :new
@@ -301,10 +296,6 @@ class SeriesController < ApplicationController
           :source_detail_id
       )
     end
-
-  def build_name(parts)
-    parts[:name_prefix].strip + '@' + parts[:geo] + '.' + parts[:name_freq]
-  end
 
   def convert_to_udaman_notation(eval_string)
       operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')

@@ -252,8 +252,33 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_or_new(series_name)
-    frequency = (series_name.split('.').count == 2 and series_name.split('@').count == 2 and series_name.split('.')[1].length == 1) ? Series.frequency_from_code(series_name[-1]) : nil
-    Series.get(series_name) || Series.create(name: series_name, frequency: frequency)
+    Series.get(series_name) || Series.create_new({ name: series_name })
+  end
+
+  def Series.create_new(properties)
+    name_parts = properties.delete(:name_parts)
+    if name_parts  ## called from SeriesController#create
+      geo_id = name_parts[:name_geo_id]
+      geo = Geography.find(geo_id) || raise("No geography (id=#{geo_id}) found for series creation")
+      properties[:geography_id] = geo_id
+      properties[:frequency] = Series.frequency_from_code(name_parts[:name_freq])
+      properties[:name] = Series.build_series_name([ name_parts[:name_prefix], geo.handle, name_parts[:name_freq] ])
+    else
+      name_parts = Series.parse_series_name(properties[:name]) || raise("Series name #{properties[:name]} not parseable")
+      geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
+              raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
+      properties[:geography_id] = geo.id
+      properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
+    end
+    Series.create(properties)
+  end
+
+  def Series.parse_series_name(name)
+    name =~ /^(.+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+  end
+
+  def Series.build_series_name(parts)
+    parts[0].strip + '@' + parts[1] + '.' + parts[2]
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
