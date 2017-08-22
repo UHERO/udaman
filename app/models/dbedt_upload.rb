@@ -218,7 +218,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       return true
     end
 
-    geo_id = Geography.find_by(universe: 'DBEDT').first.id
+    geo_id = Geography.find_by(universe: 'DBEDT').first.id rescue raise('No DBEDT geography found')
 
     logger.debug { 'loading DBEDT data' }
     current_series = nil

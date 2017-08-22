@@ -262,9 +262,9 @@ class Series < ActiveRecord::Base
       geo = Geography.find(geo_id) || raise("No geography (id=#{geo_id}) found for series creation")
       properties[:geography_id] = geo_id
       properties[:frequency] = Series.frequency_from_code(name_parts[:name_freq])
-      properties[:name] = Series.build_series_name([ name_parts[:name_prefix], geo.handle, name_parts[:name_freq] ])
+      properties[:name] = Series.build_name([ name_parts[:name_prefix], geo.handle, name_parts[:name_freq] ])
     else
-      name_parts = Series.parse_series_name(properties[:name]) || raise("Series name #{properties[:name]} not parseable")
+      name_parts = Series.parse_name(properties[:name]) || raise("Series name #{properties[:name]} not parseable")
       geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
               raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
       properties[:geography_id] = geo.id
@@ -273,12 +273,16 @@ class Series < ActiveRecord::Base
     Series.create(properties)
   end
 
-  def Series.parse_series_name(name)
+  def Series.parse_name(name)
     name =~ /^(.+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
   end
 
-  def Series.build_series_name(parts)
-    parts[0].strip + '@' + parts[1] + '.' + parts[2]
+  def parse_name
+    name =~ /^(.+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+  end
+
+  def Series.build_name(parts)
+    parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
