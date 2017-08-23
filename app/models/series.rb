@@ -266,7 +266,6 @@ class Series < ActiveRecord::Base
               raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
     end
     properties[:name] = Series.build_name([ name_parts[:prefix], geo.handle, name_parts[:freq] ])
-    raise("Series name '#{properties[:name]}' format invalid") unless Series.parse_name(properties[:name])
     properties[:geography_id] = geo.id
     properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
     Series.create( properties.map {|k,v| [k, v.blank? ? nil : v] }.to_h ) ## don't put empty strings in the db.
@@ -281,10 +280,8 @@ class Series < ActiveRecord::Base
   end
 
   def Series.build_name(parts)
-    if parts[0].blank? || parts[1].blank? || parts[2].blank?
-      raise SeriesNameException, 'Build series name: one or more parts is blank'
-    end
-    parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
+    name = parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
+    Series.parse_name(name) ? name : raise("Build series name: '#{name}' format invalid")
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
