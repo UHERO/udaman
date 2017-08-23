@@ -280,7 +280,9 @@ class Series < ActiveRecord::Base
   end
 
   def Series.build_name(parts)
-    raise 'Build series name: one or more parts is blank' if parts[0].blank? || parts[1].blank? || parts[2].blank?
+    if parts[0].blank? || parts[1].blank? || parts[2].blank?
+      raise SeriesNameException, 'Build series name: one or more parts is blank'
+    end
     parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
   end
 
