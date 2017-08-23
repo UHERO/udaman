@@ -258,30 +258,29 @@ class Series < ActiveRecord::Base
   def Series.create_new(properties)
     name_parts = properties.delete(:name_parts)
     if name_parts  ## called from SeriesController#create
-      geo_id = name_parts[:name_geo_id]
-      geo = Geography.find(geo_id) || raise("No geography (id=#{geo_id}) found for series creation")
-      properties[:geography_id] = geo_id
-      properties[:frequency] = Series.frequency_from_code(name_parts[:name_freq])
-      properties[:name] = Series.build_name([ name_parts[:name_prefix], geo.handle, name_parts[:name_freq] ])
+      geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
     else
-      name_parts = Series.parse_name(properties[:name]) || raise("Series name #{properties[:name]} not parseable")
+      name_parts = Series.parse_name(properties[:name]) || raise("Series name '#{properties[:name]}' format invalid")
       geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
               raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
-      properties[:geography_id] = geo.id
-      properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
     end
-    Series.create(properties)
+    properties[:name] = Series.build_name([ name_parts[:prefix], geo.handle, name_parts[:freq] ])
+    raise("Series name '#{properties[:name]}' format invalid") unless Series.parse_name(properties[:name])
+    properties[:geography_id] = geo.id
+    properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
+    Series.create( properties.map {|k,v| [k, v.blank? ? nil : v] }.to_h ) ## don't put empty strings in the db.
   end
 
   def Series.parse_name(name)
-    name =~ /^(.+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+    name =~ /^(\S+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
   end
 
   def parse_name
-    name =~ /^(.+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+    name =~ /^(\S+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
   end
 
   def Series.build_name(parts)
+    raise 'Build series name: one or more parts is blank' if parts[0].blank? || parts[1].blank? || parts[2].blank?
     parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
   end
 

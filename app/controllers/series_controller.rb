@@ -14,11 +14,12 @@ class SeriesController < ApplicationController
 
   # POST /series
   def create
-    if other_params[:name_parts][:name_prefix].blank?
-      redirect_to({:action => :new}, :notice => 'Series NOT SAVED - empty prefix')
+    begin
+      @series = Series.create_new(series_params.merge(other_params))
+    rescue => error
+      redirect_to({ :action => :new }, :notice => error.message)
       return
     end
-    @series = Series.create_new(series_params.merge(other_params))
     if @series
       redirect_to @series, notice: 'Series was successfully created.'
     else
@@ -297,7 +298,7 @@ class SeriesController < ApplicationController
     end
 
   def other_params
-    params.permit(name_parts: [:name_prefix, :name_geo_id, :name_freq])
+    params.permit(name_parts: [:prefix, :geo_id, :freq])
   end
 
   def convert_to_udaman_notation(eval_string)
