@@ -1,3 +1,46 @@
 // Place all the styles related to the ForecastSnapshots controller here.
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
+
+.snapshot-table-title {
+  color: #1D667F;
+  font-family: 'Geneva';
+  font-weight: normal;
+  min-width: 100px;
+  text-align: center;
+}
+
+.snapshot-table {
+  border-bottom: 3px solid #1D667F;
+  border-collapse: collapse;
+  font-family: Arial;
+
+  tbody {
+    th {
+      border-bottom: 3px solid #1D667F;
+      color: #1D667F;
+      font-size: 15px;
+      padding-right: 15px;
+      text-align: right;
+    }
+
+    td {
+      border-bottom: 0;
+      text-align: right;
+    }
+
+    .series-title, .change {
+      text-align: left;
+    }
+
+    .series-title, .series-data {
+      padding-top: 20px;
+    }
+
+    tr:last-child {
+      td {
+        padding-bottom: 20px;
+      }
+    }
+  }
+}
