@@ -1,4 +1,5 @@
 class Geography < ActiveRecord::Base
+  has_many :series
 
   def Geography.get_or_new_nta(attrs, add_attrs = {})
     attrs.merge!(universe: 'NTA')
