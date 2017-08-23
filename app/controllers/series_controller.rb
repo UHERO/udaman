@@ -16,7 +16,7 @@ class SeriesController < ApplicationController
   def create
     begin
       @series = Series.create_new(series_params.merge(other_params))
-    rescue => error
+    rescue SeriesNameException, StandardError => error
       redirect_to({ :action => :new }, :notice => error.message)
       return
     end
