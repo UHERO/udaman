@@ -5,6 +5,9 @@ require 'spec_helper'
 
 describe DataSource do
   before(:all) do
+    Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
+
     @data1_hash = "YSTWTR@HI.A".tsn.load_from("#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls").data
     @data1_no_nil = @data1_hash.clone
     @data1_no_nil.delete_if {|key,value| value.nil?}

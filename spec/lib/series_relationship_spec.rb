@@ -4,6 +4,11 @@ require 'spec_helper'
 #try several different create statements
 #time results from creating
 describe SeriesRelationship do
+  before(:all) do
+    Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
+  end
+
   describe "CLEANING DATA SOURCE operations" do
   
     before (:each) do
