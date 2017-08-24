@@ -6,6 +6,8 @@ require 'spec_helper'
 describe SeriesRelationship do
   before(:all) do
     Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
+    Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Honolulu' }) rescue nil
     Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
   end
 

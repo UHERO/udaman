@@ -3,10 +3,10 @@ require 'spec_data_hash.rb'
 
 describe Series do
   before(:all) do
+    Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
      @dh = get_data_hash
      @data_files_path = "#{ENV["DATAFILES_PATH"]}/datafiles/"
-     Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
-     Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
    end
    
   describe "reporting OBSERVATION COUNTS" do
