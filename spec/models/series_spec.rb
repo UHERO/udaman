@@ -5,6 +5,8 @@ describe Series do
   before(:all) do
      @dh = get_data_hash
      @data_files_path = "#{ENV["DATAFILES_PATH"]}/datafiles/"
+     Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' })
+     Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' })
    end
    
   describe "reporting OBSERVATION COUNTS" do
