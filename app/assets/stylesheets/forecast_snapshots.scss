@@ -20,21 +20,28 @@
       border-bottom: 3px solid #1D667F;
       color: #1D667F;
       font-size: 15px;
-      padding-right: 15px;
+      padding-right: 20px;
       text-align: right;
+      min-width: 80px;
     }
 
     td {
       border-bottom: 0;
       text-align: right;
+      padding: 20px 20px 0;
     }
 
     .series-title, .change {
       text-align: left;
+      // padding-left: 20px;
     }
 
     .series-title, .series-data {
-      padding-top: 20px;
+      // padding-top: 20px;
+    }
+
+    .change, .change-data {
+      padding-top: 0;
     }
 
     tr:last-child {
@@ -42,5 +49,13 @@
         padding-bottom: 20px;
       }
     }
+  }
+}
+
+.table-note {
+  p {
+    font-family: Arial;
+    font-size: 15px;
+    margin-left: 20px;
   }
 }

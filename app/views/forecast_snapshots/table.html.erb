@@ -11,21 +11,38 @@
   <tr>
     <th></th>
     <% @all_dates.each do |date| %>
-      <th><%= date %></th>
+        <th>
+          <%= if @all_dates.any? |date| (date.include?('-04-') || date.include?('-07-') || date.include?('-10-')) then
+                if date[5, 2] == '01' then
+                  date[0, 4] + ' Q1'
+                else
+                  if date[5, 2] == '04' then
+                    date[0, 4] + ' Q2'
+                  else
+                    date[5, 2] == '07' ? date[0, 4] + ' Q3' : date[0, 4] + ' Q4'
+                  end
+                end
+              else
+                date[0, 4]
+              end %>
+        </th>
     <% end %>
   </tr>
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
     <tr>
       <td class="series-title"><%= s[:name] + '.' + s[:frequency] %></td>
       <% @all_dates.each do |date| %>
-        <td class="series-data"><% if s[:data_hash][date] != nil %><%= sprintf('%.1f', s[:data_hash][date]) %><% else %><%= '' %><% end %></td>
+        <td class="series-data"><%= s[:data_hash][date].nil? ? '' : sprintf('%.' + s[:udaman_series][:decimals].to_s + 'f', s[:data_hash][date]) %></td>
       <% end %>
     </tr>
     <tr>
        <td class="change"> &nbsp; % Change</td>
       <% @all_dates.each do |date| %>
-          <td class="change-data"><% if s[:yoy_hash][date] != nil %><%= sprintf('%.1f', s[:yoy_hash][date]) %><% else %><%= '' %><% end %></td>
+          <td class="change-data"><%= s[:yoy_hash][date].nil? ? '' : sprintf('%.' + s[:udaman_series][:decimals].to_s + 'f', s[:yoy_hash][date]) %></td>
       <% end %>
     </tr>
   <% end %>
 </table>
+<div class="table-note">
+  <p>Note: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+</div>

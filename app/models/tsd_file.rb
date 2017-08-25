@@ -39,6 +39,8 @@ class TsdFile < ActiveRecord::Base
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge!(get_second_line_attributes)
+    series_hash[:udaman_series] = Series.find_by(name: series_hash[:name] + '.' + series_hash[:frequency])
+    puts series_hash[:udaman_series]
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency])
