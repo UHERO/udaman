@@ -16,7 +16,6 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots/1
   def show
-    puts 'in show'
     @forecast_snapshot.old_forecast_tsd
   end
 
