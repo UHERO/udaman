@@ -2,10 +2,11 @@ require 'rails_helper'
 
 RSpec.describe "categories/edit", type: :view do
   before(:each) do
+    @data_list = DataList.create!(name: 'MyDL') rescue nil
     @category = assign(:category, Category.create!(
       :name => "MyString",
       :parent_id => nil,
-      :data_list_id => 1
+      :data_list_id => @data_list.id
     ))
   end
 
