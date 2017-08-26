@@ -13,6 +13,6 @@ RSpec.describe "categories/show", type: :view do
   it "renders attributes in <p>" do
     render
     expect(rendered).to match(/Name/)
-    expect(rendered).to match(/3/)
+    expect(rendered).to match(/#{@data_list.id}/)
   end
 end
