@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025728) do
+ActiveRecord::Schema.define(version: 220170413025729) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -67,6 +67,7 @@ ActiveRecord::Schema.define(version: 220170413025728) do
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
+  add_index "categories", ["data_list_id"], name: "fk_rails_cats_data_list_id", using: :btree
   add_index "categories", ["name"], name: "index_categories_on_name", type: :fulltext
   add_index "categories", ["universe"], name: "index_categories_on_universe", using: :btree
 
@@ -482,6 +483,7 @@ ActiveRecord::Schema.define(version: 220170413025728) do
   add_index "users", ["universe"], name: "index_users_on_universe", using: :btree
 
   add_foreign_key "authorizations", "users"
+  add_foreign_key "categories", "data_lists", name: "fk_rails_cats_data_list_id"
   add_foreign_key "geo_trees", "geographies", column: "child_id"
   add_foreign_key "geo_trees", "geographies", column: "parent_id"
   add_foreign_key "measurements", "source_details"
