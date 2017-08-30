@@ -1,0 +1,48 @@
+<p id="notice"><%= notice %></p>
+
+<%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'Back', forecast_snapshots_path %>
+
+<h2 class="snapshot-table-title"><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
+<p><%= @forecast_snapshot.created_at.localtime.strftime('%m/%d/%y') %></p>
+
+
+<table class="snapshot-table">
+  <tr>
+    <th></th>
+    <% @all_dates.each do |date| %>
+        <th>
+          <%= if @all_dates.any? {|s| (s.include? '-04-') || (s.include? '-07-') || (s.include? '-10-')} then
+                if date[5, 2] == '01' then
+                  date[0, 4] + ' Q1'
+                else
+                  if date[5, 2] == '04' then
+                    date[0, 4] + ' Q2'
+                  else
+                    date[5, 2] == '07' ? date[0, 4] + ' Q3' : date[0, 4] + ' Q4'
+                  end
+                end
+              else
+                date[0, 4]
+              end %>
+        </th>
+    <% end %>
+  </tr>
+  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
+    <tr>
+      <td class="series-title"><%= s[:name] + '.' + s[:frequency] %></td>
+      <% @all_dates.each do |date| %>
+        <td class="series-data"><%= s[:data_hash][date].nil? ? '' : number_with_precision(s[:data_hash][date], precision: s[:udaman_series][:decimals], separator: '.', delimiter: ',') %></td>
+      <% end %>
+    </tr>
+    <tr>
+       <td class="change"> &nbsp; % Change</td>
+      <% @all_dates.each do |date| %>
+          <td class="change-data"><%= s[:yoy_hash][date].nil? ? '' : number_with_precision(s[:yoy_hash][date], precision: s[:udaman_series][:decimals], separator: '.', delimiter: ',') %></td>
+      <% end %>
+    </tr>
+  <% end %>
+</table>
+<div class="table-note">
+  <p>Note: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+</div>
