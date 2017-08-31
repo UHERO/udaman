@@ -227,7 +227,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       prefix = "DBEDT_#{row[0]}"
       region = row[3].strip
       (geo_handle, geo_fips) = get_geo_handle(region)
-      name = prefix + '@' + geo_handle + '.' + row[4]
+      name = Series.build_name([ prefix, geo_handle, row[4] ])
       if current_measurement.nil? || current_measurement.prefix != prefix
         current_measurement = Measurement.find_by prefix: prefix
         if current_measurement.nil?
