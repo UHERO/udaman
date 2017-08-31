@@ -4,7 +4,11 @@ UheroDb::Application.routes.draw do
   resources :user_feedbacks
   resources :source_details
   resources :tsd_files
-  resources :forecast_snapshots
+  resources :forecast_snapshots do
+    member do
+      get 'table'
+    end
+  end
   resources :exports
   resources :measurements do
     member do
