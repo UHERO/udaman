@@ -218,8 +218,6 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       return true
     end
 
-    geo_id = Geography.find_by(universe: 'DBEDT').id rescue raise('No DBEDT geography found')
-
     logger.debug { 'loading DBEDT data' }
     current_series = nil
     current_data_source = nil
@@ -227,7 +225,9 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     data_points = []
     CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
-      name = prefix + '@' + get_geo_code(row[3]) + '.' + row[4]
+      region = row[3].strip
+      (geo_handle, geo_fips) = get_geo_handle(region)
+      name = prefix + '@' + geo_handle + '.' + row[4]
       if current_measurement.nil? || current_measurement.prefix != prefix
         current_measurement = Measurement.find_by prefix: prefix
         if current_measurement.nil?
@@ -242,6 +242,8 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       if current_series.nil? || current_series.name != name
         # need a fresh data_source for each series unless I make series - data_sources a many-to-many relationship
         source_id = Source.get_or_new_dbedt(row[9]).id
+        geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
+                                            { fips: geo_fips, display_name: region, display_name_short: region}).id
         current_series = Series.find_by name: name
         if current_series.nil?
           current_series = Series.create(
@@ -353,15 +355,15 @@ WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUploa
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 
-  def get_geo_code(name)
-    trans_hash = {
-        'Hawaii County' => 'HAW',
-        'Honolulu County' => 'HON',
-        'Maui County' => 'MAU',
-        'Kauai County' => 'KAU',
-        'Statewide' => 'HI',
+  def get_geo_handle(name)
+    handles = {
+        'hawaii county' => ['HAW', 15001],
+        'honolulu county' => ['HON', 15003],
+        'kauai county' => ['KAU', 15007],
+        'maui county' => ['MAU', 15009],
+        'statewide' => ['HI', 15],
     }
-    trans_hash[name] || 'ERROR'
+    handles[name.downcase] || raise("Unknown DBEDT geography '#{name}'")
   end
 
   def get_date(year, qm)
