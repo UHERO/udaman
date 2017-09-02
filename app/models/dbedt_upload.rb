@@ -226,7 +226,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
       region = row[3].strip
-      (geo_handle, geo_fips) = get_geo_handle(region)
+      (geo_handle, geo_fips) = get_geo_codes(region)
       name = Series.build_name([ prefix, geo_handle, row[4] ])
       if current_measurement.nil? || current_measurement.prefix != prefix
         current_measurement = Measurement.find_by prefix: prefix
@@ -244,6 +244,9 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         source_id = Source.get_or_new_dbedt(row[9]).id
         geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
                                             { fips: geo_fips, display_name: region, display_name_short: region}).id
+        unit_str = row[8] && row[8].to_ascii.strip
+        unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new_dbedt(unit_str)
+
         current_series = Series.find_by name: name
         if current_series.nil?
           current_series = Series.create(
@@ -253,13 +256,17 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
               geography_id: geo_id,
               description: row[1],
               dataPortalName: row[1],
-              unitsLabel: row[8],
-              unitsLabelShort: row[8],
+              unit_id: unit && unit.id,
+              unitsLabel: unit_str,
+              unitsLabelShort: unit_str,
               source_id: source_id,
-              measurement_id: current_measurement.id,
               decimals: row[10],
               units: 1
           )
+        end
+        if current_measurement.series.where(id: current_series.id).empty?
+          current_measurement.series << current_series
+          logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         end
         current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
         if current_data_source.nil?
@@ -355,7 +362,7 @@ WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUploa
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 
-  def get_geo_handle(name)
+  def get_geo_codes(name)
     handles = {
         'hawaii county' => ['HAW', 15001],
         'honolulu county' => ['HON', 15003],

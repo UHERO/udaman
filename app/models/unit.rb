@@ -7,6 +7,11 @@ class Unit < ActiveRecord::Base
     ('%s (%s)' % [long_label, short_label]).html_safe
   end
 
+  def Unit.get_or_new_dbedt(label)
+    Unit.find_by(universe: 'DBEDT', short_label: label) ||
+     Unit.create(universe: 'DBEDT', short_label: label, long_label: label)
+  end
+
   def Unit.get_or_new_nta(label)
     Unit.find_by(universe: 'NTA', short_label: label) ||
      Unit.create(universe: 'NTA', short_label: label, long_label: label)
