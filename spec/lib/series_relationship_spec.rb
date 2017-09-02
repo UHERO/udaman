@@ -11,15 +11,10 @@ describe SeriesRelationship do
   
     before (:each) do
       Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
-      Geography.find_by(universe: 'UHERO', handle: 'HI') || raise('DID NOT CREATE HI DUDE')
       Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
-      Geography.find_by(universe: 'UHERO', handle: 'HAW') || raise('DID NOT CREATE HAW DUDE')
       Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
-      Geography.find_by(universe: 'UHERO', handle: 'KAU') || raise('DID NOT CREATE KAU DUDE')
       Geography.create!({ handle: 'MAU', display_name: 'Maui County', display_name_short: 'Valley Isle' }) rescue nil
-      Geography.find_by(universe: 'UHERO', handle: 'KAU') || raise('DID NOT CREATE MAU DUDE')
       Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Gathering Place' }) rescue nil
-      Geography.find_by(universe: 'UHERO', handle: 'HON') || raise('DID NOT CREATE HON DUDE')
       Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
       Series.load_all_series_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/ECT.xls"
     end
