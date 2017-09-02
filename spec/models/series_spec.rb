@@ -3,7 +3,7 @@ require 'spec_data_hash.rb'
 
 describe Series do
   before(:all) do
-    @dh = get_data_hash
+     @dh = get_data_hash
      @data_files_path = "#{ENV["DATAFILES_PATH"]}/datafiles/"
    end
 
