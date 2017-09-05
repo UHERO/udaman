@@ -241,7 +241,8 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
 
       if current_series.nil? || current_series.name != name
         # need a fresh data_source for each series unless I make series - data_sources a many-to-many relationship
-        source_id = Source.get_or_new(row[9], nil, 'DBEDT').id
+        source_str = row[9] && row[9].to_ascii.strip
+        source = (source_str.blank? || source_str.downcase == 'none') ? nil : Source.get_or_new(source_str, nil, 'DBEDT')
         geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
                                             { fips: geo_fips, display_name: region, display_name_short: region}).id
         unit_str = row[8] && row[8].to_ascii.strip
@@ -259,7 +260,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
               unit_id: unit && unit.id,
               unitsLabel: unit_str,
               unitsLabelShort: unit_str,
-              source_id: source_id,
+              source_id: source && source.id,
               decimals: row[10],
               units: 1
           )
