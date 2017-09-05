@@ -132,7 +132,7 @@ class NtaUpload < ActiveRecord::Base
 
       ## units
       unit_str = row[3] && row[3].to_ascii.strip
-      unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new_nta(unit_str)
+      unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'NTA')
 
       ## percent
       percent = row[5] =~ /growth rate/i ? false : true
@@ -145,7 +145,7 @@ class NtaUpload < ActiveRecord::Base
         desc = ($1 && !$1.blank?) ? $1.to_ascii.strip : nil
         link = ($2 && !$2.blank?) ? $2.to_ascii.strip : nil
       end
-      source = (desc || link) ? Source.get_or_new_nta(desc, link) : nil
+      source = (desc || link) ? Source.get_or_new(desc, link, 'NTA') : nil
 
       ## measurement
       measurement = Measurement.find_by(universe: 'NTA', prefix: data_list_name)

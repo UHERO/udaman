@@ -241,11 +241,11 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
 
       if current_series.nil? || current_series.name != name
         # need a fresh data_source for each series unless I make series - data_sources a many-to-many relationship
-        source_id = Source.get_or_new_dbedt(row[9]).id
+        source_id = Source.get_or_new(row[9], nil, 'DBEDT').id
         geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
                                             { fips: geo_fips, display_name: region, display_name_short: region}).id
         unit_str = row[8] && row[8].to_ascii.strip
-        unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new_dbedt(unit_str)
+        unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
 
         current_series = Series.find_by name: name
         if current_series.nil?
