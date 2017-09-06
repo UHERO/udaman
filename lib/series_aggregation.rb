@@ -24,38 +24,41 @@ module SeriesAggregation
   def group_data_by(frequency, override_prune = false)
     validate_aggregation(frequency)
 
-    grouped_data = {}
+    myfreq = self.frequency
+    orig_series = myfreq == 'week' ? self.fill_week : self
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
-    
-    self.data.keys.each do |date|
-      next if self.at(date).nil?
+    grouped_data = {}
+
+    orig_series.data.keys.each do |date|
+      next if orig_series.at(date).nil?
       agg_date = date.send(agg_date_method)
       grouped_data[agg_date] ||= AggregatingArray.new
-      grouped_data[agg_date].push self.at(date)
+      grouped_data[agg_date].push orig_series.at(date)
     end
 
-    freq = self.frequency.to_s
-
-    grouped_data.delete_if {|_,value| value.count != 6} if frequency == :semi and freq == 'month'
-    grouped_data.delete_if {|_,value| value.count != 3} if (frequency == :quarter and freq == 'month') and override_prune == false
-    grouped_data.delete_if {|_,value| value.count != 12} if frequency == :year and freq == 'month'
-    grouped_data.delete_if {|_,value| value.count != 4} if frequency == :year and freq == 'quarter'
-    grouped_data.delete_if {|_,value| value.count != 2} if frequency == :semi and freq == 'quarter'
-    grouped_data.delete_if {|_,value| value.count != 2} if frequency == :year and freq == 'semi'
-    grouped_data.delete_if {|_,value| value.count != 7} if frequency == :week and freq == 'day'
-    grouped_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month and freq == 'day'
+    grouped_data.delete_if {|_,value| value.count != 6} if frequency == :semi && myfreq == 'month'
+    grouped_data.delete_if {|_,value| value.count != 3} if frequency == :quarter && myfreq == 'month' && !override_prune
+    grouped_data.delete_if {|_,value| value.count != 12} if frequency == :year && myfreq == 'month'
+    grouped_data.delete_if {|_,value| value.count != 4} if frequency == :year && myfreq == 'quarter'
+    grouped_data.delete_if {|_,value| value.count != 2} if frequency == :semi && myfreq == 'quarter'
+    grouped_data.delete_if {|_,value| value.count != 2} if frequency == :year && myfreq == 'semi'
+    grouped_data.delete_if {|_,value| value.count != 7} if frequency == :week && myfreq == 'day'
+    grouped_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month && myfreq == 'day'
     grouped_data
   end
-  
+
+  def fill_week
+    raise AggregationException.new unless self.frequency == 'week'
+    dailyseries = self.data
+    dailyseries.keys.each do |date|
+      (1..6).each {|offset| dailyseries[date + offset] = dailyseries[date] }
+    end
+    dailyseries
+  end
+
   def validate_aggregation(frequency)
     freq_order = %w[year semi quarter month week day]
-    raise AggregationException.new unless freq_order.include?(frequency) && freq_order.include?(self.frequency)
-    raise AggregationException.new if freq_order.index(frequency.to_s) >= freq_order.index(self.frequency)
-    #raise AggregationException.new if freq == 'year'
-    #raise AggregationException.new if freq == 'semi'  and (frequency == :month or frequency == :quarter or frequency == :semi or frequency == :week or frequency == :day)
-    #raise AggregationException.new if freq == 'quarter' and (frequency == :month or frequency == :quarter or frequency == :week or frequency == :day)
-    #raise AggregationException.new if freq == 'month' and (frequency == :month or frequency == :week or frequency == :day)
-    #raise AggregationException.new if freq == 'week' and (frequency == :day or frequency == :week)
-    #raise AggregationException.new if freq == 'day' and frequency == :day
+    raise AggregationException.new unless freq_order.include?(frequency.to_s) && freq_order.include?(self.frequency)
+    raise AggregationException.new if freq_order.index(frequency.to_s) >= freq_order.index(self.frequency) ## only aggregate to lower frequency
   end
 end
