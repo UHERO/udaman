@@ -24,7 +24,7 @@ RSpec.describe GeographiesController, type: :controller do
   # Geography. As you add validations to Geography, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    {fips: '15001', display_name: 'City and County of Honolulu', display_name_short: 'Honolulu', handle: 'HNL'}
+    {universe: 'UHERO', fips: '15001', display_name: 'City and County of Honolulu', display_name_short: 'Honolulu', handle: 'HNL'}
   }
 
   let(:invalid_attributes) {
@@ -104,7 +104,7 @@ RSpec.describe GeographiesController, type: :controller do
   describe 'PUT #update' do
     context 'with valid params' do
       let(:new_attributes) {
-        {fips: '15', display_name: 'State of Hawaii', display_name_short: 'Hawaii', handle: 'HI'}
+        {universe: 'UHERO', fips: '15', display_name: 'State of Hawaii', display_name_short: 'Hawaii', handle: 'HI'}
       }
 
       it 'updates the requested geography' do

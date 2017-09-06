@@ -5,6 +5,12 @@ require 'spec_helper'
 
 describe DataSource do
   before(:all) do
+    Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
+    Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
+    Geography.create!({ handle: 'MAU', display_name: 'Maui County', display_name_short: 'Valley Isle' }) rescue nil
+    Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Gathering Place' }) rescue nil
+    Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
     @data1_hash = "YSTWTR@HI.A".tsn.load_from("#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls").data
     @data1_no_nil = @data1_hash.clone
     @data1_no_nil.delete_if {|key,value| value.nil?}
@@ -13,7 +19,16 @@ describe DataSource do
     @data2_no_nil = @data2_hash.clone
     @data2_no_nil.delete_if {|key,value| value.nil?}
   end
-    
+
+  before(:each) do
+    Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
+    Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
+    Geography.create!({ handle: 'MAU', display_name: 'Maui County', display_name_short: 'Valley Isle' }) rescue nil
+    Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Gathering Place' }) rescue nil
+    Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
+  end
+
   xit "should create a source when append syntax is used" do
     "YSTWTR@HI.A".ts_append_eval %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
     "YSTWTR@HI.A".ts.data_sources.count.should == 1
