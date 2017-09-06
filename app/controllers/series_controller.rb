@@ -14,12 +14,13 @@ class SeriesController < ApplicationController
 
   # POST /series
   def create
-    @series = Series.new(series_params.except(:name_parts).merge(name: build_name(params[:name_parts])))
-    if @series.name =~ /^@/
-      redirect_to({:action => :new}, :notice => 'Series NOT SAVED - empty prefix')
+    begin
+      @series = Series.create_new(series_params.merge(other_params))
+    rescue => error
+      redirect_to({ :action => :new }, :notice => error.message)
       return
     end
-    if @series.save
+    if @series
       redirect_to @series, notice: 'Series was successfully created.'
     else
       render :new
@@ -279,15 +280,11 @@ class SeriesController < ApplicationController
   private
     def series_params
       params.require(:series).permit(
-          :name_parts,
           :description,
           :units,
           :investigation_notes,
           :dataPortalName,
-          :unitsLabel,
-          :unitsLabelShort,
           :unit_id,
-          :seasonally_adjusted,
           :seasonal_adjustment,
           :percent,
           :real,
@@ -300,8 +297,8 @@ class SeriesController < ApplicationController
       )
     end
 
-  def build_name(parts)
-    parts[:name_prefix].strip + '@' + parts[:name_geo] + '.' + parts[:name_freq]
+  def other_params
+    params.permit(name_parts: [:prefix, :geo_id, :freq])
   end
 
   def convert_to_udaman_notation(eval_string)

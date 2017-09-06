@@ -25,6 +25,7 @@ class Series < ActiveRecord::Base
   belongs_to :source, inverse_of: :series
   belongs_to :source_detail, inverse_of: :series
   belongs_to :unit, inverse_of: :series
+  belongs_to :geography, inverse_of: :series
 
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
@@ -227,14 +228,14 @@ class Series < ActiveRecord::Base
   
   def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
-    # puts "Setting priority to #{priority}"
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil?
-      @data_source = Series.store(series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{series_name}".tsn.load_from "#{spreadsheet_path}"^) if sheet_to_load.nil?      
-      #puts series_name
+      eval_format = sheet_to_load ? '"%s".tsn.load_from "%s", "%s"' : '"%s".tsn.load_from "%s"'
+      @data_source = Series.store(series_name,
+                                  Series.new(frequency: update_spreadsheet.frequency, data: update_spreadsheet.series(series_name)),
+                                  spreadsheet_path,
+                                  eval_format % [series_name, spreadsheet_path, sheet_to_load])
+
       @data_source.update_attributes(:priority => priority)
-      # puts "Series Name: #{series_name}"
-      # puts "priority: #{priority}, ds_id: #{@data_source.id} "
       series_name
     end
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
@@ -252,8 +253,35 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_or_new(series_name)
-    frequency = (series_name.split('.').count == 2 and series_name.split('@').count == 2 and series_name.split('.')[1].length == 1) ? Series.frequency_from_code(series_name[-1]) : nil
-    Series.get(series_name) || Series.create(name: series_name, frequency: frequency)
+    Series.get(series_name) || Series.create_new({ name: series_name })
+  end
+
+  def Series.create_new(properties)
+    name_parts = properties.delete(:name_parts)
+    if name_parts  ## called from SeriesController#create
+      geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
+    else
+      name_parts = Series.parse_name(properties[:name]) || raise("Series name '#{properties[:name]}' format invalid")
+      geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
+              raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
+    end
+    properties[:name] = Series.build_name([ name_parts[:prefix], geo.handle, name_parts[:freq] ])
+    properties[:geography_id] = geo.id
+    properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
+    Series.create( properties.map {|k,v| [k, v.blank? ? nil : v] }.to_h ) ## don't put empty strings in the db.
+  end
+
+  def Series.parse_name(name)
+    name =~ /^(\S+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+  end
+
+  def parse_name
+    name =~ /^(\S+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+  end
+
+  def Series.build_name(parts)
+    name = parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
+    Series.parse_name(name) ? name : raise("Build series name: '#{name}' format invalid")
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
