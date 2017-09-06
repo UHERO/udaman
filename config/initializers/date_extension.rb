@@ -98,7 +98,7 @@ class Date
   end
 
   def semi_d
-    Date.new(self.year, (self.month - 1) / 6)
+    Date.new(self.year, self.month > 6 ? 7 : 1)
   end
   
   def days_in_period(frequency)
