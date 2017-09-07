@@ -48,6 +48,7 @@ google.visualization.events.addListener(chart, 'select', function() {
     </td></tr>
     <tr><td>Data Portal Name</td><td><%= @series.dataPortalName %></td></tr>
     <tr><td>Units</td><td><%= @series.unit.to_s if @series.unit %></td></tr>
+    <tr><td>Geography</td><td><%= @series.geography ? @series.geography.display_name : '<span style="color:red;">Not linked</span>'.html_safe %></td></tr>
     <tr><td>Decimals</td><td><%= @series.decimals.to_s %></td></tr>
     <tr><td>Base Year</td><td><%= @series.base_year %></td></tr>
     <tr><td>Seasonal Adjustment</td><td><%= @series[:seasonal_adjustment].to_s %></td></tr>

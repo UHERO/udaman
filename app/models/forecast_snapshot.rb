@@ -14,6 +14,15 @@ class ForecastSnapshot < ActiveRecord::Base
     s.aremos_series.description.titlecase
   end
 
+  # Get series percent from series mnemonic
+  def retrieve_percent(name)
+    s = Series.find_by(name: name)
+    if s.nil?
+      return ''
+    end
+    s.percent
+  end
+
   # Get series units
   def retrieve_units(prefix)
     m = Measurement.find_by(prefix: prefix.chomp('NS'))

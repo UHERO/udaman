@@ -25,6 +25,7 @@
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
       title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
@@ -41,6 +42,7 @@
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
       title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
@@ -57,6 +59,7 @@
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
       series: '<%= series[:name] %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
       title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
@@ -274,7 +277,7 @@
           maxPadding: 0
         }, {
           title: {
-            text: '% Change in Forecast'
+            text: chart_data[i].percent === 'true' ? 'Change in Forecast' : '% Change in Forecast',
           },
           labels: {
             format: '{value:,.2f}'
@@ -288,34 +291,43 @@
           shared: true,
           hideDelay: 50,
           formatter: function () {
-            var s = '<b>';
+            var s = '<b>' + Highcharts.dateFormat('%Y', this.x);
             if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jan') {
-              s = s + 'Q1'
+              s = s + ' Q1 </b>'
             }
             if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Apr') {
-              s = s + 'Q2'
+              s = s + ' Q2 </b>'
             }
             if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jul') {
-              s = s + 'Q3'
+              s = s + ' Q3 </b>'
             }
             if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Oct') {
-              s = s + 'Q4'
+              s = s + ' Q4 </b>'
             }
-            s = s + ' ' + Highcharts.dateFormat('%Y', this.x) + '</b>';
             $.each(this.points, function (i, point) {
-              s += '<br><span style="color:' + point.series.color + '">\u25CF</span>' + point.series.name + ': ' + Highcharts.numberFormat(point.y);
+              s += (point.series.name === '%ch: ' || point.series.name === 'ch: ') ?
+                  ' ' + point.series.name + Highcharts.numberFormat(point.y) :
+                  '<br><span style="color:' + point.series.color + '">\u25CF</span>' + point.series.name + ': ' + Highcharts.numberFormat(point.y);
             });
             return s;
           }
         },
         series: [{
-          name: history_label,
+          name: new_forecast_label,
           type: 'line',
-          dashStyle: 'dash',
-          data: chart_data[i].filter_history,
+          color: '#1D667F',
+          data: chart_data[i].filter_new_forecast,
           yAxis: 0,
-          zIndex: 4
-        },{
+          zIndex: 2
+        }, {
+          name: chart_data[i].percent === 'true' ? 'ch: ' : '%ch: ',
+          type: 'column',
+          color: '#737373',
+          borderColor: 'transparent',
+          data: chart_data[i].new_forecast_yoy,
+          yAxis: 1,
+          zIndex: 1
+        }, {
           name: old_forecast_label,
           type: 'line',
           dashStyle: 'dash',
@@ -324,28 +336,20 @@
           yAxis: 0,
           zIndex: 3
         }, {
-          name: new_forecast_label,
-          type: 'line',
-          color: '#1D667F',
-          data: chart_data[i].filter_new_forecast,
-          yAxis: 0,
-          zIndex: 2
-        }, {
-          name: 'YOY % Change in ' + new_forecast_label,
-          type: 'column',
-          color: '#737373',
-          borderColor: 'transparent',
-          data: chart_data[i].new_forecast_yoy,
-          yAxis: 1,
-          zIndex: 1
-        }, {
-          name: 'YOY % Change in ' + old_forecast_label,
+          name: chart_data[i].percent === 'true' ? 'ch: ' : '%ch: ',
           showInLegend: false,
           type: 'column',
           color: 'transparent',
           borderColor: 'transparent',
           data: chart_data[i].old_forecast_yoy,
           yAxis: 1
+        }, {
+          name: history_label,
+          type: 'line',
+          dashStyle: 'dash',
+          data: chart_data[i].filter_history,
+          yAxis: 0,
+          zIndex: 4
         }]
       }, function(chart) {
         // Adding plot lines
