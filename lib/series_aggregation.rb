@@ -46,23 +46,23 @@ module SeriesAggregation
     grouped_data.delete_if {|_,value| value.count != 4} if frequency == :year && myfreq == 'quarter'
     grouped_data.delete_if {|_,value| value.count != 2} if frequency == :semi && myfreq == 'quarter'
     grouped_data.delete_if {|_,value| value.count != 2} if frequency == :year && myfreq == 'semi'
-    grouped_data.delete_if {|_,value| value.count != 7} if frequency == :week && myfreq == 'day'
     grouped_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month && myfreq == 'day'
     grouped_data
   end
 
   def fill_week
-    raise AggregationException.new, 'fill_week: can only fill weekly series' unless self.frequency == 'week'
-    dailyseries = self.data
-    dailyseries.keys.each do |date|
-      (1..6).each {|offset| dailyseries[date + offset] = dailyseries[date] }
+    raise AggregationException.new, 'original series is not weekly' unless self.frequency == 'week'
+    dailyseries = {}
+    self.data.keys.sort.each do |date|
+      (0..6).each {|offset| dailyseries[date + offset] = self.data[date] }
     end
-    dailyseries
+    Series.new_transformation("Extrapolated from weekly series #{self.name}", dailyseries, :day)
   end
 
   def validate_aggregation(frequency)
     freq_order = %w[year semi quarter month week day]
-    raise AggregationException.new unless freq_order.include?(frequency.to_s) && freq_order.include?(self.frequency)
+    raise AggregationException.new, "cannot aggregate to frequency #{frequency}" unless %w[year semi quarter month].include?(frequency.to_s)
+    raise AggregationException.new, "unknown frequency #{self.frequency}" unless freq_order.include?(self.frequency)
     raise AggregationException.new, 'can only aggregate to a lower frequency' if freq_order.index(frequency.to_s) >= freq_order.index(self.frequency)
   end
 end
