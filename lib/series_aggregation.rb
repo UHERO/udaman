@@ -28,7 +28,7 @@ module SeriesAggregation
     orig_series = self
     if myfreq == 'week'
       myfreq = 'day'
-      orig_series = self.fill_week
+      orig_series = fill_weeks
     end
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
 
@@ -50,7 +50,7 @@ module SeriesAggregation
     grouped_data
   end
 
-  def fill_week
+  def fill_weeks
     raise AggregationException.new, 'original series is not weekly' unless self.frequency == 'week'
     dailyseries = {}
     self.data.keys.sort.each do |date|
