@@ -25,10 +25,14 @@ module SeriesAggregation
     validate_aggregation(frequency)
 
     myfreq = self.frequency
-    orig_series = myfreq == 'week' ? self.fill_week : self
+    orig_series = self
+    if myfreq == 'week'
+      myfreq = 'day'
+      orig_series = self.fill_week
+    end
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
-    grouped_data = {}
 
+    grouped_data = {}
     orig_series.data.keys.each do |date|
       next if orig_series.at(date).nil?
       agg_date = date.send(agg_date_method)
@@ -48,7 +52,7 @@ module SeriesAggregation
   end
 
   def fill_week
-    raise AggregationException.new unless self.frequency == 'week'
+    raise AggregationException.new, 'fill_week: can only fill weekly series' unless self.frequency == 'week'
     dailyseries = self.data
     dailyseries.keys.each do |date|
       (1..6).each {|offset| dailyseries[date + offset] = dailyseries[date] }
@@ -59,6 +63,6 @@ module SeriesAggregation
   def validate_aggregation(frequency)
     freq_order = %w[year semi quarter month week day]
     raise AggregationException.new unless freq_order.include?(frequency.to_s) && freq_order.include?(self.frequency)
-    raise AggregationException.new if freq_order.index(frequency.to_s) >= freq_order.index(self.frequency) ## only aggregate to lower frequency
+    raise AggregationException.new, 'can only aggregate to a lower frequency' if freq_order.index(frequency.to_s) >= freq_order.index(self.frequency)
   end
 end
