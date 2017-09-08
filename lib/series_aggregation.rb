@@ -24,10 +24,10 @@ module SeriesAggregation
   def group_data_by(frequency, override_prune = false)
     validate_aggregation(frequency)
 
-    myfreq = self.frequency
+    myfreq = self.frequency.to_sym
     orig_series = self
-    if myfreq == 'week'
-      myfreq = 'day'
+    if myfreq == :week
+      myfreq = :day
       orig_series = fill_weeks
     end
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
@@ -40,13 +40,17 @@ module SeriesAggregation
       grouped_data[agg_date].push orig_series.at(date)
     end
 
-    grouped_data.delete_if {|_,value| value.count != 6} if frequency == :semi && myfreq == 'month'
-    grouped_data.delete_if {|_,value| value.count != 3} if frequency == :quarter && myfreq == 'month' && !override_prune
-    grouped_data.delete_if {|_,value| value.count != 12} if frequency == :year && myfreq == 'month'
-    grouped_data.delete_if {|_,value| value.count != 4} if frequency == :year && myfreq == 'quarter'
-    grouped_data.delete_if {|_,value| value.count != 2} if frequency == :semi && myfreq == 'quarter'
-    grouped_data.delete_if {|_,value| value.count != 2} if frequency == :year && myfreq == 'semi'
-    grouped_data.delete_if {|key,value| value.count != key.days_in_month} if frequency == :month && myfreq == 'day'
+    per = { year: { semi: 2, quarter: 4, month: 12, day: 364 },
+            semi: { quarter: 2, month: 6, day: 180 },
+            quarter: { month: 3, day: 89 } }
+    minimum_data_points = per[frequency] && per[frequency][myfreq]
+    unless override_prune
+      if frequency == :month && myfreq == :day
+        grouped_data.delete_if {|key,value| value.count != key.days_in_month}
+      elsif minimum_data_points
+        grouped_data.delete_if {|_,value| value.count < minimum_data_points }
+      end
+    end
     grouped_data
   end
 
