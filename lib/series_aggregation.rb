@@ -40,11 +40,11 @@ module SeriesAggregation
       grouped_data[agg_date].push orig_series.at(date)
     end
 
-    per = { year: { semi: 2, quarter: 4, month: 12, day: 364 },
-            semi: { quarter: 2, month: 6, day: 180 },
-            quarter: { month: 3, day: 89 } }
-    minimum_data_points = per[frequency][myfreq] if per[frequency]
     unless override_prune
+      per = { year: { semi: 2, quarter: 4, month: 12, day: 365 },
+              semi: { quarter: 2, month: 6, day: 181 },
+              quarter: { month: 3, day: 90 } }
+      minimum_data_points = per[frequency][myfreq] if per[frequency]
       if frequency == :month && myfreq == :day
         grouped_data.delete_if {|key,value| value.count != key.days_in_month}
       elsif minimum_data_points
