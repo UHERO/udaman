@@ -58,7 +58,7 @@ module SeriesAggregation
     raise AggregationException.new, 'original series is not weekly' unless self.frequency == 'week'
     dailyseries = {}
     self.data.keys.sort.each do |date|
-      (0..6).each {|offset| dailyseries[date + offset] = self.data[date] }
+      (0..8).each {|offset| dailyseries[date + offset] = self.data[date] }
     end
     Series.new_transformation("Extrapolated from weekly series #{self.name}", dailyseries, :day)
   end
