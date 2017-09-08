@@ -43,7 +43,7 @@ module SeriesAggregation
     per = { year: { semi: 2, quarter: 4, month: 12, day: 364 },
             semi: { quarter: 2, month: 6, day: 180 },
             quarter: { month: 3, day: 89 } }
-    minimum_data_points = per[frequency] && per[frequency][myfreq]
+    minimum_data_points = per[frequency][myfreq] if per[frequency]
     unless override_prune
       if frequency == :month && myfreq == :day
         grouped_data.delete_if {|key,value| value.count != key.days_in_month}
