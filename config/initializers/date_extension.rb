@@ -102,9 +102,18 @@ class Date
   end
   
   def days_in_period(frequency)
-    return (self.leap? ? 366 : 365) if frequency == "year"
-    return self.days_in_month + (self >> 1).days_in_month + (self >> 2).days_in_month if frequency == "quarter"
-    return self.days_in_month if frequency == "month"
+    case frequency
+      when 'year'
+        self.leap? ? 366 : 365
+      when 'semi'
+        self.semi_d.days_in_period('quarter') + (self.semi_d >> 3).days_in_period('quarter')
+      when 'quarter'
+        self.quarter_d.days_in_month + (self.quarter_d >> 1).days_in_month + (self.quarter_d >> 2).days_in_month
+      when 'month'
+        self.days_in_month
+      else
+        raise "days_in_period: unknown frequency #{frequency}"
+    end
   end
   
   def days_in_month
