@@ -34,6 +34,9 @@
         <% end %>
         <td><%= fs.created_at.localtime.strftime("%m/%d/%y") %></td>
         <td><%= fs.updated_at.localtime.strftime("%m/%d/%y") %></td>
+        <td>
+          <%= link_to 'Table', forecast_snapshot_path(fs) + '/table' %>
+        </td>
         <% if current_user.admin_user? %>
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
         <% end %>

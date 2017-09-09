@@ -4,20 +4,18 @@
 
 .snapshot-table-title {
   color: #1D667F;
-  font-family: 'Geneva';
+  font-family: 'Geneva', serif;
   font-weight: normal;
   min-width: 100px;
   text-align: center;
 }
 
 .snapshot-table {
-  border-bottom: 3px solid #1D667F;
   border-collapse: collapse;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
 
   tbody {
     th {
-      border-bottom: 3px solid #1D667F;
       color: #1D667F;
       font-size: 15px;
       padding-right: 20px;
@@ -54,8 +52,24 @@
 
 .table-note {
   p {
-    font-family: Arial;
+    font-family: Arial, sans-serif;
     font-size: 15px;
     margin-left: 20px;
+  }
+}
+
+.freeze-header-column {
+  border-bottom: 3px solid #1D667F;
+  overflow-x: scroll;
+  padding-left: 12em;
+
+  .header-col {
+    position: absolute;
+	width: 12em;
+	left: 0;
+    background-color: #FFFFFF;
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
