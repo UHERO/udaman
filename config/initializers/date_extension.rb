@@ -119,7 +119,12 @@ class Date
   def days_in_month
     Time.days_in_month(self.month, self.year)
   end
-  
+
+  def delta_days(other_endpt)
+    raise 'delta_days: other endpoint is not a Date' unless other_endpt.class == Date
+    (self - other_endpt).to_i.abs
+  end
+
   def Date.last_7_days
     last_7 = []
     (0..6).each { |index| last_7[index] = (today - index).to_s }

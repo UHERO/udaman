@@ -57,11 +57,11 @@ module SeriesAggregation
   def fill_weeks
     raise AggregationException.new, 'original series is not weekly' unless self.frequency == 'week'
     dailyseries = {}
-    self.data.keys.sort.each do |date|
-      ## Following is 8 rather than 6 to "cover over" tiny gaps of one day here and there between weeks
-      ## (caused in some cases by people recording data observations on the day before a holiday, because
-      ## they won't be at work the next day. Really.)
-      (0..8).each {|offset| dailyseries[date + offset] = self.data[date] }
+    weekly_keys = self.data.keys.sort
+    while date = weekly_keys.shift ## beware: this is an assignment, not a comparison.
+      delta = weekly_keys.empty? ? 99 : date.delta_days(weekly_keys[0])
+      len = delta > 10 ? 6 : delta - 1
+      (0..len).each {|offset| dailyseries[date + offset] = self.data[date] }
     end
     Series.new_transformation("Extrapolated from weekly series #{self.name}", dailyseries, :day)
   end
