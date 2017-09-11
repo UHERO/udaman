@@ -98,19 +98,33 @@ class Date
   end
 
   def semi_d
-    Date.new(self.year, (self.month - 1) / 6)
+    Date.new(self.year, self.month > 6 ? 7 : 1)
   end
   
   def days_in_period(frequency)
-    return (self.leap? ? 366 : 365) if frequency == "year"
-    return self.days_in_month + (self >> 1).days_in_month + (self >> 2).days_in_month if frequency == "quarter"
-    return self.days_in_month if frequency == "month"
+    case frequency
+      when 'year'
+        self.leap? ? 366 : 365
+      when 'semi'
+        self.semi_d.days_in_period('quarter') + (self.semi_d >> 3).days_in_period('quarter')
+      when 'quarter'
+        self.quarter_d.days_in_month + (self.quarter_d >> 1).days_in_month + (self.quarter_d >> 2).days_in_month
+      when 'month'
+        self.days_in_month
+      else
+        raise "days_in_period: unknown frequency #{frequency}"
+    end
   end
   
   def days_in_month
     Time.days_in_month(self.month, self.year)
   end
-  
+
+  def delta_days(other_endpt)
+    raise 'delta_days: other endpoint is not a Date' unless other_endpt.class == Date
+    (self - other_endpt).to_i.abs
+  end
+
   def Date.last_7_days
     last_7 = []
     (0..6).each { |index| last_7[index] = (today - index).to_s }
