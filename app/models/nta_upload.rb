@@ -352,7 +352,7 @@ class NtaUpload < ActiveRecord::Base
       delete from geographies where universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from categories where universe = 'NTA' and ancestry is not null
+      delete from categories where universe = 'NTA' and ancestry is not null ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from data_lists where universe = 'NTA' ;
