@@ -215,6 +215,7 @@ class NtaUpload < ActiveRecord::Base
       raise("load_series_csv: no measurement for #{cat.meta}") unless measurement
       prefix = measurement.prefix
       indicator_name = cat.meta.sub(/^NTA_/,'')
+      indicator_title = cat.name
 
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
@@ -236,7 +237,7 @@ class NtaUpload < ActiveRecord::Base
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
-                               dataPortalName: '%s (%s)' % [ row_data['name'], indicator_name ],
+                               dataPortalName: indicator_title,
                                frequency: 'year',
                                geography_id: geo_id,  #### Updated for Region/Income Group series below in post proc
                                unit_id: measurement.unit_id,
