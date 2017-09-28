@@ -1,6 +1,7 @@
 class Category < ActiveRecord::Base
   has_ancestry
   belongs_to :data_list
+  belongs_to :default_geo_id, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
   def set_list_order
