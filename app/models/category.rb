@@ -15,12 +15,28 @@ class Category < ActiveRecord::Base
   end
 
   def name_with_depth
-    "#{name} (#{depth})"
+    if self.data_list
+      '%s (%d) - %s' % [name, depth, self.data_list.name]
+    else
+      '%s (%d)' % [name, depth]
+    end
   end
 
   def Category.get_or_new_nta(attrs, add_attrs = {})
     attrs.merge!(universe: 'NTA')
     Category.find_by(attrs) || Category.create(attrs.merge(add_attrs))
+  end
+
+  def Category.get_all(except = nil)
+    if except
+      Category.where("universe = 'UHERO' AND id != ?", except).order(:name)
+    else
+      Category.where(universe: 'UHERO').order(:name)
+    end
+  end
+
+  def default_geo_handle
+    Geography.find(self.default_geo_id).handle if self.default_geo_id #rescue 'SNAX'
   end
 
 end

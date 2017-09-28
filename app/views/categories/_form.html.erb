@@ -19,7 +19,7 @@
   </div>
   <div class="field">
     <%= f.label :parent_id %><br>
-    <%= f.collection_select :parent_id, Category.where("universe = 'UHERO' AND id != ?", @category.id).order(:name), :id, :name_with_depth, {:include_blank => true}%>
+    <%= f.collection_select :parent_id, Category.get_all(request.path =~ /edit/ ? @category.id : nil), :id, :name_with_depth, {:include_blank => true}%>
   </div>
   <div class="field">
     <%= f.label :data_list_id %><br>
@@ -27,11 +27,11 @@
   </div>
   <div class="field">
     <%= f.label :default_geo_id, 'Default geography' %><br>
-    <%= select :default_geo_id, Geography.where(universe: 'UHERO').collect {|g| ['%s (%s)' % [g.handle, g.display_name_short], g.id] }, {:include_blank => false} %> .
+    <%= f.collection_select :default_geo_id, Geography.where(universe: 'UHERO').order(:handle), :id, :handle_with_name, { :include_blank => true } %>
   </div>
   <div class="field">
     <%= f.label :default_freq, 'Default frequency' %><br>
-    <%= select :default_freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
+    <%= f.select :default_freq, %w(A Q M W S D).collect {|x| [x, x] }, { :include_blank => true } %>
   </div>
   <div class="actions">
     <%= f.submit %>

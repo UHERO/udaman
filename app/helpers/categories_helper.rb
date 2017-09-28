@@ -27,7 +27,7 @@ private
     end
 
     name_part = "<strong>#{leaf.name}</strong> (#{data_list_section})"
-    name_part += " [#{leaf.geography.handle}.#{leaf.default_freq}]" unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
+    name_part += " [#{leaf.default_geo_handle}.#{leaf.default_freq}]" unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
     menu = []
     if current_user.admin_user?
       menu.push order_section(leaf, first, last)

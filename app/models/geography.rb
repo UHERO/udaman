@@ -1,6 +1,10 @@
 class Geography < ActiveRecord::Base
   has_many :series
 
+  def handle_with_name
+    '%s (%s)' % [handle, display_name_short]
+  end
+
   def Geography.get_or_new_dbedt(attrs, add_attrs = {})
     attrs.merge!(universe: 'DBEDT')
     Geography.find_by(attrs) || Geography.create(attrs.merge(add_attrs))
