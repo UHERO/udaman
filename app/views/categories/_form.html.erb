@@ -26,12 +26,12 @@
     <%= f.collection_select :data_list_id, DataList.where(universe: 'UHERO').all.order(:name), :id, :name, {:include_blank => true} %>
   </div>
   <div class="field">
-    <%= f.label :default_handle, 'Default geo' %><br>
-    <%= f.text_field :default_handle %>
+    <%= f.label :default_geo_id, 'Default geography' %><br>
+    <%= select :default_geo_id, Geography.where(universe: 'UHERO').collect {|g| ['%s (%s)' % [g.handle, g.display_name_short], g.id] }, {:include_blank => false} %> .
   </div>
   <div class="field">
-    <%= f.label :default_freq %><br>
-    <%= f.text_field :default_freq %>
+    <%= f.label :default_freq, 'Default frequency' %><br>
+    <%= select :default_freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
   </div>
   <div class="actions">
     <%= f.submit %>
