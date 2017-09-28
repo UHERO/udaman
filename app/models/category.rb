@@ -36,7 +36,7 @@ class Category < ActiveRecord::Base
   end
 
   def default_geo_handle
-    Geography.find(self.default_geo_id).handle if self.default_geo_id
+    Geography.find(default_geo_id).handle rescue ''
   end
 
 end
