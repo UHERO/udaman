@@ -62,6 +62,11 @@ class TsdFile < ActiveRecord::Base
     name_array
   end
 
+  def get_current_plus_five_dates
+    dates = get_all_dates
+    dates.slice(dates.index{ |date| date > Date.today.to_s } - 2, 6)
+  end
+
   def get_all_dates
     dates = []
     get_all_series.each do |s|
