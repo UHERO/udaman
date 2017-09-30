@@ -11,25 +11,15 @@
 <table class="snapshot-table">
   <tr>
     <th class="header-col"> &nbsp; </th>
+    <% quarterly = @all_dates.any? {|s| (s.include? '-04-') || (s.include? '-07-') || (s.include? '-10-')} %>
     <% @all_dates.each do |date| %>
         <th>
-          <%= if @all_dates.any? {|s| (s.include? '-04-') || (s.include? '-07-') || (s.include? '-10-')} then
-                if date[5, 2] == '01' then
-                  date[0, 4] + ' Q1'
-                else
-                  if date[5, 2] == '04' then
-                    date[0, 4] + ' Q2'
-                  else
-                    date[5, 2] == '07' ? date[0, 4] + ' Q3' : date[0, 4] + ' Q4'
-                  end
-                end
-              else
-                date[0, 4]
-              end %>
+        <%= quarterly ? date[0, 4] + 'Q' + (date[5, 2].to_i / 3 + 1).to_s : date[0, 4] %>
         </th>
     <% end %>
   </tr>
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
+      <% precision = s[:udaman_series].nil? ? 1 : s[:udaman_series][:decimals] %>
     <tr>
       <%
         mnemonic = s[:name] + '.' + s[:frequency]
@@ -37,13 +27,13 @@
       %>
       <td class="header-col series-title" title="<%= display_name %>"><%= display_name %></td>
       <% @all_dates.each do |date| %>
-        <td class="series-data"><%= s[:data_hash][date].nil? ? '' : number_with_precision(s[:data_hash][date], precision: s[:udaman_series][:decimals], separator: '.', delimiter: ',') %></td>
+        <td class="series-data"><%= s[:data_hash][date].nil? ? '' : number_with_precision(s[:data_hash][date], precision: precision, separator: '.', delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
       <% @all_dates.each do |date| %>
-          <td class="change-data"><%= s[:yoy_hash][date].nil? ? '' : number_with_precision(s[:yoy_hash][date], precision: s[:udaman_series][:decimals], separator: '.', delimiter: ',') %></td>
+          <td class="change-data"><%= s[:yoy_hash][date].nil? ? '' : number_with_precision(s[:yoy_hash][date], precision: precision, separator: '.', delimiter: ',') %></td>
       <% end %>
     </tr>
   <% end %>
