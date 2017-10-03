@@ -64,7 +64,11 @@ class TsdFile < ActiveRecord::Base
 
   def get_current_plus_five_dates
     dates = get_all_dates
-    dates.slice(dates.index{ |date| date > Date.today.to_s } - 2, 6)
+    future = dates.index{|date| date > Date.today.to_s }
+    unless future
+      return dates
+    end
+    dates.slice(future - 2, 6)
   end
 
   def get_all_dates
