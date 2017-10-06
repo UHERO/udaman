@@ -21,7 +21,7 @@ class ForecastSnapshotsController < ApplicationController
 
   # GET /forecast_snapshots/1/table
   def table
-    @all_dates = @forecast_snapshot.new_forecast_tsd.get_all_dates
+    @all_dates = @forecast_snapshot.new_forecast_tsd.get_current_plus_five_dates
   end
 
   # GET /forecast_snapshots/new
