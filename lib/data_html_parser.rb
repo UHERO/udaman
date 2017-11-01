@@ -106,7 +106,7 @@ class DataHtmlParser
     return Date.new(year_string.to_i, other_string[1..2].to_i) unless %w(M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12).index(other_string).nil?
     return Date.new(year_string.to_i) if other_string == 'S01'
     return Date.new(year_string.to_i, 7) if other_string == 'S02'
-    return Date.new(year_string) unless %w(Q1 Q01).index(other_string).nil?
+    return Date.new(year_string.to_i) unless %w(Q1 Q01).index(other_string).nil?
     return Date.new(year_string.to_i, 4) unless %w(Q2 Q02).index(other_string).nil?
     return Date.new(year_string.to_i, 7) unless %w(Q3 Q03).index(other_string).nil?
     return Date.new(year_string.to_i, 10) unless %w(Q4 Q04).index(other_string).nil?
