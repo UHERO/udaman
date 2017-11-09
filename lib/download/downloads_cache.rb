@@ -9,6 +9,7 @@ class DownloadsCache
     if options
       ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
       @evalhash = options.delete(:eval_hash)
+      @dontskip = options.delete(:dont_skip) == 'true'
     end
     if ds_id
       @data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
@@ -38,7 +39,7 @@ class DownloadsCache
       end
     end
     @path = path
-    skip
+    @dontskip || skip
   end
 
   def mark_handle_used(handle)
