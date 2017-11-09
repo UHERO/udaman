@@ -4,26 +4,15 @@ class DataPoint < ActiveRecord::Base
   belongs_to :data_source
   
   def upd(value, data_source)
-    return self             if trying_to_replace_with_nil?(value) #scen 0
-    return update_timestamp if same_as_current_data_point?(value, data_source) #scen 1
-    prior_dp = nil
-    # this one can take a lot of time
-    changed = value_or_source_has_changed? value, data_source
-    prior_dp = restore_prior_dp(value, data_source) if changed
-    return unless prior_dp.nil?
-    create_new_dp(value, data_source)         #scen 3
+    return if trying_to_replace_with_nil?(value)
+    return unless value_or_source_has_changed?(value, data_source)
+    restore_prior_dp(value, data_source) || create_new_dp(value, data_source)
   end
   
   def value_or_source_has_changed?(value, data_source)
     !same_value_as?(value) or self.data_source_id != data_source.id
   end
-  
-  def same_as_current_data_point?(value,data_source)
-    #oddly this used to be data_source.object_id. which makes me think I was dealing with a nil problem
-    #in some cases. Hopefully won't crop up.
-    same_value_as?(value) and self.data_source_id == data_source.id
-  end
-  
+
   def trying_to_replace_with_nil?(value)
      value.nil? and !self.value.nil?
   end
@@ -37,6 +26,7 @@ class DataPoint < ActiveRecord::Base
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
     self.update_attributes(:current => false)
+    now = Time.now
     new_dp = self.dup
     new_dp.update_attributes(
         :series_id => self.series_id,
@@ -44,10 +34,9 @@ class DataPoint < ActiveRecord::Base
         :data_source_id => data_source.id,
         :value => value,
         :current => true,
-        :created_at => Time.now,
-        :updated_at => Time.now
+        :created_at => now,
+        :updated_at => now
     )
-    []
   end
   
   def restore_prior_dp(value, data_source)
@@ -65,15 +54,6 @@ class DataPoint < ActiveRecord::Base
       prior_dp.update_attributes(:current => true)
     end
     prior_dp
-  end
-  
-  def update_timestamp
-    #i wonder why this wouldnt work automatically (timestamp update)
-    #updating only is slightly faster than prioring. Over 269 data points the difference is 3.28 v 3.50 seconds
-    #this update is not worth it. Just to update the timestamp adds a lot of time to the calculation. It's the 
-    #model saving that is expensive
-    #self.update_attributes(:updated_at => Time.now)
-    self
   end
   
   def same_value_as?(value)
