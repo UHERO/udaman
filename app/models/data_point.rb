@@ -4,8 +4,8 @@ class DataPoint < ActiveRecord::Base
   belongs_to :data_source
   
   def upd(value, data_source)
-    return if trying_to_replace_with_nil?(value)
-    return unless value_or_source_has_changed?(value, data_source)
+    return nil if trying_to_replace_with_nil?(value)
+    return nil unless value_or_source_has_changed?(value, data_source)
     restore_prior_dp(value, data_source) || create_new_dp(value, data_source)
   end
   
@@ -15,10 +15,6 @@ class DataPoint < ActiveRecord::Base
 
   def trying_to_replace_with_nil?(value)
      value.nil? and !self.value.nil?
-  end
-  
-  def debug(value)
-    puts "#{date} - SELF.VALUE: #{self.value} / #{self.value.class} VALUE: #{value} / #{value.class}"
   end
   
   def create_new_dp(value, data_source)
@@ -37,6 +33,7 @@ class DataPoint < ActiveRecord::Base
         :created_at => now,
         :updated_at => now
     )
+    new_dp
   end
   
   def restore_prior_dp(value, data_source)
