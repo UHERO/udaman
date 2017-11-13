@@ -61,14 +61,16 @@ class Download < ActiveRecord::Base
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
+  def new_save_path
+    File.join(ENV['DATA_PATH'], 'rawdata', handle)
+  end
+
   def save_path_flex
-    return save_path.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if save_path.include? DEFAULT_DATA_PATH
-    save_path
+    save_path.blank? ? '' : save_path.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH'])
   end
 
   def extract_path_flex
-    return file_to_extract.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if !file_to_extract.nil? && file_to_extract.include?(DEFAULT_DATA_PATH)
-    file_to_extract
+    file_to_extract.blank? ? '' : file_to_extract.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH'])
   end
 
   def Download.flex(path)

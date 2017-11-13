@@ -55,18 +55,14 @@ class String
     result
   end
   
-  #needs some modifications to overwrite... do vintages, etc, but this is the basics
   def unzip
-    file = self
-    #destination = "/" + self.split("/")[1..-2].join("/") + "/"
-    destination = self + '_extracted_files/'
-    Zip::File.open(file) { |zip_file|
+    destination = self + '_extracted_files'
+    Zip::File.open(self) { |zip_file|
       zip_file.each { |f|
-        f_path=File.join(destination, f.name)
-        #puts f_path
-        FileUtils.mkdir_p(File.dirname(f_path))
-        FileUtils.rm f_path if File.exist?(f_path)
-        zip_file.extract(f, f_path) #unless File.exist?(f_path)
+        f_path = File.join(destination, f.name)
+        FileUtils.mkdir_p destination
+        FileUtils.rm_rf f_path
+        zip_file.extract(f, f_path)
       }
     }
   end
