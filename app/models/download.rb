@@ -61,20 +61,17 @@ class Download < ActiveRecord::Base
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
-  def new_save_path
-    File.join(ENV['DATA_PATH'], 'rawdata', handle)
-  end
-
   def save_path_flex
-    save_path.blank? ? '' : save_path.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH'])
+    File.join(Download.root, handle.gsub('@','_') + filename_ext)
   end
 
   def extract_path_flex
-    file_to_extract.blank? ? '' : file_to_extract.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH'])
+    file_to_extract.blank? ? file_to_extract
+                           : File.join(Download.root, handle.gsub('@','_'), file_to_extract)
   end
 
-  def Download.flex(path)
-    path
+  def Download.root
+    File.join(ENV['DATA_PATH'], 'rawdata')
   end
 
   def download
@@ -98,12 +95,10 @@ class Download < ActiveRecord::Base
         backup
         update_times.merge!(last_change_at: now)
       end
-      tmp_file = File.join(ENV['DATA_PATH'], handle + '.tmp')
       begin
-        open(tmp_file, 'wb') {|tmp| tmp.write resp.to_str }
-        content_type = find_content_type(url, tmp_file)
-        if content_type == 'zip'
-          something.unzip
+        open(save_path_flex, 'wb') {|tmp| tmp.write resp.to_str }
+        if filename_ext == 'zip'
+          save_path_flex.unzip
         end
       rescue => e
         logger.error "File download storage: #{e.message}"

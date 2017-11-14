@@ -19,8 +19,8 @@
 		</div>
 		
 		<div class="field">
-			<%= f.label :save_path_ext, 'Filename extension' %>
-			<%= select :save_path_ext, %w(xlsx xls zip csv txt pdf).collect {|x| [x, x] }, {:include_blank => false} %>
+			<%= f.label :filename_ext, 'Filename extension' %>
+			<%= select :filename_ext, %w(xlsx xls zip csv txt pdf).collect {|x| [x, x] }, {:include_blank => false} %>
 		</div>
 
     <div class="field">
