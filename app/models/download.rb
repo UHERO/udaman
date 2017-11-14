@@ -14,12 +14,6 @@ class Download < ActiveRecord::Base
     DEFAULT_DATA_PATH
   end
 
-  #some tight coupling to the unizipping functionality in the string extension
-  def Download.get_by_path(save_path)
-    sp = save_path.split('_extracted_files/')[0]
-    Download.where(:save_path => sp).first
-  end
-
   def Download.get(handle)
     Download.where(:handle => handle).first
   end
@@ -66,12 +60,12 @@ class Download < ActiveRecord::Base
   end
 
   def save_path_flex
+    ## db constraints force handle and filename_ext never to be null
     File.join(Download.root, '%s.%s' % [handle.gsub('@','_'), filename_ext])
   end
 
   def extract_path_flex
-    file_to_extract.blank? ? file_to_extract
-                           : File.join(Download.root, handle.gsub('@','_'), file_to_extract)
+    file_to_extract && File.join(Download.root, handle.gsub('@','_'), file_to_extract)
   end
 
   def Download.root

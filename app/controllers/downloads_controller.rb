@@ -9,7 +9,7 @@ class DownloadsController < ApplicationController
     @domain_hash = {}
     @output_files.each do |dsd|
       @domain_hash[dsd.url.split('/')[2]] ||= []
-      @domain_hash[dsd.url.split('/')[2]].push(dsd.handle || dsd.save_path)
+      @domain_hash[dsd.url.split('/')[2]].push dsd.handle
     end
   end
 
@@ -19,7 +19,7 @@ class DownloadsController < ApplicationController
 
   def create
     post_params = params[:download].delete(:post_parameters)
-    @output_file = Download.new download_params
+    @output_file = Download.new download_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h ## don't put empty strings in the db.
     if @output_file.save
       @output_file.process_post_params(post_params)
       redirect_to :action => 'index'
@@ -79,7 +79,7 @@ class DownloadsController < ApplicationController
 
   private
   def download_params
-    params.require(:download).permit(:handle, :file_to_extract, :url, :save_path, :sheet_override, :notes)
+    params.require(:download).permit(:handle, :url, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
   end
 
   def set_download
