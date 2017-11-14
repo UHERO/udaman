@@ -61,8 +61,12 @@ class Download < ActiveRecord::Base
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
+  def save_path
+    save_path_flex
+  end
+
   def save_path_flex
-    File.join(Download.root, handle.gsub('@','_') + filename_ext)
+    File.join(Download.root, '%s.%s' % [handle.gsub('@','_'), filename_ext])
   end
 
   def extract_path_flex
@@ -96,9 +100,9 @@ class Download < ActiveRecord::Base
         update_times.merge!(last_change_at: now)
       end
       begin
-        open(save_path_flex, 'wb') {|tmp| tmp.write resp.to_str }
+        open(save_path, 'wb') {|f| f.write resp.to_str }
         if filename_ext == 'zip'
-          save_path_flex.unzip
+          save_path.unzip(extract_path_flex)
         end
       rescue => e
         logger.error "File download storage: #{e.message}"

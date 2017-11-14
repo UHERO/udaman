@@ -55,18 +55,20 @@ class String
     result
   end
   
-  def unzip
-    destination = self  ## zis right? ?????????????????????????????????????????????????????????????
-    Zip::File.open(self) { |zip_file|
-      zip_file.each { |f|
-        f_path = File.join(destination, f.name)
-        FileUtils.mkdir_p destination
-        FileUtils.rm_rf f_path
-        zip_file.extract(f, f_path)
+  def unzip(want_file = nil)
+    dest_dir = self.change_file_extension('')
+    FileUtils.mkdir_p dest_dir
+
+    Zip::File.open(self) {|zip_file|
+      zip_file.each {|f|
+        next if !want_file.blank? && f.name != want_file
+        path = File.join(dest_dir, f.name)
+        FileUtils.rm_rf path
+        zip_file.extract(f, path)
       }
     }
   end
-  
+
   def to_ascii
     require 'stringex/unidecoder'
     Stringex::Unidecoder.decode self
