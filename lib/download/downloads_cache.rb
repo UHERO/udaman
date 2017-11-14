@@ -9,7 +9,6 @@ class DownloadsCache
     if options
       ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
       @evalhash = options.delete(:eval_hash)
-      @skip_override = options.delete(:dont_skip) == 'true'
     end
     if ds_id
       @data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
@@ -30,7 +29,7 @@ class DownloadsCache
         set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
       end
       ## Now, figure out if we can skip over this source entirely because it hasn't changed.
-      if @data_source && skip_proc && !@skip_override
+      if @data_source && skip_proc
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
         dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
         @cache[:dsds][bridge_key] = dsd
@@ -39,7 +38,7 @@ class DownloadsCache
       end
     end
     @path = path
-    @dontskip || skip
+    skip
   end
 
   def mark_handle_used(handle)
