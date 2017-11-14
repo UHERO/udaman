@@ -10,24 +10,23 @@
 		</div>
 		
 		<div class="field">
-			<%= f.label :file_to_extract %>
-			<%= f.text_field :file_to_extract, :size => 100 %>
-		</div>
-		
-		<div class="field">
 			<%= f.label :url %>
 			<div id="url_message"></div>
 			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
 			
 		</div>
-		
-		<div class="field">
-			<%= f.label :save_path %>
-			<div id="save_path_message"></div>
-			<%= f.text_field :save_path, :size => 100, 'data-test-save-path': 'save_path_message'%>
-		</div>
 
-    <div class="field">
+      <div class="field">
+        <%= f.label :filename_ext, 'Filename extension' %>
+        <%= f.select :filename_ext, %w(xlsx xls zip csv txt pdf).collect {|x| [x, x] }, {:include_blank => false} %>
+      </div>
+
+      <div class="field">
+        <%= f.label :file_to_extract, 'If zip archive, enter contained filename ONLY, not full path!' %>
+        <%= f.text_field :file_to_extract, :size => 40 %>
+      </div>
+
+      <div class="field">
       <%= f.label :sheet_override, 'Worksheet override name' %><br/>
       <%= f.text_field :sheet_override, :size => 40 %>
     </div>
@@ -35,9 +34,15 @@
 		<div class="field">
 			<%= f.label :post_parameters %>
 			<div id="post_parameters_message"></div>
-			<%= f.text_area :post_parameters, :value => " \n  ", :size => '72x20', 'data-test-post-params': 'post_parameters_message' %>
+			<%= f.text_area :post_parameters, :value => " \n  ", :size => '72x3', 'data-test-post-params': 'post_parameters_message' %>
 		</div>
-		<div class="actions">
+
+    <div class="field">
+      <%= f.label :notes %><br />
+      <%= f.text_area :notes, :size => '72x10' %>
+    </div>
+
+      <div class="actions">
 			<%= f.submit %>
 		</div>
 	<% end %>

@@ -20,7 +20,7 @@
 		
 		<div class="field">
 			<%= f.label :filename_ext, 'Filename extension' %>
-			<%= select :filename_ext, %w(xlsx xls zip csv txt pdf).collect {|x| [x, x] }, {:include_blank => false} %>
+			<%= f.select :filename_ext, %w(xlsx xls zip csv txt pdf).collect {|x| [x, x] }, {:include_blank => false} %>
 		</div>
 
     <div class="field">
@@ -36,7 +36,7 @@
     <div class="field">
 			<%= f.label :post_parameters %>
 			<div id="post_parameters_message"></div>
-			<%= f.text_area :post_parameters, :value => (@output_file.post_param_string + ' '), :size => '72x20', 'data-test-post-params': 'post_parameters_message' %>
+			<%= f.text_area :post_parameters, :value => (@output_file.post_param_string + ' '), :size => '72x3', 'data-test-post-params': 'post_parameters_message' %>
 		</div>
 	
 		<div class="field">
