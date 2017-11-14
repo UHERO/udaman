@@ -140,11 +140,14 @@ class DataSource < ActiveRecord::Base
         if eval_stmt =~ options_match  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
-          eval_stmt.sub!(options_match, options.merge(data_source: id, eval_hash: hash.to_s).to_s) ## injection hack :=P -dji
+          eval_stmt.sub!(options_match, options.merge(data_source: id,
+                                                      eval_hash: hash.to_s,
+                                                      dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
         end
         s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
+          logger.info { "Reload source [#{description}] (#{id}): Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
