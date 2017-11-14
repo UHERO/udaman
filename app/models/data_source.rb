@@ -147,6 +147,7 @@ class DataSource < ActiveRecord::Base
         s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
+          logger.info { "Reload source [#{description}] (#{id}): Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
