@@ -98,8 +98,16 @@ class Download < ActiveRecord::Base
         backup
         update_times.merge!(last_change_at: now)
       end
-      open(save_path_flex, 'wb') { |file| file.write resp.to_str }
-      save_path_flex.unzip if save_path_flex[-3..-1] == 'zip'
+      tmp_file = File.join(ENV['DATA_PATH'], handle + '.tmp')
+      begin
+        open(tmp_file, 'wb') {|tmp| tmp.write resp.to_str }
+        content_type = find_content_type(url, tmp_file)
+        if content_type == 'zip'
+          something.unzip
+        end
+      rescue => e
+        logger.error "File download storage: #{e.message}"
+      end
       self.update(update_times)
     end
     #logging section
