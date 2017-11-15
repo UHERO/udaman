@@ -132,40 +132,31 @@ describe Download do
   
   xit "should be able to test its url and verify that url is reachable" do
     download_url = "http://www.dof.ca.gov/HTML/FS_DATA/LatestEconData/documents/BBCYCPI.xls"    
-    dsd = Download.new(:url => download_url, :post_parameters => {}, :save_path => "")
+    dsd = Download.new(:url => download_url, :post_parameters => {})
     dsd.test_url.should == 200
   end
   
   it "should be able to test its url and notify user that url is invalid" do
     download_url = ".dof.ca.gov/HTML/FS_DATA/LatestEconData/documents/BBCYCPI.xls"    
-    dsd = Download.new(:url => download_url, :post_parameters => {}, :save_path => "")
+    dsd = Download.new(:url => download_url, :post_parameters => {})
     dsd.test_url.should be_nil
   end
   
   xit "should be able to test its url and notify user if an error code other than 200 is reached" do
     download_url = "http://data.bls.gov/pdq/SurveyOutputServlet"    
-    dsd = Download.new(:url => download_url, :post_parameters => {}, :save_path => "")
+    dsd = Download.new(:url => download_url, :post_parameters => {})
     dsd.test_url.should == 302
   end
   
   it "should be able to test its download location and notify user if that path already exists" do
-    save_path = "#{ENV["DATAFILES_PATH"]}/datafiles/specs_output/downloads/ds_test.xls"
-    dsd = Download.create(:url => "", :post_parameters => {}, :save_path => save_path)
-    save_path = "#{ENV["DATAFILES_PATH"]}/datafiles/specs_output/downloads/ds_test.xls"
-    dsd = Download.new(:url => "", :post_parameters => {}, :save_path => save_path)
-    dsd.test_save_path.should == "duplicate"
-  end
-  
-  it "should be able to test its download location and notify user if that path is not valid" do
-    save_path = "#{ENV["DATAFILES_PATH"]}/datafiles/specs_output/downloads_no_dir/ds_test.xls"
-    dsd = Download.new(:url => "", :post_parameters => {}, :save_path => save_path)
-    dsd.test_save_path.should == "badpath"
+    dl1 = Download.create(:handle => 'dup_handle', :url => 'http://foo.com/mydata.xls', :filename_ext => 'xls')
+    dl2 = Download.create(:handle => 'dup_handle', :url => 'http://foo.com/mydata.xls', :filename_ext => 'xls')
+    dl2.test_save_path.should == "duplicate"
   end
   
   it "should be able to test its download location and notify user that path is ok" do
-    save_path = "#{ENV["DATAFILES_PATH"]}/datafiles/specs_output/downloads/ds_test.xls"
-    dsd = Download.new(:url => "", :post_parameters => {}, :save_path => save_path)
-    dsd.test_save_path.should == "ok"
+    dl = Download.create(:handle => 'ok_handle', :url => 'http://foo.com/mydata.xls', :filename_ext => 'xls')
+    dl.test_save_path.should == "ok"
   end
   
   xit "should verify if the post parameters format is ok" do
