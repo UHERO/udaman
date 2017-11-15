@@ -24,8 +24,9 @@ class Download < ActiveRecord::Base
   end
 
   def Download.test_save_path(save_path)
-    dsd = Download.new(:save_path => save_path)
-    dsd.test_save_path
+    file_parts = File.basename(save_path).split('.')
+    ext = file_parts.pop
+    Download.new(handle: file_parts.join('.'), filename_ext: ext).test_save_path
   end
 
   def Download.test_post_params(params)
@@ -60,16 +61,19 @@ class Download < ActiveRecord::Base
   end
 
   def save_path_flex
-    ## db constraints force handle and filename_ext never to be null
-    File.join(Download.root, '%s.%s' % [handle.gsub('@','_'), filename_ext])
+    File.join(Download.root, '%s.%s' % [sanitize_handle, filename_ext || 'ext'])
   end
 
   def extract_path_flex
-    file_to_extract && File.join(Download.root, handle.gsub('@','_'), file_to_extract)
+    file_to_extract && File.join(Download.root, sanitize_handle, file_to_extract)
   end
 
   def Download.root
     File.join(ENV['DATA_PATH'], 'rawdata')
+  end
+
+  def sanitize_handle
+    handle ? handle.gsub('@','_') : 'NO_HANDLE_DEFINED'
   end
 
   def download
@@ -171,8 +175,10 @@ class Download < ActiveRecord::Base
 
   def test_save_path
     return 'nopath' if save_path.nil?
-    return 'duplicate' if Download.where(:save_path => save_path).count > 0
-    return 'badpath' unless File::directory?(save_path.split('/')[0..-2].join('/'))
+    return 'badpath' unless File::directory?(File.dirname(save_path))
+    Download.all.each do |dl|
+      return 'duplicate' if dl.save_path == self.save_path
+    end
     'ok'
   end
 end
