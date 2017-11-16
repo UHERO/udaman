@@ -56,12 +56,16 @@ class Download < ActiveRecord::Base
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
-  def save_path
-    save_path_flex
+  def save_path(no_ext = false)
+    save_path_flex(no_ext)
   end
 
-  def save_path_flex
-    File.join(Download.root, '%s.%s' % [sanitize_handle, filename_ext || 'ext'])
+  def save_path_flex(no_ext = false)
+    if no_ext
+      File.join(Download.root, sanitize_handle)
+    else
+      File.join(Download.root, '%s.%s' % [sanitize_handle, filename_ext || 'ext'])
+    end
   end
 
   def extract_path_flex
