@@ -20,7 +20,7 @@ gem 'spork-rails'
 gem 'sidekiq', '~> 4.1'
 gem 'sinatra', :require => false
 gem 'sinatra_auth_github', :require => false
-gem 'rubyzip', '~> 1.0'
+gem 'rubyzip', '~> 1.2.1'
 gem 'capybara', '~> 2.7'
 gem 'selenium-webdriver'
 gem 'watir', '~> 6.0'
