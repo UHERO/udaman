@@ -295,10 +295,10 @@ class NtaUpload < ActiveRecord::Base
                                display_name_short: row_data['subregn'],
                                geotype: 'region2',
                                parents: geo_region.id })
-    income_grp = row_data['incgrp'] || row_data['incgrp2015']
+    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/.income$/i, '').titlecase
     geo_incgrp = Geography.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
-                                          { display_name: income_grp,
-                                            display_name_short: income_grp,
+                                          { display_name: "#{income_grp} Income",
+                                            display_name_short: "#{income_grp} Income",
                                             geotype: 'incgrp1' })
     geo_country = Geography.get_or_new_nta({ handle: row_data['iso3166a'].gsub(/\W+/, '_') },
                                            { display_name: row_data['name'],
