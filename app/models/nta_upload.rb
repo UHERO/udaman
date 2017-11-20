@@ -511,9 +511,9 @@ class NtaUpload < ActiveRecord::Base
               when 'AsianRegion' then 3
               when 'EuropeanRegion' then 4
               when 'OceanicRegion' then 5
-              when 'Low Income' then 7
-              when 'Lower Middle Income' then 8
-              when 'Upper Middle Income' then 9
+              when 'Low Income Countries' then 7
+              when 'Lower Middle Income Countries' then 8
+              when 'Upper Middle Income Countries' then 9
               when 'High Income' then 10
             else 12
           end
