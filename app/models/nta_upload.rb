@@ -286,9 +286,10 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def make_country_geos(row_data)
-    geo_region = Geography.get_or_new_nta({ handle: row_data['regn'].gsub(/\W+/, '_') },
-                                          { display_name: row_data['regn'],
-                                            display_name_short: row_data['regn'],
+    regn = row_data['regn'].titlecase
+    geo_region = Geography.get_or_new_nta({ handle: regn.gsub(/\W+/, '_') },
+                                          { display_name: regn,
+                                            display_name_short: regn,
                                             geotype: 'region1'})
     Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W+/, '_') },
                              { display_name: row_data['subregn'],
@@ -506,11 +507,11 @@ class NtaUpload < ActiveRecord::Base
       insert data_list_measurements (data_list_id, measurement_id, indent, list_order)
       select distinct dl.id, m.id, 'indent1',
           case m.data_portal_name
-              when 'African Region' then 1
-              when 'American Region' then 2
-              when 'Asian Region' then 3
-              when 'European Region' then 4
-              when 'Oceanic Region' then 5
+              when 'African Countries' then 1
+              when 'American Countries' then 2
+              when 'Asian Countries' then 3
+              when 'European Countries' then 4
+              when 'Oceanic Countries' then 5
               when 'Low Income Countries' then 7
               when 'Lower Middle Income Countries' then 8
               when 'Upper Middle Income Countries' then 9
