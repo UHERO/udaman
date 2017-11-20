@@ -506,11 +506,11 @@ class NtaUpload < ActiveRecord::Base
       insert data_list_measurements (data_list_id, measurement_id, indent, list_order)
       select distinct dl.id, m.id, 'indent1',
           case m.data_portal_name
-              when 'AfricanRegion' then 1
-              when 'AmericanRegion' then 2
-              when 'AsianRegion' then 3
-              when 'EuropeanRegion' then 4
-              when 'OceanicRegion' then 5
+              when 'African Region' then 1
+              when 'American Region' then 2
+              when 'Asian Region' then 3
+              when 'European Region' then 4
+              when 'Oceanic Region' then 5
               when 'Low Income Countries' then 7
               when 'Lower Middle Income Countries' then 8
               when 'Upper Middle Income Countries' then 9
