@@ -514,7 +514,7 @@ class NtaUpload < ActiveRecord::Base
               when 'Low Income Countries' then 7
               when 'Lower Middle Income Countries' then 8
               when 'Upper Middle Income Countries' then 9
-              when 'High Income' then 10
+              when 'High Income Countries' then 10
             else 12
           end
       from data_lists dl
