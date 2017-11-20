@@ -226,7 +226,7 @@ class NtaUpload < ActiveRecord::Base
         next unless ['world','region','income group','country'].include? group
 
         geo_part = row_data['iso3166a'] || row_data['name'].titlecase
-        geo_part.sub!(/.income.countries/i, '')  ## Clean up for income group names
+        geo_part.sub!(/\s*countries.*$/i, '')     ## Clean up for income group names
         geo_part.gsub!(/\W+/, '_')
 
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), geo_part ]
@@ -295,10 +295,10 @@ class NtaUpload < ActiveRecord::Base
                                display_name_short: row_data['subregn'],
                                geotype: 'region2',
                                parents: geo_region.id })
-    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/.income.*$/i, '').titlecase
+    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/\s*countries.*$/i, '').titlecase
     geo_incgrp = Geography.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
-                                          { display_name: "#{income_grp} Income Countries",
-                                            display_name_short: "#{income_grp} Income Countries",
+                                          { display_name: "#{income_grp} Countries",
+                                            display_name_short: "#{income_grp} Countries",
                                             geotype: 'incgrp1' })
     geo_country = Geography.get_or_new_nta({ handle: row_data['iso3166a'].gsub(/\W+/, '_') },
                                            { display_name: row_data['name'],
@@ -410,7 +410,7 @@ class NtaUpload < ActiveRecord::Base
       /*** Update geography link for series NTA_<var>@<incgrp>.A ***/
       update series s
         join geographies g
-           on LEFT(substring_index(substring_index(s.name, '@', -1), '.', 1), ???) = LEFT(g.handle, ???)
+           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
           and g.geotype = 'incgrp1'
       set s.geography_id = g.id
       where s.universe = 'NTA'
