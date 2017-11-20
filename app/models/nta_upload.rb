@@ -295,10 +295,10 @@ class NtaUpload < ActiveRecord::Base
                                display_name_short: row_data['subregn'],
                                geotype: 'region2',
                                parents: geo_region.id })
-    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/.income$/i, '').titlecase
+    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/.income.*$/i, '').titlecase
     geo_incgrp = Geography.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
-                                          { display_name: "#{income_grp} Income",
-                                            display_name_short: "#{income_grp} Income",
+                                          { display_name: "#{income_grp} Income Countries",
+                                            display_name_short: "#{income_grp} Income Countries",
                                             geotype: 'incgrp1' })
     geo_country = Geography.get_or_new_nta({ handle: row_data['iso3166a'].gsub(/\W+/, '_') },
                                            { display_name: row_data['name'],
@@ -397,11 +397,21 @@ class NtaUpload < ActiveRecord::Base
       and m.data_portal_name = 'All Countries'
     SQL
     NtaUpload.connection.execute <<~SQL
-      /*** Update geography link for series NTA_<var>@<region,incgrp>.A ***/
+      /*** Update geography link for series NTA_<var>@<region>.A ***/
       update series s
         join geographies g
-           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
-          and g.geotype like '%1' /* region1 and incgrp1 */
+           on LEFT(substring_index(substring_index(s.name, '@', -1), '.', 1), 4) = LEFT(g.handle, 4)
+          and g.geotype = 'region1'
+      set s.geography_id = g.id
+      where s.universe = 'NTA'
+      and s.geography_id is null
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      /*** Update geography link for series NTA_<var>@<incgrp>.A ***/
+      update series s
+        join geographies g
+           on LEFT(substring_index(substring_index(s.name, '@', -1), '.', 1), ???) = LEFT(g.handle, ???)
+          and g.geotype = 'incgrp1'
       set s.geography_id = g.id
       where s.universe = 'NTA'
       and s.geography_id is null
