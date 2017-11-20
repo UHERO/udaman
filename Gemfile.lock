@@ -238,7 +238,7 @@ GEM
     ruby-debug-ide (0.6.0)
       rake (>= 0.8.1)
     ruby-ole (1.2.12)
-    rubyzip (1.2.0)
+    rubyzip (1.2.1)
     rvm-capistrano (1.5.0)
       capistrano (>= 2.15.4)
     sass (3.4.23)
@@ -353,7 +353,7 @@ DEPENDENCIES
   rspec-rails (~> 3.1)
   rspec-sidekiq
   ruby-debug-ide
-  rubyzip (~> 1.0)
+  rubyzip (~> 1.2.1)
   rvm-capistrano
   sass-rails (~> 5.0)
   selenium-webdriver
@@ -370,4 +370,4 @@ DEPENDENCIES
   will_paginate (~> 3.1.1)
 
 BUNDLED WITH
-   1.14.2
+   1.15.4
