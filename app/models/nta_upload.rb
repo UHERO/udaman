@@ -223,7 +223,7 @@ class NtaUpload < ActiveRecord::Base
         row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
 
         group = row_data['group'].downcase
-        next unless ['world','region','income group','country'].include? group
+        next unless ['region','income group','country'].include? group
 
         geo_part = row_data['iso3166a'] || row_data['name'].titlecase
         geo_part.sub!(/\s*countries.*$/i, '')     ## Clean up for income group names
@@ -232,10 +232,10 @@ class NtaUpload < ActiveRecord::Base
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), geo_part ]
 
         if current_series.nil? || current_series.name != series_name
-            geo_id = case group
-                       when 'country'
+            geo_id = case
+                       when group == 'country'
                          make_country_geos(row_data).id
-                       when 'world'
+                       when geo_part == 'World'
                          Geography.get_or_new_nta({ handle: 'World' },
                                                   { display_name: 'World',
                                                     display_name_short: 'World',
