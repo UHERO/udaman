@@ -162,7 +162,7 @@ class NtaUpload < ActiveRecord::Base
         measurement.update data_portal_name: long_name
       end
       if data_list.measurements.where(id: measurement.id).empty?
-        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
+        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 12)
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
@@ -232,7 +232,16 @@ class NtaUpload < ActiveRecord::Base
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), geo_part ]
 
         if current_series.nil? || current_series.name != series_name
-            geo_id = group == 'country' ? make_country_geos(row_data) : nil
+            geo_id = case group
+                       when 'country'
+                         make_country_geos(row_data).id
+                       when 'world'
+                         Geography.get_or_new_nta({ handle: 'World' },
+                                                  { display_name: 'World',
+                                                    display_name_short: 'World',
+                                                    geotype: 'region1'}).id
+                       else nil
+                     end
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
                                universe: 'NTA',
@@ -306,7 +315,7 @@ class NtaUpload < ActiveRecord::Base
                                              display_name_short: row_data['name'],
                                              geotype: 'region3',
                                              parents: [geo_region.id, geo_incgrp.id] })
-    geo_country.id
+    geo_country
   end
 
   def NtaUpload.load(id, series_id)
@@ -447,6 +456,18 @@ class NtaUpload < ActiveRecord::Base
       and g.geotype = 'region3'
     SQL
     NtaUpload.connection.execute <<~SQL
+      /*** Associate measurements NTA_<var>_regn_World
+                      with series NTA_<var>@World.A            ***/
+      insert measurement_series (measurement_id, series_id)
+      select distinct m.id, s.id
+      from series s
+        join measurements m
+           on m.universe = s.universe
+          and m.prefix = concat(substring_index(s.name, '@', 1), '_regn_World')
+      where s.universe = 'NTA'
+      and s.name like '%@World.%'
+    SQL
+    NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp_<incgrp>
                       with series NTA_<var>@<country_iso>.A            ***/
       insert measurement_series (measurement_id, series_id)
@@ -491,9 +512,9 @@ class NtaUpload < ActiveRecord::Base
       select distinct dl.id, m.id, 'indent0',
           case m.data_portal_name
             when 'Region' then 0
-            when 'Income Group' then 6
-            /* All Countries is assigned list_order 11 above in Ruby code. Change there if necessary */
-            else 12
+            when 'Income Group' then 7
+            /* All Countries is assigned list_order 12 above in Ruby code. Change there if necessary */
+            else 13
           end
       from data_lists dl
         join measurements m
@@ -512,16 +533,17 @@ class NtaUpload < ActiveRecord::Base
               when 'Asian Countries' then 3
               when 'European Countries' then 4
               when 'Oceanic Countries' then 5
-              when 'Low Income Countries' then 7
-              when 'Lower Middle Income Countries' then 8
-              when 'Upper Middle Income Countries' then 9
-              when 'High Income Countries' then 10
-            else 12
+              when 'World' then 6
+              when 'Low Income Countries' then 8
+              when 'Lower Middle Income Countries' then 9
+              when 'Upper Middle Income Countries' then 10
+              when 'High Income Countries' then 11
+            else 13
           end
       from data_lists dl
         join measurements m
            on (m.prefix like '%\_regn\_%' or m.prefix like '%\_incgrp\_%')
-          and dl.name = substring_index(substring_index(m.prefix, '_regn_', 1), '_incgrp_', 1)
+          and dl.name = substring_index(substring_index(m.prefix, '_regn_', 1), '_incgrp_', 1) /* another either/or, like above */
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
