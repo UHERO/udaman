@@ -207,6 +207,7 @@ class NtaUpload < ActiveRecord::Base
     current_series = nil
     current_data_source = nil
     data_points = []
+    the_geo = Geography.new  ## Singleton to allow caching of Geography objects from db
 
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
@@ -223,23 +224,37 @@ class NtaUpload < ActiveRecord::Base
         row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
 
         group = row_data['group'].downcase
-        next unless ['world','region','income group','country'].include? group
+        next unless ['region','income group','country'].include? group
 
         geo_part = row_data['iso3166a'] || row_data['name'].titlecase
-        geo_part.sub!(/.income.countries/i, '')  ## Clean up for income group names
+        geo_part.sub!(/\s*countries.*$/i, '')     ## Clean up for income group names
         geo_part.gsub!(/\W+/, '_')
 
         series_name = '%s@%s.A' % [ prefix.gsub(/\W+/, '_'), geo_part ]
 
         if current_series.nil? || current_series.name != series_name
-            geo_id = group == 'country' ? make_country_geos(row_data) : nil
+            geo_id = case
+                     when group == 'country'
+                       make_country_geos(the_geo, row_data).id
+                     when group == 'region'
+                       the_geo.get_or_new_nta({ handle: "#{geo_part}_agg" },
+                                              { display_name: geo_part,
+                                                display_name_short: geo_part,
+                                                geotype: 'region4' }).id
+                     when group == 'income group'
+                       the_geo.get_or_new_nta({ handle: "#{geo_part}_agg" },
+                                              { display_name: row_data['name'].titlecase,
+                                                display_name_short: row_data['name'].titlecase,
+                                                geotype: 'incgrp4' }).id
+                     else nil
+                   end
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
                                dataPortalName: indicator_title,
                                frequency: 'year',
-                               geography_id: geo_id,  #### Updated for Region/Income Group series below in post proc
+                               geography_id: geo_id,
                                unit_id: measurement.unit_id,
                                percent: measurement.percent,
                                source_id: measurement.source_id
@@ -285,27 +300,28 @@ class NtaUpload < ActiveRecord::Base
     DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
   end
 
-  def make_country_geos(row_data)
-    geo_region = Geography.get_or_new_nta({ handle: row_data['regn'].gsub(/\W+/, '_') },
-                                          { display_name: row_data['regn'],
-                                            display_name_short: row_data['regn'],
-                                            geotype: 'region1'})
-    Geography.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W+/, '_') },
-                             { display_name: row_data['subregn'],
-                               display_name_short: row_data['subregn'],
-                               geotype: 'region2',
-                               parents: geo_region.id })
-    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/.income$/i, '').titlecase
-    geo_incgrp = Geography.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
-                                          { display_name: "#{income_grp} Income",
-                                            display_name_short: "#{income_grp} Income",
-                                            geotype: 'incgrp1' })
-    geo_country = Geography.get_or_new_nta({ handle: row_data['iso3166a'].gsub(/\W+/, '_') },
-                                           { display_name: row_data['name'],
-                                             display_name_short: row_data['name'],
-                                             geotype: 'region3',
-                                             parents: [geo_region.id, geo_incgrp.id] })
-    geo_country.id
+  def make_country_geos(the_geo, row_data)
+    regn = row_data['regn'].titlecase
+    geo_region = the_geo.get_or_new_nta({ handle: regn.gsub(/\W+/, '_') },
+                                        { display_name: regn,
+                                          display_name_short: regn,
+                                          geotype: 'region1'})
+    the_geo.get_or_new_nta({ handle: row_data['subregn'].gsub(/\W+/, '_') },
+                           { display_name: row_data['subregn'],
+                             display_name_short: row_data['subregn'],
+                             geotype: 'region2',
+                             parents: geo_region.id })
+    income_grp = (row_data['incgrp'] || row_data['incgrp2015']).sub(/\s*countries.*$/i, '').titlecase
+    geo_incgrp = the_geo.get_or_new_nta({ handle: income_grp.gsub(/\W+/, '_') },
+                                        { display_name: "#{income_grp} Countries",
+                                          display_name_short: "#{income_grp} Countries",
+                                          geotype: 'incgrp1' })
+    geo_country = the_geo.get_or_new_nta({ handle: row_data['iso3166a'].gsub(/\W+/, '_') },
+                                         { display_name: row_data['name'],
+                                           display_name_short: row_data['name'],
+                                           geotype: 'region3',
+                                           parents: [geo_region.id, geo_incgrp.id] })
+    geo_country
   end
 
   def NtaUpload.load(id, series_id)
@@ -397,16 +413,6 @@ class NtaUpload < ActiveRecord::Base
       and m.data_portal_name = 'All Countries'
     SQL
     NtaUpload.connection.execute <<~SQL
-      /*** Update geography link for series NTA_<var>@<region,incgrp>.A ***/
-      update series s
-        join geographies g
-           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
-          and g.geotype like '%1' /* region1 and incgrp1 */
-      set s.geography_id = g.id
-      where s.universe = 'NTA'
-      and s.geography_id is null
-    SQL
-    NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var> (All Countries)
                       with series NTA_<var>@<country_iso>.A            ***/
       insert measurement_series (measurement_id, series_id)
@@ -460,7 +466,7 @@ class NtaUpload < ActiveRecord::Base
            on m.universe = s.universe
           and m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
       where s.universe = 'NTA'
-      and g.geotype = 'region1'
+      and g.geotype = 'region4'
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp with series NTA_<var>@<incgrp>.A ***/
@@ -472,7 +478,7 @@ class NtaUpload < ActiveRecord::Base
            on m.universe = s.universe
           and m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp')
       where s.universe = 'NTA'
-      and g.geotype = 'incgrp1'
+      and g.geotype = 'incgrp4'
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp} with their data lists at indent 0 ***/
@@ -496,21 +502,21 @@ class NtaUpload < ActiveRecord::Base
       insert data_list_measurements (data_list_id, measurement_id, indent, list_order)
       select distinct dl.id, m.id, 'indent1',
           case m.data_portal_name
-              when 'Africa' then 1
-              when 'Americas' then 2
-              when 'Asia' then 3
-              when 'Europe' then 4
-              when 'Oceania' then 5
-              when 'Low Income' then 7
-              when 'Lower Middle Income' then 8
-              when 'Upper Middle Income' then 9
-              when 'High Income' then 10
+              when 'African Countries' then 1
+              when 'American Countries' then 2
+              when 'Asian Countries' then 3
+              when 'European Countries' then 4
+              when 'Oceania Countries' then 5
+              when 'Low Income Countries' then 7
+              when 'Lower Middle Income Countries' then 8
+              when 'Upper Middle Income Countries' then 9
+              when 'High Income Countries' then 10
             else 12
           end
       from data_lists dl
         join measurements m
            on (m.prefix like '%\_regn\_%' or m.prefix like '%\_incgrp\_%')
-          and dl.name = substring_index(substring_index(m.prefix, '_regn_', 1), '_incgrp_', 1)
+          and dl.name = substring_index(substring_index(m.prefix, '_regn_', 1), '_incgrp_', 1) /* another either/or, like above */
           and dl.universe = m.universe
       where dl.universe = 'NTA'
     SQL
