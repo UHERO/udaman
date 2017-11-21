@@ -532,7 +532,7 @@ class NtaUpload < ActiveRecord::Base
               when 'American Countries' then 2
               when 'Asian Countries' then 3
               when 'European Countries' then 4
-              when 'Oceanic Countries' then 5
+              when 'Oceania Countries' then 5
               when 'World' then 6
               when 'Low Income Countries' then 8
               when 'Lower Middle Income Countries' then 9
