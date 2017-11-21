@@ -1,10 +1,6 @@
 class Geography < ActiveRecord::Base
   has_many :series
 
-  def initialize
-    @cache = {}  ## Not separated by universe, but you should know what you're doing.
-  end
-
   def Geography.get_or_new_dbedt(attrs, add_attrs = {})
     attrs.merge!(universe: 'DBEDT')
     Geography.find_by(attrs) || Geography.create(attrs.merge(add_attrs))
@@ -23,7 +19,7 @@ class Geography < ActiveRecord::Base
         parents.each {|pid| GeoTree.create(parent_id: pid, child_id: geo.id) }
       end
     end
-    @cache[handle] = geo
+    @cache[handle] ||= geo
   end
 
   def Geography.get_or_new_nta(attrs, add_attrs = {})
