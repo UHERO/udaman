@@ -162,7 +162,7 @@ class NtaUpload < ActiveRecord::Base
         measurement.update data_portal_name: long_name
       end
       if data_list.measurements.where(id: measurement.id).empty?
-        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 12)
+        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
@@ -233,22 +233,23 @@ class NtaUpload < ActiveRecord::Base
 
         if current_series.nil? || current_series.name != series_name
             geo_id = case
-                       when group == 'country'
-                         make_country_geos(row_data).id
-                       when geo_part == 'World'
-                         Geography.get_or_new_nta({ handle: 'World' },
-                                                  { display_name: 'World',
-                                                    display_name_short: 'World',
-                                                    geotype: 'region1'}).id
-                       else nil
-                     end
+                     when group == 'country'
+                       make_country_geos(row_data).id
+                     when group == 'region'
+                       Geography.get_or_new_nta({ handle: 'Region_Agg' },
+                                                { geotype: 'region_agg' }).id
+                     when group == 'income group'
+                       Geography.get_or_new_nta({ handle: 'Income_Group_Agg' },
+                                                { geotype: 'incgrp_agg' }).id
+                     else nil
+                   end
             current_series = Series.find_by(name: series_name) ||
                              Series.create(
                                universe: 'NTA',
                                name: series_name,
                                dataPortalName: indicator_title,
                                frequency: 'year',
-                               geography_id: geo_id,  #### Updated for Region/Income Group series below in post proc
+                               geography_id: geo_id,
                                unit_id: measurement.unit_id,
                                percent: measurement.percent,
                                source_id: measurement.source_id
@@ -407,26 +408,6 @@ class NtaUpload < ActiveRecord::Base
       and m.data_portal_name = 'All Countries'
     SQL
     NtaUpload.connection.execute <<~SQL
-      /*** Update geography link for series NTA_<var>@<region>.A ***/
-      update series s
-        join geographies g
-           on LEFT(substring_index(substring_index(s.name, '@', -1), '.', 1), 4) = LEFT(g.handle, 4)
-          and g.geotype = 'region1'
-      set s.geography_id = g.id
-      where s.universe = 'NTA'
-      and s.geography_id is null
-    SQL
-    NtaUpload.connection.execute <<~SQL
-      /*** Update geography link for series NTA_<var>@<incgrp>.A ***/
-      update series s
-        join geographies g
-           on substring_index(substring_index(s.name, '@', -1), '.', 1) = g.handle
-          and g.geotype = 'incgrp1'
-      set s.geography_id = g.id
-      where s.universe = 'NTA'
-      and s.geography_id is null
-    SQL
-    NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var> (All Countries)
                       with series NTA_<var>@<country_iso>.A            ***/
       insert measurement_series (measurement_id, series_id)
@@ -456,18 +437,6 @@ class NtaUpload < ActiveRecord::Base
       and g.geotype = 'region3'
     SQL
     NtaUpload.connection.execute <<~SQL
-      /*** Associate measurements NTA_<var>_regn_World
-                      with series NTA_<var>@World.A            ***/
-      insert measurement_series (measurement_id, series_id)
-      select distinct m.id, s.id
-      from series s
-        join measurements m
-           on m.universe = s.universe
-          and m.prefix = concat(substring_index(s.name, '@', 1), '_regn_World')
-      where s.universe = 'NTA'
-      and s.name like '%@World.%'
-    SQL
-    NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp_<incgrp>
                       with series NTA_<var>@<country_iso>.A            ***/
       insert measurement_series (measurement_id, series_id)
@@ -492,7 +461,7 @@ class NtaUpload < ActiveRecord::Base
            on m.universe = s.universe
           and m.prefix = concat(substring_index(s.name, '@', 1), '_regn')
       where s.universe = 'NTA'
-      and g.geotype = 'region1'
+      and g.geotype = 'region_agg'
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate measurements NTA_<var>_incgrp with series NTA_<var>@<incgrp>.A ***/
@@ -504,7 +473,7 @@ class NtaUpload < ActiveRecord::Base
            on m.universe = s.universe
           and m.prefix = concat(substring_index(s.name, '@', 1), '_incgrp')
       where s.universe = 'NTA'
-      and g.geotype = 'incgrp1'
+      and g.geotype = 'incgrp_agg'
     SQL
     NtaUpload.connection.execute <<~SQL
       /*** Associate all measurements NTA_<var>_{regn,incgrp} with their data lists at indent 0 ***/
@@ -512,9 +481,9 @@ class NtaUpload < ActiveRecord::Base
       select distinct dl.id, m.id, 'indent0',
           case m.data_portal_name
             when 'Region' then 0
-            when 'Income Group' then 7
-            /* All Countries is assigned list_order 12 above in Ruby code. Change there if necessary */
-            else 13
+            when 'Income Group' then 6
+            /* All Countries is assigned list_order 11 above in Ruby code. Change there if necessary */
+            else 12
           end
       from data_lists dl
         join measurements m
@@ -533,12 +502,11 @@ class NtaUpload < ActiveRecord::Base
               when 'Asian Countries' then 3
               when 'European Countries' then 4
               when 'Oceania Countries' then 5
-              when 'World' then 6
-              when 'Low Income Countries' then 8
-              when 'Lower Middle Income Countries' then 9
-              when 'Upper Middle Income Countries' then 10
-              when 'High Income Countries' then 11
-            else 13
+              when 'Low Income Countries' then 7
+              when 'Lower Middle Income Countries' then 8
+              when 'Upper Middle Income Countries' then 9
+              when 'High Income Countries' then 10
+            else 12
           end
       from data_lists dl
         join measurements m
