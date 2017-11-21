@@ -3,7 +3,7 @@ class Geography < ActiveRecord::Base
 
   def initialize(*args, &block)
     super
-    @cache = {}
+    @cache = {}  ## Not separated by universe, but you should know what you're doing.
   end
 
   def Geography.get_or_new_dbedt(attrs, add_attrs = {})
