@@ -236,11 +236,9 @@ class NtaUpload < ActiveRecord::Base
                      when group == 'country'
                        make_country_geos(row_data).id
                      when group == 'region'
-                       Geography.get_or_new_nta({ handle: 'Region_Agg' },
-                                                { geotype: 'region_agg' }).id
+                       Geography.get_or_new_nta({ handle: 'Region_Agg' }, { geotype: 'region_agg' }).id
                      when group == 'income group'
-                       Geography.get_or_new_nta({ handle: 'Income_Group_Agg' },
-                                                { geotype: 'incgrp_agg' }).id
+                       Geography.get_or_new_nta({ handle: 'Income_Group_Agg' }, { geotype: 'incgrp_agg' }).id
                      else nil
                    end
             current_series = Series.find_by(name: series_name) ||
