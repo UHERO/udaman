@@ -61,7 +61,7 @@ class String
       zip_file.each {|f|
         next if !want_file.blank? && f.name != want_file
         path = File.join(dest_dir, f.name)
-        FileUtils.mkdir_p(File.dirname(path))
+        FileUtils.mkdir_p(File.dirname(path)) ## because zip file might contain internal path hierarchy
         FileUtils.rm_rf path
         zip_file.extract(f, path)
       }

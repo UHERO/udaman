@@ -179,6 +179,7 @@ class Download < ActiveRecord::Base
 
   def test_save_path
     return 'nopath' if save_path.nil?
+    return 'duplicate' if Download.where(handle: handle, filename_ext: filename_ext).count > 0
     return 'badpath' unless File::directory?(File.dirname(save_path))
     Download.all.each do |dl|
       return 'duplicate' if dl.save_path == self.save_path
