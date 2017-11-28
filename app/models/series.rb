@@ -896,8 +896,11 @@ class Series < ActiveRecord::Base
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
+    dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
 
-    series_results = Series.where("universe = 'UHERO' AND ((#{name_where}) OR (#{desc_where}))").limit(num_results)
+    series_results = Series.
+        where("universe = 'UHERO' AND ((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))").
+        limit(num_results)
 
     aremos_desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
     aremos_desc_results = AremosSeries.where(aremos_desc_where).limit(num_results)
