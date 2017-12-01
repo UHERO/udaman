@@ -133,11 +133,12 @@ class Download < ActiveRecord::Base
   end
 
   def backup
-    return if !File::exists? save_path_flex
-    Dir.mkdir save_path_flex+'_vintages' unless File::directory?(save_path_flex+'_vintages')
-    filename = save_path_flex.split('/')[-1]
-    date = Date.today
-    FileUtils.cp(save_path_flex, save_path_flex+"_vintages/#{date}_"+filename)
+    filepath = save_path
+    return if !File::exists? filepath
+    vintages_path = filepath + '_vintages'
+    Dir.mkdir vintages_path unless File::directory? vintages_path
+    filename = "#{Date.today}_#{File.basename(filepath)}"
+    FileUtils.cp(filepath, File.join(vintages_path, filename))
   end
 
   def test_process_post_params(post_param)
