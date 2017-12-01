@@ -24,7 +24,8 @@ class CategoriesController < ApplicationController
 
   # POST /categories
   def create
-    @category = Category.new(category_params)
+    ## Don't put empty strings in the db
+    @category = Category.new(category_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h)
 
     if @category.save
       redirect_to @category, notice: 'Category was successfully created.'
@@ -35,7 +36,8 @@ class CategoriesController < ApplicationController
 
   # PATCH/PUT /categories/1
   def update
-    if @category.update(category_params)
+    ## Don't put empty strings in the db
+    if @category.update(category_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h)
       redirect_to @category, notice: 'Category was successfully updated.'
     else
       render :edit
@@ -97,6 +99,6 @@ class CategoriesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def category_params
-      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_handle, :default_freq, :hidden)
+      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_geo_id, :default_freq, :hidden)
     end
 end
