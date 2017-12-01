@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025729) do
+ActiveRecord::Schema.define(version: 220170413025730) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -61,13 +61,15 @@ ActiveRecord::Schema.define(version: 220170413025729) do
     t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4
     t.string   "ancestry",       limit: 255
+    t.integer  "default_geo_id", limit: 4
     t.string   "default_handle", limit: 255
-    t.string   "default_freq",   limit: 255
+    t.string   "default_freq",   limit: 1
     t.string   "meta",           limit: 255
   end
 
   add_index "categories", ["ancestry"], name: "index_categories_on_ancestry", using: :btree
   add_index "categories", ["data_list_id"], name: "fk_rails_cats_data_list_id", using: :btree
+  add_index "categories", ["default_geo_id"], name: "fk_rails_c390c9a75e", using: :btree
   add_index "categories", ["name"], name: "index_categories_on_name", type: :fulltext
   add_index "categories", ["universe"], name: "index_categories_on_universe", using: :btree
 
@@ -484,6 +486,7 @@ ActiveRecord::Schema.define(version: 220170413025729) do
 
   add_foreign_key "authorizations", "users"
   add_foreign_key "categories", "data_lists", name: "fk_rails_cats_data_list_id"
+  add_foreign_key "categories", "geographies", column: "default_geo_id"
   add_foreign_key "geo_trees", "geographies", column: "child_id"
   add_foreign_key "geo_trees", "geographies", column: "parent_id"
   add_foreign_key "measurements", "source_details"
