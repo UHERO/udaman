@@ -1,5 +1,6 @@
 Download.all.each do |d|
   spo = d.save_path_obsolete && d.save_path_obsolete.dup
+  next unless spo
   spo.sub!(ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH'])
   #pathbase = File.basename(spo)
   begin
@@ -9,7 +10,7 @@ Download.all.each do |d|
       fte.sub!(ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH'])
       ftedir = File.dirname(fte)
       ftebase = File.basename(fte)
-      File.rename(ftedir, d.save_path(true))
+      Dir.rename(ftedir, d.save_path(true))
       d.update_attributes(file_to_extract: ftebase)
     end
   rescue => e
