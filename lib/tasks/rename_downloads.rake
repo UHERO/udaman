@@ -8,7 +8,7 @@ task :rename_downloaded_files => :environment do
     puts "DOING #{old_path}"
     begin
       if File.exists?(old_path)
-        puts "#{old_path} exists..... #{d.save_path}"
+        puts "#{old_path} exists; rename #{d.save_path}"
         File.rename(old_path, d.save_path)
         seen_paths[old_path] = d.save_path
       elsif seen_paths[old_path]
