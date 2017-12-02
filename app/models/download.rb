@@ -137,8 +137,8 @@ class Download < ActiveRecord::Base
     return if !File::exists? filepath
     vintages_path = filepath + '_vintages'
     Dir.mkdir vintages_path unless File::directory? vintages_path
-    filename = "#{Date.today}_#{File.basename(filepath)}"
-    FileUtils.cp(filepath, File.join(vintages_path, filename))
+    newname = "#{Date.today}_#{File.basename(filepath)}"
+    FileUtils.cp(filepath, File.join(vintages_path, newname))
   end
 
   def test_process_post_params(post_param)

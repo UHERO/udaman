@@ -8,10 +8,11 @@ task :rename_downloaded_files => :environment do
     puts "DOING #{old_path}"
     begin
       if File.exists?(old_path)
-        puts "#{old_path} exists....."
+        puts "#{old_path} exists..... #{d.save_path}"
         File.rename(old_path, d.save_path)
         seen_paths[old_path] = d.save_path
       elsif seen_paths[old_path]
+        puts "#{old_path} seen before..... #{d.save_path}"
         FileUtils.cp(seen_paths[old_path], d.save_path)
       end
       if Dir.exists?(old_path + '_vintages')
@@ -19,7 +20,7 @@ task :rename_downloaded_files => :environment do
         File.rename(old_path + '_vintages', d.save_path + '_vintages')
       end
       unless d.file_to_extract.blank?
-        puts "F2E block entered"
+        puts "F2E block entered for #{d.file_to_extract}"
         fte = d.file_to_extract.dup
         fte.sub!(ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH'])
         ftedir = File.dirname(fte)
