@@ -1,18 +1,22 @@
 task :rename_downloaded_files => :environment do
+  seen_paths = {}
   Download.all.each do |d|
-    spo = d.save_path_obsolete && d.save_path_obsolete.dup
-    puts "------------"
-    next unless spo
-    spo.sub!(ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH'])
-    puts "DOING #{spo}"
+    old_path = d.save_path_obsolete && d.save_path_obsolete.dup
+    puts '------------'
+    next unless old_path
+    old_path.sub!(ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH'])
+    puts "DOING #{old_path}"
     begin
-      if File.exists?(spo)
-        puts "#{spo} exists....."
-        File.rename(spo, d.save_path)
+      if File.exists?(old_path)
+        puts "#{old_path} exists....."
+        File.rename(old_path, d.save_path)
+        seen_paths[old_path] = d.save_path
+      elsif seen_paths[old_path]
+        FileUtils.cp(seen_paths[old_path], d.save_path)
       end
-      if Dir.exists?(spo + '_vintages')
-        puts "#{spo + '_vintages'} exists....."
-        Dir.rename(spo + '_vintages', d.save_path + '_vintages')
+      if Dir.exists?(old_path + '_vintages')
+        puts "#{old_path + '_vintages'} exists....."
+        File.rename(old_path + '_vintages', d.save_path + '_vintages')
       end
       unless d.file_to_extract.blank?
         puts "F2E block entered"
@@ -21,7 +25,10 @@ task :rename_downloaded_files => :environment do
         ftedir = File.dirname(fte)
         ftebase = File.basename(fte)
         if Dir.exists?(ftedir)
-          Dir.rename(ftedir, d.save_path(true))
+          File.rename(ftedir, d.save_path(true))
+          seen_paths[ftedir] = d.save_path(true)
+        elsif seen_paths[ftedir]
+          FileUtils.cp_r(seen_paths[ftedir], d.save_path(true))
         end
         d.update_attributes(file_to_extract: ftebase)
       end
