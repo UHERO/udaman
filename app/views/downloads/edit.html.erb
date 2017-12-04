@@ -15,10 +15,14 @@
 			<%= f.label :url %>
 			<div id="url_message"></div>
 			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
-			
 		</div>
-		
-		<div class="field">
+
+     <div class="field">
+       <%= f.label 'Save path' %>
+       <%= text_field_tag :save_path_display, @output_file.save_path, size: 120, disabled: true %>
+     </div>
+
+      <div class="field">
 			<%= f.label :filename_ext, 'Filename extension' %>
 			<%= f.select :filename_ext, %w(xlsx xls zip csv txt pdf).collect {|x| [x, x] }, {:include_blank => false} %>
 		</div>
