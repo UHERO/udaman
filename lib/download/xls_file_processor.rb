@@ -68,7 +68,6 @@ class XlsFileProcessor
           return msg
       end
     rescue
-      #puts cell_value
       #known data values that should be suppressed as nils... may need to separate these by file being read in
       return nil if ['(D) ', '(L) ', '(N) ', '(T) ', 'no data'].include? cell_value
       return 'BREAK IN DATA'
