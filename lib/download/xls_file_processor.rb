@@ -63,7 +63,7 @@ class XlsFileProcessor
         when cell_value.nil?
           raise ArgumentError
         else
-          msg = "Unexpected data type found in cell: #{type}"
+          msg = "Unexpected data type found in cell (#{row},#{col}): #{type}"
           Rails.logger.error { msg }
           return msg
       end
