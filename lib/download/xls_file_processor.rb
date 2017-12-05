@@ -26,7 +26,7 @@ class XlsFileProcessor
       row = @row_processor.compute(index, @cached_files, handle, sheet)
       col = @col_processor.compute(index, @cached_files, handle, sheet)
       (worksheet, skip) = @cached_files.xls(handle, sheet, path, date, true)
-      observation_value = parse_cell(worksheet, row, col))
+      observation_value = parse_cell(worksheet.cell(row, col))
     rescue RuntimeError => e
       Rails.logger.error e.message unless @handle_processor.date_sensitive?
       #date sensitive means it might look for handles that don't exist
@@ -51,22 +51,9 @@ class XlsFileProcessor
     { date => observation_value, :skip => skip }
   end
 
-  def parse_cell(sheet, row, col)
-    cell_value = sheet.cell(row, col)
-    type = sheet.celltype(row, col)
+  def parse_cell(cell_value)
     begin
-      case
-        when type == :float
-          return Float cell_value
-        when type == :string
-          return Float cell_value.gsub(/[,]/, '')
-        when cell_value.nil?
-          raise ArgumentError
-        else
-          msg = "Unexpected data type found in cell (#{row},#{col}): #{type}"
-          Rails.logger.error { msg }
-          return msg
-      end
+      return Float cell_value.to_s.gsub(/[,]/, '')
     rescue
       #known data values that should be suppressed as nils... may need to separate these by file being read in
       return nil if ['(D) ', '(L) ', '(N) ', '(T) ', 'no data'].include? cell_value
