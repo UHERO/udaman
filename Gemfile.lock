@@ -1,6 +1,6 @@
 GEM
   remote: http://rubygems.org/
-  remote: https://rails-assets.org/
+  remote: http://rails-assets.org/
   specs:
     actionmailer (4.2.7.1)
       actionpack (= 4.2.7.1)
@@ -370,4 +370,4 @@ DEPENDENCIES
   will_paginate (~> 3.1.1)
 
 BUNDLED WITH
-   1.15.4
+   1.16.0
