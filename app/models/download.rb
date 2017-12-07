@@ -104,7 +104,7 @@ class Download < ActiveRecord::Base
       begin
         open(save_path, 'wb') {|f| f.write resp.to_str }
         if filename_ext == 'zip'
-          save_path.unzip(extract_path_flex)
+          save_path.unzip(file_to_extract)
         end
       rescue => e
         logger.error "File download storage: #{e.message}"
