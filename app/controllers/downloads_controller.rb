@@ -31,7 +31,7 @@ class DownloadsController < ApplicationController
   def update
     post_params = params[:download].delete(:post_parameters)
     respond_to do |format|
-      if @output_file.update! download_params
+      if @output_file.update! download_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h ## don't put empty strings in the db.
         @output_file.process_post_params(post_params)
 
         format.html { redirect_to( :action => 'index', :notice => 'Download successfully updated.') }
