@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Download do
   before(:each) do
-    #@s = Series.create
+    ENV['DATA_PATH'] = File.join(ENV['DATAFILES_PATH'], 'testdata')
   end
   
   #all of these download samples should eventually be files that do not rely on external maintenance of files
