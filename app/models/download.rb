@@ -160,8 +160,8 @@ class Download < ActiveRecord::Base
     begin
       self.post_parameters = eval %Q|{#{post_param}}|
       self.save
-    rescue Exception => exc
-      raise ProcessPostParamException
+    rescue => e
+      raise ProcessPostParamException, e.message
     end
   end
 
