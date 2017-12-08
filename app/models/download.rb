@@ -8,14 +8,14 @@ class Download < ActiveRecord::Base
   serialize :post_parameters, Hash
   serialize :download_log, Array
 
-  DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
-
   after_create do
     ## Mainly needed for spec tests
     unless File::directory?(File.dirname(self.save_path))
       FileUtils.mkdir_p(File.dirname(self.save_path))
     end
   end
+
+  DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
 
   def Download.default_data_path
     DEFAULT_DATA_PATH

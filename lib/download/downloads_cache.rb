@@ -139,7 +139,8 @@ class DownloadsCache
     Rails.logger.debug { "... Entered method download_handle: @handle=#{@handle}" }
     t = Time.now
     unless force
-      return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour) ## no redownload if very recent -dji
+      ## no redownload if very recent
+      return nil if @dload.last_download_at && @dload.last_download_at > (t - 1.hour)
     end
 
     key = make_cache_key('download','results')
