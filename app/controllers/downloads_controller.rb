@@ -22,9 +22,6 @@ class DownloadsController < ApplicationController
     @output_file = Download.new download_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h ## don't put empty strings in the db.
     if @output_file.save
       @output_file.process_post_params(post_params)
-      unless File::directory?(File.dirname(@output_file.save_path))
-        FileUtils.mkdir_p(File.dirname(@output_file.save_path))
-      end
       redirect_to :action => 'index'
     else
       render :action => 'new'
