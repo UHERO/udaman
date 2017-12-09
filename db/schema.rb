@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025730) do
+ActiveRecord::Schema.define(version: 220170413025732) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -188,17 +188,18 @@ ActiveRecord::Schema.define(version: 220170413025730) do
   end
 
   create_table "downloads", force: :cascade do |t|
-    t.string   "url",              limit: 255
-    t.text     "post_parameters",  limit: 65535
-    t.string   "save_path",        limit: 255
+    t.string   "url",                limit: 255
+    t.string   "filename_ext",       limit: 4
+    t.text     "post_parameters",    limit: 65535
+    t.string   "save_path_obsolete", limit: 255
     t.datetime "created_at"
     t.datetime "updated_at"
     t.datetime "last_download_at"
     t.datetime "last_change_at"
-    t.string   "handle",           limit: 255
-    t.string   "file_to_extract",  limit: 255
-    t.string   "sheet_override",   limit: 255
-    t.text     "notes",            limit: 65535
+    t.string   "handle",             limit: 255
+    t.string   "file_to_extract",    limit: 255
+    t.string   "sheet_override",     limit: 255
+    t.text     "notes",              limit: 65535
   end
 
   create_table "dsd_log_entries", force: :cascade do |t|
@@ -300,7 +301,7 @@ ActiveRecord::Schema.define(version: 220170413025730) do
     t.integer  "unit_id",             limit: 4
     t.boolean  "percent"
     t.boolean  "real"
-    t.integer  "decimals",            limit: 4,     default: 2
+    t.integer  "decimals",            limit: 4,     default: 1
     t.boolean  "restricted"
     t.boolean  "seasonally_adjusted"
     t.string   "seasonal_adjustment", limit: 23
@@ -349,7 +350,7 @@ ActiveRecord::Schema.define(version: 220170413025730) do
 
   create_table "public_data_points", id: false, force: :cascade do |t|
     t.string   "universe",       limit: 5,  default: "UHERO", null: false
-    t.integer  "series_id",      limit: 4,  default: 0,       null: false
+    t.integer  "series_id",      limit: 4,                    null: false
     t.date     "date",                                        null: false
     t.float    "value",          limit: 53
     t.boolean  "pseudo_history",            default: false,   null: false
@@ -386,7 +387,7 @@ ActiveRecord::Schema.define(version: 220170413025730) do
     t.integer  "geography_id",            limit: 4
     t.boolean  "percent"
     t.boolean  "real"
-    t.integer  "decimals",                limit: 4,     default: 2
+    t.integer  "decimals",                limit: 4,     default: 1
     t.string   "frequency_transform",     limit: 255
     t.integer  "measurement_id",          limit: 4
     t.boolean  "restricted",                            default: false
