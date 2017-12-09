@@ -1,3 +1,5 @@
+## THIS IS A ONE-SHOT TASK intended for use in a permanent format change.
+## There is probably no need to update it in the future.
 task :rename_downloaded_files => :environment do
   seen_paths = {}
   Download.all.each do |d|
