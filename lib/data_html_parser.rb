@@ -114,29 +114,25 @@ class DataHtmlParser
   end
   
   def download
-    begin
-      require 'uri'
-      require 'net/http'
-      require 'timeout'
-      
-      url = URI(@url)
-      
-      http = Net::HTTP.new(url.host, url.port)
-      http.use_ssl = url.scheme == 'https'
-      http.ssl_timeout = 60
-      if @post_parameters.nil? or @post_parameters.length == 0
-        @content = fetch(@url).read_body
-      else
-        request = Net::HTTP::Post.new(url)
-        request['cache-control'] = 'no-cache'
-        request['content-type'] = 'application/x-www-form-urlencoded'
-        request.body = URI::encode_www_form @post_parameters
-        @content = http.request(request).read_body
-      end
-      return Nokogiri::HTML(@content)
-    rescue Exception
-      return 'Something went wrong with download'
+    require 'uri'
+    require 'net/http'
+    require 'timeout'
+
+    url = URI(@url)
+
+    http = Net::HTTP.new(url.host, url.port)
+    http.use_ssl = url.scheme == 'https'
+    http.ssl_timeout = 60
+    if @post_parameters.nil? or @post_parameters.length == 0
+      @content = fetch(@url).read_body
+    else
+      request = Net::HTTP::Post.new(url)
+      request['cache-control'] = 'no-cache'
+      request['content-type'] = 'application/x-www-form-urlencoded'
+      request.body = URI::encode_www_form @post_parameters
+      @content = http.request(request).read_body
     end
+    return Nokogiri::HTML(@content)
   end
 
   def fetch(uri_str, limit = 10)
