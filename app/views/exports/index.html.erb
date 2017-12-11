@@ -16,7 +16,7 @@
   <tbody>
     <% @exports.each do |export| %>
       <tr>
-        <td><%= link_to export.name, export %></td>
+        <td class="linkselect"><%= link_to export.name, export %></td>
         <td><%= export.series.count %></td>
         <td><%= link_to 'CSV', action: 'show', id: export, format: 'csv' %></td>
         <td><%= link_to 'Table', action: 'show_table', id: export %></td>
