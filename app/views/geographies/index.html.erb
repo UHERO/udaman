@@ -18,7 +18,7 @@
       <tr>
         <td><%= geography.fips %></td>
         <td><%= geography.handle %></td>
-        <td><%= link_to geography.display_name, edit_geography_path(geography) %></td>
+        <td class="linkselect"><%= link_to geography.display_name, edit_geography_path(geography) %></td>
         <td><%= geography.display_name_short %></td>
         <td><%= link_to 'Destroy', geography, method: :delete, data: { confirm: "Destroy #{geography.display_name}: Are you sure??" } %></td>
       </tr>
