@@ -2,6 +2,7 @@ class DataHtmlParser
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED']
+    raise 'No API key defined for FRED' unless api_key
     @url = "http://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
     # frequencies: d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
     @url += "&frequency=#{frequency.downcase.gsub(/^s$/, 'sa')}" unless frequency.nil?
@@ -44,6 +45,7 @@ class DataHtmlParser
   # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=NIPA&TableID=6&Frequency=A&Year=X&GeoFIPS=15001&ResultFormat=JSON&
   def get_bea_series(dataset, parameters)
     api_key = ENV['API_KEY_BEA']
+    raise 'No API key defined for BEA' unless api_key
     query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
     @url = "http://www.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     @doc = self.download
