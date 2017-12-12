@@ -35,7 +35,7 @@
 					<% if download.handle.nil? %>
 					<td><strong style="color:#DDD"><%= filename %></strong></td>
 					<% else %>
-					<td><%= link_to download.handle , {:action => 'show', :id => download.id}, target: '_blank' %></td>
+					<td class="linkselect"><%= link_to download.handle , {:action => 'show', :id => download.id}, target: '_blank' %></td>
 					<% end %>
 					<td><%= link_to "download" , {:action => 'download', :id => download.id}%></td>
 					<td><%= link_to "edit" , {:action => 'edit', :id => download.id} %></td>

@@ -14,9 +14,8 @@
 
 <% @data_lists.order(:name).each do |data_list| %>
   <tr>
-    <td><%= link_to data_list.name, :action => 'super_table', :id => data_list %></td>
+    <td class="linkselect"><%= link_to data_list.name, :action => 'super_table', :id => data_list %></td>
     <td><%= data_list.measurements.count %></td>
-    <td><%= link_to 'FlexTable', :action => 'super_table', :id => data_list %></td>
     <% if current_user.admin_user? || data_list.owned_by == current_user.id %>
       <td><%= link_to 'Edit', edit_data_list_path(data_list) %></td>
     <% end %>
