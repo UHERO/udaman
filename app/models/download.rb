@@ -8,16 +8,17 @@ class Download < ActiveRecord::Base
   serialize :post_parameters, Hash
   serialize :download_log, Array
 
+  after_create do
+    ## Mainly needed for spec tests
+    unless File::directory?(File.dirname(self.save_path))
+      FileUtils.mkdir_p(File.dirname(self.save_path))
+    end
+  end
+
   DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
 
   def Download.default_data_path
     DEFAULT_DATA_PATH
-  end
-
-  #some tight coupling to the unizipping functionality in the string extension
-  def Download.get_by_path(save_path)
-    sp = save_path.split('_extracted_files/')[0]
-    Download.where(:save_path => sp).first
   end
 
   def Download.get(handle)
@@ -30,8 +31,9 @@ class Download < ActiveRecord::Base
   end
 
   def Download.test_save_path(save_path)
-    dsd = Download.new(:save_path => save_path)
-    dsd.test_save_path
+    file_parts = File.basename(save_path).split('.')
+    ext = file_parts.pop
+    Download.new(handle: file_parts.join('.'), filename_ext: ext).test_save_path
   end
 
   def Download.test_post_params(params)
@@ -61,18 +63,28 @@ class Download < ActiveRecord::Base
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
-  def save_path_flex
-    return save_path.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if save_path.include? DEFAULT_DATA_PATH
-    save_path
+  def save_path(no_ext = false)
+    save_path_flex(no_ext)
+  end
+
+  def save_path_flex(no_ext = false)
+    if no_ext
+      File.join(Download.root, sanitize_handle)
+    else
+      File.join(Download.root, '%s.%s' % [sanitize_handle, filename_ext || 'ext'])
+    end
   end
 
   def extract_path_flex
-    return file_to_extract.gsub(DEFAULT_DATA_PATH, ENV['DATA_PATH']) if !file_to_extract.nil? && file_to_extract.include?(DEFAULT_DATA_PATH)
-    file_to_extract
+    file_to_extract && File.join(Download.root, sanitize_handle, file_to_extract)
   end
 
-  def Download.flex(path)
-    path
+  def Download.root
+    File.join(ENV['DATA_PATH'], 'rawdata')
+  end
+
+  def sanitize_handle
+    handle ? handle.gsub('@','_') : 'NO_HANDLE_DEFINED'
   end
 
   def download
@@ -96,8 +108,14 @@ class Download < ActiveRecord::Base
         backup
         update_times.merge!(last_change_at: now)
       end
-      open(save_path_flex, 'wb') { |file| file.write resp.to_str }
-      save_path_flex.unzip if save_path_flex[-3..-1] == 'zip'
+      begin
+        open(save_path, 'wb') {|f| f.write resp.to_str }
+        if filename_ext == 'zip'
+          save_path.unzip(file_to_extract)
+        end
+      rescue => e
+        logger.error "File download storage: #{e.message}"
+      end
       self.update(update_times)
     end
     #logging section
@@ -122,11 +140,12 @@ class Download < ActiveRecord::Base
   end
 
   def backup
-    return if !File::exists? save_path_flex
-    Dir.mkdir save_path_flex+'_vintages' unless File::directory?(save_path_flex+'_vintages')
-    filename = save_path_flex.split('/')[-1]
-    date = Date.today
-    FileUtils.cp(save_path_flex, save_path_flex+"_vintages/#{date}_"+filename)
+    filepath = save_path
+    return if !File::exists? filepath
+    vintages_path = filepath + '_vintages'
+    Dir.mkdir vintages_path unless File::directory? vintages_path
+    newname = "#{Date.today}_#{File.basename(filepath)}"
+    FileUtils.cp(filepath, File.join(vintages_path, newname))
   end
 
   def test_process_post_params(post_param)
@@ -141,8 +160,8 @@ class Download < ActiveRecord::Base
     begin
       self.post_parameters = eval %Q|{#{post_param}}|
       self.save
-    rescue Exception => exc
-      raise ProcessPostParamException
+    rescue => e
+      raise ProcessPostParamException, e.message
     end
   end
 
@@ -168,8 +187,10 @@ class Download < ActiveRecord::Base
 
   def test_save_path
     return 'nopath' if save_path.nil?
-    return 'duplicate' if Download.where(:save_path => save_path).count > 0
-    return 'badpath' unless File::directory?(save_path.split('/')[0..-2].join('/'))
+    return 'badpath' unless File::directory?(File.dirname(save_path))
+    Download.all.each do |dl|
+      return 'duplicate' if dl.id != self.id && dl.save_path == self.save_path
+    end
     'ok'
   end
 end

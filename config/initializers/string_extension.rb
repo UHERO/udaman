@@ -55,22 +55,19 @@ class String
     result
   end
   
-  #needs some modifications to overwrite... do vintages, etc, but this is the basics
-  def unzip
-    file = self
-    #destination = "/" + self.split("/")[1..-2].join("/") + "/"
-    destination = self + '_extracted_files/'
-    Zip::File.open(file) { |zip_file|
-      zip_file.each { |f|
-        f_path=File.join(destination, f.name)
-        #puts f_path
-        FileUtils.mkdir_p(File.dirname(f_path))
-        FileUtils.rm f_path if File.exist?(f_path)
-        zip_file.extract(f, f_path) #unless File.exist?(f_path)
+  def unzip(want_file = nil)
+    dest_dir = self.change_file_extension('')
+    Zip::File.open(self) {|zip_file|
+      zip_file.each {|f|
+        next if !want_file.blank? && f.name != want_file
+        path = File.join(dest_dir, f.name)
+        FileUtils.mkdir_p(File.dirname(path)) ## because zip file might contain internal path hierarchy
+        FileUtils.rm_rf path
+        zip_file.extract(f, path)
       }
     }
   end
-  
+
   def to_ascii
     require 'stringex/unidecoder'
     Stringex::Unidecoder.decode self

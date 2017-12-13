@@ -25,3 +25,5 @@ end
 class DownloadException < Exception
 end
 
+class ProcessPostParamException < Exception
+end
