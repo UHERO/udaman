@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025731) do
+ActiveRecord::Schema.define(version: 220170413025732) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -301,7 +301,7 @@ ActiveRecord::Schema.define(version: 220170413025731) do
     t.integer  "unit_id",             limit: 4
     t.boolean  "percent"
     t.boolean  "real"
-    t.integer  "decimals",            limit: 4,     default: 2
+    t.integer  "decimals",            limit: 4,     default: 1
     t.boolean  "restricted"
     t.boolean  "seasonally_adjusted"
     t.string   "seasonal_adjustment", limit: 23
@@ -387,7 +387,7 @@ ActiveRecord::Schema.define(version: 220170413025731) do
     t.integer  "geography_id",            limit: 4
     t.boolean  "percent"
     t.boolean  "real"
-    t.integer  "decimals",                limit: 4,     default: 2
+    t.integer  "decimals",                limit: 4,     default: 1
     t.string   "frequency_transform",     limit: 255
     t.integer  "measurement_id",          limit: 4
     t.boolean  "restricted",                            default: false
