@@ -108,19 +108,19 @@ task :update_seats_links => :environment do
         month = file_name[0..2]
         year = ([2011,2012,2013,2014,2015,2016,2017,2018].keep_if {|year| !file_name.index(year.to_s).nil? })[0]
         url = 'http://www.hawaiitourismauthority.org' + href.gsub('%20',' ')
-        save_path = "#{ENV['DATA_PATH']}/rawdata/TOUR_SEATS_" + month.upcase + year.to_s[2..4] + '.' + href.split('.')[-1]
+        extension = href.split('.')[-1]
         handle = "SEATS_#{month.upcase}#{year.to_s[2..4]}@hawaiitourismauthority.org"
-        dsd = Download.new(:handle => handle, :url => url, :save_path => save_path)
+        dsd = Download.new(:handle => handle, :url => url, :filename_ext => extension)
         if dsd.download[:status] == 200
           dsd.save
-          PackagerMailer.download_link_notification(handle, url, save_path, true).deliver
+          PackagerMailer.download_link_notification(handle, url, dsd.save_path, true).deliver
         else
           puts dsd
-          PackagerMailer.download_link_notification(handle, url, save_path, false).deliver
+          PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
         end
       rescue
         puts 'There was an error'
-        PackagerMailer.download_link_notification(handle, url, save_path, false).deliver
+        PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
       end
     end
   end
@@ -156,19 +156,19 @@ task :update_vis_history_links => :environment do
         #month = file_name[0..2]
         year = ([2011,2012,2013,2014,2015,2016,2017,2018].keep_if {|year| !file_name.index(year.to_s).nil? })[0]
         url = 'http://www.hawaiitourismauthority.org' + href.gsub('%20',' ')
-        save_path = "#{ENV['DATA_PATH']}/rawdata/TOUR_HIST" + year.to_s[2..4] + '.' + href.split('.')[-1]
+        extension = href.split('.')[-1]
         handle = "TOUR_HIST#{year.to_s[2..4]}@hawaiitourismauthority.org"
-        dsd = Download.new(:handle => handle, :url => url, :save_path => save_path)
+        dsd = Download.new(:handle => handle, :url => url, :filename_ext => extension)
         if dsd.download[:status] == 200
           dsd.save
-          PackagerMailer.download_link_notification(handle, url, save_path, true).deliver
+          PackagerMailer.download_link_notification(handle, url, dsd.save_path, true).deliver
         else
           puts dsd
-          PackagerMailer.download_link_notification(handle, url, save_path, false).deliver
+          PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
         end
       rescue
         puts 'There was an error'
-        PackagerMailer.download_link_notification(handle, url, save_path, false).deliver
+        PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
       end
     end
   end

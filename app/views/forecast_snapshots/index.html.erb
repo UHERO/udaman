@@ -26,7 +26,7 @@
   <tbody>
     <% @forecast_snapshots.each do |fs| %>
       <tr>
-        <td><%= link_to fs.name, fs %></td>
+        <td class="linkselect"><%= link_to fs.name, fs %></td>
         <td align="center"><%= fs.version %></td>
         <td><%= fs.comments %></td>
         <% if current_user.internal_user? %>

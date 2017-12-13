@@ -26,12 +26,15 @@ div#summary_area h2 {font-size:30px;}
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<% unless @output_file.notes.nil? %>
+  <h2>File location</h2>
+  <%= @output_file.save_path %>
+
+  <% unless @output_file.notes.nil? %>
 	<h2>Notes</h2>
 	<p><%= @output_file.notes %></p>
 	<% end %>
-	
-	<% unless @output_file.handle.nil? or @output_file.handle == "" %>
+
+  <% unless @output_file.handle.nil? or @output_file.handle == "" %>
 	<h2 class="handle-h2">Series</h2>
 	<table>	
 	<% all_dependents = [] %>
