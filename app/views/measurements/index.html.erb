@@ -28,7 +28,7 @@
     <% @measurements.each do |measurement| %>
       <tr>
         <td><%= measurement.prefix %></td>
-        <td><%= link_to measurement.data_portal_name, measurement %></td>
+        <td class="linkselect"><%= link_to measurement.data_portal_name, measurement %></td>
         <td><%= measurement.units_label %></td>
         <td><%= measurement.units_label_short %></td>
         <td><%= measurement.percent %></td>
