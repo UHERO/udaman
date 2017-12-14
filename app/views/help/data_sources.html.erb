@@ -3,9 +3,9 @@
 <p><code>Series.load_from_fred()</code> takes up to 3 arguments</p>
 
 <ol>
-  <li>Code (e.g., "MCOILBRENTEU")</li>
-  <li>Frequency: "A", "S", "Q", "M", "W", "D"</li>
-  <li>Aggregation Method: "avg", "sum", or "eop"</li>
+  <li>Code (e.g., "MCOILBRENTEU") (<i>required</i>)</li>
+  <li>Frequency: "A", "S", "Q", "M", "W", "D" (<i>optional</i>)</li>
+  <li>Aggregation Method: "avg", "sum", or "eop" (<i>optional</i>)</li>
 </ol>
 
 <p>
@@ -22,12 +22,12 @@ Series.load_from_fred("MCOILBRENTEU", "Q", "avg")
 </p>
 
 <h2>BEA Data Source options</h2>
-<p><code>Series.load_from_bea()</code> takes 3 arguments</p>
+<p><code>Series.load_from_bea()</code> takes exactly 3 arguments, all required. Nothing is case-sensitive.</p>
 
 <ol>
   <li>Frequency: "A", "S", "Q", "M", "W", "D"</li>
   <li>Dataset name (e.g., "NIPA")</li>
-  <li>A Ruby hash of additional request parameters (curly braces not strictly needed, but recommended)</li>
+  <li>A Ruby hash of additional parameters to pass to BEA (curly braces not strictly needed, but recommended)</li>
 </ol>
 
 <p>
@@ -38,4 +38,4 @@ Series.load_from_fred("MCOILBRENTEU", "Q", "avg")
 Series.load_from_bea('A', 'NIPA', { TableName:'T10109', LineNumber:'1' , Frequency:'A', Year:'ALL' })
 </pre>
 
-<i>Note that for dataset NIPA in particular, parameters Frequency and Year are mandatory</i>
+<i>Note that for dataset NIPA in particular, Frequency and Year are mandatory parameters</i>
