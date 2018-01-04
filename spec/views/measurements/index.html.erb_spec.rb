@@ -32,7 +32,7 @@ RSpec.describe 'measurements/index', :type => :view do
     render
     assert_select 'tr>td', :text => 'Prefix'.to_s, :count => 2
     assert_select 'tr>td', :text => 'Data Portal Name'.to_s, :count => 2
-    assert_select 'tr>td', :text => Unit.first.id.to_s, :count => 2
+    assert_select 'tr>td', :text => Unit.first.to_s, :count => 2
     assert_select 'tr>td', :text => false.to_s, :count => 2
     assert_select 'tr>td', :text => true.to_s, :count => 2
     assert_select 'tr>td', :text => 'MyText'.to_s, :count => 2
