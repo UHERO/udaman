@@ -15,8 +15,7 @@
     <tr>
       <th>Prefix</th>
       <th>Data portal name</th>
-      <th>Units label</th>
-      <th>Units label short</th>
+      <th>Units</th>
       <th>Percent</th>
       <th>Real</th>
       <th>Notes</th>
@@ -29,8 +28,7 @@
       <tr>
         <td><%= measurement.prefix %></td>
         <td class="linkselect"><%= link_to measurement.data_portal_name, measurement %></td>
-        <td><%= measurement.units_label %></td>
-        <td><%= measurement.units_label_short %></td>
+        <td><%= measurement.unit.to_s %></td>
         <td><%= measurement.percent %></td>
         <td><%= measurement.real %></td>
         <td><%= measurement.notes %></td>

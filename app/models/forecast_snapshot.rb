@@ -27,8 +27,7 @@ class ForecastSnapshot < ActiveRecord::Base
   def retrieve_units(prefix)
     m = Measurement.find_by(prefix: prefix.chomp('NS'))
     return 'Values' if m.nil?
-    return m.unit.short_label if !m.unit.nil?
-    m.units_label_short.blank? ? 'Values' : m.units_label_short
+    m.unit ? m.unit.short_label : 'Values'
   end
 
   # Get series ID for each series

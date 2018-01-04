@@ -7,8 +7,6 @@ class MeasurementsController < ApplicationController
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
-      ['Units label', :units_label],
-      ['Units label, short', :units_label_short],
       ['Units', :unit_id],
       ['Source', :source_id],
       ['Source detail', :source_detail_id],
@@ -115,9 +113,7 @@ class MeasurementsController < ApplicationController
   private
     def translate(name)
       # Translate column names from Measurement table form to Series table form
-      trans_hash = {'data_portal_name' => 'dataPortalName',
-                    'units_label' => 'unitsLabel',
-                    'units_label_short' => 'unitsLabelShort'}
+      trans_hash = {'data_portal_name' => 'dataPortalName'}
       trans_hash[name] || name
     end
 
@@ -128,8 +124,8 @@ class MeasurementsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def measurement_params
-      params.require(:measurement).permit(:prefix, :data_portal_name, :table_prefix, :table_postfix, :units_label,
-                                          :units_label_short, :unit_id, :percent, :real, :notes,
+      params.require(:measurement).permit(:prefix, :data_portal_name, :table_prefix, :table_postfix,
+                                          :unit_id, :percent, :real, :notes,
                                           :restricted, :unrestricted, :series_id, :decimals,
                                           :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link,
