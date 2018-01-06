@@ -43,11 +43,11 @@ task :reset_measurements => :environment do
   ActiveRecord::Base.connection.execute('DELETE FROM data_list_measurements;')
   ActiveRecord::Base.connection.execute('ALTER TABLE data_list_measurements AUTO_INCREMENT = 1;')
   ActiveRecord::Base.connection.execute(%Q|INSERT INTO
-measurements (prefix, data_portal_name, units_label, units_label_short, percent, `real`, created_at, updated_at)
+measurements (prefix, data_portal_name, unit_id, percent, `real`, created_at, updated_at)
 (SELECT
   TRIM(TRAILING '&NS' FROM TRIM(TRAILING 'NS' FROM UPPER(LEFT(series.name, LOCATE('@', series.name) - 1)))) AS prefix,
   MAX(dataPortalName) AS data_portal_name,
-  MAX(unitsLabel) AS units_label, MAX(unitsLabelShort) AS units_label_short, MAX(percent) AS percent,
+  MAX(unit_id) AS unit_id, MAX(percent) AS percent,
   MAX(series.real) AS `real`, NOW(), NOW()
 FROM series GROUP BY
   TRIM(TRAILING '&NS' FROM TRIM(TRAILING 'NS' FROM UPPER(LEFT(series.name, LOCATE('@', series.name) - 1))))
