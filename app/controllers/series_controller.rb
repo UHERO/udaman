@@ -274,7 +274,8 @@ class SeriesController < ApplicationController
     @stale_series = Series.where(universe: 'UHERO')
                           .joins(:data_sources)
                           .where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
-                          .pluck(:id, :name)
+                          .order('series.name, data_sources.id')
+                          .pluck('series.id, series.name, data_sources.id')
   end
 
   private

@@ -3,10 +3,17 @@
 	<h2>Total: <%= @stale_series.count %></h2>
 </div>
 <div id="details_mask"></div>
+<% cur_series = nil %>
 <div id="details_area">
 		<ul>
-		<% @stale_series.each do |series| %>
-      <li><%= link_to series[1], { :action => 'show', :id => series[0] } %></li>
+		<% @stale_series.each do |s_id, s_name, ds_id| %>
+      <% if s_id != cur_series%>
+           <%= ")</li>\n" if cur_series %>
+           <li><%= link_to s_name, { :action => 'show', :id => s_id } %> (<%= ds_id %>
+           <% cur_series = s_id %>
+    <% else %>
+            , <%= ds_id %>
+      <% end %>
 		<% end %>
 		</ul>
 </div>
