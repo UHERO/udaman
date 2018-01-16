@@ -355,9 +355,9 @@
       }, function(chart) {
         // Adding plot lines
         var xAxis = chart.xAxis[0],
-            historyDates = xAxis.series[0].xData,
-            oldForecastDates = xAxis.series[1].xData,
-            newForecastDates = xAxis.series[2].xData,
+            historyDates = xAxis.series[4].xData,
+            oldForecastDates = xAxis.series[2].xData,
+            newForecastDates = xAxis.series[0].xData,
             histDatesLength = historyDates.length,
             oldDatesLength = oldForecastDates.length,
             newDatesLength = newForecastDates.length,
@@ -369,7 +369,6 @@
             histDateIndex = longerForecast.indexOf(lastHistoryDate),
             // Get array of dates from last history date to date of last observation
             plotLineRange = longerForecast.slice(histDateIndex);
-
         // Add a plot line at the last history point and every year after that is divisible by 5
         for (var i = 0; i < plotLineRange.length; i++) {
           if (frequency === 'A') {
@@ -379,7 +378,7 @@
           } else if (frequency === 'Q') {
             if ((Highcharts.dateFormat('%b', plotLineRange[i]) === 'Jan' && +Highcharts.dateFormat('%Y', plotLineRange[i]) % 5 === 0) || plotLineRange[i] === lastHistoryDate) {
               xAxis.addPlotLine({value: plotLineRange[i], color: '#ADADAD', width: 1, dashStyle: 'LongDash'});
-            };
+            }
           }
         }
       });
