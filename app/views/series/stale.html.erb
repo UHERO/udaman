@@ -5,9 +5,12 @@
 <div id="details_mask"></div>
 <div id="details_area">
 		<ul>
-		<% @stale_series.each do |series| %>
-      <li><%= link_to series[1], { :action => 'show', :id => series[0] } %></li>
-		<% end %>
+		<% @stale_series.each do |id, hash| %>
+       <li><%= link_to hash[:name], { action: :show, id: id } %>
+         (<% hash[:dsids].each do |dsid| %>
+             <%= link_to dsid, { controller: :data_sources, action: :edit, id: dsid } %>
+          <% end %>)</li>
+    <% end %>
 		</ul>
 </div>
 
