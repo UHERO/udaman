@@ -271,10 +271,17 @@ class SeriesController < ApplicationController
   end
 
   def stale
-    @stale_series = Series.where(universe: 'UHERO')
-                          .joins(:data_sources)
-                          .where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
-                          .pluck(:id, :name)
+    stales = Series.where(universe: 'UHERO')
+                   .joins(:data_sources)
+                   .where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
+                   .order('series.name, data_sources.id')
+                   .pluck('series.id, series.name, data_sources.id')
+    @stale_series = {}
+    stales.each do |s_id, s_name, ds_id|
+      @stale_series[s_id] ||= { name: s_name, dsids: [] }
+      @stale_series[s_id][:dsids].push ds_id
+    end
+    @stale_series
   end
 
   private
