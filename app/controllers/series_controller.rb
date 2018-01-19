@@ -103,12 +103,13 @@ class SeriesController < ApplicationController
   end
 
   def remove_from_quarantine
-    next_action = params[:next_action] || :show
+    dest = { action: params[:next_action] || :show }
+    dest[:id] = params[:id] if dest[:action] == :show
     @series = Series.find_by id: params[:id]
     if @series
       @series.remove_from_quarantine
     end
-    redirect_to action: next_action, id: params[:id]
+    redirect_to dest
   end
 
   def empty_quarantine

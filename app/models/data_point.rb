@@ -145,9 +145,13 @@ class DataPoint < ActiveRecord::Base
       quarantine_query = <<~SQL
          delete from public_data_points where series_id = ?
       SQL
-      stmt = ActiveRecord::Base.connection.raw_connection.prepare(quarantine_query)
-      stmt.execute(series.id)
-      stmt.close
+      begin
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(quarantine_query)
+        stmt.execute(series.id)
+        stmt.close
+      rescue
+          return false
+      end
       return true
     end
     t = Time.now
@@ -186,16 +190,20 @@ class DataPoint < ActiveRecord::Base
       and d.created_at is null  /* dp no longer exists in data_points */
       #{' and s.id = ? ' if series} ;
     SQL
-    ActiveRecord::Base.transaction do
-      stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
-      series ? stmt.execute(universe, series.id) : stmt.execute(universe)
-      stmt.close
-      stmt = ActiveRecord::Base.connection.raw_connection.prepare(insert_query)
-      series ? stmt.execute(universe, series.id) : stmt.execute(universe)
-      stmt.close
-      stmt = ActiveRecord::Base.connection.raw_connection.prepare(delete_query)
-      series ? stmt.execute(universe, series.id) : stmt.execute(universe)
-      stmt.close
+    begin
+      ActiveRecord::Base.transaction do
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
+        series ? stmt.execute(universe, series.id) : stmt.execute(universe)
+        stmt.close
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(insert_query)
+        series ? stmt.execute(universe, series.id) : stmt.execute(universe)
+        stmt.close
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(delete_query)
+        series ? stmt.execute(universe, series.id) : stmt.execute(universe)
+        stmt.close
+      end
+    rescue
+        return false
     end
     if series.nil?
       CSV.open('public/rake_time.csv', 'a') do |csv|
