@@ -365,6 +365,7 @@ class Series < ActiveRecord::Base
 
   def Series.empty_quarantine
     Series.where(universe: 'UHERO').update_all quarantined: false
+    DataPoint.update_public_data_points('UHERO')
   end
 
   def update_data_hash
