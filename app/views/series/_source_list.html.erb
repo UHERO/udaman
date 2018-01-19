@@ -19,11 +19,11 @@
 							:action => 'clear_and_reload', 
 							:id => ds.id} unless ds.eval.nil? 
 					%>&nbsp;|&nbsp;<%= 
-						link_to "delete",
-							:controller=> "data_sources", 
+						link_to "delete", {
+							:controller=> "data_sources",
 							:action => 'delete', 
-							:id => ds.id,
-							data: { :confirm => "Are you sure you want to delete this data source?" }
+							:id => ds.id },
+							data: { :confirm => "Are you sure you want to delete data source #{ds.id}?" }
 					%>&nbsp;<span style="color:gray">
 					&nbsp;|&nbsp;<%= 
 							link_to "edit", { 	
