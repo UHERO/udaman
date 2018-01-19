@@ -96,19 +96,23 @@ class SeriesController < ApplicationController
 
   def add_to_quarantine
     @series = Series.find_by id: params[:id]
-    @series.update! quarantined: true
+    if @series
+      @series.add_to_quarantine
+    end
     redirect_to action: :show, id: params[:id]
   end
 
   def remove_from_quarantine
     next_action = params[:next_action] || :show
     @series = Series.find_by id: params[:id]
-    @series.update! quarantined: false
+    if @series
+      @series.remove_from_quarantine
+    end
     redirect_to action: next_action, id: params[:id]
   end
 
   def empty_quarantine
-    Series.where(universe: 'UHERO').update_all quarantined: false
+    Series.empty_quarantine
     redirect_to action: :quarantine
   end
 
