@@ -355,10 +355,12 @@ class Series < ActiveRecord::Base
 
   def add_to_quarantine
     self.update! quarantined: true
+    DataPoint.update_public_data_points('UHERO', self)
   end
 
   def remove_from_quarantine
     self.update! quarantined: false
+    DataPoint.update_public_data_points('UHERO', self)
   end
 
   def Series.empty_quarantine

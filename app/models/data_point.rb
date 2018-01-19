@@ -142,12 +142,17 @@ class DataPoint < ActiveRecord::Base
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
     if series && series.quarantined?
-      logger.info { "Did not update public data points because series #{series.name} is quarantined" }
-      return false
+      quarantine_query = <<~SQL
+         delete from public_data_points where series_id = ?
+      SQL
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(quarantine_query)
+      stmt.execute(series.id)
+      stmt.close
+      return true
     end
     t = Time.now
     insert_type = universe == 'NTA' ? 'replace' : 'insert'
-    update_query = %Q(
+    update_query = <<~SQL
       update public_data_points p
         join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
         join series s on s.id = d.series_id
@@ -158,8 +163,8 @@ class DataPoint < ActiveRecord::Base
       and not s.quarantined
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
-    )
-    insert_query = %Q(
+    SQL
+    insert_query = <<~SQL
       #{insert_type} into public_data_points (universe, series_id, date, value, pseudo_history, created_at, updated_at)
       select d.universe, d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
       from data_points d
@@ -170,8 +175,8 @@ class DataPoint < ActiveRecord::Base
       and d.current
       and p.created_at is null  /* dp doesn't exist in public_data_points yet */
       #{' and s.id = ? ' if series} ;
-    )
-    delete_query = %Q(
+    SQL
+    delete_query = <<~SQL
       delete p
       from public_data_points p
         join series s on s.id = p.series_id
@@ -180,7 +185,7 @@ class DataPoint < ActiveRecord::Base
       and not s.quarantined
       and d.created_at is null  /* dp no longer exists in data_points */
       #{' and s.id = ? ' if series} ;
-    )
+    SQL
     ActiveRecord::Base.transaction do
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
       series ? stmt.execute(universe, series.id) : stmt.execute(universe)
