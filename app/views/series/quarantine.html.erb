@@ -2,8 +2,8 @@
 
 <h1>Listing Quarantined Series</h1>
 
-<p><%= link_to 'Empty quarantine', controller: 'series', action: 'empty_quarantine', id: 0,
-                       data: { :confirm => "Are you sure you want to clear ALL series from quarantine??" } %></p>
+<p><%= link_to 'Empty quarantine', { controller: 'series', action: 'empty_quarantine', id: 0 },
+                       data: { confirm: 'Are you sure you want to clear ALL series from quarantine??' } %></p>
 
 <table>
   <thead>
