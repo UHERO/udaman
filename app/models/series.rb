@@ -353,6 +353,21 @@ class Series < ActiveRecord::Base
     []
   end
 
+  def add_to_quarantine
+    self.update! quarantined: true
+    DataPoint.update_public_data_points('UHERO', self)
+  end
+
+  def remove_from_quarantine
+    self.update! quarantined: false
+    DataPoint.update_public_data_points('UHERO', self)
+  end
+
+  def Series.empty_quarantine
+    Series.where(universe: 'UHERO', quarantined: true).update_all quarantined: false
+    DataPoint.update_public_data_points('UHERO')
+  end
+
   def update_data_hash
     data_hash = {}
     data_points.each do |dp|
