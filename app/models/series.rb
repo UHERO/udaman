@@ -943,7 +943,9 @@ class Series < ActiveRecord::Base
 
   def Series.assign_dependency_depth
     # reset dependency_depth
-    ActiveRecord::Base.connection.execute('UPDATE series s SET dependency_depth = 0;')
+    ActiveRecord::Base.connection.execute(<<~SQL)
+      UPDATE series SET dependency_depth = 0 WHERE universe = 'UHERO';
+    SQL
     previous_depth_count = Series.where(universe: 'UHERO', dependency_depth: 0).count
 
     # first level of dependencies
