@@ -110,7 +110,7 @@ class DataSource < ActiveRecord::Base
 
 
     def DataSource.set_dependencies
-      DataSource.all.find_each(batch_size: 50) do |ds|
+      DataSource.where(universe: 'UHERO').find_each(batch_size: 50) do |ds|
         ds.set_dependencies
       end
       return 0
