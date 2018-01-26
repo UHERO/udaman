@@ -110,9 +110,12 @@ class DataSource < ActiveRecord::Base
 
 
     def DataSource.set_dependencies
+      Rails.logger.info { 'DataSource set_dependencies: start' }
       DataSource.where(universe: 'UHERO').find_each(batch_size: 50) do |ds|
+        Rails.logger.debug { "DataSource set_dependencies: for #{ds.description}" }
         ds.set_dependencies
       end
+      Rails.logger.info { 'DataSource set_dependencies: done' }
       return 0
     end
 

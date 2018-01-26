@@ -36,7 +36,7 @@ task :reset_dependency_depth => :environment do
   t = Time.now
   DataSource.set_dependencies
   Series.assign_dependency_depth
-  puts (Time.now - t).to_s + ' seconds'
+  Rails.logger.info { "Reset dependency depth: Done in #{Time.now - t} seconds" }
 end
 
 desc 'Switch rails logger to stdout'
