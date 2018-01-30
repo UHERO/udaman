@@ -942,23 +942,34 @@ class Series < ActiveRecord::Base
   end
 
   def Series.assign_dependency_depth
+    Rails.logger.info { 'Series assign_dependency_depth: start' }
     # reset dependency_depth
-    ActiveRecord::Base.connection.execute('UPDATE series s SET dependency_depth = 0;')
+    ActiveRecord::Base.connection.execute(<<~SQL)
+      UPDATE series SET dependency_depth = 0 WHERE universe = 'UHERO';
+    SQL
     previous_depth_count = Series.where(universe: 'UHERO', dependency_depth: 0).count
 
     # first level of dependencies
-    first_level_sql = "UPDATE series s SET dependency_depth = 1
-      WHERE EXISTS (SELECT 1 FROM data_sources ds  WHERE ds.`dependencies` LIKE CONCAT('% ', s.`name`, '%'));"
+    first_level_sql = <<~SQL
+      UPDATE series s SET dependency_depth = 1
+      WHERE EXISTS (SELECT 1 FROM data_sources WHERE `dependencies` LIKE CONCAT('% ', s.`name`, '%'));
+    SQL
     ActiveRecord::Base.connection.execute(first_level_sql)
     current_depth_count = Series.where(universe: 'UHERO', dependency_depth: 1).count
 
     previous_depth = 1
     until current_depth_count == previous_depth_count
-      next_level_sql = %[UPDATE series s SET dependency_depth = #{previous_depth + 1}
-                        WHERE EXISTS (SELECT 1 FROM data_sources ds
-                        JOIN (SELECT * FROM series) inner_s ON ds.series_id = inner_s.id
-                        WHERE inner_s.dependency_depth = #{previous_depth}
-                        AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%'));]
+      Rails.logger.debug {
+        "Series assign_dependency_depth: at #{Time.now}: current_depth_count=#{current_depth_count}, previous_depth_count=#{previous_depth_count}"
+      }
+      next_level_sql = <<~SQL
+        UPDATE series s SET dependency_depth = #{previous_depth + 1}
+        WHERE EXISTS (
+          SELECT 1 FROM data_sources ds JOIN series inner_s ON ds.series_id = inner_s.id
+          WHERE inner_s.dependency_depth = #{previous_depth}
+          AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%')
+        );
+      SQL
       ActiveRecord::Base.connection.execute next_level_sql
       previous_depth_count = current_depth_count
       current_depth_count = Series.where(universe: 'UHERO', dependency_depth: previous_depth + 1).count
@@ -969,6 +980,7 @@ class Series < ActiveRecord::Base
     if current_depth_count > 0
       PackagerMailer.circular_series_notification(Series.where(universe: 'UHERO', dependency_depth: previous_depth))
     end
+    Rails.logger.info { 'Series assign_dependency_depth: done' }
   end
 
   # recursive incrementer of dependency_depth
