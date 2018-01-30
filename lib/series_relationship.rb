@@ -170,9 +170,10 @@ module SeriesRelationship
     self.data_sources_by_last_run.each do |ds| 
       begin
         ds.reload_source
-      rescue Exception
-        errors.push("DataSource #{ds.id} for #{self.name} : #{self.id}")
-        puts "SOMETHING BROKE with source #{ds.id} in series #{self.name} (#{self.id})-----------------------------------------------"
+      rescue => e
+        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
+        puts "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})-----------------------------------------------"
       end
     end
     errors

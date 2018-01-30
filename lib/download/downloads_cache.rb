@@ -44,7 +44,7 @@ class DownloadsCache
 
   def mark_handle_used(handle)
     return unless handle =~ /@/
-    @cache[:used_dloads][handle] = @cache[:dloads][handle] || raise("No download handle #{handle} to mark")
+    @cache[:used_dloads][handle] = @cache[:dloads][handle] || raise("No download handle='#{handle}' to mark")
   end
 
   def update_last_used
