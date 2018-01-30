@@ -1,0 +1,17 @@
+<div id="summary_area">
+	<h2>Data Series from BEA without an API source</h2>
+	<h2>Total: <%= @series.count %></h2>
+</div>
+<div id="details_mask"></div>
+<div id="details_area">
+		<ul>
+		<% @series.each do |id, hash| %>
+       <li><%= link_to hash[:name], { action: :show, id: id } %>
+         (<% hash[:dsids].each do |dsid| %>
+             <%= link_to dsid, { controller: :data_sources, action: :edit, id: dsid } %>
+          <% end %>)</li>
+    <% end %>
+		</ul>
+</div>
+
+<p>
