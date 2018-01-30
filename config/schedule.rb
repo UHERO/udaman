@@ -32,6 +32,10 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 #     rake "test_case"
 # end
 
+every 1.day, :at => '11:00 am' do
+  rake 'reset_dependency_depth'
+end
+
 every 1.day, :at => '8:00 pm' do
   rake 'reload_aremos'
 end
