@@ -1033,11 +1033,11 @@ class Series < ActiveRecord::Base
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
       dl.data_sources.each do |ds|
-        if ds.series.data_sources.select{|x| x.eval =~ /load_from_bea/ }.empty?
+        if ds.series.data_sources.select{|x| x.eval =~ /load_from_(bea|bls|fred)/ }.empty?
           series.push ds.series
         end
       end
     end
-    series
+    series.sort{|x,y| x.name <=> y.name }
   end
 end

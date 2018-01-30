@@ -95,7 +95,7 @@ class SeriesController < ApplicationController
   end
 
   def old_bea_download
-    @series = Series.get_old_bea_downloads
+    @old_bea_series = Series.get_old_bea_downloads
   end
 
   def add_to_quarantine
