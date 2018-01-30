@@ -94,6 +94,10 @@ class SeriesController < ApplicationController
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
+  def old_bea_download
+    @old_bea_series = Series.get_old_bea_downloads
+  end
+
   def add_to_quarantine
     @series = Series.find_by id: params[:id]
     if @series

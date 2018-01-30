@@ -54,6 +54,7 @@ UheroDb::Application.routes.draw do
   get 'series/no_source', to: 'series#no_source'
   get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
   get 'series/quarantine', to: 'series#quarantine'
+  get 'series/old_bea_download', to: 'series#old_bea_download'
 
   resources :series
 

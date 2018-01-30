@@ -1040,4 +1040,16 @@ class Series < ActiveRecord::Base
       puts "Queued depth #{next_depth} (#{series_size})"
     end
   end
+
+  def Series.get_old_bea_downloads
+    series = []
+    Download.where(%q(handle like '%@bea.gov')).each do |dl|
+      dl.data_sources.each do |ds|
+        if ds.series.data_sources.select{|x| x.eval =~ /load_from_(bea|bls|fred)/ }.empty?
+          series.push ds.series
+        end
+      end
+    end
+    series.sort{|x,y| x.name <=> y.name }
+  end
 end

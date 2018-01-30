@@ -18,6 +18,10 @@
       <%= link_to 'Unrestricted series with no Source', controller: :series, action: 'no_source_no_restrict' %>
       <br />
       <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %>
+      <br />
+      <%= link_to 'Series with stale source', controller: :series, action: :stale %>
+      <br />
+      <%= link_to 'BEA Series without an API source', controller: :series, action: :old_bea_download %>
     </div>
   <% end %>
 </div>
@@ -32,5 +36,3 @@
 </div>
 
 <p>
-	
-	
