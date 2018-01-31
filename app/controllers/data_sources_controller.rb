@@ -72,6 +72,12 @@ class DataSourcesController < ApplicationController
     end
   end
 
+  def toggle_reload_nightly
+    source = DataSource.find_by id: params[:id]
+    source.toggle_reload_nightly
+    redirect_to controller: :series, action: :show, id: source.series_id
+  end
+
   private
     def data_source_params
       params.require(:data_source).permit(:series_id, :eval, :priority)

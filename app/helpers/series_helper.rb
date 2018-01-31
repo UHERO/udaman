@@ -114,15 +114,8 @@ module SeriesHelper
     count = Series.count
 	  html += link_to raw("all&nbsp;<span class='series_count'>#{count}</span>") , {:action => 'index', :all => 'true'}
   end
+
+  def nightly_actuator(nightly)
+    nightly ? 'nightly-Y' : 'nightly-N'
+  end
 end
-
-
-# array2d = []
-# array2d.push([""] + sorted_names)
-# dates_array.each do |date|
-#   array2d.push([date] + sorted_names.map {|series_name| series_data[series_name][date]})
-# end
-# csv << [""] + sorted_names
-# dates_array.each do |date|
-#   csv << [date] + sorted_names.map {|series_name| series_data[series_name][date]}
-# end

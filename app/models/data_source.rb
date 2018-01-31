@@ -254,6 +254,9 @@ class DataSource < ActiveRecord::Base
       super
     end
 
+    def toggle_reload_nightly
+      self.update_attributes!(reload_nightly: !self.reload_nightly)
+    end
 
     def set_color
       color_order = %w(FFCC99 CCFFFF 99CCFF CC99FF FFFF99 CCFFCC FF99CC CCCCFF 9999FF 99FFCC)
