@@ -28,7 +28,7 @@ class SeriesWorker
         redis.incr keys[:busy_workers]
       end
 
-      errors = Series.find(series_id).reload_sources
+      errors = Series.find(series_id).reload_sources(true)
       GC.start
       unless errors.nil?
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
