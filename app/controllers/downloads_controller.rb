@@ -5,7 +5,7 @@ class DownloadsController < ApplicationController
   before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
 
   def index
-    @output_files = Download.where(universe: 'UHERO').order(:url).all
+    @output_files = Download.order(:url).all
     @domain_hash = {}
     @output_files.each do |dl|
       if dl.url
