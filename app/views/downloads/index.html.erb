@@ -17,9 +17,8 @@
 				<!-- <th>Url / Path</th> -->
 
 			</tr>
-			<% handle_array.sort.each do |handle| %>
-			<%
-			download = nil
+			<% handle_array.sort.each do |handle|
+      download = nil
 			@output_files.each do |dsd|
 				if dsd.handle == handle
 					download = dsd
