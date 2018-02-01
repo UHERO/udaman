@@ -116,6 +116,6 @@ module SeriesHelper
   end
 
   def nightly_actuator(nightly)
-    nightly ? 'nightly' : 'NO NIGHTLY'
+    (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 end
