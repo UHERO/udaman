@@ -5,11 +5,13 @@ class DownloadsController < ApplicationController
   before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
 
   def index
-    @output_files = Download.order(:url).all
+    @output_files = Download.where(universe: 'UHERO').order(:url).all
     @domain_hash = {}
-    @output_files.each do |dsd|
-      @domain_hash[dsd.url.split('/')[2]] ||= []
-      @domain_hash[dsd.url.split('/')[2]].push dsd.handle
+    @output_files.each do |dl|
+      if dl.url
+        @domain_hash[dl.url.split('/')[2]] ||= []
+        @domain_hash[dl.url.split('/')[2]].push dl.handle
+      end
     end
   end
 
