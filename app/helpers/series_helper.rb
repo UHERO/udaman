@@ -116,6 +116,6 @@ module SeriesHelper
   end
 
   def nightly_actuator(nightly)
-    nightly ? 'nightly-Y' : 'nightly-N'
+    nightly ? 'nightly' : 'NO NIGHTLY'
   end
 end
