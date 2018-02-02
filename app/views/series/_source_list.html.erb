@@ -6,7 +6,7 @@
 	<% series.data_sources_by_last_run.each do |ds| %>
   	<% eval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
-  		<td style="<%= 'border-left: 5px solid blue;' unless ds.reload_nightly %>">
+  		<td>
       <%= ds.last_run.localtime.strftime("%m/%d/%y") %>&nbsp;<span style="color:gray"><%=
 					ds.last_run.localtime.strftime("%H:%M:%S") %></span>&nbsp;(<%= ds.priority %>)<br />
  					<%= 
@@ -43,7 +43,7 @@
         <% end %>
   		</td>
 		<td>
-			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fa fa-moon-o" aria-hidden="true"></i><% end %></h3>
+			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fa fa-clock-o" aria-hidden="true"></i><% end %></h3>
 			<%= raw linked_version(ds.description) %>
 			<br /> 
 			<%= raw eval %>
