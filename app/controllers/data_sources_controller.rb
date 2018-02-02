@@ -21,7 +21,13 @@ class DataSourcesController < ApplicationController
     source.delete
     redirect_to :controller=> 'series', :action => 'show', :id => source.series_id
   end
-  
+
+  def toggle_reload_nightly
+    source = DataSource.find_by id: params[:id]
+    source.toggle_reload_nightly
+    redirect_to controller: :series, action: :show, id: source.series_id
+  end
+
   def new
     #params.each { |key,value| puts "#{key}: #{value}" }
     @series = Series.find_by id: params[:series_id]
