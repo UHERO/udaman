@@ -957,7 +957,8 @@ class Series < ActiveRecord::Base
     current_depth_count = Series.where(universe: 'UHERO', dependency_depth: 1).count
 
     previous_depth = 1
-    until current_depth_count == previous_depth_count
+    ##until current_depth_count == previous_depth_count
+    while current_depth_count > 0
       Rails.logger.debug {
         "Series assign_dependency_depth: at #{Time.now}: current_depth_count=#{current_depth_count}, previous_depth_count=#{previous_depth_count}"
       }
