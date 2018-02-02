@@ -6,7 +6,8 @@
 	<% series.data_sources_by_last_run.each do |ds| %>
   	<% eval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
-  		<td><%= ds.last_run.localtime.strftime("%m/%d/%y") %>&nbsp;<span style="color:gray"><%= 		
+  		<td>
+      <%= ds.last_run.localtime.strftime("%m/%d/%y") %>&nbsp;<span style="color:gray"><%=
 					ds.last_run.localtime.strftime("%H:%M:%S") %></span>&nbsp;(<%= ds.priority %>)<br />
  					<%= 
 						link_to "load", {   	
@@ -24,15 +25,14 @@
 							:action => 'delete', 
 							:id => ds.id },
 							data: { :confirm => "Are you sure you want to delete data source #{ds.id}?" }
-					%>&nbsp;<span style="color:gray">
-					&nbsp;|&nbsp;<%= 
+					%><br/><%=
 							link_to "edit", { 	
 								:controller=> "data_sources", 
 								:action => 'edit', 
 								:id => ds.id}
-						%>&nbsp;<span style="color:gray">(<%= 
-						"#{ds.runtime.round(2)}s" unless ds.runtime.nil? 
-					%>)</span>
+					%>
+        <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" unless ds.runtime.nil? %>)</span><br/>
+        <%= link_to nightly_actuator(ds.reload_nightly), {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
         <% if ds.last_error %>
           <p>
             <span style='color:red;' title='<%= ds.last_error %>'>Last error<br/>
@@ -43,7 +43,7 @@
         <% end %>
   		</td>
 		<td>
-			<h3><%= ds.id %></h3>
+			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fa fa-clock-o" aria-hidden="true"></i><% end %></h3>
 			<%= raw linked_version(ds.description) %>
 			<br /> 
 			<%= raw eval %>

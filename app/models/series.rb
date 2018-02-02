@@ -280,7 +280,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.build_name(parts)
-    name = parts[0].strip + '@' + parts[1].strip + '.' + parts[2].strip
+    name = parts[0].strip.upcase + '@' + parts[1].strip.upcase + '.' + parts[2].strip.upcase
     Series.parse_name(name) ? name : raise("Build series name: '#{name}' format invalid")
   end
 
