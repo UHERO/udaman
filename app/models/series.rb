@@ -966,7 +966,7 @@ class Series < ActiveRecord::Base
       next_level_sql = <<~SQL
         UPDATE series s SET dependency_depth = #{previous_depth + 1}
         WHERE EXISTS (
-          SELECT 1 FROM data_sources ds JOIN series inner_s ON ds.series_id = inner_s.id
+          SELECT 1 FROM data_sources ds JOIN (select * from series) inner_s ON ds.series_id = inner_s.id
           WHERE inner_s.dependency_depth = #{previous_depth}
           AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%')
         );
