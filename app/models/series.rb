@@ -538,6 +538,7 @@ class Series < ActiveRecord::Base
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge!(:path => file))
     series_data = dp.get_data
+    options.delete(:path) ## don't include :path in the description. But don't remove the bang above! It is needed.
     Series.new_transformation("loaded from file #{file} with options:#{options}",
                                series_data,
                                Series.frequency_from_code(options[:frequency]))
