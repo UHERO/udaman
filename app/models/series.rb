@@ -536,7 +536,7 @@ class Series < ActiveRecord::Base
   def Series.load_from_file(file, options, cached_files = nil)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
-    dp = DownloadProcessor.new('manual', options.merge(:path => file))
+    dp = DownloadProcessor.new('manual', options.merge!(:path => file))
     series_data = dp.get_data
     Series.new_transformation("loaded from file #{file} with options:#{options}",
                                series_data,
