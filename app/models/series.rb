@@ -536,10 +536,10 @@ class Series < ActiveRecord::Base
   def Series.load_from_file(file, options, cached_files = nil)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
-    dp = DownloadProcessor.new('manual', options.merge!(:path => file))
+    dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    options.delete(:path) ## don't include :path in the description. But don't remove the bang above! It is needed.
-    Series.new_transformation("loaded from file #{file} with options:#{options}",
+    options_display = options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
+    Series.new_transformation("loaded from file #{file} with options:#{options_display}",
                                series_data,
                                Series.frequency_from_code(options[:frequency]))
   end
