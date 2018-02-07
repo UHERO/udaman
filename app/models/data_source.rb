@@ -146,6 +146,7 @@ class DataSource < ActiveRecord::Base
           eval_stmt.sub!(options_match, options.merge(data_source: id,
                                                       eval_hash: hash.to_s,
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
+                                                ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
         if clear_first

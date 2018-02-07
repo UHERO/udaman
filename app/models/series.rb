@@ -528,7 +528,7 @@ class Series < ActiveRecord::Base
   def Series.load_from_download(handle, options, cached_files = nil)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    Series.new_transformation("loaded from download #{handle} with options:#{options}",
+    Series.new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}",
                                series_data,
                                Series.frequency_from_code(options[:frequency]))
   end
@@ -538,8 +538,7 @@ class Series < ActiveRecord::Base
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    options_display = options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
-    Series.new_transformation("loaded from file #{file} with options:#{options_display}",
+    Series.new_transformation("loaded from file #{file} with options:#{Series.display_options(options)}",
                                series_data,
                                Series.frequency_from_code(options[:frequency]))
   end
@@ -551,7 +550,7 @@ class Series < ActiveRecord::Base
   def load_from_download(handle, options, cached_files = nil)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    new_transformation("loaded from download #{handle} with options:#{options}", series_data)
+    new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
   end
   
   def Series.load_from_bea(frequency, dataset, parameters)
@@ -1054,4 +1053,11 @@ class Series < ActiveRecord::Base
     end
     series.sort{|x,y| x.name <=> y.name }
   end
+
+
+private
+  def Series.display_options(options)
+    options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
+  end
+
 end
