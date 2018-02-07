@@ -144,7 +144,7 @@ module SeriesExternalRelationship
       return comparison_hash
     end
 
-    all_dates = self.data.keys | as.data.keys.map {|date| Date.strptime(date, '%Y-%m-%d')}
+    all_dates = self.data.keys | as.data.keys
     all_dates.each { |date| comparison_hash[date] = {:aremos => as.data[date.strftime('%Y-%m-%d')], :udaman => self.units_at(date)} }
     comparison_hash
   end
