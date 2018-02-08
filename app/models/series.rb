@@ -981,9 +981,9 @@ class Series < ActiveRecord::Base
       previous_depth += 1
     end
 
-    Rails.logger.debug { 'Assign_dependency_depth: Copy computed depths back to real tables' }
+    Rails.logger.debug { 'Assign_dependency_depth: Copy computed depths back to real series table' }
     ActiveRecord::Base.connection.execute(<<~SQL)
-      UPDATE series JOIN t_series t on t.id = series.id
+      UPDATE series JOIN t_series t ON t.id = series.id
       SET series.dependency_depth = t.dependency_depth;
     SQL
     # notify if the dependency tree did not terminate
