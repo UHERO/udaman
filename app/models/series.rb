@@ -943,15 +943,15 @@ class Series < ActiveRecord::Base
 
   def Series.assign_dependency_depth
     Rails.logger.info { 'Assign_dependency_depth: start' }
-    # reset dependency_depth
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, dependency_depth FROM series where universe = 'UHERO';
+          SELECT id, `name`, dependency_depth FROM series WHERE universe = 'UHERO';
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources where universe = 'UHERO';
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO';
+    
       UPDATE t_series SET dependency_depth = 0;
     SQL
-    previous_depth_count = Series.count_by_sql('select count(*) from t_series where dependency_depth = 0')
+    previous_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 0')
 
     # first level of dependencies
     Rails.logger.debug { "Assign_dependency_depth: at #{Time.now}: previous_depth=0 previous_depth_count=#{previous_depth_count}" }
@@ -960,7 +960,7 @@ class Series < ActiveRecord::Base
       WHERE EXISTS (SELECT 1 FROM t_datasources WHERE `dependencies` LIKE CONCAT('% ', s.`name`, '%'));
     SQL
     ActiveRecord::Base.connection.execute(first_level_sql)
-    current_depth_count = Series.count_by_sql('select count(*) from t_series where dependency_depth = 1')
+    current_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 1')
 
     previous_depth = 1
     until current_depth_count == previous_depth_count
@@ -977,13 +977,14 @@ class Series < ActiveRecord::Base
       SQL
       ActiveRecord::Base.connection.execute next_level_sql
       previous_depth_count = current_depth_count
-      current_depth_count = Series.count_by_sql('select count(*) from t_series where dependency_depth = ?', previous_depth + 1)
+      current_depth_count = Series.count_by_sql("SELECT count(*) FROM t_series WHERE dependency_depth = #{previous_depth + 1}")
       previous_depth += 1
     end
 
     Rails.logger.debug { 'Assign_dependency_depth: Copy computed depths back to real tables' }
     ActiveRecord::Base.connection.execute(<<~SQL)
-      SELECT foo from snoo
+      UPDATE series JOIN t_series t on t.id = series.id
+      SET series.dependency_depth = t.dependency_depth;
     SQL
     # notify if the dependency tree did not terminate
     if current_depth_count > 0
