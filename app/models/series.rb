@@ -945,10 +945,13 @@ class Series < ActiveRecord::Base
     Rails.logger.info { 'Assign_dependency_depth: start' }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, dependency_depth FROM series WHERE universe = 'UHERO';
+          SELECT id, `name`, dependency_depth FROM series WHERE universe = 'UHERO'
+    SQL
+    ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO';
-
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+    SQL
+    ActiveRecord::Base.connection.execute(<<~SQL)
       UPDATE t_series SET dependency_depth = 0;
     SQL
     previous_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 0')
