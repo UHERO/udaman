@@ -942,7 +942,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.assign_dependency_depth
-    Rails.logger.info { 'Assign_dependency_depth: start' }
+    Rails.logger.info { "Assign_dependency_depth: start at #{Time.now}" }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
           SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
@@ -1000,7 +1000,7 @@ class Series < ActiveRecord::Base
     if current_depth_count > 0
       PackagerMailer.circular_series_notification(Series.where(universe: 'UHERO', dependency_depth: previous_depth))
     end
-    Rails.logger.info { 'Assign_dependency_depth: done' }
+    Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
   # recursive incrementer of dependency_depth
