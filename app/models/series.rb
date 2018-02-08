@@ -948,7 +948,7 @@ class Series < ActiveRecord::Base
           SELECT id, `name`, dependency_depth FROM series WHERE universe = 'UHERO';
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
           SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO';
-    
+
       UPDATE t_series SET dependency_depth = 0;
     SQL
     previous_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 0')
