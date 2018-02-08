@@ -945,14 +945,17 @@ class Series < ActiveRecord::Base
     Rails.logger.info { 'Assign_dependency_depth: start' }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, dependency_depth FROM series WHERE universe = 'UHERO'
+          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
           SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
     SQL
+    ActiveRecord::Base.connection.execute(<<~SQL)   ### Only needed because #braindead MySQL :(
+      CREATE TEMPORARY TABLE t2_series LIKE t_series
+    SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
-      UPDATE t_series SET dependency_depth = 0;
+      INSERT INTO t2_series SELECT * FROM t_series
     SQL
     previous_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 0')
 
@@ -970,11 +973,15 @@ class Series < ActiveRecord::Base
       Rails.logger.debug {
         "Assign_dependency_depth: at #{Time.now}: previous_depth=#{previous_depth} current_depth_count=#{current_depth_count}, previous_depth_count=#{previous_depth_count}"
       }
+      ActiveRecord::Base.connection.execute(<<~SQL)
+        /* Sync up t2_series table with t_series */
+        UPDATE t2_series t2 JOIN t_series t ON t.id = t2.id SET t2.dependency_depth = t.dependency_depth
+      SQL
       next_level_sql = <<~SQL
         UPDATE t_series s SET dependency_depth = #{previous_depth + 1}
         WHERE EXISTS (
-          SELECT 1 FROM t_datasources ds JOIN (select * from t_series) inner_s ON ds.series_id = inner_s.id
-          WHERE inner_s.dependency_depth = #{previous_depth}
+          SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
+          WHERE t2_series.dependency_depth = #{previous_depth}
           AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%')
         );
       SQL
@@ -984,11 +991,11 @@ class Series < ActiveRecord::Base
       previous_depth += 1
     end
 
-    Rails.logger.debug { 'Assign_dependency_depth: Copy computed depths back to real series table' }
+    Rails.logger.info { 'Assign_dependency_depth: Copy computed depths back to real series table' }
     ActiveRecord::Base.connection.execute(<<~SQL)
-      UPDATE series JOIN t_series t ON t.id = series.id
-      SET series.dependency_depth = t.dependency_depth;
+      UPDATE series JOIN t_series t ON t.id = series.id SET series.dependency_depth = t.dependency_depth
     SQL
+
     # notify if the dependency tree did not terminate
     if current_depth_count > 0
       PackagerMailer.circular_series_notification(Series.where(universe: 'UHERO', dependency_depth: previous_depth))
