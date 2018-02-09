@@ -942,46 +942,65 @@ class Series < ActiveRecord::Base
   end
 
   def Series.assign_dependency_depth
-    Rails.logger.info { 'Assign_dependency_depth: start' }
-    # reset dependency_depth
+    Rails.logger.info { "Assign_dependency_depth: start at #{Time.now}" }
     ActiveRecord::Base.connection.execute(<<~SQL)
-      UPDATE series SET dependency_depth = 0 WHERE universe = 'UHERO';
+      CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
+          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
     SQL
-    previous_depth_count = Series.where(universe: 'UHERO', dependency_depth: 0).count
+    ActiveRecord::Base.connection.execute(<<~SQL)
+      CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+    SQL
+    ActiveRecord::Base.connection.execute(<<~SQL)   ### Only needed because #braindead MySQL :(
+      CREATE TEMPORARY TABLE t2_series LIKE t_series
+    SQL
+    ActiveRecord::Base.connection.execute(<<~SQL)
+      INSERT INTO t2_series SELECT * FROM t_series
+    SQL
+    previous_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 0')
 
     # first level of dependencies
     Rails.logger.debug { "Assign_dependency_depth: at #{Time.now}: previous_depth=0 previous_depth_count=#{previous_depth_count}" }
     first_level_sql = <<~SQL
-      UPDATE series s SET dependency_depth = 1
-      WHERE EXISTS (SELECT 1 FROM data_sources WHERE `dependencies` LIKE CONCAT('% ', s.`name`, '%'));
+      UPDATE t_series s SET dependency_depth = 1
+      WHERE EXISTS (SELECT 1 FROM t_datasources WHERE `dependencies` LIKE CONCAT('% ', s.`name`, '%'));
     SQL
     ActiveRecord::Base.connection.execute(first_level_sql)
-    current_depth_count = Series.where(universe: 'UHERO', dependency_depth: 1).count
+    current_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 1')
 
     previous_depth = 1
     until current_depth_count == previous_depth_count
       Rails.logger.debug {
         "Assign_dependency_depth: at #{Time.now}: previous_depth=#{previous_depth} current_depth_count=#{current_depth_count}, previous_depth_count=#{previous_depth_count}"
       }
+      ActiveRecord::Base.connection.execute(<<~SQL)
+        /* Sync up t2_series table with t_series */
+        UPDATE t2_series t2 JOIN t_series t ON t.id = t2.id SET t2.dependency_depth = t.dependency_depth
+      SQL
       next_level_sql = <<~SQL
-        UPDATE series s SET dependency_depth = #{previous_depth + 1}
+        UPDATE t_series s SET dependency_depth = #{previous_depth + 1}
         WHERE EXISTS (
-          SELECT 1 FROM data_sources ds JOIN (select * from series) inner_s ON ds.series_id = inner_s.id
-          WHERE inner_s.dependency_depth = #{previous_depth}
+          SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
+          WHERE t2_series.dependency_depth = #{previous_depth}
           AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%')
         );
       SQL
       ActiveRecord::Base.connection.execute next_level_sql
       previous_depth_count = current_depth_count
-      current_depth_count = Series.where(universe: 'UHERO', dependency_depth: previous_depth + 1).count
+      current_depth_count = Series.count_by_sql("SELECT count(*) FROM t_series WHERE dependency_depth = #{previous_depth + 1}")
       previous_depth += 1
     end
+
+    Rails.logger.info { 'Assign_dependency_depth: Copy computed depths back to real series table' }
+    ActiveRecord::Base.connection.execute(<<~SQL)
+      UPDATE series JOIN t_series t ON t.id = series.id SET series.dependency_depth = t.dependency_depth
+    SQL
 
     # notify if the dependency tree did not terminate
     if current_depth_count > 0
       PackagerMailer.circular_series_notification(Series.where(universe: 'UHERO', dependency_depth: previous_depth))
     end
-    Rails.logger.info { 'Assign_dependency_depth: done' }
+    Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
   # recursive incrementer of dependency_depth
