@@ -52,6 +52,7 @@ class DataHtmlParser
     new_data = {}
     bea_data = JSON.parse self.content
     bea_data['BEAAPI']['Results']['Data'].each do |data_point|
+      next unless request_match(parameters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.is_numeric?
@@ -60,7 +61,15 @@ class DataHtmlParser
     end
     new_data
   end
-  
+
+  def request_match(request, data_point)
+    dp = data_point.map{|k,v| [k.upcase, v] }.to_h
+    request.keys.each do |rkey|
+      return false if dp[rkey.upcase] && dp[rkey.upcase] != request[rkey]
+    end
+    true
+  end
+
   def doc
     @doc
   end
