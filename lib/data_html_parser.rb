@@ -65,7 +65,7 @@ class DataHtmlParser
   def request_match(request, data_point)
     dp = data_point.map{|k,v| [k.upcase, v] }.to_h
     request.keys.each do |rkey|
-      return false if dp[rkey.upcase] && dp[rkey.upcase] != request[rkey]
+      return false if dp[rkey.upcase] && request[rkey].strip.upcase != 'ALL' && dp[rkey.upcase] != request[rkey]
     end
     true
   end
