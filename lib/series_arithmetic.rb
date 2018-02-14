@@ -178,7 +178,11 @@ module SeriesArithmetic
     last = {}
     data.sort.each do |date, value|
       month = date.month
-      new_series_data[date] = (value-last[month])/last[month]*100 unless last[month].nil?
+      new_series_data[date] = case last[month]
+                                when nil then nil
+                                when 0 then 0
+                                else (value - last[month]) / last[month] * 100
+                              end
       last[date.month] = value
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
@@ -192,7 +196,11 @@ module SeriesArithmetic
     new_series_data = {}
     data.sort.each do |date, value|
       last_year_date = date - 1.year
-      new_series_data[date] = (value-data[last_year_date])/data[last_year_date]*100 unless data[last_year_date].nil?
+      new_series_data[date] = case data[last_year_date]
+                                when nil then nil
+                                when 0 then 0
+                                else (value - data[last_year_date]) / data[last_year_date] * 100
+                              end
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
@@ -227,7 +235,7 @@ module SeriesArithmetic
       mtd_sum += value
       new_series_data[date] = mtd_sum
     end
-    new_transformation("Month to Date sum of #{name}", new_series_data)    
+    new_transformation("Month to Date sum of #{name}", new_series_data)
   end
   
   def mtd
