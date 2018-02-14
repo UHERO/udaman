@@ -214,11 +214,13 @@ module SeriesArithmetic
     mtd_sum = 0
     mtd_month = nil
     data.sort.each do |date, value|
-      if date.month != mtd_month
-        mtd_month = date.month
-        mtd_sum = 0
+      month = date.month
+      if month == mtd_month
+        mtd_sum += value
+      else
+        mtd_sum = value
+        mtd_month = month
       end
-      mtd_sum += value
       new_series_data[date] = mtd_sum
     end
     new_transformation("Month to Date sum of #{name}", new_series_data)
