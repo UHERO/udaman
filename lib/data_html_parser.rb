@@ -53,7 +53,7 @@ class DataHtmlParser
     new_data = {}
     bea_data = JSON.parse self.content
     bea_data['BEAAPI']['Results']['Data'].each do |data_point|
-#      next unless request_match(parameters, data_point)
+      next unless request_match(parameters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.gsub(',','').is_numeric?
