@@ -121,7 +121,7 @@ module SeriesArithmetic
     new_series_data = {}
     last = nil
     data.sort.each do |date, value|
-      if last
+      if last && (last != 0 || value == 0)
         new_series_data[date] = last == 0 ? 0 : (value - last) / last * 100
       end
       last = value
@@ -184,7 +184,7 @@ module SeriesArithmetic
     new_series_data = {}
     data.sort.each do |date, value|
       prev_value = data[date - 1.year]
-      if prev_value
+      if prev_value && (prev_value != 0 || value == 0)
         new_series_data[date] = prev_value == 0 ? 0 : (value - prev_value) / prev_value * 100
       end
     end
