@@ -67,7 +67,7 @@ class DataHtmlParser
     dp = data_point.map{|k,v| [k.upcase, v] }.to_h
     request.keys.each do |key|
       dp_value = dp[key.upcase.to_s].to_s
-      if !dp_value.blank? && request[key].to_s.strip.upcase != 'ALL' && dp_value != request[key].to_s
+      if !dp_value.blank? && request[key].to_s.strip.upcase !~ /^(ANY|X)$/ && dp_value != request[key].to_s
         Rails.logger.debug { "Rejected match: key=#{key}, dp has '#{dp_value}'" }
         return false
       end
