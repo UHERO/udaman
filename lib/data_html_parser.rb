@@ -48,6 +48,7 @@ class DataHtmlParser
     raise 'No API key defined for BEA' unless api_key
     query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
     @url = "http://www.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
+    Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
     new_data = {}
     bea_data = JSON.parse self.content
@@ -64,8 +65,10 @@ class DataHtmlParser
 
   def request_match(request, data_point)
     dp = data_point.map{|k,v| [k.upcase, v] }.to_h
-    request.keys.each do |rkey|
-      if dp[rkey.upcase.to_s] && request[rkey].strip.upcase != 'ALL' && dp[rkey.upcase.to_s] != request[rkey]
+    request.keys.each do |key|
+      dp_value = dp[key.upcase.to_s].to_s
+      if !dp_value.blank? && request[key].to_s.strip.upcase != 'ALL' && dp_value != request[key].to_s
+        Rails.logger.debug { "Rejected match: key=#{key}, dp has |#{dp_value}|" }
         return false
       end
     end
