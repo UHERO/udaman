@@ -555,13 +555,13 @@ class Series < ActiveRecord::Base
   
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    Series.new_transformation("loaded series with parameters: #{parameters} from bea website", series_data, Series.frequency_from_code(frequency))
+    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, Series.frequency_from_code(frequency))
   end
   
   def load_from_bea(dataset, parameters)
     frequency = Series.frequency_from_code(self.name.split('.')[1])
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    Series.new_transformation("loaded series with parameters: #{parameters} for region #{region} from bea website", series_data, frequency)
+    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)

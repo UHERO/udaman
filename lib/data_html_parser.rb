@@ -48,19 +48,33 @@ class DataHtmlParser
     raise 'No API key defined for BEA' unless api_key
     query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
     @url = "http://www.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
+    Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
     new_data = {}
     bea_data = JSON.parse self.content
     bea_data['BEAAPI']['Results']['Data'].each do |data_point|
+      next unless request_match(parameters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
-      if value && value.is_numeric?
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value.to_f
+      if value && value.gsub(',','').is_numeric?
+        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value.gsub(',','').to_f
       end
     end
     new_data
   end
-  
+
+  def request_match(request, data_point)
+    dp = data_point.map{|k,v| [k.upcase, v] }.to_h
+    request.keys.each do |key|
+      dp_value = dp[key.upcase.to_s].to_s
+      if !dp_value.blank? && request[key].to_s.strip.upcase !~ /^(ANY|X)$/ && dp_value != request[key].to_s
+        Rails.logger.debug { "Rejected match: key=#{key}, dp has '#{dp_value}'" }
+        return false
+      end
+    end
+    true
+  end
+
   def doc
     @doc
   end
