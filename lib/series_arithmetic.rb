@@ -109,8 +109,10 @@ module SeriesArithmetic
       end
       new_base = self.at(Date.new(year)).to_f
     end
-    data.sort.each do |inner_date, value|
-      new_series_data[inner_date] = value / new_base * 100
+    if new_base && new_base != 0
+      data.sort.each do |inner_date, value|
+        new_series_data[inner_date] = value / new_base * 100
+      end
     end
     new_transformation("Rebased #{name} to #{year}", new_series_data)
   end
@@ -119,12 +121,24 @@ module SeriesArithmetic
     new_series_data = {}
     last = nil
     data.sort.each do |date, value|
-      new_series_data[date] = (value-last)/last*100 unless last.nil?
+      pc = compute_percentage_change(value, last)
+      unless pc.nil?
+        new_series_data[date] = pc
+      end
       last = value
     end
     new_transformation("Percentage Change of #{name}", new_series_data)
   end
-  
+
+  def compute_percentage_change(value, last)
+    case
+      when last.nil? then nil
+      when last == 0 && value != 0 then nil
+      when last == 0 && value == 0 then 0
+      else (value - last) / last * 100
+    end
+  end
+
   def absolute_change(id=nil)
     return faster_change(id) unless id.nil?
     new_series_data = {}
@@ -172,18 +186,6 @@ module SeriesArithmetic
     day_based_yoy id
   end
   
-  def old_annualized_percent_change
-    return all_nil unless %w(day week).index(frequency).nil?
-    new_series_data = {}
-    last = {}
-    data.sort.each do |date, value|
-      month = date.month
-      new_series_data[date] = (value-last[month])/last[month]*100 unless last[month].nil?
-      last[date.month] = value
-    end
-    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
-  end
-  
   #just going to leave out the 29th on leap years for now
   def day_based_yoy(id)
     return all_nil unless ['week'].index(frequency).nil?
@@ -191,8 +193,11 @@ module SeriesArithmetic
 
     new_series_data = {}
     data.sort.each do |date, value|
-      last_year_date = date - 1.year
-      new_series_data[date] = (value-data[last_year_date])/data[last_year_date]*100 unless data[last_year_date].nil?
+      prev_value = data[date - 1.year]
+      pc = compute_percentage_change(value, prev_value)
+      unless pc.nil?
+        new_series_data[date] = pc
+      end
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
@@ -229,7 +234,7 @@ module SeriesArithmetic
       end
       new_series_data[date] = mtd_sum
     end
-    new_transformation("Month to Date sum of #{name}", new_series_data)    
+    new_transformation("Month to Date sum of #{name}", new_series_data)
   end
   
   def mtd
