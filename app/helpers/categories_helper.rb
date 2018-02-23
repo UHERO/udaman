@@ -31,7 +31,7 @@ private
     menu = []
     if current_user.admin_user?
       menu.push order_section(leaf, first, last)
-      menu.push link_to('Add_child', {controller: :categories, action: :add_child, id: leaf}, remote: true, data: {toggle: 1})
+      menu.push link_to('Add_child', {controller: :categories, action: :add_child, id: leaf})
       menu.push link_to('Edit', edit_category_path(leaf))
     end
     if current_user.dev_user?

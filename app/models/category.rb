@@ -6,11 +6,12 @@ class Category < ActiveRecord::Base
 
   def add_child
     child_ancestry = "#{ancestry}/#{id}"
+    max_sib = Category.where(ancestry: child_ancestry).maximum(:list_order)
     Category.create(universe: universe,
                     name: 'New child',
                     ancestry: child_ancestry,
                     hidden: hidden,
-                    list_order: Category.where(ancestry: child_ancestry).maximum(:list_order) + 1)
+                    list_order: max_sib.nil? ? 0 : max_sib + 1)
   end
 
   def set_list_order

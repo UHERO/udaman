@@ -38,7 +38,7 @@ class CategoriesController < ApplicationController
   def update
     ## Don't put empty strings in the db
     if @category.update(category_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h)
-      redirect_to @category, notice: 'Category was successfully updated.'
+      redirect_to categories_url, notice: 'Category was successfully updated.'
     else
       render :edit
     end
