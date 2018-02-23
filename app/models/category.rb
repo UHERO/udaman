@@ -4,6 +4,15 @@ class Category < ActiveRecord::Base
   belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
+  def add_child
+    child_ancestry = "#{ancestry}/#{id}"
+    Category.create(universe: universe,
+                    name: 'New child',
+                    ancestry: child_ancestry,
+                    hidden: hidden,
+                    list_order: Category.where(ancestry: child_ancestry).maximum(:list_order) + 1)
+  end
+
   def set_list_order
     return if self.list_order
     self.list_order = 0
