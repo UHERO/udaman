@@ -5,13 +5,22 @@ class Category < ActiveRecord::Base
   before_save :set_list_order
 
   def add_child
-    child_ancestry = "#{ancestry}/#{id}"
+    child_ancestry = ancestry ? "#{ancestry}/#{id}" : id
     max_sib = Category.where(ancestry: child_ancestry).maximum(:list_order)
     Category.create(universe: universe,
                     name: 'New child',
                     ancestry: child_ancestry,
                     hidden: hidden,
                     list_order: max_sib.nil? ? 0 : max_sib + 1)
+  end
+
+  def get_path_from_root
+    path = []
+    return path if ancestry.blank?
+    ancestry.split('/').each do |id|
+      path.push Category.find(id).name rescue 'Unknown category'
+    end
+    path
   end
 
   def set_list_order

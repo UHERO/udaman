@@ -18,6 +18,12 @@ module CategoriesHelper
     '</ul></li>'+"\n"
   end
 
+  def category_path_breadcrumbs(category, extra_sep = false)
+    path = category.get_path_from_root
+    path.push '' if extra_sep
+    path.join(' > ').html_safe
+  end
+
 private
   def show_list_item(leaf, first, last)
     if leaf.data_list

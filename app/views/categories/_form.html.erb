@@ -11,6 +11,7 @@
     </div>
   <% end %>
 
+  <h4><%= category_path_breadcrumbs(@category, true) %></h4>
   <div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name, :size => 80 %>
