@@ -3,12 +3,14 @@ $(function() {
         var ul = $(this).parent().children('ul');
         ul.toggle();
         if (ul.is(':hidden')) {
-            icon = '<i class="fa fa-plus-square" aria-hidden="true"></i>';
+            now = 'plus';
+            next = 'minus';
         }
         else {
-            icon = '<i class="fa fa-minus-square" aria-hidden="true"></i>';
+            now = 'minus';
+            next = 'plus';
         }
-        $(this).html(icon)
+        $(this).html.replace(now, next);
     });
     $('#toggle_all').click(function () {
         var text = $(this).html();
