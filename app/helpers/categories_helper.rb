@@ -1,7 +1,7 @@
 module CategoriesHelper
   def show_table(root, first, last)
     if root.is_childless?
-      return '<li><span><i class="fa fa-square" aria-hidden="true"></i> ' <<
+      return '<li><span><i class="fa fa-square" aria-hidden="true"></i></span> ' <<
           show_list_item(root, first, last) <<
           '</li>'+"\n"
     end
@@ -14,8 +14,8 @@ module CategoriesHelper
 
     ## Note: the span element of class "toggler" below is closed inside the function show_list_item(), in the beginning
     ## part of the variable 'name_part'. Yes, it's ugly as sin, but the only way I could make the category names clickable
-    ## (I felt a much needed UX improvement) without completely rewriting the code. Same thing is going on in the if block
-    ## at the top of this function. If you rewrite the code, make sure to fix this :=P -dji
+    ## (I felt a much needed UX improvement) without completely rewriting the code. If you rewrite the code, make sure to
+    ## fix this :=P -dji
     '<li><span class="toggler" style="cursor:pointer;cursor:hand;"><i class="fa fa-plus-square" aria-hidden="true"></i> ' <<
     show_list_item(root, first, last) << "\n"+'<ul class="collapsible" style="display:none;list-style:none;">' <<
     category_strings.join("\n") <<

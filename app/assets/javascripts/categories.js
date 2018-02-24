@@ -1,16 +1,19 @@
 $(function() {
     $('.toggler').click(function() {
         var ul = $(this).parent().children('ul');
+        var now;
+        var next;
         ul.toggle();
         if (ul.is(':hidden')) {
-            now = 'plus';
-            next = 'minus';
-        }
-        else {
             now = 'minus';
             next = 'plus';
         }
-        $(this).html.replace(now, next);
+        else {
+            now = 'plus';
+            next = 'minus';
+        }
+        var mytext = $(this).html();
+        $(this).html(mytext.replace(now, next));
     });
     $('#toggle_all').click(function () {
         var text = $(this).html();
