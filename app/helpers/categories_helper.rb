@@ -12,11 +12,7 @@ module CategoriesHelper
       category_strings.push show_table(categories[i], i == 0, i + 1 == categories.length)
     }
 
-    ## Note: the span element of class "toggler" below is closed inside the function show_list_item(), in the beginning
-    ## part of the variable 'name_part'. Yes, it's ugly as sin, but the only way I could make the category names clickable
-    ## (I felt a much needed UX improvement) without completely rewriting the code. If you rewrite the code, make sure to
-    ## fix this :=P -dji
-    '<li><span class="toggler" style="cursor:pointer;cursor:hand;"><i class="fa fa-plus-square" aria-hidden="true"></i> ' <<
+    '<li><span class="toggler"><i class="fa fa-plus-square" aria-hidden="true"></i></span> ' <<
     show_list_item(root, first, last) << "\n"+'<ul class="collapsible" style="display:none;list-style:none;">' <<
     category_strings.join("\n") <<
     '</ul></li>'+"\n"
@@ -30,14 +26,16 @@ module CategoriesHelper
 
 private
   def show_list_item(leaf, first, last)
-    if leaf.data_list
-      data_list_section = link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
-    else
-      data_list_section = 'No Data List'
+    data_list_section =
+        case
+          when leaf.data_list then link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
+          when leaf.header then 'Header'
+          else 'No Data List'
+        end
+    name_part = '<span class="toggler">%s</span> (%s)' % [leaf.name, data_list_section]
+    unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
+      name_part += ' [%s.%s]' % [leaf.default_geo_handle, leaf.default_freq]
     end
-
-    name_part = "<strong>#{leaf.name}</strong></span> (#{data_list_section})"
-    name_part += " [#{leaf.default_geo_handle}.#{leaf.default_freq}]" unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
     menu = []
     if current_user.admin_user?
       menu.push order_section(leaf, first, last)

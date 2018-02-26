@@ -1,31 +1,25 @@
 $(function() {
     $('.toggler').click(function() {
         var ul = $(this).parent().children('ul');
-        var now;
-        var next;
         ul.toggle();
         if (ul.is(':hidden')) {
-            now = 'minus';
-            next = 'plus';
+            $(this).html($(this).html().replace('-minus-', '-plus-'));
         }
         else {
-            now = 'plus';
-            next = 'minus';
+            $(this).html($(this).html().replace('-plus-', '-minus-'));
         }
-        var mytext = $(this).html();
-        $(this).html(mytext.replace(now, next));
     });
     $('#toggle_all').click(function () {
         var text = $(this).html();
         if (text == 'Expand all') {
             $('.collapsible').show();
-            $('.toggler').html('<i class="fa fa-minus-square" aria-hidden="true"></i> ');
             $(this).html('Collapse all');
+            $('.toggler').html(this.html().replace('-plus-', '-minus-'));
         }
         else {
             $('.collapsible').hide();
-            $('.toggler').html('<i class="fa fa-plus-square" aria-hidden="true"></i> ');
             $(this).html('Expand all');
+            $('.toggler').html(this.html().replace('-minus-', '-plus-'));
         }
     });
     $("a[data-remote][data-toggle]").on("ajax:success", function(e, data, status, xhr) {
