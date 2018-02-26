@@ -17,8 +17,6 @@ RSpec.describe "categories/edit", type: :view do
 
       assert_select "input#category_name[name=?]", "category[name]"
 
-      assert_select "select#category_parent_id[name=?]", "category[parent_id]"
-
       assert_select "select#category_data_list_id[name=?]", "category[data_list_id]"
     end
   end
