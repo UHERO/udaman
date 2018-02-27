@@ -9,10 +9,13 @@ module CategoriesHelper
       category_strings.push show_table(categories[i], i == 0, i + 1 == categories.length)
     }
 
-    "<li>#{list_item}\n" +
-        '<ul class="collapsible" style="display:none;list-style:none;">' <<
-          category_strings.join("\n") <<
-        "</ul></li>\n"
+    <<~HTML
+    <li>#{list_item}
+        <ul class="collapsible" style="display:none;list-style:none;">
+          #{category_strings.join("\n")}
+        </ul>
+    </li>
+    HTML
   end
 
   def category_path_breadcrumbs(category, extra_sep = false)
