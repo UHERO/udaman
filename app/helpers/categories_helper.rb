@@ -1,10 +1,7 @@
 module CategoriesHelper
   def show_table(root, first, last)
-    if root.is_childless?
-      return '<li><span><i class="fa fa-square" aria-hidden="true"></i></span> ' <<
-          show_list_item(root, first, last) <<
-          '</li>'+"\n"
-    end
+    list_item = show_list_item(root, first, last)
+    return "<li>#{list_item}</li>\n" if root.is_childless?
 
     categories = (root.children.to_a).sort_by!{ |cat| cat.list_order }
     category_strings = []
@@ -12,10 +9,10 @@ module CategoriesHelper
       category_strings.push show_table(categories[i], i == 0, i + 1 == categories.length)
     }
 
-    '<li><span class="toggler"><i class="fa fa-plus-square" aria-hidden="true"></i></span> ' <<
-    show_list_item(root, first, last) << "\n"+'<ul class="collapsible" style="display:none;list-style:none;">' <<
-    category_strings.join("\n") <<
-    '</ul></li>'+"\n"
+    "<li>#{list_item}\n" +
+        '<ul class="collapsible" style="display:none;list-style:none;">' <<
+          category_strings.join("\n") <<
+        "</ul></li>\n"
   end
 
   def category_path_breadcrumbs(category, extra_sep = false)
@@ -26,13 +23,15 @@ module CategoriesHelper
 
 private
   def show_list_item(leaf, first, last)
+    span_class = leaf.is_childless? ? 'category_leaf' : 'category_non_leaf'
+    icon_type = leaf.is_childless? ? 'fa-square' : 'fa-plus-square'
     data_list_section =
         case
           when leaf.data_list then link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
           when leaf.header then 'Header'
           else 'No Data List'
         end
-    name_part = '<span class="toggler">%s</span> (%s)' % [leaf.name, data_list_section]
+    name_part = '<span class="%s"><i class="fa %s" aria-hidden="true"></i> %s</span> (%s)' % [span_class, icon_type, leaf.name, data_list_section]
     unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
       name_part += ' [%s.%s]' % [leaf.default_geo_handle, leaf.default_freq]
     end

@@ -1,12 +1,13 @@
 $(function() {
-    $('.toggler').click(function() {
+    $('.category_non_leaf').click(function() {
         var ul = $(this).parent().children('ul');
         ul.toggle();
+        var text = $(this).html();
         if (ul.is(':hidden')) {
-            $(this).html($(this).html().replace('-minus-', '-plus-'));
+            $(this).html(text.replace('-minus-', '-plus-'));
         }
         else {
-            $(this).html($(this).html().replace('-plus-', '-minus-'));
+            $(this).html(text.replace('-plus-', '-minus-'));
         }
     });
     $('#toggle_all').click(function () {
@@ -14,12 +15,12 @@ $(function() {
         if (text == 'Expand all') {
             $('.collapsible').show();
             $(this).html('Collapse all');
-            $('.toggler').html(this.html().replace('-plus-', '-minus-'));
+            $('.category_non_leaf').each(function() { $(this).html( $(this).html().replace('-plus-', '-minus-') ); });
         }
         else {
             $('.collapsible').hide();
             $(this).html('Expand all');
-            $('.toggler').html(this.html().replace('-minus-', '-plus-'));
+            $('.category_non_leaf').each(function() { $(this).html( $(this).html().replace('-minus-', '-plus-') ); });
         }
     });
     $("a[data-remote][data-toggle]").on("ajax:success", function(e, data, status, xhr) {
