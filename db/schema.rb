@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025734) do
+ActiveRecord::Schema.define(version: 220170413025735) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -58,6 +58,7 @@ ActiveRecord::Schema.define(version: 220170413025734) do
     t.datetime "created_at",                                   null: false
     t.datetime "updated_at",                                   null: false
     t.boolean  "hidden",                     default: false
+    t.boolean  "header",                     default: false
     t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4
     t.string   "ancestry",       limit: 255

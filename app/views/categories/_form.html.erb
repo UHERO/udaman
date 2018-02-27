@@ -11,23 +11,22 @@
     </div>
   <% end %>
 
+  <h4><%= category_path_breadcrumbs(@category, true) %></h4>
   <div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name, :size => 80 %>
     Hidden?
     <%= f.check_box :hidden %>
-  </div>
-  <div class="field">
-    <%= f.label :parent_id %><br>
-    <%= f.collection_select :parent_id, Category.get_all(request.path =~ /edit/ ? @category.id : nil), :id, :name_with_depth, {:include_blank => true}%>
+    Header?
+    <%= f.check_box :header %>
   </div>
   <div class="field">
     <%= f.label :data_list_id %><br>
-    <%= f.collection_select :data_list_id, DataList.where(universe: 'UHERO').all.order(:name), :id, :name, {:include_blank => true} %>
+    <%= f.collection_select :data_list_id, DataList.where(universe: @category.universe).all.order(:name), :id, :name, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :default_geo_id, 'Default geography' %><br>
-    <%= f.collection_select :default_geo_id, Geography.where(universe: 'UHERO').order(:handle), :id, :handle_with_name, { :include_blank => true } %>
+    <%= f.collection_select :default_geo_id, Geography.where(universe: @category.universe).order(:handle), :id, :handle_with_name, { :include_blank => true } %>
   </div>
   <div class="field">
     <%= f.label :default_freq, 'Default frequency' %><br>
