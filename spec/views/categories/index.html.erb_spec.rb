@@ -23,6 +23,6 @@ RSpec.describe 'categories/index', type: :view do
     view.stub(:current_user).and_return(user)
     controller.stub(:current_user).and_return(user)
     render
-    assert_select 'ul>li>strong', :text => 'Name'.to_s, :count => 2
+    assert_select 'ul>li>span', :text => 'Name'.to_s, :count => 2
   end
 end
