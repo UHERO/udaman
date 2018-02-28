@@ -118,8 +118,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/new
   # GET /data_lists/new.xml
   def new
-    category = Category.find(params[:category_id]) rescue nil
-    @category_id = category.id if category
+    @category_id = Category.find(params[:category_id]).id rescue nil
     @data_list = DataList.new
 
     respond_to do |format|
