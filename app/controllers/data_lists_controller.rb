@@ -118,6 +118,8 @@ class DataListsController < ApplicationController
   # GET /data_lists/new
   # GET /data_lists/new.xml
   def new
+    category = Category.find(data_list_params[:category_id]) rescue nil
+    @category_id = category.id if category
     @data_list = DataList.new
 
     respond_to do |format|
@@ -155,7 +157,7 @@ class DataListsController < ApplicationController
 
     respond_to do |format|
       if @data_list.save
-        category = Category.find data_list_params[:category_id] rescue nil
+        category = Category.find(data_list_params[:category_id]) rescue nil
         if category
           category.update_attributes(data_list_id: @data_list.id)
           format.html { redirect_to edit_category_path(category) }

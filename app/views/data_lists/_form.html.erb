@@ -26,7 +26,7 @@
     </div>
   <% end %>
   <div class="actions">
-    <%= f.hidden_field :category_id %>
+    <%= hidden_field_tag(:category_id, @category_id) %>
     <%= f.submit %>
   </div>
 <% end %>
