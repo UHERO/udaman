@@ -23,6 +23,7 @@
   <div class="field">
     <%= f.label :data_list_id %><br>
     <%= f.collection_select :data_list_id, DataList.where(universe: @category.universe).all.order(:name), :id, :name, {:include_blank => true} %>
+    or <%= link_to 'Create a new data list for this category', {controller: :data_lists, action: :new_for_category, category_id: @category.id} %>
   </div>
   <div class="field">
     <%= f.label :default_geo_id, 'Default geography' %><br>

@@ -126,6 +126,11 @@ class DataListsController < ApplicationController
     end
   end
 
+  def new_for_category
+    category_id = params[:category_id]
+    @data_list = DataList.new
+  end
+
   def duplicate
     original_data_list = DataList.find_by id: params[:id]
     new_data_list = original_data_list.dup
