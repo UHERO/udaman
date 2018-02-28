@@ -118,7 +118,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/new
   # GET /data_lists/new.xml
   def new
-    category = Category.find(data_list_params[:category_id]) rescue nil
+    category = Category.find(params[:category_id]) rescue nil
     @category_id = category.id if category
     @data_list = DataList.new
 
@@ -153,17 +153,21 @@ class DataListsController < ApplicationController
   # POST /data_lists
   # POST /data_lists.xml
   def create
-    @data_list = DataList.new  data_list_params.merge({ :created_by => current_user.id, :updated_by => current_user.id, :owned_by => current_user.id })
+    properties = data_list_params.merge({ :created_by => current_user.id, :updated_by => current_user.id, :owned_by => current_user.id })
+    category = Category.find(params[:category_id]) rescue nil
+    properties.merge!(universe: category.universe) if category
+    @data_list = DataList.new properties
 
     respond_to do |format|
       if @data_list.save
-        category = Category.find(data_list_params[:category_id]) rescue nil
-        if category
-          category.update_attributes(data_list_id: @data_list.id)
-          format.html { redirect_to edit_category_path(category) }
-          return
-        end
-        format.html { redirect_to(@data_list, :notice => 'Data list was successfully created.') }
+        format.html {
+          if category
+            category.update_attributes(data_list_id: @data_list.id)
+            redirect_to edit_category_path(category)
+          else
+            redirect_to(@data_list, :notice => 'Data list was successfully created.')
+          end
+        }
         format.xml  { render :xml => @data_list, :status => :created, :location => @data_list }
       else
         format.html { render :action => 'new' }
@@ -305,8 +309,7 @@ class DataListsController < ApplicationController
   private
     def data_list_params
       params.require(:data_list)
-          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id,
-                  :indent_in_out, :category_id)
+          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
     end
 
     def set_dates(frequency, params)
