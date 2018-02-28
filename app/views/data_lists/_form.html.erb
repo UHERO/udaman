@@ -13,17 +13,20 @@
 
   <div class="field">
     <%= f.label :name %><br />
-    <%= f.text_field :name %>
+    <%= f.text_field :name, size: 60 %>
   </div>
   <div class="field">
     <%= f.label :startyear %><br />
-    <%= f.text_field :startyear %>
+    <%= f.text_field :startyear, size: 4 %> (YYYY)
   </div>
-  <div class="field">
-    <%= f.label :owned_by %><br />
-    <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
-  </div>
+  <% if current_user.admin_user? %>
+    <div class="field">
+      <%= f.label :owned_by %><br />
+      <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
+    </div>
+  <% end %>
   <div class="actions">
+    <%= hidden_field_tag(:category_id, @category_id) %>
     <%= f.submit %>
   </div>
 <% end %>

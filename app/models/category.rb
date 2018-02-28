@@ -8,7 +8,7 @@ class Category < ActiveRecord::Base
     child_ancestry = ancestry ? "#{ancestry}/#{id}" : id
     max_sib = Category.where(ancestry: child_ancestry).maximum(:list_order)
     Category.create(universe: universe,
-                    name: 'New child',
+                    name: 'XXX New child XXX',
                     ancestry: child_ancestry,
                     hidden: hidden,
                     list_order: max_sib.nil? ? 0 : max_sib + 1)
