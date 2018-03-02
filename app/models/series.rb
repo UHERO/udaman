@@ -878,7 +878,7 @@ class Series < ActiveRecord::Base
   #could do everything with no dependencies first and do all of those in concurrent fashion...
   #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
   
-  def Series.run_all_dependencies(series_list, already_run, errors, eval_statements)
+  def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
     series_list.each do |s_name|
       next unless already_run[s_name].nil?
       s = s_name.ts
@@ -889,7 +889,7 @@ class Series < ActiveRecord::Base
         puts s.id
         puts s.name
       end
-      errors.concat s.reload_sources
+      errors.concat s.reload_sources(clear_first)
       eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
