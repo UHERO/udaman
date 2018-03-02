@@ -88,11 +88,8 @@ class Series < ActiveRecord::Base
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
   end
   
-  def Series.all_names
-    all_names_array = []
-    all_names = Series.where(universe: 'UHERO').select(:name).all
-    all_names.each {|s| all_names_array.push(s.name)}
-    all_names_array
+  def Series.all_names(universe = 'UHERO')
+    Series.where(universe: universe).pluck(:name)
   end
   
   def Series.region_hash
