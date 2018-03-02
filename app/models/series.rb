@@ -889,7 +889,8 @@ class Series < ActiveRecord::Base
         puts s.id
         puts s.name
       end
-      errors.concat s.reload_sources(clear_first)
+      errors.concat s.reload_sources(false, clear_first)  ## hardcoding as NOT the series worker, because expecting to use
+                                                          ## this code only for ad-hoc jobs from now on
       eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
