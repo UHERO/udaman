@@ -123,9 +123,9 @@ module SeriesRelationship
     results
   end
   
-  def Series.find_first_order_circular
+  def Series.find_first_order_circular(universe = 'UHERO')
     circular_series = []
-    Series.all.each do |series|
+    Series.where(universe: universe).each do |series|
       #puts series.name
       fod = series.first_order_dependencies
       fod.each do |dependent_series|
@@ -165,11 +165,11 @@ module SeriesRelationship
     return 1
   end
     
-  def reload_sources(series_worker = false)
+  def reload_sources(series_worker = false, clear_first = false)
     errors = []
     self.data_sources_by_last_run.each do |ds| 
       begin
-        ds.reload_source unless series_worker && !ds.reload_nightly
+        ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
       rescue => e
         errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }

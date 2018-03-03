@@ -88,11 +88,8 @@ class Series < ActiveRecord::Base
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
   end
   
-  def Series.all_names
-    all_names_array = []
-    all_names = Series.where(universe: 'UHERO').select(:name).all
-    all_names.each {|s| all_names_array.push(s.name)}
-    all_names_array
+  def Series.all_names(universe = 'UHERO')
+    Series.where(universe: universe).pluck(:name)
   end
   
   def Series.region_hash
@@ -881,7 +878,7 @@ class Series < ActiveRecord::Base
   #could do everything with no dependencies first and do all of those in concurrent fashion...
   #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
   
-  def Series.run_all_dependencies(series_list, already_run, errors, eval_statements)
+  def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
     series_list.each do |s_name|
       next unless already_run[s_name].nil?
       s = s_name.ts
@@ -892,7 +889,8 @@ class Series < ActiveRecord::Base
         puts s.id
         puts s.name
       end
-      errors.concat s.reload_sources
+      errors.concat s.reload_sources(false, clear_first)  ## hardcoding as NOT the series worker, because expecting to use
+                                                          ## this code only for ad-hoc jobs from now on
       eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
