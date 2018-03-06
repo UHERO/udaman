@@ -123,9 +123,9 @@ module SeriesRelationship
     results
   end
   
-  def Series.find_first_order_circular(universe = 'UHERO')
+  def Series.find_first_order_circular
     circular_series = []
-    Series.where(universe: universe).each do |series|
+    Series.get_all_uhero.each do |series|
       #puts series.name
       fod = series.first_order_dependencies
       fod.each do |dependent_series|

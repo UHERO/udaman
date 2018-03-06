@@ -76,7 +76,7 @@ class Series < ActiveRecord::Base
   def Series.last_observation_buckets(frequency)
     obs_buckets = {}
     mod_buckets = {}
-    results = Series.where(universe: 'UHERO', frequency: frequency).select('data, updated_at')
+    results = Series.get_all_uhero.where(frequency: frequency).select('data, updated_at')
     results.each do |s|
       last_date = s.last_observation.nil? ? 'no data' : s.last_observation[0..6]
       last_update = s.updated_at.nil? ? 'never' : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
@@ -88,8 +88,8 @@ class Series < ActiveRecord::Base
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
   end
   
-  def Series.all_names(universe = 'UHERO')
-    Series.where(universe: universe).pluck(:name)
+  def Series.all_names
+    Series.get_all_uhero.pluck(:name)
   end
   
   def Series.region_hash
@@ -107,7 +107,7 @@ class Series < ActiveRecord::Base
   
   def Series.frequency_hash
     frequency_hash = {}
-    all_names = Series.where(universe: 'UHERO').select('name, frequency')
+    all_names = Series.get_all_uhero.select('name, frequency')
     all_names.each do |s|
       frequency_hash[s.frequency] ||= []
       frequency_hash[s.frequency].push(s.name)
@@ -248,7 +248,11 @@ class Series < ActiveRecord::Base
       raise SeriesNameException
     end    
   end
-  
+
+  def Series.get_all_uhero
+    Series.where(%q{universe like 'UHERO%'})
+  end
+
   def Series.get_or_new(series_name)
     Series.get(series_name) || Series.create_new({ name: series_name })
   end
@@ -361,7 +365,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.empty_quarantine
-    Series.where(universe: 'UHERO', quarantined: true).update_all quarantined: false
+    Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
     DataPoint.update_public_data_points('UHERO')
   end
 
@@ -996,7 +1000,7 @@ class Series < ActiveRecord::Base
 
     # notify if the dependency tree did not terminate
     if current_depth_count > 0
-      PackagerMailer.circular_series_notification(Series.where(universe: 'UHERO', dependency_depth: previous_depth))
+      PackagerMailer.circular_series_notification(Series.get_all_uhero.where(dependency_depth: previous_depth))
     end
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
@@ -1013,7 +1017,7 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.reload_by_dependency_depth(series_list = Series.where(universe: 'UHERO').all)
+  def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
     redis = Redis.new
     puts 'Starting Reload by Dependency Depth'
@@ -1033,7 +1037,7 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.check_for_stalled_reload(series_size = Series.where(universe: 'UHERO').all.count)
+  def Series.check_for_stalled_reload(series_size = Series.get_all_uhero.count)
     require 'redis'
     require 'sidekiq/api'
     redis = Redis.new
