@@ -250,7 +250,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.get_all_uhero
-    Series.where(%q{universe like 'UHERO%'})
+    Series.where(%q{series.universe like 'UHERO%'})
   end
 
   def Series.get_or_new(series_name)
