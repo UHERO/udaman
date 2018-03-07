@@ -246,7 +246,7 @@ task :find_outliers => :environment do
   errors = []
   outlier_series = []
   t = Time.now
-  Series.all.each do |s| 
+  Series.get_all_uhero.each do |s|
     outliers = s.outlier
     if outliers.nil?
       errors.push s.name 
