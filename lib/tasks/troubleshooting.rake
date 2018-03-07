@@ -8,7 +8,7 @@ end
 
 task :run_all_dependencies => :environment do
    puts "Running all dependencies"
-   Series.run_all_dependencies(Series.all.map {|s| s.name}, {}, [], [])
+   Series.run_all_dependencies(Series.all_names, {}, [], [])
    puts "Complete!"
 end
 

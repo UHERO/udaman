@@ -1,6 +1,6 @@
 desc 'Set current false for older data_points when there are multiple current data_points for a given date'
 task :clean_current => :environment do
-  Series.all.each { |series|
+  Series.get_all_uhero.each { |series|
     DataPoint.select('max(created_at) as created_at, date').where(series_id: series.id, current: 1).group(:date).each { |dp|
       DataPoint.where(series_id: series.id, current: 1, date: dp.date).where('created_at < ?', dp.created_at).each do |inner_dp|
         inner_dp.current = false
