@@ -349,24 +349,25 @@ class Series < ActiveRecord::Base
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points('UHERO', self) unless self.quarantined?
+    DataPoint.update_public_data_points(universe, self) unless self.quarantined?
     aremos_comparison #if we can take out this save, might speed things up a little
     []
   end
 
   def add_to_quarantine
     self.update! quarantined: true
-    DataPoint.update_public_data_points('UHERO', self)
+    DataPoint.update_public_data_points(universe, self)
   end
 
   def remove_from_quarantine
     self.update! quarantined: false
-    DataPoint.update_public_data_points('UHERO', self)
+    DataPoint.update_public_data_points(universe, self)
   end
 
   def Series.empty_quarantine
     Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
     DataPoint.update_public_data_points('UHERO')
+    DataPoint.update_public_data_points('UHEROCOH')
   end
 
   def update_data_hash
