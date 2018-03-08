@@ -5,3 +5,12 @@
 .hidden_cat_label {
   color: red;
 }
+
+.category_non_leaf {
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.category_leaf {
+  font-weight:bold;
+}

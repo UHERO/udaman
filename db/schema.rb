@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025733) do
+ActiveRecord::Schema.define(version: 220170413025736) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -58,6 +58,7 @@ ActiveRecord::Schema.define(version: 220170413025733) do
     t.datetime "created_at",                                   null: false
     t.datetime "updated_at",                                   null: false
     t.boolean  "hidden",                     default: false
+    t.boolean  "header",                     default: false
     t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4
     t.string   "ancestry",       limit: 255
@@ -363,7 +364,7 @@ ActiveRecord::Schema.define(version: 220170413025733) do
   add_index "public_data_points", ["universe"], name: "index_public_data_points_on_universe", using: :btree
 
   create_table "series", force: :cascade do |t|
-    t.string   "universe",                limit: 5,     default: "UHERO", null: false
+    t.string   "universe",                limit: 8,     default: "UHERO", null: false
     t.string   "name",                    limit: 255
     t.string   "frequency",               limit: 255
     t.text     "description",             limit: 65535

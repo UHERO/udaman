@@ -102,10 +102,10 @@ RSpec.describe CategoriesController, type: :controller do
         expect(assigns(:category)).to eq(category)
       end
 
-      it 'redirects to the category' do
+      it 'redirects to the categories list' do
         category = Category.create! valid_attributes
         put :update, {id: category.to_param, category: valid_attributes}
-        expect(response).to redirect_to(category)
+        expect(response).to redirect_to(categories_url)
       end
     end
 

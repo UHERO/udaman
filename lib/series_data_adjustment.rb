@@ -14,12 +14,16 @@ module SeriesDataAdjustment
   end
        
   def trim(start_date = get_last_incomplete_january, end_date = Time.now.to_date)
+    if start_date.nil?
+      return new_transformation("Trimmed #{name}", data)
+    end
     new_series_data = get_values_after_including((Date.parse start_date.to_s), (Date.parse end_date.to_s))
     new_transformation("Trimmed #{name} starting at #{start_date}", new_series_data)
   end
 
   def get_last_incomplete_january
     last_date = (self.data.reject {|_, val| val.nil?}).keys.sort[-1]
+    return nil if last_date.nil?
     #BT 2013-02-13 Changing the code to just always give the most recent january. regardless of whether the year is complete or not. Not sure if this will screw
     #up other things, but seems like it should work in more cases
     #return last_date[5..6] == "12" ? "#{last_date[0..3].to_i + 1}-01-01" : "#{last_date[0..3].to_i}-01-01"
@@ -29,6 +33,7 @@ module SeriesDataAdjustment
   
   def get_last_complete_december
     last_date = self.data.keys.sort[-1]
+    return nil if last_date.nil?
     if last_date.month == 12
       return last_date
     end
@@ -37,6 +42,7 @@ module SeriesDataAdjustment
   
   def get_last_complete_4th_quarter
     last_date = self.data.keys.sort[-1]
+    return nil if last_date.nil?
     if last_date.month == 10
       return last_date
     end
@@ -45,6 +51,7 @@ module SeriesDataAdjustment
   
   def get_last_incomplete_year
     last_date = self.data.keys.sort[-1]
+    return nil if last_date.nil?
     if (last_date.month == 12 and frequency == 'month') or (last_date.month == 10 and frequency == 'quarter')
       new_series_data = {} 
       return new_transformation('No Data since no incomplete year', new_series_data)

@@ -57,9 +57,9 @@ class SeriesController < ApplicationController
 
     @all_series =
       case
-        when prefix then    Series.where('universe = "UHERO" AND name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.where('universe = "UHERO" AND frequency LIKE ?', frequency).order(:name)
-        when all then       Series.where(universe: 'UHERO').order(:name)
+        when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
+        when frequency then Series.get_all_uhero.where('frequency LIKE ?', frequency).order(:name)
+        when all then       Series.get_all_uhero.order(:name)
         else []
       end
   end
@@ -80,17 +80,17 @@ class SeriesController < ApplicationController
   end
 
   def no_source
-    @series = Series.where(universe: 'UHERO', source_id: nil)
+    @series = Series.get_all_uhero.where(source_id: nil)
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def no_source_no_restrict
-    @series = Series.where(universe: 'UHERO', source_id: nil, restricted: false)
+    @series = Series.get_all_uhero.where(source_id: nil, restricted: false)
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def quarantine
-    @series = Series.where(universe: 'UHERO', quarantined: true, restricted: false)
+    @series = Series.get_all_uhero.where(quarantined: true, restricted: false)
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
@@ -280,7 +280,7 @@ class SeriesController < ApplicationController
   end
 
   def stale
-    stales = Series.where(universe: 'UHERO')
+    stales = Series.get_all_uhero
                    .joins(:data_sources)
                    .where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
                    .order('series.name, data_sources.id')
