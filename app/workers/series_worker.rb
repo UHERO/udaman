@@ -28,6 +28,7 @@ class SeriesWorker
         redis.incr keys[:busy_workers]
       end
 
+      puts "\nWORKER: reloading sources for series_id #{series_id}\n"
       errors = Series.find(series_id).reload_sources(true)
       GC.start
       unless errors.nil?
