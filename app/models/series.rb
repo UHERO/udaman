@@ -591,7 +591,6 @@ class Series < ActiveRecord::Base
     Series.new_transformation("loaded series : #{code} from FRED website", series_data, Series.frequency_from_code(frequency))
   end
   
-  
   def Series.where_ds_like(string)
     ds_array = DataSource.where("eval LIKE '%#{string}%'").all
     series_array = []
