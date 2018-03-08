@@ -110,7 +110,8 @@ task :reload_bea_series_only => :environment do
 end
 
 task :update_public_data_points => :environment do
-  DataPoint.update_public_data_points
+  DataPoint.update_public_data_points('UHERO')
+  DataPoint.update_public_data_points('UHEROCOH')
 end
 
 task :daily_history_load => :environment do
