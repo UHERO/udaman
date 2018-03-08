@@ -915,9 +915,9 @@ class Series < ActiveRecord::Base
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
     dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
 
-    series_results = Series.
-        where("universe = 'UHERO' AND ((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))").
-        limit(num_results)
+    series_results = Series.get_all_uhero.
+                        where("((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))").
+                        limit(num_results)
 
     aremos_desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
     aremos_desc_results = AremosSeries.where(aremos_desc_where).limit(num_results)
@@ -947,11 +947,11 @@ class Series < ActiveRecord::Base
     Rails.logger.info { "Assign_dependency_depth: start at #{Time.now}" }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
+          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe LIKE 'UHERO%'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe LIKE 'UHERO%'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)   ### Only needed because #braindead MySQL :(
       CREATE TEMPORARY TABLE t2_series LIKE t_series
