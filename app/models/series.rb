@@ -868,7 +868,7 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_all_series_from_website(url_string)
-    series_from_website = (DataSource.where("universe = 'UHERO' AND eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
+    series_from_website = (DataSource.get_all_uhero.where("eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
     all_series_from_website = series_from_website.map {|s| s.name }
 
     series_from_website.each do |s|
