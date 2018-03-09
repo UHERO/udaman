@@ -83,12 +83,13 @@ class SeriesWorker
         redis.set keys[:busy_workers], 1
         return
       end
-      logger.debug "batch=#{batch_id}: next depth: #{next_depth}"
+      logger.info "batch=#{batch_id}: Trying next depth=#{next_depth}"
       series_ids = redis.get(keys[:series_list]).scan(/\d+/).map{|s| s.to_i}
       next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       while next_series.count == 0
+        logger.info "batch=#{batch_id}: Depth=#{next_depth} is empty"
         next_depth -= 1
-        logger.debug "batch=#{batch_id}: next depth: #{next_depth}"
+        logger.info "batch=#{batch_id}: Trying next depth: #{next_depth}"
         if next_depth == -1
           logger.debug "batch=#{batch_id}: set busy_workers counter to 1 (next_series.count == 0)"
           redis.set keys[:busy_workers], 1
@@ -97,17 +98,17 @@ class SeriesWorker
         next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       end
 
+      logger.info "batch=#{batch_id}: Queueing up next depth=#{next_depth}, number of series=#{next_series.count}"
       redis.pipelined do
         redis.set keys[:queue], next_series.count
         redis.set keys[:current_depth], next_depth
         redis.set keys[:finishing_depth], false
         redis.set keys[:busy_workers], 1
       end
-      logger.debug "batch=#{batch_id}: set busy_workers counter to 1 (end of worker)"
       next_series.pluck(:id).each do |id|
         SeriesWorker.perform_async id, batch_id
       end
-      logger.debug "batch=#{batch_id}: queued up the next depth"
+      logger.debug "batch=#{batch_id}: done queueing up next depth=#{next_depth}"
 
     rescue => e
       logger.error "batch=#{batch_id}: Error running series #{series_id}: #{e.message}"
