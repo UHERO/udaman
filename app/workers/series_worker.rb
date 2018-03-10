@@ -29,10 +29,11 @@ class SeriesWorker
         redis.incr keys[:busy_workers]
       end
 
+      current_depth = redis.get(keys[:current_depth]).to_i
       series = Series.find(series_id)
       errors = []
       if series
-        logger.info "batch=#{batch_id}: Reload series #{series_id} (#{series.name}) started"
+        logger.info "batch=#{batch_id}: Reload series #{series_id} (#{series.name}) started (depth=#{current_depth})"
         errors = series.reload_sources(true)
       else
         errors.push "No series with id=#{series_id} found"
@@ -77,7 +78,7 @@ class SeriesWorker
       # if no workers are busy, the queue should be filled with the next depth
       redis.decr keys[:waiting_workers]
 
-      next_depth = redis.get(keys[:current_depth]).to_i - 1
+      next_depth = current_depth - 1
       if next_depth == -1
         logger.debug "batch=#{batch_id}: on last depth"
         redis.set keys[:busy_workers], 1
