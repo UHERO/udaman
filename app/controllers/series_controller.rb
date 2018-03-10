@@ -71,6 +71,7 @@ class SeriesController < ApplicationController
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
+    @dsas = @series.data_source_actions
     
     respond_to do |format|
       format.csv { render :layout => false }
