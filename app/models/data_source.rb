@@ -135,7 +135,7 @@ class DataSource < ActiveRecord::Base
     end
 
     def reload_source(clear_first = false)
-      logger.info { "Begin reload of data source #{description}" }
+      logger.info { "Begin reload of data source #{id} [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
@@ -152,7 +152,7 @@ class DataSource < ActiveRecord::Base
         s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
-          logger.info { "Reload source [#{description}] (#{id}): Cleared data points before reload" }
+          logger.info { "Reload data source #{id} [#{description}]: Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
@@ -171,7 +171,7 @@ class DataSource < ActiveRecord::Base
                     :runtime => nil,
                     :last_error => message,
                     :last_error_at => t)
-        logger.error { "Reload source [#{description}] (#{id}): Error: #{message}" }
+        logger.error { "Reload data source #{id} [#{description}]: Error: #{message}" }
         return false
       end
       true
