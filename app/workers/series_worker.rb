@@ -32,16 +32,16 @@ class SeriesWorker
       series = Series.find(series_id)
       errors = []
       if series
-        logger.info "batch=#{batch_id}: Reloading series #{series.name} (#{series_id})"
+        logger.info "batch=#{batch_id}: Reload series #{series_id} (#{series.name}) started"
         errors = series.reload_sources(true)
       else
         errors.push "No series with id=#{series_id} found"
       end
       GC.start
       if errors.empty?
-        logger.info "batch=#{batch_id}: Reloaded series #{series.name} (#{series_id}) without error"
+        logger.info "batch=#{batch_id}: Reload series #{series_id} (#{series.name}) SUCCEEDED"
       else
-        logger.info "batch=#{batch_id}: Reload of series id=#{series_id} ERRORED: check reload_errors.log"
+        logger.info "batch=#{batch_id}: Reload series #{series_id} ERRORED: check reload_errors.log"
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
       # check to see if the queue is empty
@@ -111,7 +111,7 @@ class SeriesWorker
       logger.debug "batch=#{batch_id}: done queueing up next depth=#{next_depth}"
 
     rescue => e
-      logger.error "batch=#{batch_id}: Error running series #{series_id}: #{e.message}"
+      logger.error "batch=#{batch_id}: Reload series #{series_id} FAILED: #{e.message}"
       logger.error e.backtrace
       if finisher
         redis.set keys[:finishing_depth], false
