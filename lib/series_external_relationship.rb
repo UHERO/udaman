@@ -66,7 +66,7 @@ module SeriesExternalRelationship
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
           diff = a_diff(value, self.units_at(date))
           self.aremos_diff +=  diff
-          puts "#{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
+          logger.debug { "aremos_comparison: #{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
         end
       end
       self.save if save_series
@@ -94,7 +94,6 @@ module SeriesExternalRelationship
   end
   
   def aremos_comp_display_array
-    
     results = []
     begin
       as = AremosSeries.get self.name
@@ -109,7 +108,7 @@ module SeriesExternalRelationship
           diff = a_diff(value, self.units_at(date))
           dp = DataPoint.where(:series_id => self.id, :date => date, :current=>true)[0]
           source_code = dp.source_type_code
-          puts "#{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" if diff != 0
+          logger.debug { "aremos_comp_display_array: #{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
           results.push(0+source_code) if diff == 0
           results.push(1+source_code) if diff > 0 and diff <= 1.0
           results.push(2+source_code) if diff > 1.0 and diff  <= 10.0
