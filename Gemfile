@@ -1,6 +1,7 @@
 source 'http://rubygems.org'
 
 gem 'rails', '~> 4.2'
+gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
 
@@ -19,6 +20,7 @@ gem 'rest-client', '~> 2.0'
 gem 'spork-rails'
 gem 'sidekiq', '~> 4.1'
 gem 'sinatra', :require => false
+gem 'rack-protection', '~> 2.0.0'
 gem 'sinatra_auth_github', :require => false
 gem 'rubyzip', '~> 1.2.1'
 gem 'capybara', '~> 2.7'
@@ -53,7 +55,7 @@ gem 'stringex', '~> 2.6'
 
 # Bundle the extra gems:
 # gem 'bj'
-gem 'nokogiri'
+gem 'nokogiri', '~> 1.8.1'
 # gem 'sqlite3-ruby', :require => 'sqlite3'
 # gem 'aws-s3', :require => 'aws/s3'
 # Highcharts gem for forecast snapshot
