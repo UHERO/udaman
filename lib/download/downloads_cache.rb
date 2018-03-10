@@ -171,8 +171,7 @@ class DownloadsCache
         # http://stackoverflow.com/questions/8710444/is-there-a-way-in-ruby-1-9-to-remove-invalid-byte-sequences-from-strings
         csv_data.push(CSV.parse_line(line.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')))
       rescue
-        puts 'CSV is having a problem with the following line'
-        puts line
+        Rails.logger.debug { "alternate_fastercsv_read #{path}: Problem with the following line\n#{line}" }
         csv_data.push([])
       end
     end
