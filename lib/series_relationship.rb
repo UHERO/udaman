@@ -123,19 +123,15 @@ module SeriesRelationship
     results
   end
   
-  def Series.find_first_order_circular
+  def Series.find_first_order_circular(series_set = Series.get_all_uhero)
     circular_series = []
-    Series.get_all_uhero.each do |series|
-      #puts series.name
+    series_set.each do |series|
       fod = series.first_order_dependencies
       fod.each do |dependent_series|
         begin
           circular_series.push(dependent_series) unless dependent_series.ts.first_order_dependencies.index(series.name).nil?
         rescue
-          puts 'THIS BROKE'
-          puts dependent_series
-          puts series.name
-          puts series.id
+          logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
         end
       end
     end
