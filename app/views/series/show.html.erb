@@ -59,7 +59,7 @@ google.visualization.events.addListener(chart, 'select', function() {
     <tr><td>Restricted</td><td><%= @series.restricted.to_s %></td></tr>
       <tr><td>Quarantined</td><td><%= @series.quarantined.to_s %>
           <span id="series_controls">
-            <%= link_to('(add)', action: :add_to_quarantine, id: @series) unless @series.quarantined %>
+            <%= link_to('(add)', action: :add_to_quarantine, id: @series) unless @series.quarantined || @series.restricted %>
             <%= link_to('(remove)', action: :remove_from_quarantine, id: @series) if @series.quarantined %>
          </span>
       </td></tr>
