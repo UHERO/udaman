@@ -4,4 +4,7 @@ class FeatureToggle < ActiveRecord::Base
     FeatureToggle.where(%q{feature_toggles.universe = 'UHERO'})
   end
 
+  def FeatureToggle.get_toggle(name, universe = 'UHERO')
+    FeatureToggle.where(name: name, universe: universe).first.status ## will raise exception on non-exist
+  end
 end
