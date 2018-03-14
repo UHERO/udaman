@@ -357,15 +357,19 @@ class Series < ActiveRecord::Base
 
   def add_to_quarantine
     update = { quarantined: true }
-    if FeatureToggle.get('restrict_quarantine', universe) rescue false
-      update.merge!(:restricted, true)
+    if FeatureToggle.is_set('restrict_quarantine', universe) rescue false
+      update.merge!(restricted: true)
     end
     self.update! update
     DataPoint.update_public_data_points(universe, self)
   end
 
   def remove_from_quarantine
-    self.update! quarantined: false, restricted: false
+    update = { quarantined: false }
+    if FeatureToggle.is_set('restrict_quarantine', universe) rescue false
+      update.merge!(restricted: false)
+    end
+    self.update! update
     DataPoint.update_public_data_points(universe, self)
   end
 
