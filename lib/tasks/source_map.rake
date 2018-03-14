@@ -97,7 +97,7 @@ task :reload_bls_series_only => :environment do
   t = Time.now
   #could also hard code this...
   bls_series = Series.get_all_series_from_website('load_from_bls')
-  Series.run_all_dependencies(bls_series.map { |s| s.name }, {}, [], [])
+  Series.reload_by_dependency_depth bls_series
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
