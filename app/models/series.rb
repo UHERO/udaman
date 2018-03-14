@@ -357,7 +357,7 @@ class Series < ActiveRecord::Base
 
   def add_to_quarantine
     update = { quarantined: true }
-    if FeatureToggle.get_toggle('restrict_quarantine', universe) rescue false
+    if FeatureToggle.get('restrict_quarantine', universe) rescue false
       update.merge!(:restricted, true)
     end
     self.update! update
