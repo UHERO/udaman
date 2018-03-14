@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025736) do
+ActiveRecord::Schema.define(version: 220170413025737) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -125,7 +125,7 @@ ActiveRecord::Schema.define(version: 220170413025736) do
 
   create_table "data_points", id: false, force: :cascade do |t|
     t.integer  "id",              limit: 4,  default: 0,       null: false
-    t.string   "universe",        limit: 5,  default: "UHERO", null: false
+    t.string   "universe",        limit: 8,  default: "UHERO", null: false
     t.integer  "series_id",       limit: 4,                    null: false
     t.float    "value",           limit: 53
     t.boolean  "current"
@@ -237,7 +237,7 @@ ActiveRecord::Schema.define(version: 220170413025736) do
   end
 
   create_table "feature_toggles", force: :cascade do |t|
-    t.string   "universe",    limit: 5,   default: "UHERO", null: false
+    t.string   "universe",    limit: 8,   default: "UHERO", null: false
     t.string   "name",        limit: 255
     t.string   "description", limit: 255
     t.boolean  "status"
@@ -352,7 +352,7 @@ ActiveRecord::Schema.define(version: 220170413025736) do
   end
 
   create_table "public_data_points", id: false, force: :cascade do |t|
-    t.string   "universe",       limit: 5,  default: "UHERO", null: false
+    t.string   "universe",       limit: 8,  default: "UHERO", null: false
     t.integer  "series_id",      limit: 4,                    null: false
     t.date     "date",                                        null: false
     t.float    "value",          limit: 53

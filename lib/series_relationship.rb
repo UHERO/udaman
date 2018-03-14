@@ -62,24 +62,6 @@ module SeriesRelationship
     self.data_sources.count
   end
   
-  def Series.update_sources_in_use
-    s = Series.all
-    s.each do |series|
-      series.clean_data_sources if series.data_sources.count > 1
-    end
-    return 1
-  end
-      
-  def open_dependencies(refreshed_list)
-    od = []
-    self.new_dependencies.each do |dep|
-      if refreshed_list.index(dep).nil?
-        od.push(dep)
-      end
-    end
-    od
-  end
-  
   def recursive_dependents(already_seen = [])
     return [] unless already_seen.index(self.name).nil?
     dependent_names = self.new_dependents
@@ -123,19 +105,15 @@ module SeriesRelationship
     results
   end
   
-  def Series.find_first_order_circular
+  def Series.find_first_order_circular(series_set = Series.get_all_uhero)
     circular_series = []
-    Series.get_all_uhero.each do |series|
-      #puts series.name
+    series_set.each do |series|
       fod = series.first_order_dependencies
       fod.each do |dependent_series|
         begin
           circular_series.push(dependent_series) unless dependent_series.ts.first_order_dependencies.index(series.name).nil?
         rescue
-          puts 'THIS BROKE'
-          puts dependent_series
-          puts series.name
-          puts series.id
+          logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
         end
       end
     end
@@ -151,10 +129,6 @@ module SeriesRelationship
       puts "#{ppd.id} : #{ppd.eval}"
     end
     circular_series
-  end
-  
-  def Series.print_prioritization_info
-    Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 10').order('ABS(aremos_diff) DESC').each {|s| puts "#{s.id} - #{s.name}: #{s.new_dependents.count} / #{s.new_dependencies.count} : #{s.aremos_diff}" if s.new_dependents.count > 0 }
   end
   
   def Series.print_multi_sources
@@ -173,7 +147,6 @@ module SeriesRelationship
       rescue => e
         errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
-        puts "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})-----------------------------------------------"
       end
     end
     errors
