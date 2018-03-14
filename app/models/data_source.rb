@@ -33,14 +33,15 @@ class DataSource < ActiveRecord::Base
       type_buckets
     end
 
+    def DataSource.get_all_uhero
+      DataSource.where(%q{data_sources.universe like 'UHERO%'})
+    end
+
     #technically, this will not check for duplicate series
     #that are loading two seasonally adjusted source spreadsheets
     #but this should not happen, so not worried
     def DataSource.all_evals
-      all_descriptions_array = []
-      all_descriptions = DataSource.where(universe: 'UHERO').select(:eval).all
-      all_descriptions.each {|ds| all_descriptions_array.push(ds.eval)}
-      all_descriptions_array
+      DataSource.get_all_uhero.pluck(:eval)
     end
 
     def DataSource.handle_hash
@@ -111,7 +112,7 @@ class DataSource < ActiveRecord::Base
 
     def DataSource.set_dependencies
       Rails.logger.info { 'DataSource set_dependencies: start' }
-      DataSource.where(universe: 'UHERO').find_each(batch_size: 50) do |ds|
+      DataSource.get_all_uhero.find_each(batch_size: 50) do |ds|
         Rails.logger.debug { "DataSource set_dependencies: for #{ds.description}" }
         ds.set_dependencies
       end
