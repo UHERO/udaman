@@ -140,7 +140,7 @@ class DataPoint < ActiveRecord::Base
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
-    dont_unpublish = FeatureToggle.is_set('dont_unpublish_quarantined', universe, false)
+    dont_unpublish = FeatureToggle.is_set('dont_unpublish_quarantined', universe)
     if series && series.quarantined?
       return true if dont_unpublish
 
