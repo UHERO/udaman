@@ -171,10 +171,6 @@ ActiveRecord::Schema.define(version: 220170413025738) do
   end
 
   add_index "data_source_actions", ["series_id"], name: "fk_rails_cbe5366b13", using: :btree
-<<<<<<< HEAD
-=======
-  add_index "data_source_actions", ["user_id"], name: "fk_rails_7bbd664ad8", using: :btree
->>>>>>> 8d00099348aefaf579ec83cda45b9ab468a12234
 
   create_table "data_source_downloads", force: :cascade do |t|
     t.integer  "data_source_id",         limit: 4
