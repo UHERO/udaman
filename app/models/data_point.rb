@@ -61,7 +61,7 @@ class DataPoint < ActiveRecord::Base
     end
     series = self.series
 
-    auto_quarantine = FeatureToggle.is_set('auto_quarantine', universe) rescue true
+    auto_quarantine = FeatureToggle.is_set('auto_quarantine', universe, true)
     if auto_quarantine && (Date.today - 2.years > self.date) && !series.quarantined? && !series.restricted?
       series.add_to_quarantine(false)
     end
@@ -140,7 +140,7 @@ class DataPoint < ActiveRecord::Base
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
-    dont_unpublish = FeatureToggle.is_set('dont_unpublish_quarantined', universe) rescue false
+    dont_unpublish = FeatureToggle.is_set('dont_unpublish_quarantined', universe, false)
     if series && series.quarantined?
       return true if dont_unpublish
 

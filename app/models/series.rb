@@ -358,7 +358,7 @@ class Series < ActiveRecord::Base
   def add_to_quarantine(run_update = true)
     raise 'Cannot add restricted series to quarantine' if restricted?
     update = { quarantined: true }
-    if FeatureToggle.is_set('restrict_quarantine', universe) rescue false
+    if FeatureToggle.is_set('restrict_quarantine',universe, false)
       update.merge!(restricted: true)
     end
     self.update! update
@@ -368,7 +368,7 @@ class Series < ActiveRecord::Base
   def remove_from_quarantine(run_update = true)
     raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
     update = { quarantined: false }
-    if FeatureToggle.is_set('restrict_quarantine', universe) rescue false
+    if FeatureToggle.is_set('restrict_quarantine', universe, false)
       update.merge!(restricted: false)
     end
     self.update! update
@@ -376,7 +376,11 @@ class Series < ActiveRecord::Base
   end
 
   def Series.empty_quarantine
-    Series.get_all_uhero.where(quarantined: true).update_all quarantined: false, restricted: false
+    update = { quarantined: false }
+    if FeatureToggle.is_set('restrict_quarantine', universe, false)
+      update.merge!(restricted: false)
+    end
+    Series.get_all_uhero.where(quarantined: true).update_all update
     DataPoint.update_public_data_points('UHERO')
     DataPoint.update_public_data_points('UHEROCOH')
   end
