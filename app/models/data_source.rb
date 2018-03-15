@@ -5,6 +5,7 @@ class DataSource < ActiveRecord::Base
   belongs_to :series
   has_many :data_points
   has_many :data_source_downloads, dependent: :delete_all
+  has_many :data_source_actions
   has_many :downloads, -> {distinct}, through: :data_source_downloads
 
   composed_of   :last_run,

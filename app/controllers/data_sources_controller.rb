@@ -40,7 +40,7 @@ class DataSourcesController < ApplicationController
   end
 
   def update
-    #params.each { |key,value| puts "#{key}: #{value}" }
+    params.each { |key,value| puts "#{key}: #{value}" }
     
     @data_source = DataSource.find_by id: params[:id]
     @data_source.update_attributes(:priority => params[:data_source][:priority].to_i)
@@ -72,6 +72,7 @@ class DataSourcesController < ApplicationController
   def create
     params.each { |key,value| puts "#{key}: #{value}" }
     @data_source = DataSource.new data_source_params
+    puts "@data_source.series_id: #{@data_source.series_id}"
     if @data_source.create_from_form
       create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
@@ -89,7 +90,7 @@ class DataSourcesController < ApplicationController
     def create_action(data_source, action)
       DataSourceAction.create do |dsa|
         dsa.data_source_id = data_source.id
-        dsa.series_id = data_source.series.id
+        dsa.series_id = data_source.series_id
         dsa.user_id = current_user.id
         dsa.user_email = current_user.email
         dsa.eval = data_source.eval

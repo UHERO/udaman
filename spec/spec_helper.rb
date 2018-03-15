@@ -33,6 +33,8 @@ Spork.prefork do
     # instead of true.
     config.use_transactional_fixtures = true
 
+    config.infer_spec_type_from_file_location!
+
     #to clear database properly
     config.before :each do
       DatabaseCleaner.strategy = :truncation

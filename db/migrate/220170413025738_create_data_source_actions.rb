@@ -13,7 +13,6 @@ class CreateDataSourceActions < ActiveRecord::Migration
     end
 
     add_foreign_key :data_source_actions, :series
-    add_foreign_key :data_source_actions, :users
     # not adding data_source as a foreign key constraint, because we want to see delete actions
   end
 end

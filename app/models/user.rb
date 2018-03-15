@@ -1,5 +1,5 @@
 class User < ActiveRecord::Base
-  belongs_to :data_source_actions
+  has_many :data_source_actions
   enum role: {
       external: 'external',
       heco: 'heco',
