@@ -355,22 +355,24 @@ class Series < ActiveRecord::Base
     []
   end
 
-  def add_to_quarantine
+  def add_to_quarantine(run_update = true)
+    raise 'Cannot add restricted series to quarantine' if restricted?
     update = { quarantined: true }
     if FeatureToggle.is_set('restrict_quarantine', universe) rescue false
       update.merge!(restricted: true)
     end
     self.update! update
-    DataPoint.update_public_data_points(universe, self)
+    DataPoint.update_public_data_points(universe, self) if run_update
   end
 
-  def remove_from_quarantine
+  def remove_from_quarantine(run_update = true)
+    raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
     update = { quarantined: false }
     if FeatureToggle.is_set('restrict_quarantine', universe) rescue false
       update.merge!(restricted: false)
     end
     self.update! update
-    DataPoint.update_public_data_points(universe, self)
+    DataPoint.update_public_data_points(universe, self) if run_update
   end
 
   def Series.empty_quarantine
