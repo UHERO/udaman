@@ -189,7 +189,7 @@ class DataPoint < ActiveRecord::Base
         left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
       where p.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
-           #{ dont_unpublish ? ') ' : 'or s.quarantined) '}
+           #{'or s.quarantined' unless dont_unpublish} )
       #{' and s.id = ? ' if series} ;
     SQL
     begin
