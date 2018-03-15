@@ -15,10 +15,9 @@ describe DataSourcesController do
     sign_in user
   end
 
-  describe "POST 'data_sources'" do
-
-    it "should create a data_source_action on update" do
-      new_eval = 'new eval'
+  describe "update 'data_sources'" do
+    it "creates a data_source_action" do
+      new_eval = 'update eval'
       new_priority = 123
       put :update, id: data_source, :data_source => { :series_id => series.id, :eval => new_eval, :priority => new_priority}
       dsa = DataSourceAction.last
@@ -28,22 +27,34 @@ describe DataSourcesController do
     end
   end
 
-  describe "POST 'data_sources'" do
-
-    it "should create a data_source_action on create" do
-      new_eval = 'new eval'
-      new_priority = 123
-      puts series
-      puts series.id
-      puts series.name
+  describe "create 'data_sources'" do
+    before do
       allow(Series).to receive(:eval) { data_source.update!(last_run: Time.now) }
       allow(Series).to receive(:find_by) { series }
+      allow(data_source).to receive(:series).and_return(series)
+      allow(series).to receive(:data_sources_by_last_run).and_return([data_source])
+      allow(DataSourceAction).to receive(:create)
+    end
 
+    it "creates a data_source_action" do
+      new_eval = 'new eval'
+      new_priority = 123
       post :create, { :data_source => { :series_id => series.id, :eval => new_eval, :priority => new_priority} }
-      dsa = DataSourceAction.last
-      expect(dsa[:action]).to be == 'CREATE'
-      expect(dsa[:eval]).to be == new_eval
-      expect(dsa[:priority]).to be == new_priority
+      expect(DataSourceAction).to have_received(:create)
+    end
+  end
+
+  describe "delete 'data_sources'" do
+    before do
+      allow(DataSource).to receive(:find_by).and_return(data_source)
+      allow(data_source).to receive(:series).and_return(Series.first)
+      allow(data_source).to receive(:delete).and_return(true)
+      allow(DataSourceAction).to receive(:create)
+    end
+
+    it "creates a data_source_action" do
+      get :delete, id: data_source
+      expect(DataSourceAction).to have_received(:create)
     end
   end
 end
