@@ -140,15 +140,14 @@ class DataPoint < ActiveRecord::Base
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
-    dont_unpublish = FeatureToggle.is_set('dont_unpublish_quarantined', universe)
+    remove_quarantine = FeatureToggle.is_set('remove_quarantine_from_public', universe)
     if series && series.quarantined?
-      return true if dont_unpublish
+      return true unless remove_quarantine
 
-      quarantine_query = <<~SQL
-         delete from public_data_points where series_id = ?
-      SQL
       begin
-        stmt = ActiveRecord::Base.connection.raw_connection.prepare(quarantine_query)
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~SQL)
+         delete from public_data_points where series_id = ?
+        SQL
         stmt.execute(series.id)
         stmt.close
       rescue
@@ -189,7 +188,7 @@ class DataPoint < ActiveRecord::Base
         left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
       where p.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
-           #{'or s.quarantined' unless dont_unpublish} )
+           #{'or s.quarantined' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
     SQL
     begin
