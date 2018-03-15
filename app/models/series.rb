@@ -343,6 +343,7 @@ class Series < ActiveRecord::Base
     observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
     observation_dates.each do |date|
       data_points.create(
+        universe: universe,
         :date => date,
         :value => data[date],
         :created_at => Time.now,
@@ -350,24 +351,25 @@ class Series < ActiveRecord::Base
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points('UHERO', self) unless self.quarantined?
+    DataPoint.update_public_data_points(universe, self) unless self.quarantined?
     aremos_comparison #if we can take out this save, might speed things up a little
     []
   end
 
   def add_to_quarantine
     self.update! quarantined: true
-    DataPoint.update_public_data_points('UHERO', self)
+    DataPoint.update_public_data_points(universe, self)
   end
 
   def remove_from_quarantine
     self.update! quarantined: false
-    DataPoint.update_public_data_points('UHERO', self)
+    DataPoint.update_public_data_points(universe, self)
   end
 
   def Series.empty_quarantine
     Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
     DataPoint.update_public_data_points('UHERO')
+    DataPoint.update_public_data_points('UHEROCOH')
   end
 
   def update_data_hash
@@ -867,15 +869,15 @@ class Series < ActiveRecord::Base
   end
   
   def Series.get_all_series_from_website(url_string)
-    series_from_website = (DataSource.where("universe = 'UHERO' AND eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
-    all_series_from_website = series_from_website.map {|s| s.name }
+    series_from_website = (DataSource.get_all_uhero.where("eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
+    series_names = series_from_website.map {|s| s.name }
 
     series_from_website.each do |s|
-      puts s.name
-      all_series_from_website.concat(s.recursive_dependents)
+      logger.debug { s.name }
+      series_names.concat(s.recursive_dependents)
     end
 
-    return Series.where name: all_series_from_website.uniq
+    return Series.where name: series_names.uniq
   end
   
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
@@ -915,9 +917,9 @@ class Series < ActiveRecord::Base
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
     dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
 
-    series_results = Series.
-        where("universe = 'UHERO' AND ((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))").
-        limit(num_results)
+    series_results = Series.get_all_uhero.
+                        where("((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))").
+                        limit(num_results)
 
     aremos_desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
     aremos_desc_results = AremosSeries.where(aremos_desc_where).limit(num_results)
@@ -947,11 +949,11 @@ class Series < ActiveRecord::Base
     Rails.logger.info { "Assign_dependency_depth: start at #{Time.now}" }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
+          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe LIKE 'UHERO%'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe LIKE 'UHERO%'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)   ### Only needed because #braindead MySQL :(
       CREATE TEMPORARY TABLE t2_series LIKE t_series
