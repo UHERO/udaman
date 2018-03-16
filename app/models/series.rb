@@ -349,39 +349,26 @@ class Series < ActiveRecord::Base
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(universe, self) unless self.quarantined?
+    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) unless self.quarantined?
     aremos_comparison #if we can take out this save, might speed things up a little
     []
   end
 
   def add_to_quarantine(run_update = true)
-    raise 'Cannot add restricted series to quarantine' if restricted?
-    update = { quarantined: true }
-    if FeatureToggle.is_set('restrict_quarantine',universe)
-      update.merge!(restricted: true)
-    end
-    self.update! update
-    DataPoint.update_public_data_points(universe, self) if run_update
+    raise 'Trying to quarantine an already quarantined series' if quarantined?
+    self.update! quarantined: true
+    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
   end
 
   def remove_from_quarantine(run_update = true)
     raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
-    update = { quarantined: false }
-    if FeatureToggle.is_set('restrict_quarantine', universe)
-      update.merge!(restricted: false)
-    end
-    self.update! update
-    DataPoint.update_public_data_points(universe, self) if run_update
+    self.update! quarantined: false
+    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
   end
 
   def Series.empty_quarantine
-    update = { quarantined: false }
-    if FeatureToggle.is_set('restrict_quarantine', universe)
-      update.merge!(restricted: false)
-    end
-    Series.get_all_uhero.where(quarantined: true).update_all update
-    DataPoint.update_public_data_points('UHERO')
-    DataPoint.update_public_data_points('UHEROCOH')
+    Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
+    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'))
   end
 
   def update_data_hash
