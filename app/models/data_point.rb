@@ -140,13 +140,13 @@ class DataPoint < ActiveRecord::Base
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
-    remove_quarantine = FeatureToggle.is_set('remove_quarantine_from_public', universe)
+    remove_quarantine = FeatureToggle.is_set('remove_quarantine_from_public', universe, true)
     if series && series.quarantined?
       return true unless remove_quarantine
 
       begin
         stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~SQL)
-         delete from public_data_points where series_id = ?
+          delete from public_data_points where series_id = ?
         SQL
         stmt.execute(series.id)
         stmt.close
