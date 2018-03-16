@@ -343,7 +343,6 @@ class Series < ActiveRecord::Base
     observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
     observation_dates.each do |date|
       data_points.create(
-        universe: universe,
         :date => date,
         :value => data[date],
         :created_at => Time.now,
