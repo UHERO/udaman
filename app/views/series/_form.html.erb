@@ -20,6 +20,10 @@
       </div>
     <% end %>
     <div class="field">
+      <%= f.label :universe, 'Universe' %>
+      <%= f.select :universe, %w(UHERO UHEROCOH).collect {|x| [x, x] }, {:include_blank => false} %>
+    </div>
+    <div class="field">
       <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
       <%= f.text_field :dataPortalName, :size => 80 %>
     </div>
