@@ -356,18 +356,17 @@ class Series < ActiveRecord::Base
 
   def add_to_quarantine
     self.update! quarantined: true
-    DataPoint.update_public_data_points(universe, self)
+    DataPoint.update_public_data_points(universe.sub('UHEROCOH','UHERO'), self)
   end
 
   def remove_from_quarantine
     self.update! quarantined: false
-    DataPoint.update_public_data_points(universe, self)
+    DataPoint.update_public_data_points(universe.sub('UHEROCOH','UHERO'), self)
   end
 
   def Series.empty_quarantine
     Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
-    DataPoint.update_public_data_points('UHERO')
-    DataPoint.update_public_data_points('UHEROCOH')
+    DataPoint.update_public_data_points(universe.sub('UHEROCOH','UHERO'))
   end
 
   def update_data_hash
