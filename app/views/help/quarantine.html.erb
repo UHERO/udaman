@@ -1,0 +1,15 @@
+<h2>Series Quarantine</h2>
+
+Series may be added to the quarantine, and removed from the quarantine, manually using the links on the left side of the Udaman series show page.
+<p></p>
+Series can additionally be added to the quarantine by Udaman automatically if <strong>all</strong> of the following conditions hold:
+<ol>
+  <li>The feature toggle <code>auto_quarantine</code> for the corresponding universe is NOT set to false (default is <strong>true</strong>)</li>
+  <li>The series is not restricted</li>
+  <li>A data update attempts to change the series value for a date that is more than two years in the past</li>
+</ol>
+
+There are two other feature toggle settings that are related to the quarantine:
+<p><strong>filter_by_quarantine</strong> - The data portal will hide data from any series that are quarantined (default <strong>false</strong>).</p>
+<p><strong>remove_quarantined_from_public</strong> - When true, series data will be removed from the set of published data; when false,
+  any published data are left as-is (not updated) until the series is removed from quarantine (default <strong>false</strong>)</p>
