@@ -355,7 +355,6 @@ class Series < ActiveRecord::Base
   end
 
   def add_to_quarantine(run_update = true)
-    raise 'Trying to quarantine an already quarantined series' if quarantined?
     self.update! quarantined: true
     DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
   end
