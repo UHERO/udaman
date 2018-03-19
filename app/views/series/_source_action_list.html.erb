@@ -1,0 +1,20 @@
+<table>
+	<tr>
+		<th>Source ID</th>
+    <th>Action</th>
+    <th>Eval</th>
+    <th>Priority</th>
+    <th>User</th>
+    <th>Date</th>
+	</tr>
+	<% dsas.each do |dsa| %>
+  	<tr>
+      <td><%= dsa.data_source_id %></td>
+      <td><%= dsa.action %></td>
+      <td><%= dsa.eval %></td>
+      <td><%= dsa.priority %></td>
+      <td><%= dsa.user_email %></td>
+  		<td><%= dsa.created_at.localtime.strftime("%m/%d/%y %H:%M:%S") %></td>
+    </tr>
+  <% end %>
+</table>

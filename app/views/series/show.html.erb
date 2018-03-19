@@ -111,4 +111,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 		<%= render :partial => 'source_map', :locals => {:series => @series} %>
 		</td></tr>
   </table>
+
+  <h3>Source Action History</h3>
+  <%= render :partial => 'source_action_list', :locals => {:dsas => @dsas} %>
 </div>
