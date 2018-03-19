@@ -6,10 +6,19 @@ class Category < ActiveRecord::Base
 
   def hide
     self.update_attributes hidden: true
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes hidden: true }
   end
 
   def unhide
     self.update_attributes hidden: false
+    begin
+      ancestors = Category.find(self.ancestry.split(/\//))
+    rescue => e
+      ## we get here most likely because an ancestor id doesn't exist
+      logger.error { e.message }
+      raise
+    end
+    ancestors.each{|c| c.update_attributes hidden: false }
   end
 
   def add_child
