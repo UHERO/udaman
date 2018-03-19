@@ -54,7 +54,7 @@ class CategoriesController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @category.update_attributes(:hidden => !@category.hidden)
+    @category.hidden? ? @category.hide : @category.unhide
   end
 
   def add_child
