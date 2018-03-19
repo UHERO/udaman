@@ -111,7 +111,6 @@ end
 
 task :update_public_data_points => :environment do
   DataPoint.update_public_data_points('UHERO')
-  DataPoint.update_public_data_points('UHEROCOH')
 end
 
 task :daily_history_load => :environment do

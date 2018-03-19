@@ -297,6 +297,7 @@ class SeriesController < ApplicationController
   private
     def series_params
       params.require(:series).permit(
+          :universe,
           :description,
           :units,
           :investigation_notes,

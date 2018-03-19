@@ -4,4 +4,10 @@ class FeatureToggle < ActiveRecord::Base
     FeatureToggle.where(%q{feature_toggles.universe = 'UHERO'})
   end
 
+  def FeatureToggle.is_set(name, default, universe = 'UHERO')
+    toggle = FeatureToggle.find_by(name: name, universe: universe)
+    return toggle.status if toggle
+    logger.debug { "Feature toggle #{name} not existent in universe #{universe}" }
+    default
+  end
 end
