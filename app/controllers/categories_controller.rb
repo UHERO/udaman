@@ -54,7 +54,7 @@ class CategoriesController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @category.hidden? ? @category.hide : @category.unhide
+    @category.hidden? ? @category.unhide : @category.hide
   end
 
   def add_child
