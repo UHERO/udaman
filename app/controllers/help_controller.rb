@@ -8,4 +8,7 @@ class HelpController < ApplicationController
 
   def data_sources
   end
+
+  def quarantine
+  end
 end

@@ -61,12 +61,11 @@ class DataPoint < ActiveRecord::Base
     end
     series = self.series
 
-    auto_quarantine_toggle = FeatureToggle.where(universe: self.universe, name: 'auto_quarantine').first || FeatureToggle.new(status: true)
-    if auto_quarantine_toggle.status && (Date.today - 2.years > self.date) && !series.quarantined && !series.restricted
-      series.update! quarantined: true
+    auto_quarantine = FeatureToggle.is_set('auto_quarantine', true, series.universe)
+    if auto_quarantine && (Date.today - 2.years > self.date) && !series.quarantined? && !series.restricted?
+      series.add_to_quarantine(false)
     end
     false
-    #self.value == value
   end
   
   def delete
@@ -141,12 +140,14 @@ class DataPoint < ActiveRecord::Base
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
+    remove_quarantine = FeatureToggle.is_set('remove_quarantined_from_public', false, universe)
     if series && series.quarantined?
-      quarantine_query = <<~SQL
-         delete from public_data_points where series_id = ?
-      SQL
+      return true unless remove_quarantine
+
       begin
-        stmt = ActiveRecord::Base.connection.raw_connection.prepare(quarantine_query)
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~SQL)
+          delete from public_data_points where series_id = ?
+        SQL
         stmt.execute(series.id)
         stmt.close
       rescue
@@ -169,7 +170,7 @@ class DataPoint < ActiveRecord::Base
       #{' and s.id = ? ' if series} ;
     SQL
     insert_query = <<~SQL
-      #{insert_type} into public_data_points (universe, series_id, date, value, pseudo_history, created_at, updated_at)
+      #{insert_type} into public_data_points (universe, series_id, `date`, `value`, pseudo_history, created_at, updated_at)
       select d.universe, d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
       from data_points d
         join series s on s.id = d.series_id
@@ -186,8 +187,8 @@ class DataPoint < ActiveRecord::Base
         join series s on s.id = p.series_id
         left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
       where p.universe = ?
-      and not s.quarantined
-      and d.created_at is null  /* dp no longer exists in data_points */
+      and( d.created_at is null  /* dp no longer exists in data_points */
+           #{'or s.quarantined' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
     SQL
     begin
