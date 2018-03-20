@@ -1,12 +1,12 @@
 module CategoriesHelper
   def show_table(root, first, last)
-    list_item = show_list_item(root, first, last)
     display_class =
         case
-          when list_item.hidden? then 'hidden_cat'
-          when list_item.masked > 0 then 'masked_cat'
+          when root.hidden then 'hidden_cat'
+          when root.masked > 0 then 'masked_cat'
           else nil
         end
+    list_item = show_list_item(root, first, last)
     return "<li class='#{display_class}'>#{list_item}</li>\n" if root.is_childless?
 
     categories = (root.children.to_a).sort_by!{ |cat| cat.list_order }
