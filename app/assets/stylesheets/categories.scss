@@ -2,8 +2,12 @@
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
 
-.hidden_cat_label {
+.hidden_cat {
   color: red;
+}
+
+.masked_cat {
+  background-color: lightgrey;
 }
 
 .category_non_leaf {

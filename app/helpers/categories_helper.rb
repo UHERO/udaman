@@ -1,7 +1,13 @@
 module CategoriesHelper
   def show_table(root, first, last)
     list_item = show_list_item(root, first, last)
-    return "<li>#{list_item}</li>\n" if root.is_childless?
+    display_class =
+        case
+          when list_item.hidden? then 'hidden_cat'
+          when list_item.masked > 0 then 'masked_cat'
+          else nil
+        end
+    return "<li class='#{display_class}'>#{list_item}</li>\n" if root.is_childless?
 
     categories = (root.children.to_a).sort_by!{ |cat| cat.list_order }
     category_strings = []
@@ -10,7 +16,7 @@ module CategoriesHelper
     }
 
     <<~HTML
-    <li>#{list_item}
+    <li><span class="#{display_class}">#{list_item}</span>
         <ul class="collapsible" style="display:none;list-style:none;">
           #{category_strings.join("\n")}
         </ul>
@@ -53,7 +59,7 @@ private
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end
     display = leaf.hidden ? '' : 'display:none;'
-    menu.push "<span class='hidden_cat_label' style='#{display}'>***** HIDDEN *****</span>"
+    menu.push "<span class='hidden_cat' style='#{display}'>***** HIDDEN *****</span>"
     name_part + ' ' + menu.join(' - ')
   end
 

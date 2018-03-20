@@ -5,7 +5,7 @@ class Category < ActiveRecord::Base
   before_save :set_list_order
 
   def toggle_tree_masked
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes masked: c.masked + 1 }
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.increment! :masked }
   end
 
   def toggle_tree_unmasked
@@ -13,9 +13,13 @@ class Category < ActiveRecord::Base
       if c.masked == 0
         logger.error { "toggle_tree_unmasked: category #{name}: Decrementing zero counter" }
       else
-        c.update_attributes masked: c.masked - 1
+        c.decrement! :masked
       end
     end
+  end
+
+  def is_hidden
+    hidden || masked > 0
   end
 
   def hide
@@ -25,6 +29,8 @@ class Category < ActiveRecord::Base
 
   def unhide
     self.update_attributes hidden: false
+    toggle_tree_unmasked
+    return
     begin
       ancestors = Category.find(self.ancestry.split(/\//))
     rescue => e
@@ -33,7 +39,6 @@ class Category < ActiveRecord::Base
       raise e
     end
     ancestors.each{|c| c.update_attributes hidden: false }
-    toggle_tree_masked false
   end
 
   def get_children
