@@ -4,13 +4,23 @@ class Category < ActiveRecord::Base
   belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
-  def toggle_tree_masked(value)
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes masked: value }
+  def toggle_tree_masked
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes masked: c.masked + 1 }
+  end
+
+  def toggle_tree_unmasked
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each do |c|
+      if c.masked == 0
+        logger.error { "toggle_tree_unmasked: category #{name}: Decrementing zero counter" }
+      else
+        c.update_attributes masked: c.masked - 1
+      end
+    end
   end
 
   def hide
     self.update_attributes hidden: true
-    toggle_tree_masked true
+    toggle_tree_masked
   end
 
   def unhide
