@@ -52,7 +52,8 @@ class Category < ActiveRecord::Base
     Category.create(universe: universe,
                     name: 'XXX New child XXX',
                     ancestry: child_ancestry,
-                    hidden: hidden,
+                    hidden: false,
+                    masked: masked,
                     list_order: max_sib.nil? ? 0 : max_sib + 1)
   end
 

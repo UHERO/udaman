@@ -3,11 +3,15 @@
 // You can use Sass (SCSS) here: http://sass-lang.com/
 
 .hidden_category {
-  color: red;
+  color: indianred;
+  font-weight:bold;
+  text-decoration:line-through;
 }
 
 .masked_category {
   background-color: lightgrey;
+  font-weight:bold;
+  text-decoration:line-through;
 }
 
 .category_non_leaf {
