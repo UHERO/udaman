@@ -2,7 +2,7 @@ class CategoriesController < ApplicationController
   include Authorization
   
   before_action :check_authorization
-  before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down, :toggle_hidden, :unhide_tree, :add_child]
+  before_action :set_category, only: [:show, :edit, :update, :destroy, :up, :down, :toggle_hidden, :add_child]
 
   # GET /categories
   def index
@@ -55,10 +55,6 @@ class CategoriesController < ApplicationController
       format.js { render nothing: true, status: 200 }
     end
     @category.hidden? ? @category.unhide : @category.hide
-  end
-
-  def unhide_tree
-    @category.unhide_tree
   end
 
   def add_child

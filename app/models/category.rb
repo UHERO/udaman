@@ -4,18 +4,13 @@ class Category < ActiveRecord::Base
   belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
-  def toggle_tree_hidden(value)
-    self.update_attributes hidden: value
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes hidden: value }
+  def toggle_tree_masked(value)
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes masked: value }
   end
 
   def hide
-    toggle_tree_hidden(true)
-  end
-
-  def unhide_tree
-    toggle_tree_hidden(false)
-    unhide
+    self.update_attributes hidden: true
+    toggle_tree_masked true
   end
 
   def unhide
@@ -28,6 +23,7 @@ class Category < ActiveRecord::Base
       raise e
     end
     ancestors.each{|c| c.update_attributes hidden: false }
+    toggle_tree_masked false
   end
 
   def get_children
