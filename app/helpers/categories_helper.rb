@@ -47,6 +47,9 @@ private
     if current_user.dev_user?
       if leaf.hidden
         menu.push link_to('Unhide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
+        unless leaf.get_children.empty?
+          menu.push link_to('UnhideTree', {:controller => :categories, action: :unhide_tree, :id => leaf}, remote: true, data: {toggle: 1})
+        end
       else
         menu.push link_to('Hide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
       end

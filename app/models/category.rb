@@ -4,9 +4,18 @@ class Category < ActiveRecord::Base
   belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
+  def toggle_tree_hidden(value)
+    self.update_attributes hidden: value
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes hidden: value }
+  end
+
   def hide
-    self.update_attributes hidden: true
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes hidden: true }
+    toggle_tree_hidden(true)
+  end
+
+  def unhide_tree
+    toggle_tree_hidden(false)
+    unhide
   end
 
   def unhide
@@ -16,9 +25,14 @@ class Category < ActiveRecord::Base
     rescue => e
       ## we get here most likely because an ancestor id doesn't exist
       logger.error { e.message }
-      raise
+      raise e
     end
     ancestors.each{|c| c.update_attributes hidden: false }
+  end
+
+  def get_children
+    child_ancestry = ancestry ? "#{ancestry}/#{id}" : id
+    Category.where(ancestry: child_ancestry).to_a
   end
 
   def add_child
