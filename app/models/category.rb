@@ -18,10 +18,6 @@ class Category < ActiveRecord::Base
     end
   end
 
-  def is_hidden
-    hidden || masked > 0
-  end
-
   def hide
     self.update_attributes hidden: true
     toggle_tree_masked
@@ -30,15 +26,6 @@ class Category < ActiveRecord::Base
   def unhide
     self.update_attributes hidden: false
     toggle_tree_unmasked
-    return
-    begin
-      ancestors = Category.find(self.ancestry.split(/\//))
-    rescue => e
-      ## we get here most likely because an ancestor id doesn't exist
-      logger.error { e.message }
-      raise e
-    end
-    ancestors.each{|c| c.update_attributes hidden: false }
   end
 
   def get_children
