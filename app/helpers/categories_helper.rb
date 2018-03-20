@@ -1,13 +1,7 @@
 module CategoriesHelper
   def show_table(root, first, last)
-    display_class =
-        case
-          when root.hidden then 'hidden_cat'
-          when root.masked > 0 then 'masked_cat'
-          else nil
-        end
     list_item = show_list_item(root, first, last)
-    return "<li class='#{display_class}'>#{list_item}</li>\n" if root.is_childless?
+    return "<li>#{list_item}</li>\n" if root.is_childless?
 
     categories = (root.children.to_a).sort_by!{ |cat| cat.list_order }
     category_strings = []
@@ -16,7 +10,7 @@ module CategoriesHelper
     }
 
     <<~HTML
-    <li><span class="#{display_class}">#{list_item}</span>
+    <li>#{list_item}
         <ul class="collapsible" style="display:none;list-style:none;">
           #{category_strings.join("\n")}
         </ul>
@@ -32,7 +26,13 @@ module CategoriesHelper
 
 private
   def show_list_item(leaf, first, last)
-    span_class = leaf.is_childless? ? 'category_leaf' : 'category_non_leaf'
+    display_class =
+        case
+          when leaf.hidden? then 'hidden_category'
+          when leaf.masked > 0 then 'masked_category'
+          else ''
+        end
+    span_class = display_class + (leaf.is_childless? ? ' category_leaf' : ' category_non_leaf')
     icon_type = leaf.is_childless? ? 'fa-square' : 'fa-plus-square'
     data_list_section =
         case
@@ -58,8 +58,6 @@ private
       end
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end
-    display = leaf.hidden ? '' : 'display:none;'
-    menu.push "<span class='hidden_cat' style='#{display}'>***** HIDDEN *****</span>"
     name_part + ' ' + menu.join(' - ')
   end
 
