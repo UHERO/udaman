@@ -22,7 +22,7 @@ class Category < ActiveRecord::Base
 
   def unhide
     self.update_attributes hidden: false
-    toggle_tree_unmasked
+    toggle_tree_unmasked if self.masked == 0
   end
 
   def get_children
