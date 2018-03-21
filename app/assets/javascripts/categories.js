@@ -23,12 +23,4 @@ $(function() {
             $('.category_non_leaf').each(function() { $(this).html( $(this).html().replace('-minus-', '-plus-') ); });
         }
     });
-    $("a[data-remote][data-toggle]").on("ajax:success", function(e, data, status, xhr) {
-        $(this).siblings("span.hidden_cat_label").toggle();
-        if ($(this).html() === 'Unhide') {
-            $(this).html('Hide');
-            return;
-        }
-        $(this).html('Unhide');
-    });
 });
