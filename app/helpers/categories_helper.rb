@@ -19,7 +19,7 @@ module CategoriesHelper
   end
 
   def category_path_breadcrumbs(category, extra_sep = false)
-    path = category.get_path_from_root
+    path = category.ancestors.map{|a| a.name }
     path.push '' if extra_sep
     path.join(' > ').html_safe
   end
