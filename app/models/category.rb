@@ -5,16 +5,13 @@ class Category < ActiveRecord::Base
   before_save :set_list_order
 
   def toggle_tree_masked
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.increment! :masked }
+    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes(masked: 1) }
   end
 
   def toggle_tree_unmasked
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each do |c|
-      if c.masked == 0
-        logger.error { "toggle_tree_unmasked: category #{name}: Decrementing zero counter" }
-      else
-        c.decrement! :masked
-      end
+    get_children.each do |c|
+      c.update_attributes(masked: 0)
+      c.toggle_tree_unmasked unless c.hidden
     end
   end
 
