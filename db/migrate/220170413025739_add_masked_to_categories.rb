@@ -1,5 +1,5 @@
 class AddMaskedToCategories < ActiveRecord::Migration
   def change
-    add_column :categories, :masked, :integer, null: false, default: 0, after: :hidden
+    add_column :categories, :masked, :boolean, null: false, default: false, after: :hidden
   end
 end

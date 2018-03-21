@@ -5,12 +5,12 @@ class Category < ActiveRecord::Base
   before_save :set_list_order
 
   def toggle_tree_masked
-    Category.where("ancestry rlike '/#{id}/[0-9]|/#{id}$'").each{|c| c.update_attributes(masked: 1) }
+    descendants.each{|c| c.update_attributes masked: true }
   end
 
   def toggle_tree_unmasked
-    get_children.each do |c|
-      c.update_attributes(masked: 0)
+    children.each do |c|
+      c.update_attributes masked: false
       c.toggle_tree_unmasked unless c.hidden
     end
   end
@@ -22,12 +22,7 @@ class Category < ActiveRecord::Base
 
   def unhide
     self.update_attributes hidden: false
-    toggle_tree_unmasked if self.masked == 0
-  end
-
-  def get_children
-    child_ancestry = ancestry ? "#{ancestry}/#{id}" : id
-    Category.where(ancestry: child_ancestry).to_a
+    toggle_tree_unmasked unless self.masked
   end
 
   def add_child
@@ -37,7 +32,7 @@ class Category < ActiveRecord::Base
                     name: 'XXX New child XXX',
                     ancestry: child_ancestry,
                     hidden: false,
-                    masked: masked,
+                    masked: masked || hidden,
                     list_order: max_sib.nil? ? 0 : max_sib + 1)
   end
 

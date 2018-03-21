@@ -28,11 +28,11 @@ private
   def show_list_item(leaf, first, last)
     display_class =
         case
-          when leaf.hidden? then 'hidden_category'
-          when leaf.masked > 0 then 'masked_category'
+          when leaf.hidden? then 'hidden_category '
+          when leaf.masked? then 'masked_category '
           else ''
         end
-    span_class = display_class + (leaf.is_childless? ? ' category_leaf' : ' category_non_leaf')
+    span_class = display_class + (leaf.is_childless? ? 'category_leaf' : 'category_non_leaf')
     icon_type = leaf.is_childless? ? 'fa-square' : 'fa-plus-square'
     data_list_section =
         case
@@ -51,10 +51,9 @@ private
       menu.push link_to('Edit', edit_category_path(leaf))
     end
     if current_user.dev_user?
-      if leaf.hidden
-        menu.push link_to('Unhide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
-      else
-        menu.push link_to('Hide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
+      unless leaf.is_root?
+        hide_op = leaf.hidden? ? 'Unhide' : 'Hide'
+        menu.push link_to(hide_op, {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
       end
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end
