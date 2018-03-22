@@ -104,7 +104,7 @@ end
 task :reload_bea_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  bea_series = Series.get_all_series_from_website('bea.gov')
+  bea_series = Series.get_all_series_from_website('load_from_bea')
   Series.reload_by_dependency_depth bea_series
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end

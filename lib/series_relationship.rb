@@ -80,7 +80,7 @@ module SeriesRelationship
     results = []
     DataSource.where('description RLIKE ?', "[[:<:]]#{self.name.gsub('%', "\\%")}").each do |ds|
       s = Series.find_by id: ds.series_id
-      results.push s.name
+      results.push(s.name) if s
     end
     results.uniq
   end
