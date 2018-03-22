@@ -19,14 +19,20 @@ module CategoriesHelper
   end
 
   def category_path_breadcrumbs(category, extra_sep = false)
-    path = category.get_path_from_root
+    path = category.ancestors.map{|a| a.name }
     path.push '' if extra_sep
     path.join(' > ').html_safe
   end
 
 private
   def show_list_item(leaf, first, last)
-    span_class = leaf.is_childless? ? 'category_leaf' : 'category_non_leaf'
+    display_class =
+        case
+          when leaf.hidden? then 'hidden_category '
+          when leaf.masked? then 'masked_category '
+          else ''
+        end
+    span_class = display_class + (leaf.is_childless? ? 'category_leaf' : 'category_non_leaf')
     icon_type = leaf.is_childless? ? 'fa-square' : 'fa-plus-square'
     data_list_section =
         case
@@ -45,15 +51,12 @@ private
       menu.push link_to('Edit', edit_category_path(leaf))
     end
     if current_user.dev_user?
-      if leaf.hidden
-        menu.push link_to('Unhide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
-      else
-        menu.push link_to('Hide', {:controller => :categories, action: :toggle_hidden, :id => leaf}, remote: true, data: {toggle: 1})
+      unless leaf.is_root?
+        hide_op = leaf.hidden? ? 'Unhide' : 'Hide'
+        menu.push link_to(hide_op, {:controller => :categories, action: :toggle_hidden, :id => leaf})
       end
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end
-    display = leaf.hidden ? '' : 'display:none;'
-    menu.push "<span class='hidden_cat_label' style='#{display}'>***** HIDDEN *****</span>"
     name_part + ' ' + menu.join(' - ')
   end
 

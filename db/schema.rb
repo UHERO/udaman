@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025738) do
+ActiveRecord::Schema.define(version: 220170413025739) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -24,15 +24,6 @@ ActiveRecord::Schema.define(version: 220170413025738) do
   end
 
   add_index "api_applications", ["universe", "name"], name: "index_api_applications_on_universe_and_name", unique: true, using: :btree
-
-  create_table "api_users", force: :cascade do |t|
-    t.string   "key",        limit: 255
-    t.string   "email",      limit: 255
-    t.string   "name",       limit: 255
-    t.datetime "created_at",             null: false
-    t.datetime "updated_at",             null: false
-    t.string   "hostname",   limit: 255
-  end
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -67,6 +58,7 @@ ActiveRecord::Schema.define(version: 220170413025738) do
     t.datetime "created_at",                                   null: false
     t.datetime "updated_at",                                   null: false
     t.boolean  "hidden",                     default: false
+    t.boolean  "masked",                     default: false,   null: false
     t.boolean  "header",                     default: false
     t.integer  "list_order",     limit: 4
     t.integer  "order",          limit: 4

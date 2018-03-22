@@ -4,23 +4,33 @@ class Category < ActiveRecord::Base
   belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
-  def add_child
-    child_ancestry = ancestry ? "#{ancestry}/#{id}" : id
-    max_sib = Category.where(ancestry: child_ancestry).maximum(:list_order)
-    Category.create(universe: universe,
-                    name: 'XXX New child XXX',
-                    ancestry: child_ancestry,
-                    hidden: hidden,
-                    list_order: max_sib.nil? ? 0 : max_sib + 1)
+  def toggle_tree_masked
+    descendants.each{|c| c.update_attributes masked: true }
   end
 
-  def get_path_from_root
-    path = []
-    return path if ancestry.blank?
-    ancestry.split('/').each do |id|
-      path.push Category.find(id).name rescue 'Unknown category'
+  def toggle_tree_unmasked
+    children.each do |c|
+      c.update_attributes masked: false
+      c.toggle_tree_unmasked unless c.hidden
     end
-    path
+  end
+
+  def hide
+    self.update_attributes hidden: true
+    toggle_tree_masked
+  end
+
+  def unhide
+    self.update_attributes hidden: false
+    toggle_tree_unmasked unless self.masked
+  end
+
+  def add_child
+    max_sib = children.maximum(:list_order)
+    children.create(universe: universe,
+                    name: 'XXX New child XXX',
+                    masked: masked || hidden,
+                    list_order: max_sib.nil? ? 0 : max_sib + 1)
   end
 
   def set_list_order

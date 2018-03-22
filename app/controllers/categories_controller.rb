@@ -51,10 +51,8 @@ class CategoriesController < ApplicationController
   end
 
   def toggle_hidden
-    respond_to do |format|
-      format.js { render nothing: true, status: 200 }
-    end
-    @category.update_attributes(:hidden => !@category.hidden)
+    @category.hidden? ? @category.unhide : @category.hide
+    redirect_to categories_url
   end
 
   def add_child
