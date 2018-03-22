@@ -867,16 +867,23 @@ class Series < ActiveRecord::Base
     last_data_added.strftime('%B %e, %Y')
   end
   
-  def Series.get_all_series_from_website(url_string)
-    series_from_website = (DataSource.get_all_uhero.where("eval LIKE '%#{url_string}%'").all.map {|ds| ds.series}).uniq
-    series_names = series_from_website.map {|s| s.name }
+  def Series.get_all_series_by_eval(patterns)
+    if patterns.class == String
+      patterns = [patterns]
+    end
+    series = []
+    patterns.each do |pat|
+      series += DataSource.get_all_uhero.where("eval LIKE '%#{pat.gsub('%', '\%')}%'").map{|ds| ds.series } rescue []
+    end
+    series = series.uniq
+    series_names = series.map{|s| s.name }
 
-    series_from_website.each do |s|
+    series.each do |s|
       logger.debug { s.name }
       series_names.concat(s.recursive_dependents)
     end
 
-    return Series.where name: series_names.uniq
+    Series.where(name: series_names.uniq)
   end
   
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
