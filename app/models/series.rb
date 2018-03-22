@@ -873,7 +873,8 @@ class Series < ActiveRecord::Base
     end
     series = []
     patterns.each do |pat|
-      series += DataSource.get_all_uhero.where("eval LIKE '%#{pat.gsub('%', '\%')}%'").map{|ds| ds.series } rescue []
+      pat.gsub!('%', '\%')
+      series += DataSource.get_all_uhero.where("eval LIKE '%#{pat}%'").map{|ds| ds.series } rescue []
     end
     series = series.uniq
     series_names = series.map{|s| s.name }
