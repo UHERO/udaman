@@ -871,15 +871,15 @@ class Series < ActiveRecord::Base
     if patterns.class == String
       patterns = [patterns]
     end
-    series = []
+    names = []
     all_uhero = DataSource.get_all_uhero
     patterns.each do |pat|
       pat.gsub!('%','\%')
-      series += all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
+      names += all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
     end
-    series = series.uniq
-    Series.where(name: series
-                         .concat(series.map{|s| logger.debug{ s }; s.ts.recursive_dependents }.flatten)
+    names = names.uniq
+    Series.where(name: names
+                         .concat(names.map{|s| logger.debug{ s }; s.ts.recursive_dependents }.flatten)
                          .uniq)
   end
   
