@@ -36,6 +36,10 @@ every 1.day, :at => '11:00 am' do
   rake 'reset_dependency_depth'
 end
 
+every 1.day, :at => "4:00 pm" do
+  rake 'update_bea_links'
+end
+
 every 1.day, :at => '8:00 pm' do
   rake 'reload_aremos'
 end
@@ -64,20 +68,12 @@ every 1.day, :at => '6:00 am' do
 end
 # -----------------------------------------------------------
 
-every 1.day, :at => "#{bls_hour}:00 am" do
-  rake 'update_bea_links'
-end
-
-every 1.day, :at => "#{bls_hour.to_i+2}:30 am" do 
+every 1.day, :at => "#{bls_hour.to_i+2}:30 am" do
   rake 'write_ur_dash'
 end
 
 every 1.day, :at => "#{hour.to_i+5}:30 am" do
   rake 'gen_investigate_csv'
-end
-
-every 1.day, :at => "#{hour.to_i+5}:40 am" do
-  rake 'gen_prognoz_diffs'
 end
 
 every 1.day, :at => "#{hour.to_i+5}:50 am" do
