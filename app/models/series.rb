@@ -873,18 +873,13 @@ class Series < ActiveRecord::Base
     end
     series = []
     patterns.each do |pat|
-      pat.gsub!('%', '\%')
-      series += DataSource.get_all_uhero.where("eval LIKE '%#{pat}%'").map{|ds| ds.series } rescue []
+      pat.gsub!('%','\%')
+      series += DataSource.get_all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
     end
     series = series.uniq
-    series_names = series.map{|s| s.name }
-
-    series.each do |s|
-      logger.debug { s.name }
-      series_names.concat(s.recursive_dependents)
-    end
-
-    Series.where(name: series_names.uniq)
+    Series.where(name: series
+                         .concat(series.map{|s| logger.debug{ s }; s.ts.recursive_dependents }.flatten)
+                         .uniq)
   end
   
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
