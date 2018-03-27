@@ -119,8 +119,8 @@ class NtaUpload < ActiveRecord::Base
 
       data_list_name = 'NTA_%s' % row[0].to_ascii.strip
       long_name = row[1].to_ascii.strip
-      nav_cat = root_cat.get_or_add_child { name: row[4].to_ascii.strip }
-      category = nav_cat.get_or_add_child { name: long_name,  meta: data_list_name }
+      nav_cat = root_cat.get_or_add_child({ name: row[4].to_ascii.strip })
+      category = nav_cat.get_or_add_child({ name: long_name,  meta: data_list_name })
 
       data_list_name.gsub!(/\W+/, '_')  ## From here down, slugify
 
