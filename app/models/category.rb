@@ -25,12 +25,20 @@ class Category < ActiveRecord::Base
     toggle_tree_unmasked unless self.masked
   end
 
-  def add_child
+  def add_child(params = {})
     max_sib = children.maximum(:list_order)
-    children.create(universe: universe,
-                    name: 'XXX New child XXX',
-                    masked: masked || hidden,
-                    list_order: max_sib.nil? ? 0 : max_sib + 1)
+    defaults = {
+        universe: universe,
+        name: 'XXX New child XXX',
+        masked: masked || hidden,
+        list_order: max_sib.nil? ? 0 : max_sib + 1
+    }
+    children.create(defaults.merge(params))
+  end
+
+  def get_or_add_child(attrs)
+    kids = children.where(attrs)
+    kids.empty? ? add_child(attrs) : kids.first
   end
 
   def set_list_order

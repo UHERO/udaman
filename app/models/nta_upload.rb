@@ -112,17 +112,15 @@ class NtaUpload < ActiveRecord::Base
     logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     NtaUpload.delete_universe_nta
 
-    root = Category.find_by(universe: 'NTA', ancestry: nil).id rescue raise('No NTA root category found')
+    root_cat = Category.find_by(universe: 'NTA', ancestry: nil) || raise('No NTA root category found')
 
     CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
 
       data_list_name = 'NTA_%s' % row[0].to_ascii.strip
       long_name = row[1].to_ascii.strip
-      parent_cat_name = row[4].to_ascii.strip
-      parent_cat = Category.get_or_new_nta({ name: parent_cat_name }, { ancestry: root })
-      ancestry = "#{root}/#{parent_cat.id}"
-      category = Category.get_or_new_nta({ meta: data_list_name }, { name: long_name, ancestry: ancestry })
+      nav_cat = root_cat.get_or_add_child { name: row[4].to_ascii.strip }
+      category = nav_cat.get_or_add_child { name: long_name,  meta: data_list_name }
 
       data_list_name.gsub!(/\W+/, '_')  ## From here down, slugify
 
