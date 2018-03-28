@@ -283,7 +283,7 @@ class SeriesController < ApplicationController
   def stale
     stales = Series.get_all_uhero
                    .joins(:data_sources)
-                   .where('last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
+                   .where('reload_nightly = true AND last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
                    .order('series.name, data_sources.id')
                    .pluck('series.id, series.name, data_sources.id')
     @stale_series = {}
