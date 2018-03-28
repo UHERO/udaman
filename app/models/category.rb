@@ -59,11 +59,6 @@ class Category < ActiveRecord::Base
     end
   end
 
-  def Category.get_or_new_nta(attrs, add_attrs = {})
-    attrs.merge!(universe: 'NTA')
-    Category.find_by(attrs) || Category.create(attrs.merge(add_attrs))
-  end
-
   def Category.get_all(except = nil)
     if except
       Category.where("universe = 'UHERO' AND id != ?", except).order(:name)
