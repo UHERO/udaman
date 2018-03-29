@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025740) do
+ActiveRecord::Schema.define(version: 220170413025741) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -74,6 +74,15 @@ ActiveRecord::Schema.define(version: 220170413025740) do
   add_index "categories", ["default_geo_id"], name: "fk_rails_c390c9a75e", using: :btree
   add_index "categories", ["name"], name: "index_categories_on_name", type: :fulltext
   add_index "categories", ["universe"], name: "index_categories_on_universe", using: :btree
+
+  create_table "category_frequencies", id: false, force: :cascade do |t|
+    t.integer "category_id", limit: 4
+    t.string  "frequency",   limit: 255
+  end
+
+  add_index "category_frequencies", ["category_id", "frequency"], name: "index_category_frequencies_on_category_id_and_frequency", unique: true, using: :btree
+  add_index "category_frequencies", ["category_id"], name: "index_category_frequencies_on_category_id", using: :btree
+  add_index "category_frequencies", ["frequency"], name: "index_category_frequencies_on_frequency", using: :btree
 
   create_table "category_geographies", id: false, force: :cascade do |t|
     t.integer "category_id",  limit: 4
