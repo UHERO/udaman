@@ -1,13 +1,6 @@
 class PackagerMailer < ActionMailer::Base
   default :from => 'udaman@hawaii.edu'
 
-  # def rake_notification(rake_task, download_string, error_string, summary_string)
-  #   @download_string = download_string
-  #   @error_string = error_string
-  #   @summary_string = summary_string
-  #   mail(:to => [], :subject => "UDAMAN New Download or Error (#{rake_task})")
-  # end
-
   def rake_notification(rake_task, download_results, errors, series, output_path, is_error)
     begin
       @download_results = download_results
@@ -18,9 +11,9 @@ class PackagerMailer < ActionMailer::Base
       subject = ''
       subject = "UDAMacMini Error (#{rake_task})" if is_error
       subject = "UDAMacMini New Download (#{rake_task})" unless is_error
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => subject)
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
     rescue => e
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -28,9 +21,9 @@ class PackagerMailer < ActionMailer::Base
     begin
       @error = err
       @output_path = output_path
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => 'Rake failed in an unexpected way (Udamacmini)')
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => 'Rake failed in an unexpected way (Udamacmini)')
     rescue => e
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -45,7 +38,7 @@ class PackagerMailer < ActionMailer::Base
       mail(:to => recipients, :subject => subject)
     rescue => e
         puts e.message
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -79,10 +72,10 @@ class PackagerMailer < ActionMailer::Base
   def circular_series_notification(series)
     begin
       @series = series
-      mail(to: ['jrpage@hawaii.edu'], subject: 'Circular Series')
+      mail(to: %w(jrpage@hawaii.edu djiann@hawaii.edu), subject: 'Circular Series')
     rescue => e
       puts e.message
-      mail(:to => ['jrpage@hawaii.edu','djiann@hawaii.edu'], :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(jrpage@hawaii.edu djiann@hawaii.edu), :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 end
