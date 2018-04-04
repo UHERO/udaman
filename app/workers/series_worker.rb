@@ -6,7 +6,7 @@ class SeriesWorker
 
   sidekiq_options(retry: 0)  ## do not retry jobs, but log failures
 
-  sidekiq_retries_exhausted do |msg|
+  sidekiq_retries_exhausted do |msg, e|
     Sidekiq.logger.warn "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
   end
 
