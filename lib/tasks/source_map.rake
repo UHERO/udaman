@@ -63,9 +63,6 @@ task :reload_all_series => :environment do
     Series.run_all_dependencies(series_to_refresh, {}, errors, eval_statements)
     CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
     #719528 is 1970-01-01 in mysql days, -10 does the adjustment for HST
-    inactive_ds = DataSource.where('FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))').order(:last_run_in_seconds)
-
-    DataLoadMailer.series_refresh_notification(nil, inactive_ds, DataSource.count, errors).deliver
   else
     File.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload (sidekiq)', '', Time.now.to_s, '']}
     File.open('public/reload_errors.log', 'w') {|f| f.puts "Reload start time: #{Time.now.to_s}" } # clear out reload errors log
