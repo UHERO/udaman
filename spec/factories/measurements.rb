@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   factory :measurement do
     prefix 'MyString'
     data_portal_name 'MyString'
