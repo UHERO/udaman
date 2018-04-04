@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   factory :feature_toggle do
     name "MyString"
     description "MyString"

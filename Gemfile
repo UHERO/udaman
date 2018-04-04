@@ -79,7 +79,7 @@ end
 
 group :development, :test do
   gem 'rspec-rails', '~> 3.1'
-  gem 'factory_girl_rails', '~> 4.7'
+  gem 'factory_bot_rails', '~> 4.7'
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
