@@ -12,7 +12,7 @@ class SeriesWorker
 
   def perform(series_id, series_size)
     tracker = ReloadTracker.start(series_id)
-    logger.info "SIDEKIQ: started on series #{series_id}, tracker=#{rt.id}"
+    logger.info "SIDEKIQ perform: started on series #{series_id}, tracker=#{rt.id}"
 
     batch_id = create_batch_id(series_size)
     keys = {

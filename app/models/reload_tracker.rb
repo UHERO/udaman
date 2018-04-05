@@ -1,12 +1,14 @@
 class ReloadTracker < ActiveRecord::Base
   belongs_to :series
 
-  def start(series_id)
+  def ReloadTracker.start(series_id)
     begin
-      ReloadTracker.create(series_id: series_id, start_time: Time.now)
+      new = ReloadTracker.create(series_id: series_id, start_time: Time.now)
     rescue => e
       logger.error "ReloadTracker start: #{e.message}"
+      raise
     end
+    new
   end
 
   def finish
@@ -15,6 +17,7 @@ class ReloadTracker < ActiveRecord::Base
       self.save
     rescue => e
       logger.error "ReloadTracker finish: #{e.message}"
+      raise
     end
   end
 
