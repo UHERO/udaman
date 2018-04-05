@@ -7,10 +7,13 @@ class SeriesWorker
   sidekiq_options(retry: 0)  ## do not retry jobs, but log failures
 
   sidekiq_retries_exhausted do |msg, e|
-    Sidekiq.logger.warn "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
+    Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
   end
 
   def perform(series_id, series_size)
+    tracker = ReloadTracker.start(series_id)
+    logger.info "SIDEKIQ: started on series #{series_id}, tracker=#{rt.id}"
+
     batch_id = create_batch_id(series_size)
     keys = {
       queue: "queue_#{batch_id}",
@@ -49,13 +52,13 @@ class SeriesWorker
       # check to see if the queue is empty
       if redis.get(keys[:queue]).to_i > 0 && Sidekiq::Queue.new.size > 0
         logger.debug "#{log_prefix}: queue is not empty"
-        return
+        raise 'earlyreturn'
       end
       logger.debug "#{log_prefix}: queue is empty"
       # if the queue is empty see if another job has raised the flag
       if redis.getset(keys[:finishing_depth], 'true') == 'true'
         logger.debug "#{log_prefix}: another worker will finish"
-        return
+        raise 'earlyreturn'
       end
       finisher = true
 
@@ -73,7 +76,7 @@ class SeriesWorker
             rand > 0.5
           logger.debug "#{log_prefix}: breaking ties"
           redis.decr keys[:waiting_workers]
-          return
+          raise 'earlyreturn'
         end
       end
       # if no workers are busy, the queue should be filled with the next depth
@@ -83,7 +86,7 @@ class SeriesWorker
       if next_depth == -1
         logger.debug "#{log_prefix}: on last depth"
         redis.set keys[:busy_workers], 1
-        return
+        raise 'earlyreturn'
       end
       logger.info "#{log_prefix}: Trying next depth=#{next_depth}"
       series_ids = redis.get(keys[:series_list]).scan(/\d+/).map{|s| s.to_i}
@@ -95,7 +98,7 @@ class SeriesWorker
         if next_depth == -1
           logger.debug "#{log_prefix}: set busy_workers counter to 1 (next_series.count == 0)"
           redis.set keys[:busy_workers], 1
-          return
+          raise 'earlyreturn'
         end
         next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       end
@@ -113,6 +116,7 @@ class SeriesWorker
       logger.debug "#{log_prefix}: done queueing up next depth=#{next_depth}"
 
     rescue => e
+      return if e.message == 'earlyreturn'  ## Ensure block WILL be executed before return!
       logger.error "#{log_prefix}: Reload series #{series_id} FAILED: #{e.message}; Backtrace follows"
       logger.error e.backtrace
       if finisher
@@ -132,6 +136,7 @@ class SeriesWorker
       if redis.get(keys[:busy_workers]).to_i > 0
         redis.decr keys[:busy_workers]
       end
+      tracker.finish
     end
   end
 
