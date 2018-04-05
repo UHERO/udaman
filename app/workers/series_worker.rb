@@ -7,7 +7,7 @@ class SeriesWorker
   sidekiq_options(retry: 0)  ## do not retry jobs, but log failures
 
   sidekiq_retries_exhausted do |msg, e|
-    Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
+    Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}//#{e.message}"
   end
 
   def perform(series_id, series_size)
