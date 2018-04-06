@@ -31,7 +31,6 @@ class SeriesWorker
         redis.decr keys[:queue]
         redis.incr keys[:busy_workers]
       end
-      raise SeriesReloadException, 'fake failure'
       current_depth = redis.get(keys[:current_depth]).to_i
       log_prefix = "batch=#{batch_id},depth=#{current_depth}"
 
