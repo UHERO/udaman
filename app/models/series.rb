@@ -1027,18 +1027,18 @@ class Series < ActiveRecord::Base
     redis = Redis.new
     puts 'Starting Reload by Dependency Depth'
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
-    series_size = series_list.count
+    batch_id = series_list.count.to_s + '_' + Time.now.strftime('%Y%m%d%H%MUTC')
     redis.pipelined do
-      redis.set("current_depth_#{series_size}", first_depth)
-      redis.set("waiting_workers_#{series_size}", 0)
-      redis.set("busy_workers_#{series_size}", 0)
-      redis.set("finishing_depth_#{series_size}", false)
-      redis.set("series_list_#{series_size}", series_list.pluck(:id))
-      redis.set("queue_#{series_size}", series_list.where(:dependency_depth => first_depth).count)
+      redis.set("current_depth_#{batch_id}", first_depth)
+      redis.set("waiting_workers_#{batch_id}", 0)
+      redis.set("busy_workers_#{batch_id}", 0)
+      redis.set("finishing_depth_#{batch_id}", false)
+      redis.set("series_list_#{batch_id}", series_list.pluck(:id))
+      redis.set("queue_#{batch_id}", series_list.where(:dependency_depth => first_depth).count)
     end
     # set the current depth
     series_list.where(:dependency_depth => first_depth).pluck(:id).each do |series_id|
-      SeriesWorker.perform_async series_id, series_size
+      SeriesWorker.perform_async series_id, batch_id
     end
   end
 
