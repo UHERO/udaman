@@ -1,4 +1,4 @@
-class CreateReloadTrackers < ActiveRecord::Migration
+class CreateSidekiqFailures < ActiveRecord::Migration
   def change
     create_table :sidekiq_failures do |t|
       t.belongs_to :series
