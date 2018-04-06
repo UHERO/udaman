@@ -12,10 +12,9 @@ class SeriesWorker
                           message: "#{e.class}: #{msg['error_message']}")
   end
 
-  def perform(series_id, series_size)
+  def perform(series_id, batch_id)
     logger.info "SIDEKIQ perform: started on series #{series_id}"
 
-    batch_id = create_batch_id(series_size)
     keys = {
       queue: "queue_#{batch_id}",
       busy_workers: "busy_workers_#{batch_id}",
@@ -141,8 +140,4 @@ class SeriesWorker
     end
   end
 
-private
-  def create_batch_id(size)
-    size
-  end
 end
