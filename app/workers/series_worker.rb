@@ -7,12 +7,13 @@ class SeriesWorker
   sidekiq_options(retry: 0)  ## do not retry jobs, but log failures
 
   sidekiq_retries_exhausted do |msg, e|
-    Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}//#{e.message}"
+    Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
+    SidekiqFailure.create(series_id: msg['args'][0].to_i,
+                          message: "#{e.class}: #{msg['error_message']}")
   end
 
   def perform(series_id, series_size)
-    tracker = ReloadTracker.start(series_id)
-    logger.info "SIDEKIQ perform: started on series #{series_id}, tracker=#{tracker.id}"
+    logger.info "SIDEKIQ perform: started on series #{series_id}"
 
     batch_id = create_batch_id(series_size)
     keys = {
@@ -136,7 +137,7 @@ class SeriesWorker
       if redis.get(keys[:busy_workers]).to_i > 0
         redis.decr keys[:busy_workers]
       end
-      tracker.finish
+      logger.info "SIDEKIQ perform: finished with series #{series_id}"
     end
   end
 
