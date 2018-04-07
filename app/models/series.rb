@@ -20,7 +20,7 @@ class Series < ActiveRecord::Base
   has_many :data_points
   has_many :data_sources
   has_many :data_source_actions, -> { order 'created_at DESC' }
-  has_one  :sidekiq_failures
+  has_many :sidekiq_failures  ## really only has one, but stupid Rails error prevented relation from working with has_one :(
 
   has_and_belongs_to_many :data_lists
 
