@@ -1029,7 +1029,7 @@ class Series < ActiveRecord::Base
     puts 'Starting Reload by Dependency Depth'
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
     batch_id = Time.now.strftime('%Y%m%d%H%MUTC') + '_' + series_list.count.to_s
-        redis.pipelined do
+    redis.pipelined do
       redis.set("current_depth_#{batch_id}", first_depth)
       redis.set("waiting_workers_#{batch_id}", 0)
       redis.set("busy_workers_#{batch_id}", 0)
