@@ -25,8 +25,6 @@ class PrognozDataFile < ActiveRecord::Base
     Zip::File.open(folder + 'ready_to_send_zip_files/' + send_edition + '.zip', Zip::File::CREATE) do |zipfile|
       filenames.each {|fname| zipfile.add(fname.split('/')[-1], fname)}
     end
-    
-    PackagerMailer.prognoz_notification(recipients, send_edition).deliver
   end
   
   def update_spreadsheet

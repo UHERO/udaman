@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   factory :series do
     eval "MyString"
     priority 100

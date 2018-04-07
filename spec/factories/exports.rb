@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   factory :export do
     name "MyString"
     created_by 1

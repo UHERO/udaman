@@ -19,7 +19,7 @@ RSpec.describe 'categories/index', type: :view do
   end
 
   it 'renders a list of categories' do
-    user = FactoryGirl.create(:user)
+    user = FactoryBot.create(:user)
     view.stub(:current_user).and_return(user)
     controller.stub(:current_user).and_return(user)
     render
