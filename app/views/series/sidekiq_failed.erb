@@ -6,7 +6,7 @@
 <div id="details_area">
 		<ul>
 		<% @series.each do |series| %>
-       <li><%= link_to series.name, series %> (<%= series.sidekiq_failures.first.message %>)</li>
+       <li><%= link_to series.name, series %><br/><%= series.sidekiq_failures.first.message %></li>
     <% end %>
 		</ul>
 </div>
