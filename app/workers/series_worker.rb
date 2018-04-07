@@ -8,8 +8,8 @@ class SeriesWorker
 
   sidekiq_retries_exhausted do |msg, e|
     Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
-    SidekiqFailure.create(series_id: msg['args'][0].to_i,
-                          message: "#{e.class}: #{msg['error_message']}")
+    failure = SidekiqFailure.find_or_create_by(series_id: msg['args'][0].to_i)
+    failure.update_attributes message: "Batch ID: #{msg['args'][1]}: #{e.class}: #{msg['error_message']}"
   end
 
   def perform(series_id, batch_id)

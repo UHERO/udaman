@@ -1,0 +1,13 @@
+<div id="summary_area">
+	<h2>Series that failed Sidekiq reload</h2>
+	<h2>Total: <%= @series.count %></h2>
+</div>
+<div id="details_mask"></div>
+<div id="details_area">
+		<ul>
+		<% @series.each do |series| %>
+       <li><%= link_to series.name, series %> (<%= series.sidekiq_failure.message %>)</li>
+    <% end %>
+		</ul>
+</div>
+<p>
