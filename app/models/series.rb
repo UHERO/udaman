@@ -1022,6 +1022,20 @@ class Series < ActiveRecord::Base
     end
   end
 
+  def reload_with_dependencies(series_name)
+    seen = { series_name => true }
+    next_set = [series_name]
+    until next_set.empty?
+      foo = Series.joins(:data_sources)
+                       .where(name: next_set)
+                       .where(%q{data_sources.dependencies LIKE CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')})
+                       .pluck(:name)
+      foo -= seen.keys
+      next_set = foo #?
+    end
+    true
+  end
+
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
     redis = Redis.new
