@@ -137,7 +137,7 @@ class SeriesWorker
         redis.decr keys[:busy_workers]
       end
     end
-    break
+    break ## end of loop do - only run once
     end
     logger.info "SIDEKIQ perform: finished with series #{series_id}"
     failure = SidekiqFailure.find_by(series_id: series_id)
