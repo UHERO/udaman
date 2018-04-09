@@ -13,7 +13,7 @@ class UpdateSpreadsheet < Roo::Excel
     begin
       super spreadsheet_name
     rescue => e
-      logger.error { "UpdateSpreadsheet.initialize error: #{e.message}" }
+      Rails.logger.error { "UpdateSpreadsheet.initialize error: #{e.message}" }
       @load_error = true
     end
   end
