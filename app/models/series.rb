@@ -1026,10 +1026,14 @@ class Series < ActiveRecord::Base
     seen = { series_name => true }
     next_set = [series_name]
     until next_set.empty?
-      foo = Series.joins(:data_sources)
-                       .where(name: next_set)
-                       .where(%q{data_sources.dependencies LIKE CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')})
-                       .pluck(:name)
+      qmarks = next_set.count.times.map{ '?' }.join(',')
+      foo = Series.find_by_sql(<<~SQL, next_set)
+        select distinct s1.name
+        from data_sources
+          join series s1 on data_sources.series_id = s1.id
+          join series s2 on s2.name in (#{qmarks})
+        where data_sources.dependencies LIKE CONCAT('% ', REPLACE(s2.name, '%', '\\%'), '%')
+      SQL
       foo -= seen.keys
       next_set = foo #?
     end
