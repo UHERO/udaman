@@ -8,10 +8,13 @@ class SeriesWorker
 
   sidekiq_retries_exhausted do |msg, e|
     Sidekiq.logger.error "Failed #{msg['class']} with #{msg['args']}: #{msg['error_message']}"
+    failure = SidekiqFailure.find_or_create_by(series_id: msg['args'][0].to_i)
+    failure.update_attributes message: "#{msg['args'][1]}: #{e.class}: #{msg['error_message']}"
   end
 
-  def perform(series_id, series_size)
-    batch_id = create_batch_id(series_size)
+  def perform(series_id, batch_id)
+    logger.info "SIDEKIQ perform: started on series #{series_id}"
+
     keys = {
       queue: "queue_#{batch_id}",
       busy_workers: "busy_workers_#{batch_id}",
@@ -20,10 +23,39 @@ class SeriesWorker
       current_depth: "current_depth_#{batch_id}",
       series_list: "series_list_#{batch_id}"
     }
-    finisher = false
+    redis = Redis.new
 
     begin
-      redis = Redis.new
+      finisher = heavy_lifter(series_id, batch_id, keys, redis)
+    rescue => e
+      logger.error "#{log_prefix}: Reload series #{series_id} FAILED: #{e.message}; Backtrace follows"
+      logger.error e.backtrace
+      if finisher
+        redis.set keys[:finishing_depth], false
+      end
+      redis.pipelined do
+        redis.incr keys[:busy_workers]
+        redis.incr keys[:queue]
+      end
+      raise e
+    ensure
+      if finisher
+        redis.set keys[:finishing_depth], false
+      end
+      # busy workers had been going negative
+      if redis.get(keys[:busy_workers]).to_i > 0
+        redis.decr keys[:busy_workers]
+      end
+    end
+    logger.info "SIDEKIQ perform: finished with series #{series_id}"
+    failure = SidekiqFailure.find_by(series_id: series_id)
+    failure.destroy if failure
+  end
+
+  private
+    def heavy_lifter(series_id, batch_id, keys, redis)
+      finisher = false
+
       redis.pipelined do
         redis.decr keys[:queue]
         redis.incr keys[:busy_workers]
@@ -49,16 +81,16 @@ class SeriesWorker
       # check to see if the queue is empty
       if redis.get(keys[:queue]).to_i > 0 && Sidekiq::Queue.new.size > 0
         logger.debug "#{log_prefix}: queue is not empty"
-        return
+        return finisher
       end
       logger.debug "#{log_prefix}: queue is empty"
       # if the queue is empty see if another job has raised the flag
       if redis.getset(keys[:finishing_depth], 'true') == 'true'
         logger.debug "#{log_prefix}: another worker will finish"
-        return
+        return finisher
       end
-      finisher = true
 
+      finisher = true
       redis.incr keys[:waiting_workers]
       logger.debug "#{log_prefix}: This worker will finish"
       # wait for everyone else to finish
@@ -73,7 +105,7 @@ class SeriesWorker
             rand > 0.5
           logger.debug "#{log_prefix}: breaking ties"
           redis.decr keys[:waiting_workers]
-          return
+          return finisher
         end
       end
       # if no workers are busy, the queue should be filled with the next depth
@@ -83,7 +115,7 @@ class SeriesWorker
       if next_depth == -1
         logger.debug "#{log_prefix}: on last depth"
         redis.set keys[:busy_workers], 1
-        return
+        return finisher
       end
       logger.info "#{log_prefix}: Trying next depth=#{next_depth}"
       series_ids = redis.get(keys[:series_list]).scan(/\d+/).map{|s| s.to_i}
@@ -95,7 +127,7 @@ class SeriesWorker
         if next_depth == -1
           logger.debug "#{log_prefix}: set busy_workers counter to 1 (next_series.count == 0)"
           redis.set keys[:busy_workers], 1
-          return
+          return finisher
         end
         next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
       end
@@ -111,32 +143,7 @@ class SeriesWorker
         SeriesWorker.perform_async id, batch_id
       end
       logger.debug "#{log_prefix}: done queueing up next depth=#{next_depth}"
-
-    rescue => e
-      logger.error "#{log_prefix}: Reload series #{series_id} FAILED: #{e.message}; Backtrace follows"
-      logger.error e.backtrace
-      if finisher
-        redis.set keys[:finishing_depth], false
-      end
-      redis.pipelined do
-        redis.incr keys[:busy_workers]
-        redis.incr keys[:queue]
-      end
-      raise
-
-    ensure
-      if finisher
-        redis.set keys[:finishing_depth], false
-      end
-      # busy workers had been going negative
-      if redis.get(keys[:busy_workers]).to_i > 0
-        redis.decr keys[:busy_workers]
-      end
+      finisher
     end
-  end
 
-private
-  def create_batch_id(size)
-    size
-  end
 end
