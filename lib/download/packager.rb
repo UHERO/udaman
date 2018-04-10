@@ -103,7 +103,7 @@ class Packager
       changed = Series.write_data_list @series.keys, @output_path unless @definitions.nil?        
       packager_output.update_attributes(:last_new_data => Time.now) if changed
       
-    rescue Exception,StandardError => e
+    rescue Exception => e
       PackagerMailer.rake_error(e, output_path).deliver
       raise e
     end
@@ -152,7 +152,7 @@ class Packager
         end
         def_data = series_name.ts.data
         series[series_name] = def_data.nil? ? {} : def_data
-      rescue Exception,StandardError => e
+      rescue Exception => e
         puts "THERE WAS AN ERROR FOR #{series_name}: #{definition}"
         series[series_name] = {}
         @errors.push({ :series => series_name, :definition => definition, :error => e.message })
