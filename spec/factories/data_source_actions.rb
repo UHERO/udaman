@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
   factory :data_source_action do
     data_source_id 1
     series_id 1
