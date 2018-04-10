@@ -115,7 +115,7 @@ task :write_ur_dash => :environment do
      f.send('action=', '/admin/pages/edit/123/autoPublish:1')
     end.click_button
     PackagerMailer.website_post_notification(post_name, post_address, new_data_series, true).deliver
-  rescue Exception => e
+  rescue
     PackagerMailer.website_post_notification(post_name, post_address, new_data_series, false).deliver
   end
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['write_ur_dash', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
