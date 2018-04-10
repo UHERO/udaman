@@ -33,7 +33,7 @@ class UnitsController < ApplicationController
 
     begin
       saved = @unit.save
-    rescue Exception => e
+    rescue => e
       if e.message =~ /duplicate entry/i
         error = 'Unit not saved: Duplicate entry'
       else
@@ -61,7 +61,7 @@ class UnitsController < ApplicationController
 
     begin
       updated = @unit.update(unit_params)
-    rescue Exception => e
+    rescue => e
       if e.message =~ /duplicate entry/i
         error = 'Unit not saved: Duplicate entry'
       else

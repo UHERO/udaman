@@ -57,7 +57,7 @@ class DownloadsController < ApplicationController
         @output_file.download 
         flash[:notice] = 'Download successfully updated.'
         format.html { redirect_to( :action => 'index') }
-      rescue Exception => e
+      rescue => e
         flash[:notice] = "Something went wrong: #{e.message}"
         format.html { redirect_to( :action => 'index') }
       end
