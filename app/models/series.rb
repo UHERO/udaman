@@ -1032,8 +1032,8 @@ class Series < ActiveRecord::Base
     until next_set.empty?
       logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
-      new_deps = Series.find_by_sql(<<~SQL, next_set)
-        select distinct series_id
+      new_deps = Series.find_by_sql([<<~SQL, next_set])
+        select distinct series_id as id
         from data_sources
           join series s2 on s2.id in (#{qmarks})
         where dependencies like CONCAT('% ', REPLACE(s2.name, '%', '\\%'), '%')
