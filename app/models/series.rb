@@ -1034,14 +1034,14 @@ class Series < ActiveRecord::Base
       qmarks = next_set.count.times.map{ '?' }.join(',')
       new_deps = Series.find_by_sql [<<~SQL, next_set].flatten ## this is so wackt that it must be done this way :(
         select distinct series_id as id
-        from data_sources
-          join series s2 on s2.id in (#{qmarks})
-        where dependencies like CONCAT('% ', REPLACE(s2.name, '%', '\\%'), '%')
+        from data_sources, series
+        where series.id in (#{qmarks})
+        and dependencies like CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')
       SQL
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    ##Series.reload_by_dependency_depth Series.where id: result_set
+    Series.reload_by_dependency_depth Series.where id: result_set
   end
 
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
