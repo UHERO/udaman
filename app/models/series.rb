@@ -1047,7 +1047,7 @@ class Series < ActiveRecord::Base
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
     redis = Redis.new
-    puts 'Starting Reload by Dependency Depth'
+    logger.info { 'Starting Reload by Dependency Depth' }
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
     series_size = series_list.count
     redis.pipelined do
