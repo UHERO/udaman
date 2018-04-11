@@ -1033,9 +1033,8 @@ class Series < ActiveRecord::Base
       logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
       new_deps = Series.find_by_sql(<<~SQL, next_set)
-        select distinct s1.id
+        select distinct series_id
         from data_sources
-          join series s1 on data_sources.series_id = s1.id
           join series s2 on s2.id in (#{qmarks})
         where dependencies like CONCAT('% ', REPLACE(s2.name, '%', '\\%'), '%')
       SQL
