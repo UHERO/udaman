@@ -1027,21 +1027,21 @@ class Series < ActiveRecord::Base
   end
 
   def reload_with_dependencies
-    result_set = [self]
-    next_set = [self.name]
+    result_set = [self.id]
+    next_set = [self.id]
     until next_set.empty?
       qmarks = next_set.count.times.map{ '?' }.join(',')
-      foo = Series.find_by_sql(<<~SQL, next_set)
-        select distinct s1.name
+      new_deps = Series.find_by_sql(<<~SQL, next_set)
+        select distinct s1.id
         from data_sources
           join series s1 on data_sources.series_id = s1.id
           join series s2 on s2.name in (#{qmarks})
-        where dependencies LIKE CONCAT('% ', REPLACE(s2.name, '%', '\\%'), '%')
+        where dependencies like CONCAT('% ', REPLACE(s2.name, '%', '\\%'), '%')
       SQL
-      next_set = foo - result_set.keys
-      result_set.merge!(next_set.map{|r| })
+      next_set = new_deps.map(&:id) - result_set
+      result_set += next_set
     end
-    Series.reload_by_dependency_depth(result_set)
+    Series.reload_by_dependency_depth Series.where id: result_set
   end
 
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
