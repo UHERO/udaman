@@ -1027,6 +1027,7 @@ class Series < ActiveRecord::Base
   end
 
   def reload_with_dependencies
+    logger.info { "reload_with_dependencies: series #{id} (#{name}): start" }
     result_set = [self.id]
     next_set = [self.id]
     until next_set.empty?
@@ -1041,6 +1042,7 @@ class Series < ActiveRecord::Base
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
+    logger.info { "reload_with_dependencies: series #{id} (#{name}): ship off to reload_by_dependency_depth" }
     Series.reload_by_dependency_depth Series.where id: result_set
   end
 
