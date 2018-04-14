@@ -13,7 +13,7 @@ class SeriesWorker
   end
 
   def perform(series_id, batch_id)
-    logger.info "SIDEKIQ perform: started on series #{series_id}"
+    logger.info "SIDEKIQ perform: started on series #{series_id}, batch_id=#{batch_id}"
 
     keys = {
       queue: "queue_#{batch_id}",
@@ -25,123 +25,152 @@ class SeriesWorker
     }
     finisher = false
 
-    loop do ## not a real loop; only used to allow early termination of 'begin-end' with 'break'
     begin
-      redis = Redis.new
-      redis.pipelined do
-        redis.decr keys[:queue]
-        redis.incr keys[:busy_workers]
+      @batch_id = batch_id
+      @redis = Redis.new
+      @redis.pipelined do
+        @redis.decr keys[:queue]
+        @redis.incr keys[:busy_workers]
       end
-      current_depth = redis.get(keys[:current_depth]).to_i
-      log_prefix = "batch=#{batch_id},depth=#{current_depth}"
+      current_depth = @redis.get(keys[:current_depth]).to_i
+      set_log_prefix(current_depth)
 
       series = Series.find(series_id)
       errors = []
       if series
-        logger.info "#{log_prefix}: Reload series #{series_id} (#{series.name}) started"
+        logger.info "#{@log_prefix}: Reload series #{series_id} (#{series.name}) started"
         errors = series.reload_sources(true)
       else
         errors.push "No series with id=#{series_id} found"
       end
       GC.start
       if errors.empty?
-        logger.info "#{log_prefix}: Reload series #{series_id} (#{series.name}) SUCCEEDED"
+        logger.info "#{@log_prefix}: Reload series #{series_id} (#{series.name}) SUCCEEDED"
       else
-        logger.info "#{log_prefix}: Reload series #{series_id} ERRORED: check reload_errors.log"
+        logger.info "#{@log_prefix}: Reload series #{series_id} ERRORED: check reload_errors.log"
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
-      # check to see if the queue is empty
-      if redis.get(keys[:queue]).to_i > 0 && Sidekiq::Queue.new.size > 0
-        logger.debug "#{log_prefix}: queue is not empty"
-        break
-      end
-      logger.debug "#{log_prefix}: queue is empty"
-      # if the queue is empty see if another job has raised the flag
-      if redis.getset(keys[:finishing_depth], 'true') == 'true'
-        logger.debug "#{log_prefix}: another worker will finish"
-        break
-      end
-      finisher = true
 
-      redis.incr keys[:waiting_workers]
-      logger.debug "#{log_prefix}: This worker will finish"
-      # wait for everyone else to finish
-      sleep(1)
-      while redis.get(keys[:busy_workers]).to_i > 1 && Sidekiq::Workers.new.size > 1
-        logger.debug "#{log_prefix}: waiting for other workers to finish"
-        sleep(1)
-        # the random component helps avoid a race condition between two processes
-        if redis.get(keys[:waiting_workers]).to_i > 1 &&
-            redis.get(keys[:busy_workers]).to_i > 1 &&
-            Sidekiq::Workers.new.size > 1 &&
-            rand > 0.5
-          logger.debug "#{log_prefix}: breaking ties"
-          redis.decr keys[:waiting_workers]
-          break
+      finisher = am_i_the_finisher?
+      if finisher
+        if survive_waiting_for_others
+          next_depth = get_next_depth(current_depth)
+          if next_depth
+            set_log_prefix(next_depth)
+            logger.info "#{@log_prefix}: Trying next depth=#{next_depth}"
+            next_series_set = get_next_series_set(next_depth)
+            if next_series_set
+              queue_up_next_depth(next_series_set)
+            end
+          end
         end
       end
-      # if no workers are busy, the queue should be filled with the next depth
-      redis.decr keys[:waiting_workers]
-
-      next_depth = current_depth - 1
-      if next_depth == -1
-        logger.debug "#{log_prefix}: on last depth"
-        redis.set keys[:busy_workers], 1
-        break
-      end
-      logger.info "#{log_prefix}: Trying next depth=#{next_depth}"
-      series_ids = redis.get(keys[:series_list]).scan(/\d+/).map{|s| s.to_i}
-      next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
-      while next_series.count == 0
-        logger.info "#{log_prefix}: Depth=#{next_depth} is empty"
-        next_depth -= 1
-        logger.info "#{log_prefix}: Trying next depth: #{next_depth}"
-        if next_depth == -1
-          logger.debug "#{log_prefix}: set busy_workers counter to 1 (next_series.count == 0)"
-          redis.set keys[:busy_workers], 1
-          break
-        end
-        next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
-      end
-
-      logger.info "#{log_prefix}: Queueing up next depth=#{next_depth}, number of series=#{next_series.count}"
-      redis.pipelined do
-        redis.set keys[:queue], next_series.count
-        redis.set keys[:current_depth], next_depth
-        redis.set keys[:finishing_depth], false
-        redis.set keys[:busy_workers], 1
-      end
-      next_series.pluck(:id).each do |id|
-        SeriesWorker.perform_async id, batch_id
-      end
-      logger.debug "#{log_prefix}: done queueing up next depth=#{next_depth}"
-
     rescue => e
-      logger.error "#{log_prefix}: Reload series #{series_id} FAILED: #{e.message}; Backtrace follows"
+      logger.error "#{@log_prefix}: Reload series #{series_id} FAILED: #{e.message}; Backtrace follows"
       logger.error e.backtrace
       if finisher
-        redis.set keys[:finishing_depth], false
+        @redis.set keys[:finishing_depth], false
       end
-      redis.pipelined do
-        redis.incr keys[:busy_workers]
-        redis.incr keys[:queue]
+      @redis.pipelined do
+        @redis.incr keys[:busy_workers]
+        @redis.incr keys[:queue]
       end
       raise e
 
     ensure
       if finisher
-        redis.set keys[:finishing_depth], false
+        @redis.set keys[:finishing_depth], false
       end
-      # busy workers had been going negative
-      if redis.get(keys[:busy_workers]).to_i > 0
-        redis.decr keys[:busy_workers]
+      if @redis.get(keys[:busy_workers]).to_i > 0
+        @redis.decr keys[:busy_workers]
       end
-    end
-    break ## end of loop do - only run once
     end
     logger.info "SIDEKIQ perform: finished with series #{series_id}"
     failure = SidekiqFailure.find_by(series_id: series_id)
     failure.destroy if failure
+    end
+
+private
+  def am_i_the_finisher?
+    # check to see if the queue is empty
+    if @redis.get(keys[:queue]).to_i > 0 && Sidekiq::Queue.new.size > 0
+      logger.debug "#{@log_prefix}: queue is not empty"
+      return false
+    end
+    logger.debug "#{@log_prefix}: queue is empty"
+    # if the queue is empty see if another job has raised the flag
+    if @redis.getset(keys[:finishing_depth], 'true') == 'true'
+      logger.debug "#{@log_prefix}: another worker will finish"
+      return false
+    end
+    logger.debug "#{@log_prefix}: this worker will finish"
+    true
   end
 
+  def survive_waiting_for_others
+    @redis.incr keys[:waiting_workers]
+    # wait for everyone else to finish
+    sleep(1)
+    while @redis.get(keys[:busy_workers]).to_i > 1 && Sidekiq::Workers.new.size > 1
+      logger.debug "#{@log_prefix}: waiting for other workers to finish"
+      sleep(1)
+      # the random component helps avoid a race condition between two processes
+      if @redis.get(keys[:waiting_workers]).to_i > 1 &&
+          @redis.get(keys[:busy_workers]).to_i > 1 &&
+          Sidekiq::Workers.new.size > 1 &&
+          rand > 0.5
+        logger.debug "#{@log_prefix}: breaking ties"
+        @redis.decr keys[:waiting_workers]
+        return false
+      end
+    end
+    # if no workers are busy, the queue should be filled with the next depth
+    @redis.decr keys[:waiting_workers]
+    true
+  end
+
+  def get_next_depth(current_depth)
+    next_depth = current_depth - 1
+    if next_depth < 0
+      logger.debug "#{@log_prefix}: on last depth"
+      @redis.set keys[:busy_workers], 1
+      return nil
+    end
+    next_depth
+  end
+
+  def get_next_series_set(next_depth)
+    series_ids = @redis.get(keys[:series_list]).scan(/\d+/).map{|s| s.to_i}
+    next_set = Series.where(:id => series_ids, :dependency_depth => next_depth)
+    while next_set.count == 0
+      logger.info "#{@log_prefix}: Depth=#{next_depth} is empty, trying #{next_depth - 1}"
+      next_depth -= 1
+      if next_depth < 0
+        logger.debug "#{@log_prefix}: set busy_workers counter to 1 (next_set.count == 0)"
+        @redis.set keys[:busy_workers], 1
+        return nil
+      end
+      next_set = Series.where(:id => series_ids, :dependency_depth => next_depth)
+    end
+    set_log_prefix(next_depth)
+    next_set
+  end
+
+  def queue_up_next_depth(next_series)
+    logger.info "#{@log_prefix}: Queueing up next depth=#{next_depth}, number of series=#{next_series.count}"
+    @redis.pipelined do
+      @redis.set keys[:queue], next_series.count
+      @redis.set keys[:current_depth], next_depth
+      @redis.set keys[:finishing_depth], false
+      @redis.set keys[:busy_workers], 1
+    end
+    next_series.pluck(:id).each do |id|
+      SeriesWorker.perform_async id, batch_id
+    end
+    logger.debug "#{@log_prefix}: done queueing up next depth=#{next_depth}"
+  end
+
+  def set_log_prefix(depth)
+    @log_prefix = "batch=#{@batch_id},depth=#{depth}"
+  end
 end
