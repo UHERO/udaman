@@ -164,7 +164,7 @@ private
 
   def redis_get(key)
     val = @redis.get "#{key}_#{@batch_id}"
-    val =~ /\D/ ? val : val.to_i
+    val =~ /^\d+$/ ? val.to_i : val
   end
 
   def redis_set(key, value)
@@ -173,7 +173,7 @@ private
 
   def redis_getset(key, value)
     val = @redis.getset "#{key}_#{@batch_id}", value
-    val =~ /\D/ ? val : val.to_i
+    val =~ /^\d+$/ ? val.to_i : val
   end
 
   def redis_incr(key)
