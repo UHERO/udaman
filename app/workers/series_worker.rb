@@ -51,9 +51,9 @@ class SeriesWorker
           if next_depth
             set_log_prefix(next_depth)
             logger.info "#{@log_prefix}: Trying next depth=#{next_depth}"
-            next_series_set = get_next_series_set(next_depth)
-            if next_series_set
-              queue_up_next_depth(next_depth, next_series_set)
+            next_depth = get_next_nonempty_depth(next_depth)
+            if next_depth
+              queue_up_next_depth(next_depth)
             end
           end
         end
@@ -68,7 +68,7 @@ class SeriesWorker
         redis_incr :busy_workers
         redis_incr :queue
       end
-      raise e
+      raise
 
     ensure
       if finisher
@@ -132,23 +132,22 @@ private
     next_depth
   end
 
-  def get_next_series_set(next_depth)
-    next_set = @all_series.where(dependency_depth: next_depth)
-    while next_set.empty?
-      logger.info "#{@log_prefix}: Depth=#{next_depth} is empty, trying #{next_depth - 1}"
-      next_depth -= 1
-      if next_depth < 0
-        logger.debug "#{@log_prefix}: set busy_workers counter to 1 (next_set.count == 0)"
+  def get_next_nonempty_depth(depth)
+    while @all_series.where(dependency_depth: depth).empty?
+      logger.info "#{@log_prefix}: Depth=#{depth} is empty, trying #{depth - 1}"
+      depth -= 1
+      if depth < 0
+        logger.debug "#{@log_prefix}: set busy_workers counter to 1 (exhausted all depths)"
         redis_set :busy_workers, 1
         return nil
       end
-      next_set = @all_series.where(dependency_depth: next_depth)
     end
-    set_log_prefix(next_depth)
-    next_set
+    set_log_prefix(depth)
+    depth
   end
 
-  def queue_up_next_depth(next_depth, next_series_set)
+  def queue_up_next_depth(next_depth)
+    next_series_set = @all_series.where(dependency_depth: next_depth)
     logger.info "#{@log_prefix}: Queueing up next depth=#{next_depth}, number of series=#{next_series_set.count}"
     @redis.pipelined do
       redis_set :queue, next_series_set.count
