@@ -134,7 +134,7 @@ private
 
   def get_next_series_set(next_depth)
     next_set = @all_series.where(dependency_depth: next_depth)
-    while next_set.count == 0
+    while next_set.empty?
       logger.info "#{@log_prefix}: Depth=#{next_depth} is empty, trying #{next_depth - 1}"
       next_depth -= 1
       if next_depth < 0
