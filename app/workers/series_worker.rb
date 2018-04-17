@@ -23,8 +23,11 @@ class SeriesWorker
         redis_decr :queue
         redis_incr :busy_workers
       end
-      series_ids = redis_get(:series_list).scan(/\d+/).map{|s| s.to_i }
-      @all_series = Series.where(id: series_ids)
+      series_list = redis_get(:series_list)
+      if series_list.blank?
+        raise 'no series list found'
+      end
+      @all_series = Series.where id: series_list.scan(/\d+/).map{|s| s.to_i }
       current_depth = redis_get(:current_depth)
       set_log_prefix(current_depth)
 
@@ -137,7 +140,7 @@ private
       logger.info "#{@log_prefix}: Depth=#{depth} is empty, trying #{depth - 1}"
       depth -= 1
       if depth < 0
-        logger.debug "#{@log_prefix}: set busy_workers counter to 1 (exhausted all depths)"
+        logger.debug "#{@log_prefix}: exhausted all depths, set busy_workers counter to 1"
         redis_set :busy_workers, 1
         return nil
       end
@@ -163,7 +166,7 @@ private
 
   def redis_get(key)
     val = @redis.get "#{key}_#{@batch_id}"
-    val =~ /^\d+$/ ? val.to_i : val
+    Integer val rescue val
   end
 
   def redis_set(key, value)
@@ -172,7 +175,7 @@ private
 
   def redis_getset(key, value)
     val = @redis.getset "#{key}_#{@batch_id}", value
-    val =~ /^\d+$/ ? val.to_i : val
+    Integer val rescue val
   end
 
   def redis_incr(key)
