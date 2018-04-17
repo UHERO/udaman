@@ -23,11 +23,6 @@ class SeriesWorker
         redis_decr :queue
         redis_incr :busy_workers
       end
-      series_list = redis_get(:series_list).to_s
-      if series_list.blank?
-        raise 'no series list found'
-      end
-      @all_series = Series.where id: series_list.scan(/\d+/).map{|s| s.to_i }
       current_depth = redis_get(:current_depth)
       set_log_prefix(current_depth)
 
@@ -46,6 +41,12 @@ class SeriesWorker
         logger.info "#{@log_prefix}: Reload series #{series_id} ERRORED: check reload_errors.log"
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
+
+      series_list = redis_get(:series_list)
+      if series_list.blank?
+        raise 'no series list found'
+      end
+      @all_series = Series.where id: series_list.to_s.scan(/\d+/).map{|s| s.to_i }
 
       finisher = am_i_the_finisher?
       if finisher
