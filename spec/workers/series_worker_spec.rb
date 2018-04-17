@@ -23,6 +23,7 @@ describe SeriesWorker do
   it 'should decrease the namespaced queue' do
     series_id = Series.create(name: 'FAKE1@HI.A').id
     redis.set "series_list_#{size}", series_id
+    redis.set "current_depth_#{size}", 8
     expect(redis.get "queue_#{size}").to be_a(NilClass)
     SeriesWorker.perform_async series_id, size
     SeriesWorker.drain

@@ -43,9 +43,6 @@ class SeriesWorker
       end
 
       series_list = redis_get(:series_list)
-      if series_list.blank?
-        raise 'no series list found'
-      end
       @all_series = Series.where id: series_list.to_s.scan(/\d+/).map{|s| s.to_i }
 
       finisher = am_i_the_finisher?
@@ -57,6 +54,7 @@ class SeriesWorker
           end
         end
       end
+
     rescue => e
       logger.error "#{@log_prefix}: Reload series #{series_id} FAILED: #{e.message}; Backtrace follows"
       logger.error e.backtrace
