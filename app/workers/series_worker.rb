@@ -23,7 +23,7 @@ class SeriesWorker
         redis_decr :queue
         redis_incr :busy_workers
       end
-      series_list = redis_get(:series_list)
+      series_list = redis_get(:series_list).to_s
       if series_list.blank?
         raise 'no series list found'
       end
