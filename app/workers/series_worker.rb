@@ -50,14 +50,9 @@ class SeriesWorker
       finisher = am_i_the_finisher?
       if finisher
         if survive_waiting_for_others
-          next_depth = get_next_depth(current_depth)
+          next_depth = get_next_nonempty_depth(current_depth)
           if next_depth
-            set_log_prefix(next_depth)
-            logger.info "#{@log_prefix}: Trying next depth=#{next_depth}"
-            next_depth = get_next_nonempty_depth(next_depth)
-            if next_depth
-              queue_up_next_depth(next_depth)
-            end
+            queue_up_next_depth(next_depth)
           end
         end
       end
@@ -125,25 +120,16 @@ private
     true
   end
 
-  def get_next_depth(current_depth)
-    next_depth = current_depth - 1
-    if next_depth < 0
-      logger.debug "#{@log_prefix}: on last depth"
-      redis_set :busy_workers, 1
-      return nil
-    end
-    next_depth
-  end
-
   def get_next_nonempty_depth(depth)
-    while @all_series.where(dependency_depth: depth).empty?
-      logger.info "#{@log_prefix}: Depth=#{depth} is empty, trying #{depth - 1}"
+    loop do
       depth -= 1
+      logger.info "#{@log_prefix}: Trying depth #{depth}"
       if depth < 0
         logger.debug "#{@log_prefix}: exhausted all depths, set busy_workers counter to 1"
         redis_set :busy_workers, 1
         return nil
       end
+      break unless @all_series.where(dependency_depth: depth).empty?
     end
     set_log_prefix(depth)
     depth
