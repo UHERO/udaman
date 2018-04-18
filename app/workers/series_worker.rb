@@ -14,7 +14,6 @@ class SeriesWorker
 
   def perform(series_id, batch_id)
     mylogger :info, "SIDEKIQ perform: started on series #{series_id}, batch_id=#{batch_id}"
-    finisher = false
 
     begin
       @batch_id = batch_id
