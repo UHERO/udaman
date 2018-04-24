@@ -36,18 +36,12 @@ class DataPoint < ActiveRecord::Base
     new_dp
   end
   
-  def restore_prior_dp(value, data_source)
-    prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
+  def restore_prior_dp(upd_value, upd_source)
+    prior_dp = DataPoint.where(date: self.date, series_id: self.series_id, value: upd_value, data_source_id: upd_source.id).first
     return nil if prior_dp.nil?
     prior_dp.increment :restore_counter
-    current_dp = DataPoint.where(:date => date, :series_id=> series_id, :current=> true).first
-    if current_dp.data_source.id == data_source.id
+    if upd_source.id == self.data_source.id || upd_source.priority >= self.data_source.priority
       self.update_attributes(:current => false)
-      prior_dp.update_attributes(:current => true)
-      return prior_dp
-    end
-    if data_source.priority >= current_dp.data_source.priority
-      current_dp.update_attributes(:current => false)
       prior_dp.update_attributes(:current => true)
     end
     prior_dp
