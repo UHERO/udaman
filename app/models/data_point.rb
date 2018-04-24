@@ -21,9 +21,7 @@ class DataPoint < ActiveRecord::Base
     #create a new datapoint because value or source changed
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
-
-
-    return nil if upd_source.priority < self.data_source.priority ### IS THIS RIGHT??
+    return nil if upd_source.priority < self.data_source.priority
     self.update_attributes(:current => false)
     now = Time.now
     new_dp = self.dup
@@ -45,7 +43,6 @@ class DataPoint < ActiveRecord::Base
                                data_source_id: upd_source.id,
                                value: upd_value).first
     return nil if prior_dp.nil?
-    prior_dp.increment :restore_counter
     unless upd_source.priority < self.data_source.priority
       self.update_attributes(:current => false)
       prior_dp.update_attributes(:current => true)
