@@ -103,7 +103,7 @@ class Packager
       changed = Series.write_data_list @series.keys, @output_path unless @definitions.nil?        
       packager_output.update_attributes(:last_new_data => Time.now) if changed
       
-    rescue Exception => e
+    rescue => e
       PackagerMailer.rake_error(e, output_path).deliver
       raise e
     end

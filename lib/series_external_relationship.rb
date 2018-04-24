@@ -71,7 +71,7 @@ module SeriesExternalRelationship
       end
       self.save if save_series
       return {:missing => self.aremos_missing, :diff => self.aremos_diff}
-    rescue Exception => e
+    rescue => e
       puts e.message
       puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
     end
@@ -123,7 +123,7 @@ module SeriesExternalRelationship
         end
       end
       results
-    rescue Exception => e
+    rescue => e
       puts e.message
       puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
     end
@@ -228,7 +228,7 @@ module SeriesExternalRelationship
       puts "#{self.name}: SETTING units = #{best_unit}"
       self.units = best_unit
       self.aremos_comparison  
-    rescue Exception
+    rescue
       puts "#{self.name}: SETTING DEFAULT"
       self.update_attributes(:units => 1)
     end
