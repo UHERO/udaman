@@ -17,18 +17,21 @@ class DataPoint < ActiveRecord::Base
      value.nil? and !self.value.nil?
   end
   
-  def create_new_dp(value, data_source)
-    #create a new datapoint because value changed
+  def create_new_dp(upd_value, upd_source)
+    #create a new datapoint because value or source changed
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
+
+
+    return nil if upd_source.priority < self.data_source.priority ### IS THIS RIGHT??
     self.update_attributes(:current => false)
     now = Time.now
     new_dp = self.dup
     new_dp.update_attributes(
         :series_id => self.series_id,
         :date => self.date,
-        :data_source_id => data_source.id,
-        :value => value,
+        :data_source_id => upd_source.id,
+        :value => upd_value,
         :current => true,
         :created_at => now,
         :updated_at => now
@@ -37,10 +40,13 @@ class DataPoint < ActiveRecord::Base
   end
   
   def restore_prior_dp(upd_value, upd_source)
-    prior_dp = DataPoint.where(date: self.date, series_id: self.series_id, value: upd_value, data_source_id: upd_source.id).first
+    prior_dp = DataPoint.where(series_id: self.series_id,
+                               date: self.date,
+                               data_source_id: upd_source.id,
+                               value: upd_value).first
     return nil if prior_dp.nil?
     prior_dp.increment :restore_counter
-    if upd_source.id == self.data_source.id || upd_source.priority >= self.data_source.priority
+    unless upd_source.priority < self.data_source.priority
       self.update_attributes(:current => false)
       prior_dp.update_attributes(:current => true)
     end
