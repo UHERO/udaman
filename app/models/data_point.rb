@@ -91,34 +91,6 @@ class DataPoint < ActiveRecord::Base
     end
   end
   
-  # instead of this "is pseudo_history. May want to do something like this periodically"
-  # might need to define a pseudohistory task somewhere
-  # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
-  def is_pseudo_history?
-    pseudo_history_sources = %W(
-      #{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls
-      #{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls
-      #{ENV['DATA_PATH']}/rawdata/History/bls_histextend_date_format_correct.xls
-    )
-    source_eval = self.data_source.eval
-    pseudo_history_sources.each { |phs| return true if source_eval.index(phs) }
-    false
-  end
-
-  #this never finishes running. Doesn't seem to catch all the stuff I want either
-  # def DataPoint.set_pseudo_history
-  #   DataPoint.all.each do |dp|
-  #     begin
-  #       ph = dp.is_pseudo_history?
-  #       dp.update_attributes(:pseudo_history => true) if ph and !dp.pseudo_history
-  #       dp.update_attributes(:pseudo_history => false) if !ph and dp.pseudo_history
-  #     rescue
-  #       puts "error for dp #{dp.id}"
-  #     end
-  #   end
-  #   0
-  # end
-  
   def source_type_code
     case source_type
     when :download
