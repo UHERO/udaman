@@ -22,7 +22,6 @@ class DataPoint < ActiveRecord::Base
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
     return nil if upd_source.priority < self.data_source.priority
-    self.update_attributes(:current => false)
     now = Time.now
     new_dp = self.dup
     new_dp.update_attributes(
@@ -30,10 +29,11 @@ class DataPoint < ActiveRecord::Base
         :date => self.date,
         :data_source_id => upd_source.id,
         :value => upd_value,
-        :current => true,
+        :current => false,  ## will be set to true just below
         :created_at => now,
         :updated_at => now
     )
+    make_current(new_dp)
     new_dp
   end
   
@@ -44,12 +44,18 @@ class DataPoint < ActiveRecord::Base
                                value: upd_value).first
     return nil if prior_dp.nil?
     unless upd_source.priority < self.data_source.priority
-      self.update_attributes(:current => false)
-      prior_dp.update_attributes(:current => true)
+      make_current(prior_dp)
     end
     prior_dp
   end
-  
+
+  def make_current(dp)
+    self.transaction do
+      self.update_attributes current: false
+        dp.update_attributes current: true
+    end
+  end
+
   def same_value_as?(value)
     #used to round to 3 digits but not doing that anymore. May need to revert
     #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
@@ -66,13 +72,13 @@ class DataPoint < ActiveRecord::Base
   end
   
   def delete
-    date = self.date
-    series_id = self.series_id
-    
-    super
-
-    next_of_kin = DataPoint.where(:date => date, :series_id => series_id).sort_by(&:updated_at).reverse[0]
-    next_of_kin.update_attributes(:current => true) unless next_of_kin.nil?        
+    most_recent = DataPoint.where(series_id: series_id,
+                                  date: date,
+                                  current: false).order('updated_at desc').first if current
+    self.transaction do
+      super
+      most_recent.update_attributes(:current => true) if most_recent
+    end
   end
   
   def source_type
