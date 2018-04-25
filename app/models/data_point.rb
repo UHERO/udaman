@@ -25,8 +25,6 @@ class DataPoint < ActiveRecord::Base
     now = Time.now
     new_dp = self.dup
     new_dp.update_attributes(
-        :series_id => self.series_id,
-        :date => self.date,
         :data_source_id => upd_source.id,
         :value => upd_value,
         :current => false,  ## will be set to true just below
@@ -38,8 +36,8 @@ class DataPoint < ActiveRecord::Base
   end
   
   def restore_prior_dp(upd_value, upd_source)
-    prior_dp = DataPoint.where(series_id: self.series_id,
-                               date: self.date,
+    prior_dp = DataPoint.where(series_id: series_id,
+                               date: date,
                                data_source_id: upd_source.id,
                                value: upd_value).first
     return nil if prior_dp.nil?
