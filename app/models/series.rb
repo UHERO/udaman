@@ -1031,7 +1031,7 @@ class Series < ActiveRecord::Base
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
-    logger.info { "reload_with_dependencies: series #{id} (#{name}): start" }
+    logger.info { "reload_with_dependencies: start" }
     result_set = series_id_list
     next_set = series_id_list
     until next_set.empty?
@@ -1049,7 +1049,7 @@ class Series < ActiveRecord::Base
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    logger.info { "reload_with_dependencies: series #{id} (#{name}): ship off to reload_by_dependency_depth" }
+    logger.info { "reload_with_dependencies: ship off to reload_by_dependency_depth" }
     Series.reload_by_dependency_depth Series.where id: result_set
   end
 
