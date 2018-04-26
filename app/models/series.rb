@@ -1055,10 +1055,13 @@ class Series < ActiveRecord::Base
 
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
+    require 'digest/md5'
     redis = Redis.new
     logger.info { 'Starting Reload by Dependency Depth' }
+    datetime = Time.now.strftime('%Y%m%d%H%MUTC')
+    hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
+    batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
-    batch_id = Time.now.strftime('%Y%m%d%H%MUTC') + '_' + series_list.count.to_s
     redis.pipelined do
       redis.set("current_depth_#{batch_id}", first_depth)
       redis.set("waiting_workers_#{batch_id}", 0)
