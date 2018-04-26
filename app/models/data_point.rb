@@ -23,7 +23,7 @@ class DataPoint < ActiveRecord::Base
     #rounding doesnt work, looks like there's some kind of truncation too.
     return nil if upd_source.priority < self.data_source.priority
     now = Time.now
-    new_dp = self.dup
+    new_dp = self.clone
     new_dp.update_attributes(
         :data_source_id => upd_source.id,
         :value => upd_value,
