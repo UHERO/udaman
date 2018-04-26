@@ -128,12 +128,13 @@ private
       end
       break unless @all_series.where(dependency_depth: depth).empty?
     end
+    mylogger :info, "Found next nonempty depth = #{depth}"
     @current_depth = depth
   end
 
   def queue_up_next_depth(next_depth)
     next_series_set = @all_series.where(dependency_depth: next_depth)
-    mylogger :info, "Queueing up next depth=#{next_depth}, number of series=#{next_series_set.count}"
+    mylogger :info, "Queueing up depth, number of series=#{next_series_set.count}"
     @redis.pipelined do
       redis_set :queue, next_series_set.count
       redis_set :current_depth, next_depth
