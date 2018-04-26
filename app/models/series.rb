@@ -1023,14 +1023,17 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.reload_with_dependencies(id)
-    Series.find(id).reload_with_dependencies
+  def reload_with_dependencies
+    Series.reload_with_dependencies([self.id])
   end
 
-  def reload_with_dependencies
-    logger.info { "reload_with_dependencies: series #{id} (#{name}): start" }
-    result_set = [self.id]
-    next_set = [self.id]
+  def Series.reload_with_dependencies(series_id_list)
+    unless series_id_list.class == Array
+      raise 'Series.reload_with_dependencies needs an array of series ids'
+    end
+    logger.info { "reload_with_dependencies: start" }
+    result_set = series_id_list
+    next_set = series_id_list
     until next_set.empty?
       logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
@@ -1038,7 +1041,7 @@ class Series < ActiveRecord::Base
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
       new_deps = Series.find_by_sql [<<~SQL, next_set].flatten
-        select distinct series_id as id
+        select distinct data_sources.series_id as id
         from data_sources, series
         where series.id in (#{qmarks})
         and dependencies like CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')
@@ -1046,16 +1049,19 @@ class Series < ActiveRecord::Base
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    logger.info { "reload_with_dependencies: series #{id} (#{name}): ship off to reload_by_dependency_depth" }
+    logger.info { "reload_with_dependencies: ship off to reload_by_dependency_depth" }
     Series.reload_by_dependency_depth Series.where id: result_set
   end
 
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
+    require 'digest/md5'
     redis = Redis.new
     logger.info { 'Starting Reload by Dependency Depth' }
+    datetime = Time.now.strftime('%Y%m%d%H%MUTC')
+    hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
+    batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
-    batch_id = Time.now.strftime('%Y%m%d%H%MUTC') + '_' + series_list.count.to_s
     redis.pipelined do
       redis.set("current_depth_#{batch_id}", first_depth)
       redis.set("waiting_workers_#{batch_id}", 0)
