@@ -1023,14 +1023,17 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.reload_with_dependencies(id)
-    Series.find(id).reload_with_dependencies
+  def reload_with_dependencies
+    Series.reload_with_dependencies([self.id])
   end
 
-  def reload_with_dependencies
+  def Series.reload_with_dependencies(series_id_list)
+    unless series_id_list.class == Array
+      raise 'Series.reload_with_dependencies needs an array of series ids'
+    end
     logger.info { "reload_with_dependencies: series #{id} (#{name}): start" }
-    result_set = [self.id]
-    next_set = [self.id]
+    result_set = series_id_list
+    next_set = series_id_list
     until next_set.empty?
       logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
@@ -1038,7 +1041,7 @@ class Series < ActiveRecord::Base
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
       new_deps = Series.find_by_sql [<<~SQL, next_set].flatten
-        select distinct series_id as id
+        select distinct data_sources.series_id as id
         from data_sources, series
         where series.id in (#{qmarks})
         and dependencies like CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')
