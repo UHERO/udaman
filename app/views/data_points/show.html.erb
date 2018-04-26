@@ -14,7 +14,7 @@ Current<br/>
 <%
   current_dp = @data_points.select{|p| p.current }
   other_dps = @data_points.reject{|p| p.current }.sort{|p1,p2| p2.created_at <=> p1.created_at }
-  [current_dp].concat(other_dps).each do |dp|
+  [current_dp, other_dps].flatten.each do |dp|
     dp_val = dp.value / series.units
     data_source = dp.data_source
     bgcolor = data_source.color rescue 'FFF'
