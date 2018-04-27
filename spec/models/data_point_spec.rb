@@ -6,24 +6,26 @@ describe DataPoint do
   end
   
   #redo tests above without the update function
-  xit 'should not change data_point if value and source_id are unchanged' do
+  it 'should not change data_point if value and source_id are unchanged' do
     ds = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds.id, :current => true)
-    dp.upd(100, ds)
+    rval = dp.upd(100, ds)
     dpu = @s.current_data_points.first
-    expect(dpu.value).to eq(dp.value)
-    expect(dpu.current).to eq(dp.current)
+    expect(rval).to eq(nil)
+    expect(dpu.same_value_as? dp.value).to eq(true), 'not the same value'
+    expect(dpu.current).to eq(true)
     expect(dpu.data_source_id).to eq(dp.data_source_id)
   end
   
-  xit 'should update a data_points source_id if source_id is different' do
+  it 'should update a data_points source_id if source_id is different' do
     ds1 = DataSource.create
     ds2 = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds1.id, :current => true)
-    dp.upd(100, ds2)
+    rval = dp.upd(100, ds2)
     
     dpu = @s.current_data_points.first
-    expect(dpu.value).to eq(dp.value), 'not the same value'
+    expect(rval).not_to eq(nil)
+    expect(dpu.same_value_as? dp.value).to eq(true), 'not the same value'
     expect(dp.current).to eq(false), 'old data point still current'
 
     expect(dpu.data_source_id).to eq(ds2.id), 'ds2 does not have the same id'
@@ -42,7 +44,7 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(2)
   end
     
-  xit "should make its 'next of kin' data point current if it's being deleted" do
+  xit %q"should make its 'next of kin' data point current if it's being deleted" do
     ds1 = DataSource.create
     dp = DataPoint.create(
         :series_id => @s.id,
