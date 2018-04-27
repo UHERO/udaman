@@ -10,7 +10,14 @@ class DataPoint < ActiveRecord::Base
   end
   
   def value_or_source_has_changed?(value, data_source)
-    !same_value_as?(value) or self.data_source_id != data_source.id
+    unless same_value_as?(value)
+      auto_quarantine = FeatureToggle.is_set('auto_quarantine', true, series.universe)
+      if auto_quarantine && (Date.today - 2.years > self.date) && !series.quarantined? && !series.restricted?
+        series.add_to_quarantine(false)
+      end
+      return true
+    end
+    self.data_source_id != data_source.id
   end
 
   def trying_to_replace_with_nil?(value)
@@ -57,18 +64,9 @@ class DataPoint < ActiveRecord::Base
   def same_value_as?(value)
     #used to round to 3 digits but not doing that anymore. May need to revert
     #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
-    if self.value.round(10) == value.round(10)
-      return true
-    end
-    series = self.series
-
-    auto_quarantine = FeatureToggle.is_set('auto_quarantine', true, series.universe)
-    if auto_quarantine && (Date.today - 2.years > self.date) && !series.quarantined? && !series.restricted?
-      series.add_to_quarantine(false)
-    end
-    false
+    self.value.round(10) == value.round(10)
   end
-  
+
   def delete
     most_recent = DataPoint.where(series_id: series_id,
                                   date: date,

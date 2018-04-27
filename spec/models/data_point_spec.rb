@@ -10,7 +10,7 @@ describe DataPoint do
     ds = DataSource.create
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds.id, :current => true)
     dp.upd(100, ds)
-    dpu = @s.data_points[0]
+    dpu = @s.current_data_points.first
     expect(dpu.value).to eq(dp.value)
     expect(dpu.current).to eq(dp.current)
     expect(dpu.data_source_id).to eq(dp.data_source_id)
@@ -22,7 +22,7 @@ describe DataPoint do
     dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds1.id, :current => true)
     dp.upd(100, ds2)
     
-    dpu = @s.current_data_points[0]
+    dpu = @s.current_data_points.first
     expect(dpu.value).to eq(dp.value), 'not the same value'
     expect(dp.current).to eq(false), 'old data point still current'
 
