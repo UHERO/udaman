@@ -13,7 +13,7 @@ describe DataPoint do
                           :series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds.id, :current => true)
     newdp = dp.upd(100, ds)
     cur_dps = @s.current_data_points
-
+### this is not done yet
     dpu = @s.current_data_points.first
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
     expect(newdp).to eq(nil)
