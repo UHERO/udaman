@@ -17,6 +17,20 @@ class DataPoint < ActiveRecord::Base
     self.data_source_id != data_source.id
   end
 
+  def series_auto_quarantine_check
+    return if series.quarantined? || series.restricted?
+    return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
+    if (Date.today - 2.years) > self.date
+      series.add_to_quarantine(false)
+    end
+  end
+
+  def value_equal_to?(value)
+    #used to round to 3 digits but not doing that anymore. May need to revert
+    #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
+    self.value.round(10) == value.round(10)
+  end
+
   def trying_to_replace_with_nil?(value)
      value.nil? and !self.value.nil?
   end
@@ -55,20 +69,6 @@ class DataPoint < ActiveRecord::Base
     self.transaction do
       self.update_attributes current: false
         dp.update_attributes current: true
-    end
-  end
-
-  def value_equal_to?(value)
-    #used to round to 3 digits but not doing that anymore. May need to revert
-    #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
-    self.value.round(10) == value.round(10)
-  end
-
-  def series_auto_quarantine_check
-    return if series.quarantined? || series.restricted?
-    return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
-    if (Date.today - 2.years) > self.date
-      series.add_to_quarantine(false)
     end
   end
 
