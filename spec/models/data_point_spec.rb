@@ -36,7 +36,7 @@ describe DataPoint do
     expect(newdp.id).to eq(cur_dps.first.id), 'new dp not returned by current_data_points'
     expect(newdp.current).to eq(true), 'new dp not set to current'
     expect(dp.current).to eq(false), 'old dp still current'
-    expect(newdp.same_value_as? dp.value).to eq(true), 'dp values are not equal'
+    expect(newdp.value_equal_to? dp.value).to eq(true), 'dp values are not equal'
     expect(newdp.data_source_id).to eq(ds2.id), 'new dp does not have new source'
   end
 
@@ -53,7 +53,7 @@ describe DataPoint do
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.first.id).to eq(arbitrary_id), 'current dp is a different from original'
     expect(dp.current).to eq(true), 'old data point no longer current'
-    expect(dp.same_value_as? 100.0).to eq(true), 'old data point value has changed in place'
+    expect(dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
     expect(dp.data_source_id).to eq(ds1.id), 'old data point source has changed in place'
   end
 
@@ -72,7 +72,7 @@ describe DataPoint do
     expect(newdp.id).to eq(cur_dps.first.id), 'new dp not returned by current_data_points'
     expect(newdp.current).to eq(true), 'new dp not set to current'
     expect(dp.current).to eq(false), 'old dp still current'
-    expect(newdp.same_value_as? dp.value).to eq(false), 'dp values are equal'
+    expect(newdp.value_equal_to? dp.value).to eq(false), 'dp values are equal'
     expect(newdp.data_source_id).to eq(ds2.id), 'new dp has a new source'
   end
 
@@ -89,7 +89,7 @@ describe DataPoint do
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.first.id).to eq(arbitrary_id), 'current dp is a different from original'
     expect(dp.current).to eq(true), 'old data point no longer current'
-    expect(dp.same_value_as? 100.0).to eq(true), 'old data point value has changed in place'
+    expect(dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
     expect(dp.data_source_id).to eq(ds1.id), 'old data point source has changed in place'
   end
 
