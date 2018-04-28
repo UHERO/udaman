@@ -71,9 +71,9 @@ describe DataPoint do
     expect(newdp.id).not_to eq(arbitrary_id), 'a new dp was not created'
     expect(newdp.id).to eq(cur_dps.first.id), 'new dp not returned by current_data_points'
     expect(newdp.current).to eq(true), 'new dp not set to current'
-    expect(dp.current).to eq(false), 'old dp still current'
-    expect(newdp.value_equal_to? dp.value).to eq(false), 'dp values are equal'
-    expect(newdp.data_source_id).to eq(ds2.id), 'new dp has a new source'
+    expect(dp.current).to eq(false), 'old dp still set to current'
+    expect(newdp.value_equal_to? dp.value).to eq(false), 'new and old dp values are equal'
+    expect(newdp.data_source_id).to eq(ds2.id), 'new dp doesnt have the new source'
   end
 
   it 'should NOT update a data_points value if value is different, source.priority < current' do
@@ -93,18 +93,15 @@ describe DataPoint do
     expect(dp.data_source_id).to eq(ds1.id), 'old data point source has changed in place'
   end
 
-  # it 'should be able to clone itself but assign a new value, source_id' do
-  # end
-  
-  xit 'should mark itself as non-current and spawn a new data point if the value of the data point changes' do
-    ds1 = DataSource.create
-    dp = DataPoint.create(:series_id => @s.id, :date => '2011-03-01', :value => 100.0, :data_source_id => ds1.id, :current => true)
-    dp.upd(200, ds1)
-    expect(DataPoint.count).to eq(2)
-    expect(@s.current_data_points.count).to eq(1)
-    expect(@s.data_points.count).to eq(2)
+  xit 'should be able to clone itself but assign a new value, source_id' do
+    ### this is basically covered by the above test:
+    ###   'should update a data_points value if value is different, source.priority not < current'
   end
-    
+
+  ##### NEXT: write a bunch of tests for cases where there are multiple 'kin' data points and certain ones
+  ##### are deleted, checking that the correct other dp is set to current, etc. This should cover the case
+  ##### of the below test:
+
   xit %q"should make its 'next of kin' data point current if it's being deleted" do
     ds1 = DataSource.create
     dp = DataPoint.create(
@@ -142,4 +139,3 @@ describe DataPoint do
     expect(@s.current_data_points[0].id.to_s).to eq(dp2.id.to_s)
   end
 end
-
