@@ -53,6 +53,8 @@ describe DataPoint do
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.first.id).to eq(arbitrary_id), 'current dp is a different from original'
     expect(dp.current).to eq(true), 'old data point no longer current'
+    expect(dp.same_value_as? 100.0).to eq(true), 'old data point value has changed in place'
+    expect(dp.data_source_id).to eq(ds1.id), 'old data point source has changed in place'
   end
 
   it 'should update a data_points value if value is different, source.priority not < current' do
@@ -87,6 +89,8 @@ describe DataPoint do
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.first.id).to eq(arbitrary_id), 'current dp is a different from original'
     expect(dp.current).to eq(true), 'old data point no longer current'
+    expect(dp.same_value_as? 100.0).to eq(true), 'old data point value has changed in place'
+    expect(dp.data_source_id).to eq(ds1.id), 'old data point source has changed in place'
   end
 
   # it 'should be able to clone itself but assign a new value, source_id' do
