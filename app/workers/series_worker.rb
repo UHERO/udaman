@@ -84,7 +84,7 @@ class SeriesWorker
       # if no workers are busy, the queue should be filled with the next depth
       redis.decr keys[:waiting_workers]
 
-      next_depth = current_depth - 1
+      next_depth = redis.get(keys[:current_depth]).to_i - 1
       if next_depth == -1
         logger.debug "#{log_prefix}: on last depth"
         redis.set keys[:busy_workers], 1
