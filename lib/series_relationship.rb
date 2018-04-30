@@ -143,7 +143,7 @@ module SeriesRelationship
     self.data_sources_by_last_run.each do |ds| 
       begin
         ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
-      rescue => e
+      rescue Exception => e
         errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
       end
