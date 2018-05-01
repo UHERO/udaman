@@ -326,6 +326,10 @@
 				<td>
 		<h2>New Data Points and Updated Series</h2>
 		<svg id="new_data_points"></svg>
+    <div id="sidekiq_failures">
+      <br/><br/><br/><br/>
+      <%= link_to "Series that failed nightly loading: #{SidekiqFailure.count}", controller: :series, action: :sidekiq_failed %>
+    </div>
 		</td>
 		<td>
 			<h2>Downloads / Raw Data</h2>

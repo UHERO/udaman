@@ -99,6 +99,10 @@ class SeriesController < ApplicationController
     @old_bea_series = Series.get_old_bea_downloads
   end
 
+  def sidekiq_failed
+    @series = Series.joins(:sidekiq_failures).order(:name)
+  end
+
   def add_to_quarantine
     @series = Series.find_by id: params[:id]
     if @series

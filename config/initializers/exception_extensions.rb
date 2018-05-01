@@ -1,29 +1,29 @@
-class AggregationException < Exception
+class AggregationException < StandardError
 end
 
-class InterpolationException < Exception
+class InterpolationException < StandardError
 end
 
-class AnnualAverageException < Exception
+class AnnualAverageException < StandardError
 end
 
-class SeriesArithmeticException < Exception
+class SeriesArithmeticException < StandardError
 end
 
-class SeasonalAdjustmentException < Exception
+class SeasonalAdjustmentException < StandardError
 end
 
-class SeriesNameException < Exception
+class SeriesNameException < StandardError
 end
 
-class PrognozDataFindException < Exception
+class PrognozDataFindException < StandardError
 end
 
-class SeriesReloadException < Exception
+class SeriesReloadException < StandardError
 end
 
-class DownloadException < Exception
+class DownloadException < StandardError
 end
 
-class ProcessPostParamException < Exception
+class ProcessPostParamException < StandardError
 end

@@ -30,7 +30,7 @@ task :find_new_aggregations => :environment do
         m_series = loop_hash[:ns] ? (s.split(".")[0] + loop_hash[:aggregate_frequency]).gsub("@", "NS@") : (s.split(".")[0] + loop_hash[:aggregate_frequency])
         avg_diff = Series.aremos_quick_diff s, m_series.ts.aggregate(:year, :average).data
         sum_diff = Series.aremos_quick_diff s, m_series.ts.aggregate(:year, :sum).data 
-      rescue Exception
+      rescue
         puts "broke on series #{s}"
         avg_diff = nil
         sum_diff = nil

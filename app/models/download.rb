@@ -151,8 +151,6 @@ class Download < ActiveRecord::Base
   def test_process_post_params(post_param)
     begin
       self.post_parameters = eval %Q|{#{post_param}}|
-      # rescue Exception => exc
-      #   raise ProcessPostParamException
     end
   end
 

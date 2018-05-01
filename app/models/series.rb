@@ -20,6 +20,7 @@ class Series < ActiveRecord::Base
   has_many :data_points
   has_many :data_sources
   has_many :data_source_actions, -> { order 'created_at DESC' }
+  has_many :sidekiq_failures  ## really only has one, but stupid Rails error prevented relation from working with has_one :(
 
   has_and_belongs_to_many :data_lists
 
@@ -1022,23 +1023,56 @@ class Series < ActiveRecord::Base
     end
   end
 
+  def reload_with_dependencies
+    Series.reload_with_dependencies([self.id])
+  end
+
+  def Series.reload_with_dependencies(series_id_list)
+    unless series_id_list.class == Array
+      raise 'Series.reload_with_dependencies needs an array of series ids'
+    end
+    logger.info { "reload_with_dependencies: start" }
+    result_set = series_id_list
+    next_set = series_id_list
+    until next_set.empty?
+      logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
+      qmarks = next_set.count.times.map{ '?' }.join(',')
+      ## So wackt that find_by_sql works this way :( But if it's fixed in Rails 5, remove this comment :)
+      ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
+      ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
+      new_deps = Series.find_by_sql [<<~SQL, next_set].flatten
+        select distinct data_sources.series_id as id
+        from data_sources, series
+        where series.id in (#{qmarks})
+        and dependencies like CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')
+      SQL
+      next_set = new_deps.map(&:id) - result_set
+      result_set += next_set
+    end
+    logger.info { "reload_with_dependencies: ship off to reload_by_dependency_depth" }
+    Series.reload_by_dependency_depth Series.where id: result_set
+  end
+
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
+    require 'digest/md5'
     redis = Redis.new
-    puts 'Starting Reload by Dependency Depth'
+    logger.info { 'Starting Reload by Dependency Depth' }
+    datetime = Time.now.strftime('%Y%m%d%H%MUTC')
+    hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
+    batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
-    series_size = series_list.count
     redis.pipelined do
-      redis.set("current_depth_#{series_size}", first_depth)
-      redis.set("waiting_workers_#{series_size}", 0)
-      redis.set("busy_workers_#{series_size}", 0)
-      redis.set("finishing_depth_#{series_size}", false)
-      redis.set("series_list_#{series_size}", series_list.pluck(:id))
-      redis.set("queue_#{series_size}", series_list.where(:dependency_depth => first_depth).count)
+      redis.set("current_depth_#{batch_id}", first_depth)
+      redis.set("waiting_workers_#{batch_id}", 0)
+      redis.set("busy_workers_#{batch_id}", 0)
+      redis.set("finishing_depth_#{batch_id}", false)
+      redis.set("series_list_#{batch_id}", series_list.pluck(:id))
+      redis.set("queue_#{batch_id}", series_list.where(:dependency_depth => first_depth).count)
     end
     # set the current depth
     series_list.where(:dependency_depth => first_depth).pluck(:id).each do |series_id|
-      SeriesWorker.perform_async series_id, series_size
+      SeriesWorker.perform_async series_id, batch_id
     end
   end
 
