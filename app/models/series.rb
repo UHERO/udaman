@@ -1056,7 +1056,7 @@ class Series < ActiveRecord::Base
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
     require 'digest/md5'
-    redis = Redis.new
+    redis = Redis.new url: (ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
     logger.info { 'Starting Reload by Dependency Depth' }
     datetime = Time.now.strftime('%Y%m%d%H%MUTC')
     hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
@@ -1079,7 +1079,7 @@ class Series < ActiveRecord::Base
   def Series.check_for_stalled_reload(series_size = Series.get_all_uhero.count)
     require 'redis'
     require 'sidekiq/api'
-    redis = Redis.new
+    redis = Redis.new url: (ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
 
     sidekiq_stats = Sidekiq::Stats.new
     current_depth = redis.get("current_depth_#{series_size}").to_i
