@@ -25,7 +25,7 @@ class SeriesWorker
 
     begin
       success = false
-      redis = Redis.new
+      redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
       redis.pipelined do
         redis.decr keys[:queue]
         redis.incr keys[:busy_workers]
