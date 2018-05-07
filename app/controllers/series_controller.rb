@@ -285,9 +285,11 @@ class SeriesController < ApplicationController
   end
 
   def stale
+    yester = Time.now.yesterday
+    horizon = Time.new(yester.year, yester.month, yester.day, 21, 0, 0)  ## 9pm the day before
     stales = Series.get_all_uhero
                    .joins(:data_sources)
-                   .where('reload_nightly = true AND last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
+                   .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
                    .order('series.name, data_sources.id')
                    .pluck('series.id, series.name, data_sources.id')
     @stale_series = {}
