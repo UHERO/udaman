@@ -1117,17 +1117,20 @@ class Series < ActiveRecord::Base
 
   def Series.stale_since(past_day)
     horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
-    stales = Series.get_all_uhero
-                 .joins(:data_sources)
-                 .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
-                 .order('series.name, data_sources.id')
-                 .pluck('series.id, series.name, data_sources.id')
-    series_hash = {}
-    stales.each do |s_id, s_name, ds_id|
-      series_hash[s_id] ||= { name: s_name, dsids: [] }
-      series_hash[s_id][:dsids].push ds_id
-    end
-    series_hash
+    Series.get_all_uhero
+          .joins(:data_sources)
+          .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
+          .order('series.name, data_sources.id')
+          .pluck('series.id, series.name, data_sources.id')
+  end
+
+  def Series.loaded_since(past_day)
+    horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
+    Series.get_all_uhero
+        .joins(:data_sources)
+        .where('reload_nightly = true AND last_run_in_seconds > ?', horizon.to_i)
+        .order('series.name, data_sources.id')
+        .pluck('series.id, series.name, data_sources.id')
   end
 
 private
