@@ -1087,7 +1087,7 @@ class Series < ActiveRecord::Base
     current_depth = redis.get("current_depth_#{series_size}").to_i
 
     if current_depth > 0 && sidekiq_stats.enqueued == 0 && sidekiq_stats.retry_size == 0 &&  sidekiq_stats.workers_size == 0
-      puts "Jump starting stalled reload (#{series_size})"
+      logger.info { "Jump starting stalled reload (batch_id=#{series_size})" }
       next_depth = current_depth - 1
       redis.set("current_depth_#{series_size}", next_depth)
       series_ids = redis.get("series_list_#{series_size}").scan(/\d+/).map{|s| s.to_i}
@@ -1100,7 +1100,7 @@ class Series < ActiveRecord::Base
       next_series.pluck(:id).each do |id|
         SeriesWorker.perform_async id, series_size
       end
-      puts "Queued depth #{next_depth} (#{series_size})"
+      logger.info { "Queued depth #{next_depth} (batch_id=#{series_size})" }
     end
   end
 
