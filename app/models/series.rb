@@ -1125,12 +1125,11 @@ class Series < ActiveRecord::Base
   end
 
   def Series.loaded_since(past_day)
-    horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
     Series.get_all_uhero
         .joins(:data_sources)
-        .where('reload_nightly = true AND last_run_in_seconds > ?', horizon.to_i)
+        .where(reload_nightly: true)
         .order('series.name, data_sources.id')
-        .pluck('series.id, series.name, data_sources.id')
+        .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
   end
 
 private
