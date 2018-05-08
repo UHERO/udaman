@@ -1056,11 +1056,12 @@ class Series < ActiveRecord::Base
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
     require 'digest/md5'
-    redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
-    logger.info { 'Starting Reload by Dependency Depth' }
-    datetime = Time.now.strftime('%Y%m%d%H%MUTC')
+    datetime = Time.now.strftime('%Y%m%d%H%MHST')
     hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
     batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
+    logger.info { "Starting Reload by Dependency Depth: batch_id #{batch_id}" }
+
+    redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
     redis.pipelined do
       redis.set("current_depth_#{batch_id}", first_depth)
@@ -1114,6 +1115,22 @@ class Series < ActiveRecord::Base
     series.sort{|x,y| x.name <=> y.name }
   end
 
+  def Series.stale_since(past_day)
+    horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
+    Series.get_all_uhero
+          .joins(:data_sources)
+          .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
+          .order('series.name, data_sources.id')
+          .pluck('series.id, series.name, data_sources.id')
+  end
+
+  def Series.loaded_since(past_day)
+    Series.get_all_uhero
+        .joins(:data_sources)
+        .where('reload_nightly = true')
+        .order('series.name, data_sources.id')
+        .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
+  end
 
 private
   def Series.display_options(options)

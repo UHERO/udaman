@@ -285,17 +285,33 @@ class SeriesController < ApplicationController
   end
 
   def stale
-    stales = Series.get_all_uhero
-                   .joins(:data_sources)
-                   .where('reload_nightly = true AND last_run_in_seconds < ?', Time.now.days_ago(2).to_i)
-                   .order('series.name, data_sources.id')
-                   .pluck('series.id, series.name, data_sources.id')
     @stale_series = {}
+    stales = Series.stale_since Time.now.days_ago(2)
     stales.each do |s_id, s_name, ds_id|
       @stale_series[s_id] ||= { name: s_name, dsids: [] }
       @stale_series[s_id][:dsids].push ds_id
     end
     @stale_series
+  end
+
+  def nightly_missed
+    @missed_series = {}
+    missed = Series.stale_since Time.now.yesterday
+    missed.each do |s_id, s_name, ds_id|
+      @missed_series[s_id] ||= { name: s_name, dsids: [] }
+      @missed_series[s_id][:dsids].push ds_id
+    end
+    @missed_series
+  end
+
+  def nightly_loaded
+    @loaded_series = {}
+    loaded = Series.loaded_since Time.now.yesterday
+    loaded.each do |s_id, s_name, ds_id|
+      @loaded_series[s_id] ||= { name: s_name, dsids: [] }
+      @loaded_series[s_id][:dsids].push ds_id
+    end
+    @loaded_series
   end
 
   private
