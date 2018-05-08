@@ -1127,7 +1127,7 @@ class Series < ActiveRecord::Base
   def Series.loaded_since(past_day)
     Series.get_all_uhero
         .joins(:data_sources)
-        .where(reload_nightly: true)
+        .where('reload_nightly = true')
         .order('series.name, data_sources.id')
         .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
   end
