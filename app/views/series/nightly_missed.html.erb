@@ -1,6 +1,7 @@
 <div id="summary_area">
 	<h2>Data Series missed in the latest nightly</h2>
 	<h2>Total: <%= @missed_series.count %></h2>
+  <%= link_to 'Series that fully nightly loaded', controller: :series, action: :nightly_loaded %>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
