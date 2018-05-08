@@ -1056,9 +1056,10 @@ class Series < ActiveRecord::Base
   def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
     require 'redis'
     require 'digest/md5'
-    datetime = Time.now.strftime('%Y%m%d%H%MHST')
-    hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
-    batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
+    # datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
+    # hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
+    # batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
+    batch_id = series_list.count.to_s
     logger.info { "Starting Reload by Dependency Depth: batch_id #{batch_id}" }
 
     redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
