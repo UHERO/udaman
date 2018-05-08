@@ -285,22 +285,14 @@ class SeriesController < ApplicationController
   end
 
   def stale
-    yester = Time.now.yesterday
-    horizon = Time.new(yester.year, yester.month, yester.day, 21, 0, 0)  ## 9pm the day before
-    stales = Series.get_all_uhero
-                   .joins(:data_sources)
-                   .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
-                   .order('series.name, data_sources.id')
-                   .pluck('series.id, series.name, data_sources.id')
-    @stale_series = {}
-    stales.each do |s_id, s_name, ds_id|
-      @stale_series[s_id] ||= { name: s_name, dsids: [] }
-      @stale_series[s_id][:dsids].push ds_id
-    end
-    @stale_series
+    @stale_series = Series.stale_since Time.now.days_ago(2)
   end
 
-  private
+  def nightly_missed
+    @stale_series = Series.stale_since Time.now.yesterday
+  end
+
+private
     def series_params
       params.require(:series).permit(
           :universe,
