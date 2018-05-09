@@ -70,6 +70,7 @@ task :reload_all_series => :environment do
   end
 end
 
+## The "cleanup" after nightly reload
 task :reload_recent_stale_series => :environment do
   stale = Series.stale_since Time.now.yesterday
   ids = stale.map{|x| x[0] }.uniq
