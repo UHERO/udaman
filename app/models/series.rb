@@ -1086,22 +1086,25 @@ class Series < ActiveRecord::Base
     sidekiq_stats = Sidekiq::Stats.new
     current_depth = redis.get("current_depth_#{series_size}").to_i
 
-    if current_depth > 0 && sidekiq_stats.enqueued == 0 && sidekiq_stats.retry_size == 0 &&  sidekiq_stats.workers_size == 0
-      logger.info { "Jump starting stalled reload (batch_id=#{series_size})" }
-      next_depth = current_depth - 1
-      redis.set("current_depth_#{series_size}", next_depth)
-      series_ids = redis.get("series_list_#{series_size}").scan(/\d+/).map{|s| s.to_i}
-      next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
-      redis.pipelined do
-        redis.set("queue_#{series_size}", next_series.count)
-        redis.set("finishing_depth_#{series_size}", false)
-        redis.set("busy_workers_#{series_size}", 1)
-      end
-      next_series.pluck(:id).each do |id|
-        SeriesWorker.perform_async id, series_size
-      end
-      logger.info { "Queued depth #{next_depth} (batch_id=#{series_size})" }
+    return unless current_depth > 0 &&
+        sidekiq_stats.enqueued == 0 &&
+        sidekiq_stats.retry_size == 0 &&
+        sidekiq_stats.workers_size == 0
+
+    logger.info { "Jump starting stalled reload (batch_id=#{series_size})" }
+    next_depth = current_depth - 1
+    redis.set("current_depth_#{series_size}", next_depth)
+    series_ids = redis.get("series_list_#{series_size}").scan(/\d+/).map{|s| s.to_i}
+    next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
+    redis.pipelined do
+      redis.set("queue_#{series_size}", next_series.count)
+      redis.set("finishing_depth_#{series_size}", false)
+      redis.set("busy_workers_#{series_size}", 1)
     end
+    next_series.pluck(:id).each do |id|
+      SeriesWorker.perform_async id, series_size
+    end
+    logger.info { "Queued depth #{next_depth} (batch_id=#{series_size})" }
   end
 
   def Series.get_old_bea_downloads
