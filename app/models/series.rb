@@ -1064,7 +1064,7 @@ class Series < ActiveRecord::Base
     datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
     hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
     batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
-    logger.info { "Starting Reload by Dependency Depth: batch_id #{batch_id}" }
+    Rails.logger.info { "Starting Reload by Dependency Depth: batch_id #{batch_id}" }
 
     redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
     unless redis.set("current_batch", batch_id) == 'OK'
@@ -1091,6 +1091,7 @@ class Series < ActiveRecord::Base
     redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
     batch_id = redis.get("current_batch")
     return if batch_id.blank?
+    Rails.logger.info { "Check for stalled: batch_id=#{batch_id}: begin" }
 
     sidekiq_stats = Sidekiq::Stats.new
     current_depth = redis.get("current_depth_#{batch_id}").to_i
@@ -1099,7 +1100,7 @@ class Series < ActiveRecord::Base
         sidekiq_stats.retry_size == 0 &&
         sidekiq_stats.workers_size == 0
 
-    Rails.logger.info { "Jump starting stalled reload (batch_id=#{batch_id})" }
+    Rails.logger.info { "Check for stalled: batch_id=#{batch_id}: jump-starting stalled reload" }
     next_depth = current_depth - 1
     redis.set("current_depth_#{batch_id}", next_depth)
     series_ids = redis.get("series_list_#{batch_id}").scan(/\d+/).map{|s| s.to_i}
@@ -1112,7 +1113,7 @@ class Series < ActiveRecord::Base
     next_series.pluck(:id).each do |id|
       SeriesWorker.perform_async id, batch_id
     end
-    Rails.logger.info { "Queued depth #{next_depth} (batch_id=#{batch_id})" }
+    Rails.logger.info { "Check for stalled: batch_id=#{batch_id}: queued depth #{next_depth}" }
   end
 
   def Series.get_old_bea_downloads
