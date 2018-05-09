@@ -1088,10 +1088,13 @@ class Series < ActiveRecord::Base
   def Series.check_for_stalled_reload
     require 'redis'
     require 'sidekiq/api'
+    Rails.logger.debug { "Check for stalled: begin" }
     redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
     batch_id = redis.get("current_batch")
-    return if batch_id.blank?
-    Rails.logger.info { "Check for stalled: batch_id=#{batch_id}: begin" }
+    if batch_id.blank?
+      Rails.logger.warn { "Check for stalled: no existing batch found" }
+      return
+    end
 
     sidekiq_stats = Sidekiq::Stats.new
     current_depth = redis.get("current_depth_#{batch_id}").to_i
