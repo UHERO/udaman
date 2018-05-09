@@ -1088,11 +1088,11 @@ class Series < ActiveRecord::Base
   def Series.check_for_stalled_reload
     require 'redis'
     require 'sidekiq/api'
-    Rails.logger.debug { "Check for stalled: begin" }
+    Rails.logger.debug { "Check for stalled reload: begin" }
     redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
     batch_id = redis.get("current_batch")
     if batch_id.blank?
-      Rails.logger.warn { "Check for stalled: no existing batch found" }
+      Rails.logger.warn { "Check for stalled reload: no existing batch found" }
       return
     end
 
@@ -1103,7 +1103,7 @@ class Series < ActiveRecord::Base
         sidekiq_stats.retry_size == 0 &&
         sidekiq_stats.workers_size == 0
 
-    Rails.logger.info { "Check for stalled: batch_id=#{batch_id}: jump-starting stalled reload" }
+    Rails.logger.info { "Check for stalled reload: batch_id=#{batch_id}: jump-starting stalled reload" }
     next_depth = current_depth - 1
     redis.set("current_depth_#{batch_id}", next_depth)
     series_ids = redis.get("series_list_#{batch_id}").scan(/\d+/).map{|s| s.to_i}
@@ -1116,7 +1116,7 @@ class Series < ActiveRecord::Base
     next_series.pluck(:id).each do |id|
       SeriesWorker.perform_async id, batch_id
     end
-    Rails.logger.info { "Check for stalled: batch_id=#{batch_id}: queued depth #{next_depth}" }
+    Rails.logger.info { "Check for stalled reload: batch_id=#{batch_id}: queued depth #{next_depth}" }
   end
 
   def Series.get_old_bea_downloads
