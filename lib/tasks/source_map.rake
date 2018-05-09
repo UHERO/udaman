@@ -74,6 +74,7 @@ end
 task :reload_recent_stale_series => :environment do
   stale = Series.stale_since Time.now.yesterday
   ids = stale.map{|x| x[0] }.uniq
+  Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
   Series.reload_by_dependency_depth(Series.where id: ids)
 end
 
