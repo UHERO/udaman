@@ -6,9 +6,9 @@ describe DataPoint do
     @ds1_80 = DataSource.create priority: 80
     @ds2_80 = DataSource.create priority: 80
     @ds2_70 = DataSource.create priority: 70
-    @dp = DataPoint.create(series_id: @s.id,
-                           date: '2011-03-01',
+    @dp = DataPoint.create(date: '2011-03-01',
                            value: 100.0,
+                           series_id: @s.id,
                            data_source_id: @ds1_80.id,
                            current: true)
     ## Shove anything other than zero into the unused :id column as a way
@@ -22,7 +22,7 @@ describe DataPoint do
     cur_dps = @s.current_data_points
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
-    expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is a different from original'
+    expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
     expect(@dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
     expect(@dp.data_source_id).to eq(@ds1_80.id), 'old data point source has changed in place'
@@ -95,7 +95,7 @@ describe DataPoint do
     expect(newdp.data_source_id).to eq(@dp.data_source_id), 'new dp doesnt have the correct source'
   end
 
-  it 'should restore correct dp next-in-line by updated_at time when current is deleted' do
+  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
     dp = @dp.upd(200, @ds1_80)
     sleep 1
     dp = dp.upd(400, @ds1_80)
@@ -115,6 +115,10 @@ describe DataPoint do
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(cdp.first.value_equal_to? 300).to eq(true), 'correct dp=300 not restored to current'
     expect(@s.data_points.count).to eq(4), 'not exactly four dps for this series'
+  end
+
+  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
+
   end
 
   it 'should NOT change current dp when non-current dp is deleted' do
