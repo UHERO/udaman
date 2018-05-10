@@ -79,14 +79,42 @@ describe DataPoint do
     expect(@dp.data_source_id).to eq(@ds1_80.id), 'old data point source has changed in place'
   end
 
-  xit 'should be able to clone itself but assign a new value, source_id' do
-    ### this is basically covered by the above test:
-    ###   'should update a data_points value if value is different, source.priority not < current'
-  end
-
   ##### NEXT: write a bunch of tests for cases where there are multiple 'kin' data points and certain ones
   ##### are deleted, checking that the correct other dp is set to current, etc. This should cover the case
   ##### of the below test:
+  it 'should restore previous current data point, when updated to those properties' do
+    dp1 = @dp.upd(200, @ds2_80)
+    ## dp1 should now be current, as tested above
+    newdp = dp1.upd(@dp.value, @dp.data_source_id)
+    ## now @dp should be restored to current, and newdp should be @dp
+
+    expect(@s.current_data_points.count).to eq(1), 'not exactly one current dp'
+    expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
+    expect(DataPoint.count).to eq(2), 'not exactly two dps in the system'
+    expect(newdp.class).to eq(DataPoint), 'thing returned is not a DataPoint'
+    expect(newdp.id).to eq(@arbitrary_id), 'a dp was created, not restored'
+    expect(newdp.current).to eq(true), 'new dp not set to current'
+    expect(dp1.current).to eq(false), 'previous current dp still set to current'
+    expect(newdp.value_equal_to? @dp.value).to eq(true), 'new and old dp values are not equal'
+    expect(newdp.data_source_id).to eq(@dp.data_source_id), 'new dp doesnt have the correct source'
+  end
+
+  it 'should restore correct next-in-line dp by updated_at time when current is deleted' do
+    dp = @dp.upd(200, @ds1_80)
+    sleep 1
+    dp = dp.upd(400, @ds1_80)
+    sleep 1 ## make sure updated_at is different
+    dp = dp.upd(300, @ds1_80)
+    sleep 1
+    dp = dp.upd(500, @ds1_80)
+    dp.delete
+    cdp = @s.current_data_points
+
+    expect(cdp.count).to eq(1), 'not exactly one current dp'
+    expect(cdp.first.value_equal_to? 300).to eq(true), 'correct data point not restored to current'
+    expect(@s.data_points.count).to eq(4), 'not exactly four dps for this series'
+    expect(DataPoint.count).to eq(4), 'not exactly four dps in the system'
+  end
 
   xit %q"should make its 'next of kin' data point current if it's being deleted" do
     ds1 = DataSource.create
