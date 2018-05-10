@@ -90,7 +90,6 @@ describe DataPoint do
 
     expect(@s.current_data_points.count).to eq(1), 'not exactly one current dp'
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
-    expect(DataPoint.count).to eq(2), 'not exactly two dps in the system'
     expect(newdp.class).to eq(DataPoint), 'thing returned is not a DataPoint'
     expect(newdp.id).to eq(@arbitrary_id), 'a dp was created, not restored'
     expect(newdp.current).to eq(true), 'new dp not set to current'
