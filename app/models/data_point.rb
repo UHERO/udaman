@@ -20,7 +20,7 @@ class DataPoint < ActiveRecord::Base
   def series_auto_quarantine_check
     return if series.quarantined? || series.restricted?
     return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
-    if (Date.today - 2.years) > self.date
+    if self.date < (Date.today - 2.years)
       series.add_to_quarantine(false)
     end
   end
