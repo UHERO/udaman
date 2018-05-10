@@ -19,12 +19,12 @@ describe DataPoint do
   it 'should NOT change data_point if value and source_id are unchanged' do
     newdp = @dp.upd(100, @ds1_80)
     cur_dps = @s.current_data_points
-### this is not done yet
-    dpu = @s.current_data_points.first
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
-    expect(newdp).to eq(nil)
+    expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.first.id).to eq(@arbitrary_id), 'current dp is a different from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
+    expect(@dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
+    expect(@dp.data_source_id).to eq(@ds1_80.id), 'old data point source has changed in place'
   end
 
   it 'should update a data_points data source if source is different, source.priority not < current' do
