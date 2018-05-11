@@ -31,7 +31,6 @@ describe DataPoint do
   end
 
   it 'should update a dp data source if source is different, source.priority >= current' do
-    sleep 1
     newdp = @dp.upd(100, @ds2_80)
     cur_dps = @s.current_data_points
 
@@ -46,7 +45,6 @@ describe DataPoint do
   end
 
   it 'should NOT update a dp data source if source is different, source.priority < current' do
-    sleep 1
     newdp = @dp.upd(100, @ds2_70)
     cur_dps = @s.current_data_points
 
