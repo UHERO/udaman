@@ -21,9 +21,10 @@ module SeriesStatistics
   end
 
   def median
-    num_array = (self.data.sort.reject{|a| a[1].nil?}).map { |a| a[1]}.sort
-    len = num_array.length
-    (num_array[(len - 1) / 2] + num_array[len / 2]) / 2.0
+    num_array = (self.data.reject{|a| a.nil?}).map { |a| a[1]}.sort
+    return nil if num_array.empty?
+    median_index = num_array.size / 2
+    return num_array.size % 2 == 1 ? num_array[median_index] : (num_array[median_index - 1] + num_array[median_index]) / 2.0
   end
 
   def outlier
