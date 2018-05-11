@@ -53,6 +53,10 @@ every 1.day, :at => '9:10 pm' do
   rake 'reload_all_series'
 end
 
+every 1.day, :at => '9:10 am' do ## n.b. AM not PM
+  rake 'reload_recent_stale_series'
+end
+
 every 30.minutes do
   rake 'check_for_stalled_reload'
 end
