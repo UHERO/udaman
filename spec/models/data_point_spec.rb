@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe DataPoint do
   before(:each) do
-    @s = Series.create
+    @s = Series.create name: 'FOOTEST@HI.Q'
     @ds1_80 = DataSource.create priority: 80
     @ds2_80 = DataSource.create priority: 80
     @ds2_70 = DataSource.create priority: 70
@@ -128,23 +128,24 @@ describe DataPoint do
     restoredp = dp500.upd(dp200.value, dp200.data_source)
     cdp = @s.current_data_points
     expect(cdp.count).to eq(1), 'not exactly one current dp'
+    expect(restoredp.current).to eq(true), ''
     expect(restoredp.read_attribute :id).to eq(222), ''
-    expect(cdp.first.read_attribute :id).to eq(222), ''
     expect(restoredp.value_equal_to? dp200.value).to eq(true), 'dp=200 not set to current'
 
     ## restore 100
     restoredp = restoredp.upd(@dp.value, @dp.data_source)
     cdp = @s.current_data_points
     expect(cdp.count).to eq(1), 'not exactly one current dp'
+    expect(restoredp.current).to eq(true), ''
     expect(restoredp.read_attribute :id).to eq(@arbitrary_id), ''
-    expect(cdp.first.read_attribute :id).to eq(@arbitrary_id), ''
     expect(restoredp.value_equal_to? @dp.value).to eq(true), 'orig @dp not set to current'
 
-    @dp.delete
+    restoredp.delete
     cdp = @s.current_data_points
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(cdp.first.value_equal_to? dp200.value).to eq(true), 'current dp is not dp=200'
     expect(dp200.current).to eq(true), 'dp=200 not set to current'
+    expect(dp500.current).to eq(false), 'dp=500 set wrongly to current'
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
