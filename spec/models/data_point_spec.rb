@@ -22,7 +22,7 @@ describe DataPoint do
     cur_dps = @s.current_data_points
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
-    expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
+    expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), "current dp is different from original (#{cur_dps.first.read_attribute :id})"
     expect(@dp.current).to eq(true), 'old data point no longer current'
     expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
     expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'
