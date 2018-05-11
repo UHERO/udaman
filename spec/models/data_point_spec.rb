@@ -117,7 +117,7 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
-  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
+  xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
     sleep 1
     dp200 = @dp.upd(200, @ds1_80)
     dp200.write_attribute :id, 222
@@ -149,7 +149,7 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
-  it 'should NOT change current dp when non-current dp is deleted' do
+  xit 'should NOT change current dp when non-current dp is deleted' do
     ##### this is not right... latest updated needs to be not the same as current
     sleep 1
     dp = @dp.upd(200, @ds1_80)
