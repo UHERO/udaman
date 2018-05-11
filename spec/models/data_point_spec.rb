@@ -24,8 +24,8 @@ describe DataPoint do
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
     expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
-    expect(@dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
-    expect(@dp.data_source_id).to eq(@ds1_80.id), 'old data point source has changed in place'
+    expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
+    expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'
   end
 
   it 'should update a data_points data source if source is different, source.priority not < current' do
@@ -49,8 +49,8 @@ describe DataPoint do
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
     expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
-    expect(@dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
-    expect(@dp.data_source_id).to eq(@ds1_80.id), 'old data point source has changed in place'
+    expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
+    expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'
   end
 
   it 'should update a data_points value if value is different, source.priority not < current' do
@@ -74,15 +74,17 @@ describe DataPoint do
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
     expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
-    expect(@dp.value_equal_to? 100.0).to eq(true), 'old data point value has changed in place'
-    expect(@dp.data_source_id).to eq(@ds1_80.id), 'old data point source has changed in place'
+    expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
+    expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'
   end
 
   #########################################################################################################
+
+  ## what about if there is an old dp with the correct properties, but lower priority? should not be restored
   it 'should restore previously current data point, when updated to its same properties' do
     dp1 = @dp.upd(200, @ds2_80)
     ## dp1 should now be current, as tested above
-    newdp = dp1.upd(@dp.value, @dp.data_source_id)
+    newdp = dp1.upd(@dp.value, @dp.data_source)
     ## now @dp should be restored to current, and newdp should == @dp
 
     expect(@s.current_data_points.count).to eq(1), 'not exactly one current dp'
@@ -91,37 +93,64 @@ describe DataPoint do
     expect(newdp.read_attribute :id).to eq(@arbitrary_id), 'a new dp was created rather than an old one restored'
     expect(newdp.current).to eq(true), 'new dp not set to current'
     expect(dp1.current).to eq(false), 'previous current dp still set to current'
-    expect(newdp.value_equal_to? @dp.value).to eq(true), 'new and old dp values are not equal'
-    expect(newdp.data_source_id).to eq(@dp.data_source_id), 'new dp doesnt have the correct source'
+    expect(newdp.value_equal_to? @dp.value).to eq(true), 'orig dp value has changed in place'
+    expect(newdp.data_source_id).to eq(@dp.data_source_id), 'orig dp source has changed in place'
   end
 
   it 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
-    dp = @dp.upd(200, @ds1_80)
     sleep 1
-    dp = dp.upd(400, @ds1_80)
-    sleep 1 ## make sure updated_at changes
-    dp = dp.upd(300, @ds1_80)
+    dp200 = @dp.upd(200, @ds1_80)
     sleep 1
-    dp500 = dp.upd(500, @ds1_80)
+    dp500 = dp200.upd(500, @ds1_80)
     cdp = @s.current_data_points
-    expect(dp500.current).to eq(true), 'new dp not set to current'
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(cdp.first.value_equal_to? 500).to eq(true), 'current dp is not dp=500'
-    expect(@s.data_points.count).to eq(5), 'not exactly five dps in this series'
+    expect(dp500.current).to eq(true), 'new dp not set to current'
+    expect(@s.data_points.count).to eq(3), 'not exactly three dps in this series'
 
     dp500.delete
     cdp = @s.current_data_points
 
     expect(cdp.count).to eq(1), 'not exactly one current dp'
-    expect(cdp.first.value_equal_to? 300).to eq(true), 'correct dp=300 not restored to current'
-    expect(@s.data_points.count).to eq(4), 'not exactly four dps for this series'
+    expect(cdp.first.value_equal_to? 200).to eq(true), 'current dp is not dp=200'
+    expect(dp200.current).to eq(true), 'dp=200 not set to current'
+    expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
   it 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
+    sleep 1
+    dp200 = @dp.upd(200, @ds1_80)
+    dp200.write_attribute :id, 222
+    sleep 1
+    dp500 = dp200.upd(500, @ds1_80)
 
+    ## restore 200
+    restoredp = dp500.upd(dp200.value, dp200.data_source)
+    cdp = @s.current_data_points
+    expect(cdp.count).to eq(1), 'not exactly one current dp'
+    expect(restoredp.read_attribute :id).to eq(222), ''
+    expect(cdp.first.read_attribute :id).to eq(222), ''
+    expect(restoredp.value_equal_to? dp200.value).to eq(true), 'dp=200 not set to current'
+
+    ## restore 100
+    restoredp = restoredp.upd(@dp.value, @dp.data_source)
+    cdp = @s.current_data_points
+    expect(cdp.count).to eq(1), 'not exactly one current dp'
+    expect(restoredp.read_attribute :id).to eq(@arbitrary_id), ''
+    expect(cdp.first.read_attribute :id).to eq(@arbitrary_id), ''
+    expect(restoredp.value_equal_to? @dp.value).to eq(true), 'orig @dp not set to current'
+
+    @dp.delete
+    cdp = @s.current_data_points
+    expect(cdp.count).to eq(1), 'not exactly one current dp'
+    expect(cdp.first.value_equal_to? dp200.value).to eq(true), 'current dp is not dp=200'
+    expect(dp200.current).to eq(true), 'dp=200 not set to current'
+    expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
   it 'should NOT change current dp when non-current dp is deleted' do
+    ##### this is not right... latest updated needs to be not the same as current
+    sleep 1
     dp = @dp.upd(200, @ds1_80)
     sleep 1
     dp400 = dp.upd(400, @ds1_80)
@@ -142,42 +171,5 @@ describe DataPoint do
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(cdp.first.value_equal_to? 500).to eq(true), 'dp=500 does not remain as current'
     expect(@s.data_points.count).to eq(4), 'not exactly four dps for this series'
-  end
-
-  xit %q"should make its 'next of kin' data point current if it's being deleted" do
-    ds1 = DataSource.create
-    dp = DataPoint.create(
-        :series_id => @s.id,
-        :date => '2011-03-01',
-        :value => 100.0,
-        :data_source_id => ds1.id,
-        :current => true
-    )
-
-    sleep 1
-    dp.upd(200, ds1)
-    
-    expect(@s.data_points.count).to eq(2)
-    expect(@s.current_data_points.count).to eq(1)
-    
-    @s.current_data_points[0].delete
-
-    expect(@s.data_points.count).to eq(1)
-    expect(@s.current_data_points.count).to eq(1)
-    expect(@s.current_data_points[0].id.to_s).to eq(dp.id.to_s)
-
-    sleep 1  
-    dp = DataPoint.where(:current => true).first
-    dp2 = dp.upd(300, ds1)
-      
-    sleep 1
-    dp2.upd(400, ds1)
-
-  
-    @s.current_data_points[0].delete
-
-    expect(@s.data_points.count).to eq(2)
-    expect(@s.current_data_points.count).to eq(1)
-    expect(@s.current_data_points[0].id.to_s).to eq(dp2.id.to_s)
   end
 end
