@@ -17,7 +17,7 @@ describe DataPoint do
     @dp.write_attribute :id, @arbitrary_id
   end
 
-  it 'should NOT change data_point if value and source_id are unchanged' do
+  it 'should NOT change dp if value and source_id are unchanged' do
     newdp = @dp.upd(100, @ds1_80)
     cur_dps = @s.current_data_points
     expect(newdp).to eq(nil), 'thing returned is not nil'
@@ -28,7 +28,7 @@ describe DataPoint do
     expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'
   end
 
-  it 'should update a data_points data source if source is different, source.priority not < current' do
+  it 'should update a dp data source if source is different, source.priority >= current' do
     newdp = @dp.upd(100, @ds2_80)
     cur_dps = @s.current_data_points
 
@@ -41,7 +41,7 @@ describe DataPoint do
     expect(newdp.data_source_id).to eq(@ds2_80.id), 'new dp does not have new source'
   end
 
-  it 'should NOT update a data_points data source if source is different, source.priority < current' do
+  it 'should NOT update a dp data source if source is different, source.priority < current' do
     newdp = @dp.upd(100, @ds2_70)
     cur_dps = @s.current_data_points
 
@@ -53,7 +53,7 @@ describe DataPoint do
     expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'
   end
 
-  it 'should update a data_points value if value is different, source.priority not < current' do
+  it 'should update a dp value if value is different, source.priority >= current' do
     newdp = @dp.upd(200, @ds2_80)
     cur_dps = @s.current_data_points
 
@@ -66,7 +66,7 @@ describe DataPoint do
     expect(newdp.data_source_id).to eq(@ds2_80.id), 'new dp doesnt have the new source'
   end
 
-  it 'should NOT update a data_points value if value is different, source.priority < current' do
+  it 'should NOT update a dp value if value is different, source.priority < current' do
     newdp = @dp.upd(200, @ds2_70)
     cur_dps = @s.current_data_points
 
@@ -81,7 +81,7 @@ describe DataPoint do
   #########################################################################################################
 
   ## what about if there is an old dp with the correct properties, but lower priority? should not be restored
-  it 'should restore previously current data point, when updated to its same properties' do
+  it 'should restore previously current dp, when updated to its same properties' do
     dp1 = @dp.upd(200, @ds2_80)
     ## dp1 should now be current, as tested above
     newdp = dp1.upd(@dp.value, @dp.data_source)
@@ -97,7 +97,7 @@ describe DataPoint do
     expect(newdp.data_source_id).to eq(@dp.data_source_id), 'orig dp source has changed in place'
   end
 
-  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
+  xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
     sleep 1
     dp200 = @dp.upd(200, @ds1_80)
     sleep 1
