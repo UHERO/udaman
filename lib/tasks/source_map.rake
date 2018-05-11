@@ -70,6 +70,14 @@ task :reload_all_series => :environment do
   end
 end
 
+## The "cleanup" after nightly reload
+task :reload_recent_stale_series => :environment do
+  stale = Series.stale_since Time.now.yesterday
+  ids = stale.map{|x| x[0] }.uniq
+  Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
+  Series.reload_by_dependency_depth(Series.where id: ids)
+end
+
 task :check_for_stalled_reload => :environment do
   Series.check_for_stalled_reload
 end
