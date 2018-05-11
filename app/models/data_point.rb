@@ -40,14 +40,15 @@ class DataPoint < ActiveRecord::Base
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
     return nil if upd_source.priority < self.data_source.priority
-    now = Time.now
-    new_dp = self.dup
-    new_dp.update_attributes(
+    ##now = Time.now
+    new_dp = DataPoint.create(
+        series_id: self.series_id,
+        date: self.date,
         :data_source_id => upd_source.id,
         :value => upd_value,
-        :current => false,  ## will be set to true just below
-        :created_at => now,
-        :updated_at => now
+        :current => false  ## will be set to true just below
+      #  :created_at => now,
+       # :updated_at => now
     )
     make_current(new_dp)
     new_dp
