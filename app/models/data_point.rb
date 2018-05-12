@@ -50,10 +50,11 @@ class DataPoint < ActiveRecord::Base
       #  :created_at => now,
        # :updated_at => now
     )
+    self.update_attributes(current: false)
     make_current(new_dp)
     new_dp
   end
-  
+
   def restore_prior_dp(upd_value, upd_source)
     prior_dp = DataPoint.where(series_id: series_id,
                                date: date,
@@ -61,6 +62,7 @@ class DataPoint < ActiveRecord::Base
                                value: upd_value).first
     return nil if prior_dp.nil?
     unless upd_source.priority < self.data_source.priority
+      self.update_attributes(current: false)
       make_current(prior_dp)
     end
     prior_dp
@@ -69,7 +71,7 @@ class DataPoint < ActiveRecord::Base
   def make_current(dp)
     return unless current
     self.transaction do
-      self.update!(current: false)
+      ## self.update_attributes(current: false)
         dp.update_attributes(current: true)
     end
   end
