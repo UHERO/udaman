@@ -1,5 +1,5 @@
 class DataPoint < ActiveRecord::Base
-  self.primary_keys = :series_id, :date, :created_at, :data_source_id
+  self.primary_key = :series_id, :date, :created_at, :data_source_id
   belongs_to :series
   belongs_to :data_source
   
