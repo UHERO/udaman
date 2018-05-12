@@ -69,7 +69,7 @@ class DataPoint < ActiveRecord::Base
   def make_current(dp)
     return unless current
 #    self.transaction do
-      self.update!(current: false)
+#      self.update!(current: false)
         dp.update!(current: true)
 #    end
   end
