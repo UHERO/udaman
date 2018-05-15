@@ -283,7 +283,7 @@ class Series < ActiveRecord::Base
   end
 
   def parse_name
-    name =~ /^(\S+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+    Series.parse_name(self.name)
   end
 
   def Series.build_name(parts)
@@ -918,7 +918,9 @@ class Series < ActiveRecord::Base
   end
   
   
-  def Series.web_search(search_string, universe = 'UHERO', num_results = 10)
+  def Series.web_search(search_string, universe, num_results = 10)
+    universe = 'UHERO' if universe.blank?
+    Rails.logger.debug { ">>>>>>> web_search (univ=|#{universe}| |#{search_string}|)" }
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
@@ -929,9 +931,6 @@ class Series < ActiveRecord::Base
                            .where("((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))")
                            .limit(num_results)
 
-    aremos_desc_where = (search_parts.map {|s| "description LIKE '%#{s}%'"}).join (' AND ')
-    aremos_desc_results = AremosSeries.where(aremos_desc_where).limit(num_results)
-    
     results = []
   
     series_results.each do |s|
@@ -940,10 +939,13 @@ class Series < ActiveRecord::Base
                     'no aremos series'
       results.push({ :name => s.name, :series_id => s.id, :description => description})
     end
-    
-    aremos_desc_results.each do |as|
-      s = as.name.ts
-      results.push({:name => as.name, :series_id => s.nil? ? 'no series' : s.id, :description => as.description})
+
+    if universe == 'UHERO'
+      aremos_desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
+      AremosSeries.where(aremos_desc_where).limit(num_results).each do |as|
+        s = as.name.ts
+        results.push({ name: as.name, series_id: (s.nil? ? 'no series' : s.id), description: as.description })
+      end
     end
     results
   end
