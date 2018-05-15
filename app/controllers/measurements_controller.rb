@@ -35,7 +35,7 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
-    @data_list_id = Category.find(params[:data_list_id]).id rescue nil
+    @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
     @measurement = Measurement.new
   end
 
