@@ -35,6 +35,7 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
+    @data_list_id = Category.find(params[:data_list_id]).id rescue nil
     @measurement = Measurement.new
   end
 
@@ -44,10 +45,17 @@ class MeasurementsController < ApplicationController
 
   # POST /measurements
   def create
+    data_list = DataList.find(params[:data_list_id]) rescue nil
+    ## universe setting?
     @measurement = Measurement.new(measurement_params)
 
     if @measurement.save
-      redirect_to @measurement, notice: 'Measurement was successfully created.'
+      if data_list
+        data_list.add_measurement(@measurement)
+        redirect_to edit_data_list_path(data_list)
+      else
+        redirect_to @measurement, notice: 'Measurement was successfully created.'
+      end
     else
       render :new
     end

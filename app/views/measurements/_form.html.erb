@@ -72,6 +72,7 @@
     <%= f.text_area :notes %>
   </div>
   <div class="actions">
+    <%= hidden_field_tag(:data_list_id, @data_list_id) %>
     <%= f.submit %>
   </div>
 

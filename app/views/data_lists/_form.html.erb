@@ -60,6 +60,7 @@
             <div class="field">
               <%= f2.label :measurements %><br>
               <%= f2.collection_select :measurement_ids, Measurement.where(universe: 'UHERO').all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
+              <%= link_to 'Create a new measurement for this data list', {controller: :measurements, action: :new, data_list_id: @data_list.id} %>*
             </div>
             <div class="actions">
               <%= f2.submit 'Add Measurement' %>
@@ -67,7 +68,7 @@
         <% end %>
         <br />
   <% end %>
-
+<p>* If you click a link before saving this screen, entered data may be lost.</p>
 
 <script>
     $(document).ready(function() { $("#data_list_measurement_ids").select2(); })

@@ -4,14 +4,15 @@ class DataList < ActiveRecord::Base
   has_many :measurements, -> {distinct}, through: :data_list_measurements
   accepts_nested_attributes_for :measurements
 
-  # def export
-  #   
-  #   return unless File::exists? save_path_flex 
-  #   Dir.mkdir save_path_flex+"_vintages" unless File::directory?(save_path_flex+"_vintages")
-  #   filename = save_path_flex.split("/")[-1]
-  #   date = Date.today    
-  #   FileUtils.cp(save_path_flex, save_path_flex+"_vintages/#{date}_"+filename)
-  # end
+  def add_measurement(measurement, list_order = nil, indent = 'indent0')
+    ## Duplicate insertion of existing id pair prevented by unique index in db
+    unless list_order
+      current_max = DataListMeasurement.where('data_list_id = ?', id).maximum(:list_order)
+      list_order = current_max.nil? ? 0 : current_max + 1
+    end
+    DataListMeasurement.create(data_list_id: id, measurement_id: measurement.id, list_order: list_order, indent: indent)
+  end
+
   def series_names
     if list.nil?
       return []
