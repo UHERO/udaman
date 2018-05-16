@@ -36,13 +36,13 @@ class MeasurementsController < ApplicationController
   # GET /measurements/new
   def new
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    @universe = params[:universe]
-    @resource_universe = case @universe
+    universe = params[:universe]
+    @resource_universe = case universe
                            when 'UHEROCOH' then 'UHERO'
                            when 'DBEDTCOH' then 'DBEDT'
-                           else @universe
+                           else universe
                          end
-    @measurement = Measurement.new
+    @measurement = Measurement.new(universe: universe)
   end
 
   # GET /measurements/1/edit
