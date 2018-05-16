@@ -47,6 +47,11 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/1/edit
   def edit
+    @resource_universe = case @measurement.universe
+                           when 'UHEROCOH' then 'UHERO'
+                           when 'DBEDTCOH' then 'DBEDT'
+                           else @measurement.universe
+                         end
   end
 
   # POST /measurements
