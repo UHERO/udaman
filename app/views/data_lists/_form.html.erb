@@ -61,7 +61,8 @@
               <%= f2.label :measurements %><br>
               <%= f2.collection_select :measurement_ids, Measurement.where(universe: 'UHERO').all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
               <span class="actions"><%= f2.submit 'Add Measurement' %></span>
-              <br/>or <%= link_to 'Create a new measurement for this data list', {controller: :measurements, action: :new, data_list_id: @data_list.id} %>*
+              <br/>or <%= link_to 'Create a new UHERO measurement for this data list', {controller: :measurements, action: :new_uhero, data_list_id: @data_list.id} %>*
+              <br/>or <%= link_to 'Create a new DBEDT measurement for this data list', {controller: :measurements, action: :new_dbedt, data_list_id: @data_list.id} %>*
             </div>
         <% end %>
         <br />

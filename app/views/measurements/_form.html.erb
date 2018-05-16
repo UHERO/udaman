@@ -11,15 +11,8 @@
     </div>
   <% end %>
 
+  <h3>Universe: <%= @measurement.universe %></h3>
   <div class="field">
-      <div class="field">
-        <% if request.path !~ /edit/ %>
-          <%= f.label :universe, 'Universe' %>
-          <%= f.select :universe, %w(UHERO DBEDT).collect {|x| [x, x] }, {:include_blank => false} %>
-        <% else %>
-          <h3>Universe: <%= @measurement.universe %></h3>
-        <% end %>
-      </div>
     <%= f.label :prefix %><br>
     <%= f.text_field :prefix %>
   </div>

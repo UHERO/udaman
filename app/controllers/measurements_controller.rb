@@ -35,8 +35,17 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
+    new_uhero
+  end
+
+  def new_uhero
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    @measurement = Measurement.new
+    @measurement = Measurement.new universe: 'UHERO'
+  end
+
+  def new_dbedt
+    @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
+    @measurement = Measurement.new universe: 'DBEDTCOH'
   end
 
   # GET /measurements/1/edit
