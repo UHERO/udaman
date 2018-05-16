@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025742) do
+ActiveRecord::Schema.define(version: 220170413025743) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -143,21 +143,20 @@ ActiveRecord::Schema.define(version: 220170413025742) do
   end
 
   create_table "data_points", id: false, force: :cascade do |t|
-    t.integer  "id",              limit: 4,  default: 0,       null: false
-    t.string   "universe",        limit: 8,  default: "UHERO", null: false
-    t.integer  "series_id",       limit: 4,                    null: false
-    t.float    "value",           limit: 53
+    t.integer  "id",             limit: 4,  default: 0,       null: false
+    t.string   "universe",       limit: 8,  default: "UHERO", null: false
+    t.integer  "series_id",      limit: 4,                    null: false
+    t.float    "value",          limit: 53
     t.boolean  "current"
-    t.integer  "data_source_id",  limit: 4,                    null: false
+    t.integer  "data_source_id", limit: 4,                    null: false
     t.datetime "history"
-    t.datetime "created_at",                                   null: false
+    t.datetime "created_at",                                  null: false
     t.datetime "updated_at"
-    t.integer  "restore_counter", limit: 4,  default: 0
-    t.boolean  "pseudo_history",             default: false
-    t.float    "change",          limit: 53
-    t.float    "yoy",             limit: 53
-    t.float    "ytd",             limit: 53
-    t.date     "date",                                         null: false
+    t.boolean  "pseudo_history",            default: false
+    t.float    "change",         limit: 53
+    t.float    "yoy",            limit: 53
+    t.float    "ytd",            limit: 53
+    t.date     "date",                                        null: false
   end
 
   add_index "data_points", ["universe"], name: "index_data_points_on_universe", using: :btree
