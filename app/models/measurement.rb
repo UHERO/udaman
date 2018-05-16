@@ -17,4 +17,18 @@ class Measurement < ActiveRecord::Base
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"
   end
+
+  def add_series(series)
+    self.transaction do
+      series.update_attributes(universe: 'DBEDTCOH') if universe == 'DBEDTCOH'
+      self.series << series
+    end
+  end
+
+  def remove_series(series)
+    self.transaction do
+      series.update_attributes(universe: 'DBEDT') if universe == 'DBEDTCOH'
+      self.series.destroy(series)
+    end
+  end
 end

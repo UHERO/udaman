@@ -43,7 +43,7 @@ class MeasurementsController < ApplicationController
     @measurement = Measurement.new universe: 'UHERO'
   end
 
-  def new_dbedt
+  def new_dbedtcoh
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
     @measurement = Measurement.new universe: 'DBEDTCOH'
   end
@@ -94,7 +94,7 @@ class MeasurementsController < ApplicationController
       redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
       return
     end
-    @measurement.series << series
+    @measurement.add_series(series)
     respond_to do |format|
       format.html { redirect_to edit_measurement_url(@measurement.id) }
       format.js {}
@@ -106,7 +106,7 @@ class MeasurementsController < ApplicationController
       format.js { render nothing: true, status: 200 }
     end
     series = Series.find(params[:series_id])
-    @measurement.series.destroy(series)
+    @measurement.remove_series(series)
   end
 
   def propagate
