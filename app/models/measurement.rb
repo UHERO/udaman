@@ -27,8 +27,12 @@ class Measurement < ActiveRecord::Base
 
   def remove_series(series)
     self.transaction do
-      series.update_attributes(universe: 'DBEDT') if universe == 'DBEDTCOH'
       self.series.destroy(series)
+      if universe == 'DBEDTCOH'
+        unless series.measurements.map(&:universe).include?('DBEDTCOH')
+          series.update_attributes(universe: 'DBEDT')
+        end
+      end
     end
   end
 end

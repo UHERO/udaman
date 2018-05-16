@@ -11,7 +11,7 @@
     </div>
   <% end %>
 
-  <h3>Universe: <%= @measurement.universe %></h3>
+  <h3>Universe: <%= @universe %></h3>
   <div class="field">
     <%= f.label :prefix %><br>
     <%= f.text_field :prefix %>
@@ -30,20 +30,22 @@
   </div>
     <div class="field">
       <%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, Unit.where(universe: 'UHERO').order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+      <%= f.collection_select :unit_id, Unit.where(universe: @resource_universe).order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
   <div class="field">
     <%= f.label :source_id %><br>
-    <%= f.collection_select :source_id, Source.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_id, Source.where(universe: @resource_universe).all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
     <%= f.text_field :source_link, :size => 80 %>
   </div>
-  <div class="field">
-    <%= f.label :source_detail_id %><br>
-    <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
-  </div>
+  <% if @resource_universe == 'UHERO' %>
+    <div class="field">
+      <%= f.label :source_detail_id %><br>
+      <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
+    </div>
+  <% end %>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
     <%= f.select :seasonal_adjustment, Measurement.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
@@ -73,6 +75,7 @@
     <%= f.text_area :notes %>
   </div>
   <div class="actions">
+    <%= hidden_field_tag(:universe, @universe) %>
     <%= hidden_field_tag(:data_list_id, @data_list_id) %>
     <%= f.submit %>
   </div>

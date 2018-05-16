@@ -35,17 +35,14 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
-    new_uhero
-  end
-
-  def new_uhero
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    @measurement = Measurement.new universe: 'UHERO'
-  end
-
-  def new_dbedtcoh
-    @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    @measurement = Measurement.new universe: 'DBEDTCOH'
+    @universe = params[:universe]
+    @resource_universe = case @universe
+                           when 'UHEROCOH' then 'UHERO'
+                           when 'DBEDTCOH' then 'DBEDT'
+                           else @universe
+                         end
+    @measurement = Measurement.new
   end
 
   # GET /measurements/1/edit
@@ -55,7 +52,6 @@ class MeasurementsController < ApplicationController
   # POST /measurements
   def create
     data_list = DataList.find(params[:data_list_id]) rescue nil
-    ## universe setting?
     @measurement = Measurement.new(measurement_params)
 
     if @measurement.save
