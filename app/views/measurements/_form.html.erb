@@ -11,7 +11,24 @@
     </div>
   <% end %>
 
-  <h3>Universe: <%= @measurement.universe %></h3>
+  <% if request.path =~ /edit/ %>
+    <h2>List of Series</h2>
+    <table>
+      <tbody>
+      <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
+        <tr>
+          <td><%= link_to series.name, series %></td>
+          <td><%= series.dataPortalName || series.description %></td>
+          <td><%= link_to '(Remove)', {controller: :measurements, action: :remove_series, id: @measurement, series_id: series.id}, remote: true, data: {remove: true} %></td>
+        </tr>
+      <% end %>
+      </tbody>
+    </table>
+    <p><%= render 'add_series', { universe: @resource_universe } %></p>
+    <p></p>
+    <hr>
+    <h4>Metadata</h4>
+  <% end %>
   <div class="field">
     <%= f.label :prefix %><br>
     <%= f.text_field :prefix %>
@@ -79,22 +96,4 @@
     <%= hidden_field_tag(:data_list_id, @data_list_id) %>
     <%= f.submit %>
   </div>
-
-
-    <% if request.path =~ /edit/ %>
-        <h2>List of Series</h2>
-        <p><%= render 'add_series', { universe: @resource_universe } %></p>
-        <table>
-          <tbody>
-          <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
-              <tr>
-                <td><%= link_to series.name, series %></td>
-                <td><%= series.dataPortalName || series.description %></td>
-                <td><%= link_to '(Remove)', {controller: :measurements, action: :remove_series, id: @measurement, series_id: series.id}, remote: true, data: {remove: true} %></td>
-              </tr>
-          <% end %>
-          </tbody>
-        </table>
-        <p></p>
-    <% end %>
 <% end %>

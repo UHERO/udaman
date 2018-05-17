@@ -19,7 +19,7 @@ class Measurement < ActiveRecord::Base
   end
 
   def Measurement.create_new(properties)
-    properties.map! {|k,v| [k, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
+    properties = properties.map {|k,v| [k.to_sym, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
     raise 'No prefix specified' unless properties[:prefix]
     Measurement.create(properties)
   end
