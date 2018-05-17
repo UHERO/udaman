@@ -36,30 +36,26 @@ class MeasurementsController < ApplicationController
   # GET /measurements/new
   def new
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    universe = params[:universe]
-    @resource_universe = case universe
-                           when 'UHEROCOH' then 'UHERO'
-                           when 'DBEDTCOH' then 'DBEDT'
-                           else universe
-                         end
+    universe = params[:universe] || 'UHERO'
+    @resource_universe = get_resource_universe(universe)
     @measurement = Measurement.new(universe: universe)
   end
 
   # GET /measurements/1/edit
   def edit
-    @resource_universe = case @measurement.universe
-                           when 'UHEROCOH' then 'UHERO'
-                           when 'DBEDTCOH' then 'DBEDT'
-                           else @measurement.universe
-                         end
+    @resource_universe = get_resource_universe(@measurement.universe)
   end
 
   # POST /measurements
   def create
     data_list = DataList.find(params[:data_list_id]) rescue nil
-    @measurement = Measurement.new(measurement_params)
-
-    if @measurement.save
+    begin
+      @measurement = Measurement.create_new(measurement_params)
+    rescue => error
+      redirect_to({ action: :new }, notice: error.message)
+      return
+    end
+    if @measurement
       if data_list
         data_list.add_measurement(@measurement)
         redirect_to edit_data_list_path(data_list)
@@ -82,7 +78,8 @@ class MeasurementsController < ApplicationController
 
   # PATCH/PUT /measurements/1
   def update
-    if @measurement.update(measurement_params)
+    properties = measurement_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
+    if @measurement.update(properties)
       redirect_to @measurement, notice: 'Measurement was successfully updated.'
     else
       render :edit
@@ -129,6 +126,14 @@ class MeasurementsController < ApplicationController
   end
 
   private
+    def get_resource_universe(universe)
+      case universe
+        when 'UHEROCOH' then 'UHERO'
+        when 'DBEDTCOH' then 'DBEDT'
+        else universe
+      end
+    end
+
     def translate(name)
       # Translate column names from Measurement table form to Series table form
       trans_hash = {'data_portal_name' => 'dataPortalName'}
