@@ -920,7 +920,6 @@ class Series < ActiveRecord::Base
   
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
-    Rails.logger.debug { ">>>>>>> web_search (univ=|#{universe}| |#{search_string}|)" }
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')

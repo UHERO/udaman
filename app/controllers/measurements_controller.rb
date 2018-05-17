@@ -78,7 +78,7 @@ class MeasurementsController < ApplicationController
 
   # PATCH/PUT /measurements/1
   def update
-    properties = measurement_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
+    properties = measurement_params.map {|k,v| [k.to_sym, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
     if @measurement.update(properties)
       redirect_to @measurement, notice: 'Measurement was successfully updated.'
     else
