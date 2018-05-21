@@ -93,7 +93,7 @@ end
 task :reload_hiwi_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  logger.info { 'Starting task reload_hiwi_series_only' }
+  Rails.logger.info { 'Starting task reload_hiwi_series_only' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
   Series.reload_by_dependency_depth hiwi_series
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['hiwi series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
@@ -102,7 +102,7 @@ end
 task :reload_bls_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  logger.info { 'Starting task reload_bls_series_only' }
+  Rails.logger.info { 'Starting task reload_bls_series_only' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
   Series.reload_by_dependency_depth bls_series
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
@@ -111,7 +111,7 @@ end
 task :reload_bea_series_only => :environment do
   t = Time.now
   #could also hard code this...
-  logger.info { 'Starting task reload_bea_series_only' }
+  Rails.logger.info { 'Starting task reload_bea_series_only' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
   Series.reload_by_dependency_depth bea_series
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
