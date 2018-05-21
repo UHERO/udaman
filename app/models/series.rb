@@ -1053,14 +1053,23 @@ class Series < ActiveRecord::Base
     Series.reload_by_dependency_depth Series.where id: result_set
   end
 
-  def Series.reload_by_dependency_depth(series_list = Series.get_all_uhero)
+  def Series.reload_by_dependency_depth(series_list = nil)
     require 'redis'
     require 'digest/md5'
-    redis = Redis.new
-    logger.info { 'Starting Reload by Dependency Depth' }
-    datetime = Time.now.strftime('%Y%m%d%H%MUTC')
+    suffix = ''
+    if series_list.nil?
+      series_list = Series.get_all_uhero
+      suffix = '_full'
+    end
+    datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
     hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
-    batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}"
+    batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
+    Rails.logger.info { "Starting Reload by Dependency Depth: batch_id #{batch_id}" }
+
+    redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
+    unless redis.set("current_batch", batch_id) == 'OK'
+      raise 'Redis set key failed'
+    end
     first_depth = series_list.order(:dependency_depth => :desc).first.dependency_depth
     redis.pipelined do
       redis.set("current_depth_#{batch_id}", first_depth)
@@ -1076,30 +1085,38 @@ class Series < ActiveRecord::Base
     end
   end
 
-  def Series.check_for_stalled_reload(series_size = Series.get_all_uhero.count)
+  def Series.check_for_stalled_reload
     require 'redis'
     require 'sidekiq/api'
-    redis = Redis.new
+    Rails.logger.debug { "Check for stalled reload: begin" }
+    redis = Redis.new(url: ENV['REDIS_WORKER_URL'] || ENV['REDIS_URL'])
+    batch_id = redis.get("current_batch")
+    if batch_id.blank?
+      Rails.logger.warn { "Check for stalled reload: no existing batch found" }
+      return
+    end
 
     sidekiq_stats = Sidekiq::Stats.new
-    current_depth = redis.get("current_depth_#{series_size}").to_i
+    current_depth = redis.get("current_depth_#{batch_id}").to_i
+    return unless current_depth > 0 &&
+        sidekiq_stats.enqueued == 0 &&
+        sidekiq_stats.retry_size == 0 &&
+        sidekiq_stats.workers_size == 0
 
-    if current_depth > 0 && sidekiq_stats.enqueued == 0 && sidekiq_stats.retry_size == 0 &&  sidekiq_stats.workers_size == 0
-      puts "Jump starting stalled reload (#{series_size})"
-      next_depth = current_depth - 1
-      redis.set("current_depth_#{series_size}", next_depth)
-      series_ids = redis.get("series_list_#{series_size}").scan(/\d+/).map{|s| s.to_i}
-      next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
-      redis.pipelined do
-        redis.set("queue_#{series_size}", next_series.count)
-        redis.set("finishing_depth_#{series_size}", false)
-        redis.set("busy_workers_#{series_size}", 1)
-      end
-      next_series.pluck(:id).each do |id|
-        SeriesWorker.perform_async id, series_size
-      end
-      puts "Queued depth #{next_depth} (#{series_size})"
+    Rails.logger.info { "Check for stalled reload: batch_id=#{batch_id}: jump-starting stalled reload" }
+    next_depth = current_depth - 1
+    redis.set("current_depth_#{batch_id}", next_depth)
+    series_ids = redis.get("series_list_#{batch_id}").scan(/\d+/).map{|s| s.to_i}
+    next_series = Series.all.where(:id => series_ids, :dependency_depth => next_depth)
+    redis.pipelined do
+      redis.set("queue_#{batch_id}", next_series.count)
+      redis.set("finishing_depth_#{batch_id}", false)
+      redis.set("busy_workers_#{batch_id}", 1)
     end
+    next_series.pluck(:id).each do |id|
+      SeriesWorker.perform_async id, batch_id
+    end
+    Rails.logger.info { "Check for stalled reload: batch_id=#{batch_id}: queued depth #{next_depth}" }
   end
 
   def Series.get_old_bea_downloads
@@ -1114,6 +1131,22 @@ class Series < ActiveRecord::Base
     series.sort{|x,y| x.name <=> y.name }
   end
 
+  def Series.stale_since(past_day)
+    horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
+    Series.get_all_uhero
+          .joins(:data_sources)
+          .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
+          .order('series.name, data_sources.id')
+          .pluck('series.id, series.name, data_sources.id')
+  end
+
+  def Series.loaded_since(past_day)
+    Series.get_all_uhero
+        .joins(:data_sources)
+        .where('reload_nightly = true')
+        .order('series.name, data_sources.id')
+        .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
+  end
 
 private
   def Series.display_options(options)
