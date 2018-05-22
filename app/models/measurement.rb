@@ -1,4 +1,5 @@
 class Measurement < ActiveRecord::Base
+  include Cleaning
   has_many :data_list_measurements, dependent: :delete_all
   has_many :data_lists, through: :data_list_measurements
 
@@ -16,12 +17,6 @@ class Measurement < ActiveRecord::Base
 
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"
-  end
-
-  def Measurement.create_new(properties)
-    properties = properties.map {|k,v| [k.to_sym, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
-    raise 'No prefix specified' unless properties[:prefix]
-    Measurement.create(properties)
   end
 
   def add_series(series)

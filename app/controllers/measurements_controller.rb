@@ -48,14 +48,10 @@ class MeasurementsController < ApplicationController
 
   # POST /measurements
   def create
-    data_list = DataList.find(params[:data_list_id]) rescue nil
-    begin
-      @measurement = Measurement.create_new(measurement_params)
-    rescue => error
-      redirect_to({ action: :new }, notice: error.message)
-      return
-    end
-    if @measurement
+    raise 'No prefix specified' if measurement_params[:prefix].blank?
+    @measurement = Measurement.new(measurement_params)
+    if @measurement.save
+      data_list = DataList.find(params[:data_list_id]) rescue nil
       if data_list
         data_list.add_measurement(@measurement)
         redirect_to edit_data_list_path(data_list)
@@ -78,8 +74,7 @@ class MeasurementsController < ApplicationController
 
   # PATCH/PUT /measurements/1
   def update
-    properties = measurement_params.map {|k,v| [k.to_sym, v.blank? ? nil : v] }.to_h  ## don't put empty strings in the db
-    if @measurement.update(properties)
+    if @measurement.update(measurement_params)
       redirect_to @measurement, notice: 'Measurement was successfully updated.'
     else
       render :edit
