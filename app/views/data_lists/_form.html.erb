@@ -58,11 +58,12 @@
         <br />
         <%= form_for(@data_list, url: {action: 'add_measurement', id: @data_list.id}) do |f2| %>
             <div class="field">
-              <%= f2.label :measurements %><br>
-              <%= f2.collection_select :measurement_ids, Measurement.where(universe: 'UHERO').all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
-              <span class="actions"><%= f2.submit 'Add Measurement' %></span>
+              <%= f2.collection_select :uhero_mid, Measurement.where(universe: 'UHERO').all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
+              <span class="actions"><%= f2.submit 'Add UHERO Measurement' %></span>
               <br/>or <%= link_to 'Create a new UHERO measurement for this data list',
-                             {controller: :measurements, action: :new, universe: 'UHERO', data_list_id: @data_list.id} %>*
+                                  {controller: :measurements, action: :new, universe: 'UHERO', data_list_id: @data_list.id} %>*
+              <%= f2.collection_select :dbedtcoh_mid, Measurement.where(universe: 'DBEDTCOH').all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
+              <span class="actions"><%= f2.submit 'Add DBEDTCOH Measurement' %></span>
               <br/>or <%= link_to 'Create a new DBEDTCOH measurement for this data list',
                              {controller: :measurements, action: :new, universe: 'DBEDTCOH', data_list_id: @data_list.id} %>*
             </div>

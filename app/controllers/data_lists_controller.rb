@@ -206,17 +206,15 @@ class DataListsController < ApplicationController
 
   def add_measurement
     @data_list = DataList.find_by id: params[:id].to_i
-    measurement = Measurement.find_by id: params[:data_list][:measurement_ids].to_i
-    if @data_list.measurements.include?(measurement)
+    if params[:commit] =~ /UHERO/
+      mid = params[:data_list][:uhero_mid].to_i
+    else
+      mid = params[:data_list][:dbedtcoh_mid].to_i
+    end
+    unless @data_list.add_measurement Measurement.find(mid)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end
-    last_dlm = DataListMeasurement.where(data_list_id: @data_list.id).order('list_order desc').first
-    list_order = last_dlm ? last_dlm.list_order : 0
-    indent = last_dlm && last_dlm.indent ? last_dlm.indent : 'indent0'
-    @data_list.measurements<< measurement
-    DataListMeasurement.find_by(data_list_id: @data_list.id,
-                                measurement_id: measurement.id).update(list_order: list_order + 1, indent: indent)
     respond_to do |format|
       format.html { redirect_to edit_data_list_url(@data_list.id) }
       format.js {}
