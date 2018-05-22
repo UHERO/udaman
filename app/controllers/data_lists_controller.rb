@@ -206,12 +206,12 @@ class DataListsController < ApplicationController
 
   def add_measurement
     @data_list = DataList.find_by id: params[:id].to_i
-    if params[:commit] =~ /UHERO/
-      mid = params[:data_list][:uhero_mid].to_i
+    if params[:commit] =~ /DBEDTCOH/
+      mid = params[:data_list][:dbedtcoh_meas_id]
     else
-      mid = params[:data_list][:dbedtcoh_mid].to_i
+      mid = params[:data_list][:uhero_meas_id]
     end
-    unless @data_list.add_measurement Measurement.find(mid)
+    unless @data_list.add_measurement Measurement.find(mid.to_i)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end
