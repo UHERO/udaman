@@ -11,7 +11,7 @@ RSpec.describe "measurements/show", :type => :view do
     ))
   end
 
-  it "renders attributes in <p>" do
+  xit "renders attributes in <p>" do
     render
     expect(rendered).to match(/Prefix/)
     expect(rendered).to match(/Data Portal Name/)
