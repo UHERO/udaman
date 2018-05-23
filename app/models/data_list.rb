@@ -10,7 +10,7 @@ class DataList < ActiveRecord::Base
     self.measurements << measurement
     new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
         raise('DataListMeasurement creation failed')
-    list_order ||= last_dlm ? last_dlm.list_order + 1 : 0
+    list_order ||= last_dlm ? last_dlm.list_order.to_i + 1 : 0
     indent ||= (last_dlm && last_dlm.indent) ? last_dlm.indent : 'indent0'
     new_dlm.update_attributes(list_order: list_order, indent: indent)
   end
