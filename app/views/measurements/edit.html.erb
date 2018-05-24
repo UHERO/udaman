@@ -18,10 +18,10 @@
   </table>
 <% end %>
 <p><%= render 'add_series', { universe: @resource_universe } %></p>
-<p></p>
+<p>
+<%= link_to 'Show', @measurement %> |
+<%= link_to 'Back', :back %>
+</p>
 <hr>
 <h4>Metadata</h4>
 <%= render 'form' %>
-
-<%= link_to 'Show', @measurement %> |
-<%= link_to 'Back', measurements_path %>
