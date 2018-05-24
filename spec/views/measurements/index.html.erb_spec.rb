@@ -28,7 +28,7 @@ RSpec.describe 'measurements/index', :type => :view do
     ])
   end
 
-  xit 'renders a list of measurements' do
+  it 'renders a list of measurements' do
     render
     assert_select 'tr>td', :text => 'Prefix'.to_s, :count => 2
     assert_select 'tr>td', :text => 'Data Portal Name'.to_s, :count => 2
