@@ -1,5 +1,26 @@
 <h1>Editing Measurement <%= @measurement.prefix %> (<%= @measurement.universe %>)</h1>
 
+<% all_series = @measurement.series.to_a.sort_by{|s| s.name} %>
+<% if all_series.empty? %>
+  (no series added)
+<% else %>
+  <table>
+    <tbody>
+    <% all_series.each do |series| %>
+      <tr>
+        <td><%= link_to series.name, series %></td>
+        <td><%= series.dataPortalName || series.description %></td>
+        <td><%= link_to '(Remove)', {controller: :measurements, action: :remove_series, id: @measurement, series_id: series.id},
+                        remote: true, data: {remove: true} %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+<% end %>
+<p><%= render 'add_series', { universe: @resource_universe } %></p>
+<p></p>
+<hr>
+<h4>Metadata</h4>
 <%= render 'form' %>
 
 <%= link_to 'Show', @measurement %> |

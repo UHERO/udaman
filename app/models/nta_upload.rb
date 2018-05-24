@@ -160,7 +160,6 @@ class NtaUpload < ActiveRecord::Base
         measurement.update data_portal_name: long_name
       end
       if data_list.measurements.where(id: measurement.id).empty?
-        ## if working on this code, think about changing next line to: data_list.add_measurement(measurement, 11)
         DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
         logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
