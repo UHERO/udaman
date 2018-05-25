@@ -4,14 +4,17 @@ class DataList < ActiveRecord::Base
   has_many :measurements, -> {distinct}, through: :data_list_measurements
   accepts_nested_attributes_for :measurements
 
-  # def export
-  #   
-  #   return unless File::exists? save_path_flex 
-  #   Dir.mkdir save_path_flex+"_vintages" unless File::directory?(save_path_flex+"_vintages")
-  #   filename = save_path_flex.split("/")[-1]
-  #   date = Date.today    
-  #   FileUtils.cp(save_path_flex, save_path_flex+"_vintages/#{date}_"+filename)
-  # end
+  def add_measurement(measurement, list_order = nil, indent = nil)
+    return nil if measurements.include?(measurement)
+    last_dlm = DataListMeasurement.where(data_list_id: id).order(:list_order).last
+    self.measurements << measurement
+    new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
+        raise('DataListMeasurement creation failed')
+    list_order ||= last_dlm ? last_dlm.list_order.to_i + 1 : 0
+    indent ||= (last_dlm && last_dlm.indent) ? last_dlm.indent : 'indent0'
+    new_dlm.update_attributes(list_order: list_order, indent: indent)
+  end
+
   def series_names
     if list.nil?
       return []

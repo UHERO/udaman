@@ -24,9 +24,9 @@
     <%= f.label :data_list_id %><br>
     <%= f.collection_select :data_list_id, DataList.where(universe: @category.universe).all.order(:name), :id, :name, {:include_blank => true} %>
       <% if @category.data_list %>
-        <%= link_to 'Edit this data list', edit_data_list_path(@category.data_list) %> or
+        <%= link_to 'Edit this data list', edit_data_list_path(@category.data_list) %>*
       <% end %>
-      <%= link_to 'Create a new data list for this category', {controller: :data_lists, action: :new, category_id: @category.id} %>*
+      <br/>or <%= link_to 'Create a new data list for this category', {controller: :data_lists, action: :new, category_id: @category.id} %>*
   </div>
   <div class="field">
     <%= f.label :default_geo_id, 'Default geography' %><br>

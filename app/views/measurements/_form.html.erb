@@ -29,20 +29,22 @@
   </div>
     <div class="field">
       <%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, Unit.where(universe: 'UHERO').order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+      <%= f.collection_select :unit_id, Unit.where(universe: @resource_universe).order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
   <div class="field">
     <%= f.label :source_id %><br>
-    <%= f.collection_select :source_id, Source.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_id, Source.where(universe: @resource_universe).all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
     <%= f.text_field :source_link, :size => 80 %>
   </div>
-  <div class="field">
-    <%= f.label :source_detail_id %><br>
-    <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
-  </div>
+  <% if @resource_universe == 'UHERO' %>
+    <div class="field">
+      <%= f.label :source_detail_id %><br>
+      <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
+    </div>
+  <% end %>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
     <%= f.select :seasonal_adjustment, Measurement.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
@@ -72,26 +74,8 @@
     <%= f.text_area :notes %>
   </div>
   <div class="actions">
+    <%= hidden_field(:measurement, :universe) %>
+    <%= hidden_field_tag(:data_list_id, @data_list_id) %>
     <%= f.submit %>
   </div>
-
-
-    <% if request.path =~ /edit/ %>
-        <h2>List of Series</h2>
-        <p><%= render 'add_series' %></p>
-        <table>
-          <thead>
-          <tr><th>Series</th><th></th><th></th></tr>
-          </thead>
-          <tbody>
-          <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
-              <tr>
-                <td><%= link_to series.name, series %></td>
-                <td><%= link_to 'Remove', {controller: :measurements, action: :remove_series, id: @measurement, series_id: series.id}, remote: true, data: {remove: true} %></td>
-              </tr>
-          <% end %>
-          </tbody>
-        </table>
-        <p></p>
-    <% end %>
 <% end %>
