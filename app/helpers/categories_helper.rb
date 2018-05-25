@@ -36,9 +36,9 @@ private
     icon_type = leaf.is_childless? ? 'fa-square' : 'fa-plus-square'
     data_list_section =
         case
-          when leaf.data_list then link_to(leaf.data_list.name, "data_lists/super_table/#{leaf.data_list_id}")
+          when leaf.data_list then link_to(leaf.data_list.name, {controller: :data_lists, action: :edit, id: leaf.data_list})
           when leaf.header then 'Header'
-          else 'No Data List'
+          else link_to('No Data List', {controller: :data_lists, action: :new, category_id: leaf})
         end
     name_part = '<span class="%s"><i class="fa %s" aria-hidden="true"></i> %s</span> (%s)' % [span_class, icon_type, leaf.name, data_list_section]
     unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
