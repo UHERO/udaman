@@ -60,10 +60,7 @@
             <div class="field">
               <%= f2.label :measurements %><br>
               <%= f2.collection_select :measurement_ids, Measurement.where(universe: 'UHERO').all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {:include_blank => false, selected: nil} %>
-            </div>
-            <div class="actions">
-              <%= f2.submit 'Add Measurement' %>
-            </div>
+            </div><span class="actions"><%= f2.submit 'Add Measurement' %></span>
         <% end %>
         <br />
   <% end %>
