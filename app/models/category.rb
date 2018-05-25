@@ -29,7 +29,7 @@ class Category < ActiveRecord::Base
     max_sib = children.maximum(:list_order)
     defaults = {
         universe: universe,
-        name: 'XXX New child XXX',
+        name: 'NEW UNNAMED CATEGORY',
         masked: masked || hidden,
         list_order: max_sib.nil? ? 0 : max_sib + 1
     }
