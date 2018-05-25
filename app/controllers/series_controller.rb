@@ -182,7 +182,7 @@ class SeriesController < ApplicationController
   end
   
   def autocomplete_search
-    render :json => Series.web_search(params[:term])
+    render :json => Series.web_search(params[:term], params[:universe])
                           .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
   end
 

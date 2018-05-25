@@ -35,19 +35,29 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
-    @measurement = Measurement.new
+    @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
+    universe = params[:universe] || 'UHERO'
+    @resource_universe = get_resource_universe(universe)
+    @measurement = Measurement.new(universe: universe)
   end
 
   # GET /measurements/1/edit
   def edit
+    @resource_universe = get_resource_universe(@measurement.universe)
   end
 
   # POST /measurements
   def create
+    raise 'No prefix specified' if measurement_params[:prefix].blank?
     @measurement = Measurement.new(measurement_params)
-
     if @measurement.save
-      redirect_to @measurement, notice: 'Measurement was successfully created.'
+      data_list = DataList.find(params[:data_list_id]) rescue nil
+      if data_list
+        data_list.add_measurement(@measurement)
+        redirect_to edit_data_list_path(data_list)
+      else
+        redirect_to @measurement, notice: 'Measurement was successfully created.'
+      end
     else
       render :new
     end
@@ -77,7 +87,7 @@ class MeasurementsController < ApplicationController
       redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
       return
     end
-    @measurement.series << series
+    @measurement.add_series(series)
     respond_to do |format|
       format.html { redirect_to edit_measurement_url(@measurement.id) }
       format.js {}
@@ -89,7 +99,7 @@ class MeasurementsController < ApplicationController
       format.js { render nothing: true, status: 200 }
     end
     series = Series.find(params[:series_id])
-    @measurement.series.destroy(series)
+    @measurement.remove_series(series)
   end
 
   def propagate
@@ -111,6 +121,14 @@ class MeasurementsController < ApplicationController
   end
 
   private
+    def get_resource_universe(universe)
+      case universe
+        when 'UHEROCOH' then 'UHERO'
+        when 'DBEDTCOH' then 'DBEDT'
+        else universe
+      end
+    end
+
     def translate(name)
       # Translate column names from Measurement table form to Series table form
       trans_hash = {'data_portal_name' => 'dataPortalName'}
@@ -124,7 +142,7 @@ class MeasurementsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def measurement_params
-      params.require(:measurement).permit(:prefix, :data_portal_name, :table_prefix, :table_postfix,
+      params.require(:measurement).permit(:universe, :prefix, :data_portal_name, :table_prefix, :table_postfix,
                                           :unit_id, :percent, :real, :notes,
                                           :restricted, :unrestricted, :series_id, :decimals,
                                           :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,
