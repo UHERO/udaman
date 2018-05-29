@@ -444,23 +444,25 @@ class Series < ActiveRecord::Base
   end
   
   def Series.new_transformation(name, data, frequency)
-    Series.new(
-      :name => name,
-      :frequency => frequency,
-      :data => data
-    )
+    Series.new.new_transformation(name, data, frequency)
   end
   
-  def new_transformation(name, data)
-    frequency = (self.frequency.nil? and name.split('.').count == 2 and name.split('@').count == 2 and name.split('.')[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
-    #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
+  def new_transformation(name, data, frequency = nil)
+    frequency = Series.frequency_from_code(frequency) || frequency ||
+                self.frequency ||
+                Series.frequency_from_code(Series.parse_name(name)[:freq]) rescue nil
     Series.new(
       :name => name,
       :frequency => frequency,
       :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
-    )
+    ).tap {|o| o.propagate_state_from(self) }
   end
-  
+
+  def propagate_state_from(series_obj)
+    self.foo = series_obj.foo
+    self
+  end
+
   #need to spec out tests for this
   #this would benefit from some caching scheme
   
