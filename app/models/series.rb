@@ -404,6 +404,22 @@ class Series < ActiveRecord::Base
     @change_hash ||= extract_from_datapoints('change')
   end
 
+  def trim_period_start
+    @trim_period_start
+  end
+
+  def trim_period_end
+    @trim_period_end
+  end
+
+  def trim_period_start=(date)
+    @trim_period_start = date
+  end
+
+  def trim_period_end=(date)
+    @trim_period_end = date
+  end
+
   def extract_from_datapoints(column)
     hash = {}
     data_points.each do |dp|
@@ -460,7 +476,8 @@ class Series < ActiveRecord::Base
   end
 
   def propagate_state_from(series_obj)
-    self.foo = series_obj.foo
+    self.trim_period_start = series_obj.trim_period_start
+    self.trim_period_end = series_obj.trim_period_end
     self
   end
 
