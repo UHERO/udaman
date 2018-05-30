@@ -478,7 +478,6 @@ class Series < ActiveRecord::Base
   def propagate_state_from(series_obj)
     self.trim_period_start = series_obj.trim_period_start
     self.trim_period_end = series_obj.trim_period_end
-    self
   end
 
   #need to spec out tests for this
