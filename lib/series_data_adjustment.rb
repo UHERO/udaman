@@ -25,11 +25,11 @@ module SeriesDataAdjustment
   end
 
   def no_trim_past
-    self.trim_period_start = '1000-01-01'
+    self.tap {|o| o.trim_period_start = '1000-01-01' }
   end
 
   def no_trim_future
-    self.trim_period_end = '2999-12-31'
+    self.tap {|o| o.trim_period_end = '2999-12-31' }
   end
 
   def no_trim
