@@ -448,14 +448,15 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
-    frequency = Series.frequency_from_code(frequency) || frequency ||
-                self.frequency ||
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
                 Series.frequency_from_code(Series.parse_name(name)[:freq]) rescue nil
     Series.new(
       :name => name,
       :frequency => frequency,
       :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
-    ).tap {|o| o.propagate_state_from(self) }
+    ).tap do |o|
+      o.propagate_state_from(self)
+    end
   end
 
   def propagate_state_from(series_obj)
@@ -571,7 +572,7 @@ class Series < ActiveRecord::Base
   def load_from_bea(dataset, parameters)
     frequency = Series.frequency_from_code(self.name.split('.')[1])
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
+    new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
@@ -593,7 +594,7 @@ class Series < ActiveRecord::Base
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
-    Series.new_transformation('days in time periods', series_data, self.frequency)
+    new_transformation('days in time periods', series_data, self.frequency)
   end
   
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
