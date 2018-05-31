@@ -36,7 +36,7 @@ private
     icon_type = leaf.is_childless? ? 'fa-square' : 'fa-plus-square'
     data_list_section =
         case
-          when leaf.data_list then link_to(leaf.data_list.name, {controller: :data_lists, action: :edit, id: leaf.data_list})
+          when leaf.data_list then link_to(leaf.data_list.name, {controller: :data_lists, action: :edit, id: leaf.data_list, target: '_blank'})
           when leaf.header then 'Header'
           else link_to('No Data List', {controller: :data_lists, action: :new, category_id: leaf})
         end
