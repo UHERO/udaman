@@ -23,7 +23,7 @@ $(function() {
 		.autocomplete({
 			source: function( request, response ) {
 				$.getJSON( "/autocomplete", {
-					term: extractLast( request.term )
+					universe: '<%= universe %>', term: extractLast( request.term )
 				}, response );
 			},
 			search: function() {
@@ -48,6 +48,6 @@ $(function() {
 
 
 <div class="ui-widget">
-  <label for="add_series_field">Add Series to Measurement</label>
+<label for="add_series_field"><strong>Add <%= universe %> Series to Measurement</strong></label>
 <input id="add_series_field" type="text" size="30" name="search">
 </div>
