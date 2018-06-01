@@ -30,11 +30,12 @@ class SeriesSlaveWorker
         slavelog_update(series_id, 'succeeded')
       else
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
+        slavelog_update(series_id, 'errored, check reload_errors.log')
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
     rescue Exception => e
-        mylogger :error, "exception caught: #{e.message}, backtrace follows:\n#{e.backtrace}"
-        slavelog_update(series_id, "rescued: #{e.message}")
+      mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
+      slavelog_update(series_id, "error rescued: #{e.message}")
     end
   end
 
@@ -42,10 +43,10 @@ private
   def slavelog_update(series_id, message)
     log = SeriesSlaveLog.find_by(batch_id: @batch_id, series_id: series_id)
     unless log
-      mylogger :error, 'Cannot find slavelog for this series!!!'
+      mylogger :warn, 'Cannot find slavelog for this series!!!'
       return
     end
-    log.update_attributes(message: message)
+    log.update_attributes message: message
   end
 
   def mylogger(level, message)
