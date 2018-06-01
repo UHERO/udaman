@@ -11,7 +11,7 @@ class SeriesReloadMaster
     @batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
 
     Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: starting reload" }
-    depth = series_list.order(dependency_depth: :desc).first.dependency_depth
+    depth = series_list.maximum(:dependency_depth)
     while depth >= 0
       Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth}" }
       series_list.where(dependency_depth: depth).pluck(:id).each do |series_id|
