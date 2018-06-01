@@ -16,7 +16,7 @@ class SeriesReloadMaster
       Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth}" }
       series_list.where(dependency_depth: depth).pluck(:id).each do |series_id|
         SeriesSlaveWorker.perform_async @batch_id, series_id
-        SeriesSlaveLog.create(batch_id: @batch_id, series_id: series_id, depth: depth, update_at: Time.now)
+        SeriesSlaveLog.create(batch_id: @batch_id, series_id: series_id, depth: depth)
       end
       begin
         sleep 30.seconds
