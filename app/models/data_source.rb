@@ -140,6 +140,12 @@ class DataSource < ActiveRecord::Base
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
+      ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
+      ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
+      ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
+      ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
+      ## Ruby's particular quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
+      ## here will break it.
       options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
         if eval_stmt =~ options_match  ## extract the options hash
