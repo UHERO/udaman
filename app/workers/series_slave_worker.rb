@@ -10,30 +10,33 @@ class SeriesSlaveWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
-  def perform(series_id, batch_id)
+  def perform(batch_id, series_id)
     @batch_id = batch_id
+    @series = series_id
     begin
       series = Series.find(series_id)
       errors = []
       if series
-        mylogger :info, "Reload series #{series_id} (#{series.name}) started"
+        @series = "#{series.name} (#{series_id})"
+        mylogger :info, 'reload started'
         errors = series.reload_sources(true)
       else
-        errors.push "No series with id=#{series_id} found"
+        mylogger :warn, 'no such series found'
+        errors.push 'no such series found'
       end
-      GC.start
       if errors.empty?
-        mylogger :info, "Reload series #{series_id} (#{series.name}) SUCCEEDED"
+        mylogger :info, 'reload SUCCEEDED'
       else
-        mylogger :info, "Reload series #{series_id} ERRORED: check reload_errors.log"
+        mylogger :warn, 'reload ERRORED: check reload_errors.log'
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
-    rescue
+    rescue Exception => e
+        mylogger :error, "exception caught: #{e.message}, backtrace follows:\n#{e.backtrace}"
     end
   end
 
 private
   def mylogger(level, message)
-    Sidekiq.logger.send(level) { "batch=#{@batch_id}: #{message}" }
+    Sidekiq.logger.send(level) { "batch=#{@batch_id}: series=#{@series}: #{message}" }
   end
 end
