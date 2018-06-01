@@ -7,6 +7,6 @@ class AddSeriesSlaveLogs < ActiveRecord::Migration
       t.string     :message
       t.timestamps
     end
-    execute 'ALTER TABLE words ADD PRIMARY KEY (`batch_id`,`series_id`);'
+    execute 'ALTER TABLE series_slave_logs ADD PRIMARY KEY (`batch_id`,`series_id`);'
   end
 end

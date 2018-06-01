@@ -1,5 +1,5 @@
 class SeriesReloadMaster
-  def reload(series_list = nil)
+  def SeriesReloadMaster.reload(series_list = nil)
     require 'digest/md5'
     suffix = ''
     if series_list.nil?
@@ -13,23 +13,26 @@ class SeriesReloadMaster
     Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: starting reload" }
     depth = series_list.maximum(:dependency_depth)
     while depth >= 0
-      Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth}" }
-      series_list.where(dependency_depth: depth).pluck(:id).each do |series_id|
+      next_set = series_list.where(dependency_depth: depth)
+      Rails.logger.info { ">>>>>>>>>>> SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth} (#{next_set.count} series)" }
+      next_set.pluck(:id).each do |series_id|
         SeriesSlaveWorker.perform_async @batch_id, series_id
         SeriesSlaveLog.create(batch_id: @batch_id, series_id: series_id, depth: depth)
       end
-      begin
+      loop do
         sleep 30.seconds
-        Rails.logger.debug { "SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 30 more seconds" }
-      end until depth_finished(depth)
+        Rails.logger.debug { ">>>> SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 30 more seconds" }
+        break if depth_finished(depth)
+      end
       depth = depth - 1
     end
+    Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: done reload" }
   end
 
 private
-  def depth_finished(depth)
+  def self.depth_finished(depth)
     t = Time.now
-    outstanding = SeriesSlaveLog.find_by(batch_id: @batch_id, depth: depth, message: nil)
+    outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
     return true if outstanding.empty?
     oldies = outstanding.select {|sl| sl.created_at < (t - 5.minutes) }
     oldies.each {|sl| sl.update_attributes message: 'abandoned' }
