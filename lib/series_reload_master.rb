@@ -18,17 +18,21 @@ class SeriesReloadMaster
         SeriesSlaveWorker.perform_async @batch_id, series_id
         SeriesSlaveLog.create(batch_id: @batch_id, series_id: series_id, depth: depth, update_at: Time.now)
       end
-      do
-      sleep 30.seconds
-      Rails.logger.debug { 'slept 30 more seconds' }
-    end until depth_done(depth)
+      times = 0
+      begin
+        sleep 30.seconds
+        times += 1
+        Rails.logger.debug { 'slept 30 more seconds' }
+      end until depth_done(depth, times > 4)
     depth = depth - 1
   end
   end
 
 private
-  def depth_done(depth)
+  def depth_done(depth, force_finish)
     outstanding = SeriesSlaveLog.find_by(batch_id: @batch_id, depth: depth, message: nil)
-    outstanding.empty?
+    return outstanding.empty? unless force_finish
+    #do something
+    true
   end
 end

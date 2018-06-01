@@ -26,8 +26,10 @@ class SeriesSlaveWorker
       end
       if errors.empty?
         mylogger :info, 'reload SUCCEEDED'
+        log_update(batch_id, series_id, 'succeeded')
       else
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
+        log_update(batch_id, series_id, 'errored')
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
     rescue Exception => e
@@ -36,6 +38,11 @@ class SeriesSlaveWorker
   end
 
 private
+  def log_update(batch_id, series_id, message)
+    log = SeriesSlaveLog.find_by(batch_id: @batch_id, series_id: series_id)
+    log.update_attributes(message: message)
+  end
+
   def mylogger(level, message)
     Sidekiq.logger.send(level) { "batch=#{@batch_id}: series=#{@series}: #{message}" }
   end
