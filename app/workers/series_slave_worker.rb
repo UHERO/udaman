@@ -15,11 +15,6 @@ class SeriesSlaveWorker
     @series = series_id
     begin
       series = Series.find(series_id) rescue nil
-      log = SeriesSlaveLog.find_by(batch_id: batch_id, series_id: series_id)
-      unless log
-        mylogger :warn, "Cannot find slavelog for batch=#{batch_id}, series=#{series_id}"
-        return
-      end
       errors = []
       if series
         @series = "#{series.name} (#{series_id})"
@@ -29,17 +24,22 @@ class SeriesSlaveWorker
         mylogger :warn, 'no such series found'
         errors.push 'no such series found'
       end
+      log = SeriesSlaveLog.find_by(batch_id: batch_id, series_id: series_id)
+      unless log
+        mylogger :warn, "no slavelog for batch=#{batch_id}, series=#{series_id}"
+        raise "no slavelog for batch=#{batch_id}, series=#{series_id}"
+      end
       if errors.empty?
         mylogger :info, 'reload SUCCEEDED'
-        log.update_attributes message: 'succeeded'
+        log.update_attributes(message: 'succeeded') unless log.message
       else
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
-        log.update_attributes message: 'errored, check reload_errors.log'
+        log.update_attributes(message: 'errored, check reload_errors.log') unless log.message
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
     rescue Exception => e
       mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
-      log.update_attributes message: "error rescued: #{e.message}"
+      log.update_attributes(message: "error rescued: #{e.message}") unless log.message
     end
   end
 

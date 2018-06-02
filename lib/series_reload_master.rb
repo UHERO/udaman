@@ -1,7 +1,7 @@
 class SeriesReloadMaster
   require 'sidekiq'
 
-  def reload(series_list = nil)
+  def batch_reload(series_list = nil)
     require 'digest/md5'
     suffix = ''
     if series_list.nil?
@@ -13,7 +13,8 @@ class SeriesReloadMaster
     @batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
 
     Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: starting reload" }
-    depth = series_list.maximum(:dependency_depth)
+    @maxdepth = series_list.maximum(:dependency_depth)
+    depth = @maxdepth
     while depth >= 0
       next_set = series_list.where(dependency_depth: depth)
       Rails.logger.info { ">>>>>>>>>>> SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth} (#{next_set.count} series)" }
@@ -38,19 +39,27 @@ class SeriesReloadMaster
 
 private
   def depth_finished(depth)
-    t = Time.now
+    outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
+    return true if outstanding.empty?
+
     live_jids = Sidekiq::Workers.new.map do |_, _, w|
       batch_id = w['payload']['args'][0]
       batch_id == @batch_id ? w['payload']['jid'] : nil
     end.reject{|x| x.nil? }
 
-    outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
-    return true if outstanding.empty?
-    missing = outstanding.select{|log| !live_jids.include?(log.job_id) }
-    missing.each {|log| log.update_attributes message: 'abandoned' }
-    (outstanding - missing).each do |log|
-      log
+    updated = 0
+    outstanding.each do |log|
+      unless live_jids.include?(log.job_id)
+        log.update_attributes message: 'disappeared'
+        updated += 1
+        next
+      end
+      maxlife = @maxdepth - depth + 5  ## experimental
+      if Time.now > (log.created_at + maxlife.minutes)
+        log.update_attributes message: 'timedout'
+        updated += 1
+      end
     end
-    missing.count == outstanding.count
+    updated == outstanding.count
   end
 end
