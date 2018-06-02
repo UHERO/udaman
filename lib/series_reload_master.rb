@@ -28,7 +28,7 @@ class SeriesReloadMaster
       end
       loop do
         sleep 20.seconds
-        Rails.logger.debug { ">>>> SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 30 more seconds" }
+        Rails.logger.debug { ">>>> SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 20 more seconds" }
         break if depth_finished(depth)
       end
       depth = depth - 1
@@ -41,6 +41,7 @@ private
     outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
     return true if outstanding.empty?
 
+    #### is this only for busy jobs? Try Sidekiq::Queue for queued jobs!!
     live_jids = Sidekiq::Workers.new.map do |_, _, w|
       batch_id = w['payload']['args'][0]
       batch_id == @batch_id ? w['payload']['jid'] : nil
@@ -53,8 +54,7 @@ private
         updated += 1
         next
       end
-      maxlife = @maxdepth - depth + 5  ## experimental
-      if Time.now > (log.created_at + maxlife.minutes)
+      if Time.now > (log.created_at + 15.minutes)
         log.update_attributes message: 'timedout'
         updated += 1
       end
