@@ -4,7 +4,7 @@ class AddSeriesSlaveLogs < ActiveRecord::Migration
       t.string     :batch_id, null: false
       t.belongs_to :series, null: false
       t.integer    :depth
-      t.integer    :job_id
+      t.string     :job_id
       t.string     :message
       t.timestamps
     end

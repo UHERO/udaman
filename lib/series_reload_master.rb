@@ -24,7 +24,6 @@ class SeriesReloadMaster
           raise 'Cannot save SeriesSlaveLog record to database'
         end
         jid = SeriesSlaveWorker.perform_async @batch_id, series_id
-        raise 'Did not get a job id' unless jid
         log.update_attributes job_id: jid
       end
       loop do
