@@ -41,11 +41,13 @@ private
     outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
     return true if outstanding.empty?
 
-    #### is this only for busy jobs? Try Sidekiq::Queue for queued jobs!!
     live_jids = Sidekiq::Workers.new.map do |_, _, w|
       batch_id = w['payload']['args'][0]
       batch_id == @batch_id ? w['payload']['jid'] : nil
     end.reject{|x| x.nil? }
+
+    live_jids += Sidekiq::Queue.new.map(&:jid)
+    live_jids = live_jids.uniq
 
     updated = 0
     outstanding.each do |log|
