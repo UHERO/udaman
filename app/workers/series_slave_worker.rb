@@ -39,7 +39,9 @@ class SeriesSlaveWorker
       end
     rescue Exception => e
       mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
-      log.update_attributes(message: "error rescued: #{e.message}") unless log.message
+      unless log && log.reload.message
+        log.update_attributes(message: "error rescued: #{e.message}")
+      end
     end
   end
 

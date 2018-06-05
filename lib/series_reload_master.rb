@@ -14,7 +14,7 @@ class SeriesReloadMaster
 
     Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: starting reload" }
     @maxdepth = series_list.maximum(:dependency_depth)
-    depth = @maxdepth
+    depth = 3 #@maxdepth
     while depth >= 0
       next_set = series_list.where(dependency_depth: depth)
       Rails.logger.info { ">>>>>>>>>>> SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth} (#{next_set.count} series)" }
@@ -31,7 +31,8 @@ class SeriesReloadMaster
         Rails.logger.debug { ">>>> SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 20 more seconds" }
         break if depth_finished(depth)
       end
-      depth = depth - 1
+#      depth = depth - 1
+      break
     end
     Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: done reload" }
   end
@@ -41,23 +42,30 @@ private
     outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
     return true if outstanding.empty?
 
-    live_jids = Sidekiq::Workers.new.map do |_, _, w|
-      batch_id = w['payload']['args'][0]
-      batch_id == @batch_id ? w['payload']['jid'] : nil
-    end.reject{|x| x.nil? }
-
-    live_jids += Sidekiq::Queue.new.map(&:jid)
-    live_jids = live_jids.uniq
-
     updated = 0
     outstanding.each do |log|
-      unless live_jids.include?(log.job_id)
-        log.update_attributes message: 'disappeared'
-        updated += 1
-        next
-      end
       if Time.now > (log.created_at + 15.minutes)
-        log.update_attributes message: 'timedout'
+        working_jids = Sidekiq::Workers.new.map do |_, _, w|
+          batch_id = w['payload']['args'][0]
+          batch_id == @batch_id ? w['payload']['jid'] : nil
+        end.reject{|x| x.nil? }
+
+        #queued_jids = Sidekiq::Queue.new.map(&:jid)
+        queued_jids = Sidekiq::Queue.new.map do |j|
+          batch_id = j.args[0]
+          batch_id == @batch_id ? j.jid : nil
+        end.reject{|x| x.nil? }
+
+        unless working_jids.include?(log.job_id) || queued_jids.include?(log.job_id)
+          unless log.reload.message
+            log.update_attributes message: 'disappeared'
+          end
+          updated += 1
+          next
+        end
+        unless log.reload.message
+          log.update_attributes message: 'timedout'
+        end
         updated += 1
       end
     end
