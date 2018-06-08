@@ -19,6 +19,7 @@ gem 'httpclient'
 gem 'rest-client', '~> 2.0'
 gem 'spork-rails'
 gem 'sidekiq', '~> 4.1'
+gem 'sidekiq-status'
 gem 'sinatra', :require => false
 gem 'rack-protection', '~> 2.0.0'
 gem 'sinatra_auth_github', :require => false

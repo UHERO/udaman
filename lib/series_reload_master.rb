@@ -1,5 +1,6 @@
 class SeriesReloadMaster
   require 'sidekiq'
+  require 'sidekiq-status'
 
   def batch_reload(series_list = nil)
     require 'digest/md5'
@@ -31,8 +32,8 @@ class SeriesReloadMaster
         Rails.logger.debug { ">>>> SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 20 more seconds" }
         break if depth_finished(depth)
       end
-#      depth = depth - 1
-      break
+     break # depth = depth - 1
+
     end
     Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: done reload" }
   end
@@ -41,34 +42,37 @@ private
   def depth_finished(depth)
     outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
     return true if outstanding.empty?
-
     updated = 0
     outstanding.each do |log|
-      if Time.now > (log.created_at + 15.minutes)
-        working_jids = Sidekiq::Workers.new.map do |_, _, w|
-          batch_id = w['payload']['args'][0]
-          batch_id == @batch_id ? w['payload']['jid'] : nil
-        end.reject{|x| x.nil? }
-
-        #queued_jids = Sidekiq::Queue.new.map(&:jid)
-        queued_jids = Sidekiq::Queue.new.map do |j|
-          batch_id = j.args[0]
-          batch_id == @batch_id ? j.jid : nil
-        end.reject{|x| x.nil? }
-
-        unless working_jids.include?(log.job_id) || queued_jids.include?(log.job_id)
-          unless log.reload.message
-            log.update_attributes message: 'disappeared'
-          end
-          updated += 1
-          next
-        end
-        unless log.reload.message
-          log.update_attributes message: 'timedout'
-        end
-        updated += 1
-      end
+      status = Sidekiq::Status::status(log.job_id)
+      next if [:queued, :working].include? status
+      log.update_attributes(message: status || 'expired')
+      updated += 1
     end
     updated == outstanding.count
   end
 end
+=begin
+    working_jids = Sidekiq::Workers.new.map do |_, _, w|
+      batch_id = w['payload']['args'][0]
+      batch_id == @batch_id ? w['payload']['jid'] : nil
+    end.reject{|x| x.nil? }
+
+    queued_jids = Sidekiq::Queue.new.map do |j|
+      batch_id = j.args[0]
+      batch_id == @batch_id ? j.jid : nil
+    end.reject{|x| x.nil? }
+=end
+=begin
+      next if Time.now < (log.created_at + 15.minutes)
+      unless working_jids.include?(log.job_id) || queued_jids.include?(log.job_id)
+        unless log.reload.message
+          log.update_attributes message: 'disappeared'
+        end
+        updated += 1
+        next
+      end
+      unless log.reload.message
+        log.update_attributes message: 'timedout'
+      end
+=end

@@ -3,6 +3,7 @@ require 'redis'
 
 class SeriesSlaveWorker
   include Sidekiq::Worker
+  include Sidekiq::Status::Worker
 
   sidekiq_options :retry => 0  ## do not retry jobs, but log failures
 
@@ -30,18 +31,18 @@ class SeriesSlaveWorker
         raise "no slavelog for batch=#{batch_id}, series=#{series_id}"
       end
       if errors.empty?
-        mylogger :info, 'reload SUCCEEDED'
         log.update_attributes(message: 'succeeded') unless log.message
+        mylogger :info, 'reload SUCCEEDED'
       else
-        mylogger :warn, 'reload ERRORED: check reload_errors.log'
         log.update_attributes(message: 'errored, check reload_errors.log') unless log.message
+        mylogger :warn, 'reload ERRORED: check reload_errors.log'
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
     rescue Exception => e
-      mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
       unless log && log.reload.message
         log.update_attributes(message: "error rescued: #{e.message}")
       end
+      mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
     end
   end
 
