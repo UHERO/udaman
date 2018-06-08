@@ -2,10 +2,10 @@ Sidekiq.configure_server do |config|
   config.redis = { url: ENV['REDIS_SIDEKIQ_URL'] || ENV['REDIS_URL'] }
 
   # accepts :expiration (optional)
-  Sidekiq::Status.configure_server_middleware config, expiration: 30.minutes
+  Sidekiq::Status.configure_server_middleware config, expiration: 60.minutes
 
   # accepts :expiration (optional)
-  Sidekiq::Status.configure_client_middleware config, expiration: 30.minutes
+  Sidekiq::Status.configure_client_middleware config, expiration: 60.minutes
 
   ## All Rails logging should go to the Sidekiq logger when code is running in Sidekiq.
   ## But it turns out this only works when logger is invoked as Rails.logger, but cases
@@ -19,5 +19,5 @@ Sidekiq.configure_client do |config|
   config.redis = { url: ENV['REDIS_SIDEKIQ_URL'] || ENV['REDIS_URL'] }
 
   # accepts :expiration (optional)
-  Sidekiq::Status.configure_client_middleware config, expiration: 30.minutes
+  Sidekiq::Status.configure_client_middleware config, expiration: 60.minutes
 end

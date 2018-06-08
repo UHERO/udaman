@@ -13,12 +13,12 @@ class SeriesReloadMaster
     hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
     @batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
 
-    Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: starting reload" }
-    @maxdepth = series_list.maximum(:dependency_depth)
-    depth = 3 #@maxdepth
+    mylogger :info, 'starting reload'
+    #depth = series_list.maximum(:dependency_depth)
+    depth = 4 #@maxdepth
     while depth >= 0
       next_set = series_list.where(dependency_depth: depth)
-      Rails.logger.info { ">>>>>>>>>>> SeriesReloadMaster: batch=#{@batch_id}: queueing up depth #{depth} (#{next_set.count} series)" }
+      mylogger :info, "queueing up depth #{depth} (#{next_set.count} series)" }
       next_set.pluck(:id).each do |series_id|
         log = SeriesSlaveLog.new(batch_id: @batch_id, series_id: series_id, depth: depth)
         unless log.save
@@ -29,13 +29,12 @@ class SeriesReloadMaster
       end
       loop do
         sleep 20.seconds
-        Rails.logger.debug { ">>>> SeriesReloadMaster: batch=#{@batch_id} depth=#{depth}: slept 20 more seconds" }
+        mylogger :debug, "depth=#{depth}: slept 20 more seconds"
         break if depth_finished(depth)
       end
-     break # depth = depth - 1
-
+     depth = depth - 1
     end
-    Rails.logger.info { "SeriesReloadMaster: batch=#{@batch_id}: done reload" }
+    mylogger :info, 'done reload'
   end
 
 private
@@ -45,11 +44,15 @@ private
     updated = 0
     outstanding.each do |log|
       status = Sidekiq::Status::status(log.job_id)
-      next if [:queued, :working].include? status
+      next if status == :working || status == :queued
       log.update_attributes(message: status || 'expired')
       updated += 1
     end
     updated == outstanding.count
+  end
+
+  def mylogger(level, message)
+    Sidekiq.logger.send(level) { "#{self.class}: batch=#{@batch}: #{message}" }
   end
 end
 =begin

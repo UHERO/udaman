@@ -5,7 +5,7 @@ class AddSeriesSlaveLogs < ActiveRecord::Migration
       t.belongs_to :series, null: false
       t.integer    :depth
       t.string     :job_id
-      t.string     :message
+      t.string     :status
       t.timestamps
     end
     execute 'ALTER TABLE series_slave_logs ADD PRIMARY KEY (`batch_id`,`series_id`);'
