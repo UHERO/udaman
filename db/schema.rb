@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025743) do
+ActiveRecord::Schema.define(version: 220170413025744) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -441,6 +441,16 @@ ActiveRecord::Schema.define(version: 220170413025743) do
   add_index "series", ["source_id"], name: "fk_rails_6f2f66e327", using: :btree
   add_index "series", ["unit_id"], name: "fk_rails_1961e72b74", using: :btree
   add_index "series", ["universe"], name: "index_series_on_universe", using: :btree
+
+  create_table "series_slave_logs", id: false, force: :cascade do |t|
+    t.string   "batch_id",   limit: 255, null: false
+    t.integer  "series_id",  limit: 4,   null: false
+    t.integer  "depth",      limit: 4
+    t.string   "job_id",     limit: 255
+    t.string   "status",     limit: 255
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "sidekiq_failures", force: :cascade do |t|
     t.integer  "series_id",  limit: 4
