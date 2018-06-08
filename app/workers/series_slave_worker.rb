@@ -39,7 +39,7 @@ class SeriesSlaveWorker
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
     rescue Exception => e
-      unless log && log.reload.status
+      if log && log.reload.status.nil?
         log.update_attributes(status: "error rescued: #{e.message}")
       end
       mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"

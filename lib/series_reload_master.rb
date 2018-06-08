@@ -3,15 +3,12 @@ class SeriesReloadMaster
   require 'sidekiq-status'
 
   def batch_reload(series_list = nil)
-    require 'digest/md5'
     suffix = ''
     if series_list.nil?
       series_list = Series.get_all_uhero
       suffix = '_full'
     end
-    datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
-    hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
-    @batch = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
+    @batch = create_batch_id(series_list.count, suffix)
 
     mylogger :info, 'starting reload'
     depth = series_list.maximum(:dependency_depth)
@@ -26,8 +23,8 @@ class SeriesReloadMaster
         jid = SeriesSlaveWorker.perform_async @batch, series_id
         log.update_attributes job_id: jid
       end
+      delay = 20
       loop do
-        delay = 20
         sleep delay.seconds
         mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
         break if depth_finished(depth)
@@ -35,6 +32,13 @@ class SeriesReloadMaster
      depth = depth - 1
     end
     mylogger :info, 'done reload'
+  end
+
+  def create_batch_id(list_length, suffix = nil)
+    require 'digest/md5'
+    datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
+    hash = Digest::MD5.new << "#{datetime}#{list_length}#{rand 100000}"
+    "#{datetime}_#{list_length}_#{hash.to_s[-6..-1]}#{suffix}"
   end
 
 private
