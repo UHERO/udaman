@@ -27,8 +27,8 @@ class SeriesSlaveWorker
       end
       log = SeriesSlaveLog.find_by(batch_id: batch_id, series_id: series_id)
       unless log
-        mylogger :warn, "no slavelog for batch=#{batch_id}, series=#{series_id}"
-        raise "no slavelog for batch=#{batch_id}, series=#{series_id}"
+        mylogger :warn, 'no slave log found'
+        raise "no slave log for batch=#{@batch}, series=#{@series}"
       end
       if errors.empty?
         log.update_attributes(status: 'succeeded') unless log.status
