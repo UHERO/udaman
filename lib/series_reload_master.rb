@@ -11,25 +11,25 @@ class SeriesReloadMaster
     end
     datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
     hash = Digest::MD5.new << "#{datetime}#{series_list.count}#{rand 100000}"
-    @batch_id = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
+    @batch = "#{datetime}_#{series_list.count}_#{hash.to_s[-6..-1]}#{suffix}"
 
     mylogger :info, 'starting reload'
-    #depth = series_list.maximum(:dependency_depth)
-    depth = 4 #@maxdepth
+    depth = series_list.maximum(:dependency_depth)
     while depth >= 0
       next_set = series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{next_set.count} series)" }
       next_set.pluck(:id).each do |series_id|
-        log = SeriesSlaveLog.new(batch_id: @batch_id, series_id: series_id, depth: depth)
+        log = SeriesSlaveLog.new(batch_id: @batch, series_id: series_id, depth: depth)
         unless log.save
           raise 'Cannot save SeriesSlaveLog record to database'
         end
-        jid = SeriesSlaveWorker.perform_async @batch_id, series_id
+        jid = SeriesSlaveWorker.perform_async @batch, series_id
         log.update_attributes job_id: jid
       end
       loop do
-        sleep 20.seconds
-        mylogger :debug, "depth=#{depth}: slept 20 more seconds"
+        delay = 20
+        sleep delay.seconds
+        mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
         break if depth_finished(depth)
       end
      depth = depth - 1
@@ -39,13 +39,13 @@ class SeriesReloadMaster
 
 private
   def depth_finished(depth)
-    outstanding = SeriesSlaveLog.where(batch_id: @batch_id, depth: depth, message: nil)
+    outstanding = SeriesSlaveLog.where(batch_id: @batch, depth: depth, status: nil)
     return true if outstanding.empty?
     updated = 0
     outstanding.each do |log|
       status = Sidekiq::Status::status(log.job_id)
       next if status == :working || status == :queued
-      log.update_attributes(message: status || 'expired')
+      log.update_attributes(status: status || 'expired')
       updated += 1
     end
     updated == outstanding.count
@@ -55,27 +55,3 @@ private
     Sidekiq.logger.send(level) { "#{self.class}: batch=#{@batch}: #{message}" }
   end
 end
-=begin
-    working_jids = Sidekiq::Workers.new.map do |_, _, w|
-      batch_id = w['payload']['args'][0]
-      batch_id == @batch_id ? w['payload']['jid'] : nil
-    end.reject{|x| x.nil? }
-
-    queued_jids = Sidekiq::Queue.new.map do |j|
-      batch_id = j.args[0]
-      batch_id == @batch_id ? j.jid : nil
-    end.reject{|x| x.nil? }
-=end
-=begin
-      next if Time.now < (log.created_at + 15.minutes)
-      unless working_jids.include?(log.job_id) || queued_jids.include?(log.job_id)
-        unless log.reload.message
-          log.update_attributes message: 'disappeared'
-        end
-        updated += 1
-        next
-      end
-      unless log.reload.message
-        log.update_attributes message: 'timedout'
-      end
-=end

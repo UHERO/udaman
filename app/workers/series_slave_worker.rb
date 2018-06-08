@@ -31,16 +31,16 @@ class SeriesSlaveWorker
         raise "no slavelog for batch=#{batch_id}, series=#{series_id}"
       end
       if errors.empty?
-        log.update_attributes(message: 'succeeded') unless log.message
+        log.update_attributes(status: 'succeeded') unless log.status
         mylogger :info, 'reload SUCCEEDED'
       else
-        log.update_attributes(message: 'errored, check reload_errors.log') unless log.message
+        log.update_attributes(status: 'errored, check reload_errors.log') unless log.status
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
     rescue Exception => e
-      unless log && log.reload.message
-        log.update_attributes(message: "error rescued: #{e.message}")
+      unless log && log.reload.status
+        log.update_attributes(status: "error rescued: #{e.message}")
       end
       mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
     end
