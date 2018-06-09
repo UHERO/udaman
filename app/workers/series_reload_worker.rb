@@ -1,7 +1,7 @@
 require 'sidekiq'
 require 'redis'
 
-class SeriesSlaveWorker
+class SeriesReloadWorker
   include Sidekiq::Worker
   include Sidekiq::Status::Worker
 
@@ -25,10 +25,10 @@ class SeriesSlaveWorker
         mylogger :warn, 'no such series found'
         errors.push 'no such series found'
       end
-      log = SeriesSlaveLog.find_by(batch_id: batch_id, series_id: series_id)
+      log = SeriesReloadLog.find_by(batch_id: batch_id, series_id: series_id)
       unless log
-        mylogger :warn, 'no slave log found'
-        raise "no slave log for batch=#{@batch}, series=#{@series}"
+        mylogger :warn, 'no reload log found'
+        raise "no reload log found for batch=#{@batch}, series=#{@series}"
       end
       if errors.empty?
         log.update_attributes(status: 'succeeded') unless log.status

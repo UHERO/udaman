@@ -1,6 +1,6 @@
-class AddSeriesSlaveLogs < ActiveRecord::Migration
+class AddSeriesReloadLogs < ActiveRecord::Migration
   def change
-    create_table :series_slave_logs, id: false do |t|
+    create_table :series_reload_logs, id: false do |t|
       t.string     :batch_id, null: false
       t.belongs_to :series, null: false
       t.integer    :depth
@@ -8,6 +8,6 @@ class AddSeriesSlaveLogs < ActiveRecord::Migration
       t.string     :status
       t.timestamps
     end
-    execute 'ALTER TABLE series_slave_logs ADD PRIMARY KEY (`batch_id`,`series_id`);'
+    execute 'ALTER TABLE series_reload_logs ADD PRIMARY KEY (`batch_id`,`series_id`);'
   end
 end

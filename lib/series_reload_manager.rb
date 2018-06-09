@@ -1,8 +1,8 @@
-class SeriesReloadMaster
+class SeriesReloadManager
   require 'sidekiq'
   require 'sidekiq-status'
 
-  def batch_reload(series_list = nil)
+  def batch_reload(series_list = nil, delay = 20)
     suffix = ''
     if series_list.nil?
       series_list = Series.get_all_uhero
@@ -16,20 +16,19 @@ class SeriesReloadMaster
       next_set = series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{next_set.count} series)"
       next_set.pluck(:id).each do |series_id|
-        log = SeriesSlaveLog.new(batch_id: @batch, series_id: series_id, depth: depth)
+        log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
         unless log.save
-          raise 'Cannot save SeriesSlaveLog record to database'
+          raise "Cannot save worker log record to database: batch=#{@batch}: series_id=#{series_id}"
         end
-        jid = SeriesSlaveWorker.perform_async @batch, series_id
+        jid = SeriesReloadWorker.perform_async @batch, series_id
         log.update_attributes job_id: jid
       end
-      delay = 20
       loop do
         sleep delay.seconds
         mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
         break if depth_finished(depth)
       end
-     depth = depth - 1
+      depth = depth - 1
     end
     mylogger :info, 'done reload'
   end
@@ -43,7 +42,7 @@ class SeriesReloadMaster
 
 private
   def depth_finished(depth)
-    outstanding = SeriesSlaveLog.where(batch_id: @batch, depth: depth, status: nil)
+    outstanding = SeriesReloadLog.where(batch_id: @batch, depth: depth, status: nil)
     return true if outstanding.empty?
     updated = 0
     outstanding.each do |log|
