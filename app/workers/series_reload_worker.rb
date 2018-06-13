@@ -18,6 +18,11 @@ class SeriesReloadWorker
     begin
       series = Series.find(series_id) rescue nil
       errors = []
+      log = SeriesReloadLog.find_by(batch_id: batch_id, series_id: series_id)
+      unless log
+        mylogger :warn, 'no reload log found'
+        raise "no reload log found for batch=#{@batch}, series=#{@series}"
+      end
       if series
         @series = "#{series.name} (#{series_id})"
         mylogger :info, 'reload started'
@@ -26,16 +31,11 @@ class SeriesReloadWorker
         mylogger :warn, 'no such series found'
         errors.push 'no such series found'
       end
-      log = SeriesReloadLog.find_by(batch_id: batch_id, series_id: series_id)
-      unless log
-        mylogger :warn, 'no reload log found'
-        raise "no reload log found for batch=#{@batch}, series=#{@series}"
-      end
       if errors.empty?
-        log.update_attributes(status: 'succeeded') unless log.status
+        log.update_attributes(status: 'succeeded') unless log.reload.status
         mylogger :info, 'reload SUCCEEDED'
       else
-        log.update_attributes(status: 'errored, check reload_errors.log') unless log.status
+        log.update_attributes(status: 'errored, check reload_errors.log') unless log.reload.status
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
@@ -49,6 +49,6 @@ class SeriesReloadWorker
 
 private
   def mylogger(level, message)
-    Sidekiq.logger.send(level) { "#{self.class}: batch=#{@batch}: depth=#{@depth}: series=#{@series}: #{message}" }
+    Sidekiq.logger.send(level) { "#{self.class} batch=#{@batch} depth=#{@depth} series=#{@series}: #{message}" }
   end
 end

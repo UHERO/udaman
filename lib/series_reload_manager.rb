@@ -13,20 +13,22 @@ class SeriesReloadManager
     mylogger :info, 'starting reload'
     depth = series_list.maximum(:dependency_depth)
     while depth >= 0
-      next_set = series_list.where(dependency_depth: depth)
+      depth_set = series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{next_set.count} series)"
-      next_set.pluck(:id).each do |series_id|
-        log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
-        unless log.save
-          raise "Cannot save worker log record to database: batch=#{@batch}: series_id=#{series_id}"
+      depth_set.pluck(:id).in_groups_of(20) do |group|
+        group.each do |series_id|
+          log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
+          unless log.save
+            raise "Cannot save worker log record to database: batch=#{@batch} series_id=#{series_id}"
+          end
+          jid = SeriesReloadWorker.perform_async @batch, series_id, depth
+          log.update_attributes job_id: jid
         end
-        jid = SeriesReloadWorker.perform_async @batch, series_id, depth
-        log.update_attributes job_id: jid
-      end
-      loop do
-        sleep delay.seconds
-        mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
-        break if depth_finished(depth)
+        loop do
+          sleep delay.seconds
+          mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
+          break if depth_finished(depth)
+        end
       end
       depth = depth - 1
     end
@@ -55,6 +57,6 @@ private
   end
 
   def mylogger(level, message)
-    Sidekiq.logger.send(level) { "#{self.class}: batch=#{@batch}: #{message}" }
+    Sidekiq.logger.send(level) { "#{self.class} batch=#{@batch}: #{message}" }
   end
 end
