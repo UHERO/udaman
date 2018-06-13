@@ -11,9 +11,10 @@ class SeriesReloadWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
-  def perform(batch_id, series_id)
+  def perform(batch_id, series_id, depth)
     @batch = batch_id
     @series = series_id
+    @depth = depth
     begin
       series = Series.find(series_id) rescue nil
       errors = []
@@ -48,6 +49,6 @@ class SeriesReloadWorker
 
 private
   def mylogger(level, message)
-    Sidekiq.logger.send(level) { "#{self.class}: batch=#{@batch}: series=#{@series}: #{message}" }
+    Sidekiq.logger.send(level) { "#{self.class}: batch=#{@batch}: depth=#{@depth}: series=#{@series}: #{message}" }
   end
 end

@@ -20,7 +20,7 @@ class SeriesReloadManager
         unless log.save
           raise "Cannot save worker log record to database: batch=#{@batch}: series_id=#{series_id}"
         end
-        jid = SeriesReloadWorker.perform_async @batch, series_id
+        jid = SeriesReloadWorker.perform_async @batch, series_id, depth
         log.update_attributes job_id: jid
       end
       loop do
