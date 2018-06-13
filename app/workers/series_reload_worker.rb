@@ -31,14 +31,10 @@ class SeriesReloadWorker
         raise "no reload log found for batch=#{@batch}, series=#{@series}"
       end
       if errors.empty?
-        unless log.status && log.status != 'complete'
-          log.update_attributes(status: 'succeeded')
-        end
+        log.update_attributes(status: 'succeeded') unless log.status
         mylogger :info, 'reload SUCCEEDED'
       else
-        unless log.status
-          log.update_attributes(status: 'errored, check reload_errors.log')
-        end
+        log.update_attributes(status: 'errored, check reload_errors.log') unless log.status
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
