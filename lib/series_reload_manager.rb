@@ -16,7 +16,8 @@ class SeriesReloadManager
       depth_set = series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{depth_set.count} series)"
       depth_set.pluck(:id).in_groups_of(20) do |group|
-        mylogger :info, ">>>>>>>>>> processing #{group}"
+        puts  ">>>>>>>>>> processing #{group}"
+        ##mylogger :info, ">>>>>>>>>> processing #{group}"
         group.each do |series_id|
           log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
           unless log.save
