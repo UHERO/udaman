@@ -14,7 +14,7 @@ class SeriesReloadManager
     depth = series_list.maximum(:dependency_depth)
     while depth >= 0
       depth_set = series_list.where(dependency_depth: depth)
-      mylogger :info, "queueing up depth #{depth} (#{next_set.count} series)"
+      mylogger :info, "queueing up depth #{depth} (#{depth_set.count} series)"
       depth_set.pluck(:id).in_groups_of(20) do |group|
         group.each do |series_id|
           log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
