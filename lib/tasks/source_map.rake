@@ -49,6 +49,10 @@ task debug: [:environment, :verbose] do
   Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
 end
 
+task :batch_reload_uhero => :environment do
+  SeriesReloadManager.new.batch_reload
+end
+
 task :reload_all_series => :environment do
   algorithm = nil
 
