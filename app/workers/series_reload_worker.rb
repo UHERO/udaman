@@ -11,6 +11,11 @@ class SeriesReloadWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
+  def expiration
+    return @expiration if @depth > 1
+    @expiration ||= 60 * 60 ## one hour
+  end
+
   def perform(batch_id, series_id, depth)
     @batch = batch_id
     @series = series_id
