@@ -11,9 +11,9 @@ class PackagerMailer < ActionMailer::Base
       subject = ''
       subject = "UDAMacMini Error (#{rake_task})" if is_error
       subject = "UDAMacMini New Download (#{rake_task})" unless is_error
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
     rescue => e
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -21,9 +21,9 @@ class PackagerMailer < ActionMailer::Base
     begin
       @error = err
       @output_path = output_path
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => 'Rake failed in an unexpected way (Udamacmini)')
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => 'Rake failed in an unexpected way (Udamacmini)')
     rescue => e
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -33,12 +33,12 @@ class PackagerMailer < ActionMailer::Base
       attachments.inline['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
       attachments['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
 
-      recipients = %w(jrpage@hawaii.edu james29@hawaii.edu fuleky@hawaii.edu ashleysh@hawaii.edu vward@hawaii.edu djiann@hawaii.edu)
+      recipients = %w(james29@hawaii.edu fuleky@hawaii.edu ashleysh@hawaii.edu vward@hawaii.edu djiann@hawaii.edu)
       subject = 'Udamacmini Download Report'
       mail(:to => recipients, :subject => subject)
     rescue => e
         puts e.message
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -50,9 +50,9 @@ class PackagerMailer < ActionMailer::Base
       @handle = handle
       @url = url
       @save_path = save_path
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
     rescue => e
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.download_link_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.download_link_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -63,19 +63,19 @@ class PackagerMailer < ActionMailer::Base
       subject = "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website" unless created
       @post_address = post_address
       @new_data_series = new_data_series
-      mail(:to => %w(jrpage@hawaii.edu james29@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
+      mail(:to => %w(james29@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
     rescue => e
-      mail(:to => %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
   def circular_series_notification(series)
     begin
       @series = series
-      mail(to: %w(jrpage@hawaii.edu djiann@hawaii.edu), subject: 'Circular Series')
+      mail(to: %w(djiann@hawaii.edu), subject: 'Circular Series')
     rescue => e
       puts e.message
-      mail(:to => %w(jrpage@hawaii.edu djiann@hawaii.edu), :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(:to => %w(djiann@hawaii.edu), :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 end
