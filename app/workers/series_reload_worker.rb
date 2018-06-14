@@ -42,7 +42,7 @@ class SeriesReloadWorker
         log.update_attributes(status: 'succeeded') unless log.reload.status
         mylogger :info, 'reload SUCCEEDED'
       else
-        log.update_attributes(status: 'errored, check reload_errors.log') unless log.reload.status
+        log.update_attributes(status: 'error occurred') unless log.reload.status
         mylogger :warn, 'reload ERRORED: check reload_errors.log'
         File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
       end
