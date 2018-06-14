@@ -460,6 +460,7 @@ class Series < ActiveRecord::Base
   end
   
   def Series.new_transformation(name, data, frequency)
+    ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
     Series.new.new_transformation(name, data, frequency)
   end
   
