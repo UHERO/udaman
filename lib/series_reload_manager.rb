@@ -2,22 +2,21 @@ class SeriesReloadManager
   require 'sidekiq'
   require 'sidekiq-status'
 
-  def batch_reload(series_list = nil, delay = 20)
-    suffix = ''
+  def batch_reload(series_list = nil, delay = 15)
+    suffix = nil
     if series_list.nil?
       series_list = Series.get_all_uhero
       suffix = '_full'
     end
     @batch = create_batch_id(series_list.count, suffix)
 
-    mylogger :info, 'starting reload'
+    mylogger :info, 'starting batch reload'
     depth = series_list.maximum(:dependency_depth)
     while depth >= 0
       depth_set = series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{depth_set.count} series)"
       depth_set.pluck(:id).in_groups_of(20, false) do |group|
-        puts  ">>>>>>>>>> processing depth #{depth} -> #{group}"
-        ##mylogger :info, ">>>>>>>>>> processing #{group}"
+        mylogger :debug, "processing at depth #{depth} => #{group}"
         group.each do |series_id|
           log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
           unless log.save
@@ -29,12 +28,12 @@ class SeriesReloadManager
         loop do
           sleep delay.seconds
           mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
-          break if depth_finished(depth)
+          break if depth_set_finished(depth)
         end
       end
       depth = depth - 1
     end
-    mylogger :info, 'done reload'
+    mylogger :info, 'done batch reload'
   end
 
   def create_batch_id(list_length, suffix = nil)
@@ -45,7 +44,7 @@ class SeriesReloadManager
   end
 
 private
-  def depth_finished(depth)
+  def depth_set_finished(depth)
     outstanding = SeriesReloadLog.where(batch_id: @batch, depth: depth, status: nil)
     return true if outstanding.empty?
     updated = 0
