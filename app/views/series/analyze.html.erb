@@ -42,26 +42,26 @@
 <% ytd = @ytd.data %>
 <% units = @series.units.nil? ? 1 : @series.units %>
 
-var jsonData = [ 
-	<% dates.each do |date_string|  %> 
-	{ 
+var jsonData = [
+	<% dates.each do |date_string|  %>
+	{
 		date: "<%= date_string %>",
 		level: "<%= data[date_string].nil? ? "" : "%.3f" % (data[date_string] / units) %>" ,
 		change: "<%= chg[date_string].nil? ? "" : "%.1f" % chg[date_string] %>" ,
 		ytd: "<%= ytd[date_string].nil? ? "" : "%.1f" % ytd[date_string]%>"
-	}, 
+	},
 	<%end%>
 ];
 
 var priceData = [ <% dates.each_index do |i|  %> [<%= i %>, <%= data[dates[i]] %>], <%end%>];
 var volumeData = [ <% dates.each_index do |i|  %> [<%= i %>, <%= chg[dates[i]].nil? ? 0 : chg[dates[i]] %>], <%end%>];
 
-var summaryData = [ 
+var summaryData = [
 <%
 i = 0
 step = data.count > 100 ? data.count / 100 : 1
 while i < data.count do
-%> [<%= i %>, <%= data[dates[i]] %>], <%	
+%> [<%= i %>, <%= data[dates[i]] %>], <%
 i += step
 end
 %>
@@ -79,6 +79,19 @@ end
 <%= javascript_include_tag 'humblefinance/flotr' %>
 <%= javascript_include_tag 'humblefinance/HumbleFinance' %>
 <%= javascript_include_tag 'humblefinance/demo' %>
+
+<table style="margin-top: 50px;">
+  <tr>
+    <th>Mean</th>
+    <th>Median</th>
+    <th>Std. Dev.</th>
+  </tr>
+  <tr>
+    <td><%=  "%.3f" % @series.average %></td>
+    <td><%= "%.3f" % @series.median %></td>
+    <td><%= "%.3f" % @series.standard_deviation %></td>
+  </tr>
+</table>
 
 <table style="margin-top: 50px;">
 	<tr>

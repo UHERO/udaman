@@ -20,6 +20,13 @@ module SeriesStatistics
     return Math.sqrt(self.variance)
   end
 
+  def median
+    num_array = (self.data.reject{|a| a.nil?}).map { |a| a[1]}.sort
+    return nil if num_array.empty?
+    median_index = num_array.size / 2
+    return num_array.size % 2 == 1 ? num_array[median_index] : (num_array[median_index - 1] + num_array[median_index]) / 2.0
+  end
+
   def outlier
     begin
       outlier_hash = {}

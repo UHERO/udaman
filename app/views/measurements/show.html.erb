@@ -1,5 +1,5 @@
 <p id="notice"><%= notice %></p>
-<h2>Measurement <%= @measurement.prefix %></h2>
+<h2>Measurement <%= @measurement.prefix %> (<%= @measurement.universe %>)</h2>
 
 <%= form_tag('/measurements/propagate', method: :post) do %>
 

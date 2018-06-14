@@ -325,7 +325,7 @@ ActiveRecord::Schema.define(version: 220170413025743) do
   add_index "measurement_series", ["series_id"], name: "index_measurement_series_on_series_id", using: :btree
 
   create_table "measurements", force: :cascade do |t|
-    t.string   "universe",            limit: 5,     default: "UHERO", null: false
+    t.string   "universe",            limit: 8,     default: "UHERO", null: false
     t.string   "prefix",              limit: 255,                     null: false
     t.string   "data_portal_name",    limit: 255
     t.string   "table_prefix",        limit: 255
