@@ -79,7 +79,7 @@ task :reload_recent_stale_series => :environment do
   stale = Series.stale_since Time.now.yesterday
   ids = stale.map{|x| x[0] }.uniq
   Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
-  SeriesReloadManager.new.batch_reload Series.where id: ids
+  Series.reload_with_dependencies ids
 end
 
 task :check_for_stalled_reload => :environment do

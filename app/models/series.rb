@@ -1031,11 +1031,11 @@ class Series < ActiveRecord::Base
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
-    logger.info { "reload_with_dependencies: start" }
+    Rails.logger.info { 'reload_with_dependencies: start' }
     result_set = series_id_list
     next_set = series_id_list
     until next_set.empty?
-      logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
+      Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
       ## So wackt that find_by_sql works this way :( But if it's fixed in Rails 5, remove this comment :)
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
@@ -1049,7 +1049,7 @@ class Series < ActiveRecord::Base
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    logger.info { "reload_with_dependencies: ship off to SeriesReloadManager" }
+    Rails.logger.info { 'reload_with_dependencies: ship off to SeriesReloadManager' }
     SeriesReloadManager.new.batch_reload Series.where id: result_set
   end
 
@@ -1132,7 +1132,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.stale_since(past_day)
-    horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
+    horizon = Time.new(past_day.year, past_day.month, past_day.day, 20, 0, 0)  ## 8pm, roughly when nightly load starts
     Series.get_all_uhero
           .joins(:data_sources)
           .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
