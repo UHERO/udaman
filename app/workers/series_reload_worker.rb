@@ -11,13 +11,6 @@ class SeriesReloadWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
-  ## Default value in config/initializers/sidekiq.rb should be 30.minutes. This resets it to 1.hour for
-  ## depths 0 and 1, which contain a very large number of series.
-  def expiration
-    return @expiration if @depth > 1
-    @expiration ||= 60 * 60 ## one hour
-  end
-
   def perform(batch_id, series_id, depth)
     @batch = batch_id
     @series = series_id
