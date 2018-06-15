@@ -28,7 +28,7 @@ class SeriesReloadManager
         loop do
           sleep delay.seconds
           mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
-          break if depth_set_finished(depth)
+          break if group_finished(depth)
         end
       end
       depth = depth - 1
@@ -44,7 +44,7 @@ class SeriesReloadManager
   end
 
 private
-  def depth_set_finished(depth)
+  def group_finished(depth)
     outstanding = SeriesReloadLog.where(batch_id: @batch, depth: depth, status: nil)
     return true if outstanding.empty?
     updated = 0
