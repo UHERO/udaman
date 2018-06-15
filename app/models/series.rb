@@ -404,6 +404,22 @@ class Series < ActiveRecord::Base
     @change_hash ||= extract_from_datapoints('change')
   end
 
+  def trim_period_start
+    @trim_period_start
+  end
+
+  def trim_period_end
+    @trim_period_end
+  end
+
+  def trim_period_start=(date)
+    @trim_period_start = date
+  end
+
+  def trim_period_end=(date)
+    @trim_period_end = date
+  end
+
   def extract_from_datapoints(column)
     hash = {}
     data_points.each do |dp|
@@ -444,23 +460,27 @@ class Series < ActiveRecord::Base
   end
   
   def Series.new_transformation(name, data, frequency)
-    Series.new(
-      :name => name,
-      :frequency => frequency,
-      :data => data
-    )
+    ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
+    Series.new.new_transformation(name, data, frequency)
   end
   
-  def new_transformation(name, data)
-    frequency = (self.frequency.nil? and name.split('.').count == 2 and name.split('@').count == 2 and name.split('.')[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
-    #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
+  def new_transformation(name, data, frequency = nil)
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
+                Series.frequency_from_code(Series.parse_name(name)[:freq]) rescue nil
     Series.new(
       :name => name,
       :frequency => frequency,
       :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
-    )
+    ).tap do |o|
+      o.propagate_state_from(self)
+    end
   end
-  
+
+  def propagate_state_from(series_obj)
+    self.trim_period_start = series_obj.trim_period_start
+    self.trim_period_end = series_obj.trim_period_end
+  end
+
   #need to spec out tests for this
   #this would benefit from some caching scheme
   
@@ -569,7 +589,7 @@ class Series < ActiveRecord::Base
   def load_from_bea(dataset, parameters)
     frequency = Series.frequency_from_code(self.name.split('.')[1])
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
+    new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
@@ -591,7 +611,7 @@ class Series < ActiveRecord::Base
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
-    Series.new_transformation('days in time periods', series_data, self.frequency)
+    new_transformation('days in time periods', series_data, self.frequency)
   end
   
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
