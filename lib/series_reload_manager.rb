@@ -2,18 +2,21 @@ class SeriesReloadManager
   require 'sidekiq'
   require 'sidekiq-status'
 
-  def batch_reload(series_list = nil, delay = 15)
+  def initialize(series_list = nil)
     suffix = nil
     if series_list.nil?
       series_list = Series.get_all_uhero
       suffix = '_full'
     end
     @batch = create_batch_id(series_list.count, suffix)
+    @series_list = series_list
+  end
 
+  def batch_reload(cycle_time = 15)
     mylogger :info, 'starting batch reload'
-    depth = series_list.maximum(:dependency_depth)
+    depth = @series_list.maximum(:dependency_depth)
     while depth >= 0
-      depth_set = series_list.where(dependency_depth: depth)
+      depth_set = @series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{depth_set.count} series)"
       depth_set.pluck(:id).in_groups_of(25, false) do |group|
         mylogger :debug, "processing at depth #{depth} => #{group}"
@@ -26,8 +29,8 @@ class SeriesReloadManager
           log.update_attributes job_id: jid
         end
         loop do
-          sleep delay.seconds
-          mylogger :debug, "depth=#{depth}: slept #{delay} more seconds"
+          sleep cycle_time.seconds
+          mylogger :debug, "depth=#{depth}: slept #{cycle_time} more seconds"
           break if group_finished(depth)
         end
       end
@@ -36,6 +39,11 @@ class SeriesReloadManager
     mylogger :info, 'done batch reload'
   end
 
+  def batch_id
+    @batch
+  end
+
+  private
   def create_batch_id(list_length, suffix = nil)
     require 'digest/md5'
     datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
@@ -43,7 +51,6 @@ class SeriesReloadManager
     "#{datetime}_#{list_length}_#{hash.to_s[-6..-1]}#{suffix}"
   end
 
-private
   def group_finished(depth)
     outstanding = SeriesReloadLog.where(batch_id: @batch, depth: depth, status: nil)
     return true if outstanding.empty?

@@ -99,8 +99,9 @@ task :reload_hiwi_series_only => :environment do
   #could also hard code this...
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
-  Rails.logger.info { 'reload_hiwi_series_only: shipping off to SeriesReloadManager' }
-  SeriesReloadManager.new.batch_reload hiwi_series
+  mgr = SeriesReloadManager.new(hiwi_series)
+  Rails.logger.info { "reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['hiwi series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -109,8 +110,9 @@ task :reload_bls_series_only => :environment do
   #could also hard code this...
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
-  Rails.logger.info { 'reload_bls_series_only: shipping off to SeriesReloadManager' }
-  SeriesReloadManager.new.batch_reload bls_series
+  mgr = SeriesReloadManager.new(bls_series)
+  Rails.logger.info { "reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -119,8 +121,9 @@ task :reload_bea_series_only => :environment do
   #could also hard code this...
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
-  Rails.logger.info { 'reload_bea_series_only: shipping off to SeriesReloadManager' }
-  SeriesReloadManager.new.batch_reload bea_series
+  mgr = SeriesReloadManager.new(bea_series)
+  Rails.logger.info { "reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 

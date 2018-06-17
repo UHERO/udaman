@@ -1070,7 +1070,7 @@ class Series < ActiveRecord::Base
       result_set += next_set
     end
     Rails.logger.info { 'reload_with_dependencies: ship off to SeriesReloadManager' }
-    SeriesReloadManager.new.batch_reload Series.where id: result_set
+    SeriesReloadManager.new(Series.where id: result_set).batch_reload
   end
 
   def Series.reload_by_dependency_depth(series_list = nil)
