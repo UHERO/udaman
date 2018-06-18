@@ -1069,8 +1069,9 @@ class Series < ActiveRecord::Base
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    Rails.logger.info { 'reload_with_dependencies: ship off to SeriesReloadManager' }
-    SeriesReloadManager.new(Series.where id: result_set).batch_reload
+    mgr = SeriesReloadManager.new(Series.where id: result_set)
+    Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+    mgr.batch_reload
   end
 
   def Series.reload_by_dependency_depth(series_list = nil)

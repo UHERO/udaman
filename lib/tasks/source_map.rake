@@ -100,7 +100,7 @@ task :reload_hiwi_series_only => :environment do
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
   mgr = SeriesReloadManager.new(hiwi_series)
-  Rails.logger.info { "reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['hiwi series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -111,7 +111,7 @@ task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
   mgr = SeriesReloadManager.new(bls_series)
-  Rails.logger.info { "reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
@@ -122,7 +122,7 @@ task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
   mgr = SeriesReloadManager.new(bea_series)
-  Rails.logger.info { "reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
