@@ -168,6 +168,7 @@ class DataSource < ActiveRecord::Base
         self.series.update_data(s.data, self)
         self.update(:description => s.name,
                     :last_run => t,
+                    :last_run_at => t,
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
@@ -175,6 +176,7 @@ class DataSource < ActiveRecord::Base
       rescue => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update(:last_run => t,
+                    :last_run_at => t,
                     :runtime => nil,
                     :last_error => message,
                     :last_error_at => t)
