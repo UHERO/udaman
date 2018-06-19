@@ -63,7 +63,7 @@ module SeriesAggregation
       len = delta > 10 ? 6 : delta - 1
       (0..len).each {|offset| dailyseries[date + offset] = self.data[date] }
     end
-    Series.new_transformation("Extrapolated from weekly series #{self.name}", dailyseries, :day)
+    new_transformation("Extrapolated from weekly series #{self.name}", dailyseries, :day)
   end
 
   def validate_aggregation(frequency)
