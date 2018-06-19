@@ -404,6 +404,22 @@ class Series < ActiveRecord::Base
     @change_hash ||= extract_from_datapoints('change')
   end
 
+  def trim_period_start
+    @trim_period_start
+  end
+
+  def trim_period_end
+    @trim_period_end
+  end
+
+  def trim_period_start=(date)
+    @trim_period_start = date
+  end
+
+  def trim_period_end=(date)
+    @trim_period_end = date
+  end
+
   def extract_from_datapoints(column)
     hash = {}
     data_points.each do |dp|
@@ -444,23 +460,27 @@ class Series < ActiveRecord::Base
   end
   
   def Series.new_transformation(name, data, frequency)
-    Series.new(
-      :name => name,
-      :frequency => frequency,
-      :data => data
-    )
+    ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
+    Series.new.new_transformation(name, data, frequency)
   end
   
-  def new_transformation(name, data)
-    frequency = (self.frequency.nil? and name.split('.').count == 2 and name.split('@').count == 2 and name.split('.')[1].length == 1) ? Series.frequency_from_code(name[-1]) : self.frequency
-    #puts "NEW TRANFORMATION: #{name} - frequency: #{frequency} | frequency.nil? : #{self.frequency.nil?} | .split 2 :#{name.split('.').count == 2} | @split 2 : #{name.split('@') == 2} |"# postfix1 : #{name.split('.')[1].length == 1}"  
+  def new_transformation(name, data, frequency = nil)
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
+                Series.frequency_from_code(Series.parse_name(name)[:freq]) rescue nil
     Series.new(
       :name => name,
       :frequency => frequency,
       :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
-    )
+    ).tap do |o|
+      o.propagate_state_from(self)
+    end
   end
-  
+
+  def propagate_state_from(series_obj)
+    self.trim_period_start = series_obj.trim_period_start
+    self.trim_period_end = series_obj.trim_period_end
+  end
+
   #need to spec out tests for this
   #this would benefit from some caching scheme
   
@@ -569,7 +589,7 @@ class Series < ActiveRecord::Base
   def load_from_bea(dataset, parameters)
     frequency = Series.frequency_from_code(self.name.split('.')[1])
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
+    new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
@@ -591,7 +611,7 @@ class Series < ActiveRecord::Base
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
-    Series.new_transformation('days in time periods', series_data, self.frequency)
+    new_transformation('days in time periods', series_data, self.frequency)
   end
   
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
@@ -1031,11 +1051,11 @@ class Series < ActiveRecord::Base
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
-    logger.info { "reload_with_dependencies: start" }
+    Rails.logger.info { 'reload_with_dependencies: start' }
     result_set = series_id_list
     next_set = series_id_list
     until next_set.empty?
-      logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
+      Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
       ## So wackt that find_by_sql works this way :( But if it's fixed in Rails 5, remove this comment :)
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
@@ -1049,8 +1069,9 @@ class Series < ActiveRecord::Base
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    logger.info { "reload_with_dependencies: ship off to reload_by_dependency_depth" }
-    Series.reload_by_dependency_depth Series.where id: result_set
+    mgr = SeriesReloadManager.new(Series.where id: result_set)
+    Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+    mgr.batch_reload
   end
 
   def Series.reload_by_dependency_depth(series_list = nil)
@@ -1132,7 +1153,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.stale_since(past_day)
-    horizon = Time.new(past_day.year, past_day.month, past_day.day, 21, 0, 0)  ## 9pm, roughly when nightly load starts
+    horizon = Time.new(past_day.year, past_day.month, past_day.day, 20, 0, 0)  ## 8pm, roughly when nightly load starts
     Series.get_all_uhero
           .joins(:data_sources)
           .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)

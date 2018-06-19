@@ -49,6 +49,10 @@ task debug: [:environment, :verbose] do
   Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
 end
 
+task :batch_reload_uhero => :environment do
+  SeriesReloadManager.new.batch_reload
+end
+
 task :reload_all_series => :environment do
   algorithm = nil
 
@@ -71,15 +75,11 @@ task :reload_all_series => :environment do
 end
 
 ## The "cleanup" after nightly reload
-task :reload_recent_stale_series => :environment do
+task :batch_reload_recent_stales => :environment do
   stale = Series.stale_since Time.now.yesterday
   ids = stale.map{|x| x[0] }.uniq
   Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
-  Series.reload_by_dependency_depth(Series.where id: ids)
-end
-
-task :check_for_stalled_reload => :environment do
-  Series.check_for_stalled_reload
+  Series.reload_with_dependencies ids
 end
 
 task :build_rebuild => :environment do
@@ -94,8 +94,9 @@ task :reload_hiwi_series_only => :environment do
   t = Time.now
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
-  Rails.logger.info { 'reload_hiwi_series_only: shipping off to reload_by_dependency_depth' }
-  Series.reload_by_dependency_depth hiwi_series
+  mgr = SeriesReloadManager.new(hiwi_series)
+  Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['hiwi series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -103,8 +104,9 @@ task :reload_bls_series_only => :environment do
   t = Time.now
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
-  Rails.logger.info { 'reload_bls_series_only: shipping off to reload_by_dependency_depth' }
-  Series.reload_by_dependency_depth bls_series
+  mgr = SeriesReloadManager.new(bls_series)
+  Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -112,8 +114,9 @@ task :reload_bea_series_only => :environment do
   t = Time.now
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
-  Rails.logger.info { 'reload_bea_series_only: shipping off to reload_by_dependency_depth' }
-  Series.reload_by_dependency_depth bea_series
+  mgr = SeriesReloadManager.new(bea_series)
+  Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 

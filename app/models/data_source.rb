@@ -136,10 +136,16 @@ class DataSource < ActiveRecord::Base
     end
 
     def reload_source(clear_first = false)
-      logger.info { "Begin reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Begin reload of data source #{id} for series #{self.series.name} [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
+      ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
+      ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
+      ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
+      ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
+      ## Ruby's particular quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
+      ## here will break it.
       options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
         if eval_stmt =~ options_match  ## extract the options hash
@@ -153,7 +159,7 @@ class DataSource < ActiveRecord::Base
         s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
-          logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
+          Rails.logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
@@ -162,6 +168,7 @@ class DataSource < ActiveRecord::Base
         self.series.update_data(s.data, self)
         self.update(:description => s.name,
                     :last_run => t,
+                    :last_run_at => t,
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
@@ -169,13 +176,14 @@ class DataSource < ActiveRecord::Base
       rescue => e
         message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update(:last_run => t,
+                    :last_run_at => t,
                     :runtime => nil,
                     :last_error => message,
                     :last_error_at => t)
-        logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{message}" }
+        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{message}" }
         return false
       end
-      logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }
       true
     end
 
