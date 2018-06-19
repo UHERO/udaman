@@ -43,7 +43,7 @@ class SeriesReloadManager
     @batch
   end
 
-  private
+private
   def create_batch_id(list_length, suffix = nil)
     require 'digest/md5'
     datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
