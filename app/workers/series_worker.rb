@@ -33,7 +33,7 @@ class SeriesWorker
       current_depth = redis.get(keys[:current_depth]).to_i
       log_prefix = "batch=#{batch_id},depth=#{current_depth}"
 
-      series = Series.find(series_id)
+      series = Series.find(series_id) rescue nil
       errors = []
       if series
         logger.info "#{log_prefix}: Reload series #{series_id} (#{series.name}) started"
