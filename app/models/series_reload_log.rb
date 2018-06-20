@@ -5,6 +5,6 @@ class SeriesReloadLog < ActiveRecord::Base
     old_logs = SeriesReloadLog.find_by_sql [<<~SQL, horizon]
       select * from series_reload_logs where created_at < ?
     SQL
-    old_logs.destroy_all unless old_logs.empty?
+    old_logs.delete_all unless old_logs.empty?
   end
 end
