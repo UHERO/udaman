@@ -2,11 +2,10 @@ class SeriesReloadManager
   require 'sidekiq'
   require 'sidekiq-status'
 
-  def initialize(series_list = nil)
-    suffix = nil
+  def initialize(series_list = nil, suffix = nil)
     if series_list.nil?
       series_list = Series.get_all_uhero
-      suffix = '_full'
+      suffix ||= 'full'
     end
     @batch = create_batch_id(series_list.count, suffix)
     @series_list = series_list
@@ -48,6 +47,7 @@ private
     require 'digest/md5'
     datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
     hash = Digest::MD5.new << "#{datetime}#{list_length}#{rand 100000}"
+    suffix = '_' + suffix if suffix
     "#{datetime}_#{list_length}_#{hash.to_s[-6..-1]}#{suffix}"
   end
 
