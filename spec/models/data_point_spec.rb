@@ -6,7 +6,7 @@ describe DataPoint do
     @ds1_80 = DataSource.create priority: 80
     @ds2_80 = DataSource.create priority: 80
     @ds2_70 = DataSource.create priority: 70
-    ## Shove anything other than zero into the unused :id column as a way
+    ## Shove anything other than zero into currently unused :ytd column as a way
     ## to check dp object identity that doesn't depend on the clock
     @arbitrary_float = 75.42
     @dp = DataPoint.create(date: '2011-03-01',
