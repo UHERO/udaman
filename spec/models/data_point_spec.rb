@@ -32,6 +32,7 @@ describe DataPoint do
 
   it 'should update a dp data source if source is different, source.priority >= current' do
     newdp = @dp.upd(100, @ds2_80)
+    @dp = @dp.reload
     cur_dps = @s.current_data_points
 
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
@@ -46,6 +47,7 @@ describe DataPoint do
 
   it 'should NOT update a dp data source if source is different, source.priority < current' do
     newdp = @dp.upd(100, @ds2_70)
+    @dp = @dp.reload
     cur_dps = @s.current_data_points
 
     expect(newdp).to eq(nil), 'thing returned is not nil'
@@ -59,6 +61,7 @@ describe DataPoint do
 
   it 'should update a dp value if value is different, source.priority >= current' do
     newdp = @dp.upd(200, @ds2_80)
+    @dp = @dp.reload
     cur_dps = @s.current_data_points
 
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
@@ -72,6 +75,7 @@ describe DataPoint do
 
   it 'should NOT update a dp value if value is different, source.priority < current' do
     newdp = @dp.upd(200, @ds2_70)
+    @dp = @dp.reload
     cur_dps = @s.current_data_points
 
     expect(newdp).to eq(nil), 'thing returned is not nil'
