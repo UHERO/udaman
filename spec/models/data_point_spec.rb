@@ -23,7 +23,6 @@ describe DataPoint do
     cur_dps = @s.current_data_points
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
-  #expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), "current dp is different from original (#{cur_dps.first.read_attribute :id})"
     expect(cur_dps.first.id.to_s).to eq(@dp.id.to_s), 'current dp has different id from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
     expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
@@ -32,27 +31,25 @@ describe DataPoint do
 
   it 'should update a dp data source if source is different, source.priority >= current' do
     newdp = @dp.upd(100, @ds2_80)
-    @dp = @dp.reload
     cur_dps = @s.current_data_points
+    #@dp = @dp.reload
 
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
     expect(newdp.class).to eq(DataPoint), 'thing returned is not a DataPoint'
-  #expect(newdp.read_attribute :id).not_to eq(@arbitrary_id), 'a new dp was not created'
-    expect(newdp.id.to_s).not_to eq(@dp.id.to_s), 'current dp has different id from original'
+    expect(newdp.id.to_s).not_to eq(@dp.id.to_s), 'current dp has same id as original'
     expect(newdp.current).to eq(true), 'new dp not set to current'
-    expect(@dp.current).to eq(false), 'old dp still current'
+    expect(newdp.ytd).not_to eq(@arbitrary_float), 'new dp has same ytd marker as original'
+    expect(@dp.current).to eq(false), 'old dp still set to current'
     expect(newdp.value_equal_to? dp.value).to eq(true), 'dp values are not equal'
     expect(newdp.data_source_id).to eq(@ds2_80.id), 'new dp does not have new source'
   end
 
   it 'should NOT update a dp data source if source is different, source.priority < current' do
     newdp = @dp.upd(100, @ds2_70)
-    @dp = @dp.reload
     cur_dps = @s.current_data_points
 
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
-  #expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
     expect(cur_dps.first.id.to_s).to eq(@dp.id.to_s), 'current dp has different id from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
     expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
@@ -66,7 +63,6 @@ describe DataPoint do
 
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
     expect(newdp.class).to eq(DataPoint), 'thing returned is not a DataPoint'
-  #expect(newdp.read_attribute :id).not_to eq(@arbitrary_id), 'a new dp was not created'
     expect(newdp.current).to eq(true), 'new dp not set to current'
     expect(@dp.current).to eq(false), 'old dp still set to current'
     expect(newdp.value_equal_to? @dp.value).to eq(false), 'new and old dp values are equal'
@@ -80,7 +76,6 @@ describe DataPoint do
 
     expect(newdp).to eq(nil), 'thing returned is not nil'
     expect(cur_dps.count).to eq(1), 'not exactly one current dp'
-  #expect(cur_dps.first.read_attribute :id).to eq(@arbitrary_id), 'current dp is different from original'
     expect(@dp.current).to eq(true), 'old data point no longer current'
     expect(@dp.value_equal_to? 100.0).to eq(true), 'orig dp value has changed in place'
     expect(@dp.data_source_id).to eq(@ds1_80.id), 'orig dp source has changed in place'

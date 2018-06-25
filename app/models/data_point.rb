@@ -50,7 +50,7 @@ class DataPoint < ActiveRecord::Base
       #  :created_at => now,
        # :updated_at => now
     )
-    #self.update_attributes(current: false)
+    self.update_attributes(current: false)
     make_current(new_dp)
     new_dp
   end
