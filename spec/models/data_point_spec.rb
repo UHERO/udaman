@@ -113,6 +113,8 @@ describe DataPoint do
 
     dp500.delete
     cdp = @s.current_data_points
+    @dp.reload
+    dp200.reload
 
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
