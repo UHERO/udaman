@@ -115,9 +115,10 @@ describe DataPoint do
     cdp = @s.current_data_points
 
     expect(cdp.count).to eq(1), 'not exactly one current dp'
-    expect(cdp.first.value_equal_to? dp200.value).to eq(true), 'current dp is not dp=200'
-    expect(dp200.current).to eq(true), 'dp=200 not set to current'
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
+    expect(cdp.first.value_equal_to? dp200.value).to eq(true), 'current dp value is not dp=200 value'
+    expect(@dp.current).to eq(false), 'dp=100 set wrongly to current'
+    expect(dp200.current).to eq(true), 'dp=200 not set to current'
   end
 
   xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
