@@ -84,7 +84,7 @@ describe DataPoint do
   #########################################################################################################
 
   ## what about if there is an old dp with the correct properties, but lower priority? should not be restored
-  xit 'should restore previously current dp, when updated to its same properties' do
+  it 'should restore previously current dp, when updated to its same properties' do
     dp1 = @dp.upd(200, @ds2_80)
     ## dp1 should now be current, as tested above
     newdp = dp1.upd(@dp.value, @dp.data_source)
