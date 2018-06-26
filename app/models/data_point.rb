@@ -44,13 +44,13 @@ class DataPoint < ActiveRecord::Base
     new_dp = DataPoint.create(
         series_id: self.series_id,
         date: self.date,
-        :data_source_id => upd_source.id,
-        :value => upd_value,
-        :current => false  ## will be set to true just below
+        data_source_id: upd_source.id,
+        value: upd_value,
+        current: false  ## will be set to true just below
       #  :created_at => now,
        # :updated_at => now
     )
-    self.update_attributes(current: false)
+    #self.update_attributes(current: false)
     make_current(new_dp)
     new_dp
   end
@@ -62,7 +62,7 @@ class DataPoint < ActiveRecord::Base
                                value: upd_value).first
     return nil if prior_dp.nil?
     unless upd_source.priority < self.data_source.priority
-      #self.update_attributes(current: false)
+      self.update_attributes(current: false)
       make_current(prior_dp)
     end
     prior_dp
@@ -71,7 +71,7 @@ class DataPoint < ActiveRecord::Base
   def make_current(dp)
     return unless current
     self.transaction do
-      ## self.update_attributes(current: false)
+      self.update_attributes(current: false)
         dp.update_attributes(current: true)
     end
   end
