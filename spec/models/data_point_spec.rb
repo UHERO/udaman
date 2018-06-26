@@ -123,7 +123,7 @@ describe DataPoint do
     expect(dp200.current).to eq(true), 'dp=200 not set to current'
   end
 
-  xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
+  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
     sleep 1.2
     dp200 = @dp.upd(200, @ds1_80)
     dp200.ytd = 22.22
@@ -133,6 +133,7 @@ describe DataPoint do
     ## restore 200
     restoredp = dp500.upd(dp200.value, dp200.data_source)
     cdp = @s.current_data_points
+    dp200.reload
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(dp200.current).to eq(true), 'restored dp=200 is not current'
     expect(restoredp.ytd).to eq(22.22), 'restored dp ytd not identical to dp=200.ytd'
@@ -142,6 +143,7 @@ describe DataPoint do
     ## restore 100
     restoredp = restoredp.upd(@dp.value, @dp.data_source)
     cdp = @s.current_data_points
+    @dp.reload
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(@dp.current).to eq(true), 'restored dp=100 is not current'
     expect(restoredp.ytd).to eq(@arbitrary_float), 'restored dp not identical to original @dp=100'
@@ -151,6 +153,8 @@ describe DataPoint do
     ## then delete current
     restoredp.delete
     cdp = @s.current_data_points
+    dp200.reload
+    dp500.reload
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(cdp.first.ytd).to eq(22.22), 'current dp is not dp=200'
     expect(dp200.current).to eq(true), 'dp=200 not set to current'
