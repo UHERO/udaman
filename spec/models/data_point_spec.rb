@@ -100,7 +100,7 @@ describe DataPoint do
     expect(newdp.data_source_id).to eq(@dp.data_source_id), 'orig dp source has changed in place'
   end
 
-  xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
+  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
     sleep 1.2
     dp200 = @dp.upd(200, @ds1_80)
     sleep 1.2
