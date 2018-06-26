@@ -112,9 +112,9 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(3), 'not exactly three dps in this series'
 
     dp500.delete
-    cdp = @s.current_data_points
     @dp.reload
     dp200.reload
+    cdp = @s.current_data_points
 
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
@@ -126,15 +126,15 @@ describe DataPoint do
   it 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
     sleep 1.2
     dp200 = @dp.upd(200, @ds1_80)
-    dp200.ytd = 22.22
+    dp200.update_attributes ytd: 22.22
     sleep 1.2
     dp500 = dp200.upd(500, @ds1_80)
 
     ## restore 200
     restoredp = dp500.upd(dp200.value, dp200.data_source)
-    cdp = @s.current_data_points
     dp200.reload
     dp500.reload
+    cdp = @s.current_data_points
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(dp200.current).to eq(true), 'restored dp=200 is not current'
     expect(dp500.current).to eq(false), 'dp=500 wrongly still set to current'
@@ -144,9 +144,9 @@ describe DataPoint do
 
     ## restore 100
     restoredp = restoredp.upd(@dp.value, @dp.data_source)
-    cdp = @s.current_data_points
     @dp.reload
     dp200.reload
+    cdp = @s.current_data_points
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(@dp.current).to eq(true), 'restored dp=100 is not current'
     expect(dp200.current).to eq(false), 'dp=200 wrongly still set to current'
@@ -156,9 +156,9 @@ describe DataPoint do
 
     ## then delete current
     restoredp.delete
-    cdp = @s.current_data_points
     dp200.reload
     dp500.reload
+    cdp = @s.current_data_points
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(cdp.first.ytd).to eq(22.22), 'current dp is not dp=200'
     expect(dp200.current).to eq(true), 'dp=200 not set to current'
@@ -166,28 +166,43 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
-  xit 'should NOT change current dp when non-current dp is deleted' do
-    ##### this is not right... latest updated needs to be not the same as current
+  it 'should NOT change current dp when non-current dp is deleted' do
     sleep 1.2
-    dp = @dp.upd(200, @ds1_80)
+    dp200 = @dp.upd(200, @ds1_80)
     sleep 1.2
-    dp400 = dp.upd(400, @ds1_80)
+    dp400 = dp200.upd(400, @ds1_80)
     sleep 1.2
-    dp = dp400.upd(300, @ds1_80)
+    dp300 = dp400.upd(300, @ds1_80)
+    dp300.update_attributes ytd: 31.21
     sleep 1.2
-    dp = dp.upd(500, @ds1_80)
+    dp500 = dp300.upd(500, @ds1_80)
+    dp500.update_attributes ytd: 52.42
     cdp = @s.current_data_points
-    expect(dp.current).to eq(true), 'new dp not set to current'
-    expect(cdp.count).to eq(1), 'not exactly one current dp'
-    expect(cdp.first.value_equal_to? 500).to eq(true), 'correct dp=500 not restored to current'
+    expect(dp500.current).to eq(true), 'dp=500 not set to current (1)'
+    expect(cdp.count).to eq(1), 'not exactly one current dp (1)'
     expect(@s.data_points.count).to eq(5), 'not exactly five dps in this series'
 
+    ## delete 400, check that 500 remains current
     dp400.delete
-    cdp = @s.current_data_points
+    dp500.reload
+    expect(dp500.current).to eq(true), 'dp=500 not set to current (2)'
 
-    expect(dp.current).to eq(true), 'original current dp no longer set to current'
-    expect(cdp.count).to eq(1), 'not exactly one current dp'
-    expect(cdp.first.value_equal_to? 500).to eq(true), 'dp=500 does not remain as current'
+    cdp = @s.current_data_points
+    expect(cdp.count).to eq(1), 'not exactly one current dp (2)'
+    expect(cdp.first.ytd).to eq(dp500.ytd), 'current dp ytd not equal to dp=500 ytd'
     expect(@s.data_points.count).to eq(4), 'not exactly four dps for this series'
+
+    ## restore 300, then delete 200. check that 300 remains current
+    restoredp = dp500.upd(dp300.value, dp300.data_source)
+    dp200.delete
+    dp300.reload
+    dp500.reload
+    expect(dp300.current).to eq(true), 'dp=300 not set to current'
+    expect(dp500.current).to eq(false), 'dp=500 wrongly set to current (1)'
+
+    cdp = @s.current_data_points
+    expect(cdp.count).to eq(1), 'not exactly one current dp (3)'
+    expect(restoredp.ytd).to eq(dp300.ytd), 'restored dp ytd not equal to dp=300 ytd'
+    expect(@s.data_points.count).to eq(3), 'not exactly three dps for this series'
   end
 end
