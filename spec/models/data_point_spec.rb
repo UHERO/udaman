@@ -40,7 +40,7 @@ describe DataPoint do
     expect(newdp.current).to eq(true), 'new dp not set to current'
     expect(newdp.ytd).not_to eq(@arbitrary_float), 'new dp has same ytd marker as original'
     expect(@dp.current).to eq(false), 'old dp still set to current'
-    expect(newdp.value_equal_to? dp.value).to eq(true), 'dp values are not equal'
+    expect(newdp.value_equal_to? @dp.value).to eq(true), 'dp values are not equal'
     expect(newdp.data_source_id).to eq(@ds2_80.id), 'new dp does not have new source'
   end
 
@@ -84,7 +84,7 @@ describe DataPoint do
   #########################################################################################################
 
   ## what about if there is an old dp with the correct properties, but lower priority? should not be restored
-  it 'should restore previously current dp, when updated to its same properties' do
+  xit 'should restore previously current dp, when updated to its same properties' do
     dp1 = @dp.upd(200, @ds2_80)
     ## dp1 should now be current, as tested above
     newdp = dp1.upd(@dp.value, @dp.data_source)
@@ -100,7 +100,7 @@ describe DataPoint do
     expect(newdp.data_source_id).to eq(@dp.data_source_id), 'orig dp source has changed in place'
   end
 
-  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
+  xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part I' do
     sleep 1.2
     dp200 = @dp.upd(200, @ds1_80)
     sleep 1.2
@@ -120,7 +120,7 @@ describe DataPoint do
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
   end
 
-  it 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
+  xit 'should restore correct dp next-in-line by updated_at time when current is deleted, part II' do
     sleep 1.2
     dp200 = @dp.upd(200, @ds1_80)
     dp200.ytd = 22.22
