@@ -134,8 +134,10 @@ describe DataPoint do
     restoredp = dp500.upd(dp200.value, dp200.data_source)
     cdp = @s.current_data_points
     dp200.reload
+    dp500.reload
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(dp200.current).to eq(true), 'restored dp=200 is not current'
+    expect(dp500.current).to eq(false), 'dp=500 wrongly still set to current'
     expect(restoredp.ytd).to eq(22.22), 'restored dp ytd not identical to dp=200.ytd'
     expect(restoredp.value_equal_to? dp200.value).to eq(true), 'restored dp value != dp=200'
     expect(@s.data_points.count).to eq(3), 'not exactly three dps for this series'
@@ -144,8 +146,10 @@ describe DataPoint do
     restoredp = restoredp.upd(@dp.value, @dp.data_source)
     cdp = @s.current_data_points
     @dp.reload
+    dp200.reload
     expect(cdp.count).to eq(1), 'not exactly one current dp'
     expect(@dp.current).to eq(true), 'restored dp=100 is not current'
+    expect(dp200.current).to eq(false), 'dp=200 wrongly still set to current'
     expect(restoredp.ytd).to eq(@arbitrary_float), 'restored dp not identical to original @dp=100'
     expect(restoredp.value_equal_to? @dp.value).to eq(true), 'restored dp value != orig @dp=100'
     expect(@s.data_points.count).to eq(3), 'not exactly three dps for this series'
