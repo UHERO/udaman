@@ -30,5 +30,9 @@ UheroDb::Application.configure do
   config.assets.debug = true
 
   config.log_level = :debug
+
+  ## Recommended by rspec because our tests are filled with the old :should syntax, and to
+  ## use that syntax without explicitly configuring as below is deprecated.
+  config.expect_with(:rspec) { |c| c.syntax = :should }
 end
 

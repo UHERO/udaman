@@ -64,4 +64,8 @@ UheroDb::Application.configure do
   # non-JS/CSS are already added)
   # config.assets.precompile += %w( search.js )
   # config.assets.precompile += %w(*.png *.jpg *.jpeg *.gif)
+
+  ## Recommended by rspec because our tests are filled with the old :should syntax, and to
+  ## use that syntax without explicitly configuring as below is deprecated.
+  config.expect_with(:rspec) { |c| c.syntax = :should }
 end
