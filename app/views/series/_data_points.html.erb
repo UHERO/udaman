@@ -19,7 +19,6 @@
     end
 
     def display_data_points(date_hash, as)
-      today = Time.now.to_date
       units = @series.units || 1
       chg_data = @chg.data.clone unless @chg.nil? or @chg.data.nil?
       ytd_data = @ytd_chg.data.clone unless @ytd_chg.nil? or @ytd_chg.data.nil?
@@ -51,7 +50,7 @@
         <td>
 				  <span class='current-datapoint'>
           <div class='datapoint current-datapoint' style='background-color:#<%= bgcolor %>'>
-            <%= "%.3f" % cdp_val %><sup><%= (today - cdp.created_at.to_date).to_i %><%="(ph)" if cdp.pseudo_history %></sup>
+            <%= "%.3f" % cdp_val %><sup><%= dp_superscript(cdp) %></sup>
           </div>
           </span>
         </td>
@@ -77,7 +76,7 @@
 	<tr>
 		<th>Date</th>
 		<th>AREMOS</th>
-		<th></th>
+		<th>LVL</th>
 		<th>YOY</th>
 		<th>YTD</th>
 		<th>Values</th>
