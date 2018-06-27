@@ -22,7 +22,7 @@ module SeriesRelationship
     cdp_hash = {}
     cdp_array = []
     self.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
-      if cdp_hash.has_key? cdp.date
+      if cdp_hash[cdp.date]
         cdp.update_attributes!(:current => false)
       else
         cdp_hash[cdp.date] = true

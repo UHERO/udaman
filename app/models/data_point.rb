@@ -1,5 +1,5 @@
 class DataPoint < ActiveRecord::Base
-  self.primary_keys = :series_id, :date, :created_at, :data_source_id
+  self.primary_key = :series_id, :date, :created_at, :data_source_id
   belongs_to :series
   belongs_to :data_source
   
@@ -10,71 +10,78 @@ class DataPoint < ActiveRecord::Base
   end
   
   def value_or_source_has_changed?(value, data_source)
-    !same_value_as?(value) or self.data_source_id != data_source.id
+    unless self.value_equal_to? value
+      series_auto_quarantine_check
+      return true
+    end
+    self.data_source_id != data_source.id
+  end
+
+  def series_auto_quarantine_check
+    return if series.quarantined? || series.restricted?
+    return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
+    if self.date < (Date.today - 2.years)
+      series.add_to_quarantine(false)
+    end
+  end
+
+  def value_equal_to?(value)
+    #used to round to 3 digits but not doing that anymore. May need to revert
+    #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
+    self.value.round(10) == value.round(10)
   end
 
   def trying_to_replace_with_nil?(value)
      value.nil? and !self.value.nil?
   end
   
-  def create_new_dp(value, data_source)
-    #create a new datapoint because value changed
+  def create_new_dp(upd_value, upd_source)
+    #create a new datapoint because value or source changed
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
-    self.update_attributes(:current => false)
-    now = Time.now
-    new_dp = self.dup
-    new_dp.update_attributes(
-        :series_id => self.series_id,
-        :date => self.date,
-        :data_source_id => data_source.id,
-        :value => value,
-        :current => true,
-        :created_at => now,
-        :updated_at => now
+    return nil if upd_source.priority < self.data_source.priority
+    ##now = Time.now
+    new_dp = DataPoint.create(
+        series_id: self.series_id,
+        date: self.date,
+        data_source_id: upd_source.id,
+        value: upd_value,
+        current: false  ## will be set to true just below
+      #  :created_at => now,
+       # :updated_at => now
     )
+    make_current(new_dp)
     new_dp
   end
-  
-  def restore_prior_dp(value, data_source)
-    prior_dp = DataPoint.where(:date => date, :series_id => series_id, :value => value, :data_source_id => data_source.id).first
+
+  def restore_prior_dp(upd_value, upd_source)
+    prior_dp = DataPoint.where(series_id: series_id,
+                               date: date,
+                               data_source_id: upd_source.id,
+                               value: upd_value).first
     return nil if prior_dp.nil?
-    current_dp = DataPoint.where(:date => date, :series_id=> series_id, :current=> true).first
-    if current_dp.data_source.id == data_source.id
-      self.update_attributes(:current => false)
-      prior_dp.update_attributes(:current => true)
-      return prior_dp
-    end
-    if data_source.priority >= current_dp.data_source.priority
-      current_dp.update_attributes(:current => false)
-      prior_dp.update_attributes(:current => true)
+    unless upd_source.priority < self.data_source.priority
+      make_current(prior_dp)
     end
     prior_dp
   end
-  
-  def same_value_as?(value)
-    #used to round to 3 digits but not doing that anymore. May need to revert
-    #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
-    if self.value.round(10) == value.round(10)
-      return true
-    end
-    series = self.series
 
-    auto_quarantine = FeatureToggle.is_set('auto_quarantine', true, series.universe)
-    if auto_quarantine && (Date.today - 2.years > self.date) && !series.quarantined? && !series.restricted?
-      series.add_to_quarantine(false)
+  def make_current(dp)
+    return unless current
+    self.transaction do
+      self.update_attributes(current: false)
+        dp.update_attributes(current: true)
     end
-    false
   end
-  
-  def delete
-    date = self.date
-    series_id = self.series_id
-    
-    super
 
-    next_of_kin = DataPoint.where(:date => date, :series_id => series_id).sort_by(&:updated_at).reverse[0]
-    next_of_kin.update_attributes(:current => true) unless next_of_kin.nil?        
+  def delete
+    most_recent = DataPoint.where(series_id: series_id,
+                                  date: date,
+                                  current: false).order('updated_at desc').first if current
+    self.transaction do
+      super
+      most_recent.update_attributes(:current => true) if most_recent
+    end
   end
   
   def source_type
@@ -92,34 +99,6 @@ class DataPoint < ActiveRecord::Base
       return :identity
     end
   end
-  
-  # instead of this "is pseudo_history. May want to do something like this periodically"
-  # might need to define a pseudohistory task somewhere
-  # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
-  def is_pseudo_history?
-    pseudo_history_sources = %W(
-      #{ENV['DATA_PATH']}/rawdata/History/inc_hist.xls
-      #{ENV['DATA_PATH']}/rawdata/History/bls_sa_history.xls
-      #{ENV['DATA_PATH']}/rawdata/History/bls_histextend_date_format_correct.xls
-    )
-    source_eval = self.data_source.eval
-    pseudo_history_sources.each { |phs| return true if source_eval.index(phs) }
-    false
-  end
-
-  #this never finishes running. Doesn't seem to catch all the stuff I want either
-  # def DataPoint.set_pseudo_history
-  #   DataPoint.all.each do |dp|
-  #     begin
-  #       ph = dp.is_pseudo_history?
-  #       dp.update_attributes(:pseudo_history => true) if ph and !dp.pseudo_history
-  #       dp.update_attributes(:pseudo_history => false) if !ph and dp.pseudo_history
-  #     rescue
-  #       puts "error for dp #{dp.id}"
-  #     end
-  #   end
-  #   0
-  # end
   
   def source_type_code
     case source_type
