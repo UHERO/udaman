@@ -83,19 +83,39 @@ describe DataPoint do
 
   #########################################################################################################
 
-  ## what about if there is an old dp with the correct properties, but lower priority? should not be restored
   it 'should restore previously current dp, when updated to its same properties' do
-    dp1 = @dp.upd(200, @ds2_80)
-    ## dp1 should now be current, as tested above
-    newdp = dp1.upd(@dp.value, @dp.data_source)
+    dp200 = @dp.upd(200, @ds2_80)
+    ## dp200 should now be current, as tested above
+    newdp = dp200.upd(@dp.value, @dp.data_source)
     ## now @dp should be restored to current, and newdp should === @dp
 
     expect(@s.current_data_points.count).to eq(1), 'not exactly one current dp'
     expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
+
+    dp200.reload
     expect(newdp.class).to eq(DataPoint), 'thing returned is not a DataPoint'
     expect(newdp.ytd).to eq(@arbitrary_float), 'a new dp was created rather than an old one restored'
     expect(newdp.current).to eq(true), 'new dp not set to current'
-    expect(dp1.current).to eq(false), 'previous current dp still set to current'
+    expect(dp200.current).to eq(false), 'previous current dp still set to current'
+    expect(newdp.value_equal_to? @dp.value).to eq(true), 'orig dp value has changed in place'
+    expect(newdp.data_source_id).to eq(@dp.data_source_id), 'orig dp source has changed in place'
+  end
+
+  it 'should NOT restore previous dp with same properties if source.priority < current' do
+    ds_100 = DataSource.create priority: 100
+    dp200 = @dp.upd(200, ds_100)
+    ## dp200 should now be current, as tested above
+    newdp = dp200.upd(@dp.value, @dp.data_source)
+    ## newdp should be returned as the prior dp, but should NOT be set as current
+
+    expect(@s.current_data_points.count).to eq(1), 'not exactly one current dp'
+    expect(@s.data_points.count).to eq(2), 'not exactly two dps for this series'
+
+    dp200.reload
+    expect(newdp.class).to eq(DataPoint), 'thing returned is not a DataPoint'
+    expect(newdp.ytd).to eq(@arbitrary_float), 'a new dp was created rather than an old one restored'
+    expect(newdp.current).to eq(false), 'new dp wrongly set to current'
+    expect(dp200.current).to eq(true), 'dp=200 not still set to current'
     expect(newdp.value_equal_to? @dp.value).to eq(true), 'orig dp value has changed in place'
     expect(newdp.data_source_id).to eq(@dp.data_source_id), 'orig dp source has changed in place'
   end
