@@ -53,6 +53,10 @@ task :batch_reload_uhero => :environment do
   SeriesReloadManager.new.batch_reload
 end
 
+task :purge_old_reload_logs => :environment do
+  SeriesReloadLog.purge_old_logs
+end
+
 task :reload_all_series => :environment do
   algorithm = nil
 
