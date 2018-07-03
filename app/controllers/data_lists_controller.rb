@@ -19,7 +19,7 @@ class DataListsController < ApplicationController
   # GET /data_lists/1
   def show
     @freq = params[:freq] || 'A'
-    @county = params[:county] || 'HI'
+    @geo = params[:county] || 'HI'
     @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
     @data_list = DataList.find_by id: params[:id]
     render 'super_table'
@@ -27,10 +27,10 @@ class DataListsController < ApplicationController
   
   def super_table
     @freq = params[:freq] || 'A'
-    @county = params[:county] || 'HI'
+    @geo = params[:county] || 'HI'
     @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
     @data_list = DataList.find_by id: params[:id]
-    #render 'super_table'  ### why are these render calls needed?
+    render 'super_table'  ### why are these render calls needed?
   end
   
   def show_table

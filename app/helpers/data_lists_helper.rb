@@ -58,4 +58,7 @@ module DataListsHelper
     (1..n).map{ "<i class='fa fa-minus' aria-hidden='true'></i> " }.join.html_safe
   end
 
+  def generate_filter_controls(geo, freq, sa)
+    ""
+  end
 end
