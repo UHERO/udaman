@@ -59,7 +59,7 @@ every 1.day, :at => '8:10 pm' do
 end
 
 every 1.day, :at => '8:10 am' do ## n.b. AM not PM
-  rake 'batch_reload_recent_stales'
+  rake :batch_reload_recent_stales
 end
 
 # ------- These two are together. Need only sometimes --------

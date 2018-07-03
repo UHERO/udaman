@@ -80,10 +80,13 @@ end
 
 ## The "cleanup" after nightly reload
 task :batch_reload_recent_stales => :environment do
-  stale = Series.stale_since Time.now.yesterday
-  ids = stale.map{|x| x[0] }.uniq
-  Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
-  Series.reload_with_dependencies ids
+  Rails.logger.info '>>>>>>>>>>>>>> OK THE TASK RAN <<<<<<<<<<<<<<<<'
+  if false
+    stale = Series.stale_since Time.now.yesterday
+    ids = stale.map{|x| x[0] }.uniq
+    Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
+    Series.reload_with_dependencies ids
+  end
 end
 
 task :build_rebuild => :environment do
