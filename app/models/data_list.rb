@@ -78,7 +78,7 @@ class DataList < ActiveRecord::Base
     series_data
   end
 
-  def get_all_series_data_with_changes(frequency_suffix = 'A', county_switch = 'HI', seasonally_adjusted = 'T')
+  def get_all_series_data_with_changes(frequency = 'A', geo = 'HI', seasonally_adjusted = 'T')
     puts "seasonally adjusted: #{seasonally_adjusted}"
     series_data = {}
     measurements.each do |m|
@@ -89,7 +89,7 @@ class DataList < ActiveRecord::Base
         series = series.where("name REGEXP 'NS'")
       end
       
-      series = series.where("name REGEXP '@#{county_switch}.#{frequency_suffix}'")
+      series = series.where("name REGEXP '@#{geo}.#{frequency}'")
       
       if series.nil?
         next

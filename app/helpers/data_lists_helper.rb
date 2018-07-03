@@ -59,6 +59,8 @@ module DataListsHelper
   end
 
   def generate_filter_controls(geo, freq, sa)
-    ""
+    x += select_tag('geography', options_from_collection_for_select(Geography.where(universe: 'foo'), 'id', 'display_name_short'))
+    x += select_tag('frequency', options_for_select(%w(A S Q M W D), selected: freq))
+    x += select_tag('seasonal_adj', options_for_select(%w(seasonally-adjusted not-seasonally-adjusted not-applicable), selected: sa))
   end
 end
