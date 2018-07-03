@@ -49,7 +49,7 @@ every 1.day, :at => '9:00 pm' do
   rake 'update_vis_history_links'
 end
 
-every 1.day, :at => '7:50 pm' do
+every 1.day, at: '7:50 pm' do
   rake :purge_old_reload_logs
 end
 
@@ -58,7 +58,7 @@ every 1.day, :at => '8:10 pm' do
   rake 'batch_reload_uhero'
 end
 
-every 1.day, :at => '8:10 am' do ## n.b. AM not PM
+every 1.day, at: '8:10 am' do ## n.b. AM not PM
   rake :batch_reload_recent_stales
 end
 
