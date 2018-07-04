@@ -12,4 +12,5 @@ class SeriesReloadLog < ActiveRecord::Base
       Rails.logger.error { "SeriesReloadLog.purge_old_logs FAILURE: #{e.message}" }
       PackagerMailer.purge_log_notification(e.message).deliver
     end
+  end
 end
