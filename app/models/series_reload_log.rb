@@ -10,6 +10,6 @@ class SeriesReloadLog < ActiveRecord::Base
       stmt.close
     rescue => e
       Rails.logger.error { "SeriesReloadLog.purge_old_logs FAILURE: #{e.message}" }
-      PackagerMailer.purge_log_notification.deliver(e.message).deliver
+      PackagerMailer.purge_log_notification(e.message).deliver
     end
 end
