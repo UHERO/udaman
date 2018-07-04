@@ -11,13 +11,15 @@ class SeriesReloadManager
     @series_list = series_list
   end
 
-  def batch_reload(cycle_time = 15)
+  def batch_reload(group_size = nil, cycle_time = nil)
+    group_size ||= 25  ## number of jobs sent at one time to sidekiq
+    cycle_time ||= 15  ## how long to wait between checking if jobs are done
     mylogger :info, 'starting batch reload'
     depth = @series_list.maximum(:dependency_depth)
     while depth >= 0
       depth_set = @series_list.where(dependency_depth: depth)
       mylogger :info, "queueing up depth #{depth} (#{depth_set.count} series)"
-      depth_set.pluck(:id).in_groups_of(25, false) do |group|
+      depth_set.pluck(:id).in_groups_of(group_size, false) do |group|
         mylogger :debug, "processing group at depth #{depth} => #{group}"
         group.each do |series_id|
           log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)

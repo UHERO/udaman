@@ -1026,7 +1026,7 @@ class Series < ActiveRecord::Base
 
     # notify if the dependency tree did not terminate
     if current_depth_count > 0
-      PackagerMailer.circular_series_notification(Series.get_all_uhero.where(dependency_depth: previous_depth))
+      PackagerMailer.circular_series_notification(Series.get_all_uhero.where(dependency_depth: previous_depth)).deliver
     end
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
