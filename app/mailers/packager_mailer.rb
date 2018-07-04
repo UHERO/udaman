@@ -35,7 +35,6 @@ class PackagerMailer < ActionMailer::Base
       subject = 'Udamacmini Download Report'
       mail(:to => recipients, :subject => subject)
     rescue => e
-        puts e.message
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
@@ -72,7 +71,6 @@ class PackagerMailer < ActionMailer::Base
       @series = series
       mail(to: %w(djiann@hawaii.edu), subject: 'Circular Series')
     rescue => e
-      puts e.message
       mail(:to => %w(djiann@hawaii.edu), :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
@@ -83,7 +81,7 @@ class PackagerMailer < ActionMailer::Base
       mail(to: %w(djiann@hawaii.edu), subject: 'SeriesReloadLog.purge_old_logs')
     rescue => e
       Rails.logger.error { "PackageMailer.purge_log_notification error: #{e.message}" }
-      mail(:to => %w(djiann@hawaii.edu), :subject => 'PackageMailer.purge_log_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(to: %w(djiann@hawaii.edu), subject: 'PackageMailer.purge_log_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 end
