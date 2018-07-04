@@ -53,6 +53,10 @@ task :batch_reload_uhero => :environment do
   SeriesReloadManager.new.batch_reload
 end
 
+task :purge_old_reload_logs => :environment do
+  SeriesReloadLog.purge_old_logs
+end
+
 task :reload_all_series => :environment do
   algorithm = nil
 
@@ -76,10 +80,13 @@ end
 
 ## The "cleanup" after nightly reload
 task :batch_reload_recent_stales => :environment do
-  stale = Series.stale_since Time.now.yesterday
-  ids = stale.map{|x| x[0] }.uniq
-  Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
-  Series.reload_with_dependencies ids
+  Rails.logger.info '>>>>>>>>>>>>>> OK THE TASK RAN <<<<<<<<<<<<<<<<'
+  if false
+    stale = Series.stale_since Time.now.yesterday
+    ids = stale.map{|x| x[0] }.uniq
+    Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
+    Series.reload_with_dependencies ids
+  end
 end
 
 task :build_rebuild => :environment do
