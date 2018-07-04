@@ -11,7 +11,8 @@ class PackagerMailer < ActionMailer::Base
       subject = is_error ? "UDAMacMini Error (#{rake_task})" : "UDAMacMini New Download (#{rake_task})"
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
     rescue => e
-      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
+      Rails.logger.error { "PackagerMailer.rake_notification error: #{e.message}" }
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -21,7 +22,8 @@ class PackagerMailer < ActionMailer::Base
       @output_path = output_path
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => 'Rake failed in an unexpected way (Udamacmini)')
     rescue => e
-      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
+      Rails.logger.error { "PackagerMailer.rake_error error: #{e.message}" }
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -35,7 +37,8 @@ class PackagerMailer < ActionMailer::Base
       subject = 'Udamacmini Download Report'
       mail(:to => recipients, :subject => subject)
     rescue => e
-      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
+      Rails.logger.error { "PackagerMailer.visual_notification error: #{e.message}" }
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -49,7 +52,8 @@ class PackagerMailer < ActionMailer::Base
       @save_path = save_path
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
     rescue => e
-      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.download_link_notification error', :body => e.message, :content_type => 'text/plain')
+      Rails.logger.error { "PackagerMailer.download_link_notification error: #{e.message}" }
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.download_link_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -62,7 +66,8 @@ class PackagerMailer < ActionMailer::Base
       @new_data_series = new_data_series
       mail(:to => %w(james29@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
     rescue => e
-      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
+      Rails.logger.error { "PackagerMailer.website_post_notification error: #{e.message}" }
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 
@@ -71,7 +76,8 @@ class PackagerMailer < ActionMailer::Base
       @series = series
       mail(to: %w(djiann@hawaii.edu), subject: 'Circular Series')
     rescue => e
-      mail(:to => %w(djiann@hawaii.edu), :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
+      Rails.logger.error { "PackagerMailer.circular_series_notification error: #{e.message}" }
+      mail(to: %w(djiann@hawaii.edu), subject: 'PackagerMailer.circular_series_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 
@@ -80,8 +86,8 @@ class PackagerMailer < ActionMailer::Base
     begin
       mail(to: %w(djiann@hawaii.edu), subject: 'SeriesReloadLog.purge_old_logs')
     rescue => e
-      Rails.logger.error { "PackageMailer.purge_log_notification error: #{e.message}" }
-      mail(to: %w(djiann@hawaii.edu), subject: 'PackageMailer.purge_log_notification error', body: e.message, content_type: 'text/plain')
+      Rails.logger.error { "PackagerMailer.purge_log_notification error: #{e.message}" }
+      mail(to: %w(djiann@hawaii.edu), subject: 'PackagerMailer.purge_log_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 end
