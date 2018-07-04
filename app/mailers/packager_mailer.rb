@@ -8,9 +8,7 @@ class PackagerMailer < ActionMailer::Base
       @series = series
       @output_path = output_path
       @dates = Series.get_all_dates_from_data(@series)
-      subject = ''
-      subject = "UDAMacMini Error (#{rake_task})" if is_error
-      subject = "UDAMacMini New Download (#{rake_task})" unless is_error
+      subject = is_error ? "UDAMacMini Error (#{rake_task})" : "UDAMacMini New Download (#{rake_task})"
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject)
     rescue => e
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackageMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
@@ -44,9 +42,9 @@ class PackagerMailer < ActionMailer::Base
 
   def download_link_notification(handle = nil, url = nil, save_path = nil, created = false)
     begin
-      subject = ''
-      subject = "Udamacmini found and created a new download link for #{handle}" if created
-      subject = "Udamacmini tried but failed to create a new download link for #{handle}" unless created
+      subject = created ?
+        "Udamacmini found and created a new download link for #{handle}" :
+        "Udamacmini tried but failed to create a new download link for #{handle}"
       @handle = handle
       @url = url
       @save_path = save_path
@@ -58,9 +56,9 @@ class PackagerMailer < ActionMailer::Base
 
   def website_post_notification(post_name, post_address, new_data_series, created)
     begin
-      subject = ''
-      subject = "Udamacmini: New data for #{post_name} posted to the UHERO website" if created
-      subject = "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website" unless created
+      subject = created ?
+        "Udamacmini: New data for #{post_name} posted to the UHERO website" :
+        "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website"
       @post_address = post_address
       @new_data_series = new_data_series
       mail(:to => %w(james29@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
@@ -76,6 +74,16 @@ class PackagerMailer < ActionMailer::Base
     rescue => e
       puts e.message
       mail(:to => %w(djiann@hawaii.edu), :subject => 'PackageMailer.circular_series_notification error', :body => e.message, :content_type => 'text/plain')
+    end
+  end
+
+  def purge_log_notification(message)
+    @message = message
+    begin
+      mail(to: %w(djiann@hawaii.edu), subject: 'SeriesReloadLog.purge_old_logs')
+    rescue => e
+      Rails.logger.error { "PackageMailer.purge_log_notification error: #{e.message}" }
+      mail(:to => %w(djiann@hawaii.edu), :subject => 'PackageMailer.purge_log_notification error', :body => e.message, :content_type => 'text/plain')
     end
   end
 end
