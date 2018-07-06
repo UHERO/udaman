@@ -21,7 +21,7 @@ class DataListsController < ApplicationController
   def super_table
     @data_list = DataList.find_by id: params[:id]
     @freq = params[:freq] || 'A'
-    @geo = params[:geography] || params[:county] || 'HI'  ## backup GET param 'county' is a legacy name, for old bookmarks
+    @geo = params[:geography] || 'HI'
     @seasonally_adjusted = params[:seasonally_adjusted] || 'seasonally-adjusted'
     render :super_table
   end
@@ -42,7 +42,7 @@ class DataListsController < ApplicationController
     @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
-    render 'tsd_super_tableview'
+    render :tsd_super_tableview
   end
   
   def show_tsd_table
@@ -54,7 +54,7 @@ class DataListsController < ApplicationController
     dates = set_dates(frequency, params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render 'tsd_tableview'
+    render :tsd_tableview
   end
   
   def analyze_view

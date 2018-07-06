@@ -61,7 +61,7 @@
 
 </style>
 
-<%= link_to 'Edit this List', action: :edit %> || <%= link_to 'Reset Switches', {} %>
+<%= link_to 'Edit this list', action: :edit %> || <%= link_to 'Reset filters', {} %>
 <div id="frequency_selector">
   <%= form_tag "/data_lists/super_table/#{@data_list.id}" %>
     <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
