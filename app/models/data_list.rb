@@ -78,21 +78,18 @@ class DataList < ActiveRecord::Base
     series_data
   end
 
-  def get_all_series_data_with_changes(frequency, geo, seasonally_adjusted)
-    frequency ||= 'A'
-    geo ||= 'HI'
-    seasonally_adjusted ||= 'T'
-
+  def get_all_series_data_with_changes(freq, geo, sa)
     series_data = {}
     measurements.each do |m|
       series = m.series
-      if seasonally_adjusted == 'T'
+                .joins(:geographies)
+                .where(handle: geo,  ## Geography.handle
+                       frequency: Series.frequency_from_code(freq))  ## Series.frequency
+      if sa == 'seasonally-adjusted'
         series = series.where("name NOT REGEXP 'NS'") 
-      elsif seasonally_adjusted == 'F'
+      elsif sa == 'not-seasonally-adjusted'
         series = series.where("name REGEXP 'NS'")
       end
-      series = series.where("name REGEXP '@#{geo}.#{frequency}'")
-      next if series.nil?
 
       series.each do |s|
         all_changes = {}

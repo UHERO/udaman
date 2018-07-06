@@ -62,8 +62,12 @@
 </style>
 
 <div id="frequency_selector">
-	<%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %> || <%= link_to "Reset Switches", {} %>
+  <%= form_tag '#' %>
+    <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
+    <%= submit_tag 'Run' %>
+  </form>
 </div>
+|| <%= link_to "Reset Switches", {} %>
 
 <div id="adjuster_wrapper">
 	<div id="spark_adjuster">
@@ -104,22 +108,6 @@
 </div>
 
 <script>
-
-// features to add
-// DONE - separate sliders for table and sparkline
-// DONE - button to match sparkline to table and vice versa
-// DONE - link to analyze
-// DONE - new default for table
-// DONE - Selected Value (selected value, date, YTD)
-// DONE - min column (min value, min date, min to selected level)
-// DONE - max column (max value, max date, max to selected level)
-// DONE - range column(min-max diff, min to current/min to max, current to max / min to max)
-// DONE - selected point percent change from (first point, min, max)
-// 
-// dot to show current/selected
-// responsiveness to point
-// switch chart to growth rates / YTD rates options (bars)
-
 	function perc(num) {
 		if (num === null) return "";
 		return num.toFixed(2) + "%";

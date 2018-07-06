@@ -18,18 +18,14 @@ class DataListsController < ApplicationController
 
   # GET /data_lists/1
   def show
-    @freq = params[:freq] || 'A'
-    @geo = params[:county] || 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
-    @data_list = DataList.find_by id: params[:id]
-    render 'super_table'
+    super_table
   end
   
   def super_table
-    @freq = params[:freq] || 'A'
-    @geo = params[:county] || 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
     @data_list = DataList.find_by id: params[:id]
+    @freq = params[:freqency] || 'A'
+    @geo = params[:geography] || 'HI'
+    @seasonally_adjusted = params[:seasonal_adj] || 'seasonally-adjusted'
     render 'super_table'
   end
   
