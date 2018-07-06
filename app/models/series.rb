@@ -32,6 +32,7 @@ class Series < ActiveRecord::Base
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
+  ### I suspect this enum is vestigial/obsolete. Check into it and remove later.
   enum seasonal_adjustment: { seas_adj_not_applicable: 'not_applicable',
                               seas_adj: 'seasonally_adjusted',
                               not_seas_adj: 'not_seasonally_adjusted' }

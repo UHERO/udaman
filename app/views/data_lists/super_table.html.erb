@@ -61,13 +61,13 @@
 
 </style>
 
+<%= link_to 'Edit this List', action: :edit %> || <%= link_to 'Reset Switches', {} %>
 <div id="frequency_selector">
-  <%= form_tag '#' %>
+  <%= form_tag "/data_lists/super_table/#{@data_list.id}" %>
     <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
-    <%= submit_tag 'Run' %>
+    <%= submit_tag 'Show' %>
   </form>
 </div>
-|| <%= link_to "Reset Switches", {} %>
 
 <div id="adjuster_wrapper">
 	<div id="spark_adjuster">

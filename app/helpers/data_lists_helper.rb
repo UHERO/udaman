@@ -59,7 +59,7 @@ module DataListsHelper
   end
 
   def generate_filter_controls(geo, freq, sa)
-    html += select_tag('geography',
+    html = select_tag('geography',
         options_from_collection_for_select(Geography.where(universe: 'UHERO').order(:id), :handle, :handle_with_name, geo)
     )
     html += select_tag('frequency', options_for_select(%w(A S Q M W D), freq))
