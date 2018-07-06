@@ -154,40 +154,7 @@
 		return parseFloat(num);
 	}
 
-	var all_data = <%= 
-
-		if @freq.nil?
-	      if @geo.nil?
-	    	if @seasonally_adjusted.nil?
-	    		@data_list.get_all_series_data_with_changes.to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(nil,nil,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      else
-	      	if @seasonally_adjusted.nil?
-	        	@data_list.get_all_series_data_with_changes(nil,@geo,nil).to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(nil,@geo,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      end
-	    else
-	      if @geo.nil?
-	    	if @seasonally_adjusted.nil?
-	    		@data_list.get_all_series_data_with_changes(@freq).to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(@freq,nil,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      else
-	      	if @seasonally_adjusted.nil?
-	        	@data_list.get_all_series_data_with_changes(@freq,@geo,nil).to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(@freq,@geo,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      end
-	    end
-
-		%>
-	
+	var all_data = <%= @data_list.get_all_series_data_with_changes(@freq, @geo, @seasonally_adjusted).to_json.html_safe %>;
 	var frequency = freq(d3.keys(all_data)[0]);
 	var all_dates = {};
 	d3.values(all_data).forEach(function(elem) { 

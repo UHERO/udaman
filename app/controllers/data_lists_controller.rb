@@ -30,7 +30,7 @@ class DataListsController < ApplicationController
     @geo = params[:county] || 'HI'
     @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
     @data_list = DataList.find_by id: params[:id]
-    render 'super_table'  ### why are these render calls needed?
+    render 'super_table'
   end
   
   def show_table
