@@ -49,6 +49,7 @@ task debug: [:environment, :verbose] do
   Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
 end
 
+## The famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
   SeriesReloadManager.new.batch_reload
 end
@@ -57,6 +58,7 @@ task :purge_old_reload_logs => :environment do
   SeriesReloadLog.purge_old_logs
 end
 
+## Following task is obsoleted. Can be removed
 task :reload_all_series => :environment do
   algorithm = nil
 
@@ -75,17 +77,6 @@ task :reload_all_series => :environment do
     File.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload (sidekiq)', '', Time.now.to_s, '']}
     File.open('public/reload_errors.log', 'w') {|f| f.puts "Reload start time: #{Time.now.to_s}" } # clear out reload errors log
     Series.reload_by_dependency_depth
-  end
-end
-
-## The "cleanup" after nightly reload
-task :batch_reload_recent_stales => :environment do
-  Rails.logger.info '>>>>>>>>>>>>>> OK THE TASK RAN <<<<<<<<<<<<<<<<'
-  if false
-    stale = Series.stale_since Time.now.yesterday
-    ids = stale.map{|x| x[0] }.uniq
-    Rails.logger.info { "Running task reload_recent_stale_series: #{ids.count} series" }
-    Series.reload_with_dependencies ids
   end
 end
 
