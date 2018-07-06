@@ -16,10 +16,7 @@ class DataList < ActiveRecord::Base
   end
 
   def series_names
-    if list.nil?
-      return []
-    end
-    list.split("\n").map {|element| element.strip} 
+    list.split("\n").map{|e| e.strip } rescue []
   end
   
   #not to be confused with startdate and enddate
