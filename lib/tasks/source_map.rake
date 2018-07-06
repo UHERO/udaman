@@ -49,6 +49,7 @@ task debug: [:environment, :verbose] do
   Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
 end
 
+## The famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
   SeriesReloadManager.new.batch_reload
 end
@@ -57,7 +58,7 @@ task :purge_old_reload_logs => :environment do
   SeriesReloadLog.purge_old_logs
 end
 
-## Following task is obsoleted. Can be removed eventually
+## Following task is obsoleted. Can be removed
 task :reload_all_series => :environment do
   algorithm = nil
 

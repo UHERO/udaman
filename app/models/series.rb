@@ -1074,6 +1074,7 @@ class Series < ActiveRecord::Base
     mgr.batch_reload
   end
 
+  ## Following method is obsoleted. Can be removed
   def Series.reload_by_dependency_depth(series_list = nil)
     require 'redis'
     require 'digest/md5'
@@ -1106,6 +1107,7 @@ class Series < ActiveRecord::Base
     end
   end
 
+  ## Following method is obsoleted. Can be removed
   def Series.check_for_stalled_reload
     require 'redis'
     require 'sidekiq/api'

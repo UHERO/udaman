@@ -49,13 +49,13 @@ every 1.day, :at => '9:00 pm' do
   rake :update_vis_history_links
 end
 
-every 1.day, at: '7:50 pm' do
-  rake :purge_old_reload_logs
-end
-
 ## The famous "Nightly Reload"
 every 1.day, :at => '8:10 pm' do
   rake :batch_reload_uhero
+end
+
+every 1.day, at: '7:50 pm' do
+  rake :purge_old_reload_logs
 end
 
 # ------- These two are together. Need only sometimes --------
