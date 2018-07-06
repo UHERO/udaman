@@ -33,72 +33,68 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 # end
 
 every 1.day, :at => '11:00 am' do
-  rake 'reset_dependency_depth'
+  rake :reset_dependency_depth
 end
 
 every 1.day, :at => "4:00 pm" do
-  rake 'update_bea_links'
+  rake :update_bea_links
 end
 
 every 1.day, :at => '8:00 pm' do
-  rake 'reload_aremos'
+  rake :reload_aremos
 end
 
 every 1.day, :at => '9:00 pm' do
-  rake 'update_seats_links'
-  rake 'update_vis_history_links'
+  rake :update_seats_links
+  rake :update_vis_history_links
+end
+
+## The famous "Nightly Reload"
+every 1.day, :at => '8:10 pm' do
+  rake :batch_reload_uhero
 end
 
 every 1.day, at: '7:50 pm' do
   rake :purge_old_reload_logs
 end
 
-## The famous "Nightly Reload"
-every 1.day, :at => '8:10 pm' do
-  rake 'batch_reload_uhero'
-end
-
-every 1.day, at: '8:10 am' do ## n.b. AM not PM
-  rake :batch_reload_recent_stales
-end
-
 # ------- These two are together. Need only sometimes --------
 every 1.day, :at => '5:30 am' do
-  rake 'update_bea_links'
+  rake :update_bea_links
 end
 
 every 1.day, :at => '6:00 am' do
-  rake 'reload_bea_series_only'
-  rake 'reload_bls_series_only'
+  rake :reload_bea_series_only
+  rake :reload_bls_series_only
 end
 # -----------------------------------------------------------
 
 every 1.day, :at => "#{bls_hour.to_i+2}:30 am" do
-  rake 'write_ur_dash'
+  rake :write_ur_dash
 end
 
 every 1.day, :at => "#{hour.to_i+5}:30 am" do
-  rake 'gen_investigate_csv'
+  rake :gen_investigate_csv
 end
 
 every 1.day, :at => "#{hour.to_i+5}:50 am" do
-  rake 'aremos_exports'
+  rake :aremos_exports
 end
 
 every 1.day, :at => "#{hour.to_i+5}:55 am" do
-  rake 'tsd_exports'
+  rake :tsd_exports
 end
 
 every 1.day, :at => "#{hour.to_i+6}:00 am" do
-  rake 'update_public_data_points'
+  rake :update_public_data_points
 end
 
 every 1.day, :at => "#{hour.to_i+7}:00 am" do
-  rake 'categories_backup'
+  rake :categories_backup
 end
 
 every :saturday, :at => '9am' do
-  rake 'mark_pseudo_history'
+  rake :mark_pseudo_history
 end
 
 #bring down pv file daily
