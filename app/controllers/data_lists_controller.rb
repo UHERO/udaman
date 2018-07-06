@@ -20,9 +20,9 @@ class DataListsController < ApplicationController
   
   def super_table
     @data_list = DataList.find_by id: params[:id]
-    @freq = params[:freqency] || 'A'
-    @geo = params[:geography] || 'HI'
-    @seasonally_adjusted = params[:seasonal_adj] || 'seasonally-adjusted'
+    @freq = params[:freq] || 'A'
+    @geo = params[:geography] || params[:county] || 'HI'  ## backup GET param 'county' is a legacy name, for old bookmarks
+    @seasonally_adjusted = params[:seasonally_adjusted] || 'seasonally-adjusted'
     render :super_table
   end
   

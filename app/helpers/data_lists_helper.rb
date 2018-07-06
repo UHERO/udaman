@@ -62,7 +62,7 @@ module DataListsHelper
     html = select_tag('geography',
         options_from_collection_for_select(Geography.where(universe: 'UHERO').order(:id), :handle, :handle_with_name, geo)
     )
-    html += select_tag('frequency', options_for_select(%w(A S Q M W D), freq))
-    html += select_tag('seasonal_adj', options_for_select(%w(seasonally-adjusted not-seasonally-adjusted not-applicable), sa))
+    html += select_tag('freq', options_for_select(%w(A S Q M W D), freq))
+    html += select_tag('seasonally_adjusted', options_for_select(%w(seasonally-adjusted not-seasonally-adjusted not-applicable), sa))
   end
 end
