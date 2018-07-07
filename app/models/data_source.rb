@@ -319,16 +319,15 @@ class DataSource < ActiveRecord::Base
     self.dependencies.uniq!
   end
 
-  def DataSource.mass_update_eval_options(ds_array, replace_options)
-    ds_array.each do |ds|
+  def DataSource.mass_update_eval_options(change_set, replace_options)
+    change_set.each do |ds|
       begin
         options = ds.eval =~ OPTIONS_MATCHER ? Kernel::eval($1) : nil
         unless options
           raise 'foo'
         end
-        options.merge!(replace_options)
-        eval_stmt
-        ds.update_attributes(eval: eval.sub(options_match, options.to_s))
+        ds.update_attributes(eval: eval.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
+        ds.update_attributes(description: description.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
       rescue
       end
     end
