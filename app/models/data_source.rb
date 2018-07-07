@@ -319,15 +319,17 @@ class DataSource < ActiveRecord::Base
     self.dependencies.uniq!
   end
 
+  ## This method is not called from within the codebase, because it is mainly intended to be called
+  ## from the Rails command line, by a developer doing mass updates to the database.
   def DataSource.mass_update_eval_options(change_set, replace_options)
     change_set.each do |ds|
       begin
-        options = ds.eval =~ OPTIONS_MATCHER ? Kernel::eval($1) : nil
+        options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
         unless options
           raise 'foo'
         end
-        ds.update_attributes(eval: eval.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
-        ds.update_attributes(description: description.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
+        ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
+        ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
       rescue
       end
     end
