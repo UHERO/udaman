@@ -16,6 +16,15 @@ class DataSource < ActiveRecord::Base
 
   before_update :set_dependencies_without_save
 
+  ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
+  ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
+  ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
+  ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
+  ## Ruby's peculiar quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
+  ## here will break it.
+  OPTIONS_MATCHER = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
+
+
     def DataSource.type_buckets
       type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
       all_evals = DataSource.all_evals
@@ -144,7 +153,7 @@ class DataSource < ActiveRecord::Base
       ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
       ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
       ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
-      ## Ruby's particular quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
+      ## Ruby's peculiar quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
       ## here will break it.
       options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
@@ -215,22 +224,18 @@ class DataSource < ActiveRecord::Base
     # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
     
     def mark_as_pseudo_history
-      puts "marking ds: #{self.id}"
       data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
     
     def mark_as_pseudo_history_before(date)
-      puts "marking ds: #{self.id}"
       data_points.where("date < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
 
     def unmark_as_pseudo_history
-      puts "unmarking ds: #{self.id}"
       data_points.each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
     
     def unmark_as_pseudo_history_before(date)
-      puts "unmarking ds: #{self.id}"
       data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
     
@@ -304,9 +309,6 @@ class DataSource < ActiveRecord::Base
       self.save
     end
 
-    # def at(date_string)
-    #   data[date_string]
-    # end
   def set_dependencies_without_save
     self.dependencies = []
     self.description.split(' ').each do |word|
@@ -316,4 +318,21 @@ class DataSource < ActiveRecord::Base
     end unless self.description.nil?
     self.dependencies.uniq!
   end
+
+  def DataSource.mass_update_eval_options(ds_array, replace_options)
+    ds_array.each do |ds|
+      begin
+        options = ds.eval =~ OPTIONS_MATCHER ? Kernel::eval($1) : nil
+        unless options
+          raise 'foo'
+        end
+        options.merge!(replace_options)
+        eval_stmt
+        ds.update_attributes(eval: eval.sub(options_match, options.to_s))
+      rescue
+      end
+    end
+  end
+
+private
 end
