@@ -286,6 +286,7 @@ class DataSource < ActiveRecord::Base
       self.save
     end
 
+    #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
     end
@@ -326,14 +327,17 @@ class DataSource < ActiveRecord::Base
       begin
         options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
         unless options
-          raise 'foo'
+          raise "Data source id=#{ds.id} eval string does not contain a valid options hash"
         end
-        ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
-        ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.merge(replace_options).to_s))
+        replace_options.each do |key, value|
+          options[key] = value.class === Proc ? value.call(options) : value
+        end
+        ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
+        ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.to_s))
       rescue
+          #do something?
       end
     end
   end
 
-private
 end
