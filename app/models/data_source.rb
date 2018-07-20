@@ -330,12 +330,17 @@ class DataSource < ActiveRecord::Base
           raise "Data source id=#{ds.id} eval string does not contain a valid options hash"
         end
         replace_options.each do |key, value|
-          options[key] = value.class === Proc ? value.call(options) : value
+          if value.nil?
+            options.delete(key)
+          else
+            options[key] = value.class === Proc ? value.call(options) : value
+          end
         end
         ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
         ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.to_s))
       rescue
           #do something?
+          raise
       end
     end
   end
