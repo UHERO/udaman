@@ -149,18 +149,11 @@ class DataSource < ActiveRecord::Base
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
-      ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
-      ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
-      ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
-      ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
-      ## Ruby's peculiar quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
-      ## here will break it.
-      options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
-        if eval_stmt =~ options_match  ## extract the options hash
+        if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
-          eval_stmt.sub!(options_match, options.merge(data_source: id,
+          eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
                                                       eval_hash: hash.to_s,
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
@@ -322,6 +315,28 @@ class DataSource < ActiveRecord::Base
 
   ## This method is not called from within the codebase, because it is mainly intended to be called
   ## from the Rails command line, by a developer doing mass updates to the database.
+  #
+  # The +change_set+ parameter is a collection or array of DataSource objects
+  #
+  # The +replace_options+ parameter is a hash representing the changes that should be made to the
+  #   options hash in each DataSource (DS) in the change_set. The members of the replace_options hash
+  #   may have one of the following three kinds of entries:
+  #     * A key in replace_options which also exists in the current options hash of the DS will
+  #       cause that entry in the DS hash to be replaced.
+  #     * A key in replace_options which DOES NOT yet exist in the current options hash of the DS will
+  #       cause that entry to be added to the DS hash.
+  #     * A value which is a normal Ruby data type will be replaced/added into the DS hash in
+  #       stringified form.
+  #     * A value of nil will cause an existing entry(key) to be deleted from the DS hash.
+  #     * A value that is an anonymous function (Proc.new or lambda) allows the value actually replaced/added
+  #       into the new hash to be computed on the fly. This function MUST be written to take a single parameter,
+  #       which is the options hash in its current state of rewriting. "Current state" means that the order that
+  #       keys are given in the replace_options may be relevant to how anon function values are computed. If a
+  #       an anon function may make use of a value that is assigned _prior_ to it in the processing of the
+  #       replace_options. See the examples
+  #
+  # Examples:
+  #
   def DataSource.mass_update_eval_options(change_set, replace_options)
     change_set.each do |ds|
       begin
