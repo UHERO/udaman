@@ -313,29 +313,28 @@ class DataSource < ActiveRecord::Base
     self.dependencies.uniq!
   end
 
-  ## This method is not called from within the codebase, because it is mainly intended to be called
-  ## from the Rails command line, by a developer doing mass updates to the database.
+  # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
+  # to be called from the Rails command line, by a developer doing mass updates to the database.
   #
-  # The +change_set+ parameter is a collection or array of DataSource objects
+  # The +change_set+ parameter is a collection or array of DataSource objects to be changed.
   #
   # The +replace_options+ parameter is a hash representing the changes that should be made to the
   #   options hash in each DataSource (DS) in the change_set. The members of the replace_options hash
-  #   may have one of the following three kinds of entries:
-  #     * A key in replace_options which also exists in the current options hash of the DS will
-  #       cause that entry in the DS hash to be replaced.
-  #     * A key in replace_options which DOES NOT yet exist in the current options hash of the DS will
-  #       cause that entry to be added to the DS hash.
-  #     * A value which is a normal Ruby data type will be replaced/added into the DS hash in
-  #       stringified form.
-  #     * A value of nil will cause an existing entry(key) to be deleted from the DS hash.
+  #   may be one of the following three kinds. A key in replace_options which:
+  #     * Also EXISTS in the current options hash of the DS will cause that entry in the DS hash to be replaced.
+  #     * DOES NOT yet exist in the current options hash of the DS will cause that entry to be added to the DS hash.
+  #     * Has a value of nil will cause an existing entry(key) to be deleted from the DS hash.
+  #
+  #   Values may be of the following two kinds:
+  #     * A value which is a normal Ruby data type will be replaced/added into the DS hash in stringified form.
   #     * A value that is an anonymous function (Proc.new or lambda) allows the value actually replaced/added
   #       into the new hash to be computed on the fly. This function MUST be written to take a single parameter,
   #       which is the options hash in its current state of rewriting. "Current state" means that the order that
-  #       keys are given in the replace_options may be relevant to how anon function values are computed. If a
-  #       an anon function may make use of a value that is assigned _prior_ to it in the processing of the
-  #       replace_options. See the examples
+  #       keys are given in the replace_options may be relevant to how anon function values are computed. An anon
+  #       function may make use of a value that is computed _prior_ to it in the processing of the replace_options.
+  #       See the examples for how this works.
   #
-  # Examples:
+  # Examples: TBW
   #
   def DataSource.mass_update_eval_options(change_set, replace_options)
     change_set.each do |ds|
@@ -348,7 +347,7 @@ class DataSource < ActiveRecord::Base
           if value.nil?
             options.delete(key)
           else
-            options[key] = value.class === Proc ? value.call(options) : value
+            options[key] = value.class == Proc ? value.call(options) : value
           end
         end
         ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
