@@ -320,10 +320,10 @@ class DataSource < ActiveRecord::Base
   #
   # The +replace_options+ parameter is a hash representing the changes that should be made to the
   #   options hash in each DataSource (DS) in the change_set. The members of the replace_options hash
-  #   may be one of the following three kinds. A key in replace_options which:
-  #     * Also EXISTS in the current options hash of the DS will cause that entry in the DS hash to be replaced.
-  #     * DOES NOT yet exist in the current options hash of the DS will cause that entry to be added to the DS hash.
-  #     * Has a value of nil will cause an existing entry(key) to be deleted from the DS hash.
+  #   may be one of the following three kinds. A key in +replace_options+ which:
+  #     * Also EXISTS in the current options hash of the DS, will cause that entry in the DS hash to be replaced.
+  #     * DOES NOT yet exist in the current options hash of the DS, will cause that entry to be added to the DS hash.
+  #     * Has a value of nil, will cause an existing entry(key) to be deleted from the DS hash.
   #
   #   Values may be of the following two kinds:
   #     * A value which is a normal Ruby data type will be replaced/added into the DS hash in stringified form.
@@ -334,7 +334,35 @@ class DataSource < ActiveRecord::Base
   #       function may make use of a value that is computed _prior_ to it in the processing of the replace_options.
   #       See the examples for how this works.
   #
-  # Examples: TBW
+  # Examples:
+  #
+  # First, let the change set be
+  #
+  #  set = DataSource.where(%q{eval like '%UIC@haw%'})
+  #
+  # then we can:
+  # Change the :start_date for all rows to be July 4, 2011:
+  #
+  #   DataSource.mass_update_eval_options(set, { start_date: "2011-07-04" })
+  #
+  # Remove the :frequency option from all rows:
+  #
+  #   DataSource.mass_update_eval_options(set, { frequency: nil })
+  #
+  # On the XLS worksheet "iwcweekly", a new column was added at the far left, causing all other columns to shift
+  # to the right by one:
+  #
+  #   DataSource.mass_update_eval_options(set, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
+  #
+  # Change :start_date to be "2015-01-01" plus the number of months indicated by :col, and then (sequentially) set :end_date to
+  # be exactly 10 years and 1 day after the new start_date:
+  #
+  #   DataSource.mass_update_eval_options(set,
+  #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
+  #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
+  #
+  # BE CAREFUL! If you write lambdas, check their output carefully and run in a test db before running in
+  # production, because results can be unexpected. Common sense.
   #
   def DataSource.mass_update_eval_options(change_set, replace_options)
     change_set.each do |ds|
@@ -347,7 +375,8 @@ class DataSource < ActiveRecord::Base
           if value.nil?
             options.delete(key)
           else
-            options[key] = value.class == Proc ? value.call(options) : value
+            new_value = value.class == Proc ? value.call(options) : value
+            options[key] = new_value.to_s
           end
         end
         ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
