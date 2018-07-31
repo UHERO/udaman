@@ -29,7 +29,7 @@ rails console
 
 Add a user:
 ```ruby
-User.create!(:email => "your@email.com", :password => "secret", :password_confirmation => "secret")
+User.create!(email: "your@email.com", role: <as appropriate>, password: "secret", password_confirmation: "secret")
 ```
 Replace `your@email.com` and `secret` with your desired username and password.
 

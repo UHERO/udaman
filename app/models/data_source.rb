@@ -16,6 +16,15 @@ class DataSource < ActiveRecord::Base
 
   before_update :set_dependencies_without_save
 
+  ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
+  ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
+  ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
+  ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
+  ## Ruby's peculiar quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
+  ## here will break it.
+  OPTIONS_MATCHER = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
+
+
     def DataSource.type_buckets
       type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
       all_evals = DataSource.all_evals
@@ -140,18 +149,11 @@ class DataSource < ActiveRecord::Base
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
-      ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
-      ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
-      ## unquoted integers. Unquoted floating point numbers are not recognized as values. String values may contain any
-      ## characters except the same kind of quote as the delimiter; escaping of embedded quotes is not recognized.
-      ## Ruby's particular quoting mechanisms like %q and %Q are not recognized. Anything other than what is described
-      ## here will break it.
-      options_match = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
       begin
-        if eval_stmt =~ options_match  ## extract the options hash
+        if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
-          eval_stmt.sub!(options_match, options.merge(data_source: id,
+          eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
                                                       eval_hash: hash.to_s,
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
@@ -215,22 +217,18 @@ class DataSource < ActiveRecord::Base
     # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
     
     def mark_as_pseudo_history
-      puts "marking ds: #{self.id}"
       data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
     
     def mark_as_pseudo_history_before(date)
-      puts "marking ds: #{self.id}"
       data_points.where("date < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
 
     def unmark_as_pseudo_history
-      puts "unmarking ds: #{self.id}"
       data_points.each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
     
     def unmark_as_pseudo_history_before(date)
-      puts "unmarking ds: #{self.id}"
       data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
     
@@ -281,6 +279,7 @@ class DataSource < ActiveRecord::Base
       self.save
     end
 
+    #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
     end
@@ -304,9 +303,6 @@ class DataSource < ActiveRecord::Base
       self.save
     end
 
-    # def at(date_string)
-    #   data[date_string]
-    # end
   def set_dependencies_without_save
     self.dependencies = []
     self.description.split(' ').each do |word|
@@ -316,4 +312,80 @@ class DataSource < ActiveRecord::Base
     end unless self.description.nil?
     self.dependencies.uniq!
   end
+
+  # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
+  # to be called from the Rails command line, by a developer doing mass updates to the database.
+  #
+  # The +change_set+ parameter is a collection or array of DataSource objects to be changed.
+  #
+  # The +replace_options+ parameter is a hash representing the changes that should be made to the
+  #   options hash in each DataSource (DS) in the change_set. The members of the replace_options hash
+  #   may be one of the following three kinds. A key in +replace_options+ which:
+  #     * Also EXISTS in the current options hash of the DS, will cause that entry in the DS hash to be replaced.
+  #     * DOES NOT yet exist in the current options hash of the DS, will cause that entry to be added to the DS hash.
+  #     * Has a value of nil, will cause an existing entry(key) to be deleted from the DS hash.
+  #
+  #   Values may be of the following two kinds:
+  #     * A value which is a normal Ruby data type will be replaced/added into the DS hash in stringified form.
+  #     * A value that is an anonymous function (Proc.new or lambda) allows the value actually replaced/added
+  #       into the new hash to be computed on the fly. This function MUST be written to take a single parameter,
+  #       which is the options hash in its current state of rewriting. "Current state" means that the order that
+  #       keys are given in the replace_options may be relevant to how anon function values are computed. An anon
+  #       function may make use of a value that is computed _prior_ to it in the processing of the replace_options.
+  #       See the examples for how this works.
+  #
+  # Examples:
+  #
+  # First, let the change set be
+  #
+  #  set = DataSource.where(%q{eval like '%UIC@haw%'})
+  #
+  # then we can:
+  # Change the :start_date for all rows to be July 4, 2011:
+  #
+  #   DataSource.mass_update_eval_options(set, { start_date: "2011-07-04" })
+  #
+  # Remove the :frequency option from all rows:
+  #
+  #   DataSource.mass_update_eval_options(set, { frequency: nil })
+  #
+  # On the XLS worksheet "iwcweekly", a new column was added at the far left, causing all other columns to shift
+  # to the right by one:
+  #
+  #   DataSource.mass_update_eval_options(set, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
+  #
+  # Change :start_date to be "2015-01-01" plus the number of months indicated by :col, and then (sequentially) set :end_date to
+  # be exactly 10 years and 1 day after the new start_date:
+  #
+  #   DataSource.mass_update_eval_options(set,
+  #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
+  #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
+  #
+  # BE CAREFUL! If you write lambdas, check their output carefully and run in a test db before running in
+  # production, because results can be unexpected. Common sense.
+  #
+  def DataSource.mass_update_eval_options(change_set, replace_options)
+    change_set.each do |ds|
+      begin
+        options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
+        unless options
+          raise "Data source id=#{ds.id} eval string does not contain a valid options hash"
+        end
+        replace_options.each do |key, value|
+          if value.nil?
+            options.delete(key)
+          else
+            new_value = value.class == Proc ? value.call(options) : value
+            options[key] = new_value.to_s
+          end
+        end
+        ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
+        ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.to_s))
+      rescue
+          #do something?
+          raise
+      end
+    end
+  end
+
 end
