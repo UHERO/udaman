@@ -10,3 +10,6 @@ Categories can be <span class="hidden_category">hidden</span>, or <span class="m
       <%= show_table(@category_roots[i], i == 0, i + 1 == @category_roots.length).html_safe %>
   <% end %>
 </ul>
+<script language="JavaScript">
+  replayCategoryOpenTree();
+</script>
