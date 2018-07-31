@@ -7,21 +7,21 @@ function replayCategoryOpenTree() {
     for (var i = 0; i < openNodeIds.length; i++) {
         console.log("^^^^^^^^^^^^^^^^^^ doing object "+openNodeIds[i]);
         var o = document.getElementById(openNodeIds[i]);
-        console.log("^^^^^^^^^^^^^^^^^^ object is "+o.toString());
         doowop(o);
     }
 }
 
 function doowop(the) {
-    var ul = the.parent().children('ul');
+    console.log("^^^^^^^^^^^^^^^^^^ object is "+the.toString());
+    var ul = $(the).parent().children('ul');
     ul.toggle();
-    var text = the.html();
+    var text = $(the).html();
     if (ul.is(':hidden')) {
-        the.html(text.replace('-minus-', '-plus-'));
+        $(the).html(text.replace('-minus-', '-plus-'));
         return true
     }
     else {
-        the.html(text.replace('-plus-', '-minus-'));
+        $(the).html(text.replace('-plus-', '-minus-'));
         return false
     }
 }
