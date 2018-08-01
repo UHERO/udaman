@@ -3,25 +3,23 @@ function replayCategoryOpenTree() {
     console.log("!!!!!!!!!!!!!!!!!!!! THe nodeslist is "+nodesText);
     if (nodesText == undefined) return;
     var openNodeIds = Object.keys(JSON.parse(nodesText));
-    console.log("@@@@@@@@@@@@@@ The nodes array is "+openNodeIds.toString());
     for (var i = 0; i < openNodeIds.length; i++) {
         console.log("^^^^^^^^^^^^^^^^^^ doing object "+openNodeIds[i]);
-        var o = document.getElementById(openNodeIds[i]);
-        doowop(o);
+        categoryToggleUI(document.getElementById(openNodeIds[i]));
     }
 }
 
-function doowop(the) {
-    console.log("^^^^^^^^^^^^^^^^^^ object is "+the.toString());
-    var ul = $(the).parent().children('ul');
+function categoryToggleUI(node) {
+//    console.log("^^^^^^^^^^^^^^^^^^ object is "+the.toString());
+    var ul = $(node).parent().children('ul');
     ul.toggle();
-    var text = $(the).html();
+    var text = $(node).html();
     if (ul.is(':hidden')) {
-        $(the).html(text.replace('-minus-', '-plus-'));
+        $(node).html(text.replace('-minus-', '-plus-'));
         return true
     }
     else {
-        $(the).html(text.replace('-plus-', '-minus-'));
+        $(node).html(text.replace('-plus-', '-minus-'));
         return false
     }
 }
@@ -29,12 +27,13 @@ function doowop(the) {
 $(function() {
     $('.category_non_leaf').click(function() {
         var nodesText = sessionStorage.getItem('udamanCatTreeOpenNodes');
+        console.log("////////////////// Found stored opennodes |"+nodesText+"|");
         var openNodes = (nodesText == null) ? {} : JSON.parse(nodesText);
 //        var ul = $(this).parent().children('ul');
 //        ul.toggle();
 //        var text = $(this).html();
 //        if (ul.is(':hidden')) {
-        if (doowop($(this))) {
+        if (categoryToggleUI($(this))) {
 //            $(this).html(text.replace('-minus-', '-plus-'));
             console.log("<<<<<<<<<<<< deleting from nodeslist: "+$(this).attr('id'));
             delete openNodes[$(this).attr('id')];
