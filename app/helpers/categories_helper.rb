@@ -1,4 +1,5 @@
 module CategoriesHelper
+
   def show_table(root, first, last)
     list_item = show_list_item(root, first, last)
     return "<li>#{list_item}</li>\n" if root.is_childless?
@@ -40,7 +41,8 @@ private
           when leaf.header then 'Header'
           else link_to('No Data List', {controller: :data_lists, action: :new, category_id: leaf})
         end
-    name_part = '<span class="%s"><i class="fa %s" aria-hidden="true"></i> %s</span> (%s)' % [span_class, icon_type, leaf.name, data_list_section]
+    name_part = '<span class="%s" id="%s"><i class="fa %s" aria-hidden="true"></i> %s</span> (%s)' %
+        [span_class, new_span_id(leaf), icon_type, leaf.name, data_list_section]
     unless leaf.default_geo_id.blank? && leaf.default_freq.blank?
       name_part += ' [%s.%s]' % [leaf.default_geo_handle, leaf.default_freq]
     end
@@ -75,4 +77,11 @@ private
       link_to('Down', "/categories/down/#{leaf.id}")
   end
 
+  def new_span_id(node)
+    require 'digest/md5'
+    return if node.is_childless?
+    seed_string = node.ancestors.map{|a| a.name }.concat([node.name]).to_s
+    hash = Digest::MD5.new << seed_string
+    'cat_' + hash.to_s[0..9]
+  end
 end
