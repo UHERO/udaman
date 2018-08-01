@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Listing Categories</h1>
+<h1>Categories</h1>
 Categories can be <span class="hidden_category">hidden</span>, or <span class="masked_category">masked</span> by a hidden ancestor.
 <p>
 <span id="toggle_all" style="cursor:pointer;cursor:hand;">Expand all</span>
@@ -10,3 +10,6 @@ Categories can be <span class="hidden_category">hidden</span>, or <span class="m
       <%= show_table(@category_roots[i], i == 0, i + 1 == @category_roots.length).html_safe %>
   <% end %>
 </ul>
+<script language="JavaScript">
+  replayCategoryOpenTree();
+</script>
