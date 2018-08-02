@@ -279,7 +279,7 @@ class Series < ActiveRecord::Base
   end
 
   def Series.parse_name(name)
-    name =~ /^(\S+?)@(\w+?)\.([ASQMWDasqmwd])$/ ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+    name =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
   end
 
   def parse_name
