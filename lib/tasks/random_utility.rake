@@ -11,7 +11,7 @@ task :batch_add_source_for_aggregated => :environment do
       next unless ds.eval.gsub(/\s/,'') =~ eval_match ## match with all whitespace removed
       name = $1
       prefix = $2
-      frequency = $3
+      frequency = $4
       next unless prefix.upcase == name_parts[:prefix].upcase
       if frequency.freqn < name_parts[:freq].freqn
         raise "strange aggregation, lower to higher, data source id=#{ds.id}"
