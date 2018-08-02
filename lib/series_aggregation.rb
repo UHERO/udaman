@@ -67,9 +67,8 @@ module SeriesAggregation
   end
 
   def validate_aggregation(frequency)
-    freq_order = %w[year semi quarter month week day]
     raise AggregationException.new, "cannot aggregate to frequency #{frequency}" unless %w[year semi quarter month].include?(frequency.to_s)
-    raise AggregationException.new, "unknown frequency #{self.frequency}" unless freq_order.include?(self.frequency)
-    raise AggregationException.new, 'can only aggregate to a lower frequency' if freq_order.index(frequency.to_s) >= freq_order.index(self.frequency)
+    raise AggregationException.new, "unknown frequency #{self.frequency}" unless self.frequency.freqn
+    raise AggregationException.new, 'can only aggregate to a lower frequency' if frequency.freqn >= self.frequency.freqn
   end
 end
