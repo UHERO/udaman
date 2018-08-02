@@ -22,9 +22,10 @@ task :batch_add_source_for_aggregated => :environment do
       end
     end
     best = best.ts
-    s.unit_id = best.unit_id
-    s.source_id = best.source_id
-    s.source_detail_id = best.source_detail_id
-    s.source_link = best.source_link
+    s.update_attributes(
+      unit_id: best.unit_id,
+      source_id: best.source_id,
+      source_detail_id: best.source_detail_id,
+      source_link: best.source_link)
   end
 end

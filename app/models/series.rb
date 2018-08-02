@@ -240,23 +240,16 @@ class Series < ActiveRecord::Base
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
   
-  def Series.get(series_name)  
-    headerparts = series_name.split('.')
-    if headerparts.count == 2
-      name_match = Series.where(:name => series_name).first #exact name_match
-      return name_match #unless name_match.nil?
-      #return Series.first :conditions => {:name=>headerparts[0], :frequency=>frequency_from_code(headerparts[1])} #same base name and correct frequency
-    else
-      raise SeriesNameException
-    end    
-  end
-
   def Series.get_all_uhero
     Series.get_all_universe 'UHERO'
   end
 
   def Series.get_all_universe(universe)
     Series.where('series.universe like ?', '%' + universe + '%')
+  end
+
+  def Series.get(name)
+    Series.parse_name(name) && Series.where(name: name).first
   end
 
   def Series.get_or_new(series_name)
@@ -268,7 +261,7 @@ class Series < ActiveRecord::Base
     if name_parts  ## called from SeriesController#create
       geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
     else
-      name_parts = Series.parse_name(properties[:name]) || raise("Series name '#{properties[:name]}' format invalid")
+      name_parts = Series.parse_name(properties[:name])
       geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
               raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
     end
@@ -278,8 +271,11 @@ class Series < ActiveRecord::Base
     Series.create( properties.map {|k,v| [k, v.blank? ? nil : v] }.to_h ) ## don't put empty strings in the db.
   end
 
-  def Series.parse_name(name)
-    name =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i ? { prefix: $1, geo: $2, freq: $3.upcase } : nil
+  def Series.parse_name(string)
+    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
+      return { prefix: $1, geo: $2, freq: $3.upcase }
+    end
+    raise SeriesNameException, "Invalid series name format: #{string}"
   end
 
   def parse_name
@@ -288,7 +284,7 @@ class Series < ActiveRecord::Base
 
   def Series.build_name(parts)
     name = parts[0].strip.upcase + '@' + parts[1].strip.upcase + '.' + parts[2].strip.upcase
-    Series.parse_name(name) ? name : raise("Build series name: '#{name}' format invalid")
+    Series.parse_name(name) && name
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
@@ -466,7 +462,7 @@ class Series < ActiveRecord::Base
   
   def new_transformation(name, data, frequency = nil)
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
-                Series.frequency_from_code(Series.parse_name(name)[:freq]) rescue nil
+                Series.frequency_from_code(Series.parse_name(name)[:freq])
     Series.new(
       :name => name,
       :frequency => frequency,
