@@ -1,7 +1,7 @@
 ## JIRA: UA-989
 task :batch_add_source_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%'}).uniq
-  eval_match = %r/^"((\S+?)@(\w+?)\.([ASQMWD]))".ts.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
+  eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
 
   agg_series.each do |s|
     name_parts = series.parse_name
@@ -9,9 +9,9 @@ task :batch_add_source_for_aggregated => :environment do
     best_freq = 0
     s.data_sources.each do |ds|
       next unless ds.eval.gsub(/\s/,'') =~ eval_match ## match with all whitespace removed
-      name = $1
-      prefix = $2
-      frequency = $4
+      name = $2
+      prefix = $3
+      frequency = $5
       next unless prefix.upcase == name_parts[:prefix].upcase
       if frequency.freqn < name_parts[:freq].freqn
         raise "strange aggregation, lower to higher, data source id=#{ds.id}"
@@ -21,11 +21,14 @@ task :batch_add_source_for_aggregated => :environment do
         best_freq = frequency
       end
     end
-    best = best.ts
+    parent = best.ts
+    unless parent
+      raise "no series found with name=#{best}"
+    end
     s.update_attributes(
-      unit_id: best.unit_id,
-      source_id: best.source_id,
-      source_detail_id: best.source_detail_id,
-      source_link: best.source_link)
+      unit_id: parent.unit_id,
+      source_id: parent.source_id,
+      source_detail_id: parent.source_detail_id,
+      source_link: parent.source_link)
   end
 end
