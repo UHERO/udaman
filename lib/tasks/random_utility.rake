@@ -6,7 +6,7 @@ task :batch_add_source_for_aggregated => :environment do
   agg_series.each do |s|
     name_parts = series.parse_name
     best = nil
-    best_freq = 0
+    best_freq = -1
     s.data_sources.each do |ds|
       next unless ds.eval.gsub(/\s/,'') =~ eval_match ## match with all whitespace removed
       name = $2
@@ -16,9 +16,9 @@ task :batch_add_source_for_aggregated => :environment do
       if frequency.freqn < name_parts[:freq].freqn
         raise "strange aggregation, lower to higher, data source id=#{ds.id}"
       end
-      if best.nil? || frequency.freqn > best_freq.freqn
+      if best.nil? || frequency.freqn > best_freq
         best = name
-        best_freq = frequency
+        best_freq = frequency.freqn
       end
     end
     parent = best.ts
