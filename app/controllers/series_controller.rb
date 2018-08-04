@@ -55,14 +55,14 @@ class SeriesController < ApplicationController
     prefix = params.has_key?(:prefix) ? params[:prefix] : nil
     all = params.has_key?(:all) ? true : false
 
-    all_series =
+    series =
       case
         when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
         when frequency then Series.get_all_uhero.where('frequency LIKE ?', frequency).order(:name)
         when all then       Series.get_all_uhero.order(:name)
         else []
       end
-    @all_series = all_series.paginate(page: params[:page], per_page: 100)
+    @all_series = series.empty? ? [] : series.paginate(page: params[:page], per_page: 100)
   end
 
   def show
