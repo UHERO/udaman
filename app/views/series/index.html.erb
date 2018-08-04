@@ -28,11 +28,31 @@
 <div id="details_mask"></div>
 <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
-		<ul>
-		<% @all_series.each do |series| %>
-			<li><%= link_to series.name, {:action => 'show', :id => series.id} %></li>
-		<% end %>
-		</ul>
+  <table>
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Units</th>
+      <th>Source</th>
+      <th>Seasonal adjustment</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <% @all_series.each do |series| %>
+      <tr>
+        <td><%= link_to series.name, series %></td>
+        <td><%= series.dataPortalName %></td>
+        <td><%= series.unit && series.unit.long_label %></td>
+        <td><%= series.source && series.source.description %></td>
+        <td><%= series.seasonal_adjustment %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+
+  <%= will_paginate @all_series %>
 </div>
 
 <p>
