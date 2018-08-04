@@ -36,8 +36,9 @@ task :batch_add_source_for_aggregated => :environment do
       print "D "
     end
     if !s.source_link.blank? && s.source_link != parent.source_link
-      print "D "
+      print "L "
     end
+    puts ""
     next
     s.update_attributes(
       unit_id: parent.unit_id,
