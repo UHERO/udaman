@@ -118,4 +118,10 @@ module SeriesHelper
   def nightly_actuator(nightly)
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
+
+  def make_live_link(url, text = url)
+    return nil if url.blank?
+    ## validate url (ideally)
+    "<a href='#{url}'>#{text}</a>".html_safe
+  end
 end
