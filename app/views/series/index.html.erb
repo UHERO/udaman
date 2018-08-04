@@ -25,17 +25,21 @@
     </div>
   <% end %>
 </div>
+
 <div id="details_mask"></div>
 <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
+
+  <%= will_paginate @all_series %>
+
   <table>
     <thead>
     <tr>
       <th>Name</th>
+      <th>SA</th>
       <th>Description</th>
       <th>Units</th>
       <th>Source</th>
-      <th>Seasonal adjustment</th>
     </tr>
     </thead>
 
@@ -43,16 +47,16 @@
     <% @all_series.each do |series| %>
       <tr>
         <td><%= link_to series.name, series %></td>
+        <!-- need restricted indicator -->
+        <td><%= series.seasonal_adjustment %></td>
         <td><%= series.dataPortalName %></td>
         <td><%= series.unit && series.unit.long_label %></td>
         <td><%= series.source && series.source.description %></td>
-        <td><%= series.seasonal_adjustment %></td>
       </tr>
     <% end %>
     </tbody>
   </table>
 
   <%= will_paginate @all_series %>
-</div>
 
-<p>
+</div>
