@@ -21,6 +21,7 @@ task :batch_add_source_for_aggregated => :environment do
         best_freq = frequency.freqn
       end
     end
+    next unless best
     parent = best.ts
     unless parent
       raise "no series found with name=#{best}"
