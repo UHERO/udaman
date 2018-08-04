@@ -4,7 +4,7 @@ task :batch_add_source_for_aggregated => :environment do
   eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
 
   agg_series.each do |s|
-    name_parts = series.parse_name
+    name_parts = s.parse_name
     best = nil
     best_freq = -1
     s.data_sources.each do |ds|
