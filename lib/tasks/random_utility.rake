@@ -25,6 +25,20 @@ task :batch_add_source_for_aggregated => :environment do
     unless parent
       raise "no series found with name=#{best}"
     end
+    print "Series #{s.name}(#{s.id}): "
+    if s.unit_id && s.unit_id != parent.unit_id
+      print "U "
+    end
+    if s.source_id && s.source_id != parent.source_id
+      print "S "
+    end
+    if s.source_detail_id && s.source_detail_id != parent.source_detail_id
+      print "D "
+    end
+    if !s.source_link.blank? && s.source_link != parent.source_link
+      print "D "
+    end
+    next
     s.update_attributes(
       unit_id: parent.unit_id,
       source_id: parent.source_id,
