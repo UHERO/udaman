@@ -121,7 +121,12 @@ module SeriesHelper
 
   def make_live_link(url, text = url)
     return nil if url.blank?
-    ## validate url (ideally)
-    "<a href='#{url}'>#{text}</a>".html_safe
+    ## validate url - this regex is simplistic, but should cover most cases
+    valid_url = %r`^https?://[a-z0-9]+([-.][a-z0-9]+)*(:\d+)?(/[\w.-]+)*(\?\w+=[-.+%\w]+(\w+=[-.+%\w]+)*)?$`i
+    if url =~ valid_url
+      "<a href='#{url}'>#{text}</a>".html_safe
+    else
+      "foo"
+    end
   end
 end
