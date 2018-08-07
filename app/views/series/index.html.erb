@@ -49,7 +49,7 @@
       <tr>
         <td><%= link_to series.name, series %></td>
         <!-- need restricted indicator -->
-        <td><%= series.seasonal_adjustment %></td>
+        <td><%= sa_indicator(series.seasonal_adjustment || 'NA') %></td>
         <td><%= series.dataPortalName %></td>
         <td><%= series.unit && series.unit.long_label %></td>
         <td><%= series.source && series.source.description %></td>

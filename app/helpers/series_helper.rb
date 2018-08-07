@@ -129,7 +129,10 @@ module SeriesHelper
     if valid_url(url)
       return "<a href='#{url}'>#{text}</a>".html_safe
     end
-    "<span style='color:red;text-weight:bold;'>URL #{url} of suspect validity</span>".html_safe
+    "<span style='color:red;font-weight:bold;'>URL #{url} of suspect validity</span>".html_safe
   end
 
+  def sa_indicator(string)
+    string == 'NA' ? '-' : "<span class='#{string.downcase}-indicator'>#{string}</span>".html_safe
+  end
 end
