@@ -23,7 +23,7 @@ class DataListsController < ApplicationController
     @data_list = DataList.find_by id: params[:id]
     @freq = params[:freq] || 'A'
     @geo = params[:geography] || 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted] || 'not_applicable'
+    @seasonally_adjusted = params[:seasonally_adjusted] || 'all'
   end
   
   def show_table

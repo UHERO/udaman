@@ -79,8 +79,12 @@ class DataList < ActiveRecord::Base
     series_data = {}
     self.measurements.each do |m|
       series = m.series.joins(:geography)
-                       .where('series.frequency = ? and geographies.handle = ? and seasonal_adjustment = ?',
-                               Series.frequency_from_code(freq), geo, sa)
+                       .where('series.frequency = ? and geographies.handle = ?',
+                               Series.frequency_from_code(freq), geo)
+      unless sa == 'all'
+        series = series.where('seasonal_adjustment = ?', sa)
+      end
+
       series.each do |s|
         all_changes = {}
         yoy = s.yoy(s.id).data
