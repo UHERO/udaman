@@ -95,9 +95,9 @@ module SeriesHelper
     html = "<br />"
     all_uhero = Series.get_all_uhero
     "A".upto("Z") do |letter|
-      count = all_uhero.where("name LIKE :name", { name: "#{letter}%" }).count
+      count = all_uhero.where("name LIKE :name", {name: "#{letter}%"}).count
       if count > 0
-        html += link_to raw("["+letter+"&nbsp;<span class='series_count'>#{count}</span>]"), {:action => 'index', :prefix => letter}
+        html += link_to(raw("["+letter+"&nbsp;<span class='series_count'>#{count}</span>]"), {action: :index, prefix: letter})
         html += " "
       end
     end
@@ -109,11 +109,11 @@ module SeriesHelper
     all_uhero = Series.get_all_uhero
     [:month, :quarter, :year].each do |frequency|
       count = all_uhero.where(frequency: frequency).count
-      html += link_to raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {:action => 'index', :freq => frequency}
+      html += link_to(raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {action: :index, freq: frequency})
       html += "&nbsp;"
     end
     count = all_uhero.count
-	  html + link_to raw("all&nbsp;<span class='series_count'>#{count}</span>") , {:action => 'index', :all => 'true'}
+	  html + link_to(raw("all&nbsp;<span class='series_count'>#{count}</span>") , {action: :index, all: 'true'})
   end
 
   def nightly_actuator(nightly)
