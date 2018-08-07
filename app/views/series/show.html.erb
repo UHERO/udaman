@@ -56,7 +56,10 @@ google.visualization.events.addListener(chart, 'select', function() {
     <tr><td>Source Description</td><td><%= @series.source.description unless @series.source.nil? %></td></tr>
     <tr><td>Source Link</td><td><%= make_live_link(@series.source_link || (@series.source && @series.source.link)) %></td></tr>
     <tr><td>Source Details</td><td><%= @series.source_detail.description unless @series.source_detail.nil? %></td></tr>
-    <tr><td>Restricted</td><td><%= @series.restricted.to_s %></td></tr>
+    <tr><td>Restricted</td><td>
+      <% if @series.restricted %> true <i class="fa fa-ban redban" title="restricted"></i>
+      <% else %> false <% end %>
+    </td></tr>
     <% unless @series.restricted %>
       <tr><td>Quarantined</td><td><%= @series.quarantined.to_s %>
           <span id="series_controls">

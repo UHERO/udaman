@@ -121,7 +121,7 @@ module SeriesHelper
 
   def valid_url(string)
     ## This regex is simplistic, but should cover most cases
-    string =~ %r`^https?://[a-z0-9]+([-.][a-z0-9]+)*(:\d+)?(/[-.\w]+)*(\?\w+=[-.+%\w]+(&\w+=[-.+%\w]+)*)?$`i
+    string =~ %r`^https?://[a-z0-9]+([-.][a-z0-9]+)*(:\d+)?(/|/[-.\w]+)*(\?\w+=[-.+%\w]+(&\w+=[-.+%\w]+)*)?$`i
   end
 
   def make_live_link(url, text = url)

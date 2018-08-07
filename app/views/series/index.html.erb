@@ -38,7 +38,7 @@
     <tr>
       <th>Name</th>
       <th>SA</th>
-      <th>Description</th>
+      <th>Portal Name</th>
       <th>Units</th>
       <th>Source</th>
     </tr>
@@ -47,8 +47,7 @@
     <tbody>
     <% @all_series.each do |series| %>
       <tr>
-        <td><%= link_to series.name, series %></td>
-        <!-- need restricted indicator -->
+        <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fa fa-ban redban" title="restricted"></i><% end %></td>
         <td><%= sa_indicator(series.seasonal_adjustment || 'NA') %></td>
         <td><%= series.dataPortalName %></td>
         <td><%= series.unit && series.unit.long_label %></td>
