@@ -16,14 +16,14 @@ class DataListsController < ApplicationController
 
   def show
     super_table
+    render :super_table
   end
   
   def super_table
     @data_list = DataList.find_by id: params[:id]
     @freq = params[:freq] || 'A'
     @geo = params[:geography] || 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted] || 'seasonally-adjusted'
-    render :super_table
+    @seasonally_adjusted = params[:seasonally_adjusted] || 'not_applicable'
   end
   
   def show_table
