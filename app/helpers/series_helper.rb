@@ -119,14 +119,17 @@ module SeriesHelper
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 
+  def valid_url(string)
+    ## This regex is simplistic, but should cover most cases
+    string =~ %r`^https?://[a-z0-9]+([-.][a-z0-9]+)*(:\d+)?(/[-.\w]+)*(\?\w+=[-.+%\w]+(&\w+=[-.+%\w]+)*)?$`i
+  end
+
   def make_live_link(url, text = url)
     return nil if url.blank?
-    ## validate url - this regex is simplistic, but should cover most cases
-    valid_url = %r`^https?://[a-z0-9]+([-.][a-z0-9]+)*(:\d+)?(/[\w.-]+)*(\?\w+=[-.+%\w]+(\w+=[-.+%\w]+)*)?$`i
-    if url =~ valid_url
-      "<a href='#{url}'>#{text}</a>".html_safe
-    else
-      "foo"
+    if valid_url(url)
+      return "<a href='#{url}'>#{text}</a>".html_safe
     end
+    "<span style='color:red;text-weight:bold;'>URL #{url} of suspect validity</span>".html_safe
   end
+
 end
