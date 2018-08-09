@@ -4,7 +4,7 @@ class Source < ActiveRecord::Base
   has_many :series
   has_many :measurements
   validates_each :link do |record, attr, value|
-    unless valid_url(value)
+    unless value.blank? || valid_url(value)
       record.errors.add(attr, 'not a valid URL')
     end
   end
