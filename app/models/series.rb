@@ -13,7 +13,12 @@ class Series < ActiveRecord::Base
   include SeriesStatistics
 
   validates :name, presence: true, uniqueness: true
-  
+  validates_each :source_link do |record, attr, value|
+    unless valid_url(value)
+      record.errors.add(attr, 'not a valid URL')
+    end
+  end
+
   #serialize :data, Hash
   serialize :factors, Hash
   
