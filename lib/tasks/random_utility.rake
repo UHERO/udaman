@@ -39,7 +39,7 @@ task :batch_add_source_for_aggregated => :environment do
     end
     # if derived series has none of these fields set, update them
     unless s.unit_id || s.source_id || s.source_detail_id || s.source_link
-      s.update_attributes(
+      s.update!(
           unit_id: parent.unit_id,
           source_id: parent.source_id,
           source_detail_id: parent.source_detail_id,
