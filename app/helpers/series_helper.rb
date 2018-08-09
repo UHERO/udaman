@@ -119,10 +119,17 @@ module SeriesHelper
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 
-  def valid_url(string)
+  def valid_url(string)   #### NEEDS TO BE RETESTED!!
     ## This regex is fairly simplistic, but should cover most cases. I've written it to pass everything that's
-    ## currently in the database.
-    string =~ %r{^https?://[a-z0-9]+([-.][a-z0-9]+)*(:\d+)?(/|/[-.\w]+)*(\?\w+=\^?[-.+%\w]+(&\w+=\^?[-.+%\w]+)*)?(#\w+)?$}i
+    ## currently in our database. Yes, it overmatches, to keep it simple, but in a benign way. Everything following
+    ## the domain name is optional, of course.
+    string =~ %r{^https?://                   # secure or insecure connections
+                  [a-z0-9]+([-.][a-z0-9]+)*   # domain name
+                  (:\d+)?                     # port number
+                  (/([-.\w]+)?)*              # path following domain name
+                  (\?\w+=\^?[-.+%\w]+(&\w+=\^?[-.+%\w]+)*)?  # GET parameters
+                  (#\w+)?                     # hash-mark-introduced word
+                  $}ix
   end
 
   def make_live_link(url, text = url)
