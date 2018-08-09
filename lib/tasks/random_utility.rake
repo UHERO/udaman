@@ -67,7 +67,7 @@ task :batch_add_source_for_aggregated => :environment do
     end
     puts ""
     next
-    s.update_attributes(
+    s.update!(
       unit_id: parent.unit_id,
       source_id: parent.source_id,
       source_detail_id: parent.source_detail_id,
