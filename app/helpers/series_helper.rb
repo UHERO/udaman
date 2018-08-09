@@ -120,8 +120,10 @@ module SeriesHelper
   end
 
   def make_live_link(url, text = url)
+    include Validators
     return url if url.blank?
-    return "<a href='#{url}'>#{text}</a>".html_safe
+    return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
+    "unvalidatable url=#{url}"
   end
 
   def sa_indicator(string)
