@@ -14,11 +14,7 @@ class Series < ActiveRecord::Base
   include Validators
 
   validates :name, presence: true, uniqueness: true
-  validates_each :source_link do |record, attr, value|
-    unless value.blank? || valid_url(value)
-      record.errors.add(attr, 'not a valid URL')
-    end
-  end
+  validate :source_link_is_valid
 
   #serialize :data, Hash
   serialize :factors, Hash
@@ -1182,4 +1178,7 @@ private
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end
 
+  def source_link_is_valid
+    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
 end

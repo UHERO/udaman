@@ -1,5 +1,5 @@
 module SeriesHelper
-  
+  include Validators
   require 'csv'
   
   def csv_helper
@@ -120,10 +120,9 @@ module SeriesHelper
   end
 
   def make_live_link(url, text = url)
-    include Validators
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "unvalidatable url=#{url}"
+    "unvalidatable url=#{url}".html_safe
   end
 
   def sa_indicator(string)
