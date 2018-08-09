@@ -3,6 +3,7 @@
 <%= javascript_include_tag 'd3.v2.min' %>
 
 <style>
+  #data_list_name {color:green;}
 	#spark_adjuster {width: 300px; float:left; margin:0 20px 0 10px; position:relative; height:50px;}
 	#table_adjuster {width:500px; float:left; margin:0 20px 0 20px; position:relative; height:50px;}
 	td.calc,
@@ -60,8 +61,8 @@
 	ul#ui-id-1 {font-size:10px; z-index: 11 !important;}
 
 </style>
-
-<%= link_to 'Edit this list', action: :edit %> || <%= link_to 'Reset filters', {} %>
+<span id="data_list_name"><%= @data_list.name %></span>:
+ <%= link_to 'Edit list', action: :edit %> || <%= link_to 'Reset filters', {} %>
 <div id="frequency_selector">
   <%= form_tag "/data_lists/super_table/#{@data_list.id}" %>
     <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
