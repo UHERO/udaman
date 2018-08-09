@@ -74,3 +74,23 @@ task :batch_add_source_for_aggregated => :environment do
       source_link: parent.source_link)
   end
 end
+
+## JIRA: UA-993
+task :create_coh_measurements => :environment do
+  meas = Measurement.where(prefix: %w{CPI INFCORE INF_SH PCFB PCHS PCHSSH PCHSSHRT PCHSSHOW PCHSFU PCHSFUGSE PCHSHF
+                                      PCTR PCTRMF PCMD PCRE PCED PCOT PC_FDEN PC_EN PC_MD PC_SH PCSV_MD PCSV_RN})
+  meas.each do |m|
+    n = m.dup.update(prefix: m.prefix + '_COH')
+    if n.prefix =~ /^PC/
+      n.update(data_portal_name: n.data_portal_name.sub('CPI','Honolulu CPI'))
+    end
+    n.save!
+    m.series.each do |s|
+      if s.geography.handle == 'HON'
+        s = Series.find_by(name: s.name.sub('@HON','@HAW'))
+        next if s.nil?
+      end
+      n.series << s
+    end
+  end
+end
