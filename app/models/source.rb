@@ -1,4 +1,6 @@
 class Source < ActiveRecord::Base
+  include Validators
+
   has_many :series
   has_many :measurements
   validates_each :link do |record, attr, value|

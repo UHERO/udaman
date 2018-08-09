@@ -11,6 +11,7 @@ class Series < ActiveRecord::Base
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
+  include Validators
 
   validates :name, presence: true, uniqueness: true
   validates_each :source_link do |record, attr, value|
