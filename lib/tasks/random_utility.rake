@@ -27,13 +27,13 @@ task :batch_add_source_for_aggregated => :environment do
       raise "no series found with name=#{best}"
     end
     all_defined = s.unit_id && s.source_id && s.source_detail_id && s.source_link
-    # if derived series already fully matches parent
+    # if derived series already fully matches parent, skip
     next if all_defined &&
         s.unit_id == parent.unit_id &&
         s.source_id == parent.source_id &&
         s.source_detail_id == parent.source_detail_id &&
         s.source_link == parent.source_link
-    # if derived series has none of these fields set
+    # if derived series has none of these fields set, update them
     unless s.unit_id || s.source_id || s.source_detail_id || s.source_link
       s.update_attributes(
           unit_id: parent.unit_id,
@@ -63,9 +63,4 @@ task :batch_add_source_for_aggregated => :environment do
       source_detail_id: parent.source_detail_id,
       source_link: parent.source_link)
   end
-end
-
-task :delete_some_data_lists => :environment do
-  goners = DataList.where(%q{name like 'JJ:%' or name like 'Kauai Dashboard%'})
-  goners.each {|g| g.destroy }
 end
