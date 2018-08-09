@@ -119,7 +119,7 @@ module SeriesHelper
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 
-  def valid_url(string)   #### NEEDS TO BE RETESTED!!
+  def valid_url(string)
     ## This regex is fairly simplistic, but should cover most cases. I've written it to pass everything that's
     ## currently in our database. Yes, it overmatches, to keep it simple, but in a benign way. Everything following
     ## the domain name is optional, of course.
@@ -128,7 +128,7 @@ module SeriesHelper
                   (:\d+)?                     # port number
                   (/([-.\w]+)?)*              # path following domain name
                   (\?\w+=\^?[-.+%\w]+(&\w+=\^?[-.+%\w]+)*)?  # GET parameters
-                  (#\w+)?                     # hash-mark-introduced word
+                  (\#\w+)?                    # hash-mark-introduced word
                   $}ix
   end
 
