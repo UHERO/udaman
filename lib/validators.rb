@@ -7,7 +7,7 @@ module Validators
     string =~ %r{^https?://                   # secure or insecure connections
                   [a-z0-9]+([-.][a-z0-9]+)*   # domain name
                   (:\d+)?                     # port number
-                  (/([-.\w]+)?)*              # path following domain name
+                  (/(\w[-.\w]*\w)?)*          # path following domain name
                   (\?\w+=\^?[-.+%\w]+(&\w+=\^?[-.+%\w]+)*)?  # GET parameters
                   (\#\w+)?                    # hash-mark-introduced word
                   $}ix
