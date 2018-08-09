@@ -27,12 +27,16 @@ task :batch_add_source_for_aggregated => :environment do
       raise "no series found with name=#{best}"
     end
     all_defined = s.unit_id && s.source_id && s.source_detail_id && s.source_link
+    print "Series #{s.name}(#{s.id}): "
     # if derived series already fully matches parent, skip
-    next if all_defined &&
+    if all_defined &&
         s.unit_id == parent.unit_id &&
         s.source_id == parent.source_id &&
         s.source_detail_id == parent.source_detail_id &&
         s.source_link == parent.source_link
+      puts 'already match'
+      next
+    end
     # if derived series has none of these fields set, update them
     unless s.unit_id || s.source_id || s.source_detail_id || s.source_link
       s.update_attributes(
@@ -40,9 +44,9 @@ task :batch_add_source_for_aggregated => :environment do
           source_id: parent.source_id,
           source_detail_id: parent.source_detail_id,
           source_link: parent.source_link)
+      puts 'none set, updated'
       next
     end
-    print "Series #{s.name}(#{s.id}): "
     if s.unit_id && s.unit_id != parent.unit_id
       print "U "
     end
