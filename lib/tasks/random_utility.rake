@@ -38,13 +38,19 @@ task :batch_add_source_for_aggregated => :environment do
       next
     end
     # if derived series has none of these fields set, update them
+    unless parent.unit_id || parent.source_id || parent.source_detail_id || parent.source_link
+      puts "parent #{parent.name}(#{parent.id}) got nuthin - skipping"
+      next
+    end
+    # if derived series has none of these fields set, update them
     unless s.unit_id || s.source_id || s.source_detail_id || s.source_link
       s.update!(
           unit_id: parent.unit_id,
           source_id: parent.source_id,
           source_detail_id: parent.source_detail_id,
-          source_link: parent.source_link)
-      puts 'none set, updated'
+          source_link: parent.source_link
+      )
+      puts "none set, updated from #{parent.name}(#{parent.id})"
       next
     end
     if s.unit_id && s.unit_id != parent.unit_id
