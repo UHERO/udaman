@@ -13,4 +13,12 @@ module Validators
                   $}ix
   end
 
+  def valid_series_name(string)
+    begin
+      Series.parse_name(string)
+    rescue SeriesNameException
+      return false
+    end
+    true
+  end
 end
