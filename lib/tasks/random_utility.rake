@@ -76,7 +76,7 @@ task :batch_add_source_for_aggregated => :environment do
 end
 
 ## JIRA: UA-993
-task :create_coh_measurements => :environment do
+task :create_coh_cpi_measurements => :environment do
   meas = Measurement.where(prefix: %w{CPI INFCORE INF_SH PCFB PCHS PCHSSH PCHSSHRT PCHSSHOW PCHSFU PCHSFUGSE PCHSHF
                                       PCTR PCTRMF PCMD PCRE PCED PCOT PC_FDEN PC_EN PC_MD PC_SH PCSV_MD PCSV_RN})
   meas.each do |m|
