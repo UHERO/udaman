@@ -26,8 +26,10 @@ task :batch_add_source_for_aggregated => :environment do
     unless parent
       raise "no series found with name=#{best}"
     end
+    all_defined = s.unit_id && s.source_id && s.source_detail_id && s.source_link
     # if derived series already fully matches parent
-    next if s.unit_id == parent.unit_id &&
+    next if all_defined &&
+        s.unit_id == parent.unit_id &&
         s.source_id == parent.source_id &&
         s.source_detail_id == parent.source_detail_id &&
         s.source_link == parent.source_link
@@ -53,6 +55,7 @@ task :batch_add_source_for_aggregated => :environment do
     if !s.source_link.blank? && s.source_link != parent.source_link
       print "L "
     end
+    puts ""
     next
     s.update_attributes(
       unit_id: parent.unit_id,
