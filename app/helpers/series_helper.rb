@@ -121,8 +121,7 @@ module SeriesHelper
 
   def make_live_link(url, text = url)
     return url if url.blank?
-    return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "<span style='color:red;font-weight:bold;'>URL #{url} of suspect validity</span>".html_safe
+    return "<a href='#{url}'>#{text}</a>".html_safe
   end
 
   def sa_indicator(string)
