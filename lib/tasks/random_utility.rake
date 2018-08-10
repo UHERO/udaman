@@ -81,7 +81,8 @@ task :create_coh_cpi_measurements => :environment do
                                       PCTR PCTRMF PCMD PCRE PCED PCOT PC_FDEN PC_EN PC_MD PC_SH PCSV_MD PCSV_RN})
   meas.each do |m|
     puts ">>>>> Starting measurement #{m.prefix}"
-    n = m.dup.update(prefix: m.prefix + '_COH')
+    n = m.dup
+    n.update(prefix: m.prefix + '_COH')
     if n.prefix =~ /^PC/
       n.update(data_portal_name: n.data_portal_name.sub('CPI','Honolulu CPI'))
     end
