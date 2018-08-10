@@ -80,7 +80,7 @@ task :create_coh_cpi_measurements => :environment do
   meas = Measurement.where(prefix: %w{CPI INFCORE INF_SH PCFB PCHS PCHSSH PCHSSHRT PCHSSHOW PCHSFU PCHSFUGSE PCHSHF
                                       PCTR PCTRMF PCMD PCRE PCED PCOT PC_FDEN PC_EN PC_MD PC_SH PCSV_MD PCSV_RN})
   meas.each do |m|
-    puts ">>>>> Starting measurement #{m.prefix}"
+    print ">>>>> Starting measurement #{m.prefix}"
     n = m.dup
     n.update(prefix: m.prefix + '_COH')
     if n.prefix =~ /^PC/
@@ -90,8 +90,8 @@ task :create_coh_cpi_measurements => :environment do
     puts "...... #{n.prefix} SAVED"
     m.series.each do |s|
       if s.geography.handle == 'HON'
-        s = Series.find_by(name: s.name.sub('@HON','@HAW'))
-        next if s.nil?
+        new_name = s.name.sub('@HON','@HAW')
+        s = Series.get(new_name) || s.dup_series_geo('HAW')
       end
       n.series << s
     end

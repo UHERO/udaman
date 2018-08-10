@@ -256,6 +256,17 @@ class Series < ActiveRecord::Base
     Series.get(series_name) || Series.create_new({ name: series_name })
   end
 
+  ## Duplicate series for a different geography
+  def dup_series_geo(geo)
+    new = self.dup
+    new.update(
+        geography: Geography.find_by(universe: universe, handle: geo).id,  ## raise if geo does not exist
+        name: self.build_new_name(geo: geo)
+    )
+    new.save!
+    new
+  end
+
   def Series.create_new(properties)
     name_parts = properties.delete(:name_parts)
     if name_parts  ## called from SeriesController#create
@@ -285,6 +296,15 @@ class Series < ActiveRecord::Base
   def Series.build_name(parts)
     name = parts[0].strip.upcase + '@' + parts[1].strip.upcase + '.' + parts[2].strip.upcase
     Series.parse_name(name) && name
+  end
+
+  def build_new_name(parts)
+    my_parts = self.parse_name
+    new_parts = []
+    new_parts.push(parts[:prefix] || my_parts[:prefix])
+    new_parts.push(parts[:geo] || my_parts[:geo])
+    new_parts.push(parts[:freq] || my_parts[:freq])
+    Series.build_name(new_parts)
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
