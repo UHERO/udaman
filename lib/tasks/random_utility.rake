@@ -91,7 +91,7 @@ task :create_coh_cpi_measurements => :environment do
     m.series.each do |s|
       if s.geography.handle == 'HON'
         new_name = s.name.sub('@HON','@HAW')
-        s = Series.get(new_name) || s.dup_series_geo('HAW')
+        s = Series.get(new_name) || s.dup_series_for_geo('HAW')
       end
       n.series << s
     end

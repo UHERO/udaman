@@ -257,13 +257,22 @@ class Series < ActiveRecord::Base
   end
 
   ## Duplicate series for a different geography
-  def dup_series_geo(geo)
+  def dup_series_for_geo(geo)
+    name = self.parse_name
     new = self.dup
     new.update(
-        geography: Geography.find_by(universe: universe, handle: geo).id,  ## raise if geo does not exist
-        name: self.build_new_name(geo: geo)
+      geography_id: Geography.find_by(universe: universe, handle: geo).id, ## raises err if geo does not exist
+      name: Series.build_name([name[:prefix], geo, name[:freq]])
     )
     new.save!
+    self.data_sources.each do |ds|
+      new_ds = ds.dup
+      new_ds.update(
+        series_id: new.id,
+        last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil
+      )
+      new_ds.save! && new.data_sources << new_ds
+    end
     new
   end
 
@@ -298,6 +307,7 @@ class Series < ActiveRecord::Base
     Series.parse_name(name) && name
   end
 
+    ## DELETE this if ultimately unused
   def build_new_name(parts)
     my_parts = self.parse_name
     new_parts = []
