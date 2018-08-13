@@ -81,19 +81,19 @@ task :create_coh_cpi_measurements => :environment do
                                       PCTR PCTRMF PCMD PCRE PCED PCOT PC_FDEN PC_EN PC_MD PC_SH PCSV_MD PCSV_RN})
   meas.each do |m|
     print ">>>>> Starting measurement #{m.prefix}"
-    n = m.dup
-    n.update(prefix: m.prefix + '_COH')
-    if n.prefix =~ /^PC/
-      n.update(data_portal_name: n.data_portal_name.sub('CPI','Honolulu CPI'))
+    new = m.dup
+    new.update(prefix: new.prefix + '_COH')
+    if new.prefix =~ /^PC/
+      new.update(data_portal_name: new.data_portal_name.sub('CPI','Honolulu CPI'))
     end
-    n.save!
-    puts "...... #{n.prefix} SAVED"
+    new.save!
+    puts "...... #{new.prefix} SAVED"
     m.series.each do |s|
       if s.geography.handle == 'HON'
         new_name = s.name.sub('@HON','@HAW')
         s = Series.get(new_name) || s.dup_series_for_geo('HAW')
       end
-      n.series << s
+      new.series << s
     end
   end
 end
