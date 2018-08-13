@@ -68,7 +68,6 @@ end
 
 
 # "OCUP%NS@HI.M"
-# <Series id: 7829, name: "OCUP%NS@HI.M", frequency: "month", description: nil, units: 1, seasonally_adjusted: nil, last_demetra_datestring: nil, factors: nil, factor_application: nil, prognoz_data_file_id: nil, aremos_missing: 7, aremos_diff: 0.0, mult: nil, created_at: "2011-08-11 01:00:17", updated_at: "2012-08-29 11:10:09", investigation_notes: nil> 
 # 21302 | 2012-02-01 04:12:55 UTC | "OCUP%NS@HI.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/History/tour_upd2_hist.xls"
 # 25414 | 2012-02-25 00:58:30 UTC | "OCUP%NS@HI.M".tsn.load_from "#{ENV['DATA_PATH']}/rawdata/Manual/TOUR_OCUP.xls"
 # 25481 | 2012-08-29 11:10:09 UTC | Series.load_from_file("#{ENV['DATA_PATH']}/rawdata/manual/TOUR_OCUP.xls", {:file_type=>"xls", :start_date=>"1998-01-01", :sheet=>"sheet_num:1", :row=>"increment:2:1", :col=>2, :frequency=>"M" })
