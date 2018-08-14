@@ -56,25 +56,27 @@ task :batch_add_source_for_aggregated => :environment do
     end
     puts "hand edit..."
     loop do
-      puts sprintf("%-20.20s: u=%-20.20s s=%-50.50s d=%-60.60s l=%-35.35s", parent.name,
-                   parent.unit && (parent.unit.short_label.blank? ? '(empty)' : parent.unit.short_label),
-                   parent.source && (parent.source.description.blank? ? '(empty)' : parent.source.description),
-                   parent.source_detail && (parent.source_detail.description.blank? ? '(empty)' : parent.source_detail.description),
+      puts sprintf("%-20.20s: u=%-20.20s :: s=%-50.50s :: d=%-60.60s :: l=%-35.35s", parent.name,
+                   (parent.unit && parent.unit.short_label) || '(empty)',
+                   (parent.source && parent.source.description) || '(empty)',
+                   (parent.source_detail && parent.source_detail.description) || '(empty)',
                    parent.source_link.blank? ? '(empty)' : parent.source_link)
-      puts sprintf("%-20.20s: u=%-20.20s s=%-50.50s d=%-60.60s l=%-35.35s", s.name,
-             s.unit && (s.unit.short_label.blank? ? '(empty)' : s.unit.short_label),
-             s.source && (s.source.description.blank? ? '(empty)' : s.source.description),
-             s.source_detail && (s.source_detail.description.blank? ? '(empty)' : s.source_detail.description),
-             s.source_link.blank? ? '(empty)' : s.source_link)
-      x = STDIN.gets
-      break unless x =~ /\w/
+      puts sprintf("%-20.20s: u=%-20.20s :: s=%-50.50s :: d=%-60.60s :: l=%-35.35s", s.name,
+                   (s.unit && s.unit.short_label) || '(empty)',
+                   (s.source && s.source.description) || '(empty)',
+                   (s.source_detail && s.source_detail.description) || '(empty)',
+                   s.source_link.blank? ? '(empty)' : s.source_link)
+      print '> '
+      cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
+      break if cmds['n']
+      updates = {}
+      updates.merge(unit_id: parent.unit_id) if cmds['u'] || cmds['A']
+      updates.merge(source_id: parent.source_id) if cmds['s'] || cmds['A']
+      updates.merge(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
+      updates.merge(source_link: parent.source_link) if cmds['l'] || cmds['A']
+      s.update!(updates) unless updates.empty?
+      s.reload
     end
-    next
-    s.update!(
-      unit_id: parent.unit_id,
-      source_id: parent.source_id,
-      source_detail_id: parent.source_detail_id,
-      source_link: parent.source_link)
   end
 end
 
