@@ -55,16 +55,20 @@ task :batch_add_source_for_aggregated => :environment do
       next
     end
     puts "hand edit..."
-    puts sprintf("%-20.20s: u=%-20.20s s=%-50.50s d=%-60.60s l=%-35.35s", s.name,
-           s.unit && (s.unit.short_label.blank? ? '(-)' : s.unit.short_label),
-           s.source && (s.source.description.blank? ? '(-)' : s.source.description),
-           s.source_detail && (s.source_detail.description.blank? ? '(-)' : s.source_detail.description),
-           s.source_link.blank? ? '(-)' : s.source_link)
-    puts sprintf("%-20.20s: u=%-20.20s s=%-50.50s d=%-60.60s l=%-35.35s", parent.name,
-           parent.unit && (parent.unit.short_label.blank? ? '(-)' : parent.unit.short_label),
-           parent.source && (parent.source.description.blank? ? '(-)' : parent.source.description),
-           parent.source_detail && (parent.source_detail.description.blank? ? '(-)' : parent.source_detail.description),
-           parent.source_link.blank? ? '(-)' : parent.source_link)
+    loop do
+      puts sprintf("%-20.20s: u=%-20.20s s=%-50.50s d=%-60.60s l=%-35.35s", parent.name,
+                   parent.unit && (parent.unit.short_label.blank? ? '(empty)' : parent.unit.short_label),
+                   parent.source && (parent.source.description.blank? ? '(empty)' : parent.source.description),
+                   parent.source_detail && (parent.source_detail.description.blank? ? '(empty)' : parent.source_detail.description),
+                   parent.source_link.blank? ? '(empty)' : parent.source_link)
+      puts sprintf("%-20.20s: u=%-20.20s s=%-50.50s d=%-60.60s l=%-35.35s", s.name,
+             s.unit && (s.unit.short_label.blank? ? '(empty)' : s.unit.short_label),
+             s.source && (s.source.description.blank? ? '(empty)' : s.source.description),
+             s.source_detail && (s.source_detail.description.blank? ? '(empty)' : s.source_detail.description),
+             s.source_link.blank? ? '(empty)' : s.source_link)
+      x = STDIN.gets
+      break unless x =~ /\w/
+    end
     next
     s.update!(
       unit_id: parent.unit_id,
