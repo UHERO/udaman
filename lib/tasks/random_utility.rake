@@ -34,13 +34,13 @@ task :batch_add_source_for_aggregated => :environment do
         s.source_id == parent.source_id &&
         s.source_detail_id == parent.source_detail_id &&
         s.source_link == parent.source_link
-      puts 'already match'
+      puts '>>>> already match'
       next
     end
     # if derived series has none of these fields set, update them
     parent_any_defined = parent.unit_id || parent.source_id || parent.source_detail_id || parent.source_link
     unless parent_any_defined
-      puts "parent #{parent.name}(#{parent.id}) got nuthin - skipping"
+      puts ">>>> parent #{parent.name}(#{parent.id}) got nuthin - skipping"
       next
     end
     # if derived series has none of these fields set, update them
@@ -51,16 +51,16 @@ task :batch_add_source_for_aggregated => :environment do
           source_detail_id: parent.source_detail_id,
           source_link: parent.source_link
       )
-      puts "none set, updated from #{parent.name}(#{parent.id})"
+      puts ">>>> none set, updated from #{parent.name}(#{parent.id})"
       next
     end
     puts "hand edit..."
-    parent_unit = (parent.unit && parent.unit.short_label) || '(empty)'
+    parent_unit = (parent.unit && parent.unit.long_label) || '(empty)'
     parent_source = (parent.source && parent.source.description) || '(empty)'
     parent_detail = (parent.source_detail && parent.source_detail.description) || '(empty)'
     parent_link = parent.source_link.blank? ? '(empty)' : parent.source_link
     loop do
-      s_unit = (s.unit && s.unit.short_label) || '(empty)'
+      s_unit = (s.unit && s.unit.long_label) || '(empty)'
       s_source = (s.source && s.source.description) || '(empty)'
       s_detail = (s.source_detail && s.source_detail.description) || '(empty)'
       s_link = s.source_link.blank? ? '(empty)' : s.source_link
@@ -70,8 +70,8 @@ task :batch_add_source_for_aggregated => :environment do
                        [s_detail.length, parent_detail.length].max,
                        [s_link.length, parent_link.length].max
                )
-      printf(format, parent.name, parent_unit, parent_source, parent_detail, parent_link)
-      printf(format, s.name, s_unit, s_source, s_detail, s_link)
+      puts sprintf(format, parent.name, parent_unit, parent_source, parent_detail, parent_link)
+      puts sprintf(format, s.name, s_unit, s_source, s_detail, s_link)
       print '> '
       cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
       break if cmds['n']
