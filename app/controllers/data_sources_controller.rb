@@ -6,19 +6,19 @@ class DataSourcesController < ApplicationController
 
   def source
     @data_source.reload_source
-    redirect_to :controller=> 'series', :action => 'show', :id => @data_source.series_id
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
   def clear_and_reload
     @data_source.clear_and_reload_source
-    redirect_to :controller=> 'series', :action => 'show', :id => @data_source.series_id
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
   def delete
     if @data_source.delete
       create_action source,'DELETE'
     end
-    redirect_to :controller=> 'series', :action => 'show', :id => @data_source.series_id
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
 
   def toggle_reload_nightly
