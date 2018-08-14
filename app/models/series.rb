@@ -483,7 +483,8 @@ class Series < ActiveRecord::Base
     end
     data_hash
   end
-  
+
+  ## this method probably vestigial/unused - double check and remove
   def Series.new_from_data(frequency, data)
     Series.new_transformation('One off data', data, frequency)
   end
@@ -494,8 +495,9 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
+    name_parts = Series.parse_name(name) ## mainly for validation
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
-                Series.frequency_from_code(Series.parse_name(name)[:freq])
+                Series.frequency_from_code(name_parts[:freq])
     Series.new(
       :name => name,
       :frequency => frequency,

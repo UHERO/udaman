@@ -53,19 +53,17 @@ task :batch_add_source_for_aggregated => :environment do
       puts "none set, updated from #{parent.name}(#{parent.id})"
       next
     end
-    if s.unit_id && s.unit_id != parent.unit_id
-      print "U "
-    end
-    if s.source_id && s.source_id != parent.source_id
-      print "S "
-    end
-    if s.source_detail_id && s.source_detail_id != parent.source_detail_id
-      print "D "
-    end
-    if !s.source_link.blank? && s.source_link != parent.source_link
-      print "L "
-    end
-    puts ""
+    puts "hand edit..."
+    printf("%-20s: u=%-20s s=%-50s d=%-60s l=%-35\n", s.name,
+           s.unit && (s.unit.short_label.blank? ? '(-)' : s.unit.short_label),
+           s.source && (s.source.description.blank? ? '(-)' : s.source.description),
+           s.source_detail && (s.source_detail.description.blank? ? '(-)' : s.source_detail.description),
+           s.source_link.blank? ? '(-)' : s.source_link)
+    printf("%-20s: u=%-20s s=%-50s d=%-60s l=%-35\n", parent.name,
+           parent.unit && (parent.unit.short_label.blank? ? '(-)' : parent.unit.short_label),
+           parent.source && (parent.source.description.blank? ? '(-)' : parent.source.description),
+           parent.source_detail && (parent.source_detail.description.blank? ? '(-)' : parent.source_detail.description),
+           parent.source_link.blank? ? '(-)' : parent.source_link)
     next
     s.update!(
       unit_id: parent.unit_id,
@@ -97,3 +95,4 @@ task :create_coh_cpi_measurements => :environment do
     end
   end
 end
+
