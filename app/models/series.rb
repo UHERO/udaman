@@ -271,7 +271,10 @@ class Series < ActiveRecord::Base
         series_id: new.id,
         last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil
       )
-      new_ds.save! && new.data_sources << new_ds
+      if new_ds.save!
+        new.data_sources << new_ds
+        new_ds.reload_source
+      end
     end
     new
   end
