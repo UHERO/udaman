@@ -261,7 +261,7 @@ class Series < ActiveRecord::Base
     name = self.parse_name
     new = self.dup
     new.update(
-      geography_id: Geography.get({universe: universe, handle: geo}).id, ## raises err if geo does not exist
+      geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
       name: Series.build_name([name[:prefix], geo, name[:freq]])
     )
     new.save!
