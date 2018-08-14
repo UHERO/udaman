@@ -55,25 +55,32 @@ task :batch_add_source_for_aggregated => :environment do
       next
     end
     puts "hand edit..."
+    parent_unit = (parent.unit && parent.unit.short_label) || '(empty)'
+    parent_source = (parent.source && parent.source.description) || '(empty)'
+    parent_detail = (parent.source_detail && parent.source_detail.description) || '(empty)'
+    parent_link = parent.source_link.blank? ? '(empty)' : parent.source_link
     loop do
-      puts sprintf("%-20.20s: u=%-20.20s :: s=%-50.50s :: d=%-60.60s :: l=%-35.35s", parent.name,
-                   (parent.unit && parent.unit.short_label) || '(empty)',
-                   (parent.source && parent.source.description) || '(empty)',
-                   (parent.source_detail && parent.source_detail.description) || '(empty)',
-                   parent.source_link.blank? ? '(empty)' : parent.source_link)
-      puts sprintf("%-20.20s: u=%-20.20s :: s=%-50.50s :: d=%-60.60s :: l=%-35.35s", s.name,
-                   (s.unit && s.unit.short_label) || '(empty)',
-                   (s.source && s.source.description) || '(empty)',
-                   (s.source_detail && s.source_detail.description) || '(empty)',
-                   s.source_link.blank? ? '(empty)' : s.source_link)
+      s_unit = (s.unit && s.unit.short_label) || '(empty)'
+      s_source = (s.source && s.source.description) || '(empty)'
+      s_detail = (s.source_detail && s.source_detail.description) || '(empty)'
+      s_link = s.source_link.blank? ? '(empty)' : s.source_link
+      format = sprintf('%%-22s: u=%%-%ds :: s=%%-%ds :: d=%%-%ds :: l=%%-%ds',
+                       [s_unit.length, parent_unit.length].max,
+                       [s_source.length, parent_source.length].max,
+                       [s_detail.length, parent_detail.length].max,
+                       [s_link.length, parent_link.length].max
+               )
+      printf(format, parent.name, parent_unit, parent_source, parent_detail, parent_link)
+      printf(format, s.name, s_unit, s_source, s_detail, s_link)
       print '> '
       cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
       break if cmds['n']
       updates = {}
-      updates.merge(unit_id: parent.unit_id) if cmds['u'] || cmds['A']
-      updates.merge(source_id: parent.source_id) if cmds['s'] || cmds['A']
-      updates.merge(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
-      updates.merge(source_link: parent.source_link) if cmds['l'] || cmds['A']
+      updates.merge!(unit_id: parent.unit_id) if cmds['u'] || cmds['A']
+      updates.merge!(source_id: parent.source_id) if cmds['s'] || cmds['A']
+      updates.merge!(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
+      updates.merge!(source_link: parent.source_link) if cmds['l'] || cmds['A']
+      puts ">>> cmds=#{cmds}, updates are #{updates}"
       s.update!(updates) unless updates.empty?
       s.reload
     end
