@@ -202,7 +202,7 @@ describe Series do
         @series_values = Series.create_dummy("test_series@uhero", :month, "2000-05-01", 1, 2)
       end
  
-      it "should not find a series if no series by that name exists" do
+      it "should not find a series if series name format is bad" do
         lambda {Series.get "no_series_by@this_name"}.should raise_error SeriesNameException
       end
 
