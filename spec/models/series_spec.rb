@@ -202,10 +202,13 @@ describe Series do
         @series_values = Series.create_dummy("test_series@uhero", :month, "2000-05-01", 1, 2)
       end
  
-      it "should not find a series if series name format is bad" do
-        lambda {Series.get "no_series_by@this_name"}.should raise_error SeriesNameException
+      it "should raise error if series name format is bad" do
+        lambda { Series.get 'series_name_with@geo_only' }.should raise_error SeriesNameException
       end
 
+      it "should not find a series if no series by that name exists" do
+        expect(Series.get 'no_series_by@this_name.Q').to eq(nil), 'found a series that does not exist?'
+      end
     end
     
     context "when frequency code is present in search name and in database name" do
