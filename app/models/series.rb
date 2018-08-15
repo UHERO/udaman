@@ -256,29 +256,6 @@ class Series < ActiveRecord::Base
     Series.get(series_name) || Series.create_new({ name: series_name })
   end
 
-  ## Duplicate series for a different geography
-  def dup_series_for_geo(geo)
-    name = self.parse_name
-    new = self.dup
-    new.update(
-      geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
-      name: Series.build_name([name[:prefix], geo, name[:freq]])
-    )
-    new.save!
-    self.data_sources.each do |ds|
-      new_ds = ds.dup
-      new_ds.update(
-        series_id: new.id,
-        last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil
-      )
-      if new_ds.save!
-        new.data_sources << new_ds
-        new_ds.reload_source
-      end
-    end
-    new
-  end
-
   def Series.create_new(properties)
     name_parts = properties.delete(:name_parts)
     if name_parts  ## called from SeriesController#create
@@ -318,6 +295,29 @@ class Series < ActiveRecord::Base
     new_parts.push(parts[:geo] || my_parts[:geo])
     new_parts.push(parts[:freq] || my_parts[:freq])
     Series.build_name(new_parts)
+  end
+
+  ## Duplicate series for a different geography
+  def dup_series_for_geo(geo)
+    name = self.parse_name
+    new = self.dup
+    new.update(
+        geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
+        name: Series.build_name([name[:prefix], geo, name[:freq]])
+    )
+    new.save!
+    self.data_sources.each do |ds|
+      new_ds = ds.dup
+      new_ds.update(
+          series_id: new.id,
+          last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil
+      )
+      if new_ds.save!
+        new.data_sources << new_ds
+        new_ds.reload_source
+      end
+    end
+    new
   end
 
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
