@@ -80,7 +80,7 @@ task :batch_add_source_for_aggregated => :environment do
       updates.merge!(source_id: parent.source_id) if cmds['s'] || cmds['A']
       updates.merge!(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
       updates.merge!(source_link: parent.source_link) if cmds['l'] || cmds['A']
-      puts ">>> cmds=#{cmds}, updates are #{updates}"
+      ##puts ">>> cmds=#{cmds}, updates are #{updates}"
       s.update!(updates) unless updates.empty?
       s.reload
     end
