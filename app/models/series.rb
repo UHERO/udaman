@@ -495,9 +495,8 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
-    name_parts = Series.parse_name(name) ## mainly for validation
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
-                Series.frequency_from_code(name_parts[:freq])
+                Series.frequency_from_code(Series.parse_name(name)[:freq])
     Series.new(
       :name => name,
       :frequency => frequency,
