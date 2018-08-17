@@ -58,4 +58,11 @@ module DataListsHelper
     (1..n).map{ "<i class='fa fa-minus' aria-hidden='true'></i> " }.join.html_safe
   end
 
+  def generate_filter_controls(geo, freq, sa)
+    html = select_tag('geography',
+        options_from_collection_for_select(Geography.where(universe: 'UHERO').order(:id), :handle, :handle_with_name, geo)
+    )
+    html += select_tag('freq', options_for_select(%w(A S Q M W D), freq))
+    html + select_tag('seasonally_adjusted', options_for_select(%w(all seasonally_adjusted not_seasonally_adjusted not_applicable), sa))
+  end
 end

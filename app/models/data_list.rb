@@ -16,10 +16,7 @@ class DataList < ActiveRecord::Base
   end
 
   def series_names
-    if list.nil?
-      return []
-    end
-    list.split("\n").map {|element| element.strip} 
+    list.split("\n").map{|e| e.strip } rescue []
   end
   
   #not to be confused with startdate and enddate
@@ -78,21 +75,14 @@ class DataList < ActiveRecord::Base
     series_data
   end
 
-  def get_all_series_data_with_changes(frequency_suffix = 'A', county_switch = 'HI', seasonally_adjusted = 'T')
-    puts "seasonally adjusted: #{seasonally_adjusted}"
+  def get_all_series_data_with_changes(freq, geo, sa)
     series_data = {}
-    measurements.each do |m|
-      series = m.series
-      if seasonally_adjusted == 'T'
-        series = series.where("name NOT REGEXP 'NS'") 
-      elsif seasonally_adjusted == 'F'
-        series = series.where("name REGEXP 'NS'")
-      end
-      
-      series = series.where("name REGEXP '@#{county_switch}.#{frequency_suffix}'")
-      
-      if series.nil?
-        next
+    self.measurements.each do |m|
+      series = m.series.joins(:geography)
+                       .where('series.frequency = ? and geographies.handle = ?',
+                               Series.frequency_from_code(freq), geo)
+      unless sa == 'all'
+        series = series.where('seasonal_adjustment = ?', sa)
       end
 
       series.each do |s|
