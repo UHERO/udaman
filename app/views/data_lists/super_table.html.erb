@@ -3,6 +3,7 @@
 <%= javascript_include_tag 'd3.v2.min' %>
 
 <style>
+  #data_list_name {color:green;}
 	#spark_adjuster {width: 300px; float:left; margin:0 20px 0 10px; position:relative; height:50px;}
 	#table_adjuster {width:500px; float:left; margin:0 20px 0 20px; position:relative; height:50px;}
 	td.calc,
@@ -42,7 +43,7 @@
 	#data_table tr#header_row th {background-color: transparent; padding: 0;}
 	tr#header_row_clone th {background-color: transparent; padding: 0;}
 	table#data_table th.calc, table#header_table th.calc {line-height:13px;}
-	div#frequency_selector {padding-bottom:5px;}
+	div#frequency_selector {padding-bottom:19px;}
 
 	div#table_wrapper {width:auto;}
 	table#header_table, table#column_table {background-color: #fff;}
@@ -60,160 +61,13 @@
 	ul#ui-id-1 {font-size:10px; z-index: 11 !important;}
 
 </style>
-
+<span id="data_list_name"><%= @data_list.name %></span>:
+ <%= link_to 'Edit list', action: :edit %> || <%= link_to 'Reset filters', {} %>
 <div id="frequency_selector">
-	<% if @freq.nil?
-		if @county.nil? # both are nil
-			if @seasonally_adjusted.nil? # all are nil
-  %>
-				Try a Different Frequency:
-				<%= link_to "A", { :freq => "A" } %> | 
-				<%= link_to "Q", { :freq => "Q" } %> | 
-				<%= link_to "M", { :freq => "M" } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :county => "HI" } %> | 
-				<%= link_to "HON", { :county => "HON" } %> |  
-				<%= link_to "HAW", { :county => "HAW" } %> | 
-				<%= link_to "MAU", { :county => "MAU" } %> | 
-				<%= link_to "KAU", { :county => "KAU" } %> |
-				<%= link_to "US",  { :county => "US" } %> |
-				<%= link_to "JP",  { :county => "JP" } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     { :seasonally_adjusted => "T" } %> | 
-				<%= link_to "Non-seasonally_adjusted", {:seasonally_adjusted => "F"} %>
-			<%
-        else # freq and county false, seasonally_adjusted has value %>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Q", { :freq => "Q", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "M", { :freq => "M", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :county => "HI",  :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "HON", { :county => "HON", :seasonally_adjusted => @seasonally_adjusted } %> |  
-				<%= link_to "HAW", { :county => "HAW", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "MAU", { :county => "MAU", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "KAU", { :county => "KAU", :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "US",  { :county => "US",  :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "JP",  { :county => "JP",  :seasonally_adjusted => @seasonally_adjusted } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:seasonally_adjusted => "F"} %>
-			<% end %>
-		<% else # freq is nil, county has value %>
-			<% if @seasonally_adjusted.nil? # freq is nil, county has value, seasonally_adjusted is nil %>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A", :county => @county } %> | 
-				<%= link_to "Q", { :freq => "Q", :county => @county } %> | 
-				<%= link_to "M", { :freq => "M", :county => @county } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :county => "HI" } %> | 
-				<%= link_to "HON", { :county => "HON" } %> |  
-				<%= link_to "HAW", { :county => "HAW" } %> | 
-				<%= link_to "MAU", { :county => "MAU" } %> | 
-				<%= link_to "KAU", { :county => "KAU" } %> |
-				<%= link_to "US",  { :county => "US" } %> |
-				<%= link_to "JP",  { :county => "JP" } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:county => @county, :seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:county => @county, :seasonally_adjusted => "F"} %>
-			<% else # freq nil, county has value, seasonally_adjusted has value %>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A", :county => @county, :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Q", { :freq => "Q", :county => @county, :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "M", { :freq => "M", :county => @county, :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :county => "HI",  :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "HON", { :county => "HON", :seasonally_adjusted => @seasonally_adjusted } %> |  
-				<%= link_to "HAW", { :county => "HAW", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "MAU", { :county => "MAU", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "KAU", { :county => "KAU", :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "US",  { :county => "US",  :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "JP",  { :county => "JP",  :seasonally_adjusted => @seasonally_adjusted } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:county => @county, :seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:county => @county, :seasonally_adjusted => "F"} %>
-			<% end %>
-		<% end %>
-	<% else
-		if @county.nil? # freq has value, county is nil
-			if @seasonally_adjusted.nil? # freq has value, county is nil, seasonally_adjusted is nil %>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A" } %> | 
-				<%= link_to "Q", { :freq => "Q" } %> | 
-				<%= link_to "M", { :freq => "M" } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :freq => @freq, :county => "HI" } %> | 
-				<%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
-				<%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
-				<%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
-				<%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
-				<%= link_to "US",  { :freq => @freq, :county => "US" } %> |
-				<%= link_to "JP",  { :freq => @freq, :county => "JP" } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:freq => @freq, :seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:freq => @freq, :seasonally_adjusted => "F"} %>
-			<% else # freq has value, county is nil, seasonally_adjusted has value %>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Q", { :freq => "Q", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "M", { :freq => "M", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :freq => @freq, :county => "HI",  :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "HON", { :freq => @freq, :county => "HON", :seasonally_adjusted => @seasonally_adjusted } %> |  
-				<%= link_to "HAW", { :freq => @freq, :county => "HAW", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "MAU", { :freq => @freq, :county => "MAU", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "KAU", { :freq => @freq, :county => "KAU", :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "US",  { :freq => @freq, :county => "US",  :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "JP",  { :freq => @freq, :county => "JP",  :seasonally_adjusted => @seasonally_adjusted } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:freq => @freq, :seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:freq => @freq, :seasonally_adjusted => "F"} %>
-			<% end %>
-		<% else # both freq and county have values
-			if @seasonally_adjusted.nil? # both freq and county have values, seasonally_adjusted is nil%>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A", :county => @county } %> | 
-				<%= link_to "Q", { :freq => "Q", :county => @county } %> | 
-				<%= link_to "M", { :freq => "M", :county => @county } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :freq => @freq, :county => "HI" } %> | 
-				<%= link_to "HON", { :freq => @freq, :county => "HON" } %> |  
-				<%= link_to "HAW", { :freq => @freq, :county => "HAW" } %> | 
-				<%= link_to "MAU", { :freq => @freq, :county => "MAU" } %> | 
-				<%= link_to "KAU", { :freq => @freq, :county => "KAU" } %> |
-				<%= link_to "US",  { :freq => @freq, :county => "US" } %> |
-				<%= link_to "JP",  { :freq => @freq, :county => "JP" } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:freq => @freq, :county => @county, :seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:freq => @freq, :county => @county, :seasonally_adjusted => "F"} %>
-			<% else # all three have value %>
-				Try a Different Frequency: 
-				<%= link_to "A", { :freq => "A", :county => @county, :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Q", { :freq => "Q", :county => @county, :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "M", { :freq => "M", :county => @county, :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "Edit this List", :action => "edit"%><br>
-				Switch Location: 
-				<%= link_to "HI",  { :freq => @freq, :county => "HI",  :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "HON", { :freq => @freq, :county => "HON", :seasonally_adjusted => @seasonally_adjusted } %> |  
-				<%= link_to "HAW", { :freq => @freq, :county => "HAW", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "MAU", { :freq => @freq, :county => "MAU", :seasonally_adjusted => @seasonally_adjusted } %> | 
-				<%= link_to "KAU", { :freq => @freq, :county => "KAU", :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "US",  { :freq => @freq, :county => "US",  :seasonally_adjusted => @seasonally_adjusted } %> |
-				<%= link_to "JP",  { :freq => @freq, :county => "JP",  :seasonally_adjusted => @seasonally_adjusted } %>
-				<br>
-				<%= link_to "seasonally_adjusted",     {:freq => @freq, :county => @county, :seasonally_adjusted => "T"} %> | 
-				<%= link_to "Non-seasonally_adjusted", {:freq => @freq, :county => @county, :seasonally_adjusted => "F"} %>
-			<% end %>
-		<% end %>
-	<% end %>
-	|| <%= link_to "Reset Switches", {} %>
+  <%= form_tag "/data_lists/super_table/#{@data_list.id}" %>
+    <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
+    <%= submit_tag 'Show' %>
+  </form>
 </div>
 
 <div id="adjuster_wrapper">
@@ -255,22 +109,6 @@
 </div>
 
 <script>
-
-// features to add
-// DONE - separate sliders for table and sparkline
-// DONE - button to match sparkline to table and vice versa
-// DONE - link to analyze
-// DONE - new default for table
-// DONE - Selected Value (selected value, date, YTD)
-// DONE - min column (min value, min date, min to selected level)
-// DONE - max column (max value, max date, max to selected level)
-// DONE - range column(min-max diff, min to current/min to max, current to max / min to max)
-// DONE - selected point percent change from (first point, min, max)
-// 
-// dot to show current/selected
-// responsiveness to point
-// switch chart to growth rates / YTD rates options (bars)
-
 	function perc(num) {
 		if (num === null) return "";
 		return num.toFixed(2) + "%";
@@ -305,40 +143,7 @@
 		return parseFloat(num);
 	}
 
-	var all_data = <%= 
-
-		if @freq.nil?
-	      if @county.nil?
-	    	if @seasonally_adjusted.nil?
-	    		@data_list.get_all_series_data_with_changes.to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(nil,nil,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      else
-	      	if @seasonally_adjusted.nil?
-	        	@data_list.get_all_series_data_with_changes(nil,@county,nil).to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(nil,@county,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      end
-	    else
-	      if @county.nil?
-	    	if @seasonally_adjusted.nil?
-	    		@data_list.get_all_series_data_with_changes(@freq).to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(@freq,nil,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      else
-	      	if @seasonally_adjusted.nil?
-	        	@data_list.get_all_series_data_with_changes(@freq,@county,nil).to_json.html_safe
-	    	else 
-	    		@data_list.get_all_series_data_with_changes(@freq,@county,@seasonally_adjusted).to_json.html_safe
-	    	end
-	      end
-	    end
-
-		%>
-	
+	var all_data = <%= @data_list.get_all_series_data_with_changes(@freq, @geo, @seasonally_adjusted).to_json.html_safe %>;
 	var frequency = freq(d3.keys(all_data)[0]);
 	var all_dates = {};
 	d3.values(all_data).forEach(function(elem) { 
