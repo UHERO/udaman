@@ -308,11 +308,8 @@ class Series < ActiveRecord::Base
     new.save!
     self.data_sources.each do |ds|
       new_ds = ds.dup
-      new_ds.update(
-          series_id: new.id,
-          last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil
-      )
       if new_ds.save!
+        new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
         new.data_sources << new_ds
         new_ds.reload_source
       end
