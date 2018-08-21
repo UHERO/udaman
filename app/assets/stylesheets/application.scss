@@ -85,6 +85,8 @@ ul.series-list {margin:0;}
 table th {padding:0 10px 0 0; text-align:left;}
 table td {padding: 0 5px 0 0; vertical-align:top; }
 table td {border-bottom:1px solid #bbbbbb;}
+table tr:hover { color: #000000; background-color:ghostwhite; }
+
 table.spreadsheet_data td {border-right:1px solid #bbbbbb;padding:0 3px 0 3px; font-size:10px;}
 span.series_count {font-style:italic; font-size:8px;}
 
