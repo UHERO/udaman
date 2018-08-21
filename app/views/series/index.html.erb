@@ -48,10 +48,9 @@
 
     <tbody>
     <% row = -1 %>
-
     <% @all_series.each do |series| %>
-      <% row = (row + 1) % 2 %>
-      <tr class="row<%= row %>">
+      <% row += 1 %>
+      <tr class="row<%= row % 2 %>">
         <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fa fa-ban redban" title="restricted"></i><% end %></td>
         <td><%= sa_indicator(series.seasonal_adjustment || 'NA') %></td>
         <td><%= series.dataPortalName %></td>
