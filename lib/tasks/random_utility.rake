@@ -2,6 +2,7 @@
 task :batch_add_source_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%'}).uniq
   eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
+  marked_series = []
 
   agg_series.each do |s|
     name_parts = s.parse_name
@@ -75,16 +76,23 @@ task :batch_add_source_for_aggregated => :environment do
       print '> '
       cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
       break if cmds['n']
+      if cmds['m']
+        marked_series.push(s.name)
+        puts "####### Series #{s.name} marked"
+        next
+      end
       updates = {}
-      updates.merge!(unit_id: parent.unit_id) if cmds['u'] || cmds['A']
-      updates.merge!(source_id: parent.source_id) if cmds['s'] || cmds['A']
+      updates.merge!(unit_id: parent.unit_id)                   if cmds['u'] || cmds['A']
+      updates.merge!(source_id: parent.source_id)               if cmds['s'] || cmds['A']
       updates.merge!(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
-      updates.merge!(source_link: parent.source_link) if cmds['l'] || cmds['A']
+      updates.merge!(source_link: parent.source_link)           if cmds['l'] || cmds['A']
       ##puts ">>> cmds=#{cmds}, updates are #{updates}"
       s.update!(updates) unless updates.empty?
       s.reload
     end
   end
+  puts "Marked series:"
+  marked_series.sort.uniq.each {|msname| puts msname }
 end
 
 ## JIRA: UA-993
