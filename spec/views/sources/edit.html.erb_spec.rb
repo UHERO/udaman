@@ -4,7 +4,7 @@ RSpec.describe "sources/edit", type: :view do
   before(:each) do
     @source = assign(:source, Source.create!(
       :description => "MyString",
-      :link => "MyString"
+      :link => "http://link.gov"
     ))
   end
 

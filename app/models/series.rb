@@ -11,9 +11,11 @@ class Series < ActiveRecord::Base
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
+  include Validators
 
   validates :name, presence: true, uniqueness: true
-  
+  validate :source_link_is_valid
+
   #serialize :data, Hash
   serialize :factors, Hash
   
@@ -32,9 +34,9 @@ class Series < ActiveRecord::Base
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
-  enum seasonal_adjustment: { seas_adj_not_applicable: 'not_applicable',
-                              seas_adj: 'seasonally_adjusted',
-                              not_seas_adj: 'not_seasonally_adjusted' }
+  enum seasonal_adjustment: { NA: 'not_applicable',
+                              SA: 'seasonally_adjusted',
+                              NS: 'not_seasonally_adjusted' }
 
   after_create do
     self.update frequency: (Series.frequency_from_code(self.name.split('.').pop) || self.frequency)
@@ -1108,4 +1110,7 @@ private
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end
 
+  def source_link_is_valid
+    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
 end

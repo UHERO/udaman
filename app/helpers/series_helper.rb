@@ -1,5 +1,5 @@
 module SeriesHelper
-  
+  include Validators
   require 'csv'
   
   def csv_helper
@@ -118,5 +118,15 @@ module SeriesHelper
 
   def nightly_actuator(nightly)
     (nightly ? 'disable' : 'enable') + ' nightly reload'
+  end
+
+  def make_live_link(url, text = url)
+    return url if url.blank?
+    return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
+    "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
+  end
+
+  def sa_indicator(string)
+    string == 'NA' ? '-' : "<span class='#{string.downcase}-indicator'>#{string}</span>".html_safe
   end
 end

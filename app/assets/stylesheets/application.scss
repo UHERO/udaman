@@ -39,6 +39,14 @@ div.field, div.actions {
   display: table;
 }
 
+.row0 {
+  background-color: none;
+}
+
+.row1 {
+  background-color: ghostwhite;
+}
+
 #error_explanation {
   width: 450px;
   border: 2px solid red;
@@ -75,7 +83,7 @@ div.field, div.actions {
 }
 #summary_area {position:absolute; width:350px; padding:20px 0 0 15px; overflow-x: auto }
 #details_mask {position:absolute; width:530px; height:300px; margin-left:370px; padding:10px 0 0 0; background-color:#FFFFFF; opacity:0.9;}
-#details_area {position:absolute; width:530px; margin-left:370px; padding:10px 0 0 0;}
+#details_area {position:absolute; width:100%; margin-left:370px; padding:10px 0 0 0;}
 #navigation { padding-top: 20px }
 #summary_area h1 {font-size:72px; line-height:60px; margin:0 0 20px 0;}
 #summary_area h2 {font-size:50px; line-height:50px; margin:0 0 20px 0;}
@@ -84,6 +92,8 @@ ul.series-list {margin:0;}
 table th {padding:0 10px 0 0; text-align:left;}
 table td {padding: 0 5px 0 0; vertical-align:top; }
 table td {border-bottom:1px solid #bbbbbb;}
+table tr:hover { color: #000000; background-color:lightsteelblue; }
+
 table.spreadsheet_data td {border-right:1px solid #bbbbbb;padding:0 3px 0 3px; font-size:10px;}
 span.series_count {font-style:italic; font-size:8px;}
 
