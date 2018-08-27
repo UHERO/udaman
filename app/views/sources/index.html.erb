@@ -20,7 +20,7 @@
     <% @sources.each do |source| %>
       <tr>
         <td class="linkselect"><%= link_to source.description, edit_source_path(source) %></td>
-        <td><%= source.link %></td>
+        <td><%= make_live_link(source.link) %></td>
         <td><%= link_to 'Destroy', source, method: :delete, data: { confirm: "Destroy #{source.description}: Are you sure??" } %></td>
       </tr>
     <% end %>
