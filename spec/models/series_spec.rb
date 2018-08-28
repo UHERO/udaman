@@ -357,13 +357,13 @@ describe Series do
     end
     
     it "should create datapoints for each element in a data hash" do
-      Series.store("EIFNS@HI.M", Series.new(:data => @data_hash))
+      Series.store("EIFNS@HI.M", Series.new(data: @data_hash, frequency: :month))
       "EIFNS@HI.M".ts.data_points.count.should == @data_no_nil.count  
     end
     
     #fill these out
     it "should pull all datapoints for a series and include non-current data points" do
-      Series.store("EIFNS@HI.M", Series.new(:data => @data_hash))
+      Series.store("EIFNS@HI.M", Series.new(data: @data_hash, frequency: :month))
       "EIFNS@HI.M".ts_eval= %Q|"EIFNS@HI.M".ts + 10|
       sources = "EIFNS@HI.M".ts.data_sources
       sources[0].data_points.count.should == @data_no_nil.count
@@ -371,7 +371,7 @@ describe Series do
     end
 
     it "should get only current data points" do
-      Series.store("EIFNS@HI.M", Series.new(:data => @data_hash))
+      Series.store("EIFNS@HI.M", Series.new(data: @data_hash, frequency: :month))
       "EIFNS@HI.M".ts_eval= %Q|"EIFNS@HI.M".ts + 10|
       "EIFNS@HI.M".ts.current_data_points.count.should == @data_no_nil.count
     end
