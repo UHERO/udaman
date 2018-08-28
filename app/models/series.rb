@@ -289,16 +289,6 @@ class Series < ActiveRecord::Base
     Series.parse_name(name) && name
   end
 
-    ## DELETE this if ultimately unused
-  def build_new_name(parts)
-    my_parts = self.parse_name
-    new_parts = []
-    new_parts.push(parts[:prefix] || my_parts[:prefix])
-    new_parts.push(parts[:geo] || my_parts[:geo])
-    new_parts.push(parts[:freq] || my_parts[:freq])
-    Series.build_name(new_parts)
-  end
-
   ## Duplicate series for a different geography
   def dup_series_for_geo(geo)
     name = self.parse_name
