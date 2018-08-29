@@ -584,18 +584,11 @@ class Series < ActiveRecord::Base
     new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
   end
 
-  ## Redundancy of this code with instance method should be eliminated. Cf load_from_bls
+  ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    raise "No data collected from BEA for #{dataset}/freq=#{frequency}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, Series.frequency_from_code(frequency))
-  end
-  
-  def load_from_bea(dataset, parameters)
-    frequency = Series.frequency_from_code(self.name.split('.')[1])  ## replace with Series.parse_name, or bag this whole var? Not needed?
-    series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    raise "No data collected from BEA for #{dataset}" if series_data.nil? || series_data.empty?
-    new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
+    raise "No data collected from BEA API for #{dataset}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
@@ -604,14 +597,14 @@ class Series < ActiveRecord::Base
   
   def load_from_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
-    raise "No data collected from BLS for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    raise "No data collected from BLS API for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
     new_transformation("loaded series code: #{code} from bls website", series_data, frequency)
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
     series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    raise "No data collected from FRED for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded series : #{code} from FRED website", series_data, Series.frequency_from_code(frequency))
+    raise "No data collected from FRED API for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    Series.new_transformation("loaded series : #{code} from FRED website", series_data, frequency)
   end
 
   def days_in_period
