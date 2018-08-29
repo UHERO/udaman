@@ -589,7 +589,7 @@ class Series < ActiveRecord::Base
   end
   
   def load_from_bea(dataset, parameters)
-    frequency = Series.frequency_from_code(self.name.split('.')[1])
+    frequency = Series.frequency_from_code(self.name.split('.')[1])  ## replace with Series.parse_name
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
     new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
   end
