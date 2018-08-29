@@ -4,9 +4,8 @@ class DataListsController < ApplicationController
   MAXINDENT = 3
 
   before_action :check_data_list_authorization
+  before_action :set_data_list, except: [:index, :new, :create, :remove_measurement, :set_measurement_indent]
 
-  # GET /data_lists
-  # GET /data_lists.xml
   def index
     @data_lists = DataList.where(universe: 'UHERO').order(:name).all
 
@@ -16,75 +15,53 @@ class DataListsController < ApplicationController
     end
   end
 
-  # GET /data_lists/1
   def show
-    @freq = params[:freq]
-    @freq ||= 'A'
-    @county = params[:county]
-    @county ||= 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
-    @data_list = DataList.find_by id: params[:id]
-    render 'super_table'
+    super_table
+    render :super_table
   end
   
   def super_table
-    @freq = params[:freq]
-    @freq ||= 'A'
-    @county = params[:county]
-    @county ||= 'HI'
-    @seasonally_adjusted = params[:seasonally_adjusted] || 'T'
-    @data_list = DataList.find_by id: params[:id]
-    # @series_to_chart = @data_list.series_names
-    # frequency = @series_to_chart[0][-1]
-    # dates = set_dates(frequency, params)
-    # @start_date = dates[:start_date]
-    # @end_date = dates[:end_date]
-    render 'super_table'
+    @freq = params[:freq] || 'A'
+    @geo = params[:geography] || 'HI'
+    @seasonally_adjusted = params[:seasonally_adjusted] || 'all'
   end
   
   def show_table
-    @data_list = DataList.find_by id: params[:id]
     @series_to_chart = @data_list.series_names
-    if @series_to_chart.length == 0
-      render 'tableview'
-      return
+    unless @series_to_chart.empty?
+      frequency = Series.parse_name(@series_to_chart[0])[:freq]
+      dates = set_dates(frequency, params)
+      @start_date = dates[:start_date]
+      @end_date = dates[:end_date]
     end
-    frequency = @series_to_chart[0][-1]
-    dates = set_dates(frequency, params)
-    @start_date = dates[:start_date]
-    @end_date = dates[:end_date]
-    render 'tableview'
+    render :tableview
   end
 
-#NOTE DATA LIST NEEDS TO BE ALL CAPS... SOMETHING TO FIX. Not the case for regular super table
   def show_tsd_super_table
-    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
-    render 'tsd_super_tableview'
+    render :tsd_super_tableview
   end
   
   def show_tsd_table
-    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     @series_to_chart = @data_list.series_names
-    frequency = @series_to_chart[0][-1]
+    frequency = Series.parse_name(@series_to_chart[0])[:freq]
     dates = set_dates(frequency, params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render 'tsd_tableview'
+    render :tsd_tableview
   end
   
   def analyze_view
-    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
     #@series_name = @data_list.series_names[@series_index]
 
     @data = json_from_heroku_tsd(@series_name,@tsd_file)
-		@series = @data.nil? ? nil : Series.new_transformation(@data['name']+'.'+@data['frequency'],  @data['data'], Series.frequency_from_code(@data['frequency']))
+		@series = @data && Series.new_transformation(@data['name']+'.'+@data['frequency'], @data['data'], Series.frequency_from_code(@data['frequency']))
 		@chg = @series.annualized_percentage_change
     #@as = AremosSeries.get @series.name 
     @desc = 'None yet' #@as.nil? ? 'No Aremos Series' : @as.description
@@ -93,12 +70,10 @@ class DataListsController < ApplicationController
   end
   
   def compare_forecasts
-    @data_list = DataList.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
   end
   
   def compare_view
-    @data_list = DataList.find_by id: params[:id]
     @tsd_file1 = 'heco14.TSD'
     @tsd_file2 = '13Q4.TSD'
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
@@ -115,8 +90,6 @@ class DataListsController < ApplicationController
     @history_chg = @history_series.annualized_percentage_change
   end
   
-  # GET /data_lists/new
-  # GET /data_lists/new.xml
   def new
     @category_id = Category.find(params[:category_id]).id rescue nil
     @data_list = DataList.new
@@ -128,18 +101,15 @@ class DataListsController < ApplicationController
   end
 
   def duplicate
-    original_data_list = DataList.find_by id: params[:id]
-    new_data_list = original_data_list.dup
-    new_data_list.name = original_data_list.name + ' (copy)'
-    new_data_list.measurements = original_data_list.measurements
-    new_data_list.save
+    new_data_list = @data_list.dup
+    new_data_list.name = @data_list.name + ' (copy)'
+    new_data_list.measurements = @data_list.measurements
+    new_data_list.save!
     redirect_to edit_data_list_url(new_data_list.id)
   end
 
-  # GET /data_lists/1/edit
   def edit
     @dl_measurements = []
-    @data_list = DataList.find_by id: params[:id]
     @data_list.data_list_measurements.sort_by{|m| m.list_order}.each do |dlm|
         if dlm.measurement.nil?
           @data_list.data_list_measurements.destroy(dlm)
@@ -149,8 +119,6 @@ class DataListsController < ApplicationController
     end
   end
 
-  # POST /data_lists
-  # POST /data_lists.xml
   def create
     properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id, owned_by: current_user.id)
     category = Category.find(params[:category_id]) rescue nil
@@ -171,11 +139,7 @@ class DataListsController < ApplicationController
     end
   end
 
-  # PUT /data_lists/1
-  # PUT /data_lists/1.xml
   def update
-    @data_list = DataList.find_by id: params[:id]
-
     respond_to do |format|
       puts params[:data_list]
       if @data_list.update! data_list_params.merge({ :updated_by => current_user.id })
@@ -188,10 +152,7 @@ class DataListsController < ApplicationController
     end
   end
 
-  # DELETE /data_lists/1
-  # DELETE /data_lists/1.xml
   def destroy
-    @data_list = DataList.find_by id: params[:id]
     @data_list.destroy
 
     respond_to do |format|
@@ -201,7 +162,6 @@ class DataListsController < ApplicationController
   end
 
   def add_measurement
-    @data_list = DataList.find_by id: params[:id].to_i
     if params[:commit] =~ /DBEDTCOH/
       mid = params[:data_list][:dbedtcoh_meas_id]
     else
@@ -221,8 +181,6 @@ class DataListsController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @data_list = DataList.find_by id: params[:id]
-    puts "trying to move measurement #{params[:measurement_id]} up."
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
     old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
     if old_index <= 0
@@ -245,8 +203,6 @@ class DataListsController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @data_list = DataList.find_by id: params[:id]
-    puts "trying to move measurement #{params[:measurement_id]} down."
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
     old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
     if old_index >= measurements_array.length - 1
@@ -299,7 +255,11 @@ class DataListsController < ApplicationController
     dlm.update(indent: 'indent'+new_indent.to_s)
   end
 
-  private
+private
+    def set_data_list
+      @data_list = DataList.find params[:id]
+    end
+
     def data_list_params
       params.require(:data_list)
           .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)

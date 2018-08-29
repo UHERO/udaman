@@ -25,14 +25,44 @@
     </div>
   <% end %>
 </div>
+
 <div id="details_mask"></div>
 <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
-		<ul>
-		<% @all_series.each do |series| %>
-			<li><%= link_to series.name, {:action => 'show', :id => series.id} %></li>
-		<% end %>
-		</ul>
-</div>
 
-<p>
+<% unless @all_series.empty? %>
+  <%= will_paginate @all_series %>
+
+  <table class="list_table">
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>SA</th>
+      <th>Portal Name</th>
+      <th>Units</th>
+      <th>First</th>
+      <th>Last</th>
+      <th>Source</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <% row = -1 %>
+    <% @all_series.each do |series| %>
+      <% row += 1 %>
+      <tr class="row<%= row % 2 %>">
+        <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fa fa-ban redban" title="restricted"></i><% end %></td>
+        <td><%= sa_indicator(series.seasonal_adjustment || 'NA') %></td>
+        <td><%= series.dataPortalName %></td>
+        <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
+        <td><%= DataPoint.where(series_id: series).minimum(:date) %></td>
+        <td><%= DataPoint.where(series_id: series).maximum(:date) %></td>
+        <td><%= series.source && series.source.description %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  <%= will_paginate @all_series %>
+  <p>
+<% end %>
+</div>

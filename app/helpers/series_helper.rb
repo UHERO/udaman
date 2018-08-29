@@ -1,5 +1,5 @@
 module SeriesHelper
-  
+  include Validators
   require 'csv'
   
   def csv_helper
@@ -88,16 +88,16 @@ module SeriesHelper
     red = 255 if red > 255
     green = 20 if green < 20 
     blue = 20 if blue < 20
-    return "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
+    "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
   end
   
   def navigation_by_letter
     html = "<br />"
+    all_uhero = Series.get_all_uhero
     "A".upto("Z") do |letter|
-      count = Series.where("name LIKE :name", {:name => "#{letter}%"}).count
-      #count = Series.where(:name => /^#{letter}/)
+      count = all_uhero.where("name LIKE :name", {name: "#{letter}%"}).count
       if count > 0
-        html += link_to raw("["+letter+"&nbsp;<span class='series_count'>#{count}</span>]"), {:action => 'index', :prefix => letter}
+        html += link_to(raw("["+letter+"&nbsp;<span class='series_count'>#{count}</span>]"), {action: :index, prefix: letter})
         html += " "
       end
     end
@@ -106,16 +106,27 @@ module SeriesHelper
   
   def navigation_by_frequency
     html = ""
+    all_uhero = Series.get_all_uhero
     [:month, :quarter, :year].each do |frequency|
-      count = Series.where(:frequency => frequency).count
-      html += link_to raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {:action => 'index', :freq => frequency}
+      count = all_uhero.where(frequency: frequency).count
+      html += link_to(raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {action: :index, freq: frequency})
       html += "&nbsp;"
     end
-    count = Series.count
-	  html += link_to raw("all&nbsp;<span class='series_count'>#{count}</span>") , {:action => 'index', :all => 'true'}
+    count = all_uhero.count
+	  html + link_to(raw("all&nbsp;<span class='series_count'>#{count}</span>") , {action: :index, all: 'true'})
   end
 
   def nightly_actuator(nightly)
     (nightly ? 'disable' : 'enable') + ' nightly reload'
+  end
+
+  def make_live_link(url, text = url)
+    return url if url.blank?
+    return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
+    "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
+  end
+
+  def sa_indicator(string)
+    string == 'NA' ? '-' : "<span class='#{string.downcase}-indicator'>#{string}</span>".html_safe
   end
 end
