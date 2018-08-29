@@ -595,32 +595,27 @@ class Series < ActiveRecord::Base
   end
   
   def Series.load_from_bls(code, frequency)
-    series_data = DataHtmlParser.new.get_bls_series(code,frequency)
-    Series.new_transformation("loaded series code: #{code} from bls website", series_data, Series.frequency_from_code(frequency))
+    Series.new.load_from_bls(code, frequency)
   end
   
   def load_from_bls(code, frequency = nil)
-    series_data = DataHtmlParser.new.get_bls_series(code,frequency)
-    new_transformation("loaded series code: #{code} from bls website", series_data)
+    series_data = DataHtmlParser.new.get_bls_series(code, frequency)
+    raise "No data collected from BLS for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    new_transformation("loaded series code: #{code} from bls website", series_data, frequency)
   end
-  
-  #it seems like these should need frequencies...
-  def load_from_fred(code)
-    series_data = DataHtmlParser.new.get_fred_series(code)
-    new_transformation("loaded series : #{code} from FRED website", series_data)
+
+  def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
+    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
+    raise "No data collected from FRED for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    Series.new_transformation("loaded series : #{code} from FRED website", series_data, Series.frequency_from_code(frequency))
   end
-  
+
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
     new_transformation('days in time periods', series_data, self.frequency)
   end
-  
-  def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
-    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    Series.new_transformation("loaded series : #{code} from FRED website", series_data, Series.frequency_from_code(frequency))
-  end
-  
+
   def Series.where_ds_like(string)
     ds_array = DataSource.where("eval LIKE '%#{string}%'").all
     series_array = []
