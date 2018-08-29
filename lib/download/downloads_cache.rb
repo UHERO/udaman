@@ -70,8 +70,12 @@ class DownloadsCache
     excel = begin
               Roo::Spreadsheet.open(@path, extension: File.extname(@path))
             rescue
-              flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
-              Roo::Spreadsheet.open(@path, extension: flip_ext)
+              begin
+                flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
+                Roo::Spreadsheet.open(@path, extension: flip_ext)
+              rescue
+                  raise "bad spreadsheet for download handle #{@handle}: likely a web 404"
+              end
             end
     sheet_parts = sheet.split(':')
     def_sheet = case
