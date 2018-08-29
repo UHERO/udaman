@@ -4,7 +4,7 @@ class DataListsController < ApplicationController
   MAXINDENT = 3
 
   before_action :check_data_list_authorization
-  before_action :set_data_list, except: [:index, :new, :create, :remove_measurement, :set_measurement_indent]
+  before_action :set_data_list, except: [:index, :new, :create]
 
   def index
     @data_lists = DataList.where(universe: 'UHERO').order(:name).all
@@ -141,7 +141,6 @@ class DataListsController < ApplicationController
 
   def update
     respond_to do |format|
-      puts params[:data_list]
       if @data_list.update! data_list_params.merge({ :updated_by => current_user.id })
         format.html { redirect_to(@data_list, :notice => 'Data list was successfully updated.') }
         format.xml  { head :ok }
@@ -225,7 +224,7 @@ class DataListsController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    measurements = DataListMeasurement.where(data_list_id: params[:id]).to_a.sort_by{ |m| m.list_order }
+    measurements = DataListMeasurement.where(data_list_id: @data_list.id).to_a.sort_by{ |m| m.list_order }
     index_to_remove = measurements.index{ |m| m.measurement_id == params[:measurement_id].to_i }
     new_order = 0
     measurements.each_index do |i|
@@ -235,12 +234,12 @@ class DataListsController < ApplicationController
       measurements[i].update list_order: new_order
       new_order += 1
     end
-    id_to_remove = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id]).id
+    id_to_remove = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id]).id
     DataListMeasurement.destroy(id_to_remove)
   end
 
   def set_measurement_indent
-    dlm = DataListMeasurement.find_by(data_list_id: params[:id], measurement_id: params[:measurement_id])
+    dlm = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id])
     current_indent = dlm.indent ? dlm.indent[-1].to_i : 0
     new_indent = params[:indent_in_out] == 'in' ? current_indent + 1 : current_indent - 1
     if new_indent < 0 || new_indent > MAXINDENT
