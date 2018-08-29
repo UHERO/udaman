@@ -3,6 +3,7 @@ task :batch_add_source_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%'}).uniq
   eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
   marked_series = []
+  cmds = {}
 
   agg_series.each do |s|
     name_parts = s.parse_name
@@ -75,9 +76,9 @@ task :batch_add_source_for_aggregated => :environment do
       puts sprintf(format, s.name, s_unit, s_source, s_detail, s_link)
       print '> '
       cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
-      break if cmds['n']
+      break if cmds['n'] || cmds['Q']
       if cmds['m']
-        marked_series.push(s.name)
+        marked_series.push(s)
         puts "####### Series #{s.name} marked"
         next
       end
@@ -90,9 +91,10 @@ task :batch_add_source_for_aggregated => :environment do
       s.update!(updates) unless updates.empty?
       s.reload
     end
+    break if cmds['Q']
   end
   puts "Marked series:"
-  marked_series.sort.uniq.each {|msname| puts msname }
+  marked_series.sort.uniq.each {|s| puts "#{s.name} - https://udaman.uhero.hawaii.edu/series/#{s.id}" }
 end
 
 ## JIRA: UA-993
