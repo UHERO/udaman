@@ -467,6 +467,7 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
+    raise "no data provided for new transformation '#{name}'" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
                 Series.frequency_from_code(Series.parse_name(name)[:freq]) rescue nil
     Series.new(
@@ -582,15 +583,18 @@ class Series < ActiveRecord::Base
     series_data = dp.get_data
     new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
   end
-  
+
+  ## Redundancy of this code with instance method should be eliminated. Cf load_from_bls
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
+    raise "No data collected from BEA for #{dataset}/freq=#{frequency}" if series_data.nil? || series_data.empty?
     Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, Series.frequency_from_code(frequency))
   end
   
   def load_from_bea(dataset, parameters)
-    frequency = Series.frequency_from_code(self.name.split('.')[1])  ## replace with Series.parse_name
+    frequency = Series.frequency_from_code(self.name.split('.')[1])  ## replace with Series.parse_name, or bag this whole var? Not needed?
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
+    raise "No data collected from BEA for #{dataset}" if series_data.nil? || series_data.empty?
     new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
   end
   
