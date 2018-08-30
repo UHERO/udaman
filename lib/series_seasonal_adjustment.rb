@@ -1,7 +1,7 @@
 module SeriesSeasonalAdjustment
   #may need to spec a test for this in terms of adding the correct source
   def apply_seasonal_adjustment(factor_application)
-    ns_series_name = name.sub('@','NS@')
+    ns_series_name = name.sub('@','NS@')  ## replace with call to get_ns_series
     ns_series = Series.get ns_series_name
     raise SeasonalAdjustmentException.new if ns_series.nil?
     set_factors factor_application 
