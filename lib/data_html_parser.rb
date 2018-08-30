@@ -148,7 +148,7 @@ class DataHtmlParser
       request.body = URI::encode_www_form @post_parameters
       @content = http.request(request).read_body
     end
-    return Nokogiri::HTML(@content)
+    Nokogiri::HTML(@content)
   end
 
   def fetch(uri_str, limit = 10)

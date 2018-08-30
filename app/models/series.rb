@@ -484,6 +484,7 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
+    raise "No data provided for new transformation '#{name}'" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
                 Series.frequency_from_code(Series.parse_name(name)[:freq])
     Series.new(
@@ -599,45 +600,36 @@ class Series < ActiveRecord::Base
     series_data = dp.get_data
     new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
   end
-  
+
+  ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, Series.frequency_from_code(frequency))
-  end
-  
-  def load_from_bea(dataset, parameters)
-    frequency = Series.frequency_from_code(self.name.split('.')[1])
-    series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    new_transformation("loaded dataset #{dataset} with parameters #{parameters} for region #{region} from BEA API", series_data, frequency)
+    raise "No data collected from BEA API for #{dataset}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
-    series_data = DataHtmlParser.new.get_bls_series(code,frequency)
-    Series.new_transformation("loaded series code: #{code} from bls website", series_data, Series.frequency_from_code(frequency))
+    Series.new.load_from_bls(code, frequency)
   end
   
   def load_from_bls(code, frequency = nil)
-    series_data = DataHtmlParser.new.get_bls_series(code,frequency)
-    new_transformation("loaded series code: #{code} from bls website", series_data)
+    series_data = DataHtmlParser.new.get_bls_series(code, frequency)
+    raise "No data collected from BLS API for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    new_transformation("loaded series code: #{code} from bls website", series_data, frequency)
   end
-  
-  #it seems like these should need frequencies...
-  def load_from_fred(code)
-    series_data = DataHtmlParser.new.get_fred_series(code)
-    new_transformation("loaded series : #{code} from FRED website", series_data)
+
+  def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
+    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
+    raise "No data collected from FRED API for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    Series.new_transformation("loaded series : #{code} from FRED website", series_data, frequency)
   end
-  
+
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
     new_transformation('days in time periods', series_data, self.frequency)
   end
-  
-  def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
-    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    Series.new_transformation("loaded series : #{code} from FRED website", series_data, Series.frequency_from_code(frequency))
-  end
-  
+
   def Series.where_ds_like(string)
     ds_array = DataSource.where("eval LIKE '%#{string}%'").all
     series_array = []
