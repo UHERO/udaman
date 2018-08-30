@@ -484,7 +484,7 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
-    raise "no data provided for new transformation '#{name}'" if data.nil?
+    raise "No data provided for new transformation '#{name}'" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
                 Series.frequency_from_code(Series.parse_name(name)[:freq])
     Series.new(
