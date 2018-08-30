@@ -54,7 +54,7 @@ class DataHtmlParser
     raise 'BEA API: major unknown failure' unless response['BEAAPI']
     err = response['BEAAPI']['Error']
     if err
-      raise 'BEA API: Error: %s (code=%s)' % [err['APIErrorDescription'] + err['AdditionalDetail'], err['APIErrorCode']]
+      raise 'BEA API: Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
     end
     raise 'BEA API: no results included' unless response['BEAAPI']['Results']
     results_data = response['BEAAPI']['Results']['Data']
