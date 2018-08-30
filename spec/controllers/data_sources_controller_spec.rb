@@ -17,7 +17,7 @@ describe DataSourcesController do
 
   describe "update 'data_sources'" do
     before do
-      allow(DataSource).to receive(:find_by).and_return(data_source)
+      allow(DataSource).to receive(:find).and_return(data_source)
       allow(data_source).to receive(:series).and_return(series)
       allow(DataSourceAction).to receive(:create)
     end
@@ -49,7 +49,7 @@ describe DataSourcesController do
 
   describe "delete 'data_sources'" do
     before do
-      allow(DataSource).to receive(:find_by).and_return(data_source)
+      allow(DataSource).to receive(:find).and_return(data_source)
       allow(data_source).to receive(:series).and_return(Series.first)
       allow(data_source).to receive(:delete).and_return(true)
       allow(DataSourceAction).to receive(:create)
