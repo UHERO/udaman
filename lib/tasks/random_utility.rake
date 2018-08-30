@@ -66,7 +66,7 @@ task :batch_add_source_for_aggregated => :environment do
       s_source = (s.source && s.source.description) || '(empty)'
       s_detail = (s.source_detail && s.source_detail.description) || '(empty)'
       s_link = s.source_link.blank? ? '(empty)' : s.source_link
-      format = sprintf('%%-22s: u=%%-%ds :: s=%%-%ds :: d=%%-%ds :: l=%%-%ds',
+      format = sprintf('%%-22s: u=%%-%ds    s=%%-%ds    d=%%-%ds    l=%%-%ds',
                        [s_unit.length, parent_unit.length].max,
                        [s_source.length, parent_source.length].max,
                        [s_detail.length, parent_detail.length].max,
@@ -82,6 +82,9 @@ task :batch_add_source_for_aggregated => :environment do
         puts "####### Series #{s.name} marked"
         next
       end
+      if cmds['U']
+        choose_resource(Unit)
+      end
       updates = {}
       updates.merge!(unit_id: parent.unit_id)                   if cmds['u'] || cmds['A']
       updates.merge!(source_id: parent.source_id)               if cmds['s'] || cmds['A']
@@ -95,6 +98,17 @@ task :batch_add_source_for_aggregated => :environment do
   end
   puts "Marked series:"
   marked_series.sort.uniq.each {|s| puts "#{s.name} - https://udaman.uhero.hawaii.edu/series/#{s.id}" }
+end
+
+def choose_resource(klass, field)
+  all_rows = klass.where(universe: 'UHERO')
+  i = 1
+  id_map = {}
+  all_rows.each do |row|
+    label = row.send(field)
+    print "#{i}. #{label}"
+    i = i + 1
+  end
 end
 
 ## JIRA: UA-993
