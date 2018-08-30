@@ -83,14 +83,15 @@ task :batch_add_source_for_aggregated => :environment do
         next
       end
       if cmds['U']
-        choose_resource(Unit)
+        unit_id = choose_resource(Unit, 'to_s')
+        s.update!(unit_id: unit_id) if unit_id
+        next
       end
       updates = {}
       updates.merge!(unit_id: parent.unit_id)                   if cmds['u'] || cmds['A']
       updates.merge!(source_id: parent.source_id)               if cmds['s'] || cmds['A']
       updates.merge!(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
       updates.merge!(source_link: parent.source_link)           if cmds['l'] || cmds['A']
-      ##puts ">>> cmds=#{cmds}, updates are #{updates}"
       s.update!(updates) unless updates.empty?
       s.reload
     end
@@ -100,15 +101,20 @@ task :batch_add_source_for_aggregated => :environment do
   marked_series.sort.uniq.each {|s| puts "#{s.name} - https://udaman.uhero.hawaii.edu/series/#{s.id}" }
 end
 
-def choose_resource(klass, field)
+def choose_resource(klass, method)
   all_rows = klass.where(universe: 'UHERO')
   i = 1
   id_map = {}
-  all_rows.each do |row|
-    label = row.send(field)
-    print "#{i}. #{label}"
+  all_rows.each do |res|
+    label = res.send(method)
+    puts sprintf('%02d. %s', i, label)
+    id = res.read_attribute(:id)
+    id_map[i] = id
     i = i + 1
   end
+  print 'choice> '
+  choice = STDIN.gets.chomp.to_i
+  id_map[choice]  ## returns nil for index 0
 end
 
 ## JIRA: UA-993
