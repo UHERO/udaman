@@ -50,9 +50,18 @@ class DataHtmlParser
     @url = "http://www.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
+    response = JSON.parse self.content
+    raise 'BEA API: major unknown failure' unless response['BEAAPI']
+    err = response['BEAAPI']['Error']
+    if err
+      raise 'BEA API: Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
+    end
+    raise 'BEA API: no results included' unless response['BEAAPI']['Results']
+    results_data = response['BEAAPI']['Results']['Data']
+    raise 'BEA API: results, but no data' unless results_data
+
     new_data = {}
-    bea_data = JSON.parse self.content
-    bea_data['BEAAPI']['Results']['Data'].each do |data_point|
+    results_data.each do |data_point|
       next unless request_match(parameters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
