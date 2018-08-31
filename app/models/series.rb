@@ -296,6 +296,7 @@ class Series < ActiveRecord::Base
     new.update(
         geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
         name: Series.build_name([name[:prefix], geo, name[:freq]])
+        ## future/next time: the dataPortalName also needs to be copied over (with mods?)
     )
     new.save!
     self.data_sources.each do |ds|
@@ -604,7 +605,7 @@ class Series < ActiveRecord::Base
   ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    raise "No data collected from BEA API for #{dataset}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    raise "No data collected from BEA API for #{dataset} freq=#{frequency}" if series_data.nil? || series_data.empty?
     Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, frequency)
   end
   
@@ -614,13 +615,13 @@ class Series < ActiveRecord::Base
   
   def load_from_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
-    raise "No data collected from BLS API for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    raise "No data collected from BLS API for #{code} freq=#{frequency}" if series_data.nil? || series_data.empty?
     new_transformation("loaded series code: #{code} from bls website", series_data, frequency)
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
     series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    raise "No data collected from FRED API for #{code}/freq=#{frequency}" if series_data.nil? || series_data.empty?
+    raise "No data collected from FRED API for #{code} freq=#{frequency}" if series_data.nil? || series_data.empty?
     Series.new_transformation("loaded series : #{code} from FRED website", series_data, frequency)
   end
 

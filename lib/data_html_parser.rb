@@ -47,7 +47,7 @@ class DataHtmlParser
     api_key = ENV['API_KEY_BEA']
     raise 'No API key defined for BEA' unless api_key
     query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
-    @url = "http://www.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
+    @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content

@@ -1,6 +1,6 @@
 ## JIRA: UA-989
 task :batch_add_source_for_aggregated => :environment do
-  agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%'}).uniq
+  agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and prognoz_data_file_id is null}).uniq
   eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
   marked_series = []
   cmds = {}
@@ -66,7 +66,7 @@ task :batch_add_source_for_aggregated => :environment do
       s_source = (s.source && s.source.description) || '(empty)'
       s_detail = (s.source_detail && s.source_detail.description) || '(empty)'
       s_link = s.source_link.blank? ? '(empty)' : s.source_link
-      format = sprintf('%%-22s: u=%%-%ds :: s=%%-%ds :: d=%%-%ds :: l=%%-%ds',
+      format = sprintf('%%-22s: u=%%-%ds    s=%%-%ds    d=%%-%ds    l=%%-%ds',
                        [s_unit.length, parent_unit.length].max,
                        [s_source.length, parent_source.length].max,
                        [s_detail.length, parent_detail.length].max,
@@ -76,10 +76,26 @@ task :batch_add_source_for_aggregated => :environment do
       puts sprintf(format, s.name, s_unit, s_source, s_detail, s_link)
       print '> '
       cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
+      s.update!(prognoz_data_file_id: 'seen') if cmds['n']
       break if cmds['n'] || cmds['Q']
       if cmds['m']
         marked_series.push(s)
         puts "####### Series #{s.name} marked"
+        next
+      end
+      if cmds['U']
+        res_id = choose_resource(Unit, 'to_s')
+        s.update!(unit_id: res_id) if res_id
+        next
+      end
+      if cmds['S']
+        res_id = choose_resource(Source, 'description')
+        s.update!(source_id: res_id) if res_id
+        next
+      end
+      if cmds['D']
+        res_id = choose_resource(SourceDetail, 'description')
+        s.update!(source_detail_id: res_id) if res_id
         next
       end
       updates = {}
@@ -87,7 +103,6 @@ task :batch_add_source_for_aggregated => :environment do
       updates.merge!(source_id: parent.source_id)               if cmds['s'] || cmds['A']
       updates.merge!(source_detail_id: parent.source_detail_id) if cmds['d'] || cmds['A']
       updates.merge!(source_link: parent.source_link)           if cmds['l'] || cmds['A']
-      ##puts ">>> cmds=#{cmds}, updates are #{updates}"
       s.update!(updates) unless updates.empty?
       s.reload
     end
@@ -95,6 +110,22 @@ task :batch_add_source_for_aggregated => :environment do
   end
   puts "Marked series:"
   marked_series.sort.uniq.each {|s| puts "#{s.name} - https://udaman.uhero.hawaii.edu/series/#{s.id}" }
+end
+
+def choose_resource(klass, method)
+  all_rows = klass.where(universe: 'UHERO')
+  i = 1
+  id_map = {}
+  all_rows.each do |res|
+    label = res.send(method)
+    puts sprintf('%02d. %s', i, label)
+    id = res.read_attribute(:id)
+    id_map[i] = id
+    i = i + 1
+  end
+  print 'choice> '
+  choice = STDIN.gets.chomp.to_i
+  id_map[choice]  ## returns nil for index 0
 end
 
 ## JIRA: UA-993
