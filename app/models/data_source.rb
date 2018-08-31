@@ -176,13 +176,12 @@ class DataSource < ActiveRecord::Base
                     :last_error_at => nil)
 
       rescue => e
-        message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
-                    :last_error => message,
+                    :last_error => e.message,
                     :last_error_at => t)
-        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{message}" }
+        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{e.message}" }
         return false
       end
       Rails.logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }
