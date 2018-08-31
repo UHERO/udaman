@@ -83,8 +83,18 @@ task :batch_add_source_for_aggregated => :environment do
         next
       end
       if cmds['U']
-        unit_id = choose_resource(Unit, 'to_s')
-        s.update!(unit_id: unit_id) if unit_id
+        res_id = choose_resource(Unit, 'to_s')
+        s.update!(unit_id: res_id) if res_id
+        next
+      end
+      if cmds['S']
+        res_id = choose_resource(Source, 'description')
+        s.update!(source_id: res_id) if res_id
+        next
+      end
+      if cmds['D']
+        res_id = choose_resource(SourceDetail, 'description')
+        s.update!(source_detail_id: res_id) if res_id
         next
       end
       updates = {}
