@@ -19,8 +19,8 @@ class Series < ActiveRecord::Base
   #serialize :data, Hash
   serialize :factors, Hash
   
-  has_many :data_points
-  has_many :data_sources
+  has_many :data_points, dependent: :delete_all
+  has_many :data_sources, dependent: :destroy
   has_many :data_source_actions, -> { order 'created_at DESC' }
   has_many :sidekiq_failures  ## really only has one, but stupid Rails error prevented relation from working with has_one :(
 
@@ -31,6 +31,8 @@ class Series < ActiveRecord::Base
   belongs_to :unit, inverse_of: :series
   belongs_to :geography, inverse_of: :series
 
+  has_many :export_series, dependent: :delete_all
+  has_many :exports, through: :export_series
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
@@ -38,6 +40,9 @@ class Series < ActiveRecord::Base
                               SA: 'seasonally_adjusted',
                               NS: 'not_seasonally_adjusted' }
 
+  ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
+  ## columns/attributes based on heuristics over other attributes in the model. In any case, replacing the
+  ## name.split with a Series.parse_name would be better.
   after_create do
     self.update frequency: (Series.frequency_from_code(self.name.split('.').pop) || self.frequency)
   end
