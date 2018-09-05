@@ -25,7 +25,7 @@
           <tbody>
           <% @export.export_series.to_a.sort_by{|s| s.list_order}.map{|s| s.series}.each do |series| %>
               <tr>
-                <td><%= series.name %></td>
+                <td><%= link_to series.name, series %></td>
                 <td><%= link_to 'Up', {controller: :exports, action: :move_series_up, id: @export, series_id: series.id}, remote: true, data: {up: true} %></td>
                 <td><%= link_to 'Down', {controller: :exports, action: :move_series_down, id: @export, series_id: series.id}, remote: true, data: {down: true} %></td>
                 <td><%= link_to 'Remove', {controller: :exports, action: :remove_series, id: @export, series_id: series.id}, remote: true, data: {remove: true} %></td>

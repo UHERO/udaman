@@ -31,8 +31,6 @@
 		<%= render :partial => 'calculate_form' %>
 
 <% unless @all_series.empty? %>
-  <%= will_paginate @all_series %>
-
   <table class="list_table">
     <thead>
     <tr>
@@ -62,7 +60,6 @@
     <% end %>
     </tbody>
   </table>
-  <%= will_paginate @all_series %>
   <p>
 <% end %>
 </div>
