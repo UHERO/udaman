@@ -3,7 +3,7 @@ class DataSource < ActiveRecord::Base
   serialize :dependencies, Array
   
   belongs_to :series
-  has_many :data_points
+  has_many :data_points, dependent: :delete_all
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_source_actions
   has_many :downloads, -> {distinct}, through: :data_source_downloads
@@ -11,7 +11,7 @@ class DataSource < ActiveRecord::Base
   composed_of   :last_run,
                 :class_name => 'Time',
                 :mapping => %w(last_run_in_seconds to_r),
-                :constructor => Proc.new { |t| Time.at(t) },
+                :constructor => Proc.new { |t| Time.at(t || 0) },
                 :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.at(t/1000.0) }
 
   before_update :set_dependencies_without_save
@@ -176,13 +176,12 @@ class DataSource < ActiveRecord::Base
                     :last_error_at => nil)
 
       rescue => e
-        message = (e.class != e.message) ? "#{e.class}: #{e.message}" : e.message
         self.update(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
-                    :last_error => message,
+                    :last_error => e.message,
                     :last_error_at => t)
-        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{message}" }
+        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{e.message}" }
         return false
       end
       Rails.logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }

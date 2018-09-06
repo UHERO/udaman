@@ -79,6 +79,17 @@ class String
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
   end
 
+  ## convert frequency string values to numeric ones that can be compared for >, <, etc
+  ## returns nil for strings not included
+  def freqn
+    %w[year semi quarter month week day].index(self) || %w[A S Q M W D].index(self.upcase)
+  end
+end
+
+class Symbol
+  def freqn
+    self.to_s.freqn
+  end
 end
 
 class Array

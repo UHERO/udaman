@@ -14,8 +14,7 @@ module SeriesRelationship
   end
   
   def get_ns_series
-    ns_series_name = name.sub('@', 'NS@')
-    Series.get ns_series_name
+    Series.get name.sub('@','NS@')
   end
   
   def current_data_points

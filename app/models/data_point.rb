@@ -87,17 +87,19 @@ class DataPoint < ActiveRecord::Base
   def source_type
     source_eval = self.data_source.eval
     case 
-    when source_eval.index('load_from_bls')
-      return :download
-    when source_eval.index('load_from_download')
-      return :download
-    when source_eval.index('load_from_fred')
-      return :download
-    when source_eval.index('load_from')
-      return :static_file
-    else
-      return :identity
-    end
+      when source_eval.index('load_from_bls')
+        return :download
+      when source_eval.index('load_from_bea')
+        return :download
+      when source_eval.index('load_from_download')
+        return :download
+      when source_eval.index('load_from_fred')
+        return :download
+      when source_eval.index('load_from')
+        return :static_file
+      else
+        return :identity
+      end
   end
   
   def source_type_code

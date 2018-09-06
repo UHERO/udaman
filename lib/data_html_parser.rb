@@ -47,12 +47,21 @@ class DataHtmlParser
     api_key = ENV['API_KEY_BEA']
     raise 'No API key defined for BEA' unless api_key
     query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
-    @url = "http://www.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
+    @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
+    response = JSON.parse self.content
+    raise 'BEA API: major unknown failure' unless response['BEAAPI']
+    err = response['BEAAPI']['Error']
+    if err
+      raise 'BEA API: Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
+    end
+    raise 'BEA API: no results included' unless response['BEAAPI']['Results']
+    results_data = response['BEAAPI']['Results']['Data']
+    raise 'BEA API: results, but no data' unless results_data
+
     new_data = {}
-    bea_data = JSON.parse self.content
-    bea_data['BEAAPI']['Results']['Data'].each do |data_point|
+    results_data.each do |data_point|
       next unless request_match(parameters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
@@ -148,7 +157,7 @@ class DataHtmlParser
       request.body = URI::encode_www_form @post_parameters
       @content = http.request(request).read_body
     end
-    return Nokogiri::HTML(@content)
+    Nokogiri::HTML(@content)
   end
 
   def fetch(uri_str, limit = 10)
