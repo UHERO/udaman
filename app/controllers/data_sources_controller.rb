@@ -15,7 +15,7 @@ class DataSourcesController < ApplicationController
   end
   
   def delete
-    if @data_source.delete
+    if @data_source.destroy
       create_action @data_source, 'DELETE'
     end
     redirect_to controller: :series, action: :show, id: @data_source.series_id
