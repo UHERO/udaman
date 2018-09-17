@@ -1,4 +1,5 @@
 class Download < ActiveRecord::Base
+  include Cleaning
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_sources, -> {distinct}, through: :data_source_downloads
   has_many :dsd_log_entries
