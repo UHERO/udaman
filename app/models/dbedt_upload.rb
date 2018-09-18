@@ -1,5 +1,4 @@
 class DbedtUpload < ActiveRecord::Base
-  include Cleaning
   require 'date'
   before_destroy :delete_files_from_disk
   before_destroy :delete_data_and_data_sources
