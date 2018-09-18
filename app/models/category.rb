@@ -1,4 +1,5 @@
 class Category < ActiveRecord::Base
+  include Cleaning
   has_ancestry
   belongs_to :data_list
   belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id

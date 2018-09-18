@@ -1,4 +1,5 @@
 class Export < ActiveRecord::Base
+  include Cleaning
   has_many :export_series, dependent: :delete_all
   has_many :series, -> {distinct}, through: :export_series
   accepts_nested_attributes_for :series

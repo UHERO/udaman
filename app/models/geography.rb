@@ -1,4 +1,5 @@
 class Geography < ActiveRecord::Base
+  include Cleaning
   has_many :series
 
   def initialize(*args, &block)

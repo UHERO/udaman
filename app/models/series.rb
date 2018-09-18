@@ -1,4 +1,5 @@
 class Series < ActiveRecord::Base
+  include Cleaning
   include SeriesArithmetic
   include SeriesAggregation
   include SeriesComparison
@@ -275,7 +276,7 @@ class Series < ActiveRecord::Base
     properties[:name] = Series.build_name([ name_parts[:prefix], geo.handle, name_parts[:freq] ])
     properties[:geography_id] = geo.id
     properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
-    Series.create( properties.map {|k,v| [k, v.blank? ? nil : v] }.to_h ) ## don't put empty strings in the db.
+    Series.create(properties)
   end
 
   def Series.parse_name(string)

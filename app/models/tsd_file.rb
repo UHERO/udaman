@@ -1,4 +1,5 @@
 class TsdFile < ActiveRecord::Base
+  include Cleaning
   require 'digest/md5'
   require 'date'
   belongs_to :forecast_snapshot
