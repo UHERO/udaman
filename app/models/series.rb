@@ -295,8 +295,24 @@ class Series < ActiveRecord::Base
     Series.parse_name(name) && name
   end
 
+  ## Find "sibling" series for a different geography
+  def find_sibling_for_geo(geo)
+    my_name = self.parse_name
+    new_name = Series.build_name([my_name[:prefix], geo, my_name[:freq]])
+    Series.find_by name: new_name
+  end
+
+  ## Find "sibling" series for a different frequency
+  def find_sibling_for_freq(freq)
+    my_name = self.parse_name
+    new_name = Series.build_name([my_name[:prefix], my_name[:geo], freq])
+    Series.find_by name: new_name
+  end
+
   ## Duplicate series for a different geography
   def dup_series_for_geo(geo)
+    sib = find_sibling_for_geo(geo)
+    raise "Series #{sib.name} already exists" if sib
     name = self.parse_name
     new = self.dup
     new.update(
@@ -458,7 +474,7 @@ class Series < ActiveRecord::Base
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     data_points.each do |dp|
-      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history
+      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
     end
     data_hash
   end
