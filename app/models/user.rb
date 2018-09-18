@@ -1,4 +1,5 @@
 class User < ActiveRecord::Base
+  include Cleaning
   has_many :data_source_actions
   enum role: {
       external: 'external',

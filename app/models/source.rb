@@ -1,4 +1,5 @@
 class Source < ActiveRecord::Base
+  include Cleaning
   include Validators
 
   has_many :series

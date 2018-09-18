@@ -1,4 +1,5 @@
 class Unit < ActiveRecord::Base
+  include Cleaning
   has_many :series
   has_many :measurements
   before_destroy :unlink_referring_objects

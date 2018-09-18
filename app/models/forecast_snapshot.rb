@@ -1,4 +1,5 @@
 class ForecastSnapshot < ActiveRecord::Base
+  include Cleaning
   require 'digest/md5'
   require 'date'
   before_destroy :delete_files_from_disk
