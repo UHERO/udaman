@@ -185,7 +185,7 @@ module SeriesExternalRelationship
       dp = dp_idx.nil? ? nil : cdp.delete_at(dp_idx)
       
       if !dp_val.nil? and value.nil? #data in series, no data in spreadsheet
-        if dp.pseudo_history
+        if dp.pseudo_history?
           results.push 0
         else
           results.push 4

@@ -1,5 +1,5 @@
 ## JIRA: UA-989
-task :batch_add_source_for_aggregated => :environment do
+task :batch_update_meta_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and prognoz_data_file_id is null}).uniq
   eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
   marked_series = []
@@ -151,3 +151,26 @@ task :create_coh_cpi_measurements => :environment do
   end
 end
 
+## JIRA UA-994
+task :ua_994 => :environment do
+  all_s = Series.joins(:geography).where(
+      %q{(name like 'EMPL@%' or name like 'EMPLNS@%' or name like 'LF@%' or name like 'LFNS@%' or name like 'UR@%' or name like 'URNS@%')
+          and geographies.handle in ('MOL','MAUI','LAN')}
+  )
+  all_s.sort_by {|s| s.name }.each do |s|
+    print "Doing #{s.name}..."
+    kau_s = s.find_sibling_for_geo('KAU')
+    unless kau_s
+      puts ">>>>>> No KAU sibling series found for #{s.name}"
+      next
+    end
+    s.update_attributes!(
+         dataPortalName: kau_s.dataPortalName,
+         unit_id: kau_s.unit_id,
+         source_id: kau_s.source_id,
+         source_detail_id: kau_s.source_detail_id,
+         source_link: 'https://www.hiwi.org/'
+    )
+    puts "done."
+  end
+end
