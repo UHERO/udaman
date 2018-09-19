@@ -298,15 +298,15 @@ class Series < ActiveRecord::Base
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
     my_name = self.parse_name
-    new_name = Series.build_name([my_name[:prefix], geo, my_name[:freq]])
-    Series.find_by name: new_name
+    sib_name = Series.build_name([my_name[:prefix], geo.upcase, my_name[:freq]])
+    Series.find_by name: sib_name
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
     my_name = self.parse_name
-    new_name = Series.build_name([my_name[:prefix], my_name[:geo], freq])
-    Series.find_by name: new_name
+    sib_name = Series.build_name([my_name[:prefix], my_name[:geo], freq.upcase])
+    Series.find_by name: sib_name
   end
 
   ## Duplicate series for a different geography
