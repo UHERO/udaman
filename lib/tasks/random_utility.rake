@@ -155,19 +155,22 @@ end
 task :ua_994 => :environment do
   all_s = Series.joins(:geography).where(
       %q{(name like 'EMPL@%' or name like 'EMPLNS@%' or name like 'LF@%' or name like 'LFNS@%' or name like 'UR@%' or name like 'URNS@%')
-          and geographies.handle in ('MOL','MAUI','LAN')})
+          and geographies.handle in ('MOL','MAUI','LAN')}
+  )
   all_s.sort_by {|s| s.name }.each do |s|
-    puts
+    print "Doing #{s.name}..."
     kau_s = s.find_sibling_for_geo('KAU')
     unless kau_s
-      Rails.logger.error { "No Kauai sibling series found for #{s.name}" }
+      puts ">>>>>> No KAU sibling series found for #{s.name}"
       next
     end
-    s.update_attribute!(
+    s.update_attributes!(
          dataPortalName: kau_s.dataPortalName,
          unit_id: kau_s.unit_id,
          source_id: kau_s.source_id,
-         source_detail_id: kau_s.source_detail_id
+         source_detail_id: kau_s.source_detail_id,
+         source_link: 'https://www.hiwi.org/'
     )
+    puts "done."
   end
 end
