@@ -180,7 +180,7 @@ class DataSource < ActiveRecord::Base
         self.update(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
-                    :last_error => e.message,
+                    :last_error => e.message[0..254],
                     :last_error_at => t)
         Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{e.message}" }
         return false

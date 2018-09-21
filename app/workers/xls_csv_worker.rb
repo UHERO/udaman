@@ -45,7 +45,7 @@ class XlsCsvWorker
     rescue => error
       logger.error error.message
       logger.error error.backtrace
-      dbu.update(last_error: error.message, last_error_at: Time.now)
+      dbu.update(last_error: error.message[0..254], last_error_at: Time.now)
       dbu.set_status(which, :fail)
     end
   end
