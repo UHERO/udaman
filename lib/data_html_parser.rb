@@ -51,13 +51,13 @@ class DataHtmlParser
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content
-    raise 'BEA API: major unknown failure' unless response['BEAAPI']
-    err = response['BEAAPI']['Error']
+    beaapi = response['BEAAPI'] || raise('BEA API: major unknown failure')
+    raise 'BEA API: no results included' unless beaapi['Results'] || beaapi['Error']
+    err = beaapi['Error'] || beaapi['Results'] && beaapi['Results']['Error']
     if err
-      raise 'BEA API: Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
+      raise 'BEA API Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
     end
-    raise 'BEA API: no results included' unless response['BEAAPI']['Results']
-    results_data = response['BEAAPI']['Results']['Data']
+    results_data = beaapi['Results']['Data']
     raise 'BEA API: results, but no data' unless results_data
 
     new_data = {}
