@@ -76,11 +76,12 @@ module SeriesRelationship
 
   #not recursive
   def new_dependents
+    name_match = '[[:<:]]' + self.name.gsub('%','\%')
     DataSource
-        .where('data_sources.description RLIKE ?', "[[:<:]]#{self.name.gsub('%', "\\%")}")
-        .joins(:series)
-        .pluck(:name)
-        .uniq
+      .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
+      .joins(:series)
+      .pluck(:name)
+      .uniq
   end
 
   #recursive
