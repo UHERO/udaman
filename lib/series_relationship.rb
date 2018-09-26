@@ -101,11 +101,11 @@ module SeriesRelationship
     circular_series = []
     series_set.each do |series|
       fod = series.who_i_depend_on(true)
-      fod.each do |dependent_series|
+      fod.each do |dep_series|
         begin
-          circular_series.push(dependent_series) unless dependent_series.ts.who_i_depend_on(true).index(series.name).nil?
+          circular_series.push(dep_series) if dep_series.ts.who_i_depend_on(true).include?(series.name)
         rescue
-          Rails.logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
+          Rails.logger.error { "THIS BROKE: #{dep_series}, #{series.name} (#{series.id})" }
         end
       end
     end
