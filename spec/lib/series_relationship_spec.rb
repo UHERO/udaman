@@ -5,17 +5,17 @@ require 'spec_helper'
 #time results from creating
 describe SeriesRelationship do
   before(:all) do
+    Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+    Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
+    Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
+    Geography.create!({ handle: 'MAU', display_name: 'Maui County', display_name_short: 'Valley Isle' }) rescue nil
+    Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Gathering Place' }) rescue nil
+    Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
   end
 
   describe "CLEANING DATA SOURCE operations" do
   
-    before (:each) do
-      Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
-      Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
-      Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
-      Geography.create!({ handle: 'MAU', display_name: 'Maui County', display_name_short: 'Valley Isle' }) rescue nil
-      Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Gathering Place' }) rescue nil
-      Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
+    before(:each) do
       Series.load_all_series_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/ECT.xls"
     end
   
@@ -47,7 +47,7 @@ describe SeriesRelationship do
   end
 
   describe "reporting DEPENDENTS and DEPENDENCIES" do
-    before (:each) do
+    before(:each) do
       Series.load_all_series_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/ECT.xls"
     end
   
