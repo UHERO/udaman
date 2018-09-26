@@ -63,7 +63,7 @@ module SeriesRelationship
   
   def recursive_dependents(already_seen = [])
     return [] if already_seen.include? self.name
-    dependent_names = self.depends_on_me
+    dependent_names = self.who_depends_on_me
     return [] if dependent_names.empty?
     already_seen.push(self.name)
 
@@ -74,7 +74,7 @@ module SeriesRelationship
     all_dependents
   end
 
-  def depends_on_me
+  def who_depends_on_me
     name_match = '[[:<:]]' + self.name.gsub('%','\%')
     DataSource
       .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
@@ -83,33 +83,27 @@ module SeriesRelationship
       .uniq
   end
 
-  def new_dependencies
-    results = []
+  def who_i_depend_on(direct_only = false)
+    direct_deps = []
     self.data_sources.each do |ds|
-      results |= ds.dependencies 
+      direct_deps |= ds.dependencies
     end
-    second_order_results = []
-    results.each do |s|
-      second_order_results |= s.ts.new_dependencies ## recursion
+    return direct_deps if direct_only
+
+    second_order_deps = []
+    direct_deps.each do |s|
+      second_order_deps |= s.ts.who_i_depend_on ## recursion
     end
-    results | second_order_results
-  end
-  
-  def first_order_dependencies
-    results = []
-    self.data_sources.each do |ds|
-      results |= ds.dependencies 
-    end
-    results
+    direct_deps | second_order_deps
   end
   
   def Series.find_first_order_circular(series_set = Series.get_all_uhero)
     circular_series = []
     series_set.each do |series|
-      fod = series.first_order_dependencies
+      fod = series.who_i_depend_on(true)
       fod.each do |dependent_series|
         begin
-          circular_series.push(dependent_series) unless dependent_series.ts.first_order_dependencies.index(series.name).nil?
+          circular_series.push(dependent_series) unless dependent_series.ts.who_i_depend_on(true).index(series.name).nil?
         rescue
           Rails.logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
         end

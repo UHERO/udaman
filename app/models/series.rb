@@ -951,7 +951,7 @@ class Series < ActiveRecord::Base
       next unless already_run[s_name].nil?
       s = s_name.ts
       begin
-        Series.run_all_dependencies(s.new_dependencies, already_run, errors, eval_statements)
+        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements)
       rescue
         puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
         puts s.id
