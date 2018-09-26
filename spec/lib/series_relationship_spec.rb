@@ -70,16 +70,18 @@ describe SeriesRelationship do
     it "should recognize component series of multiple sources in the dependencies array" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT_CALC@HON.M".ts + 1|
-      "ECT_DEPENDENT@HI.M".ts.who_i_depend_on.include?("ECT@HON.M").should eq(true)
-      "ECT_DEPENDENT@HI.M".ts.who_i_depend_on.include?("ECT_CALC@HON.M").should eq(true)
+      who_i_dep = "ECT_DEPENDENT@HI.M".ts.who_i_depend_on
+      who_i_dep.include?("ECT@HON.M").should eq(true)
+      who_i_dep.include?("ECT_CALC@HON.M").should eq(true)
     end
   
     it "should recognize multiple dependents when it is a component for multiple series" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT2@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      "ECT@HON.M".ts.who_depends_on_me.include?("ECT_DEPENDENT@HI.M").should eq(true)
-      "ECT@HON.M".ts.who_depends_on_me.include?("ECT_DEPENDENT2@HI.M").should eq(true)
-      "ECT@HON.M".ts.who_depends_on_me.include?("ECT_DEPENDENT3@HI.M").should eq(false)
+      who_deps_me = "ECT@HON.M".ts.who_depends_on_me
+      who_deps_me.include?("ECT_DEPENDENT@HI.M").should eq(true)
+      who_deps_me.include?("ECT_DEPENDENT2@HI.M").should eq(true)
+      who_deps_me.include?("ECT_NON_EXIST@HI.M").should eq(false)
     end
   end
 end
