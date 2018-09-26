@@ -58,7 +58,7 @@ describe SeriesRelationship do
   
     xit "should recognize dependents when it is a component series for another" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT@HI.M").should be_true
+      "ECT@HON.M".ts.depends_on_me.index("ECT_DEPENDENT@HI.M").should be_true
     end
   
     xit "should recognize component series of multiple sources in the dependencies array" do
@@ -71,9 +71,9 @@ describe SeriesRelationship do
     xit "should recognize multiple dependents when it is a component for multiple series" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT2@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT@HI.M").should be_true
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT2@HI.M").should be_true
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT3@HI.M").should be_false
+      "ECT@HON.M".ts.depends_on_me.index("ECT_DEPENDENT@HI.M").should be_true
+      "ECT@HON.M".ts.depends_on_me.index("ECT_DEPENDENT2@HI.M").should be_true
+      "ECT@HON.M".ts.depends_on_me.index("ECT_DEPENDENT3@HI.M").should be_false
     end
   
   

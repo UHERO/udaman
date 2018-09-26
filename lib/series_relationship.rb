@@ -63,19 +63,18 @@ module SeriesRelationship
   
   def recursive_dependents(already_seen = [])
     return [] if already_seen.include? self.name
-    dependent_names = self.new_dependents
+    dependent_names = self.depends_on_me
     return [] if dependent_names.empty?
     already_seen.push(self.name)
 
     all_dependents = dependent_names.dup
     dependent_names.each do |s_name|
-      all_dependents.concat(s_name.ts.recursive_dependents(already_seen))
+      all_dependents.concat(s_name.ts.recursive_dependents(already_seen)) ## recursion
     end
     all_dependents
   end
 
-  #not recursive
-  def new_dependents
+  def depends_on_me
     name_match = '[[:<:]]' + self.name.gsub('%','\%')
     DataSource
       .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
@@ -84,14 +83,13 @@ module SeriesRelationship
       .uniq
   end
 
-  #recursive
   def new_dependencies
     results = []
     self.data_sources.each do |ds|
       results |= ds.dependencies 
     end
     second_order_results = []
-    results.each {|s| second_order_results |= s.ts.new_dependencies}
+    results.each {|s| second_order_results |= s.ts.new_dependencies} ## recursion
     results |= second_order_results
     results
   end
