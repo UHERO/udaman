@@ -89,9 +89,10 @@ module SeriesRelationship
       results |= ds.dependencies 
     end
     second_order_results = []
-    results.each {|s| second_order_results |= s.ts.new_dependencies} ## recursion
-    results |= second_order_results
-    results
+    results.each do |s|
+      second_order_results |= s.ts.new_dependencies ## recursion
+    end
+    results | second_order_results
   end
   
   def first_order_dependencies
@@ -110,7 +111,7 @@ module SeriesRelationship
         begin
           circular_series.push(dependent_series) unless dependent_series.ts.first_order_dependencies.index(series.name).nil?
         rescue
-          logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
+          Rails.logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
         end
       end
     end
@@ -128,14 +129,6 @@ module SeriesRelationship
     circular_series
   end
   
-  def Series.print_multi_sources
-    s = Series.all
-    s.each do |series|
-      puts "#{series.name}: #{series.data_sources.count}" if series.data_sources.count > 1
-    end
-    return 1
-  end
-    
   def reload_sources(series_worker = false, clear_first = false)
     errors = []
     self.data_sources_by_last_run.each do |ds|
@@ -149,12 +142,5 @@ module SeriesRelationship
       end
     end
     errors
-  end
-  
-  def print_source_eval_statements
-    self.data_sources_by_last_run.each do |ds|
-      ds.print_eval_statement
-    end
-    0
   end
 end
