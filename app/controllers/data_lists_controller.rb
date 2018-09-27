@@ -249,7 +249,7 @@ class DataListsController < ApplicationController
       return
     end
     respond_to do |format|
-      format.json { render json: '{ "the_indent": "%s" }' % view_context.make_indentation(new_indent), status: 200 }
+      format.json { render json: '{ "the_indent": "%s" }' % helpers.make_indentation(new_indent), status: 200 }
     end
     dlm.update(indent: 'indent'+new_indent.to_s)
   end
