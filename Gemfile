@@ -39,6 +39,7 @@ gem 'font-awesome-sass'
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 ### no longer need? gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/17371334/how-is-attr-accessible-used-in-rails-4
 gem 'coffee-rails', '~> 4.2.0'
+gem 'sass-rails',   '~> 5.0'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails'
 gem 'jquery-ui-rails'
@@ -78,12 +79,12 @@ group :production do
 end
 
 group :development, :test do
-  gem 'rspec-rails'
-  gem 'factory_bot_rails'
+  gem 'rspec-rails', '~> 3.1'
+  gem 'factory_bot_rails', '~> 4.7'
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
-end
+  end
 
 group :development do
   gem 'ruby-debug-ide'
