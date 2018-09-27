@@ -86,10 +86,6 @@ group :development, :test do
   gem 'database_cleaner'
   end
 
-group :development do
-  gem 'ruby-debug-ide'
-end
-
 group :test do
   gem 'rake'
   gem 'rspec-sidekiq'
