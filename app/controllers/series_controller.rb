@@ -248,7 +248,7 @@ class SeriesController < ApplicationController
     #@series.save
     @series.aremos_comparison(true)
     @as = AremosSeries.get @series.name
-    render :partial => 'toggle_units.html'
+    render :partial => 'toggle_units'
   end
   
   def render_data_points
@@ -265,7 +265,7 @@ class SeriesController < ApplicationController
 
   def update_notes
     @series.update_attributes({:investigation_notes => params[:note]})
-    render :partial => 'investigation_sort.html'
+    render :partial => 'investigation_sort'
   end
 
   def stale
@@ -329,13 +329,13 @@ class SeriesController < ApplicationController
   end
 
   def convert_to_udaman_notation(eval_string)
-      operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
-      (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
+    operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
+    (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
   end
 
-    def json_from_heroku_tsd(series_name, tsd_file)
-      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
-      res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-      res.code == '500' ? nil : JSON.parse(res.body)
-    end
+  def json_from_heroku_tsd(series_name, tsd_file)
+    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
+    res = Net::HTTP.new(url.host, url.port).request_get(url.path)
+    res.code == '500' ? nil : JSON.parse(res.body)
+  end
 end
