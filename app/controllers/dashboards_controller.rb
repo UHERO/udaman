@@ -2,7 +2,7 @@ class DashboardsController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:investigate_visual]
-  skip_before_action :authenticate_user!, only: [:investigate_visual]
+  #skip_before_action :authenticate_user!, only: [:investigate_visual]
 
   def index
     @series_count = Series.count
