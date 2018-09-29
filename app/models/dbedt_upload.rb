@@ -99,7 +99,7 @@ class DbedtUpload < ActiveRecord::Base
       Dir.glob(absolute_path('cats').change_file_extension('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
-      return r
+      return (r || throw(:abort))
     end
     true
   end
@@ -110,7 +110,7 @@ class DbedtUpload < ActiveRecord::Base
       Dir.glob(absolute_path('series').change_file_extension('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
-      return r
+      return (r || throw(:abort))
     end
     true
   end
@@ -358,8 +358,12 @@ private
   end
 
   def delete_data_and_data_sources
-    DbedtUpload.connection.execute %Q|DELETE FROM data_points
-WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
+    DbedtUpload.connection.execute <<~SQL
+      DELETE FROM data_points
+      WHERE data_source_id IN (
+        SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)'
+      );
+    SQL
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 

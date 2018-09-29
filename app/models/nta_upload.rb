@@ -77,7 +77,7 @@ class NtaUpload < ActiveRecord::Base
     if series_filename && File.exists?(xlspath)
       r = delete_file_from_disk xlspath
       r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
-      return r
+      return (r || throw(:abort))
     end
     true
   end
