@@ -79,6 +79,8 @@ group :production do
 end
 
 group :development, :test do
+  gem 'bootsnap'
+  gem 'listen'
   gem 'rspec-rails', '~> 3.1'
   gem 'factory_bot_rails', '~> 4.7'
   gem 'faker', '~> 1.6'
