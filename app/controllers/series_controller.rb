@@ -115,8 +115,8 @@ class SeriesController < ApplicationController
 
   def remove_from_quarantine
     dest = { action: params[:next_action] || :show }
-    dest[:id] = series_params[:id] if dest[:action] == :show
     if @series
+      dest[:id] = @series.id if dest[:action] == :show
       @series.remove_from_quarantine
     end
     redirect_to dest
@@ -234,7 +234,8 @@ class SeriesController < ApplicationController
     end
     @chart_made = chart_to_make
   end
-  
+
+  # this method probably obsolete - remove later. also from the set_series callback def above
   def validate
     @prognoz_data_results = @series.prognoz_data_results
   end
@@ -301,7 +302,6 @@ class SeriesController < ApplicationController
   private
     def series_params
       params.require(:series).permit(
-          :id,
           :universe,
           :description,
           :units,
@@ -325,7 +325,7 @@ class SeriesController < ApplicationController
   end
 
   def set_series
-    @series = Series.find series_params[:id]
+    @series = Series.find params[:id]
   end
 
   def convert_to_udaman_notation(eval_string)
