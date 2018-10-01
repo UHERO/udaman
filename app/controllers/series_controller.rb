@@ -209,7 +209,8 @@ class SeriesController < ApplicationController
         )) unless data.nil? or data['frequency'] != @series.name[-1]
     end
   end
-  
+
+  # obsolete/vestigial code?
   def transform
     eval_statement = convert_to_udaman_notation(params[:eval])
     puts eval_statement
@@ -328,6 +329,7 @@ class SeriesController < ApplicationController
     @series = Series.find params[:id]
   end
 
+  # obsolete/vestigial code?
   def convert_to_udaman_notation(eval_string)
     operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
     (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
