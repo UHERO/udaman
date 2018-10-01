@@ -1,2 +1,2 @@
-class ApiApplication < ActiveRecord::Base
+class ApiApplication < ApplicationRecord
 end

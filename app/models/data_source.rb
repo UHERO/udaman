@@ -1,4 +1,4 @@
-class DataSource < ActiveRecord::Base
+class DataSource < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   serialize :dependencies, Array

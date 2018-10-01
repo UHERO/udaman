@@ -1,4 +1,4 @@
-class FeatureToggle < ActiveRecord::Base
+class FeatureToggle < ApplicationRecord
 
   def FeatureToggle.get_all_uhero
     FeatureToggle.where(%q{feature_toggles.universe = 'UHERO'})

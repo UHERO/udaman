@@ -1,4 +1,4 @@
-class Measurement < ActiveRecord::Base
+class Measurement < ApplicationRecord
   include Cleaning
   has_many :data_list_measurements, dependent: :delete_all
   has_many :data_lists, through: :data_list_measurements

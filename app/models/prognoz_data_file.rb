@@ -1,4 +1,4 @@
-class PrognozDataFile < ActiveRecord::Base
+class PrognozDataFile < ApplicationRecord
   serialize :series_loaded, Hash
   
     def PrognozDataFile.send_prognoz_update(recipients = %w(jrpage@hawaii.edu vward@hawaii.edu djiann@hawaii.edu))

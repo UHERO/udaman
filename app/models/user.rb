@@ -1,4 +1,4 @@
-class User < ActiveRecord::Base
+class User < ApplicationRecord
   include Cleaning
   has_many :data_source_actions
   enum role: {

@@ -1,4 +1,4 @@
-class TsdFile < ActiveRecord::Base
+class TsdFile < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   require 'date'

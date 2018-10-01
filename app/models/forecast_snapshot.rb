@@ -1,4 +1,4 @@
-class ForecastSnapshot < ActiveRecord::Base
+class ForecastSnapshot < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   require 'date'

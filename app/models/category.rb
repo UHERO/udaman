@@ -1,4 +1,4 @@
-class Category < ActiveRecord::Base
+class Category < ApplicationRecord
   include Cleaning
   has_ancestry
   belongs_to :data_list

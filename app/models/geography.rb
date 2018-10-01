@@ -1,4 +1,4 @@
-class Geography < ActiveRecord::Base
+class Geography < ApplicationRecord
   include Cleaning
   has_many :series
 

@@ -1,4 +1,4 @@
-class Series < ActiveRecord::Base
+class Series < ApplicationRecord
   include Cleaning
   include SeriesArithmetic
   include SeriesAggregation
