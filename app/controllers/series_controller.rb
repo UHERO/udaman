@@ -300,7 +300,7 @@ class SeriesController < ApplicationController
     @loaded_series
   end
 
-  private
+private
     def series_params
       params.require(:series).permit(
           :universe,
