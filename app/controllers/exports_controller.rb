@@ -1,5 +1,6 @@
 class ExportsController < ApplicationController
-  before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy]
+  before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
+                                    :add_series, :remove_series, :move_series_up, :move_series_down]
 
   # GET /exports
   def index
@@ -16,14 +17,11 @@ class ExportsController < ApplicationController
   end
 
   def show_table
-    @series_to_chart = @export.series.pluck :name
-    if @series_to_chart.length == 0
-      render 'table'
+    @series_to_chart = @export.series.pluck(:name)
+    if @series_to_chart.length > 0
+      @start_date = 0
+      @end_date = 9999
     end
-    frequency = @series_to_chart[0][-1]
-    dates = set_dates(frequency, params)
-    @start_date = 0
-    @end_date = 9999
     render 'table'
   end
 
@@ -63,7 +61,6 @@ class ExportsController < ApplicationController
   end
   
   def add_series
-    @export = Export.find_by id: params[:id].to_i
     series = Series.find_by id: params[:series_id].to_i
     if @export.series.include?(series)
       redirect_to edit_export_url(@export.id), notice: 'This series is already in the list!'
@@ -79,12 +76,29 @@ class ExportsController < ApplicationController
     end
   end
 
+  def remove_series
+    respond_to do |format|
+      format.js { render nothing: true, status: 200 }
+    end
+    series = ExportSeries.where(export_id: @export.id).to_a.sort_by{ |m| m.list_order }
+    series_id = params[:series_id].to_i
+    index_to_remove = series.index{ |m| m.series_id == series_id }
+    new_order = 0
+    series.each_index do |i|
+      if index_to_remove == i
+        next
+      end
+      series[i].update list_order: new_order
+      new_order += 1
+    end
+    id_to_remove = ExportSeries.find_by(export_id: @export.id, series_id: series_id).id
+    ExportSeries.destroy(id_to_remove)
+  end
+
   def move_series_up
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @export = Export.find_by id: params[:id]
-    puts "trying to move series #{params[:series_id]} up."
     series_array = @export.export_series.to_a.sort_by{ |m| m.list_order }
     old_index = series_array.index{ |m| m.series_id == params[:series_id].to_i }
     if old_index <= 0
@@ -107,8 +121,6 @@ class ExportsController < ApplicationController
     respond_to do |format|
       format.js { render nothing: true, status: 200 }
     end
-    @export = Export.find_by id: params[:id]
-    puts "trying to move series #{params[:series_id]} down."
     series_array = @export.export_series.to_a.sort_by{ |m| m.list_order }
     old_index = series_array.index{ |m| m.series_id == params[:series_id].to_i }
     if old_index >= series_array.length - 1
@@ -127,57 +139,14 @@ class ExportsController < ApplicationController
     end
   end
 
-  def remove_series
-    respond_to do |format|
-      format.js { render nothing: true, status: 200 }
-    end
-    series = ExportSeries.where(export_id: params[:id]).to_a.sort_by{ |m| m.list_order }
-    index_to_remove = series.index{ |m| m.series_id == params[:series_id].to_i }
-    new_order = 0
-    series.each_index do |i|
-      if index_to_remove == i
-        next
-      end
-      series[i].update list_order: new_order
-      new_order += 1
-    end
-    id_to_remove = ExportSeries.find_by(export_id: params[:id], series_id: params[:series_id]).id
-    ExportSeries.destroy(id_to_remove)
-  end
-
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_export
-      @export = Export.find(params[:id])
+      @export = Export.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.
     def export_params
       params.require(:export).permit(:name, :created_by, :updated_by, :owned_by)
-    end
-
-    def set_dates(frequency, params)
-      case frequency
-        when 'M', 'm'
-          months_back = 15
-          offset = 1
-        when 'Q', 'q'
-          months_back = 34
-          offset = 4
-        when 'A', 'a'
-          months_back = 120
-          offset = 4
-        else
-          return nil
-      end
-
-      if params[:num_years].nil?
-        start_date = (Time.now.to_date << (months_back))
-        end_date = nil
-      else
-        start_date = (Time.now.to_date << (12 * params[:num_years].to_i + offset))
-        end_date = nil
-      end
-      {:start_date => start_date, :end_date => end_date}
     end
 end
