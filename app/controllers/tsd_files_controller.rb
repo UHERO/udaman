@@ -16,23 +16,24 @@ class TsdFilesController < ApplicationController
 
   # GET /tsd_files/new
   def new
-    @fs = ForecastSnapshot.find_by id: params[:forecast_snapshot_id]
+    @fs = ForecastSnapshot.find_by id: tsd_file_params[:forecast_snapshot_id]
     @tsd_file = TsdFile.new(:forecast_snapshot_id => @fs.id)
   end
 
   # POST /tsd_files
   def create
-    uploaded_file = params[:tsd_file][:filename]
+    uploaded_file = tsd_file_params[:filename]
     file_content = uploaded_file.read
 ## validate filecontent.. here, or in model?
-    params[:tsd_file][:filename] = uploaded_file.original_filename
+    params[:tsd_file][:filename] = uploaded_file.original_filename ## not sure why I'm doing this, but it looks sketchy.
     @tsd_file = TsdFile.new(tsd_file_params)
     if @tsd_file.store_tsd(file_content)
-      redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was successfully created.'
+      notice = 'TSD file was successfully created.'
     else
-      redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: 'TSD file was not successfully created.'
+      notice = 'TSD file was not successfully created.'
     end
- end
+    redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: notice
+  end
 
   # PATCH/PUT /tsd_files/1
   def update
@@ -52,7 +53,7 @@ class TsdFilesController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_tsd_file
-      @tsd_file = TsdFile.find(params[:id])
+      @tsd_file = TsdFile.find params[:id]
       @fs = @tsd_file.forecast_snapshot
     end
 
