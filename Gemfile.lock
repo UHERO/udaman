@@ -157,7 +157,7 @@ GEM
     newrelic-rake (1.4.1)
       newrelic_rpm (>= 3.1.0)
     newrelic_rpm (3.17.2.327)
-    nokogiri (1.8.2)
+    nokogiri (1.8.4)
       mini_portile2 (~> 2.3.0)
     ntlm-http (0.1.1)
     numerizer (0.1.1)
@@ -211,9 +211,9 @@ GEM
     roo (2.4.0)
       nokogiri (~> 1)
       rubyzip (~> 1.1, < 2.0.0)
-    roo-xls (1.0.0)
+    roo-xls (1.2.0)
       nokogiri
-      roo (>= 2.0.0beta1, < 3)
+      roo (>= 2.0.0, < 3)
       spreadsheet (> 0.9.0)
     rspec (3.5.0)
       rspec-core (~> 3.5.0)
@@ -241,8 +241,8 @@ GEM
     rspec-support (3.5.0)
     ruby-debug-ide (0.6.0)
       rake (>= 0.8.1)
-    ruby-ole (1.2.12)
-    rubyzip (1.2.1)
+    ruby-ole (1.2.12.1)
+    rubyzip (1.2.2)
     rvm-capistrano (1.5.0)
       capistrano (>= 2.15.4)
     sass (3.4.23)
@@ -255,7 +255,7 @@ GEM
     sawyer (0.8.1)
       addressable (>= 2.3.5, < 2.6)
       faraday (~> 0.8, < 1.0)
-    selenium-webdriver (3.13.0)
+    selenium-webdriver (3.14.0)
       childprocess (~> 0.5)
       rubyzip (~> 1.2)
     sidekiq (4.2.9)
@@ -276,7 +276,7 @@ GEM
     spork-rails (4.0.0)
       rails (>= 3.0.0, < 5)
       spork (>= 1.0rc0)
-    spreadsheet (1.1.4)
+    spreadsheet (1.1.8)
       ruby-ole (>= 1.0)
     sprockets (3.7.2)
       concurrent-ruby (~> 1.0)
@@ -307,7 +307,7 @@ GEM
       octokit (> 2.1.0)
       warden (> 1.0)
     watchr (0.7)
-    watir (6.11.0)
+    watir (6.14.0)
       selenium-webdriver (~> 3.4, >= 3.4.1)
     webrobots (0.1.2)
     whenever (0.9.7)
@@ -355,14 +355,14 @@ DEPENDENCIES
   rake
   rest-client (~> 2.0)
   roo (~> 2.4.0)
-  roo-xls
+  roo-xls (>= 1.0.0)
   rspec-rails (~> 3.1)
   rspec-sidekiq
   ruby-debug-ide
-  rubyzip (~> 1.2.1)
+  rubyzip (~> 1.2.2)
   rvm-capistrano
   sass-rails (~> 5.0)
-  selenium-webdriver (>= 3.0.5)
+  selenium-webdriver (>= 3.13.0)
   sidekiq (~> 4.1)
   sidekiq-status
   sinatra
@@ -372,9 +372,9 @@ DEPENDENCIES
   stringex (~> 2.6)
   uglifier (~> 3.0)
   watchr
-  watir (~> 6.2, >= 6.2.0)
+  watir (~> 6.11, >= 6.11.0)
   whenever
   will_paginate (~> 3.1.1)
 
 BUNDLED WITH
-   1.16.1
+   1.16.5
