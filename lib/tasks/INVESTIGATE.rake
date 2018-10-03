@@ -186,8 +186,8 @@ end
 
 task :clean_data_sources => :environment do
 
-  active_ds = DataSource.where('last_run > FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
-  inactive_ds = DataSource.where('last_run <= FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
+  active_ds = DataSource.get_all_uhero.where('last_run > FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
+  inactive_ds = DataSource.get_all_uhero.where('last_run <= FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
 
 # active_but_not_current = active_ds.reject {|elem| elem.current? }
 # active_current = active_ds.reject {|elem| !elem.current? }
