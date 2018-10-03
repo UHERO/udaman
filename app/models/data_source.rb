@@ -287,7 +287,8 @@ class DataSource < ActiveRecord::Base
     def get_eval_statement
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
-    
+
+    # this looks obsolete - if so, remove later. Check the methods that call it.
     def print_eval_statement
       puts "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
@@ -338,26 +339,26 @@ class DataSource < ActiveRecord::Base
   #
   # First, let the change set be
   #
-  #  set = DataSource.where(%q{eval like '%UIC@haw%'})
+  #  cset = DataSource.where(%q{eval like '%UIC@haw%'})
   #
   # then we can:
   # Change the :start_date for all rows to be July 4, 2011:
   #
-  #   DataSource.mass_update_eval_options(set, { start_date: "2011-07-04" })
+  #   DataSource.mass_update_eval_options(cset, { start_date: "2011-07-04" })
   #
   # Remove the :frequency option from all rows:
   #
-  #   DataSource.mass_update_eval_options(set, { frequency: nil })
+  #   DataSource.mass_update_eval_options(cset, { frequency: nil })
   #
   # On the XLS worksheet "iwcweekly", a new column was added at the far left, causing all other columns to shift
   # to the right by one:
   #
-  #   DataSource.mass_update_eval_options(set, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
+  #   DataSource.mass_update_eval_options(cset, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
   #
   # Change :start_date to be "2015-01-01" plus the number of months indicated by :col, and then (sequentially) set :end_date to
   # be exactly 10 years and 1 day after the new start_date:
   #
-  #   DataSource.mass_update_eval_options(set,
+  #   DataSource.mass_update_eval_options(cset,
   #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
   #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
   #
