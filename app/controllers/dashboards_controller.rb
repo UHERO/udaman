@@ -86,7 +86,8 @@ class DashboardsController < ApplicationController
   
   def rake_report
   end
-  
+
+  ### bag this thing
   def investigate_no_source
     @no_source = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0')
                      .joins('JOIN data_sources ON series.id = series_id')

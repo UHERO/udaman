@@ -43,7 +43,25 @@ module SeriesInterpolation
     end
     new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
   end
-  
+
+  def fill_alternate_missing_months(start_date_range = nil, end_date_range = nil)
+    raise InterpolationException if frequency != 'month'
+    new_data = data.sort
+    date = start_date_range ? Date.strptime(start_date_range) : new_data[0][0]
+    end_date = end_date_range ? Date.strptime(end_date_range) : new_data[-1][0]
+    date += 1.month
+    while date < end_date do
+      prevm = date - 1.month
+      nextm = date + 1.month
+      if new_data[date] || !new_data[prevm] || !new_data[nextm]
+        raise InterpolationException, 'data not strictly alternating months'
+      end
+      new_data[date] =
+      date += 2.months
+    end
+    new_transformation("Interpolation of alternate missing months from #{name}", new_data)
+  end
+
   def fill_interpolate_to(target_frequency)
     freq = self.frequency.to_s
     new_series_data = {}
@@ -84,7 +102,7 @@ module SeriesInterpolation
   end
   
   def pseudo_centered_spline_interpolation(frequency)
-    raise AggregationError unless (frequency == :quarter and self.frequency == 'year') or 
+    raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
                                   (frequency == :month and self.frequency == 'quarter') or 
                                   (frequency == :day and self.frequency == 'month')
 
@@ -134,7 +152,7 @@ module SeriesInterpolation
 
   #first period is just first value
   def linear_interpolate(frequency)
-    raise AggregationError unless (frequency == :quarter and self.frequency == 'year') or 
+    raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
                                   (frequency == :month and self.frequency == 'quarter') or 
                                   (frequency == :day and self.frequency == 'month')
     data_copy = self.data.sort
@@ -155,7 +173,7 @@ module SeriesInterpolation
   
   
   def census_interpolate(frequency)
-    raise AggregationError if frequency != :quarter and self.frequency != 'year' 
+    raise AggregationException if frequency != :quarter and self.frequency != 'year'
     quarterly_data = {}
     last = nil
     started_interpolation = false
@@ -209,7 +227,6 @@ module SeriesInterpolation
     #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
     quarterly_data[last_date] = last - interval/4
     quarterly_data[last_date + 3.months] = last + interval/4
-    #quarterly_data
     new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
   
