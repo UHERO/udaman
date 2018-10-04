@@ -104,7 +104,7 @@ class Series < ActiveRecord::Base
   
   def Series.region_hash
     region_hash = {}
-    all_names = Series.all_names
+    all_names = Series.get_all_uhero.all_names
     all_names.each do |name|
       next if name.nil?
       suffix = name.split('@')[1]
