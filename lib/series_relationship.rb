@@ -62,20 +62,22 @@ module SeriesRelationship
   end
   
   def recursive_dependents(already_seen = [])
-    return [] if already_seen.include? self.name
-    dependent_names = self.who_depends_on_me
-    return [] if dependent_names.empty?
+    return [] if already_seen.include?(self.name)
     already_seen.push(self.name)
+    direct_dependents = self.who_depends_on_me
+    return [] if direct_dependents.empty?
 
-    all_dependents = dependent_names.dup
-    dependent_names.each do |s_name|
-      all_dependents.concat(s_name.ts.recursive_dependents(already_seen)) ## recursion
+    all_deps = direct_dependents.dup
+    direct_dependents.each do |s_name|
+      subtree_deps = s_name.ts.recursive_dependents(already_seen) ## recursion
+      already_seen |= [s_name, subtree_deps]
+      all_deps |= subtree_deps
     end
-    all_dependents
+    all_deps
   end
 
   def who_depends_on_me
-    name_match = '[[:<:]]' + self.name.gsub('%','\%')
+    name_match = '[[:<:]]' + self.name.gsub('%','\%') + '[[:>:]]'
     DataSource
       .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
       .joins(:series)

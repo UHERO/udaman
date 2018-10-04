@@ -36,7 +36,7 @@ class DashboardsController < ApplicationController
     
     @maybe_ok = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) < 1.0 AND ABS(aremos_diff) > 0.0').order('aremos_diff DESC')
     @wrong = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1.0').order('aremos_diff DESC')
-    @missing_low_to_high = Series.where('aremos_missing > 0').order('aremos_missing ASC')
+    @missing_low_to_high = Series.get_all_uhero.where('aremos_missing > 0').order('aremos_missing ASC')
     
     handle_hash = DataSource.handle_hash
     @maybe_ok_buckets = Series.handle_buckets(@maybe_ok, handle_hash)
@@ -52,7 +52,7 @@ class DashboardsController < ApplicationController
       @to_investigate = []
       return
     end
-    @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
+    @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
   end
 
   def update_public_dp
@@ -75,7 +75,8 @@ class DashboardsController < ApplicationController
   
   def rake_report
   end
-  
+
+  # apparently obsolete - kill it, including views and route
   def investigate_no_source
     @no_source = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0')
                      .joins('JOIN data_sources ON series.id = series_id')

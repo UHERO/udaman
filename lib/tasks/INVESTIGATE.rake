@@ -231,7 +231,7 @@ task :clean_data_sources => :environment do
   puts 'COPY THESE INTO AN ARCHIVE'
   inactive_not_current.each do |ds|
     begin
-      ds.print_eval_statement
+      puts "\"#{ds.series.name}\".ts_eval= %Q|#{ds.eval}|"
       #ds.delete
     rescue
       puts "ERROR! Series ID: #{ds.id}"

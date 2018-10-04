@@ -288,11 +288,6 @@ class DataSource < ActiveRecord::Base
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
 
-    # this looks obsolete - if so, remove later. Check the methods that call it.
-    def print_eval_statement
-      puts "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
-    end
-
     def set_dependencies
       self.dependencies = []
       self.description.split(' ').each do |word|
