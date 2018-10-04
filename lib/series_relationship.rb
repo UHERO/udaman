@@ -100,32 +100,6 @@ module SeriesRelationship
     direct_deps | second_order_deps
   end
   
-  def Series.find_first_order_circular(series_set = Series.get_all_uhero)
-    circular_series = []
-    series_set.each do |series|
-      fod = series.who_i_depend_on(true)
-      fod.each do |dep_series|
-        begin
-          circular_series.push(dep_series) if dep_series.ts.who_i_depend_on(true).include?(series.name)
-        rescue
-          Rails.logger.error { "THIS BROKE: #{dep_series}, #{series.name} (#{series.id})" }
-        end
-      end
-    end
-
-    potential_problem_ds = []
-    circular_series.each do|s_name|
-      s_name.ts.data_sources.each do |ds|
-        potential_problem_ds.push ds
-        puts "#{s_name}: #{ds.id} : #{ds.eval}"
-      end
-    end
-    (potential_problem_ds.sort {|a,b| a.id <=> b.id}).each do |ppd|
-      puts "#{ppd.id} : #{ppd.eval}"
-    end
-    circular_series
-  end
-  
   def reload_sources(series_worker = false, clear_first = false)
     errors = []
     self.data_sources_by_last_run.each do |ds|
