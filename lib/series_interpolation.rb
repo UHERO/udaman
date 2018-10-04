@@ -20,9 +20,7 @@ module SeriesInterpolation
       new_data[new_date] = first_data_point_val
       new_date = new_date - offset.months
     end
-    new_series = new_transformation("Extended the first value back to #{date}", new_data)
-    new_series.frequency = self.frequency
-    new_series
+    new_transformation("Extended the first value back to #{date}", new_data)
   end
   
   def extend_last_date_to_match(series_name)
@@ -43,9 +41,7 @@ module SeriesInterpolation
       new_data[new_date] = last_data_point_val
       new_date = new_date + offset.months
     end
-    new_series = new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
-    new_series.frequency = self.frequency
-    new_series
+    new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
   end
   
   def fill_interpolate_to(target_frequency)
@@ -66,10 +62,7 @@ module SeriesInterpolation
     else
       raise InterpolationException
     end
-     
-    new_series = new_transformation("Interpolated by filling #{self.name} to #{target_frequency}", new_series_data)
-    new_series.frequency = target_frequency.to_s
-    new_series
+    new_transformation("Interpolated by filling #{self.name} to #{target_frequency}", new_series_data, target_frequency.to_s)
   end
   
   def fill_days_interpolation
@@ -78,9 +71,7 @@ module SeriesInterpolation
     self.data.each do |date, val|
       6.downto(0).each { |days_back| daily_data[date - days_back.days] = val }
     end 
-    new_series = new_transformation("Interpolated Days (filled) from #{self.name}", daily_data)
-    new_series.frequency = 'day'
-    new_series
+    new_transformation("Interpolated Days (filled) from #{self.name}", daily_data, 'day')
   end
 
   def distribute_days_interpolation
@@ -89,9 +80,7 @@ module SeriesInterpolation
     self.data.each do |date, val|
       6.downto(0).each { |days_back| daily_data[date - days_back.days] = val / 7 }
     end 
-    new_series = new_transformation("Interpolated Days (distributed) from #{self.name}", daily_data)
-    new_series.frequency = 'day'
-    new_series
+    new_transformation("Interpolated Days (distributed) from #{self.name}", daily_data, 'day')
   end
   
   def pseudo_centered_spline_interpolation(frequency)
@@ -140,10 +129,7 @@ module SeriesInterpolation
     temp_series.frequency = self.frequency
     
     series_data = temp_series.linear_interpolate(frequency).data
-
-    new_series = new_transformation("Pseudo Centered Spline Interpolation of #{self.name}", series_data)
-    new_series.frequency = frequency
-    new_series
+    new_transformation("Pseudo Centered Spline Interpolation of #{self.name}", series_data, frequency)
   end
 
   #first period is just first value
@@ -164,10 +150,7 @@ module SeriesInterpolation
       last_val = val
       last_date = date
     end
-    
-    new_series = new_transformation("Interpolated (linear match last) from #{self.name}", new_series_data)
-    new_series.frequency = frequency 
-    new_series
+    new_transformation("Interpolated (linear match last) from #{self.name}", new_series_data, frequency)
   end
   
   
@@ -194,9 +177,7 @@ module SeriesInterpolation
       end
       last = value
     end
-    new_series = new_transformation("Interpolated with Census method from #{self.name}", quarterly_data)
-    new_series.frequency = frequency 
-    new_series
+    new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
   
   
@@ -229,9 +210,7 @@ module SeriesInterpolation
     quarterly_data[last_date] = last - interval/4
     quarterly_data[last_date + 3.months] = last + interval/4
     #quarterly_data
-    new_series = new_transformation("Interpolated from #{self.name}", quarterly_data)
-    new_series.frequency = frequency 
-    new_series
+    new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
   
   def interpolate_missing_months_and_aggregate(frequency, operation)
@@ -252,8 +231,7 @@ module SeriesInterpolation
       last_val = val
       last_date = key
     end
-    monthly_series = new_transformation("Interpolated Monthly Series from #{self.name}", monthly_series_data)
-    monthly_series.frequency = 'month'
+    monthly_series = new_transformation("Interpolated Monthly Series from #{self.name}", monthly_series_data, 'month')
     monthly_series.aggregate(frequency, operation)
 
   end
@@ -300,10 +278,6 @@ module SeriesInterpolation
       prev_date = key
     end
     
-    new_series = new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data)
-    new_series.frequency = 'quarter'
-    new_series
-    
+    new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
   end
-  
 end
