@@ -70,7 +70,7 @@ module SeriesRelationship
     all_deps = direct_dependents.dup
     direct_dependents.each do |s_name|
       subtree_deps = s_name.ts.recursive_dependents(already_seen) ## recursion
-      already_seen |= [s_name, subtree_deps]
+      already_seen |= [s_name, subtree_deps].flatten
       all_deps |= subtree_deps
     end
     all_deps
