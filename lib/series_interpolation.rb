@@ -233,7 +233,8 @@ module SeriesInterpolation
     new_series.frequency = frequency 
     new_series
   end
-  
+
+  # this method currently vestigial - fix and use, or remove?
   def interpolate_missing_months_and_aggregate(frequency, operation)
     last_val = nil
     last_date = nil

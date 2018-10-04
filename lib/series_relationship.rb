@@ -94,6 +94,8 @@ module SeriesRelationship
     all_deps
   end
 
+  ## Try to use the class method directly, if it will save you a model object instantiation. This is here mainly
+  ## for some notion of OO completeness, or convenience (if your object already exists anyway)
   def who_depends_on_me
     Series.who_depends_on(self.name)
   end
