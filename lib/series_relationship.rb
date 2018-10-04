@@ -61,7 +61,7 @@ module SeriesRelationship
     self.data_sources.count
   end
 
-  ## full recursive tree of dependents
+  ## full recursive tree of dependents - instance method
   def all_who_depend_on_me(already_seen = [])
     return [] if already_seen.include?(self.name)
     already_seen.push(self.name)
@@ -75,15 +75,27 @@ module SeriesRelationship
       all_deps |= subtree_deps
     end
     all_deps
+    #Series.all_who_depend_on_me(self.name, already_seen)
+  end
+
+  ## full recursive tree of dependents - class method
+  def Series.all_who_depend_on(name, already_seen = [])
+    return [] if already_seen.include?(name)
+    already_seen.push(name)
+    direct_dependents = Series.who_depends_on(name)
+    return [] if direct_dependents.empty?
+
+    all_deps = direct_dependents.dup
+    direct_dependents.each do |s_name|
+      subtree_deps = Series.all_who_depend_on(s_name, already_seen) ## recursion
+      already_seen |= [s_name, subtree_deps].flatten
+      all_deps |= subtree_deps
+    end
+    all_deps
   end
 
   def who_depends_on_me
-    name_match = '[[:<:]]' + self.name.gsub('%','\%') + '[[:>:]]'
-    DataSource
-      .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
-      .joins(:series)
-      .pluck(:name)
-      .uniq
+    Series.who_depends_on(self.name)
   end
 
   def who_i_depend_on(direct_only = false)
@@ -99,7 +111,7 @@ module SeriesRelationship
     end
     direct_deps | second_order_deps
   end
-  
+
   def reload_sources(series_worker = false, clear_first = false)
     errors = []
     self.data_sources_by_last_run.each do |ds|

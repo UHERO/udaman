@@ -941,7 +941,16 @@ class Series < ActiveRecord::Base
                          .concat(names.map{|s| logger.debug{ s }; s.ts.all_who_depend_on_me }.flatten)
                          .uniq)
   end
-  
+
+  def Series.who_depends_on(name)
+    name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
+    DataSource
+        .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
+        .joins(:series)
+        .pluck(:name)
+        .uniq
+  end
+
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
   #could do everything with no dependencies first and do all of those in concurrent fashion...
   #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
