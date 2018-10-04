@@ -60,8 +60,9 @@ module SeriesRelationship
     
     self.data_sources.count
   end
-  
-  def recursive_dependents(already_seen = [])
+
+  ## full recursive tree of dependents
+  def all_who_depend_on_me(already_seen = [])
     return [] if already_seen.include?(self.name)
     already_seen.push(self.name)
     direct_dependents = self.who_depends_on_me
@@ -69,7 +70,7 @@ module SeriesRelationship
 
     all_deps = direct_dependents.dup
     direct_dependents.each do |s_name|
-      subtree_deps = s_name.ts.recursive_dependents(already_seen) ## recursion
+      subtree_deps = s_name.ts.all_who_depend_on_me(already_seen) ## recursion
       already_seen |= [s_name, subtree_deps].flatten
       all_deps |= subtree_deps
     end

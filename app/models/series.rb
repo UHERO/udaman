@@ -938,7 +938,7 @@ class Series < ActiveRecord::Base
     end
     names = names.uniq
     Series.where(name: names
-                         .concat(names.map{|s| logger.debug{ s }; s.ts.recursive_dependents }.flatten)
+                         .concat(names.map{|s| logger.debug{ s }; s.ts.all_who_depend_on_me }.flatten)
                          .uniq)
   end
   
