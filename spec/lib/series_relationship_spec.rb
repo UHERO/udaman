@@ -64,7 +64,7 @@ describe SeriesRelationship do
   
     it "should recognize dependents when it is a component series for another" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      Series.who_depends_on_me('ECT@HON.M').include?("ECT_DEPENDENT@HI.M").should eq(true)
+      Series.who_depends_on('ECT@HON.M').include?("ECT_DEPENDENT@HI.M").should eq(true)
     end
   
     it "should recognize component series of multiple sources in the dependencies array" do
@@ -78,7 +78,7 @@ describe SeriesRelationship do
     it "should recognize multiple dependents when it is a component for multiple series" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT2@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      who_deps_me = Series.who_depends_on_me('ECT@HON.M')
+      who_deps_me = Series.who_depends_on('ECT@HON.M')
       who_deps_me.include?("ECT_DEPENDENT@HI.M").should eq(true)
       who_deps_me.include?("ECT_DEPENDENT2@HI.M").should eq(true)
       who_deps_me.include?("ECT_NON_EXIST@HI.M").should eq(false)
