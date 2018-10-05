@@ -45,16 +45,17 @@ module SeriesInterpolation
   end
 
   def fill_alternate_missing_months(start_date_range = nil, end_date_range = nil)
-    raise InterpolationException if frequency != 'month'
+    raise InterpolationException unless frequency == 'month'
     cur_data = data
     start_date = start_date_range ? Date.strptime(start_date_range) : cur_data.sort[0][0]
     end_date = end_date_range ? Date.strptime(end_date_range) : cur_data.sort[-1][0]
     new_dp = {}
     date = start_date + 1.month
     while date < end_date do
+      next if cur_data[date]
       prevm = date - 1.month
       nextm = date + 1.month
-      if cur_data[date] || !cur_data[prevm] || !cur_data[nextm]
+      unless cur_data[prevm]  && cur_data[nextm]
         raise InterpolationException, 'data not strictly alternating months'
       end
       new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2
