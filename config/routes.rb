@@ -77,7 +77,6 @@ UheroDb::Application.routes.draw do
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
-  get 'investigate_no_source' => 'dashboards#investigate_no_source'
   get 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'rake_report' => 'dashboards#rake_report'
