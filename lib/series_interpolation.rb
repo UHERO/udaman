@@ -44,6 +44,8 @@ module SeriesInterpolation
     new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
   end
 
+  ## when monthly data are only available for alternate ("every other") month, fill in the gaps
+  ## with the mean of surrounding monthly values.
   def fill_alternate_missing_months(start_date_range = nil, end_date_range = nil)
     raise InterpolationException unless frequency == 'month'
     cur_data = data
@@ -52,7 +54,6 @@ module SeriesInterpolation
     new_dp = {}
     date = start_date + 1.month
     while date < end_date do
-      next if cur_data[date]
       prevm = date - 1.month
       nextm = date + 1.month
       unless cur_data[prevm]  && cur_data[nextm]
