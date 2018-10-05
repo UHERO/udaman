@@ -61,24 +61,7 @@ module SeriesRelationship
     self.data_sources.count
   end
 
-  ## full recursive tree of dependents - instance method
-  def all_who_depend_on_me(already_seen = [])
-    return [] if already_seen.include?(self.name)
-    already_seen.push(self.name)
-    direct_dependents = self.who_depends_on_me
-    return [] if direct_dependents.empty?
-
-    all_deps = direct_dependents.dup
-    direct_dependents.each do |s_name|
-      subtree_deps = s_name.ts.all_who_depend_on_me(already_seen) ## recursion
-      already_seen |= [s_name, subtree_deps].flatten
-      all_deps |= subtree_deps
-    end
-    all_deps
-    #Series.all_who_depend_on_me(self.name, already_seen)
-  end
-
-  ## full recursive tree of dependents - class method
+  ## full recursive tree of dependents
   def Series.all_who_depend_on(name, already_seen = [])
     return [] if already_seen.include?(name)
     already_seen.push(name)
@@ -94,13 +77,21 @@ module SeriesRelationship
     all_deps
   end
 
+  ## Try to use the above class method directly, if it will save you a model object instantiation.
+  ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
+  ## already exists anyway)
+  def all_who_depend_on_me(already_seen = [])
+    Series.all_who_depend_on(self.name, already_seen)
+  end
+
+  ## the immediate (first order) dependents
   def Series.who_depends_on(name)
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
-        .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
-        .joins(:series)
-        .pluck(:name)
-        .uniq
+      .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
+      .joins(:series)
+      .pluck(:name)
+      .uniq
   end
 
   ## Try to use the above class method directly, if it will save you a model object instantiation.
