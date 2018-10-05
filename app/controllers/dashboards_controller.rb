@@ -76,15 +76,6 @@ class DashboardsController < ApplicationController
   def rake_report
   end
 
-  # apparently obsolete - kill it, including views and route
-  def investigate_no_source
-    @no_source = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0')
-                     .joins('JOIN data_sources ON series.id = series_id')
-                     .where("eval NOT LIKE '%load_from_download%'")
-                     .group(:name)
-                     .order(:name).all
-  end
-  
   def mapping
     @exempted = DataSource.all_history_and_manual_series_names
     @pattern = DataSource.all_pattern_series_names - @exempted
