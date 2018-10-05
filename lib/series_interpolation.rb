@@ -49,7 +49,7 @@ module SeriesInterpolation
     new_series = data.sort
     start_date = start_date_range ? Date.strptime(start_date_range) : new_series[0][0]
     end_date = end_date_range ? Date.strptime(end_date_range) : new_series[-1][0]
-    date = start_date + 1.month ## track the missing data points
+    date = start_date + 1.month
     while date < end_date do
       prevm = date - 1.month
       nextm = date + 1.month
@@ -57,7 +57,7 @@ module SeriesInterpolation
         raise InterpolationException, 'data not strictly alternating months'
       end
       new_series[date] = (new_series[prevm] + new_series[nextm]) / 2
-      date += 2.months
+      date += 2.months ## track the missing data points
     end
     new_transformation("Interpolation of alternate missing months from #{name}", new_series)
   end
