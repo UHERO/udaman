@@ -934,12 +934,17 @@ class Series < ActiveRecord::Base
     all_uhero = DataSource.get_all_uhero
     patterns.each do |pat|
       pat.gsub!('%','\%')
-      names += all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
+      names |= all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
     end
-    names = names.uniq
-    Series.where(name: names
-                         .concat(names.map{|s| logger.debug{ s }; Series.all_who_depend_on(s) }.flatten)
-                         .uniq)
+    seen_series = []
+    all_names = names.dup
+    names.each do |name|
+      Rails.logger.debug { s }
+      dependents = Series.all_who_depend_on(name, seen_series)
+      seen_series |= [name, dependents].flatten
+      all_names |= dependents
+    end
+    Series.where(name: all_names)
   end
 
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
