@@ -939,7 +939,7 @@ class Series < ActiveRecord::Base
     seen_series = []
     all_names = names.dup
     names.each do |name|
-      Rails.logger.debug { s }
+      Rails.logger.debug { name }
       dependents = Series.all_who_depend_on(name, seen_series)
       seen_series |= [name, dependents].flatten
       all_names |= dependents
