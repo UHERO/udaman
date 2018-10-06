@@ -80,8 +80,8 @@ module SeriesRelationship
   ## Try to use the above class method directly, if it will save you a model object instantiation.
   ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
   ## already exists anyway)
-  def all_who_depend_on_me(already_seen = [])
-    Series.all_who_depend_on(self.name, already_seen)
+  def all_who_depend_on_me
+    Series.all_who_depend_on(self.name)
   end
 
   ## the immediate (first order) dependents
