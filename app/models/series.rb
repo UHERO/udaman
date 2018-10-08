@@ -1063,10 +1063,6 @@ class Series < ActiveRecord::Base
       UPDATE series JOIN t_series t ON t.id = series.id SET series.dependency_depth = t.dependency_depth
     SQL
 
-    # notify if the dependency tree did not terminate
-    if current_depth_count > 0
-      PackagerMailer.circular_series_notification(Series.get_all_uhero.where(dependency_depth: previous_depth)).deliver
-    end
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
