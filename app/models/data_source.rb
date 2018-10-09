@@ -1,5 +1,6 @@
 class DataSource < ActiveRecord::Base
   include Cleaning
+  include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -295,7 +296,7 @@ class DataSource < ActiveRecord::Base
   def set_dependencies(dont_save = false)
       self.dependencies = []
       self.description.split(' ').each do |word|
-        unless word.index('@').nil? or word.split('.')[-1].length > 1
+        if valid_series_name(word)
           self.dependencies.push(word)
         end
       end unless self.description.nil?
