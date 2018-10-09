@@ -88,7 +88,7 @@ module SeriesRelationship
   def Series.who_depends_on(name)
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
-      .where('data_sources.description RLIKE ? OR eval RLIKE ?', name_match, name_match)
+      .where('data_sources.description RLIKE ?', name_match)
       .joins(:series)
       .pluck(:name)
       .uniq
