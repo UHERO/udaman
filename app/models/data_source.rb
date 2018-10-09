@@ -288,7 +288,11 @@ class DataSource < ActiveRecord::Base
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
 
-    def set_dependencies
+  def set_dependencies_without_save
+    self.set_dependencies(true)
+  end
+
+  def set_dependencies(dont_save = false)
       self.dependencies = []
       self.description.split(' ').each do |word|
         unless word.index('@').nil? or word.split('.')[-1].length > 1
@@ -296,18 +300,8 @@ class DataSource < ActiveRecord::Base
         end
       end unless self.description.nil?
       self.dependencies.uniq!
-      self.save
+      self.save unless dont_save
     end
-
-  def set_dependencies_without_save
-    self.dependencies = []
-    self.description.split(' ').each do |word|
-      unless word.index('@').nil? or word.split('.')[-1].length > 1
-        self.dependencies.push(word)
-      end
-    end unless self.description.nil?
-    self.dependencies.uniq!
-  end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
   # to be called from the Rails command line, by a developer doing mass updates to the database.
