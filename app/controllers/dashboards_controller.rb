@@ -24,18 +24,7 @@ class DashboardsController < ApplicationController
     @sa_count = @type_buckets.delete :sa_load
     @load_count = @type_buckets.delete(:load) + @sa_count + @type_buckets[:mean_corrected_load]
   end
-  
-  def broken_data_sources
-    #this is also in the rake file. May want to match
-    @inactive_ds = DataSource.get_all_uhero.where('FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))').order(:last_run_in_seconds)
-  end
 
-  def search_data_sources
-    #this is also in the rake file. May want to match
-    @inactive_ds = DataSource.get_all_uhero.where("eval LIKE '%LF@hiwi.org%'").each {|ds| ds.print_eval_statement}
-    render 'broken_data_sources'
-  end
-  
   def investigate
     #@maybe_ok_count = Series.where('aremos_missing = 0 AND ABS(aremos_diff) < 0.1 AND ABS(aremos_diff) > 0.0').count
     #@wrong_count = Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 0.1 AND ABS(aremos_diff) < 1000').count
@@ -45,9 +34,9 @@ class DashboardsController < ApplicationController
     #@missing_count = Series.where('aremos_missing > 0').count
     #@missing_high_to_low = Series.where('aremos_missing > 0').order('aremos_missing DESC').limit(10)
     
-    @maybe_ok = Series.where('aremos_missing = 0 AND ABS(aremos_diff) < 1.0 AND ABS(aremos_diff) > 0.0').order('aremos_diff DESC')   
-    @wrong = Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1.0').order('aremos_diff DESC')
-    @missing_low_to_high = Series.where('aremos_missing > 0').order('aremos_missing ASC')
+    @maybe_ok = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) < 1.0 AND ABS(aremos_diff) > 0.0').order('aremos_diff DESC')
+    @wrong = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1.0').order('aremos_diff DESC')
+    @missing_low_to_high = Series.get_all_uhero.where('aremos_missing > 0').order('aremos_missing ASC')
     
     handle_hash = DataSource.handle_hash
     @maybe_ok_buckets = Series.handle_buckets(@maybe_ok, handle_hash)
@@ -63,7 +52,7 @@ class DashboardsController < ApplicationController
       @to_investigate = []
       return
     end
-    @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
+    @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
   end
 
   def update_public_dp

@@ -71,9 +71,6 @@ UheroDb::Application.routes.draw do
     end
   end
 
-  get 'broken_data_sources' => 'dashboards#broken_data_sources'
-  get 'search_data_sources' => 'dashboards#search_data_sources'
-  get 'send_prognoz_export' => 'prognoz_data_files#send_prognoz_export'
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'

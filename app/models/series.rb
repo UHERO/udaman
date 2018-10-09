@@ -104,7 +104,7 @@ class Series < ActiveRecord::Base
   
   def Series.region_hash
     region_hash = {}
-    all_names = Series.all_names
+    all_names = Series.get_all_uhero.all_names
     all_names.each do |name|
       next if name.nil?
       suffix = name.split('@')[1]
@@ -934,14 +934,19 @@ class Series < ActiveRecord::Base
     all_uhero = DataSource.get_all_uhero
     patterns.each do |pat|
       pat.gsub!('%','\%')
-      names += all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
+      names |= all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
     end
-    names = names.uniq
-    Series.where(name: names
-                         .concat(names.map{|s| logger.debug{ s }; s.ts.recursive_dependents }.flatten)
-                         .uniq)
+    seen_series = []
+    all_names = names.dup
+    names.each do |name|
+      Rails.logger.debug { name }
+      dependents = Series.all_who_depend_on(name, seen_series)
+      seen_series |= [name, dependents].flatten
+      all_names |= dependents
+    end
+    Series.where(name: all_names)
   end
-  
+
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
   #could do everything with no dependencies first and do all of those in concurrent fashion...
   #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
@@ -951,7 +956,7 @@ class Series < ActiveRecord::Base
       next unless already_run[s_name].nil?
       s = s_name.ts
       begin
-        Series.run_all_dependencies(s.new_dependencies, already_run, errors, eval_statements)
+        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements)
       rescue
         puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
         puts s.id
@@ -1058,10 +1063,6 @@ class Series < ActiveRecord::Base
       UPDATE series JOIN t_series t ON t.id = series.id SET series.dependency_depth = t.dependency_depth
     SQL
 
-    # notify if the dependency tree did not terminate
-    if current_depth_count > 0
-      PackagerMailer.circular_series_notification(Series.get_all_uhero.where(dependency_depth: previous_depth)).deliver
-    end
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 

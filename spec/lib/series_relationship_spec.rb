@@ -9,7 +9,7 @@ describe SeriesRelationship do
 
   describe "CLEANING DATA SOURCE operations" do
   
-    before (:each) do
+    before(:each) do
       Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
       Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
       Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
@@ -47,35 +47,41 @@ describe SeriesRelationship do
   end
 
   describe "reporting DEPENDENTS and DEPENDENCIES" do
-    before (:each) do
+    before(:each) do
+      Geography.create!({ handle: 'HI', display_name: 'State of Hawaii', display_name_short: 'Hawaii' }) rescue nil
+      Geography.create!({ handle: 'HAW', display_name: 'Hawaii County', display_name_short: 'Big Island' }) rescue nil
+      Geography.create!({ handle: 'KAU', display_name: 'Kauai County', display_name_short: 'Garden Isle' }) rescue nil
+      Geography.create!({ handle: 'MAU', display_name: 'Maui County', display_name_short: 'Valley Isle' }) rescue nil
+      Geography.create!({ handle: 'HON', display_name: 'C & C of Honolulu', display_name_short: 'Gathering Place' }) rescue nil
+      Geography.create!({ handle: 'TEST', display_name: 'State of Test', display_name_short: 'Test' }) rescue nil
       Series.load_all_series_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/ECT.xls"
     end
   
-    xit "should recognize a component series as a dependency" do
+    it "should recognize a component series as a dependency" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      "ECT_DEPENDENT@HI.M".ts.new_dependencies.index("ECT@HON.M").should be_true
+      "ECT_DEPENDENT@HI.M".ts.who_i_depend_on.include?("ECT@HON.M").should eq(true)
     end
   
-    xit "should recognize dependents when it is a component series for another" do
+    it "should recognize dependents when it is a component series for another" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT@HI.M").should be_true
+      Series.who_depends_on('ECT@HON.M').include?("ECT_DEPENDENT@HI.M").should eq(true)
     end
   
-    xit "should recognize component series of multiple sources in the dependencies array" do
+    it "should recognize component series of multiple sources in the dependencies array" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT_CALC@HON.M".ts + 1|
-      "ECT_DEPENDENT@HI.M".ts.new_dependencies.index("ECT@HON.M").should be_true
-      "ECT_DEPENDENT@HI.M".ts.new_dependencies.index("ECT_CALC@HON.M").should be_true
+      who_i_dep = "ECT_DEPENDENT@HI.M".ts.who_i_depend_on
+      who_i_dep.include?("ECT@HON.M").should eq(true)
+      who_i_dep.include?("ECT_CALC@HON.M").should eq(true)
     end
   
-    xit "should recognize multiple dependents when it is a component for multiple series" do
+    it "should recognize multiple dependents when it is a component for multiple series" do
       "ECT_DEPENDENT@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
       "ECT_DEPENDENT2@HI.M".ts_append_eval %Q|"ECT@HON.M".ts + 1|
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT@HI.M").should be_true
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT2@HI.M").should be_true
-      "ECT@HON.M".ts.new_dependents.index("ECT_DEPENDENT3@HI.M").should be_false
+      who_deps_me = Series.who_depends_on('ECT@HON.M')
+      who_deps_me.include?("ECT_DEPENDENT@HI.M").should eq(true)
+      who_deps_me.include?("ECT_DEPENDENT2@HI.M").should eq(true)
+      who_deps_me.include?("ECT_NON_EXIST@HI.M").should eq(false)
     end
-  
-  
   end
 end

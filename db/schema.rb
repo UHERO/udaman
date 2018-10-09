@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025746) do
+ActiveRecord::Schema.define(version: 220170413025747) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -24,6 +24,12 @@ ActiveRecord::Schema.define(version: 220170413025746) do
   end
 
   add_index "api_applications", ["universe", "name"], name: "index_api_applications_on_universe_and_name", unique: true, using: :btree
+
+  create_table "ar_internal_metadata", primary_key: "key", force: :cascade do |t|
+    t.string   "value",      limit: 255
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+  end
 
   create_table "aremos_series", force: :cascade do |t|
     t.string   "name",               limit: 255
@@ -208,6 +214,9 @@ ActiveRecord::Schema.define(version: 220170413025746) do
     t.integer  "priority",            limit: 4,                              default: 100
   end
 
+  add_index "data_sources", ["dependencies"], name: "index_data_sources_on_dependencies", type: :fulltext
+  add_index "data_sources", ["description"], name: "index_data_sources_on_description", type: :fulltext
+  add_index "data_sources", ["eval"], name: "index_data_sources_on_eval", type: :fulltext
   add_index "data_sources", ["series_id"], name: "index_data_sources_on_series_id", using: :btree
   add_index "data_sources", ["universe"], name: "index_data_sources_on_universe", using: :btree
 

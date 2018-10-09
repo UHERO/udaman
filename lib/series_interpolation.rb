@@ -232,7 +232,8 @@ module SeriesInterpolation
     quarterly_data[last_date + 3.months] = last + interval/4
     new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
-  
+
+  # this method currently vestigial - fix and use, or remove?
   def interpolate_missing_months_and_aggregate(frequency, operation)
     last_val = nil
     last_date = nil
