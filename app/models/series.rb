@@ -870,11 +870,11 @@ class Series < ActiveRecord::Base
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = '0                '
-    day_switches = '0         0000000' if frequency == 'week'
-    day_switches[10 + dates[0].wday] = '1'    if frequency == 'week'
-    day_switches = '0         1111111' if frequency == 'day'
+    day_switches = '0         0000000'     if frequency == 'week'
+    day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
+    day_switches = '0         1111111'     if frequency == 'day'
     
-    data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.ljust(64, ' ')}\r\n"
+    data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.to_s.ljust(64, ' ')}\r\n"
     data_string+= "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
@@ -887,15 +887,13 @@ class Series < ActiveRecord::Base
     dates.each_index do |i|
     # sci_data.each_index do |i|
       date = dates[i]
-      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].rjust(15, ' ')
+      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].to_s.rjust(15, ' ')
       data_string += dp_string
       data_string += "     \r\n" if (i+1)%5==0
     end    
     space_padding = 80 - data_string.split("\r\n")[-1].length
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
-  
-  #["ERE", "EGVLC", "EGVST", "EGVFD", "EAFFD", "EAFAC", "EAE", "EHC", "EED", "EPS", "EAD", "EMA","E_TU","EWT","ERT","ECT","EMN","EIF", "EOS", "E_TTU", "E_TRADE", "E_FIR", "E_PBS","E_EDHC", "E_LH", "EAF", "EGV", "E_GVSL", "E_NF"].each do |pre|
   
   def refresh_all_datapoints
     unique_ds = {} #this is actually used ds
@@ -956,7 +954,7 @@ class Series < ActiveRecord::Base
       next unless already_run[s_name].nil?
       s = s_name.ts
       begin
-        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements)
+        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements) ## recursion
       rescue
         puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
         puts s.id

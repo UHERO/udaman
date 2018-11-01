@@ -24,24 +24,23 @@ end
 
 task :tsd_exports => :environment do
   t = Time.now
-  path = "#{ENV['DATA_PATH']}/BnkLists/"
+  path = File.join(ENV['DATA_PATH'], 'BnkLists')
   %w{bea_a bls_a census_a jp_a misc_a tax_a tour_a us_a 
     bea_s bls_s 
     bea_q bls_q census_q jp_q misc_q tax_q tour_q us_q
     bls_m jp_m misc_m tax_m tour_m us_m
     misc_w tour_w tour_d }.each do |bank|
-  # ["misc_w"].each do |bank|
-    # ["bls_m"].each do |bank|
     t = Time.now
-    frequency_code = bank.split('_')[1].upcase
-    filename = path + bank + '.txt'
+    filename =  File.join(path, bank + '.txt')
+    Rails.logger.debug { ">>>> tsd_exports: processing file #{filename}" }
     f = open filename
     list = f.read.split("\r\n")
     f.close
-    list.map! {|name| "#{name}.#{frequency_code}"}
-    Series.write_data_list_tsd list, "#{ENV['DATA_PATH']}/udaman_tsd/#{bank}.tsd"
-    puts "#{ '%.2f' % (Time.now - t) } | #{ list.count } | #{ bank }"
-    
+    frequency_code = bank.split('_')[1].upcase
+    list.map! {|name| "#{name.strip.upcase}.#{frequency_code}"}
+    Rails.logger.debug { ">>>> tsd_exports: exporting these series: #{list.join(' ')}" }
+    Series.write_data_list_tsd(list, File.join(ENV['DATA_PATH'], 'udaman_tsd', bank + '.tsd'))
+    #puts "#{ '%.2f' % (Time.now - t) } | #{ list.count } | #{ bank }"
   end
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['tsd_exports', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
