@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'rails', '~> 4.2'
+gem 'rails', '~> 4.2', '>= 4.2.7.1'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -14,21 +14,21 @@ gem 'highline', '~> 1.6.0'
 gem 'mysql2', '~> 0.4.0'
 gem 'composite_primary_keys', '~> 8.1'
 gem 'roo', '~> 2.4.0'
-gem 'roo-xls', '>= 1.0.0'
+gem 'roo-xls', '>= 1.2.0'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
-gem 'spork-rails'
+gem 'spork-rails', '>= 4.0.0'
 gem 'sidekiq', '~> 4.1'
 gem 'sidekiq-status'
 gem 'sinatra', :require => false
 gem 'rack-protection', '~> 2.0.0'
 gem 'sinatra_auth_github', :require => false
 gem 'rubyzip', '~> 1.2.2'
-gem 'capybara', '~> 2.7'
+gem 'capybara', '~> 2.12', '>= 2.12.0'
 gem 'selenium-webdriver', '>= 3.13.0'
 gem 'watir', '~> 6.11', '>= 6.11.0'
 gem 'whenever'
-gem 'mechanize'
+gem 'mechanize', '>= 2.7.5'
 gem 'net-sftp'
 gem 'dalli', '~> 2.7'
 gem 'rails-assets-select2', :source => 'http://rails-assets.org'
@@ -39,12 +39,12 @@ gem 'font-awesome-sass'
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 #gem 'devise-encryptable', '~> 0.2'
 gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/17371334/how-is-attr-accessible-used-in-rails-4
-gem 'sass-rails',   '~> 5.0'
-gem 'coffee-rails', '~> 4.1'
+gem 'sass-rails', '~> 5.0', '>= 5.0.6'
+gem 'coffee-rails', '~> 4.2', '>= 4.2.1'
 gem 'uglifier', '~> 3.0'
-gem 'jquery-rails', '~> 4.1'
-gem 'jquery-ui-rails', '~> 5.0'
-gem 'devise', '~> 4.0'
+gem 'jquery-rails', '~> 4.2', '>= 4.2.2'
+gem 'jquery-ui-rails', '~> 5.0', '>= 5.0.5'
+gem 'devise', '~> 4.2', '>= 4.2.0'
 gem 'stringex', '~> 2.6'
 
 # Deploy with Capistrano
@@ -56,11 +56,11 @@ gem 'stringex', '~> 2.6'
 
 # Bundle the extra gems:
 # gem 'bj'
-gem 'nokogiri', '~> 1.8.1'
+gem 'nokogiri', '~> 1.8.5'
 # gem 'sqlite3-ruby', :require => 'sqlite3'
 # gem 'aws-s3', :require => 'aws/s3'
 # Highcharts gem for forecast snapshot
-gem 'highcharts-rails'
+gem 'highcharts-rails', '>= 4.2.5'
 
 # Bundle gems for the local environment. Make sure to
 # put test-only gems in this group so their generators
@@ -79,8 +79,8 @@ group :production do
 end
 
 group :development, :test do
-  gem 'rspec-rails', '~> 3.1'
-  gem 'factory_bot_rails', '~> 4.7'
+  gem 'rspec-rails', '~> 3.5', '>= 3.5.2'
+  gem 'factory_bot_rails', '~> 4.8', '>= 4.8.2'
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
