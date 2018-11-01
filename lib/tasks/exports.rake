@@ -39,7 +39,8 @@ task :tsd_exports => :environment do
     frequency_code = bank.split('_')[1].upcase
     list.map! {|name| "#{name.strip.upcase}.#{frequency_code}"}
     Rails.logger.debug { ">>>> tsd_exports: exporting these series: #{list.join(' ')}" }
-    Series.write_data_list_tsd(list, File.join(ENV['DATA_PATH'], 'udaman_tsd', bank + '.tsd'))
+    output_file = File.join(ENV['DATA_PATH'], 'udaman_tsd', bank + '.tsd')
+    Series.write_data_list_tsd(list, output_file)
     #puts "#{ '%.2f' % (Time.now - t) } | #{ list.count } | #{ bank }"
   end
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['tsd_exports', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
