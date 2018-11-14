@@ -596,7 +596,7 @@ class Series < ActiveRecord::Base
     new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end
   
-  def Series.load_from_download(handle, options, cached_files = nil)
+  def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     Series.new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}",
@@ -604,7 +604,7 @@ class Series < ActiveRecord::Base
                                Series.frequency_from_code(options[:frequency]))
   end
   
-  def Series.load_from_file(file, options, cached_files = nil)
+  def Series.load_from_file(file, options)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
@@ -618,7 +618,7 @@ class Series < ActiveRecord::Base
     new_transformation("loaded from pattern id #{id}", {})
   end
   
-  def load_from_download(handle, options, cached_files = nil)
+  def load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
