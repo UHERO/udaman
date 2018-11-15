@@ -966,7 +966,22 @@ class Series < ActiveRecord::Base
       already_run[s_name] = true
     end
   end
-    
+
+  def reload_sources(series_worker = false, clear_first = false)
+    errors = []
+    self.data_sources_by_last_run.each do |ds|
+      success = true
+      begin
+        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
+        errors.push("data source #{ds.id} failed") unless success
+      rescue Exception => e
+        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
+      end
+    end
+    errors
+  end
+
   def Series.missing_from_aremos
     name_buckets = {}
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}

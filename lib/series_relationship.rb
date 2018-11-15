@@ -114,19 +114,4 @@ module SeriesRelationship
     end
     direct_deps | second_order_deps
   end
-
-  def reload_sources(series_worker = false, clear_first = false)
-    errors = []
-    self.data_sources_by_last_run.each do |ds|
-      success = true
-      begin
-        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
-        errors.push('fail') unless success
-      rescue Exception => e
-        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
-        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
-      end
-    end
-    errors
-  end
 end
