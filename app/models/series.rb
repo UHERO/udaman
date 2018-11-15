@@ -982,7 +982,8 @@ class Series < ActiveRecord::Base
     errors
   end
 
-  def Series.missing_from_aremos
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def Series.missing_from_aremos_DELETE_ME
     name_buckets = {}
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
     name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}
