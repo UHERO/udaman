@@ -160,7 +160,9 @@ class DataSource < ActiveRecord::Base
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: before eval" }
         s = Kernel::eval eval_stmt
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after eval" }
         if clear_first
           delete_data_points
           Rails.logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
@@ -169,6 +171,7 @@ class DataSource < ActiveRecord::Base
         if !base_year.nil? && base_year != self.series.base_year
           self.series.update(:base_year => base_year.to_i)
         end
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: before updates" }
         self.series.update_data(s.data, self)
         self.update(:description => s.name,
                     :last_run => t,
@@ -176,7 +179,7 @@ class DataSource < ActiveRecord::Base
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
-
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after updates" }
       rescue => e
         self.update(:last_run => t,
                     :last_run_at => t,

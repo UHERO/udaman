@@ -596,7 +596,7 @@ class Series < ActiveRecord::Base
     new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end
   
-  def Series.load_from_download(handle, options, cached_files = nil)
+  def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     Series.new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}",
@@ -604,7 +604,7 @@ class Series < ActiveRecord::Base
                                Series.frequency_from_code(options[:frequency]))
   end
   
-  def Series.load_from_file(file, options, cached_files = nil)
+  def Series.load_from_file(file, options)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
@@ -618,7 +618,7 @@ class Series < ActiveRecord::Base
     new_transformation("loaded from pattern id #{id}", {})
   end
   
-  def load_from_download(handle, options, cached_files = nil)
+  def load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
@@ -966,8 +966,24 @@ class Series < ActiveRecord::Base
       already_run[s_name] = true
     end
   end
-    
-  def Series.missing_from_aremos
+
+  def reload_sources(series_worker = false, clear_first = false)
+    errors = []
+    self.data_sources_by_last_run.each do |ds|
+      success = true
+      begin
+        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
+        errors.push("data source #{ds.id} failed") unless success
+      rescue Exception => e
+        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
+      end
+    end
+    errors
+  end
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def Series.missing_from_aremos_DELETE_ME
     name_buckets = {}
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
     name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}

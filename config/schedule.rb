@@ -40,6 +40,10 @@ every 1.day, :at => "4:00 pm" do
   rake :update_bea_links
 end
 
+every 1.day, :at => '6:20 pm' do
+  rake :reload_stales_only
+end
+
 every 1.day, :at => '8:00 pm' do
   rake :reload_aremos
 end
