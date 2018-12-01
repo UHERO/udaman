@@ -124,7 +124,7 @@ GEM
       thor (>= 0.14, < 2.0)
     jquery-ui-rails (5.0.5)
       railties (>= 3.2.16)
-    loofah (2.2.2)
+    loofah (2.2.3)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
     mail (2.7.1)
@@ -336,19 +336,19 @@ DEPENDENCIES
   capistrano-rails (~> 1.1)
   capistrano-rvm
   capybara (~> 2.12, >= 2.12.0)
-  coffee-rails (~> 4.2, >= 4.2.1)
+  coffee-rails (~> 4.2, >= 4.2.2)
   composite_primary_keys (~> 8.1)
   dalli (~> 2.7)
   database_cleaner
   debase
-  devise (~> 4.2, >= 4.2.0)
-  factory_bot_rails (~> 4.8, >= 4.8.2)
+  devise (~> 4.5, >= 4.5.0)
+  factory_bot_rails (~> 4.11, >= 4.11.1)
   faker (~> 1.6)
   font-awesome-sass
-  highcharts-rails (>= 4.2.5)
+  highcharts-rails (>= 6.0.3)
   highline (~> 1.6.0)
   httpclient
-  jquery-rails (~> 4.2, >= 4.2.2)
+  jquery-rails (~> 4.3, >= 4.3.3)
   jquery-ui-rails (~> 5.0, >= 5.0.5)
   mechanize (>= 2.7.5)
   mysql2 (~> 0.4.0)
@@ -359,7 +359,7 @@ DEPENDENCIES
   passenger
   protected_attributes (~> 1.1)
   rack-protection (~> 2.0.0)
-  rails (~> 4.2, >= 4.2.7.1)
+  rails (~> 4.2, >= 4.2.10)
   rails-assets-select2!
   rake
   rest-client (~> 2.0)
@@ -370,7 +370,7 @@ DEPENDENCIES
   ruby-debug-ide
   rubyzip (~> 1.2.2)
   rvm-capistrano
-  sass-rails (~> 5.0, >= 5.0.6)
+  sass-rails (~> 5.0, >= 5.0.7)
   selenium-webdriver (>= 3.13.0)
   sidekiq (~> 4.1)
   sidekiq-status

@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'rails', '~> 4.2', '>= 4.2.7.1'
+gem 'rails', '~> 4.2', '>= 4.2.10'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -39,12 +39,12 @@ gem 'font-awesome-sass'
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 #gem 'devise-encryptable', '~> 0.2'
 gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/17371334/how-is-attr-accessible-used-in-rails-4
-gem 'sass-rails', '~> 5.0', '>= 5.0.6'
-gem 'coffee-rails', '~> 4.2', '>= 4.2.1'
+gem 'sass-rails', '~> 5.0', '>= 5.0.7'
+gem 'coffee-rails', '~> 4.2', '>= 4.2.2'
 gem 'uglifier', '~> 3.0'
-gem 'jquery-rails', '~> 4.2', '>= 4.2.2'
+gem 'jquery-rails', '~> 4.3', '>= 4.3.3'
 gem 'jquery-ui-rails', '~> 5.0', '>= 5.0.5'
-gem 'devise', '~> 4.2', '>= 4.2.0'
+gem 'devise', '~> 4.5', '>= 4.5.0'
 gem 'stringex', '~> 2.6'
 
 # Deploy with Capistrano
@@ -60,7 +60,7 @@ gem 'nokogiri', '~> 1.8.5'
 # gem 'sqlite3-ruby', :require => 'sqlite3'
 # gem 'aws-s3', :require => 'aws/s3'
 # Highcharts gem for forecast snapshot
-gem 'highcharts-rails', '>= 4.2.5'
+gem 'highcharts-rails', '>= 6.0.3'
 
 # Bundle gems for the local environment. Make sure to
 # put test-only gems in this group so their generators
@@ -80,7 +80,7 @@ end
 
 group :development, :test do
   gem 'rspec-rails', '~> 3.5', '>= 3.5.2'
-  gem 'factory_bot_rails', '~> 4.8', '>= 4.8.2'
+  gem 'factory_bot_rails', '~> 4.11', '>= 4.11.1'
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
