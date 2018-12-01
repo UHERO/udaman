@@ -18,13 +18,13 @@ gem 'roo-xls', '>= 1.2.0'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
 gem 'spork-rails', '>= 4.0.0'
-gem 'sidekiq', '~> 4.1'
-gem 'sidekiq-status'
-gem 'sinatra', :require => false
-gem 'rack-protection', '~> 2.0.0'
-gem 'sinatra_auth_github', :require => false
+gem 'sidekiq', '~> 4.2', '>= 4.2.9'
+gem 'sidekiq-status', '>= 1.0.1'
+gem 'sinatra', '>= 1.2.8', :require => false
+gem 'rack-protection', '~> 2.0.1'
+gem 'sinatra_auth_github', '>= 1.2.0', :require => false
 gem 'rubyzip', '~> 1.2.2'
-gem 'capybara', '~> 2.12', '>= 2.12.0'
+gem 'capybara', '~> 2.18', '>= 2.18.0'
 gem 'selenium-webdriver', '>= 3.13.0'
 gem 'watir', '~> 6.11', '>= 6.11.0'
 gem 'whenever'
@@ -70,7 +70,7 @@ gem 'highcharts-rails', '>= 6.0.3'
 # end
 
 # Gems for Passenger
-gem 'passenger'
+gem 'passenger', '>= 5.1.1'
 gem 'sqlite3'
 
 group :production do
@@ -93,5 +93,5 @@ end
 
 group :test do
   gem 'rake'
-  gem 'rspec-sidekiq'
+  gem 'rspec-sidekiq', '>= 2.2.0'
 end
