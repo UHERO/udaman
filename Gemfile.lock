@@ -361,7 +361,7 @@ DEPENDENCIES
   ruby-debug-ide
   rubyzip (~> 1.2.2)
   rvm-capistrano
-  sassc-rails
+  sassc-rails (>= 2.0.0)
   selenium-webdriver (>= 3.13.0)
   sidekiq (~> 4.2, >= 4.2.9)
   sidekiq-status (>= 1.0.1)
