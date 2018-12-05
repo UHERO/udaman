@@ -15,26 +15,28 @@ module SeriesComparison
   def match_data_date(date, data_to_compare)
     match_data(self.at(date), data_to_compare[date])
   end
-  
+
+
+  ## this is only used in the following method. Why is it instance method? Make private?
   def round_to_1000(num)
     (((num)*1000).round)/1000.to_f
   end
   
   def match_data(data1, data2)
     begin
-      # return true if data1.class == String and (data1.strip == "" and data2.nil?) 
-      #       return true if data2.class == String and (data1.nil? and data2.strip == "") 
-      return false if data1.class != data2.class unless (data1.class == Float and data2.class == Fixnum) or (data2.class == Float and data1.class == Fixnum)
-      return true if data1 == 0.0 and data2 == 0.0
-      tolerance_check = nil
-      tolerance_check = (data1 - data2).abs < 0.05 * data1.abs if data1.class == Float
-      rounding_check = nil
-      rounding_check = round_to_1000(data1) == round_to_1000(data2) if data1.class == Float
-      return (tolerance_check or rounding_check) if data1.class == Float
-      return data1 == data2
+      unless (data1.class == Float && data2.class == Fixnum) || (data2.class == Float && data1.class == Fixnum)
+        return false if data1.class != data2.class
+      end
+      return true if data1 == 0.0 && data2 == 0.0
+      if data1.class == Float
+        tolerance_check = (data1 - data2).abs < 0.05 * data1.abs
+        rounding_check = round_to_1000(data1) == round_to_1000(data2)
+        return (tolerance_check or rounding_check)
+      end
     rescue FloatDomainError
-      return data1 == data2
+        ;
     end
+    data1 == data2
   end
   
   def identical_to?(data_to_compare)
