@@ -23,10 +23,10 @@ module SeriesComparison
   end
   
   def match_data(data1, data2)
+    unless (data1.class == Float && data2.class == Fixnum) || (data2.class == Float && data1.class == Fixnum)
+      return false if data1.class != data2.class
+    end
     begin
-      unless (data1.class == Float && data2.class == Fixnum) || (data2.class == Float && data1.class == Fixnum)
-        return false if data1.class != data2.class
-      end
       return true if data1 == 0.0 && data2 == 0.0
       if data1.class == Float
         tolerance_check = (data1 - data2).abs < 0.05 * data1.abs
