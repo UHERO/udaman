@@ -16,12 +16,6 @@ module SeriesComparison
     match_data(self.at(date), data_to_compare[date])
   end
 
-
-  ## this is only used in the following method. Why is it instance method? Make private?
-  def round_to_1000(num)
-    (((num)*1000).round)/1000.to_f
-  end
-  
   def match_data(data1, data2)
     unless (data1.class == Float && data2.class == Fixnum) || (data2.class == Float && data1.class == Fixnum)
       return false if data1.class != data2.class
@@ -70,4 +64,10 @@ module SeriesComparison
     sufficient_match? prognoz_output_data, true
     #identical_to? prognoz_output_data
   end
+
+private
+  def round_to_1000(num)
+    (((num)*1000).round)/1000.to_f
+  end
+
 end
