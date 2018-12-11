@@ -245,15 +245,6 @@ class SeriesController < ApplicationController
     @chart_made = chart_to_make
   end
   
-  def validate
-    @series = Series.find_by id: params[:id]
-    @prognoz_data_results = @series.prognoz_data_results
-  end
-  
-  def replace_block
-    render :partial => 'replace_block'
-  end
-  
   def toggle_units
     @series = Series.find_by id: params[:id]
     @series.units = params[:units]
