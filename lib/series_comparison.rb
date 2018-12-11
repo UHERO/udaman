@@ -23,7 +23,7 @@ module SeriesComparison
     begin
       return true if data1 == 0.0 && data2 == 0.0
       if data1.class == Float
-        tolerance_check = (data1 - data2).abs < 0.05 * data1.abs
+        tolerance_check = (data1 - data2).abs < (0.05 * data1.abs)
         rounding_check = round_to_1000(data1) == round_to_1000(data2)
         return (tolerance_check or rounding_check)
       end
