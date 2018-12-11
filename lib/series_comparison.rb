@@ -46,26 +46,4 @@ module SeriesComparison
     end
     match_dates_with(data_to_compare)
   end
-  
-  #test this
-  def sufficient_match?(data_to_compare, prognoz = false)
-    self.mult ||= 1
-    ret_val = true
-    self.prognoz_missing = 0
-    self.prognoz_diff = 0
-    self.data.each do |date, value|
-      value = value/self.mult.to_f unless value.nil? or value.class == String
-      match_result = match_data(value, data_to_compare[date]) 
-      ret_val = false unless match_result or data_to_compare[date].nil?
-      self.prognoz_missing += 1 if match_result == false and (value.nil? and !data_to_compare[date].nil?) and prognoz
-      self.prognoz_diff += (data_to_compare[date].to_f - value.to_f).abs if data_to_compare[date] != nil and value != nil and prognoz
-    end
-    self.save if prognoz
-    ret_val
-  end
-  
-  def matches_prognoz?
-    sufficient_match? prognoz_output_data, true
-    #identical_to? prognoz_output_data
-  end
 end
