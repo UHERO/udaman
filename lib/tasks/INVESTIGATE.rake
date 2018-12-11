@@ -30,38 +30,6 @@ task :update_diffs => :environment do
   end
 end
 
-
-task :gen_prognoz_diffs => :environment do
-  t = Time.now
-  diff_data = []
-
-  PrognozDataFile.all.each do |file|
-    t1 = Time.now
-    os = UpdateSpreadsheet.new file.safe_filename
-    os.headers_with_frequency_code.each do |header|
-      if header.ts.nil?
-        diff_data.push({:pdf_id => file.id, :id => 0, :name => header, :display_array => [-1]})
-        next
-      end
-      ddiff = header.ts.data_diff(os.series(header.split('.')[0]), 3)
-      diff_hash = ddiff[:display_array]
-      if diff_hash.count > 0
-        diff_data.push({:pdf_id => file.id, :id => header.ts.id, :name => header, :display_array => diff_hash})
-      end
-    end
-    file.write_export
-    puts "#{'%.2f' %(Time.now - t1)} | #{file.filename}"
-  end
-
-  CSV.open('public/prognoz_diffs.csv', 'wb') do |csv|        
-    diff_data.each do |dd|
-      csv << [dd[:pdf_id]]+[dd[:name]] + [dd[:id]] + dd[:display_array]
-    end
-  end
-
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_prognoz_diffs', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
-end
-
 task :gen_investigate_csv => :environment do
   t = Time.now
   # diff_data = [{:id => 1, :name => "he", :display_array => [1,2,2,2] }]

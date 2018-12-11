@@ -1,12 +1,4 @@
 module SeriesExternalRelationship
-  def find_prognoz_data_file
-  	pdfs = PrognozDataFile.all
-  	pdfs.each do |pdf|
-  		return pdf if pdf.series_loaded.include?(self.name) 
-  	end
-  	nil
-  end
-  
    def set_output_series(multiplier)
      self.update_attributes(:mult => multiplier)
    end
