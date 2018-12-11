@@ -260,7 +260,7 @@ class SeriesController < ApplicationController
     #@series.save
     @series.aremos_comparison(true)
     @as = AremosSeries.get @series.name
-    render :partial => 'toggle_units.html'
+    render :partial => 'toggle_units'
   end
   
   def render_data_points
@@ -269,19 +269,10 @@ class SeriesController < ApplicationController
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
   
-  def toggle_multiplier
-    @series = Series.find_by id: params[:id]
-    @series.toggle_mult
-    #@series.save
-    @output_file = PrognozDataFile.find_by id: @series.prognoz_data_file_id
-    @output_file.update_series_validated_for @series
-    render :partial => 'validate_row'
-  end
-
   def update_notes
     @series = Series.find_by id: params[:id]
     @series.update_attributes({:investigation_notes => params[:note]})
-    render :partial => 'investigation_sort.html'
+    render :partial => 'investigation_sort'
   end
 
   def stale
