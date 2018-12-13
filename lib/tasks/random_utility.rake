@@ -1,6 +1,6 @@
 ## JIRA: UA-989
 task :batch_update_meta_for_aggregated => :environment do
-  agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and prognoz_data_file_id is null}).uniq
+  agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and scratch <> 1111}).uniq
   eval_match = %r/^(["'])((\S+?)@(\w+?)\.([ASQMWD]))\1\.ts\.aggregate\(:\w+,:\w+\)$/i  ## series name regex from Series.parse_name()
   marked_series = []
   cmds = {}
@@ -76,7 +76,7 @@ task :batch_update_meta_for_aggregated => :environment do
       puts sprintf(format, s.name, s_unit, s_source, s_detail, s_link)
       print '> '
       cmds = STDIN.gets.chomp.split(//).map{|x| [x, true] }.to_h
-      s.update!(prognoz_data_file_id: 'seen') if cmds['n']
+      s.update!(scratch: 1111) if cmds['n']
       break if cmds['n'] || cmds['Q']
       if cmds['m']
         marked_series.push(s)

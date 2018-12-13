@@ -11,7 +11,6 @@ describe "series/show.html.erb" do
       :last_demetra_date => "Last Demetra Date",
       :factors => {},
       :factor_application => "Factor Application",
-      :prognoz_data_file_id => "Prognoz Data File",
       :aremos_missing => 1,
       :aremos_diff => 1.5,
       :mult => 1,
@@ -23,29 +22,16 @@ describe "series/show.html.erb" do
     render
     # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/Name/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/Frequency/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/Description/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/1/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/false/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/Last Demetra Datestring/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(//)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/Factor Application/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
-    rendered.should match(/Prognoz Data File/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/1/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/1.5/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(/1/)
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
     rendered.should match(//)
   end
 end

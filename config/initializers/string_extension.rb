@@ -39,10 +39,6 @@ class String
   def is_numeric?
     true if Float self rescue false
   end
-  
-  def pdf
-    PrognozDataFile.where(:filename => /Data_#{self}.xls$/)[0]
-  end
 
   def time
     t = Time.now

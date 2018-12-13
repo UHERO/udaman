@@ -62,8 +62,6 @@ UheroDb::Application.routes.draw do
   resources :series
 
   resources :data_sources
-  resources :prognoz_data_files
-  resources :series_data_files
   resources :dashboards
   resources :data_lists do
     member do

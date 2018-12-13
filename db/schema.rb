@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025747) do
+ActiveRecord::Schema.define(version: 220170413025748) do
 
   create_table "api_applications", force: :cascade do |t|
     t.string   "universe",        limit: 5,   default: "UHERO", null: false
@@ -379,19 +379,6 @@ ActiveRecord::Schema.define(version: 220170413025747) do
     t.datetime "updated_at"
   end
 
-  create_table "prognoz_data_files", force: :cascade do |t|
-    t.string   "name",              limit: 255
-    t.string   "filename",          limit: 255
-    t.string   "frequency",         limit: 255
-    t.text     "series_loaded",     limit: 4294967295
-    t.text     "series_covered",    limit: 65535
-    t.text     "series_validated",  limit: 65535
-    t.text     "output_series",     limit: 65535
-    t.string   "output_start_date", limit: 255
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
   create_table "public_data_points", id: false, force: :cascade do |t|
     t.string   "universe",       limit: 8,  default: "UHERO", null: false
     t.integer  "series_id",      limit: 4,                    null: false
@@ -414,7 +401,6 @@ ActiveRecord::Schema.define(version: 220170413025747) do
     t.string   "last_demetra_datestring", limit: 255
     t.text     "factors",                 limit: 65535
     t.string   "factor_application",      limit: 255
-    t.string   "prognoz_data_file_id",    limit: 255
     t.integer  "aremos_missing",          limit: 4
     t.float    "aremos_diff",             limit: 24
     t.integer  "mult",                    limit: 4
@@ -440,6 +426,7 @@ ActiveRecord::Schema.define(version: 220170413025747) do
     t.integer  "source_detail_id",        limit: 4
     t.boolean  "quarantined",                           default: false
     t.integer  "base_year",               limit: 4
+    t.integer  "scratch",                 limit: 4,     default: 0,       null: false
   end
 
   add_index "series", ["geography_id"], name: "fk_rails_963076a967", using: :btree

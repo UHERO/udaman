@@ -4,7 +4,6 @@ class SeriesOutputXls < Spreadsheet::Workbook
     super output_path
     @output_path = output_path
     @output_filename = @output_path.split("/")[-1]
-    #@folder_path = prognoz_output_path+output_folder_name_for_date(Date.today)+"/"
     @add_to_db = ENV["LOAD_UPDATE_SPREADSHEET_PATTERNS_TO_DB"] == "true" ? true : false #add_to_db
   end
   

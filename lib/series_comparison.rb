@@ -15,26 +15,22 @@ module SeriesComparison
   def match_data_date(date, data_to_compare)
     match_data(self.at(date), data_to_compare[date])
   end
-  
-  def round_to_1000(num)
-    (((num)*1000).round)/1000.to_f
-  end
-  
+
   def match_data(data1, data2)
-    begin
-      # return true if data1.class == String and (data1.strip == "" and data2.nil?) 
-      #       return true if data2.class == String and (data1.nil? and data2.strip == "") 
-      return false if data1.class != data2.class unless (data1.class == Float and data2.class == Fixnum) or (data2.class == Float and data1.class == Fixnum)
-      return true if data1 == 0.0 and data2 == 0.0
-      tolerance_check = nil
-      tolerance_check = (data1 - data2).abs < 0.05 * data1.abs if data1.class == Float
-      rounding_check = nil
-      rounding_check = round_to_1000(data1) == round_to_1000(data2) if data1.class == Float
-      return (tolerance_check or rounding_check) if data1.class == Float
-      return data1 == data2
-    rescue FloatDomainError
-      return data1 == data2
+    unless (data1.class == Float && data2.class == Fixnum) || (data2.class == Float && data1.class == Fixnum)
+      return false if data1.class != data2.class
     end
+    begin
+      return true if data1 == 0.0 && data2 == 0.0
+      if data1.class == Float
+        tolerance_check = (data1 - data2).abs < (0.05 * data1.abs)
+        rounding_check = round_to_1000(data1) == round_to_1000(data2)
+        return (tolerance_check or rounding_check)
+      end
+    rescue FloatDomainError
+        ;
+    end
+    data1 == data2
   end
   
   def identical_to?(data_to_compare)
@@ -46,26 +42,9 @@ module SeriesComparison
     end
     match_dates_with(data_to_compare)
   end
-  
-  #test this
-  def sufficient_match?(data_to_compare, prognoz = false)
-    self.mult ||= 1
-    ret_val = true
-    self.prognoz_missing = 0
-    self.prognoz_diff = 0
-    self.data.each do |date, value|
-      value = value/self.mult.to_f unless value.nil? or value.class == String
-      match_result = match_data(value, data_to_compare[date]) 
-      ret_val = false unless match_result or data_to_compare[date].nil?
-      self.prognoz_missing += 1 if match_result == false and (value.nil? and !data_to_compare[date].nil?) and prognoz
-      self.prognoz_diff += (data_to_compare[date].to_f - value.to_f).abs if data_to_compare[date] != nil and value != nil and prognoz
-    end
-    self.save if prognoz
-    ret_val
-  end
-  
-  def matches_prognoz?
-    sufficient_match? prognoz_output_data, true
-    #identical_to? prognoz_output_data
+
+private
+  def round_to_1000(num)
+    (((num)*1000).round)/1000.to_f
   end
 end
