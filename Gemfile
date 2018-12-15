@@ -37,7 +37,6 @@ gem 'will_paginate', '~> 3.1.1'
 gem 'font-awesome-sass'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
-### no longer need? gem 'protected_attributes', '~> 1.1' # http://stackoverflow.com/questions/17371334/how-is-attr-accessible-used-in-rails-4
 gem 'sassc-rails', '>= 2.0.0'
 gem 'coffee-rails', '~> 4.2', '>= 4.2.2'
 gem 'uglifier', '~> 3.0'
