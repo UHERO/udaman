@@ -104,7 +104,7 @@ class Series < ApplicationRecord
   
   def Series.region_hash
     region_hash = {}
-    all_names = Series.all_names
+    all_names = Series.get_all_uhero.all_names
     all_names.each do |name|
       next if name.nil?
       suffix = name.split('@')[1]
@@ -596,7 +596,7 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end
   
-  def Series.load_from_download(handle, options, cached_files = nil)
+  def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     Series.new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}",
@@ -604,7 +604,7 @@ class Series < ApplicationRecord
                                Series.frequency_from_code(options[:frequency]))
   end
   
-  def Series.load_from_file(file, options, cached_files = nil)
+  def Series.load_from_file(file, options)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
@@ -618,7 +618,7 @@ class Series < ApplicationRecord
     new_transformation("loaded from pattern id #{id}", {})
   end
   
-  def load_from_download(handle, options, cached_files = nil)
+  def load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
@@ -811,14 +811,10 @@ class Series < ApplicationRecord
   end
   
   def date_range
-    
-    #return self.data.keys.sort 
-      
     data_dates = self.data.keys.sort
     start_date = data_dates[0]
     end_date = data_dates[-1]
     curr_date = start_date
-    
     dates = []
     offset = 0
     
@@ -837,8 +833,6 @@ class Series < ApplicationRecord
         offset += 1
       end while curr_date < end_date
     end
-    
-    
     dates
   end
 
@@ -870,11 +864,11 @@ class Series < ApplicationRecord
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = '0                '
-    day_switches = '0         0000000' if frequency == 'week'
-    day_switches[10 + dates[0].wday] = '1'    if frequency == 'week'
-    day_switches = '0         1111111' if frequency == 'day'
+    day_switches = '0         0000000'     if frequency == 'week'
+    day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
+    day_switches = '0         1111111'     if frequency == 'day'
     
-    data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.ljust(64, ' ')}\r\n"
+    data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.to_s.ljust(64, ' ')}\r\n"
     data_string+= "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
@@ -887,15 +881,13 @@ class Series < ApplicationRecord
     dates.each_index do |i|
     # sci_data.each_index do |i|
       date = dates[i]
-      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].rjust(15, ' ')
+      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].to_s.rjust(15, ' ')
       data_string += dp_string
       data_string += "     \r\n" if (i+1)%5==0
     end    
     space_padding = 80 - data_string.split("\r\n")[-1].length
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
-  
-  #["ERE", "EGVLC", "EGVST", "EGVFD", "EAFFD", "EAFAC", "EAE", "EHC", "EED", "EPS", "EAD", "EMA","E_TU","EWT","ERT","ECT","EMN","EIF", "EOS", "E_TTU", "E_TRADE", "E_FIR", "E_PBS","E_EDHC", "E_LH", "EAF", "EGV", "E_GVSL", "E_NF"].each do |pre|
   
   def refresh_all_datapoints
     unique_ds = {} #this is actually used ds
@@ -934,14 +926,19 @@ class Series < ApplicationRecord
     all_uhero = DataSource.get_all_uhero
     patterns.each do |pat|
       pat.gsub!('%','\%')
-      names += all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
+      names |= all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
     end
-    names = names.uniq
-    Series.where(name: names
-                         .concat(names.map{|s| logger.debug{ s }; s.ts.recursive_dependents }.flatten)
-                         .uniq)
+    seen_series = []
+    all_names = names.dup
+    names.each do |name|
+      Rails.logger.debug { name }
+      dependents = Series.all_who_depend_on(name, seen_series)
+      seen_series |= [name, dependents].flatten
+      all_names |= dependents
+    end
+    Series.where(name: all_names)
   end
-  
+
   #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
   #could do everything with no dependencies first and do all of those in concurrent fashion...
   #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
@@ -951,7 +948,7 @@ class Series < ApplicationRecord
       next unless already_run[s_name].nil?
       s = s_name.ts
       begin
-        Series.run_all_dependencies(s.new_dependencies, already_run, errors, eval_statements)
+        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements) ## recursion
       rescue
         puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
         puts s.id
@@ -963,8 +960,24 @@ class Series < ApplicationRecord
       already_run[s_name] = true
     end
   end
-    
-  def Series.missing_from_aremos
+
+  def reload_sources(series_worker = false, clear_first = false)
+    errors = []
+    self.data_sources_by_last_run.each do |ds|
+      success = true
+      begin
+        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
+        errors.push("data source #{ds.id} failed") unless success
+      rescue Exception => e
+        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
+      end
+    end
+    errors
+  end
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def Series.missing_from_aremos_DELETE_ME
     name_buckets = {}
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
     name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}
@@ -1058,10 +1071,6 @@ class Series < ApplicationRecord
       UPDATE series JOIN t_series t ON t.id = series.id SET series.dependency_depth = t.dependency_depth
     SQL
 
-    # notify if the dependency tree did not terminate
-    if current_depth_count > 0
-      PackagerMailer.circular_series_notification(Series.get_all_uhero.where(dependency_depth: previous_depth)).deliver
-    end
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 

@@ -20,9 +20,6 @@ class User < ApplicationRecord
   # :token_authenticatable, :encryptable, :confirmable, :lockable, :timeoutable and :omniauthable, :registerable, :recoverable,
   devise :database_authenticatable, :rememberable, :trackable, :validatable, :recoverable, :registerable
 
-  # Setup accessible (or protected) attributes for your model
-  #attr_accessible :email, :password, :password_confirmation, :remember_me
-
   def dbedt?
     universe == 'DBEDT' && external?
   end

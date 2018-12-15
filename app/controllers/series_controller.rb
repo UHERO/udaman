@@ -4,8 +4,7 @@ class SeriesController < ApplicationController
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
-                                    :all_tsd_chart, :blog_graph, :validate, :toggle_units, :render_data_points,
-                                    :toggle_multiplier, :update_notes]
+                                    :all_tsd_chart, :blog_graph, :toggle_units, :render_data_points, :update_notes]
 
   # GET /series/new
   def new
@@ -236,15 +235,6 @@ class SeriesController < ApplicationController
     @chart_made = chart_to_make
   end
 
-  # this method probably obsolete - remove later. also from the set_series callback def above
-  def validate
-    @prognoz_data_results = @series.prognoz_data_results
-  end
-  
-  def replace_block
-    render :partial => 'replace_block'
-  end
-  
   def toggle_units
     @series.units = params[:units]
     #@series.save
@@ -257,14 +247,6 @@ class SeriesController < ApplicationController
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
   
-  def toggle_multiplier
-    @series.toggle_mult
-    #@series.save
-    @output_file = PrognozDataFile.find_by id: @series.prognoz_data_file_id
-    @output_file.update_series_validated_for @series
-    render :partial => 'validate_row'
-  end
-
   def update_notes
     @series.update_attributes({:investigation_notes => params[:note]})
     render :partial => 'investigation_sort'

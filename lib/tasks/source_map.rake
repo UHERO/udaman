@@ -54,30 +54,16 @@ task :batch_reload_uhero => :environment do
   SeriesReloadManager.new.batch_reload
 end
 
-task :purge_old_reload_logs => :environment do
-  SeriesReloadLog.purge_old_logs
+task :reload_stales_only => :environment do
+  stales = Series.stale_since Time.now.days_ago(2)
+  if stales.count < 100  ## I dunno... if there's more than this, there's a major issue that needs to be addressed
+    series = Series.where id: stales.map {|a| a[0] } ## a[0] is the series.id
+    SeriesReloadManager.new(series, 'stales').batch_reload
+  end
 end
 
-## Following task is obsoleted. Can be removed
-task :reload_all_series => :environment do
-  algorithm = nil
-
-  if algorithm == :legacy
-    t = Time.now
-    circular = Series.find_first_order_circular
-    CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['circular reference check', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
-    t = Time.now
-    series_to_refresh = Series.all_names - circular.uniq
-    eval_statements = []
-    errors = []
-    Series.run_all_dependencies(series_to_refresh, {}, errors, eval_statements)
-    CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
-    #719528 is 1970-01-01 in mysql days, -10 does the adjustment for HST
-  else
-    File.open('public/rake_time.csv', 'a') {|csv| csv << ['complete series reload (sidekiq)', '', Time.now.to_s, '']}
-    File.open('public/reload_errors.log', 'w') {|f| f.puts "Reload start time: #{Time.now.to_s}" } # clear out reload errors log
-    Series.reload_by_dependency_depth
-  end
+task :purge_old_reload_logs => :environment do
+  SeriesReloadLog.purge_old_logs
 end
 
 task :build_rebuild => :environment do

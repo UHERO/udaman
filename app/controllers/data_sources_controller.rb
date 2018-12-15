@@ -31,6 +31,10 @@ class DataSourcesController < ApplicationController
     @data_source = DataSource.new(:series_id => @series.id)
   end
 
+  def show
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
+  end
+
   def edit
   end
 

@@ -11,15 +11,6 @@ module SeriesDataLists
   #   
   # end
 
-  def Series.grab_scaled_data_no_pseudo_history(list, start_date = Date.new(1900))
-    series_data = {}
-    list.each do |s|
-      series = s.ts
-      series_data[s] = series.nil? ? {} : series.get_scaled_no_ph_after_inc(start_date)
-    end
-    series_data
-  end
-  
   def Series.grab_data(list, start_date = Date.new(1900))
     series_data = {}
     list.each do |s|
@@ -35,13 +26,7 @@ module SeriesDataLists
     data.each {|_, series_data| dates_array |= series_data.keys}
     dates_array.sort
   end
-  
-  def Series.write_prognoz_output_file(list, output_path, worksheet_name, sheet_dates)
-    series_data = grab_scaled_data_no_pseudo_history(list, sheet_dates[0])
-    xls = prep_prognoz_xls list, series_data, output_path, worksheet_name, sheet_dates
-    return write_xls xls, output_path
-  end
-  
+
   def Series.write_data_list(list, output_path, start_date = Date.new(1900))
     series_data = grab_data(list, start_date)
     xls = prep_xls series_data, output_path
@@ -58,25 +43,7 @@ module SeriesDataLists
     end
   end
 
-  private
-
-  def Series.prep_prognoz_xls(series_order, series_data, output_path, worksheet_name, sheet_dates)
-      require 'spreadsheet'
-    xls = Spreadsheet::Workbook.new output_path
-    sheet1 = xls.create_worksheet :name => worksheet_name
-    dates = (get_all_dates_from_data(series_data) + sheet_dates.map {|date| Date.parse(date.to_s) }).uniq.sort
-
-    write_dates convert_dates_to_prognoz(dates), sheet1
-    
-    col = 1
-    series_order.each do |name|
-      data = series_data[name]
-      write_series(name, data, sheet1, col, dates)
-      col += 1
-    end
-    return xls
-  end
-  
+private
   def Series.prep_xls(series_data, output_path)
       require 'spreadsheet'
     xls = Spreadsheet::Workbook.new output_path
@@ -100,17 +67,7 @@ module SeriesDataLists
       count += 1
     end
   end
-  
-  def Series.convert_dates_to_prognoz(dates)
-     
-    date_interval = (dates[1]-dates[0]).to_i
 
-    return dates.map {|elem| elem.year } if (365..366) === date_interval #year
-    return dates.map {|elem| (elem.year.to_s + '0' + ((elem.month - 1 ) / 3 + 1).to_s).to_i } if (84..93) === date_interval #quarter
-    return dates.map {|elem| elem.strftime('%Y%m').to_i } if (28..31) === date_interval #month
-
-  end
-  
   def Series.write_dates(dates, sheet)
     sheet[0,0] = 'DATE'
     count=1

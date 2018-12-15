@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025746) do
+ActiveRecord::Schema.define(version: 220170413025748) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -351,19 +351,6 @@ ActiveRecord::Schema.define(version: 220170413025746) do
     t.datetime "updated_at"
   end
 
-  create_table "prognoz_data_files", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.string "name"
-    t.string "filename"
-    t.string "frequency"
-    t.text "series_loaded", limit: 4294967295
-    t.text "series_covered"
-    t.text "series_validated"
-    t.text "output_series"
-    t.string "output_start_date"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-  end
-
   create_table "public_data_points", primary_key: ["series_id", "date"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 8, default: "UHERO", null: false
     t.integer "series_id", null: false
@@ -385,7 +372,6 @@ ActiveRecord::Schema.define(version: 220170413025746) do
     t.string "last_demetra_datestring"
     t.text "factors"
     t.string "factor_application"
-    t.string "prognoz_data_file_id"
     t.integer "aremos_missing"
     t.float "aremos_diff"
     t.integer "mult"
@@ -411,6 +397,7 @@ ActiveRecord::Schema.define(version: 220170413025746) do
     t.integer "source_detail_id"
     t.boolean "quarantined", default: false
     t.integer "base_year"
+    t.integer "scratch", default: 0, null: false
     t.index ["geography_id"], name: "fk_rails_963076a967"
     t.index ["measurement_id"], name: "fk_rails_3e7bc49267"
     t.index ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext

@@ -1,5 +1,6 @@
 class DataSource < ApplicationRecord
   include Cleaning
+  include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -159,7 +160,9 @@ class DataSource < ApplicationRecord
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: before eval" }
         s = Kernel::eval eval_stmt
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after eval" }
         if clear_first
           delete_data_points
           Rails.logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
@@ -168,6 +171,7 @@ class DataSource < ApplicationRecord
         if !base_year.nil? && base_year != self.series.base_year
           self.series.update(:base_year => base_year.to_i)
         end
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: before updates" }
         self.series.update_data(s.data, self)
         self.update(:description => s.name,
                     :last_run => t,
@@ -175,7 +179,7 @@ class DataSource < ApplicationRecord
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
-
+        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after updates" }
       rescue => e
         self.update(:last_run => t,
                     :last_run_at => t,
@@ -287,30 +291,20 @@ class DataSource < ApplicationRecord
     def get_eval_statement
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
-    
-    def print_eval_statement
-      puts "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
-    end
-
-    def set_dependencies
-      self.dependencies = []
-      self.description.split(' ').each do |word|
-        unless word.index('@').nil? or word.split('.')[-1].length > 1
-          self.dependencies.push(word)
-        end
-      end unless self.description.nil?
-      self.dependencies.uniq!
-      self.save
-    end
 
   def set_dependencies_without_save
+    self.set_dependencies(true)
+  end
+
+  def set_dependencies(dont_save = false)
     self.dependencies = []
     self.description.split(' ').each do |word|
-      unless word.index('@').nil? or word.split('.')[-1].length > 1
+      if valid_series_name(word)
         self.dependencies.push(word)
       end
     end unless self.description.nil?
     self.dependencies.uniq!
+    self.save unless dont_save
   end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
@@ -338,26 +332,26 @@ class DataSource < ApplicationRecord
   #
   # First, let the change set be
   #
-  #  set = DataSource.where(%q{eval like '%UIC@haw%'})
+  #  cset = DataSource.where(%q{eval like '%UIC@haw%'})
   #
   # then we can:
   # Change the :start_date for all rows to be July 4, 2011:
   #
-  #   DataSource.mass_update_eval_options(set, { start_date: "2011-07-04" })
+  #   DataSource.mass_update_eval_options(cset, { start_date: "2011-07-04" })
   #
   # Remove the :frequency option from all rows:
   #
-  #   DataSource.mass_update_eval_options(set, { frequency: nil })
+  #   DataSource.mass_update_eval_options(cset, { frequency: nil })
   #
   # On the XLS worksheet "iwcweekly", a new column was added at the far left, causing all other columns to shift
   # to the right by one:
   #
-  #   DataSource.mass_update_eval_options(set, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
+  #   DataSource.mass_update_eval_options(cset, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
   #
   # Change :start_date to be "2015-01-01" plus the number of months indicated by :col, and then (sequentially) set :end_date to
   # be exactly 10 years and 1 day after the new start_date:
   #
-  #   DataSource.mass_update_eval_options(set,
+  #   DataSource.mass_update_eval_options(cset,
   #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
   #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
   #

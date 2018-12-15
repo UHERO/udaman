@@ -14,7 +14,7 @@ a.wrong-series-units {background-color:#0FF;}
 	<tr><td></td><td>missing</td><td>diff</td></tr>
 	<% queue.each do |s| %>
 		<% 
-			dep = s.new_dependencies 
+			dep = s.who_i_depend_on
 			link_class = "plain"
 			link_class = s.investigation_notes.gsub("_", "-") if !s.investigation_notes.nil? and s.investigation_notes.split(" ").count == 1
 		%>

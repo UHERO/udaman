@@ -60,102 +60,58 @@ module SeriesRelationship
     
     self.data_sources.count
   end
-  
-  def recursive_dependents(already_seen = [])
-    return [] if already_seen.include? self.name
-    dependent_names = self.new_dependents
-    return [] if dependent_names.empty?
-    already_seen.push(self.name)
 
-    all_dependents = dependent_names.dup
-    dependent_names.each do |s_name|
-      all_dependents.concat(s_name.ts.recursive_dependents(already_seen))
+  ## full recursive tree of dependents
+  def Series.all_who_depend_on(name, already_seen = [])
+    return [] if already_seen.include?(name)
+    already_seen.push(name)
+    direct_dependents = Series.who_depends_on(name)
+    return [] if direct_dependents.empty?
+
+    all_deps = direct_dependents.dup
+    direct_dependents.each do |s_name|
+      subtree_deps = Series.all_who_depend_on(s_name, already_seen) ## recursion
+      already_seen |= [s_name, subtree_deps].flatten
+      all_deps |= subtree_deps
     end
-    all_dependents
+    all_deps
   end
 
-  #not recursive
-  def new_dependents
+  ## Try to use the above class method directly, if it will save you a model object instantiation.
+  ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
+  ## already exists anyway)
+  def all_who_depend_on_me
+    Series.all_who_depend_on(self.name)
+  end
+
+  ## the immediate (first order) dependents
+  def Series.who_depends_on(name)
+    name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
-        .where('data_sources.description RLIKE ?', "[[:<:]]#{self.name.gsub('%', "\\%")}")
-        .joins(:series)
-        .pluck(:name)
-        .uniq
+      .where('data_sources.description RLIKE ?', name_match)
+      .joins(:series)
+      .pluck(:name)
+      .uniq
   end
 
-  #recursive
-  def new_dependencies
-    results = []
-    self.data_sources.each do |ds|
-      results |= ds.dependencies 
-    end
-    second_order_results = []
-    results.each {|s| second_order_results |= s.ts.new_dependencies}
-    results |= second_order_results
-    results
+  ## Try to use the above class method directly, if it will save you a model object instantiation.
+  ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
+  ## already exists anyway)
+  def who_depends_on_me
+    Series.who_depends_on(self.name)
   end
-  
-  def first_order_dependencies
-    results = []
-    self.data_sources.each do |ds|
-      results |= ds.dependencies 
-    end
-    results
-  end
-  
-  def Series.find_first_order_circular(series_set = Series.get_all_uhero)
-    circular_series = []
-    series_set.each do |series|
-      fod = series.first_order_dependencies
-      fod.each do |dependent_series|
-        begin
-          circular_series.push(dependent_series) unless dependent_series.ts.first_order_dependencies.index(series.name).nil?
-        rescue
-          logger.error { "THIS BROKE: #{dependent_series}, #{series.name} (#{series.id})" }
-        end
-      end
-    end
 
-    potential_problem_ds = []
-    circular_series.each do|s_name|
-      s_name.ts.data_sources.each do |ds|
-        potential_problem_ds.push ds
-        puts "#{s_name}: #{ds.id} : #{ds.eval}"
-      end
+  def who_i_depend_on(direct_only = false)
+    direct_deps = []
+    self.data_sources.each do |ds|
+      direct_deps |= ds.dependencies
     end
-    (potential_problem_ds.sort {|a,b| a.id <=> b.id}).each do |ppd|
-      puts "#{ppd.id} : #{ppd.eval}"
+    return direct_deps if direct_only
+
+    second_order_deps = []
+    direct_deps.each do |s|
+      second_order_deps |= s.ts.who_i_depend_on ## recursion
     end
-    circular_series
-  end
-  
-  def Series.print_multi_sources
-    s = Series.all
-    s.each do |series|
-      puts "#{series.name}: #{series.data_sources.count}" if series.data_sources.count > 1
-    end
-    return 1
-  end
-    
-  def reload_sources(series_worker = false, clear_first = false)
-    errors = []
-    self.data_sources_by_last_run.each do |ds|
-      success = true
-      begin
-        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
-        errors.push('fail') unless success
-      rescue Exception => e
-        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
-        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
-      end
-    end
-    errors
-  end
-  
-  def print_source_eval_statements
-    self.data_sources_by_last_run.each do |ds|
-      ds.print_eval_statement
-    end
-    0
+    direct_deps | second_order_deps
   end
 end

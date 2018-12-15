@@ -63,8 +63,6 @@ Rails.application.routes.draw do
   resources :series
 
   resources :data_sources
-  resources :prognoz_data_files
-  resources :series_data_files
   resources :dashboards
   resources :data_lists do
     member do
@@ -72,13 +70,9 @@ Rails.application.routes.draw do
     end
   end
 
-  get 'broken_data_sources' => 'dashboards#broken_data_sources'
-  get 'search_data_sources' => 'dashboards#search_data_sources'
-  get 'send_prognoz_export' => 'prognoz_data_files#send_prognoz_export'
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
-  get 'investigate_no_source' => 'dashboards#investigate_no_source'
   get 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'rake_report' => 'dashboards#rake_report'

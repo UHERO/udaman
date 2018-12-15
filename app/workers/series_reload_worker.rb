@@ -15,6 +15,11 @@ class SeriesReloadWorker
     @batch = batch_id
     @series = series_id
     @depth = depth
+    ################## DEBUGGING CRAP TO FOLLOW - MAKE SURE TO TAKE IT OUT LATER!!!
+    cur_loglevel = Rails.logger.level if series_id == 164688 || series_id == 164692 || series_id == 164698 || series_id == 164709
+    if cur_loglevel
+      Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
+    end
     begin
       series = Series.find(series_id) rescue nil
       errors = []
@@ -44,6 +49,9 @@ class SeriesReloadWorker
         log.update_attributes(status: "error rescued: #{e.message}")
       end
       mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
+    ensure
+      ################ THIS ENSURE IS DEBUGGING CRAP - REMOVE LATER
+      Rails.logger.level = ActiveRecord::Base.logger.level = cur_loglevel if cur_loglevel
     end
   end
 
