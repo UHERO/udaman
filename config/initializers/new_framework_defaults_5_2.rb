@@ -36,3 +36,9 @@
 
 # Make `form_with` generate id attributes for any generated HTML tags.
 # Rails.application.config.action_view.form_with_generates_ids = true
+
+
+### Setting these things on at Rails5 migration time, just to see if anything
+### breaks, and hope that security is improved.
+Rails.application.config.action_controller.per_form_csrf_tokens = true
+Rails.application.config.action_controller.forgery_protection_origin_check = true
