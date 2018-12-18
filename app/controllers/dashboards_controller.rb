@@ -384,39 +384,34 @@ KVASTB@HON.M KVASTR@HON.M KVAONR@HON.M KVAOTH@HON.M KVA@HON.M)
     @end_date = dates[:end_date]
     render 'tableview'
   end
+
 private
   def set_dates_m(params)
     if params[:num_years].nil?
       start_date = (Time.now.to_date << (15))
-      end_date = nil
     else
       start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 1))
-      end_date = nil
     end
-    {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => nil}
   end
 
   def set_dates_q(params)
     if params[:num_years].nil?
       start_date = (Time.now.to_date << (34))
-      end_date = nil
     else
       start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4))
-      end_date = nil
     end
-    {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => nil}
   end
 
   def set_dates_a(params)
     if params[:num_years].nil?
       current_year = Time.now.to_date.year
       start_date = Date.new(current_year - 10)
-      end_date = nil
     else
       start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4))
-      end_date = nil
     end
-    {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => nil}
   end
 end
 

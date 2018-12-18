@@ -39,13 +39,13 @@ class DataListsController < ApplicationController
 
   def show_tsd_super_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-    @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
+    @tsd_file = params[:tsd_file] || @all_tsd_files[0]
     render :tsd_super_tableview
   end
   
   def show_tsd_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-    @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
+    @tsd_file = params[:tsd_file] || @all_tsd_files[0]
     @series_to_chart = @data_list.series_names
     frequency = Series.parse_name(@series_to_chart[0])[:freq]
     dates = set_dates(frequency, params)
@@ -56,9 +56,8 @@ class DataListsController < ApplicationController
   
   def analyze_view
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-    @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
+    @tsd_file = params[:tsd_file] || @all_tsd_files[0]
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
-    #@series_name = @data_list.series_names[@series_index]
 
     @data = json_from_heroku_tsd(@series_name,@tsd_file)
 		@series = @data && Series.new_transformation(@data['name']+'.'+@data['frequency'], @data['data'], Series.frequency_from_code(@data['frequency']))
@@ -74,7 +73,7 @@ class DataListsController < ApplicationController
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
   end
 
-  # is this method obsolete? can't find where it is being used
+  ### Method most likely obsolete. Eventually remove it.
   def compare_view
     @tsd_file1 = 'heco14.TSD'
     @tsd_file2 = '13Q4.TSD'

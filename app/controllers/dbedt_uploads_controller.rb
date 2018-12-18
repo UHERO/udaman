@@ -53,7 +53,7 @@ class DbedtUploadsController < ApplicationController
     redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully destroyed.')
   end
 
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_dbedt_upload
       @dbedt_upload = DbedtUpload.find(params[:id])

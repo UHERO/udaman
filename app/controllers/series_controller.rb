@@ -54,9 +54,9 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    frequency = params.has_key?(:freq) ? params[:freq] : nil
-    prefix = params.has_key?(:prefix) ? params[:prefix] : nil
-    all = params.has_key?(:all) ? true : false
+    frequency = params[:freq]
+    prefix = params[:prefix]
+    all = params.has_key?(:all)
 
     @all_series =
       case
@@ -248,7 +248,7 @@ class SeriesController < ApplicationController
   end
   
   def update_notes
-    @series.update_attributes({:investigation_notes => params[:note]})
+    @series.update_attributes(investigation_notes: params[:note])
     render :partial => 'investigation_sort'
   end
 

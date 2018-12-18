@@ -2,8 +2,7 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
-                                         :propagate]
+  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :duplicate, :propagate]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
@@ -64,10 +63,9 @@ class MeasurementsController < ApplicationController
   end
   
   def duplicate
-    original_measurement = Measurement.find params[:id]
-    new_measurement = original_measurement.dup
-    new_measurement.prefix = original_measurement.prefix + ' (copy)'
-    new_measurement.series = original_measurement.series
+    new_measurement = @measurement.dup
+    new_measurement.prefix = @measurement.prefix + ' (copy)'
+    new_measurement.series = @measurement.series
     new_measurement.save
     redirect_to edit_measurement_url(new_measurement.id)
   end
