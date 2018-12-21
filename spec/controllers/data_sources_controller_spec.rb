@@ -25,7 +25,7 @@ describe DataSourcesController do
     it "creates a data_source_action" do
       new_eval = 'update eval'
       new_priority = 123
-      put :update, id: data_source, :data_source => { :series_id => series.id, :eval => new_eval, :priority => new_priority}
+      put :update, params: { id: data_source, :data_source => { :series_id => series.id, :eval => new_eval, :priority => new_priority} }
       expect(DataSourceAction).to have_received(:create)
     end
   end
@@ -42,7 +42,7 @@ describe DataSourcesController do
     it "creates a data_source_action" do
       new_eval = 'new eval'
       new_priority = 123
-      post :create, { :data_source => { :series_id => series.id, :eval => new_eval, :priority => new_priority} }
+      post :create, params: { :data_source => { :series_id => series.id, :eval => new_eval, :priority => new_priority} }
       expect(DataSourceAction).to have_received(:create)
     end
   end
@@ -56,7 +56,7 @@ describe DataSourcesController do
     end
 
     it "creates a data_source_action" do
-      get :delete, id: data_source
+      get :delete, params: { id: data_source }
       expect(DataSourceAction).to have_received(:create)
     end
   end

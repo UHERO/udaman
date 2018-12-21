@@ -5,7 +5,7 @@ RSpec.describe ApiApplicationsController, type: :controller do
   # ApiApplication. As you add validations to ApiApplication, be sure to
   # adjust the attributes here as well.
   let(:valid_attributes) {
-    {name: 'Example Name', hostname: 'example.com', api_key: 'A1B2C3', github_nickname: 'bob'}
+    { name: 'Example Name', hostname: 'example.com', api_key: 'A1B2C3', github_nickname: 'bob' }
   }
 
   let(:invalid_attributes) {
@@ -30,7 +30,7 @@ RSpec.describe ApiApplicationsController, type: :controller do
     it 'assigns the requested api_application as @api_application' do
       api_application = ApiApplication.create! valid_attributes
       puts api_application.id
-      get :show, {id: api_application.to_param}
+      get :show, params: { id: api_application.to_param }
       puts assigns(:api_application)
       expect(assigns(:api_application)).to eq(api_application)
     end
@@ -46,7 +46,7 @@ RSpec.describe ApiApplicationsController, type: :controller do
   describe 'GET #edit' do
     it 'assigns the requested api_application as @api_application' do
       api_application = ApiApplication.create! valid_attributes
-      get :edit, {id: api_application.to_param}
+      get :edit, params: { id: api_application.to_param }
       expect(assigns(:api_application)).to eq(api_application)
     end
   end
@@ -55,30 +55,30 @@ RSpec.describe ApiApplicationsController, type: :controller do
     context 'with valid params' do
       it 'creates a new ApiApplication' do
         expect {
-          post :create, {api_application: valid_attributes}
+          post :create, params: { api_application: valid_attributes }
         }.to change(ApiApplication, :count).by(1)
       end
 
       it 'assigns a newly created api_application as @api_application' do
-        post :create, {api_application: valid_attributes}
+        post :create, params: { api_application: valid_attributes }
         expect(assigns(:api_application)).to be_a(ApiApplication)
         expect(assigns(:api_application)).to be_persisted
       end
 
       it 'redirects to the created api_application' do
-        post :create, {api_application: valid_attributes}
+        post :create, params: { api_application: valid_attributes }
         expect(response).to redirect_to(ApiApplication.last)
       end
     end
 
     context 'with invalid params' do
       it 'assigns a newly created but unsaved api_application as @api_application' do
-        post :create, {api_application: invalid_attributes}
+        post :create, params: { api_application: invalid_attributes }
         expect(assigns(:api_application)).to be_a_new(ApiApplication)
       end
 
       it "re-renders the 'new' template" do
-        post :create, {api_application: invalid_attributes}
+        post :create, params: { api_application: invalid_attributes }
         expect(response).to render_template('new')
       end
     end
@@ -92,20 +92,20 @@ RSpec.describe ApiApplicationsController, type: :controller do
 
       it 'updates the requested api_application' do
         api_application = ApiApplication.create! valid_attributes
-        put :update, {id: api_application.to_param, api_application: new_attributes}
+        put :update, params: { id: api_application.to_param, api_application: new_attributes }
         api_application.reload
         skip('Add assertions for updated state')
       end
 
       it 'assigns the requested api_application as @api_application' do
         api_application = ApiApplication.create! valid_attributes
-        put :update, {id: api_application.to_param, api_application: valid_attributes}
+        put :update, params: { id: api_application.to_param, api_application: valid_attributes }
         expect(assigns(:api_application)).to eq(api_application)
       end
 
       it 'redirects to the api_application' do
         api_application = ApiApplication.create! valid_attributes
-        put :update, {id: api_application.to_param, api_application: valid_attributes}
+        put :update, params: { id: api_application.to_param, api_application: valid_attributes }
         expect(response).to redirect_to(api_application)
       end
     end
@@ -113,13 +113,13 @@ RSpec.describe ApiApplicationsController, type: :controller do
     context 'with invalid params' do
       it 'assigns the api_application as @api_application' do
         api_application = ApiApplication.create! valid_attributes
-        put :update, {id: api_application.to_param, api_application: invalid_attributes}
+        put :update, params: { id: api_application.to_param, api_application: invalid_attributes }
         expect(assigns(:api_application)).to eq(api_application)
       end
 
       it "re-renders the 'edit' template" do
         api_application = ApiApplication.create! valid_attributes
-        put :update, {id: api_application.to_param, api_application: invalid_attributes}
+        put :update, params: { id: api_application.to_param, api_application: invalid_attributes }
         expect(response).to render_template('edit')
       end
     end
@@ -129,13 +129,13 @@ RSpec.describe ApiApplicationsController, type: :controller do
     it 'destroys the requested api_application' do
       api_application = ApiApplication.create! valid_attributes
       expect {
-        delete :destroy, {id: api_application.to_param}
+        delete :destroy, params: { id: api_application.to_param }
       }.to change(ApiApplication, :count).by(-1)
     end
 
     it 'redirects to the api_applications list' do
       api_application = ApiApplication.create! valid_attributes
-      delete :destroy, {id: api_application.to_param}
+      delete :destroy, params: { id: api_application.to_param }
       expect(response).to redirect_to(api_applications_url)
     end
   end

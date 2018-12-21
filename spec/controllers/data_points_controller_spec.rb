@@ -4,7 +4,7 @@ RSpec.describe DataPointsController, :type => :controller do
 
   describe "GET show" do
     xit "returns http success" do
-      get :show
+      get :show, params: {}
       expect(response).to be_success
     end
   end
