@@ -1,5 +1,5 @@
 FactoryBot.define do
   factory :source_detail do
-    description "MyText"
+    description { 'MyText' }
   end
 end
