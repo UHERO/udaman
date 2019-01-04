@@ -47,5 +47,7 @@ module UheroDb
     config.log_formatter = proc do |sev, time, progname, msg|
       "#{time.strftime('%F %T')} [#{progname ? sev+' '+progname : sev}]: #{msg}\n"
     end
+
+    ActiveSupport.halt_callback_chains_on_return_false = false
   end
 end
