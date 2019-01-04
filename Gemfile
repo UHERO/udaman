@@ -34,7 +34,7 @@ gem 'dalli', '~> 2.7'
 gem 'rails-assets-select2', '~> 4.0.5', source: 'https://rails-assets.org'
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1.1'
-gem 'font-awesome-sass'
+gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 gem 'sassc-rails', '>= 2.0.0'
