@@ -1,4 +1,4 @@
-source 'http://rubygems.org'
+source 'https://rubygems.org'
 
 gem 'rails', '~> 5.2.2'
 gem 'bundler', '>= 1.8.4'
@@ -20,8 +20,8 @@ gem 'rest-client', '~> 2.0'
 ## gem 'spork-rails'
 gem 'sidekiq', '~> 5.2.0'
 gem 'sidekiq-status', '>= 1.0.1'
-gem 'sinatra', '~> 2.0', :require => false
-gem 'sinatra_auth_github', '~> 2.0', :require => false
+gem 'sinatra', '~> 2.0', require: false
+gem 'sinatra_auth_github', '~> 2.0', require: false
 gem 'rack-protection', '~> 2.0.1'
 gem 'rubyzip', '~> 1.2.2'
 gem 'capybara', '~> 2.18', '>= 2.18.0'
@@ -31,7 +31,7 @@ gem 'whenever'
 gem 'mechanize', '>= 2.7.5'
 gem 'net-sftp'
 gem 'dalli', '~> 2.7'
-gem 'rails-assets-select2', :source => 'http://rails-assets.org'
+gem 'rails-assets-select2', '~> 4.0.5', source: 'https://rails-assets.org'
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1.1'
 gem 'font-awesome-sass'
@@ -41,41 +41,23 @@ gem 'sassc-rails', '>= 2.0.0'
 gem 'coffee-rails', '~> 4.2', '>= 4.2.2'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.3', '>= 4.3.3'
-gem 'jquery-ui-rails', '~> 5.0', '>= 5.0.5'
+gem 'jquery-ui-rails', '~> 6.0.0', '>= 6.0.0'
 gem 'devise', '~> 4.5', '>= 4.5.0'
-gem 'stringex', '~> 2.6'
+# gem 'stringex', '~> 2.6'
 
-# Deploy with Capistrano
-# gem 'capistrano'
-
-# To use debugger (ruby-debug for Ruby 1.8.7+, ruby-debug19 for Ruby 1.9.2+)
-# gem 'ruby-debug'
-# gem 'ruby-debug19', :require => 'ruby-debug'
-
-# Bundle the extra gems:
-# gem 'bj'
-gem 'nokogiri', '~> 1.8.5'
-# gem 'sqlite3-ruby', :require => 'sqlite3'
-# gem 'aws-s3', :require => 'aws/s3'
+gem 'nokogiri', '~> 1.9.1', '>= 1.9.1'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'
 
-# Bundle gems for the local environment. Make sure to
-# put test-only gems in this group so their generators
-# and rake tasks are available in development mode:
-# group :development, :test do
-#   gem 'webrat'
-# end
-
 # Gems for Passenger
-gem 'passenger', '>= 5.1.1'
+gem 'passenger', '~> 6.0.0'
 gem 'sqlite3'
 
-group :production do
-  gem 'newrelic_rpm'
-  gem 'newrelic-rake'
-end
+#group :production do
+#  gem 'newrelic_rpm'
+#  gem 'newrelic-rake'
+#end
 
 group :development, :test do
   gem 'listen'
