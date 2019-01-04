@@ -48,14 +48,6 @@ module Authorization
     end
   end
 
-  def redirect_back_or_default(fallback = root_path)
-    redirect_back fallback_path: fallback, allow_other_host: false
-  end
-
-  def redirect_to_default
-    redirect_to root_path, flash: { error: 'Not authorized' }
-  end
-
   def owns_data_list?(data_list_id)
     DataList.find_by(id: data_list_id).owned_by == current_user.id
   end
