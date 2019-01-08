@@ -48,6 +48,7 @@ module Authorization
     end
   end
 
+private
   def owns_data_list?(data_list_id)
     DataList.find_by(id: data_list_id).owned_by == current_user.id
   end

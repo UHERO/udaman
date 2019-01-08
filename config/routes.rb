@@ -47,8 +47,6 @@ Rails.application.routes.draw do
     mount Sidekiq::Web => '/sidekiq'
   end
 
-  #map.devise_for :users
-  
   get 'series/bulk', to: 'series#bulk_new'
   post 'series/bulk', to: 'series#bulk_create'
   get 'series/stale', to: 'series#stale'
