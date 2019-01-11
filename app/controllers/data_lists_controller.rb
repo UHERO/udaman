@@ -182,7 +182,7 @@ class DataListsController < ApplicationController
   # this really should be converted to a model method
   def remove_measurement
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok }
     end
     measurements = DataListMeasurement.where(data_list_id: @data_list.id).to_a.sort_by{ |m| m.list_order }
     index_to_remove = measurements.index{ |m| m.measurement_id == data_list_params[:measurement_id].to_i }
@@ -201,7 +201,7 @@ class DataListsController < ApplicationController
   # this really should be converted to a model method
   def move_measurement_up
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
     old_index = measurements_array.index{ |m| m.measurement_id == data_list_params[:measurement_id].to_i }
@@ -224,7 +224,7 @@ class DataListsController < ApplicationController
   # this really should be converted to a model method
   def move_measurement_down
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
     old_index = measurements_array.index{ |m| m.measurement_id == data_list_params[:measurement_id].to_i }
@@ -251,7 +251,7 @@ class DataListsController < ApplicationController
     new_indent = params[:indent_in_out] == 'in' ? current_indent + 1 : current_indent - 1
     if new_indent < 0 || new_indent > MAXINDENT
       respond_to do |format|
-        format.js { render nothing: true, status: 200 }
+        format.js { head :ok } ## only return 200 to client
       end
       return
     end

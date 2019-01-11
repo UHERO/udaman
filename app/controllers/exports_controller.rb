@@ -78,7 +78,7 @@ class ExportsController < ApplicationController
 
   def remove_series
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     series = ExportSeries.where(export_id: @export.id).to_a.sort_by{ |m| m.list_order }
     series_id = params[:series_id].to_i
@@ -97,7 +97,7 @@ class ExportsController < ApplicationController
 
   def move_series_up
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     series_array = @export.export_series.to_a.sort_by{ |m| m.list_order }
     old_index = series_array.index{ |m| m.series_id == params[:series_id].to_i }
@@ -119,7 +119,7 @@ class ExportsController < ApplicationController
 
   def move_series_down
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     series_array = @export.export_series.to_a.sort_by{ |m| m.list_order }
     old_index = series_array.index{ |m| m.series_id == params[:series_id].to_i }

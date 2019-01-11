@@ -94,7 +94,7 @@ class MeasurementsController < ApplicationController
 
   def remove_series
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok }
     end
     series = Series.find(params[:series_id])
     @measurement.remove_series(series)

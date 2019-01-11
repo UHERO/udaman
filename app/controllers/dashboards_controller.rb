@@ -58,7 +58,7 @@ class DashboardsController < ApplicationController
   def update_public_dp
     DataPoint.update_public_data_points('UHERO')
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok }
     end
   end
 
