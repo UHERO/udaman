@@ -22,20 +22,20 @@ class Series < ApplicationRecord
   
   has_many :data_points, dependent: :delete_all
   has_many :data_sources, dependent: :destroy
-  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
-  has_many :sidekiq_failures  ## really only has one, but stupid Rails error prevented relation from working with has_one :(
+  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all, optional: true
+  has_many :sidekiq_failures, optional: true  ## really only has one, but stupid Rails error prevented relation from working with has_one :(
 
   has_and_belongs_to_many :data_lists
 
-  belongs_to :source, inverse_of: :series
-  belongs_to :source_detail, inverse_of: :series
-  belongs_to :unit, inverse_of: :series
+  belongs_to :source, optional: true, inverse_of: :series
+  belongs_to :source_detail, optional: true, inverse_of: :series
+  belongs_to :unit, optional: true, inverse_of: :series
   belongs_to :geography, inverse_of: :series
 
-  has_many :export_series, dependent: :delete_all
-  has_many :exports, through: :export_series
-  has_many :measurement_series, dependent: :delete_all
-  has_many :measurements, through: :measurement_series
+  has_many :export_series, optional: true, dependent: :delete_all
+  has_many :exports, optional: true, through: :export_series
+  has_many :measurement_series, optional: true, dependent: :delete_all
+  has_many :measurements, optional: true, through: :measurement_series
 
   enum seasonal_adjustment: { NA: 'not_applicable',
                               SA: 'seasonally_adjusted',

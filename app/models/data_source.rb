@@ -8,7 +8,7 @@ class DataSource < ApplicationRecord
   has_many :data_points, dependent: :delete_all
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_source_actions
-  has_many :downloads, -> {distinct}, through: :data_source_downloads
+  has_many :downloads, -> {distinct}, through: :data_source_downloads, optional: true
 
   composed_of   :last_run,
                 :class_name => 'Time',

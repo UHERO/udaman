@@ -1,8 +1,8 @@
 class Category < ApplicationRecord
   include Cleaning
   has_ancestry
-  belongs_to :data_list
-  belongs_to :default_geo, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
+  belongs_to :data_list, optional: true
+  belongs_to :default_geo, optional: true, class_name: 'Geography'  ## in other words this model's `default_geo_id` is a Geography.id
   before_save :set_list_order
 
   def toggle_tree_masked
