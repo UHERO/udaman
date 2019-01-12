@@ -94,7 +94,7 @@ class DataListsController < ApplicationController
   end
   
   def new
-    @category_id = Category.find(data_list_params[:category_id]).id rescue nil
+    @category_id = Category.find(params[:category_id].to_i).id rescue nil
     @data_list = DataList.new
 
     respond_to do |format|
@@ -124,7 +124,7 @@ class DataListsController < ApplicationController
 
   def create
     properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id, owned_by: current_user.id)
-    category = Category.find(data_list_params[:category_id]) rescue nil
+    category = Category.find(params[:category_id].to_i) rescue nil
     properties.merge!(universe: category.universe) if category
     @data_list = DataList.new(properties)
 
@@ -185,7 +185,7 @@ class DataListsController < ApplicationController
       format.js { head :ok }
     end
     measurements = DataListMeasurement.where(data_list_id: @data_list.id).to_a.sort_by{ |m| m.list_order }
-    index_to_remove = measurements.index{ |m| m.measurement_id == data_list_params[:measurement_id].to_i }
+    index_to_remove = measurements.index{ |m| m.measurement_id == params[:measurement_id].to_i }
     new_order = 0
     measurements.each_index do |i|
       if index_to_remove == i
@@ -194,7 +194,7 @@ class DataListsController < ApplicationController
       measurements[i].update list_order: new_order
       new_order += 1
     end
-    id_to_remove = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: data_list_params[:measurement_id]).id
+    id_to_remove = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id].to_i).id
     DataListMeasurement.destroy(id_to_remove)
   end
 
@@ -204,7 +204,7 @@ class DataListsController < ApplicationController
       format.js { head :ok } ## only return 200 to client
     end
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
-    old_index = measurements_array.index{ |m| m.measurement_id == data_list_params[:measurement_id].to_i }
+    old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
     if old_index <= 0
       return
     end
@@ -227,7 +227,7 @@ class DataListsController < ApplicationController
       format.js { head :ok } ## only return 200 to client
     end
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
-    old_index = measurements_array.index{ |m| m.measurement_id == data_list_params[:measurement_id].to_i }
+    old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
     if old_index >= measurements_array.length - 1
       return
     end
@@ -246,7 +246,7 @@ class DataListsController < ApplicationController
 
   # should this be converted to a model method?
   def set_measurement_indent
-    dlm = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: data_list_params[:measurement_id])
+    dlm = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id].to_i)
     current_indent = dlm.indent ? dlm.indent[-1].to_i : 0
     new_indent = params[:indent_in_out] == 'in' ? current_indent + 1 : current_indent - 1
     if new_indent < 0 || new_indent > MAXINDENT
@@ -267,8 +267,7 @@ private
     end
 
     def data_list_params
-      params.require(:data_list).permit(:name, :list, :startyear, :category_id, :created_by, :updated_by,
-                                        :owned_by, :measurements, :measurement_id, :indent_in_out)
+      params.require(:data_list).permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements)
     end
 
     def set_dates(frequency, params)
