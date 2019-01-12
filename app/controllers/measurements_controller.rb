@@ -67,11 +67,13 @@ class MeasurementsController < ApplicationController
     new_measurement.prefix = @measurement.prefix + ' (copy)'
     new_measurement.series = @measurement.series
     new_measurement.save
+    @resource_universe = get_resource_universe(@measurement.universe)
     redirect_to edit_measurement_url(new_measurement.id)
   end
 
   # PATCH/PUT /measurements/1
   def update
+    @resource_universe = get_resource_universe(@measurement.universe)
     if @measurement.update(measurement_params)
       redirect_to @measurement, notice: 'Measurement was successfully updated.'
     else
