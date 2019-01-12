@@ -267,8 +267,8 @@ private
     end
 
     def data_list_params
-      params.require(:data_list)
-          .permit(:name, :list, :startyear, :category_id, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
+      params.require(:data_list).permit(:name, :list, :startyear, :category_id, :created_by, :updated_by,
+                                        :owned_by, :measurements, :measurement_id, :indent_in_out)
     end
 
     def set_dates(frequency, params)
