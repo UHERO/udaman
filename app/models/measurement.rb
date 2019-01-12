@@ -1,7 +1,7 @@
 class Measurement < ApplicationRecord
   include Cleaning
-  has_many :data_list_measurements, optional: true, dependent: :delete_all
-  has_many :data_lists, optional: true, through: :data_list_measurements
+  has_many :data_list_measurements, dependent: :delete_all
+  has_many :data_lists, through: :data_list_measurements
 
   belongs_to :source, optional: true, inverse_of: :measurements
   belongs_to :source_detail, optional: true, inverse_of: :measurements
