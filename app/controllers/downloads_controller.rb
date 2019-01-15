@@ -31,9 +31,10 @@ class DownloadsController < ApplicationController
   end
   
   def update
+    post_params = download_params.delete(:post_parameters)
     respond_to do |format|
-      if @output_file.update! download_params.reject{|k,_| k == :post_parameters }
-        @output_file.process_post_params(download_params[:post_parameters])
+      if @output_file.update! download_params
+        @output_file.process_post_params(post_params)
 
         format.html { redirect_to( :action => 'index', :notice => 'Download successfully updated.') }
         format.xml  { head :ok }
