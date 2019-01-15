@@ -34,11 +34,11 @@
 					<% if download.handle.nil? %>
 					<td><strong style="color:#DDD"><%= filename %></strong></td>
 					<% else %>
-					<td class="linkselect"><%= link_to download.handle , {:action => 'show', :id => download.id}, target: '_blank' %></td>
+					<td class="linkselect"><%= link_to download.handle, download %></td>
 					<% end %>
 					<td><%= link_to "download" , {:action => 'download', :id => download.id}%></td>
 					<td><%= link_to "edit" , {:action => 'edit', :id => download.id} %></td>
-					<td><%= link_to "delete", download, :method => :delete, :confirm => "Are you sure you want to delete this?"  %></td>
+					<td><%= link_to "delete", download, :method => :delete, :confirm => "Are you sure you want to delete #{download.handle}??"  %></td>
 			</tr>
 			<% end %>
 		</table>
