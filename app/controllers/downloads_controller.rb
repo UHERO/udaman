@@ -20,8 +20,9 @@ class DownloadsController < ApplicationController
   end
 
   def create
-    post_params = download_params[:download].delete(:post_parameters)
-    @output_file = Download.new download_params
+    myparams = download_params
+    post_params = myparams.delete(:post_parameters)
+    @output_file = Download.new myparams
     if @output_file.save
       @output_file.process_post_params(post_params)
       redirect_to :action => 'index'
