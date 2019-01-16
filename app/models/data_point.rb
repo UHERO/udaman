@@ -21,7 +21,7 @@ class DataPoint < ApplicationRecord
     return if series.quarantined? || series.restricted?
     return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
     if self.date < (Date.today - 2.years)
-      series.add_to_quarantine(false)
+      series.add_to_quarantine(run_update: false)
     end
   end
 
