@@ -10,6 +10,6 @@ class DataPointsController < ApplicationController
 
 private
   def data_point_params
-    params.require(:data_list).permit(:series_id, :date)
+    params.require(:data_point).permit(:series_id, :date)
   end
 end
