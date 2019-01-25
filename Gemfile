@@ -54,11 +54,6 @@ gem 'highcharts-rails', '>= 6.0.3'
 gem 'passenger', '~> 6.0.0'
 gem 'sqlite3'
 
-#group :production do
-#  gem 'newrelic_rpm'
-#  gem 'newrelic-rake'
-#end
-
 group :development, :test do
   gem 'listen'
   gem 'rspec-rails', '~> 3.5', '>= 3.5.2'
