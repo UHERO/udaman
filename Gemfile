@@ -17,7 +17,6 @@ gem 'roo', '~> 2.4.0'
 gem 'roo-xls', '>= 1.2.0'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
-## gem 'spork-rails'
 gem 'sidekiq', '~> 5.2.0'
 gem 'sidekiq-status', '>= 1.0.1'
 gem 'sinatra', '~> 2.0', require: false
@@ -43,7 +42,7 @@ gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.3', '>= 4.3.3'
 gem 'jquery-ui-rails', '~> 6.0.0', '>= 6.0.0'
 gem 'devise', '~> 4.5', '>= 4.5.0'
-# gem 'stringex', '~> 2.6'
+gem 'stringex', '~> 2.8', '>= 2.8.5'
 
 gem 'nokogiri', '~> 1.9.1', '>= 1.9.1'
 
