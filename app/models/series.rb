@@ -962,7 +962,7 @@ class Series < ApplicationRecord
   end
 
   def reload_sources(series_worker = false, clear_first = false)
-    errors = []
+    series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
@@ -971,11 +971,11 @@ class Series < ApplicationRecord
           raise 'error internal to reload_source method'
         end
       rescue Exception => e
-        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
+        series_success = false
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
       end
     end
-    errors
+    series_success
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
