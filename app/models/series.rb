@@ -967,7 +967,9 @@ class Series < ApplicationRecord
       success = true
       begin
         success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
-        errors.push("data source #{ds.id} failed") unless success
+        unless success
+          raise 'error internal to reload_source method'
+        end
       rescue Exception => e
         errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }

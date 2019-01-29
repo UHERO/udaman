@@ -31,7 +31,7 @@ class SeriesReloadWorker
       if series
         @series = "#{series.name} (#{series_id})"
         mylogger :info, 'reload started'
-        errors = series.reload_sources(true)
+        errors = series.reload_sources(true)  ####       <<===== here's where the work happens
       else
         mylogger :warn, 'no such series found'
         errors.push 'no such series found'
