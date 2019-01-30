@@ -968,7 +968,7 @@ class Series < ApplicationRecord
       begin
         success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
         unless success
-          raise 'error internal to reload_source method'
+          raise 'error in reload_source method, should be logged above'
         end
       rescue Exception => e
         series_success = false
