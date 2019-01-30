@@ -1102,7 +1102,7 @@ class Series < ApplicationRecord
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
-      ## So wackt that find_by_sql works this way :( But if it's fixed in Rails 5, remove this comment :)
+      ## So wackt that find_by_sql works this way :( But if it's "fixed" in Rails 6, remove this comment :)
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
       new_deps = Series.find_by_sql [<<~SQL, next_set].flatten
