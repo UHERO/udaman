@@ -64,7 +64,7 @@ class DataSource < ApplicationRecord
       end
       handle_hash
     end
-    
+
     def DataSource.all_load_from_file_series_names
       series_names = []
       DataSource.where("eval LIKE '%load_from %'").all.each do |ds|
@@ -147,7 +147,7 @@ class DataSource < ApplicationRecord
     end
 
     def reload_source(clear_first = false)
-      Rails.logger.info { "Begin reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Begin reload of data source #{id} for series <#{self.series.name}> [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
@@ -163,7 +163,7 @@ class DataSource < ApplicationRecord
         s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
-          Rails.logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
+          Rails.logger.info { "Reload data source #{id} for series <#{self.series.name}> [#{description}]: Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
@@ -182,10 +182,10 @@ class DataSource < ApplicationRecord
                     :runtime => nil,
                     :last_error => e.message[0..254],
                     :last_error_at => t)
-        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{e.message}" }
+        Rails.logger.error { "Reload data source #{id} for series <#{self.series.name}> [#{description}]: Error: #{e.message}" }
         return false
       end
-      Rails.logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Completed reload of data source #{id} for series <#{self.series.name}> [#{description}]" }
       true
     end
 

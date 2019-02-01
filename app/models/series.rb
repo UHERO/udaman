@@ -972,7 +972,7 @@ class Series < ApplicationRecord
         end
       rescue Exception => e
         series_success = false
-        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series <#{self.name}> (#{self.id})" }
       end
     end
     series_success

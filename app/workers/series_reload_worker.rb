@@ -24,7 +24,7 @@ class SeriesReloadWorker
         raise "no reload log found for batch=#{@batch}, series=#{@series}"
       end
       if series
-        @series = "#{series.name} (#{series_id})"
+        @series = "<#{series.name}> (#{series_id})"
         mylogger :info, 'reload started'
         success = series.reload_sources(true)  ####       <<===== here's where the work happens
       else
