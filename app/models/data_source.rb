@@ -167,17 +167,17 @@ class DataSource < ApplicationRecord
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
-          self.series.update(:base_year => base_year.to_i)
+          self.series.update!(:base_year => base_year.to_i)
         end
         self.series.update_data(s.data, self)
-        self.update(:description => s.name,
+        self.update!(:description => s.name,
                     :last_run => t,
                     :last_run_at => t,
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
       rescue => e
-        self.update(:last_run => t,
+        self.update!(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
                     :last_error => e.message[0..254],
