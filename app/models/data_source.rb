@@ -231,7 +231,8 @@ class DataSource < ApplicationRecord
     def unmark_as_pseudo_history_before(date)
       data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
-    
+
+    ## This method appears to be vestigial - confirm and delete later
     def delete_all_other_sources
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
