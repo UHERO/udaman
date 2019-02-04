@@ -8,7 +8,7 @@ class XlsFileProcessor
     @row_processor = IntegerPatternProcessor.new(options[:row])
     @col_processor = IntegerPatternProcessor.new(options[:col])
     @handle_processor = StringWithDatePatternProcessor.new handle
-    @path_processor = options[:path].nil? ? nil : StringWithDatePatternProcessor.new(options[:path])
+    @path_processor = options[:path] && StringWithDatePatternProcessor.new(options[:path])
     @sheet_processor = StringWithDatePatternProcessor.new options[:sheet]
     @date_processor = DatePatternProcessor.new date_info[:start], options[:frequency], date_info[:rev]
   end
