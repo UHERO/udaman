@@ -33,7 +33,10 @@ class XlsFileProcessor
       #not sure if this is the right thing to do. Will get an indication from the daily download checks, but not sure if will see if you just 
       #load the data other than missing some values... not gonna do this just yet because it was rake that errored out not the series. might try to
       #do a rake trace next time it breaks to check better
-      return 'END' if e.message =~ /^handle/ and @handle_processor.date_sensitive?
+      if e.message =~ /^(handle|path).*not exist/
+        return 'END' if $1 == 'handle' && @handle_processor.date_sensitive?
+        return 'END' if $1 == 'path' && @path_processor.date_sensitive?
+      end
       return {} if e.message =~ /^could not find header/ and ['Condo only'].include? e.message.split(': ')[1][1..-2]
       raise e
     rescue IOError => e
