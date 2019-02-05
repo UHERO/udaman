@@ -28,7 +28,7 @@ class XlsFileProcessor
       (worksheet, skip) = @cached_files.xls(handle, sheet, path, date, true)
       observation_value = parse_cell(worksheet.cell(row, col))
     rescue RuntimeError => e
-      Rails.logger.error e.message unless @handle_processor.date_sensitive?
+      Rails.logger.error e.message unless @handle_processor.date_sensitive? || (@path_processor && @path_processor.date_sensitive?)
       #date sensitive means it might look for handles that don't exist
       #not sure if this is the right thing to do. Will get an indication from the daily download checks, but not sure if will see if you just 
       #load the data other than missing some values... not gonna do this just yet because it was rake that errored out not the series. might try to
@@ -41,7 +41,7 @@ class XlsFileProcessor
       raise e
     rescue IOError => e
       Rails.logger.error e.message
-      return 'END' if e.message =~ /^file/ and !@path_processor.nil? and @path_processor.date_sensitive?
+      return 'END' if e.message =~ /^file/ && @path_processor && @path_processor.date_sensitive?
       raise e
     end
 
