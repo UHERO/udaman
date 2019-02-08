@@ -850,8 +850,8 @@ class Series < ActiveRecord::Base
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
 
     banks.each do |bank|
-      filename =  File.join(in_path, bank + '.txt')
-      Rails.logger.debug { ">>>> tsd_exports: processing file #{filename}" }
+      filename = File.join(in_path, bank + '.txt')
+      Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
       f = open filename
       list = f.read.split("\r\n")
       f.close
