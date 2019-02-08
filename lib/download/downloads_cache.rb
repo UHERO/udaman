@@ -74,7 +74,11 @@ class DownloadsCache
                 flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
                 Roo::Spreadsheet.open(@path, extension: flip_ext)
               rescue
+                if @handle.blank?  ## in case of 'manual' files
+                  raise "path #{@path} does not exist"
+                else
                   raise "bad spreadsheet for download handle #{@handle}: likely a web 404"
+                end
               end
             end
     sheet_parts = sheet.split(':')
