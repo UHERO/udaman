@@ -40,7 +40,7 @@ module SeriesDataLists
         begin
           tsd_text = name.ts.tsd_string
         rescue => e
-          tsd_text = "|#{name}| ERROR: #{e.message}"
+          tsd_text = "#{name} ERROR: #{e.message}"
         end
         f.puts tsd_text
       end
