@@ -853,7 +853,7 @@ class Series < ActiveRecord::Base
       filename = File.join(in_path, bank + '.txt')
       Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
       f = open filename
-      list = f.read.split(/\s+/)
+      list = f.read.split(/\s+/).reject {|x| x.blank? }
       f.close
       frequency_code = bank.split('_')[1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
