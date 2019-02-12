@@ -24,8 +24,8 @@ module SeriesSeasonalAdjustment
 
   def new_growth
     ns_series = self.name.sub('@','NS@')
-    compute_series = (ns_series.ts.annualized_percentage_change / 100 + 1) * self.shift_forward_years(1)
-    new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", compute_series.data)
+    adjusted_series = (ns_series.ts.annualized_percentage_change / 100 + 1) * self.shift_forward_years(1)
+    new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series.data)
   end
 
   def set_factors(factor_application)
