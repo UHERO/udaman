@@ -66,7 +66,7 @@ module SeriesDataAdjustment
   end
   
   def get_last_incomplete_year
-    last_date = self.reject{|_, val| val.nil? }.data.keys.sort[-1]
+    last_date = self.data.reject{|_, val| val.nil? }.data.keys.sort[-1]
     return nil if last_date.nil?
     if (last_date.month == 12 and frequency == 'month') or (last_date.month == 10 and frequency == 'quarter')
       return new_transformation('No Data since no incomplete year', {})
