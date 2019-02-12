@@ -20,7 +20,7 @@ module SeriesDataAdjustment
     if start_date.nil?
       return new_transformation("Trimmed #{name}", data)
     end
-    new_series_data = get_values_after_including((Date.parse start_date.to_s), (Date.parse end_date.to_s))
+    new_series_data = get_values_after_including(Date.parse(start_date.to_s), Date.parse(end_date.to_s))
     new_transformation("Trimmed #{name} starting at #{start_date}", new_series_data)
   end
 
@@ -66,11 +66,10 @@ module SeriesDataAdjustment
   end
   
   def get_last_incomplete_year
-    last_date = self.data.keys.sort[-1]
+    last_date = self.data.reject{|_, val| val.nil? }.keys.sort[-1]
     return nil if last_date.nil?
     if (last_date.month == 12 and frequency == 'month') or (last_date.month == 10 and frequency == 'quarter')
-      new_series_data = {} 
-      return new_transformation('No Data since no incomplete year', new_series_data)
+      return new_transformation('No Data since no incomplete year', {})
     end
     start_date = Date.new(last_date.year)
     trim(start_date, nil)

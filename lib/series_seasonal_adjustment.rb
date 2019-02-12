@@ -17,11 +17,11 @@ module SeriesSeasonalAdjustment
   end
   
   def apply_ns_growth_rate_sa
-    ns_series_name = name.sub('@','NS@')
-    new_data = (self.shift_forward_years(1) + self.shift_forward_years(1) * ((ns_series_name.ts.annualized_percentage_change)/100)).trim.data 
-    new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series_name}", new_data)  
+    ns_series = self.name.sub('@','NS@')
+    adjusted_series = (ns_series.ts.annualized_percentage_change / 100 + 1) * self.shift_forward_years(1)
+    new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series.data)
   end
-  
+
   def set_factors(factor_application)
     self.factor_application = factor_application
     #should throw in some exception handling if this happens for a non sa series
