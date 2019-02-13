@@ -32,7 +32,7 @@ class SeriesReloadManager
         end
         loop do
           sleep cycle_time.seconds
-          mylogger :debug, "depth=#{depth}: slept #{cycle_time} more seconds"
+          mylogger :debug, "depth=#{depth}: slept #{cycle_time} seconds"
           break if group_finished(depth)
         end
       end
