@@ -11,7 +11,7 @@ class SeriesReloadManager
     @series_list = series_list
   end
 
-  def batch_reload(group_size = nil, cycle_time = nil)
+  def batch_reload(clear_first = false, group_size = nil, cycle_time = nil)
     group_size ||= 25  ## number of jobs sent at one time to sidekiq
     cycle_time ||= 15  ## how long to wait between checking if jobs are done
     mylogger :info, 'starting batch reload'
@@ -26,7 +26,7 @@ class SeriesReloadManager
           unless log.save
             raise "Cannot save worker log record to database: batch=#{@batch} series_id=#{series_id}"
           end
-          jid = SeriesReloadWorker.perform_async @batch, series_id, depth
+          jid = SeriesReloadWorker.perform_async(@batch, series_id, depth, clear_first)
           log.update_attributes job_id: jid
         end
         loop do
