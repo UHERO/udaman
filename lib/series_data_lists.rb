@@ -40,9 +40,10 @@ module SeriesDataLists
         begin
           tsd_text = name.ts.tsd_string
         rescue => e
-          unless e.message =~ /undefined.*tsd_string.*nil/ ## means series does not exist
-            tsd_text = "#{name} ERROR: #{e.message}"
-          end
+        #  unless e.message =~ /undefined.*tsd_string.*nil/ ## means series does not exist
+        #    tsd_text = "#{name} ERROR: #{e.message}"
+        #  end
+          tsd_text = ''
         end
         f.puts tsd_text.to_s
       end
