@@ -14,7 +14,8 @@ class SeriesReloadManager
   def batch_reload(clear_first = false, group_size = nil, cycle_time = nil)
     group_size ||= 25  ## number of jobs sent at one time to sidekiq
     cycle_time ||= 15  ## how long to wait between checking if jobs are done
-    mylogger :info, 'starting batch reload'
+    series_count = @series_list.count
+    mylogger :info, "starting batch reload of #{series_count} series"
     depth = @series_list.maximum(:dependency_depth)
     while depth >= 0
       depth_set = @series_list.where(dependency_depth: depth)
@@ -37,7 +38,7 @@ class SeriesReloadManager
       end
       depth = depth - 1
     end
-    mylogger :info, 'done batch reload'
+    mylogger :info, "done batch reload of #{series_count} series"
   end
 
   def batch_id
