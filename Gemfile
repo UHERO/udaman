@@ -53,7 +53,7 @@ gem 'highcharts-rails', '>= 6.0.3'
 gem 'passenger', '~> 6.0.0'
 gem 'sqlite3'
 
-group :development, :test do
+group :development do
   gem 'listen'
   gem 'rspec-rails', '~> 3.5', '>= 3.5.2'
   gem 'factory_bot_rails', '~> 4.11', '>= 4.11.1'
