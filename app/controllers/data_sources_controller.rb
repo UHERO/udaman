@@ -21,6 +21,10 @@ class DataSourcesController < ApplicationController
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
 
+  def reset
+    @data_source.reset
+  end
+
   def toggle_reload_nightly
     @data_source.toggle_reload_nightly
     redirect_to controller: :series, action: :show, id: @data_source.series_id

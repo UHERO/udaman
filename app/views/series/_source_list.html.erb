@@ -26,7 +26,8 @@
 							:id => ds.id },
 							data: { :confirm => "Are you sure you want to delete data source #{ds.id}?" }
 					%><br/><%=
-							link_to "edit", { 	
+              link_to "reset", { controller: :data_sources,action: :reset, id: ds.id }
+							link_to "edit", {
 								:controller=> "data_sources", 
 								:action => 'edit', 
 								:id => ds.id}

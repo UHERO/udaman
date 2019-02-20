@@ -217,7 +217,15 @@ class DataSource < ActiveRecord::Base
     def clear_and_reload_source
       reload_source(true)
     end
-    
+
+    def reset
+      self.data_source_downloads.each do |dsd|
+        dsd.update_attributes(
+            last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
+            last_eval_options_used: nil)
+      end
+    end
+
     # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
     
     def mark_as_pseudo_history
