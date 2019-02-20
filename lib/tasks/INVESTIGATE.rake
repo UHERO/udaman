@@ -135,7 +135,7 @@ task :clean_obvious_missing_data_issues do
   # data_source == 1 is a weak criteria. Just noticed it was less likely to bring in series we didn't want to mess with... Should probably be something else
   Series.where('aremos_diff > 10000000000').each do |s| 
     if s.data_sources.count == 1
-      s.data_sources[0].clear_and_reload_source
+      s.data_sources[0].reload_source(true)
       puts s.name
     end
   end
