@@ -102,12 +102,12 @@ module SeriesDataAdjustment
   end
 
   def shift_by_months(num_months)
-    new_transformation("Shifted Series #{self.name} by #{num_months} months ",
+    new_transformation("Shifted Series #{self.name} by #{num_months} months",
              self.data.map {|date,val| [date + num_months.months, val] }.to_h)
   end
 
   def shift_by_years(num_years)
-    new_transformation("Shifted Series #{self.name} by #{num_years} months ",
+    new_transformation("Shifted Series #{self.name} by #{num_years} months",
              self.data.map {|date,val| [date + num_years.years, val] }.to_h)
   end
 
