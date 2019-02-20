@@ -100,7 +100,17 @@ module SeriesDataAdjustment
     return {} if month_num > 12 or month_num < 1
     data.reject {|date_string, _| date_string.month != month_num}
   end
-  
+
+  def shift_by_months(num_months)
+    new_transformation("Shifted Series #{self.name} by #{num_months} months ",
+             self.data.map {|date,val| [date + num_months.months, val] }.to_h)
+  end
+
+  def shift_by_years(num_years)
+    new_transformation("Shifted Series #{self.name} by #{num_years} months ",
+                       self.data.map {|date,val| [date + num_years.years, val] }.to_h)
+  end
+
   def shift_forward_months(num_months)
     new_series_data = Hash[data.map {|date, val| [date + num_months.months, val]}]
     new_transformation("Shifted Series #{name} forward by #{num_months} months ", new_series_data)
