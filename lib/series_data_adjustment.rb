@@ -108,7 +108,7 @@ module SeriesDataAdjustment
 
   def shift_by_years(num_years)
     new_transformation("Shifted Series #{self.name} by #{num_years} months ",
-                       self.data.map {|date,val| [date + num_years.years, val] }.to_h)
+             self.data.map {|date,val| [date + num_years.years, val] }.to_h)
   end
 
   def shift_forward_months(num_months)
