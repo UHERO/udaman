@@ -17,7 +17,7 @@
 					%>&nbsp;|&nbsp;<%= 
 						link_to "clear", {   	
 							:controller=> "data_sources", 
-							:action => 'clear_and_reload', 
+							:action => 'clear',
 							:id => ds.id} unless ds.eval.nil? 
 					%>&nbsp;|&nbsp;<%= 
 						link_to "delete", {

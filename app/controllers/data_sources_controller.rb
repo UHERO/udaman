@@ -9,8 +9,8 @@ class DataSourcesController < ApplicationController
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
-  def clear_and_reload
-    @data_source.clear_and_reload_source
+  def clear
+    @data_source.delete_data_points
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
