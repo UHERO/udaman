@@ -21,6 +21,10 @@ class DataSourcesController < ApplicationController
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
 
+  def reset
+    @data_source.reset
+  end
+
   def toggle_reload_nightly
     @data_source.toggle_reload_nightly
     redirect_to controller: :series, action: :show, id: @data_source.series_id
@@ -39,10 +43,8 @@ class DataSourcesController < ApplicationController
   end
 
   def update
-    @data_source.update_attributes(:priority => params[:data_source][:priority].to_i)
-    if @data_source.update_attributes(:eval => params[:data_source][:eval])
+    if @data_source.update_attributes(eval: data_source_params[:eval], priority: data_source_params[:priority])
       create_action @data_source, 'UPDATE'
-      @data_source.reload_source
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
     else
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource had a problem'
@@ -50,10 +52,9 @@ class DataSourcesController < ApplicationController
   end
 
   def inline_update
-    if @data_source.update_attributes(:eval => params[:data_source][:eval])
+    if @data_source.update_attributes(eval: data_source_params[:eval])
       create_action @data_source, 'UPDATE'
       begin
-        @data_source.reload_source
         render partial: 'inline_edit', locals: {:ds => @data_source, :notice => "OK, (#{@data_source.series.aremos_diff})"}
       rescue
         render partial: 'inline_edit', locals: {:ds => @data_source, :notice => 'BROKE ON LOAD'}
