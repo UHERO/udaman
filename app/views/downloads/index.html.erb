@@ -37,7 +37,7 @@
 					<td class="linkselect"><%= link_to download.handle , {:action => 'show', :id => download.id}, target: '_blank' %></td>
 					<% end %>
 					<td><%= link_to 'edit', { action: :edit, id: download.id } %></td>
-					<td><%= link_to 'delete', download, method: :delete, confirm: "Deleting #{download.handle}: Are you sure??" %></td>
+					<td><%= link_to 'delete', download, method: :delete, data: { confirm: "Deleting #{download.handle}: Are you sure??" } %></td>
           <td><%= link_to 'download-to-server', { action: :download, id: download.id }%></td>
           <td><%= link_to 'download-to-user', download.url %></td>
 			</tr>
