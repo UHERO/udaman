@@ -1113,7 +1113,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id])
   end
 
-  def Series.reload_with_dependencies(series_id_list)
+  def Series.reload_with_dependencies(series_id_list, clear_first = false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
@@ -1137,7 +1137,7 @@ class Series < ApplicationRecord
     end
     mgr = SeriesReloadManager.new(Series.where id: result_set)
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-    mgr.batch_reload
+    mgr.batch_reload(clear_first)
   end
 
   def Series.get_old_bea_downloads

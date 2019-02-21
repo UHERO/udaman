@@ -17,7 +17,7 @@
 					%>&nbsp;|&nbsp;<%= 
 						link_to "clear", {   	
 							:controller=> "data_sources", 
-							:action => 'clear_and_reload', 
+							:action => 'clear',
 							:id => ds.id} unless ds.eval.nil? 
 					%>&nbsp;|&nbsp;<%= 
 						link_to "delete", {
@@ -26,10 +26,9 @@
 							:id => ds.id },
 							data: { :confirm => "Are you sure you want to delete data source #{ds.id}?" }
 					%><br/><%=
-							link_to "edit", { 	
-								:controller=> "data_sources", 
-								:action => 'edit', 
-								:id => ds.id}
+              link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }
+          %>&nbsp;|&nbsp;<%=
+              link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id }
 					%>
         <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" unless ds.runtime.nil? %>)</span><br/>
         <%= link_to nightly_actuator(ds.reload_nightly), {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
