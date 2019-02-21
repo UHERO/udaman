@@ -49,7 +49,7 @@ task :bea_2014_extra_data_cleanout => :environment do
       s = ds.series
       if s.frequency == 'year' and s.name[0].upcase == 'Y'
         puts s.name + ' : ' + ds.eval
-        ds.clear_and_reload_source
+        ds.reload_source(true)
       end
     end
   end

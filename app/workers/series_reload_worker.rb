@@ -11,7 +11,7 @@ class SeriesReloadWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
-  def perform(batch_id, series_id, depth)
+  def perform(batch_id, series_id, depth, clear_first = false)
     @batch = batch_id
     @series = series_id
     @depth = depth
@@ -31,7 +31,7 @@ class SeriesReloadWorker
       if series
         @series = "#{series.name} (#{series_id})"
         mylogger :info, 'reload started'
-        errors = series.reload_sources(true)
+        errors = series.reload_sources(true, clear_first)
       else
         mylogger :warn, 'no such series found'
         errors.push 'no such series found'
