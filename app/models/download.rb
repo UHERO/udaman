@@ -89,7 +89,7 @@ class Download < ActiveRecord::Base
   end
 
   def download
-    Rails.logger.debug { '... Entered method dsd.download' }
+    Rails.logger.debug { '... Entered method Download.download' }
     if post_parameters.blank?
       Rails.logger.debug { "... Calling RestClient to get #{url.strip}" }
       resp = RestClient.get URI.encode(url.strip)
