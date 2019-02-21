@@ -26,8 +26,7 @@ class DownloadsCache
       path = @dload.extract_path_flex.blank? ? @dload.save_path_flex : @dload.extract_path_flex
       cache_key = make_cache_key(type, path)
       unless files_cache_exists? cache_key
-        log = download_handle(@skip_override)
-        Rails.logger.debug { "... download_handle returned log with status #{log.status}" }
+        download_handle(@skip_override)
         set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
       end
       ## Now, figure out if we can skip over this source entirely because it hasn't changed.

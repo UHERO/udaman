@@ -4,7 +4,7 @@
 		<th>description</th>
 	</tr>
 	<% series.data_sources_by_last_run.each do |ds| %>
-  	<% eval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
+  	<% myeval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
   		<td>
       <%= ds.last_run ? ds.last_run.localtime.strftime("%m/%d/%y") : '-' %>&nbsp;<span style="color:gray"><%=
@@ -13,23 +13,23 @@
 						link_to "load", {   	
 							:controller=> "data_sources", 
 							:action => 'source', 
-							:id => ds.id} unless ds.eval.nil? 
+							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
 						link_to "clear", {   	
 							:controller=> "data_sources", 
 							:action => 'clear',
-							:id => ds.id} unless ds.eval.nil? 
+							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
 						link_to "delete", {
 							:controller=> "data_sources",
 							:action => 'delete', 
 							:id => ds.id },
-							data: { :confirm => "Are you sure you want to delete data source #{ds.id}?" }
-					%><br/><%=
-              link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }
-          %>&nbsp;|&nbsp;<%=
-              link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id }
-					%>
+							data: { :confirm => "Delete data source #{ds.id}: Are you sure??" }
+					%><br/>
+          <% if myeval =~ /load_from_download/ %>
+             <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
+          <% end %>
+          <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %>
         <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" unless ds.runtime.nil? %>)</span><br/>
         <%= link_to nightly_actuator(ds.reload_nightly), {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
         <% if ds.last_error %>
@@ -45,7 +45,7 @@
 			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fa fa-clock" aria-hidden="true"></i><% end %></h3>
 			<%= raw linked_version(ds.description) %>
 			<br /> 
-			<%= raw eval %>
+			<%= raw myeval %>
 		</td>
 	</tr>      
 	<% end %>
