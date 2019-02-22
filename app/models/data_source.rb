@@ -165,7 +165,6 @@ class DataSource < ActiveRecord::Base
         Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after eval" }
         if clear_first
           delete_data_points
-          Rails.logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
@@ -214,12 +213,14 @@ class DataSource < ActiveRecord::Base
       nil
     end
 
-    def clear_and_reload_source
-      reload_source(true)
+    def reset
+      self.data_source_downloads.each do |dsd|
+        dsd.update_attributes(
+            last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
+            last_eval_options_used: nil)
+      end
     end
-    
-    # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
-    
+
     def mark_as_pseudo_history
       data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
@@ -260,7 +261,7 @@ class DataSource < ActiveRecord::Base
       self.data_points.each do |dp|
         dp.delete
       end
-      puts "#{Time.now - t} | deleted all data points for DS #{self.description}"
+      Rails.logger.info { "Deleted all data points for DS #{self.description} in #{Time.now - t} seconds" }
     end
     
     def delete

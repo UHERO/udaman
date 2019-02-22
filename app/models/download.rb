@@ -89,20 +89,19 @@ class Download < ActiveRecord::Base
   end
 
   def download
-    resp = nil
-    logger.debug { '... Entered method dsd.download' }
-    if post_parameters.nil? or post_parameters.length == 0
-      logger.debug { "... Calling RestClient to get #{url.strip}" }
+    Rails.logger.debug { '... Entered method Download.download' }
+    if post_parameters.blank?
+      Rails.logger.debug { "... Calling RestClient to get #{url.strip}" }
       resp = RestClient.get URI.encode(url.strip)
     else
-      logger.debug { "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters}" }
-      resp = RestClient.post URI.encode(url.strip), post_parameters
+      Rails.logger.debug { "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters.strip}" }
+      resp = RestClient.post URI.encode(url.strip), post_parameters.strip
     end
     status = resp.code
     data_changed = false
     if status == 200
       now = Time.now
-      logger.debug { '... RestClient download succeeded (status 200)' }
+      Rails.logger.debug { '... RestClient download succeeded (status 200)' }
       update_times = { last_download_at: now }
       data_changed = content_changed?(resp.to_str)
       if data_changed || last_change_at.nil?
@@ -115,11 +114,11 @@ class Download < ActiveRecord::Base
           save_path.unzip(file_to_extract)
         end
       rescue => e
-        logger.error "File download storage: #{e.message}"
+        Rails.logger.error "File download storage: #{e.message}"
       end
       self.update(update_times)
     end
-    #logging section
+
     download_time = Time.now
     download_url = url
     download_location = resp.headers['Location']
@@ -128,6 +127,7 @@ class Download < ActiveRecord::Base
 
     if last_log.nil? or !(last_log.url == download_url and last_log.time.to_date == download_time.to_date and last_log.status == status)
       self.dsd_log_entries.create!(:time => download_time, :url => download_url, :location => download_location, :mimetype => content_type, :status => status, :dl_changed => data_changed)
+      Rails.logger.debug { "... dsd_log_entry created in db" }
     end
 
     #this return might be a little misleading since it isn't always the exact results of the last download, just an indication that they were mostly the same
