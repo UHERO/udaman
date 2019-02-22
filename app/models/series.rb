@@ -507,13 +507,13 @@ class Series < ActiveRecord::Base
   end
   
   def new_transformation(name, data, frequency = nil)
-    raise "No data provided for new transformation '#{name}'" if data.nil?
+    raise "Undefined dataset for new transformation '#{name}'" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
                 Series.frequency_from_code(Series.parse_name(name)[:freq])
     Series.new(
       :name => name,
       :frequency => frequency,
-      :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
+      :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [Date.parse(date.to_s), value]}]
     ).tap do |o|
       o.propagate_state_from(self)
     end
@@ -627,8 +627,11 @@ class Series < ActiveRecord::Base
   ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    raise "No data collected from BEA API for #{dataset} freq=#{frequency}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, frequency)
+    name = "loaded dataset #{dataset} with parameters #{parameters} from BEA API"
+    if series_data.empty?
+      name = "No data collected from BEA API for #{dataset} freq=#{frequency} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
@@ -637,14 +640,20 @@ class Series < ActiveRecord::Base
   
   def load_from_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
-    raise "No data collected from BLS API for #{code} freq=#{frequency}" if series_data.nil? || series_data.empty?
-    new_transformation("loaded series code: #{code} from bls website", series_data, frequency)
+    name = "loaded series code: #{code} from BLS API"
+    if series_data.empty?
+      name = "No data collected from BLS API for #{code} freq=#{frequency} - possibly redacted"
+    end
+    new_transformation(name, series_data, frequency)
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
     series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    raise "No data collected from FRED API for #{code} freq=#{frequency}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded series : #{code} from FRED website", series_data, frequency)
+    name = "loaded series : #{code} from FRED API"
+    if series_data.empty?
+      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, frequency)
   end
 
   def days_in_period

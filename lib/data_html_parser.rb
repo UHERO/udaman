@@ -8,16 +8,12 @@ class DataHtmlParser
     @url += "&frequency=#{frequency.downcase.gsub(/^s$/, 'sa')}" unless frequency.nil?
     # avg, sum, eop
     @url += "&aggregation_method=#{aggregation_method.downcase}" unless aggregation_method.nil?
-    @doc = self.download
-    self.get_fred_data
-  end
-  
-  def get_fred_data
-    data_hash ||= {}
-    @doc.css('observation').each do |obs|
-      data_hash[obs[:date]]= obs[:value].to_f unless obs[:value] == '.'
+    doc = self.download
+    data = {}
+    doc.css('observation').each do |obs|
+      data[obs[:date]] = obs[:value].to_f unless obs[:value] == '.'
     end
-    data_hash
+    data
   end
   
   def get_bls_series(code, frequency = nil)
