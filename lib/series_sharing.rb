@@ -121,18 +121,18 @@ module SeriesSharing
         mean_corrected_historical.data.series_merge(current_year.data))
   end
 
-  def mc_ma_county_share_pf(county, series_prefix = self.parse_name[:prefix])
-    f = self.parse_name[:freq]
-    ns_county_name = "#{series_prefix}NS@#{county}.#{f}"
-    ns_county = ns_county_name.ts
-    ns_hi_name = "#{series_prefix}NS@HI.#{f}"
-    ns_hi = ns_hi_name.ts
-    start_date = ns_county.first_value_date
-    end_date =   ns_county.get_last_complete_december
-    historical = ns_county.moving_average_offset_early(start_date,end_date) / ns_hi.moving_average_offset_early(start_date,end_date) * self
-    mean_corrected_historical = historical / historical.annual_sum * ns_county.annual_sum
-    current_year = ns_county.annual_average.get_last_incomplete_year / ns_hi.annual_average.get_last_incomplete_year * self
-    new_transformation("Share of #{self.name} using ratio of #{ns_county_name} over #{ns_hi_name} using a mean corrected moving average (offset early), and annual average for the current year",
+  def mc_ma_county_share_pf(county_code, series_prefix = self.parse_name[:prefix])
+    freq = self.parse_name[:freq]
+    county_name = "#{series_prefix}NS@#{county_code}.#{freq}"
+    county = county_name.ts
+    state_name = "#{series_prefix}NS@HI.#{freq}"
+    state = state_name.ts
+    start_date = county.first_value_date
+    end_date =   county.get_last_complete_december
+    historical = county.moving_average_offset_early(start_date,end_date) / state.moving_average_offset_early(start_date,end_date) * self
+    mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
+    current_year = county.annual_average.get_last_incomplete_year / state.annual_average.get_last_incomplete_year * self
+    new_transformation("Share of #{self.name} using ratio of #{county_name} over #{state_name} using a mean corrected moving average (offset early), and annual average for the current year",
         mean_corrected_historical.data.series_merge(current_year.data))
   end
 
