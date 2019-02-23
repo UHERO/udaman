@@ -122,7 +122,7 @@ module SeriesSharing
   end
 
   def mc_ma_county_share_pf(county_abbrev, series_prefix = self.parse_name[:prefix])
-    f = self.name.split('.')[1]
+    f = self.parse_name[:freq]
     start_date = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.first_value_date
     end_date = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.get_last_complete_december
     historical = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.moving_average_offset_early(start_date,end_date) /  "#{series_prefix}NS@HI.#{f}".ts.moving_average_offset_early(start_date,end_date) * self
