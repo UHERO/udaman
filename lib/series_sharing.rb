@@ -121,7 +121,7 @@ module SeriesSharing
         mean_corrected_historical.data.series_merge(current_year.data))
   end
 
-  def mc_ma_county_share_pf(county_abbrev, series_prefix = self.name.split('@')[0])
+  def mc_ma_county_share_pf(county_abbrev, series_prefix = self.parse_name[:prefix])
     f = self.name.split('.')[1]
     start_date = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.first_value_date
     end_date = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.get_last_complete_december
