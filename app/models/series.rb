@@ -649,7 +649,7 @@ class Series < ActiveRecord::Base
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
     series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    name = "loaded series : #{code} from FRED API"
+    name = "loaded series: #{code} from FRED API"
     if series_data.empty?
       name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
     end
