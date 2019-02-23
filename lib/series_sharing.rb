@@ -121,14 +121,18 @@ module SeriesSharing
         mean_corrected_historical.data.series_merge(current_year.data))
   end
 
-  def mc_ma_county_share_pf(county_abbrev, series_prefix = self.parse_name[:prefix])
+  def mc_ma_county_share_pf(county, series_prefix = self.parse_name[:prefix])
     f = self.parse_name[:freq]
-    start_date = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.first_value_date
-    end_date = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.get_last_complete_december
-    historical = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.moving_average_offset_early(start_date,end_date) /  "#{series_prefix}NS@HI.#{f}".ts.moving_average_offset_early(start_date,end_date) * self
-    mean_corrected_historical = historical / historical.annual_sum * "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.annual_sum
-    current_year = "#{series_prefix}NS@#{county_abbrev}.#{f}".ts.annual_average.get_last_incomplete_year / "#{series_prefix}NS@HI.#{f}".ts.annual_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.#{f} over #{series_prefix}NS@HI.#{f} using a mean corrected moving average (offset early), and annual average for the current year",
+    ns_county_name = "#{series_prefix}NS@#{county}.#{f}"
+    ns_county = ns_county_name.ts
+    ns_hi_name = "#{series_prefix}NS@HI.#{f}"
+    ns_hi = ns_hi_name.ts
+    start_date = ns_county.first_value_date
+    end_date =   ns_county.get_last_complete_december
+    historical = ns_county.moving_average_offset_early(start_date,end_date) / ns_hi.moving_average_offset_early(start_date,end_date) * self
+    mean_corrected_historical = historical / historical.annual_sum * ns_county.annual_sum
+    current_year = ns_county.annual_average.get_last_incomplete_year / ns_hi.annual_average.get_last_incomplete_year * self
+    new_transformation("Share of #{self.name} using ratio of #{ns_county_name} over #{ns_hi_name} using a mean corrected moving average (offset early), and annual average for the current year",
         mean_corrected_historical.data.series_merge(current_year.data))
   end
 
