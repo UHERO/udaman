@@ -36,11 +36,11 @@ class DbedtUploadsController < ApplicationController
   end
 
   def active_status
-    render(text: @dbedt_upload.active, status: 200)
+    render plain: @dbedt_upload.active, status: 200, content_type: 'text/plain'
   end
 
   def status
-    render text: @dbedt_upload.get_status(params[:which]), status: 200
+    render plain: @dbedt_upload.get_status(params[:which]), status: 200, content_type: 'text/plain'
   end
 
   # PATCH/PUT /dbedt_uploads/1
