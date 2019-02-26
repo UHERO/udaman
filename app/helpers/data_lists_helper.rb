@@ -55,7 +55,7 @@ module DataListsHelper
   def make_indentation(n)
     ## HTML string below needs to keep internal quotes as single, because it gets embedded in JSON
     ## Start at 1 because if n == 0, this gives (correct) empty result, whereas 0..0 incorrectly iterates once
-    (1..n).map{ "<i class='fa fa-minus' aria-hidden='true'></i> " }.join.html_safe
+    (1..n).map{ "<i class='fas fa-minus' aria-hidden='true'></i> " }.join.html_safe
   end
 
   def generate_filter_controls(geo, freq, sa)
