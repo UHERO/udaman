@@ -36,7 +36,7 @@ $(function() {
             });
         }
     });
-    /* *** THIS IS UNUSED CODE
+    /* *** THIS IS UNUSED CODE -- DELETE WHEN YOU'RE SURE
     $('.load-status.loading').each(function(_, element) {
         var icon_args = $(element).attr('id').split('-');
         var resource = icon_args[0];
@@ -51,7 +51,7 @@ $(function() {
                     return;
                 }
                 if (data === 'yes') {
-                    $(element).removeClass('loading fa-refresh fa-spinner').addClass('load-yes fa-dot-circle-o');
+                    $(element).removeClass('loading fa-refresh fa-spinner').addClass('load-yes fa-dot-circle');
                     clearInterval(intervalId);
                     return;
                 }
