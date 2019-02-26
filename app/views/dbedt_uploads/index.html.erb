@@ -49,10 +49,10 @@
           %>
           </span>
         </td>
-        <td><i class="upload-status fa <%= make_fa_processing_classes(dbedt_upload.cats_status) %>" id="dbedt-cats-<%= dbedt_upload.id %>" aria-hidden="true"></i>
+        <td><i class="upload-status fa fas <%= make_fa_processing_classes(dbedt_upload.cats_status) %>" id="dbedt-cats-<%= dbedt_upload.id %>" aria-hidden="true"></i>
             <%= link_to 'Variablelist', {:action => 'show', :id => dbedt_upload.id, :filetype => 'cats'} %>
         </td>
-        <td><i class="upload-status fa <%= make_fa_processing_classes(dbedt_upload.series_status) %>" id="dbedt-series-<%= dbedt_upload.id %>" aria-hidden="true"></i>
+        <td><i class="upload-status fa fas <%= make_fa_processing_classes(dbedt_upload.series_status) %>" id="dbedt-series-<%= dbedt_upload.id %>" aria-hidden="true"></i>
             <%= link_to 'Masterdatabase', {:action => 'show', :id => dbedt_upload.id, :filetype => 'series'} %>
         </td>
         <td><%= timestamp %></td>
