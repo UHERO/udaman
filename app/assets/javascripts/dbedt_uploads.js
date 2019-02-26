@@ -12,7 +12,7 @@ $(function() {
                     return;
                 }
                 if (data === 'ok') {
-                    $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
+                    $(element).removeClass('processing fa-refresh fa-spinner').addClass('ok fa-check');
                     if (resource === 'nta') {
                         location.reload();
                     }
@@ -27,7 +27,7 @@ $(function() {
                     return;
                 }
                 if (data === 'fail') {
-                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
+                    $(element).removeClass('processing fa-refresh fa-spinner').addClass('fail fa-times');
                     if ($('.upload-status.processing').length == 0) {
                         $('.controls').show();
                     }
@@ -51,12 +51,12 @@ $(function() {
                     return;
                 }
                 if (data === 'yes') {
-                    $(element).removeClass('loading fa-refresh fa-spin').addClass('load-yes fa-dot-circle-o');
+                    $(element).removeClass('loading fa-refresh fa-spinner').addClass('load-yes fa-dot-circle-o');
                     clearInterval(intervalId);
                     return;
                 }
                 if (data === 'fail') {
-                    $(element).removeClass('loading fa-refresh fa-spin').addClass('load-fail fa-times');
+                    $(element).removeClass('loading fa-refresh fa-spinner').addClass('load-fail fa-times');
                     clearInterval(intervalId);
                 }
             });
