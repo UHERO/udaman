@@ -2,7 +2,7 @@ module DbedtUploadsHelper
   def make_fa_processing_classes(status)
     case status
       when 'processing'
-        'fa-refresh fa-spinner processing'
+        'fa-spinner fa-pulse processing'
       when 'ok'
         'fa-check ok'
       when 'fail'
@@ -15,7 +15,7 @@ module DbedtUploadsHelper
 ### this looks like vestigial code -- commenting out now, delete later
 #  def make_fa_loading_classes(active)
 #    if active == 'loading'
-#      'fa-refresh fa-spinner loading'
+#      'fa-spinner fa-pulse loading'
 #    elsif active == 'yes'
 #      'fa-dot-circle load-yes'
 #    elsif active == 'no'
