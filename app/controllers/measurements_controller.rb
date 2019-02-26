@@ -2,8 +2,7 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
-                                         :propagate]
+  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :duplicate, :propagate]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
@@ -64,16 +63,17 @@ class MeasurementsController < ApplicationController
   end
   
   def duplicate
-    original_measurement = Measurement.find params[:id]
-    new_measurement = original_measurement.dup
-    new_measurement.prefix = original_measurement.prefix + ' (copy)'
-    new_measurement.series = original_measurement.series
+    new_measurement = @measurement.dup
+    new_measurement.prefix = @measurement.prefix + ' (copy)'
+    new_measurement.series = @measurement.series
     new_measurement.save
+    @resource_universe = get_resource_universe(@measurement.universe)
     redirect_to edit_measurement_url(new_measurement.id)
   end
 
   # PATCH/PUT /measurements/1
   def update
+    @resource_universe = get_resource_universe(@measurement.universe)
     if @measurement.update(measurement_params)
       redirect_to @measurement, notice: 'Measurement was successfully updated.'
     else
@@ -96,7 +96,7 @@ class MeasurementsController < ApplicationController
 
   def remove_series
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok }
     end
     series = Series.find(params[:series_id])
     @measurement.remove_series(series)
@@ -137,7 +137,7 @@ class MeasurementsController < ApplicationController
 
     # Use callbacks to share common setup or constraints between actions.
     def set_measurement
-      @measurement = Measurement.find(params[:id])
+      @measurement = Measurement.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.

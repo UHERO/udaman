@@ -1,2 +1,2 @@
-class UserFeedback < ActiveRecord::Base
+class UserFeedback < ApplicationRecord
 end

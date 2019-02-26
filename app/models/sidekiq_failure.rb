@@ -1,3 +1,3 @@
-class SidekiqFailure < ActiveRecord::Base
+class SidekiqFailure < ApplicationRecord
   belongs_to :series
 end

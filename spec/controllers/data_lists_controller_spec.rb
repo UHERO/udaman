@@ -30,7 +30,7 @@ describe DataListsController do
   describe "GET index" do
     xit "assigns all data_lists as @data_lists" do
       data_list = DataList.create! valid_attributes
-      get :index
+      get :index, params: {}
       assigns(:data_lists).should eq([data_list])
     end
   end
@@ -38,14 +38,14 @@ describe DataListsController do
   describe "GET show" do
     xit "assigns the requested data_list as @data_list" do
       data_list = DataList.create! valid_attributes
-      get :show, :id => data_list.id.to_s
+      get :show, params: { id: data_list.id.to_s }
       assigns(:data_list).should eq(data_list)
     end
   end
 
   describe "GET new" do
     xit "assigns a new data_list as @data_list" do
-      get :new
+      get :new, params: {}
       assigns(:data_list).should be_a_new(DataList)
     end
   end
@@ -53,7 +53,7 @@ describe DataListsController do
   describe "GET edit" do
     xit "assigns the requested data_list as @data_list" do
       data_list = DataList.create! valid_attributes
-      get :edit, :id => data_list.id.to_s
+      get :edit, params: { id: data_list.id.to_s }
       assigns(:data_list).should eq(data_list)
     end
   end
@@ -62,18 +62,18 @@ describe DataListsController do
     describe "with valid params" do
       xit "creates a new DataList" do
         expect {
-          post :create, :data_list => valid_attributes
+          post :create, params: { data_list: valid_attributes }
         }.to change(DataList, :count).by(1)
       end
 
       xit "assigns a newly created data_list as @data_list" do
-        post :create, :data_list => valid_attributes
+        post :create, params: { data_list: valid_attributes }
         assigns(:data_list).should be_a(DataList)
         assigns(:data_list).should be_persisted
       end
 
       xit "redirects to the created data_list" do
-        post :create, :data_list => valid_attributes
+        post :create, params: { data_list: valid_attributes }
         response.should redirect_to(DataList.last)
       end
     end
@@ -82,14 +82,14 @@ describe DataListsController do
       xit "assigns a newly created but unsaved data_list as @data_list" do
         # Trigger the behavior that occurs when invalid params are submitted
         DataList.any_instance.stub(:save).and_return(false)
-        post :create, :data_list => {}
+        post :create, params: { data_list: {} }
         assigns(:data_list).should be_a_new(DataList)
       end
 
       xit "re-renders the 'new' template" do
         # Trigger the behavior that occurs when invalid params are submitted
         DataList.any_instance.stub(:save).and_return(false)
-        post :create, :data_list => {}
+        post :create, params: { data_list: {} }
         response.should render_template("new")
       end
     end
@@ -104,18 +104,18 @@ describe DataListsController do
         # receives the :update_attributes message with whatever params are
         # submitted in the request.
         DataList.any_instance.should_receive(:update_attributes).with({'these' => 'params'})
-        put :update, :id => data_list.id, :data_list => {'these' => 'params'}
+        put :update, params: { id: data_list.id, data_list: {'these' => 'params'} }
       end
 
       xit "assigns the requested data_list as @data_list" do
         data_list = DataList.create! valid_attributes
-        put :update, :id => data_list.id, :data_list => valid_attributes
+        put :update, params: { id: data_list.id, data_list: valid_attributes }
         assigns(:data_list).should eq(data_list)
       end
 
       xit "redirects to the data_list" do
         data_list = DataList.create! valid_attributes
-        put :update, :id => data_list.id, :data_list => valid_attributes
+        put :update, params: { id: data_list.id, data_list: valid_attributes }
         response.should redirect_to(data_list)
       end
     end
@@ -125,7 +125,7 @@ describe DataListsController do
         data_list = DataList.create! valid_attributes
         # Trigger the behavior that occurs when invalid params are submitted
         DataList.any_instance.stub(:save).and_return(false)
-        put :update, :id => data_list.id.to_s, :data_list => {}
+        put :update, params: { id: data_list.id.to_s, data_list: {} }
         assigns(:data_list).should eq(data_list)
       end
 
@@ -133,7 +133,7 @@ describe DataListsController do
         data_list = DataList.create! valid_attributes
         # Trigger the behavior that occurs when invalid params are submitted
         DataList.any_instance.stub(:save).and_return(false)
-        put :update, :id => data_list.id.to_s, :data_list => {}
+        put :update, params: { id: data_list.id.to_s, data_list: {} }
         response.should render_template("edit")
       end
     end
@@ -143,13 +143,13 @@ describe DataListsController do
     xit "destroys the requested data_list" do
       data_list = DataList.create! valid_attributes
       expect {
-        delete :destroy, :id => data_list.id.to_s
+        delete :destroy, params: { id: data_list.id.to_s }
       }.to change(DataList, :count).by(-1)
     end
 
     xit "redirects to the data_lists list" do
       data_list = DataList.create! valid_attributes
-      delete :destroy, :id => data_list.id.to_s
+      delete :destroy, params: { id: data_list.id.to_s }
       response.should redirect_to(data_lists_url)
     end
   end

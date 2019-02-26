@@ -6,6 +6,7 @@ class DbedtLoadWorker
   sidekiq_options queue: 'critical'
 
   def perform(dbu_id)
+    Rails.logger.info { "ENTER DbedtLoadWorker.perform async: id=#{dbu_id}" }
     begin
       dbu = DbedtUpload.find(dbu_id)
       unless dbu
@@ -15,18 +16,19 @@ class DbedtLoadWorker
         raise 'Some error in load_series_csv'
         ## make this more specific later by pushing exception throw down into method -dji
       end
-      logger.debug { "DbedtUpload id=#{dbu_id} DONE load series" }
+      Rails.logger.debug { "DbedtUpload id=#{dbu_id} DONE load series" }
       unless dbu.load_cats_csv
         raise 'Some error in load_cats_csv'
         ## make this more specific later by pushing exception throw down into method -dji
       end
-      logger.debug { "DbedtUpload id=#{dbu_id} DONE load cats" }
+      Rails.logger.debug { "DbedtUpload id=#{dbu_id} DONE load cats" }
       dbu.make_active_settings
       dbu.update!(cats_status: :ok, last_error: nil, last_error_at: nil)
-      logger.info { "DbedtUpload id=#{dbu_id} loaded as active" }
+      Rails.logger.info { "DbedtUpload id=#{dbu_id} loaded as active" }
     rescue => error
       dbu.update(cats_status: :fail, last_error: error.message, last_error_at: Time.now)
-      logger.error { "DbedtUpload load failed: #{error.message}" }
+      Rails.logger.error { "DbedtUpload load failed: #{error.message}" }
     end
+    Rails.logger.info { "DONE DbedtLoadWorker.perform async: id=#{dbu_id}" }
   end
 end

@@ -1,2 +1,2 @@
-class PackagerOutput < ActiveRecord::Base
+class PackagerOutput < ApplicationRecord
 end

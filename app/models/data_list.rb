@@ -1,4 +1,4 @@
-class DataList < ActiveRecord::Base
+class DataList < ApplicationRecord
   include Cleaning
   has_and_belongs_to_many :series
   has_many :data_list_measurements, dependent: :delete_all

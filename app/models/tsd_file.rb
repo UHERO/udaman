@@ -1,4 +1,4 @@
-class TsdFile < ActiveRecord::Base
+class TsdFile < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   require 'date'
@@ -309,7 +309,7 @@ private
       File.delete(path)
     rescue StandardError => e
       Rails.logger.error e.message
-      return false  ## prevents destruction of the model object
+      throw(:abort)  ## prevents destruction of the model object
     end
 	  true
   end

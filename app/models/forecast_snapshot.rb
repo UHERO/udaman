@@ -1,4 +1,4 @@
-class ForecastSnapshot < ActiveRecord::Base
+class ForecastSnapshot < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   require 'date'
@@ -125,7 +125,9 @@ class ForecastSnapshot < ActiveRecord::Base
       File.delete(path(name))
     rescue StandardError => e
       Rails.logger.error e.message
-      return false unless e.message =~ /no such file/i
+      unless e.message =~ /no such file/i
+        throw(:abort)
+      end
     end
     true
   end

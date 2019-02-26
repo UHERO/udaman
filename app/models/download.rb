@@ -1,4 +1,4 @@
-class Download < ActiveRecord::Base
+class Download < ApplicationRecord
   include Cleaning
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_sources, -> {distinct}, through: :data_source_downloads

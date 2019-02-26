@@ -7,12 +7,12 @@
 <h3>Series with circular dependencies</h3>
 <ul>
   <% @series.each do |series| %>
-      <li><a href="http://udaman.uhero.hawaii.edu/series/<%= series.id %>">http://udaman.uhero.hawaii.edu/series/<%= series.id %> : <%= series.name %></a>
+      <li><a href="https://udaman.uhero.hawaii.edu/series/<%= series.id %>">https://udaman.uhero.hawaii.edu/series/<%= series.id %> : <%= series.name %></a>
         <ul>
           <% series.data_sources.each do |ds| %>
             <% ds.dependencies.each do |dependency| %>
               <% dependency_series = Series.get(dependency) %>
-              <li><a href="http://udaman.uhero.hawaii.edu/series<%= dependency_series.id %>"><%= dependency_series.id %> :<%= dependency_series.name %></li>
+              <li><a href="https://udaman.uhero.hawaii.edu/series<%= dependency_series.id %>"><%= dependency_series.id %> :<%= dependency_series.name %></li>
             <% end %>
           <% end %>
         </ul>
