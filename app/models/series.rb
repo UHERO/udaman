@@ -1,4 +1,4 @@
-class Series < ActiveRecord::Base
+class Series < ApplicationRecord
   include Cleaning
   include SeriesArithmetic
   include SeriesAggregation
@@ -27,9 +27,9 @@ class Series < ActiveRecord::Base
 
   has_and_belongs_to_many :data_lists
 
-  belongs_to :source, inverse_of: :series
-  belongs_to :source_detail, inverse_of: :series
-  belongs_to :unit, inverse_of: :series
+  belongs_to :source, optional: true, inverse_of: :series
+  belongs_to :source_detail, optional: true, inverse_of: :series
+  belongs_to :unit, optional: true, inverse_of: :series
   belongs_to :geography, inverse_of: :series
 
   has_many :export_series, dependent: :delete_all
@@ -817,14 +817,10 @@ class Series < ActiveRecord::Base
   end
   
   def date_range
-    
-    #return self.data.keys.sort 
-      
     data_dates = self.data.keys.sort
     start_date = data_dates[0]
     end_date = data_dates[-1]
     curr_date = start_date
-    
     dates = []
     offset = 0
     
@@ -843,8 +839,6 @@ class Series < ActiveRecord::Base
         offset += 1
       end while curr_date < end_date
     end
-    
-    
     dates
   end
 
@@ -995,18 +989,20 @@ class Series < ActiveRecord::Base
   end
 
   def reload_sources(series_worker = false, clear_first = false)
-    errors = []
+    series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
         success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
-        errors.push("data source #{ds.id} failed") unless success
+        unless success
+          raise 'error in reload_source method, should be logged above'
+        end
       rescue Exception => e
-        errors.push("DataSource #{ds.id} for #{self.name} (#{self.id}): #{e.message}")
-        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series #{self.name} (#{self.id})" }
+        series_success = false
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series <#{self.name}> (#{self.id})" }
       end
     end
-    errors
+    series_success
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -1133,7 +1129,7 @@ class Series < ActiveRecord::Base
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = next_set.count.times.map{ '?' }.join(',')
-      ## So wackt that find_by_sql works this way :( But if it's fixed in Rails 5, remove this comment :)
+      ## So wackt that find_by_sql works this way :( But if it's "fixed" in Rails 6, remove this comment :)
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
       new_deps = Series.find_by_sql [<<~SQL, next_set].flatten

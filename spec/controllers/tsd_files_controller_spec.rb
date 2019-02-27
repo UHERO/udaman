@@ -61,7 +61,7 @@ RSpec.describe TsdFilesController, type: :controller do
   describe "GET #new" do
     it "assigns a new tsd_file as @tsd_file" do
       forecast_snapshot = ForecastSnapshot.create! name: 'test', version: 'v1'
-      get :new, {forecast_snapshot_id: forecast_snapshot.id}, session: valid_session
+      get :new, params: {forecast_snapshot_id: forecast_snapshot.id}, session: valid_session
       expect(assigns(:tsd_file)).to be_a_new(TsdFile)
     end
   end

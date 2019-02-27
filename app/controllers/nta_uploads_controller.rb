@@ -36,11 +36,11 @@ class NtaUploadsController < ApplicationController
   end
 
   def active_status
-    render(text: @nta_upload.active, status: 200)
+    render plain: @nta_upload.active, status: 200, content_type: 'text/plain'
   end
 
   def status
-    render text: @nta_upload.get_status(params[:which]), status: 200
+    render plain: @nta_upload.get_status(params[:which]), status: 200, content_type: 'text/plain'
   end
 
   # PATCH/PUT /nta_uploads/1

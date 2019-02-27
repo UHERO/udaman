@@ -1,2 +1,2 @@
-class Transformation < ActiveRecord::Base
+class Transformation < ApplicationRecord
 end

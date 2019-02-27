@@ -1,6 +1,4 @@
-class PackagerMailer < ActionMailer::Base
-  default :from => 'udaman@hawaii.edu'
-
+class PackagerMailer < ApplicationMailer
   def rake_notification(rake_task, download_results, errors, series, output_path, is_error)
     begin
       @download_results = download_results

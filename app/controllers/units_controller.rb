@@ -22,12 +22,12 @@ class UnitsController < ApplicationController
   # POST /units
   def create
     # Don't allow empty or whitespace strings in the db
-    if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
+    if unit_params[:short_label].blank? || unit_params[:long_label].blank?
       redirect_to({ :action => :new }, notice: 'Blank entries not allowed')
       return
     end
-    params[:unit][:short_label].strip!
-    params[:unit][:long_label].strip!
+    unit_params[:short_label].strip!
+    unit_params[:long_label].strip!
     @unit = Unit.new(unit_params)
     error = 'Unknown error'
 
@@ -51,12 +51,12 @@ class UnitsController < ApplicationController
   # PATCH/PUT /units/1
   def update
     # Don't allow empty or whitespace strings in the db
-    if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
+      if unit_params[:short_label].blank? || unit_params[:long_label].blank?
       redirect_to({ :action => :edit }, notice: 'Blank entries not allowed')
       return
     end
-    params[:unit][:short_label].strip!
-    params[:unit][:long_label].strip!
+    unit_params[:short_label].strip!
+    unit_params[:long_label].strip!
     error = 'Unknown error'
 
     begin
@@ -82,10 +82,10 @@ class UnitsController < ApplicationController
     redirect_to units_url, notice: 'Unit was successfully destroyed.'
   end
 
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_unit
-      @unit = Unit.find(params[:id])
+      @unit = Unit.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.

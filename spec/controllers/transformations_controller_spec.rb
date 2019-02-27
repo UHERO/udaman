@@ -44,7 +44,7 @@ RSpec.describe TransformationsController, type: :controller do
   describe 'GET #index' do
     it 'assigns all transformations as @transformations' do
       transformation = Transformation.create! valid_attributes
-      get :index, {}
+      get :index, params: {}
       expect(assigns(:transformations)).to eq([transformation])
     end
   end
@@ -52,14 +52,14 @@ RSpec.describe TransformationsController, type: :controller do
   describe 'GET #show' do
     it 'assigns the requested transformation as @transformation' do
       transformation = Transformation.create! valid_attributes
-      get :show, {id: transformation.to_param}
+      get :show, params: {id: transformation.to_param}
       expect(assigns(:transformation)).to eq(transformation)
     end
   end
 
   describe 'GET #new' do
     it 'assigns a new transformation as @transformation' do
-      get :new, {}
+      get :new, params: {}
       expect(assigns(:transformation)).to be_a_new(Transformation)
     end
   end
@@ -67,7 +67,7 @@ RSpec.describe TransformationsController, type: :controller do
   describe 'GET #edit' do
     it 'assigns the requested transformation as @transformation' do
       transformation = Transformation.create! valid_attributes
-      get :edit, {id: transformation.to_param}
+      get :edit, params: {id: transformation.to_param}
       expect(assigns(:transformation)).to eq(transformation)
     end
   end
@@ -76,30 +76,30 @@ RSpec.describe TransformationsController, type: :controller do
     context 'with valid params' do
       it 'creates a new Transformation' do
         expect {
-          post :create, {transformation: valid_attributes}
+          post :create, params: {transformation: valid_attributes}
         }.to change(Transformation, :count).by(1)
       end
 
       it 'assigns a newly created transformation as @transformation' do
-        post :create, {transformation: valid_attributes}
+        post :create, params: {transformation: valid_attributes}
         expect(assigns(:transformation)).to be_a(Transformation)
         expect(assigns(:transformation)).to be_persisted
       end
 
       it 'redirects to the created transformation' do
-        post :create, {transformation: valid_attributes}
+        post :create, params: {transformation: valid_attributes}
         expect(response).to redirect_to(Transformation.last)
       end
     end
 
     context 'with invalid params' do
       it 'assigns a newly created but unsaved transformation as @transformation' do
-        post :create, {transformation: invalid_attributes}
+        post :create, params: {transformation: invalid_attributes}
         expect(assigns(:transformation)).to be_a_new(Transformation)
       end
 
       it "re-renders the 'new' template" do
-        post :create, {transformation: invalid_attributes}
+        post :create, params: {transformation: invalid_attributes}
         expect(response).to render_template('new')
       end
     end
@@ -117,20 +117,20 @@ RSpec.describe TransformationsController, type: :controller do
 
       it 'updates the requested transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, {id: transformation.to_param, transformation: new_attributes}
+        put :update, params: {id: transformation.to_param, transformation: new_attributes}
         transformation.reload
         skip('Add assertions for updated state')
       end
 
       it 'assigns the requested transformation as @transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, {id: transformation.to_param, transformation: valid_attributes}
+        put :update, params: {id: transformation.to_param, transformation: valid_attributes}
         expect(assigns(:transformation)).to eq(transformation)
       end
 
       it 'redirects to the transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, {id: transformation.to_param, transformation: valid_attributes}
+        put :update, params: {id: transformation.to_param, transformation: valid_attributes}
         expect(response).to redirect_to(transformation)
       end
     end
@@ -138,13 +138,13 @@ RSpec.describe TransformationsController, type: :controller do
     context 'with invalid params' do
       it 'assigns the transformation as @transformation' do
         transformation = Transformation.create! valid_attributes
-        put :update, {id: transformation.to_param, transformation: invalid_attributes}
+        put :update, params: {id: transformation.to_param, transformation: invalid_attributes}
         expect(assigns(:transformation)).to eq(transformation)
       end
 
       it "re-renders the 'edit' template" do
         transformation = Transformation.create! valid_attributes
-        put :update, {id: transformation.to_param, transformation: invalid_attributes}
+        put :update, params: {id: transformation.to_param, transformation: invalid_attributes}
         expect(response).to render_template('edit')
       end
     end
@@ -154,13 +154,13 @@ RSpec.describe TransformationsController, type: :controller do
     it 'destroys the requested transformation' do
       transformation = Transformation.create! valid_attributes
       expect {
-        delete :destroy, {id: transformation.to_param}
+        delete :destroy, params: {id: transformation.to_param}
       }.to change(Transformation, :count).by(-1)
     end
 
     it 'redirects to the transformations list' do
       transformation = Transformation.create! valid_attributes
-      delete :destroy, {id: transformation.to_param}
+      delete :destroy, params: {id: transformation.to_param}
       expect(response).to redirect_to(transformations_url)
     end
   end

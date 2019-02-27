@@ -1,3 +1,3 @@
-class DsdLogEntry < ActiveRecord::Base
+class DsdLogEntry < ApplicationRecord
   belongs_to :download
 end
