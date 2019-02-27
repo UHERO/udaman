@@ -209,6 +209,7 @@ GEM
       rake (>= 0.8.7)
       thor (>= 0.19.0, < 2.0)
     rake (12.3.2)
+    rb-fsevent (0.10.3)
     rb-inotify (0.10.0)
       ffi (~> 1.0)
     redis (4.0.2)
@@ -362,6 +363,7 @@ DEPENDENCIES
   rails (~> 5.2.2)
   rails-assets-select2 (~> 4.0.5)!
   rake
+  rb-fsevent
   rest-client (~> 2.0)
   roo (~> 2.8, >= 2.8.1)
   roo-xls (~> 1.2, >= 1.2.0)

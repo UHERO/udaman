@@ -70,7 +70,7 @@ ActiveRecord::Schema.define(version: 220170413025748) do
     t.index ["universe"], name: "index_categories_on_universe"
   end
 
-  create_table "category_frequencies", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "category_frequencies", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.integer "category_id"
     t.string "frequency"
     t.index ["category_id", "frequency"], name: "index_category_frequencies_on_category_id_and_frequency", unique: true
@@ -78,7 +78,7 @@ ActiveRecord::Schema.define(version: 220170413025748) do
     t.index ["frequency"], name: "index_category_frequencies_on_frequency"
   end
 
-  create_table "category_geographies", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "category_geographies", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.integer "category_id"
     t.integer "geography_id"
     t.index ["category_id", "geography_id"], name: "index_category_geographies_on_category_id_and_geography_id", unique: true
@@ -193,6 +193,9 @@ ActiveRecord::Schema.define(version: 220170413025748) do
     t.string "last_error"
     t.datetime "last_error_at"
     t.integer "priority", default: 100
+    t.index ["dependencies"], name: "index_data_sources_on_dependencies", type: :fulltext
+    t.index ["description"], name: "index_data_sources_on_description", type: :fulltext
+    t.index ["eval"], name: "index_data_sources_on_eval", type: :fulltext
     t.index ["series_id"], name: "index_data_sources_on_series_id"
     t.index ["universe"], name: "index_data_sources_on_universe"
   end
@@ -408,7 +411,7 @@ ActiveRecord::Schema.define(version: 220170413025748) do
     t.index ["universe"], name: "index_series_on_universe"
   end
 
-  create_table "series_reload_logs", primary_key: ["batch_id", "series_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "series_reload_logs", primary_key: ["batch_id", "series_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "batch_id", null: false
     t.integer "series_id", null: false
     t.integer "depth"
@@ -418,7 +421,7 @@ ActiveRecord::Schema.define(version: 220170413025748) do
     t.datetime "updated_at"
   end
 
-  create_table "sidekiq_failures", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "sidekiq_failures", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.integer "series_id"
     t.string "message"
     t.datetime "created_at"
