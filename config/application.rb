@@ -17,7 +17,6 @@ module UheroDb
     # the framework and any gems in your application.
     #
     # config.autoload_paths += Dir["#{config.root}/lib/**/"] # include all subdirectories
-    config.eager_load_paths << Rails.root.join('lib')
 
     #file writing is roughly just as performant, except memory naturally clears after each process (separate from
     # web, console, and rake) which is generally better

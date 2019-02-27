@@ -8,7 +8,6 @@ Rails.application.configure do
 
   # Do eager loading in dev so that potential problems might be seen
   config.eager_load = true
-  config.eager_load_paths << Rails.root.join('lib')
 
   # Show full error reports.
   config.consider_all_requests_local = true
