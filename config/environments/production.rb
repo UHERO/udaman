@@ -9,6 +9,7 @@ Rails.application.configure do
   # and those relying on copy on write to perform better.
   # Rake tasks automatically ignore this option for performance.
   config.eager_load = true
+  config.eager_load_paths << Rails.root.join('lib')
 
   config.consider_all_requests_local       = true
   config.action_controller.perform_caching = true

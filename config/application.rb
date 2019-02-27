@@ -16,7 +16,7 @@ module UheroDb
     # -- all .rb files in that directory are automatically loaded after loading
     # the framework and any gems in your application.
     #
-    config.autoload_paths += Dir["#{config.root}/lib/**/"] # include all subdirectories
+    # config.autoload_paths += Dir["#{config.root}/lib/**/"] # include all subdirectories
 
     #file writing is roughly just as performant, except memory naturally clears after each process (separate from
     # web, console, and rake) which is generally better
