@@ -8,8 +8,6 @@ class SeriesReloadLog < ApplicationRecord
       SQL
       stmt.execute(Time.now - horizon)
       stmt.close
-      ### following is to test that automated email delivery works under R5. When confirmed, delete this stuff.
-      raise 'THIS IS A TEST OF THE EMERGENCY EMAIL SYSTEM. IF THIS HAD BEEN AN ACTUAL EMERGENCY, YOU WOULD HAVE RECEIVED A REAL ERROR MESSAGE.'
     rescue => e
       Rails.logger.error { "SeriesReloadLog.purge_old_logs FAILURE: #{e.message}" }
       PackagerMailer.purge_log_notification(e.message).deliver
