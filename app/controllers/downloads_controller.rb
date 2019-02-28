@@ -20,8 +20,9 @@ class DownloadsController < ApplicationController
   end
 
   def create
-    post_params = params[:download].delete(:post_parameters)
-    @output_file = Download.new download_params
+    myparams = download_params
+    post_params = myparams.delete(:post_parameters)
+    @output_file = Download.new myparams
     if @output_file.save
       @output_file.process_post_params(post_params)
       redirect_to :action => 'index'
@@ -31,9 +32,10 @@ class DownloadsController < ApplicationController
   end
   
   def update
-    post_params = params[:download].delete(:post_parameters)
+    myparams = download_params
+    post_params = myparams.delete(:post_parameters)
     respond_to do |format|
-      if @output_file.update! download_params
+      if @output_file.update! myparams
         @output_file.process_post_params(post_params)
 
         format.html { redirect_to( :action => 'index', :notice => 'Download successfully updated.') }
@@ -85,7 +87,7 @@ class DownloadsController < ApplicationController
   end
 
   def set_download
-    @output_file = Download.find_by id: params[:id]
+    @output_file = Download.find params[:id]
   end
 
 end

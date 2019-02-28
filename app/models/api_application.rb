@@ -1,2 +1,3 @@
-class ApiApplication < ActiveRecord::Base
+class ApiApplication < ApplicationRecord
+  include Cleaning
 end

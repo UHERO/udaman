@@ -1,4 +1,4 @@
-class DataSource < ActiveRecord::Base
+class DataSource < ApplicationRecord
   include Cleaning
   include Validators
   require 'digest/md5'
@@ -64,7 +64,7 @@ class DataSource < ActiveRecord::Base
       end
       handle_hash
     end
-    
+
     def DataSource.all_load_from_file_series_names
       series_names = []
       DataSource.where("eval LIKE '%load_from %'").all.each do |ds|
@@ -147,7 +147,7 @@ class DataSource < ActiveRecord::Base
     end
 
     def reload_source(clear_first = false)
-      Rails.logger.info { "Begin reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Begin reload of data source #{id} for series <#{self.series.name}> [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
@@ -160,35 +160,31 @@ class DataSource < ActiveRecord::Base
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
-        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: before eval" }
         s = Kernel::eval eval_stmt
-        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after eval" }
         if clear_first
           delete_data_points
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
-          self.series.update(:base_year => base_year.to_i)
+          self.series.update!(:base_year => base_year.to_i)
         end
-        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: before updates" }
         self.series.update_data(s.data, self)
-        self.update(:description => s.name,
+        self.update!(:description => s.name,
                     :last_run => t,
                     :last_run_at => t,
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
-        Rails.logger.debug { "@@@@ @@@@ dsid=#{id}: after updates" }
       rescue => e
-        self.update(:last_run => t,
+        self.update!(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
                     :last_error => e.message[0..254],
                     :last_error_at => t)
-        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{e.message}" }
+        Rails.logger.error { "Reload data source #{id} for series <#{self.series.name}> [#{description}]: Error: #{e.message}" }
         return false
       end
-      Rails.logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Completed reload of data source #{id} for series <#{self.series.name}> [#{description}]" }
       true
     end
 
@@ -236,7 +232,8 @@ class DataSource < ActiveRecord::Base
     def unmark_as_pseudo_history_before(date)
       data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
-    
+
+    ## This method appears to be vestigial - confirm and delete later
     def delete_all_other_sources
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}

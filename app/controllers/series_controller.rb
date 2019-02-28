@@ -2,6 +2,9 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :analyze, :add_to_quarantine, :remove_from_quarantine,
+                                    :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
+                                    :all_tsd_chart, :blog_graph, :toggle_units, :render_data_points, :update_notes]
 
   # GET /series/new
   def new
@@ -29,7 +32,7 @@ class SeriesController < ApplicationController
 
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
+    if Series.bulk_create other_params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
       redirect_to '/series'
     end
   end
@@ -51,9 +54,9 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    frequency = params.has_key?(:freq) ? params[:freq] : nil
-    prefix = params.has_key?(:prefix) ? params[:prefix] : nil
-    all = params.has_key?(:all) ? true : false
+    frequency = params[:freq]
+    prefix = params[:prefix]
+    all = params.has_key?(:all)
 
     @all_series =
       case
@@ -65,8 +68,7 @@ class SeriesController < ApplicationController
   end
 
   def show
-    @series = Series.find_by id: params[:id]
-    @as = AremosSeries.get @series.name 
+    @as = AremosSeries.get @series.name
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
@@ -104,7 +106,6 @@ class SeriesController < ApplicationController
   end
 
   def add_to_quarantine
-    @series = Series.find_by id: params[:id]
     if @series
       @series.add_to_quarantine
     end
@@ -113,9 +114,8 @@ class SeriesController < ApplicationController
 
   def remove_from_quarantine
     dest = { action: params[:next_action] || :show }
-    dest[:id] = params[:id] if dest[:action] == :show
-    @series = Series.find_by id: params[:id]
     if @series
+      dest[:id] = @series.id if dest[:action] == :show
       @series.remove_from_quarantine
     end
     redirect_to dest
@@ -127,12 +127,10 @@ class SeriesController < ApplicationController
   end
 
   def json_with_change
-    @series = Series.find_by id: params[:id]
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
   end
   
   def show_forecast
-    @series = Series.find_by id: params[:id]
     tsd_file = params[:tsd_file]
     if tsd_file.nil?
       render inline: 'WRITE AN ERROR TEMPLATE: You need a tsd_file parameter'
@@ -147,11 +145,9 @@ class SeriesController < ApplicationController
   end
   
   def edit
-    @series = Series.find_by id: params[:id]
   end
   
   def update    
-    @series = Series.find_by id: params[:id]
     respond_to do |format|
       if @series.update! series_params
         format.html { redirect_to(@series,
@@ -166,14 +162,12 @@ class SeriesController < ApplicationController
   end
 
   def refresh_aremos
-    Series.find_by(id: params[:id]).aremos_comparison
+    @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
   end
 
   def destroy
-    @series = Series.find_by id: params[:id]
     @series.destroy
-    
     redirect_to :action => 'index'
   end
   
@@ -187,12 +181,10 @@ class SeriesController < ApplicationController
   end
 
   def comparison_graph
-    @series = Series.find_by id: params[:id]
     @comp = @series.aremos_data_side_by_side
   end
 
   def outlier_graph
-    @series = Series.find_by id: params[:id]
     @comp = @series.ma_data_side_by_side
     #residuals is actually whole range of values.
     residuals = @comp.map { |_, ma_hash| ma_hash[:udaman] }
@@ -202,7 +194,6 @@ class SeriesController < ApplicationController
   end
   
   def all_tsd_chart
-    @series = Series.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
     @all_tsd_files.each do |tsd|
@@ -217,7 +208,8 @@ class SeriesController < ApplicationController
         )) unless data.nil? or data['frequency'] != @series.name[-1]
     end
   end
-  
+
+  # obsolete/vestigial code?
   def transform
     eval_statement = convert_to_udaman_notation(params[:eval])
     puts eval_statement
@@ -231,11 +223,9 @@ class SeriesController < ApplicationController
   end
   
   def analyze
-    @series = Series.find_by id: params[:id]
   end
   
   def blog_graph
-    @series = Series.find_by id: params[:id]
     @start_date = params[:start_date]
     @end_date = params[:end_date]
     chart_to_make = params[:create_post]
@@ -244,9 +234,8 @@ class SeriesController < ApplicationController
     end
     @chart_made = chart_to_make
   end
-  
+
   def toggle_units
-    @series = Series.find_by id: params[:id]
     @series.units = params[:units]
     #@series.save
     @series.aremos_comparison(true)
@@ -255,14 +244,11 @@ class SeriesController < ApplicationController
   end
   
   def render_data_points
-    @series = Series.find_by id: params[:id]
-    
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
   
   def update_notes
-    @series = Series.find_by id: params[:id]
-    @series.update_attributes({:investigation_notes => params[:note]})
+    @series.update_attributes(investigation_notes: params[:note])
     render :partial => 'investigation_sort'
   end
 
@@ -296,7 +282,7 @@ class SeriesController < ApplicationController
     @loaded_series
   end
 
-  private
+private
     def series_params
       params.require(:series).permit(
           :universe,
@@ -318,17 +304,22 @@ class SeriesController < ApplicationController
     end
 
   def other_params
-    params.permit(name_parts: [:prefix, :geo_id, :freq])
+    params.permit(:definitions, name_parts: [:prefix, :geo_id, :freq])
   end
 
-  def convert_to_udaman_notation(eval_string)
-      operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
-      (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
-    end
+  def set_series
+    @series = Series.find params[:id]
+  end
 
-    def json_from_heroku_tsd(series_name, tsd_file)
-      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
-      res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-      res.code == '500' ? nil : JSON.parse(res.body)
-    end
+  # obsolete/vestigial code?
+  def convert_to_udaman_notation(eval_string)
+    operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
+    (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
+  end
+
+  def json_from_heroku_tsd(series_name, tsd_file)
+    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
+    res = Net::HTTP.new(url.host, url.port).request_get(url.path)
+    res.code == '500' ? nil : JSON.parse(res.body)
+  end
 end

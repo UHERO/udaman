@@ -39,13 +39,13 @@ class DataListsController < ApplicationController
 
   def show_tsd_super_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-    @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
+    @tsd_file = params[:tsd_file] || @all_tsd_files[0]
     render :tsd_super_tableview
   end
   
   def show_tsd_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-    @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
+    @tsd_file = params[:tsd_file] || @all_tsd_files[0]
     @series_to_chart = @data_list.series_names
     frequency = Series.parse_name(@series_to_chart[0])[:freq]
     dates = set_dates(frequency, params)
@@ -56,9 +56,8 @@ class DataListsController < ApplicationController
   
   def analyze_view
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-    @tsd_file = params[:tsd_file].nil? ? @all_tsd_files[0] : params[:tsd_file]
+    @tsd_file = params[:tsd_file] || @all_tsd_files[0]
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
-    #@series_name = @data_list.series_names[@series_index]
 
     @data = json_from_heroku_tsd(@series_name,@tsd_file)
 		@series = @data && Series.new_transformation(@data['name']+'.'+@data['frequency'], @data['data'], Series.frequency_from_code(@data['frequency']))
@@ -68,22 +67,26 @@ class DataListsController < ApplicationController
     @lvl_chg = @series.absolute_change
     @ytd = @series.ytd_percentage_change
   end
-  
+
+  # is this method obsolete? can't find where it is being used
   def compare_forecasts
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
   end
-  
+
+  ### Method most likely obsolete. Eventually remove it.
   def compare_view
     @tsd_file1 = 'heco14.TSD'
     @tsd_file2 = '13Q4.TSD'
     @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
 
     @data1 = json_from_heroku_tsd(@series_name,@tsd_file1)
-		@series1 = @data1.nil? ? nil : Series.new_transformation(@data1['name']+'.'+@data1['frequency'],  @data1['data'], Series.frequency_from_code(@data1['frequency'])).trim('2006-01-01','2017-10-01')
+		@series1 = @data1 && Series.new_transformation(@data1['name']+'.'+@data1['frequency'], @data1['data'],
+                                                   Series.frequency_from_code(@data1['frequency'])).trim('2006-01-01','2017-10-01')
 		@chg1 = @series1.annualized_percentage_change
     
     @data2 = json_from_heroku_tsd(@series_name,@tsd_file2)
-		@series2 = @data2.nil? ? nil : Series.new_transformation(@data2['name']+'.'+@data2['frequency'],  @data2['data'], Series.frequency_from_code(@data2['frequency'])).trim('2006-01-01','2017-10-01')
+		@series2 = @data2 && Series.new_transformation(@data2['name']+'.'+@data2['frequency'], @data2['data'],
+                                                   Series.frequency_from_code(@data2['frequency'])).trim('2006-01-01','2017-10-01')
 		@chg2 = @series2.annualized_percentage_change
 
     @history_series = @series_name.ts.trim('2006-01-01','2017-10-01')
@@ -91,7 +94,7 @@ class DataListsController < ApplicationController
   end
   
   def new
-    @category_id = Category.find(params[:category_id]).id rescue nil
+    @category_id = Category.find(params[:category_id].to_i).id rescue nil
     @data_list = DataList.new
 
     respond_to do |format|
@@ -121,7 +124,7 @@ class DataListsController < ApplicationController
 
   def create
     properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id, owned_by: current_user.id)
-    category = Category.find(params[:category_id]) rescue nil
+    category = Category.find(params[:category_id].to_i) rescue nil
     properties.merge!(universe: category.universe) if category
     @data_list = DataList.new(properties)
 
@@ -175,10 +178,30 @@ class DataListsController < ApplicationController
       format.js {}
     end
   end
-  
+
+  # this really should be converted to a model method
+  def remove_measurement
+    respond_to do |format|
+      format.js { head :ok }
+    end
+    measurements = DataListMeasurement.where(data_list_id: @data_list.id).to_a.sort_by{ |m| m.list_order }
+    index_to_remove = measurements.index{ |m| m.measurement_id == params[:measurement_id].to_i }
+    new_order = 0
+    measurements.each_index do |i|
+      if index_to_remove == i
+        next
+      end
+      measurements[i].update list_order: new_order
+      new_order += 1
+    end
+    id_to_remove = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id].to_i).id
+    DataListMeasurement.destroy(id_to_remove)
+  end
+
+  # this really should be converted to a model method
   def move_measurement_up
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
     old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
@@ -198,9 +221,10 @@ class DataListsController < ApplicationController
     end
   end
 
+  # this really should be converted to a model method
   def move_measurement_down
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok } ## only return 200 to client
     end
     measurements_array = @data_list.data_list_measurements.to_a.sort_by{ |m| m.list_order }
     old_index = measurements_array.index{ |m| m.measurement_id == params[:measurement_id].to_i }
@@ -220,36 +244,19 @@ class DataListsController < ApplicationController
     end
   end
 
-  def remove_measurement
-    respond_to do |format|
-      format.js { render nothing: true, status: 200 }
-    end
-    measurements = DataListMeasurement.where(data_list_id: @data_list.id).to_a.sort_by{ |m| m.list_order }
-    index_to_remove = measurements.index{ |m| m.measurement_id == params[:measurement_id].to_i }
-    new_order = 0
-    measurements.each_index do |i|
-      if index_to_remove == i
-        next
-      end
-      measurements[i].update list_order: new_order
-      new_order += 1
-    end
-    id_to_remove = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id]).id
-    DataListMeasurement.destroy(id_to_remove)
-  end
-
+  # should this be converted to a model method?
   def set_measurement_indent
-    dlm = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id])
+    dlm = DataListMeasurement.find_by(data_list_id: @data_list.id, measurement_id: params[:measurement_id].to_i)
     current_indent = dlm.indent ? dlm.indent[-1].to_i : 0
     new_indent = params[:indent_in_out] == 'in' ? current_indent + 1 : current_indent - 1
     if new_indent < 0 || new_indent > MAXINDENT
       respond_to do |format|
-        format.js { render nothing: true, status: 200 }
+        format.js { head :ok } ## only return 200 to client
       end
       return
     end
     respond_to do |format|
-      format.json { render json: '{ "the_indent": "%s" }' % view_context.make_indentation(new_indent), status: 200 }
+      format.json { render json: '{ "the_indent": "%s" }' % helpers.make_indentation(new_indent), status: 200 }
     end
     dlm.update(indent: 'indent'+new_indent.to_s)
   end
@@ -260,8 +267,7 @@ private
     end
 
     def data_list_params
-      params.require(:data_list)
-          .permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements, :measurement_id, :indent_in_out)
+      params.require(:data_list).permit(:name, :list, :startyear, :created_by, :updated_by, :owned_by, :measurements)
     end
 
     def set_dates(frequency, params)

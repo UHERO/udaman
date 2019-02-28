@@ -1,4 +1,4 @@
-class DbedtUpload < ActiveRecord::Base
+class DbedtUpload < ApplicationRecord
   require 'date'
   before_destroy :delete_files_from_disk
   before_destroy :delete_data_and_data_sources
@@ -21,7 +21,6 @@ class DbedtUpload < ActiveRecord::Base
     end
 
     self.upload_at = Time.now
-## validate file content
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
       if cats_file
@@ -51,10 +50,10 @@ class DbedtUpload < ActiveRecord::Base
 
   def make_active_settings
     unless DataPoint.update_public_data_points 'DBEDT'
-      logger.debug { 'FAILED to update public_data_points' }
+      Rails.logger.debug { 'FAILED to update public_data_points' }
       return false
     end
-    logger.debug { 'DONE DataPoint.update_public_data_points' }
+    Rails.logger.debug { 'DONE DataPoint.update_public_data_points' }
     DbedtUpload.update_all active: false
     self.update active: true, last_error: nil, last_error_at: nil
   end
@@ -99,7 +98,7 @@ class DbedtUpload < ActiveRecord::Base
       Dir.glob(absolute_path('cats').change_file_extension('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
-      return r
+      return (r || throw(:abort))
     end
     true
   end
@@ -110,7 +109,7 @@ class DbedtUpload < ActiveRecord::Base
       Dir.glob(absolute_path('series').change_file_extension('*')) do |f|
         r &&= delete_file_from_disk(f)
       end
-      return r
+      return (r || throw(:abort))
     end
     true
   end
@@ -123,15 +122,15 @@ class DbedtUpload < ActiveRecord::Base
   end
 
   def load_cats_csv
-    logger.debug { 'starting load_cats_csv' }
+    Rails.logger.info { 'starting load_cats_csv' }
     unless cats_filename
-      logger.error { "DBEDT Upload id=#{id}: no cats_filename" }
+      Rails.logger.error { "DBEDT Upload id=#{id}: no cats_filename" }
       return false
     end
 
     cats_csv_path = path(cats_filename).change_file_extension('csv')
     unless File.exists?(cats_csv_path) || ENV['OTHER_WORKER'] && system("rsync -t #{ENV['OTHER_WORKER'] + ':' + cats_csv_path} #{absolute_path}")
-      logger.error { "DBEDT Upload id=#{id}: couldn't find file #{cats_csv_path}" }
+      Rails.logger.error { "DBEDT Upload id=#{id}: couldn't find file #{cats_csv_path}" }
       return false
     end
 
@@ -161,7 +160,7 @@ class DbedtUpload < ActiveRecord::Base
               ancestry: ancestry,
               list_order: row[5]
           )
-          logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
+          Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
         end
       end
 
@@ -189,28 +188,29 @@ class DbedtUpload < ActiveRecord::Base
         end
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
         dlm.update(list_order: row[5].to_i) if dlm
-        logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
+        Rails.logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
       end
     end
+    Rails.logger.info { 'done load_cats_csv' }
     true
   end
 
   def load_series_csv(run_active_settings=false)
-    logger.debug { 'starting load_series_csv' }
+    Rails.logger.info { 'starting load_series_csv' }
     unless series_filename
-      logger.error { "DBEDT Upload id=#{id}: no series_filename" }
+      Rails.logger.error { "DBEDT Upload id=#{id}: no series_filename" }
       return false
     end
 
     series_csv_path = path(series_filename).change_file_extension('csv')
     unless File.exists?(series_csv_path) || ENV['OTHER_WORKER'] && system("rsync -t #{ENV['OTHER_WORKER'] + ':' + series_csv_path} #{absolute_path}")
-      logger.error { "DBEDT Upload id=#{id}: couldn't find file #{series_csv_path}" }
+      Rails.logger.error { "DBEDT Upload id=#{id}: couldn't find file #{series_csv_path}" }
       return false
     end
 
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-      logger.debug { 'DBEDT data already loaded' }
+      Rails.logger.debug { 'DBEDT data already loaded' }
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
 WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
       DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
@@ -218,7 +218,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       return true
     end
 
-    logger.debug { 'loading DBEDT data' }
+    Rails.logger.debug { 'loading DBEDT data' }
     current_series = nil
     current_data_source = nil
     current_measurement = nil
@@ -267,7 +267,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         end
         if current_measurement.series.where(id: current_series.id).empty?
           current_measurement.series << current_series
-          logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
+          Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         end
         current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
         if current_data_source.nil?
@@ -299,6 +299,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
 
     run_active_settings ? self.make_active_settings : true
+    Rails.logger.info { 'done load_series_csv' }
   end
 
   def DbedtUpload.load(id, series_id)
@@ -358,8 +359,12 @@ private
   end
 
   def delete_data_and_data_sources
-    DbedtUpload.connection.execute %Q|DELETE FROM data_points
-WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)');|
+    DbedtUpload.connection.execute <<~SQL
+      DELETE FROM data_points
+      WHERE data_source_id IN (
+        SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{self.id},%)'
+      );
+    SQL
     DataSource.where("eval LIKE 'DbedtUpload.load(#{self.id},%)'").delete_all
   end
 

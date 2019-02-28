@@ -1,4 +1,4 @@
-class DataPoint < ActiveRecord::Base
+class DataPoint < ApplicationRecord
   self.primary_key = :series_id, :date, :created_at, :data_source_id
   belongs_to :series
   belongs_to :data_source
@@ -21,7 +21,7 @@ class DataPoint < ActiveRecord::Base
     return if series.quarantined? || series.restricted?
     return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
     if self.date < (Date.today - 2.years)
-      series.add_to_quarantine(false)
+      series.add_to_quarantine(run_update: false)
     end
   end
 

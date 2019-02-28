@@ -40,7 +40,7 @@ RSpec.describe GeographiesController, type: :controller do
   describe 'GET #index' do
     it 'assigns all geographies as @geographies' do
       geography = Geography.create! valid_attributes
-      get :index, {}
+      get :index, params: {}
       expect(assigns(:geographies)).to eq([geography])
     end
   end
@@ -48,14 +48,14 @@ RSpec.describe GeographiesController, type: :controller do
   describe 'GET #show' do
     it 'assigns the requested geography as @geography' do
       geography = Geography.create! valid_attributes
-      get :show, {id: geography.to_param}
+      get :show, params: {id: geography.to_param}
       expect(assigns(:geography)).to eq(geography)
     end
   end
 
   describe 'GET #new' do
     it 'assigns a new geography as @geography' do
-      get :new, {}
+      get :new, params: {}
       expect(assigns(:geography)).to be_a_new(Geography)
     end
   end
@@ -63,7 +63,7 @@ RSpec.describe GeographiesController, type: :controller do
   describe 'GET #edit' do
     it 'assigns the requested geography as @geography' do
       geography = Geography.create! valid_attributes
-      get :edit, {id: geography.to_param}
+      get :edit, params: {id: geography.to_param}
       expect(assigns(:geography)).to eq(geography)
     end
   end
@@ -72,30 +72,30 @@ RSpec.describe GeographiesController, type: :controller do
     context 'with valid params' do
       it 'creates a new Geography' do
         expect {
-          post :create, {geography: valid_attributes}
+          post :create, params: {geography: valid_attributes}
         }.to change(Geography, :count).by(1)
       end
 
       it 'assigns a newly created geography as @geography' do
-        post :create, {geography: valid_attributes}
+        post :create, params: {geography: valid_attributes}
         expect(assigns(:geography)).to be_a(Geography)
         expect(assigns(:geography)).to be_persisted
       end
 
       it 'redirects to the created geography' do
-        post :create, {geography: valid_attributes}
+        post :create, params: {geography: valid_attributes}
         expect(response).to redirect_to(Geography.last)
       end
     end
 
     context 'with invalid params' do
       xit 'assigns a newly created but unsaved geography as @geography' do
-        post :create, {geography: invalid_attributes}
+        post :create, params: {geography: invalid_attributes}
         expect(assigns(:geography)).to be_a_new(Geography)
       end
 
       it "re-renders the 'new' template" do
-        post :create, {geography: invalid_attributes}
+        post :create, params: {geography: invalid_attributes}
         expect(response).to render_template('new')
       end
     end
@@ -109,20 +109,20 @@ RSpec.describe GeographiesController, type: :controller do
 
       it 'updates the requested geography' do
         geography = Geography.create! valid_attributes
-        put :update, {id: geography.id, geography: new_attributes}
+        put :update, params: {id: geography.id, geography: new_attributes}
         geography.reload
         skip('Add assertions for updated state')
       end
 
       it 'assigns the requested geography as @geography' do
         geography = Geography.create! valid_attributes
-        put :update, {id: geography.to_param, geography: valid_attributes}
+        put :update, params: {id: geography.to_param, geography: valid_attributes}
         expect(assigns(:geography)).to eq(geography)
       end
 
       it 'redirects to the geography' do
         geography = Geography.create! valid_attributes
-        put :update, {id: geography.to_param, geography: valid_attributes}
+        put :update, params: {id: geography.to_param, geography: valid_attributes}
         expect(response).to redirect_to(geography)
       end
     end
@@ -130,13 +130,13 @@ RSpec.describe GeographiesController, type: :controller do
     context 'with invalid params' do
       it 'assigns the geography as @geography' do
         geography = Geography.create! valid_attributes
-        put :update, {id: geography.to_param, geography: invalid_attributes}
+        put :update, params: {id: geography.to_param, geography: invalid_attributes}
         expect(assigns(:geography)).to eq(geography)
       end
 
       it "re-renders the 'edit' template" do
         geography = Geography.create! valid_attributes
-        put :update, {id: geography.to_param, geography: invalid_attributes}
+        put :update, params: {id: geography.to_param, geography: invalid_attributes}
         expect(response).to render_template('edit')
       end
     end
@@ -146,13 +146,13 @@ RSpec.describe GeographiesController, type: :controller do
     it 'destroys the requested geography' do
       geography = Geography.create! valid_attributes
       expect {
-        delete :destroy, {id: geography.to_param}
+        delete :destroy, params: {id: geography.to_param}
       }.to change(Geography, :count).by(-1)
     end
 
     it 'redirects to the geographies list' do
       geography = Geography.create! valid_attributes
-      delete :destroy, {id: geography.to_param}
+      delete :destroy, params: {id: geography.to_param}
       expect(response).to redirect_to(geographies_url)
     end
   end

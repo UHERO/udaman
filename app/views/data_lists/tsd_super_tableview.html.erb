@@ -9,7 +9,7 @@
 
 <!-- Same as super table below here -->
 
-<!--<link rel="stylesheet" href="http://code.jquery.com/ui/1.9.0/themes/base/jquery-ui.css" />-->
+<!--<link rel="stylesheet" href="https://code.jquery.com/ui/1.9.0/themes/base/jquery-ui.css" />-->
 <!-- javascript_include_tag 'ui/jquery-ui' -->
 <%= javascript_include_tag 'd3.v2.min' %>
 
@@ -198,8 +198,7 @@
 				+ "<a href='/data_lists/analyze_view/54?series_name="+d.key+"&tsd_file=<%= @tsd_file %>' target='_blank'>" + d.key + "</a></div>"
 				+ "<div><span class='s_desc'>" + d.value.desc + "</span></div>"
 		})
-		// http://udaman.uhero.hawaii.edu/data_lists/analyze_view/54?list_index=4&tsd_file=QSOL_Q_13Q4.TSD
-		
+
 	series_rows
 		.append("td")
 		.append("svg")
