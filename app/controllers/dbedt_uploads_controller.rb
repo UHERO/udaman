@@ -36,11 +36,11 @@ class DbedtUploadsController < ApplicationController
   end
 
   def active_status
-    render(text: @dbedt_upload.active, status: 200)
+    render plain: @dbedt_upload.active, status: 200, content_type: 'text/plain'
   end
 
   def status
-    render text: @dbedt_upload.get_status(params[:which]), status: 200
+    render plain: @dbedt_upload.get_status(params[:which]), status: 200, content_type: 'text/plain'
   end
 
   # PATCH/PUT /dbedt_uploads/1
@@ -53,7 +53,7 @@ class DbedtUploadsController < ApplicationController
     redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully destroyed.')
   end
 
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_dbedt_upload
       @dbedt_upload = DbedtUpload.find(params[:id])

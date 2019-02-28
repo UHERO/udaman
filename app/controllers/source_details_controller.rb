@@ -48,7 +48,7 @@ class SourceDetailsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_source_detail
-      @source_detail = SourceDetail.find(params[:id])
+      @source_detail = SourceDetail.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.

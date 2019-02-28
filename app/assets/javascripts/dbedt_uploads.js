@@ -12,7 +12,7 @@ $(function() {
                     return;
                 }
                 if (data === 'ok') {
-                    $(element).removeClass('processing fa-refresh fa-spin').addClass('ok fa-check');
+                    $(element).removeClass('processing fa-spinner fa-pulse').addClass('ok fa-check');
                     if (resource === 'nta') {
                         location.reload();
                     }
@@ -27,7 +27,7 @@ $(function() {
                     return;
                 }
                 if (data === 'fail') {
-                    $(element).removeClass('processing fa-refresh fa-spin').addClass('fail fa-times');
+                    $(element).removeClass('processing fa-spinner fa-pulse').addClass('fail fa-times');
                     if ($('.upload-status.processing').length == 0) {
                         $('.controls').show();
                     }
@@ -36,7 +36,7 @@ $(function() {
             });
         }
     });
-    /* *** THIS IS UNUSED CODE
+    /* *** THIS IS UNUSED CODE -- DELETE WHEN YOU'RE SURE
     $('.load-status.loading').each(function(_, element) {
         var icon_args = $(element).attr('id').split('-');
         var resource = icon_args[0];
@@ -51,12 +51,12 @@ $(function() {
                     return;
                 }
                 if (data === 'yes') {
-                    $(element).removeClass('loading fa-refresh fa-spin').addClass('load-yes fa-dot-circle-o');
+                    $(element).removeClass('loading fa-pulse fa-spinner').addClass('load-yes fa-dot-circle');
                     clearInterval(intervalId);
                     return;
                 }
                 if (data === 'fail') {
-                    $(element).removeClass('loading fa-refresh fa-spin').addClass('load-fail fa-times');
+                    $(element).removeClass('loading fa-pulse fa-spinner').addClass('load-fail fa-times');
                     clearInterval(intervalId);
                 }
             });

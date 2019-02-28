@@ -7,10 +7,10 @@ class XlsCsvWorker
   sidekiq_options queue: 'critical'
 
   def perform(dbu_id, which)
-    logger.debug { "ENTER perform async: id=#{dbu_id}, which=#{which}" }
+    Rails.logger.info { "ENTER XlsCsvWorker.perform async: id=#{dbu_id}, which=#{which}" }
     dbu = DbedtUpload.find(dbu_id)
     if dbu.nil?
-      logger.error { "No DBEDT Upload with id = #{dbu_id}" }
+      Rails.logger.error { "No DBEDT Upload with id = #{dbu_id}" }
       return
     end
     xls_path = dbu.absolute_path(which)
@@ -18,7 +18,7 @@ class XlsCsvWorker
     other_worker = ENV['OTHER_WORKER']
     begin
       unless File.exists?(xls_path)
-        logger.debug { "#{which}: xls file #{xls_path} does not exist" }
+        Rails.logger.debug { "#{which}: xls file #{xls_path} does not exist" }
         if other_worker.blank?
           raise "Could not find xlsx file ((#{xls_path}) #{dbu_id}:#{which}) and no $OTHER_WORKER defined"
         end
@@ -32,21 +32,22 @@ class XlsCsvWorker
       if other_worker && !system("rsync -t #{csv_path} #{other_worker + ':' + dbu.absolute_path}")
         raise "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{other_worker}"
       end
-      logger.debug { "#{which}: before load_csv" }
+      Rails.logger.debug { "#{which}: before load_csv" }
       dbu.load_csv(which)
       dbu = DbedtUpload.find(dbu.id) ## reload dbu to get updated other_proc_status -dji
       other_proc_status = (which == 'cats') ? dbu.series_status : dbu.cats_status
       if other_proc_status == 'ok'
-        logger.debug { "#{which}: calling make_active_settings" }
+        Rails.logger.debug { "#{which}: calling make_active_settings" }
         dbu.make_active_settings
-        logger.info { "DbedtUpload id=#{dbu.id} loaded, and active" }
+        Rails.logger.info { "DbedtUpload id=#{dbu.id} loaded, and active" }
       end
       dbu.set_status(which, :ok)
     rescue => error
-      logger.error error.message
-      logger.error error.backtrace
+      Rails.logger.error error.message
+      Rails.logger.error error.backtrace
       dbu.update(last_error: error.message[0..254], last_error_at: Time.now)
       dbu.set_status(which, :fail)
     end
+    Rails.logger.info { "DONE XlsCsvWorker.perform async: id=#{dbu_id}, which=#{which}" }
   end
 end

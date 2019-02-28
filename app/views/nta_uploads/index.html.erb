@@ -38,16 +38,16 @@
           <span class="controls" style="display:<%= controls_display %>;">
           <%=
             if nta_upload.active
-              "<i class='load-status fa fa-dot-circle' id='nta-#{nta_upload.id}' aria-hidden='true'></i>".html_safe
+              "<i class='load-status fas fa-dot-circle' id='nta-#{nta_upload.id}' aria-hidden='true'></i>".html_safe
             elsif nta_upload.series_status == 'ok'
-              link_to('<i class="load-status fa fa-circle" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => nta_upload}, title: 'Make active')
+              link_to('<i class="load-status fas fa-circle" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => nta_upload}, title: 'Make active')
             elsif nta_upload.series_status != 'fail'
-              '<span class="waiting"><i class="load-status fa fa-dot-circle" aria-hidden="true"></i></span>'.html_safe
+              '<span class="waiting"><i class="load-status fas fa-dot-circle" aria-hidden="true"></i></span>'.html_safe
             end
           %>
           </span>
         </td>
-        <td><i class="upload-status fa <%= make_fa_processing_classes(nta_upload.series_status) %>" id="nta-series-<%= nta_upload.id %>" aria-hidden="true"></i>
+        <td><i class="upload-status fas <%= make_fa_processing_classes(nta_upload.series_status) %>" id="nta-series-<%= nta_upload.id %>" aria-hidden="true"></i>
             <%= link_to 'Database file', {:action => 'show', :id => nta_upload.id, :filetype => 'series'} %>
         </td>
         <td><%= timestamp %></td>

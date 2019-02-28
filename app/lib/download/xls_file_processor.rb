@@ -1,5 +1,3 @@
-require 'new_relic/agent/method_tracer'
-
 #can use allow_blanks as an option for handling blanks
 class XlsFileProcessor
   #job of this object is to coordinate all of the other processor objects for the mapping
@@ -13,7 +11,6 @@ class XlsFileProcessor
     @date_processor = DatePatternProcessor.new date_info[:start], options[:frequency], date_info[:rev]
   end
 
-  extend ::NewRelic::Agent::MethodTracer
   def observation_at(index)
     date = @date_processor.compute(index)
     handle = @handle_processor.compute(date)
