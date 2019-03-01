@@ -149,7 +149,8 @@ module SeriesSharing
     new_transformation("Share of #{name} using ratio of the moving average #{series_prefix}NS@#{county_abbrev}.Q over the moving average of #{series_prefix}NS@#{self_region}.Q , mean corrected for the year",
         mean_corrected_series.data.series_merge(current_year.data))
   end
-  
+
+  #### looks like vestigial code -- commenting out for now, delete later
   # def mc_offset_price_share_for(county_abbrev)
   #   series_prefix = self.name.split("@")[0]
   #   self_region = self.name.split("@")[1].split(".")[0]
