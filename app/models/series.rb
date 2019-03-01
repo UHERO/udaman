@@ -635,7 +635,7 @@ class Series < ApplicationRecord
   end
   
   def Series.load_from_bls(code, frequency)
-    Series.new.load_from_bls(code, frequency)
+    Series.new.load_from_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
   end
   
   def load_from_bls(code, frequency = nil)
