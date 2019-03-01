@@ -73,9 +73,9 @@ class DataHtmlParser
   end
 
   def get_clustermapping_series(dataset, parameters)
-    query_params = parameters.map{|p| "#{p}"}.join('/')
+    query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
-    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
+    Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content
     raise  'Clustermapping API: unknown failure' unless response

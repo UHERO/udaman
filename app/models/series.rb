@@ -650,7 +650,7 @@ class Series < ApplicationRecord
   def Series.load_from_clustermapping(dataset, frequency = 'A', parameters)
     series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
     raise "No data collected from Clustermapping API for #{dataset}" if series_data.nil? || series_data.empty?
-    Series.new_transformation( "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API", series_data, frequency)
+    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API", series_data, frequency)
   end
 
   def days_in_period
