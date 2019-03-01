@@ -4,12 +4,10 @@ class DataHtmlParser
     api_key = ENV['API_KEY_FRED']
     raise 'No API key defined for FRED' unless api_key
     @url = "http://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
-    if frequency
-      # frequencies: d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
+    if frequency ## d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
       @url += "&frequency=#{frequency.downcase.sub(/^s$/, 'sa')}"
     end
-    if aggregation_method
-      # avg, sum, eop
+    if aggregation_method ## avg, sum, eop
       @url += "&aggregation_method=#{aggregation_method.downcase}"
     end
     doc = self.download
