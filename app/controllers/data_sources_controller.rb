@@ -32,7 +32,7 @@ class DataSourcesController < ApplicationController
   end
 
   def new
-    @series = Series.find data_source_params[:series_id]
+    @series = Series.find params[:series_id]
     @data_source = DataSource.new(:series_id => @series.id)
   end
 

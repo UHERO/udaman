@@ -72,6 +72,24 @@ class DataHtmlParser
     new_data
   end
 
+  def get_clustermapping_series(dataset, parameters)
+    query_params = parameters.map(&:to_s).join('/')
+    @url = "http://clustermapping.us/data/region/#{query_params}"
+    Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
+    @doc = self.download
+    response = JSON.parse self.content
+    raise  'Clustermapping API: unknown failure' unless response
+    new_data = {}
+    response.each do |data_point|
+      time_period = data_point['year_t']
+      value = data_point[dataset]
+      if value
+        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
+      end
+    end
+    new_data
+  end
+
   def request_match(request, data_point)
     dp = data_point.map{|k,v| [k.upcase, v] }.to_h
     request.keys.each do |key|

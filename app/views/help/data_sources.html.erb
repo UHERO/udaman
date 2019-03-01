@@ -39,3 +39,30 @@ Series.load_from_bea('A', 'NIPA', { TableName:'T10109', LineNumber:'1' , Frequen
 </pre>
 
 <i>Note that for dataset NIPA in particular, Frequency and Year are mandatory parameters</i>
+
+<h2>US Cluster Mapping Data Source options</h2>
+<p><a target="_blank" rel="noopener" href="http://clustermapping.us/sites/default/files/files/page/ClusterMapping-API-Docs.pdf">Cluster Mapping API Documentation</a></p>
+<p>Retrieve cluster-level by region</p>
+<p><code>Series.load_from_clustermapping()</code> takes 2 required arguments</p>
+
+<ol>
+  <li>Dataset (e.g. "private_wage_tf", "emp_tl", "lq_tf")</li>
+  <li>An array of parameters to pass to the Cluster Mapping API following the pattern: <code>["region", "region_code", "year", "cluster"]</code></li>
+</ol>
+<p>Where region is "state", "economic", "msa", or "county".</p>
+<p>Region code is the FIPS code</p>
+<pre>
+  State of Hawaii: 15
+  Hawaii County: 15001
+  Maui County: 15009
+  Honolulu County: 15003
+  Kauai County: 15007
+</pre>
+<p>Year may be "all" or a single year, and cluster is the Cluster ID (list of <a target="_balnk" rel="noopener" href="http://clustermapping.us/data/meta/clusters">Cluster IDs</a>)</p>
+<p>
+  Example <strong>eval</strong>
+</p>
+
+<pre>
+Series.load_from_clustermapping('lq_tf', ["state", "15", "all", "13"])
+</pre>
