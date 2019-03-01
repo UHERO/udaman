@@ -16,21 +16,18 @@ module SeriesSharing
       position += 1
     end
     new_series_data
-    #new_transformation("Moving Average of #{name}", new_series_data)
   end
-  
+
   def ma_series(ma_type_string = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
-    new_transformation "Moving Average of #{name}", ma_series_data(ma_type_string, start_date, end_date)
+    new_transformation("Moving Average of #{name}", ma_series_data(ma_type_string, start_date, end_date))
   end
-  
-  
+
   def window_size
-    return 12 if self.frequency == 'month'
-    return 4 if self.frequency == 'quarter'
-    4 if self.frequency == 'year'
+    return 12 if frequency == 'month'
+    return 4 if frequency == 'quarter' || frequency == 'year'
+    raise "No window size defined for frequency #{frequency}!"
   end
-  
-  
+
   def window_start(position, last, periods, ma_type_string)
     half_window = periods / 2
     return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
