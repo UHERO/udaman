@@ -4,7 +4,8 @@ module SeriesSharing
   end
 
   def moving_average_for_sa(start_date = self.data.keys.sort[0])
-    self.moving_average(start_date,"#{(Time.now.to_date << 12).year}-12-01")
+    prev_year = (Time.now - 1.year).year
+    self.moving_average(start_date, "#{prev_year}-12-01")
   end
 
   def moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
@@ -116,15 +117,15 @@ private
   def ma_series_data(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     return {} if start_date.nil?
     trimmed_data = get_values_after(start_date - 1.month, end_date).sort
-    data_length = trimmed_data.length
+    last = trimmed_data.length - 1
     new_data = {}
     position = 0
-    periods = window_size.to_f
+    periods = window_size
     trimmed_data.each do |date, _|
-      start_pos = window_start(position, data_length - 1, periods, ma_type)
-      end_pos = window_end(position, data_length - 1, periods, ma_type)
+      start_pos = window_start(position, last, periods, ma_type)
+      end_pos = window_end(position, last, periods, ma_type)
       if start_pos && end_pos
-        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos) / periods
+        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos) / periods.to_f
       end
       position += 1
     end
