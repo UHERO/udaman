@@ -145,7 +145,7 @@ private
     return position                 if ma_type_string == 'forward_ma' #forward looking moving average
     return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
     return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
-    raise "Unexpected window_start conditions for series <#{self.name}> at pos #{position}"
+    raise "Series <#{self.name}>: unexpected window_start conditions at pos #{position}"
   end
 
   def window_end(position, last, periods, ma_type_string)
@@ -160,13 +160,13 @@ private
     return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
     return position                 if ma_type_string == 'backward_ma' #backward looking moving average
     return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
-    raise "Unexpected window_end conditions for series <#{self.name}> at pos #{position}"
+    raise "Series <#{self.name}>: unexpected window_end conditions at pos #{position}"
   end
 
   def moving_window_sum(trimmed_data, start_pos, end_pos, halve_endpoints)
     sum = 0
     (start_pos..end_pos).each do |i|
-      value = trimmed_data[i][1]   ## because data is an array [[date1, value1], [date2, value2], ...]
+      value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
       value *= 0.5 if halve_endpoints && (i == start_pos || i == end_pos)
       sum += value
     end
@@ -176,7 +176,7 @@ private
   def window_size
     return 12 if frequency == 'month'
     return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "No window size defined for frequency #{frequency}!"
+    raise "Series <#{self.name}>: no window size defined for frequency #{frequency}!"
   end
 
 end
