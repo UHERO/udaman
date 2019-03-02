@@ -125,7 +125,7 @@ private
       start_pos = window_start(position, last, periods, ma_type)
       end_pos = window_end(position, last, periods, ma_type)
       if start_pos && end_pos
-        halve_endpoints = (end_pos - start_pos) > periods
+        halve_endpoints = (end_pos - start_pos) == periods ## for centered ma only, not forward/backward
         new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos, halve_endpoints) / periods.to_f
       end
       position += 1
@@ -167,7 +167,7 @@ private
     sum = 0
     (start_pos..end_pos).each do |i|
       value = trimmed_data[i][1]   ## because data is an array [[date1, value1], [date2, value2], ...]
-      value /= 2.0 if halve_endpoints && (i == start_pos || i == end_pos)
+      value *= 0.5 if halve_endpoints && (i == start_pos || i == end_pos)
       sum += value
     end
     sum
