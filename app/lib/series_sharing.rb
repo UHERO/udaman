@@ -3,23 +3,26 @@ module SeriesSharing
     self.moving_average(start_date,"#{(Time.now.to_date << 12).year}-12-01")
   end
   
-  def ma_series_data(ma_type_string = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def ma_series_data(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     return {} if start_date.nil?
-    trimmed_data = get_values_after(start_date << 1, end_date)
-    new_series_data = {}
+    trimmed_data = get_values_after(start_date - 1.month, end_date).sort
+    new_data = {}
     position = 0
-    trimmed_data.sort.each do |date, _|
-      periods = window_size
-      start_pos = window_start(position, trimmed_data.length-1, periods, ma_type_string)
-      end_pos = window_end(position, trimmed_data.length-1, periods, ma_type_string)
-      new_series_data[date] = moving_window_average(start_pos, end_pos, periods, trimmed_data) unless start_pos.nil? or end_pos.nil?
+    periods = window_size.to_f
+    data_length = trimmed_data.length
+    trimmed_data.each do |date, _|
+      start_pos = window_start(position, data_length - 1, periods, ma_type)
+      end_pos = window_end(position, data_length - 1, periods, ma_type)
+      if start_pos && end_pos
+        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos) / periods
+      end
       position += 1
     end
-    new_series_data
+    new_data
   end
 
-  def ma_series(ma_type_string = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
-    new_transformation("Moving Average of #{name}", ma_series_data(ma_type_string, start_date, end_date))
+  def ma_series(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+    new_transformation("Moving Average of #{name}", ma_series_data(ma_type, start_date, end_date))
   end
 
   def window_size
@@ -52,17 +55,6 @@ module SeriesSharing
     return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
     return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
     position                        if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
-  end
-  
-  def moving_window_average(start_pos, end_pos, periods, trimmed_data)
-    #puts "#{start_pos}, #{end_pos}, #{trimmed_data.length}"
-    sorted_data = trimmed_data.sort
-    sum = 0
-    (start_pos..end_pos).each do |i|
-      val = ( ( i == start_pos or i == end_pos ) and ( end_pos - start_pos ) == periods ) ? sorted_data[i][1] / 2.0 : sorted_data[i][1]
-      sum += val
-    end
-    sum / periods.to_f
   end
   
   def moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
@@ -131,9 +123,9 @@ module SeriesSharing
     end_date =   county.get_last_complete_december
     historical = county.moving_average_offset_early(start_date,end_date) / state.moving_average_offset_early(start_date,end_date) * self
     mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
-    current_year = county.annual_average.get_last_incomplete_year / state.annual_average.get_last_incomplete_year * self
+    current_incomplete_year = county.annual_average.get_last_incomplete_year / state.annual_average.get_last_incomplete_year * self
     new_transformation("Share of #{self.name} using ratio of #{county_name} over #{state_name} using a mean corrected moving average (offset early), and annual average for the current year",
-        mean_corrected_historical.data.series_merge(current_year.data))
+        mean_corrected_historical.data.series_merge(current_incomplete_year.data))
   end
 
   def mc_price_share_for(county_abbrev)
@@ -170,5 +162,16 @@ module SeriesSharing
     new_series = as_sum / as_sum.annual_sum * mc_series.ts.annual_sum
     new_transformation("#{add_series_1} + #{add_series_2} from demetra output of #{file} mean corrected against #{mc_series}", new_series.data, new_series.frequency)
   end
-  
+
+private
+  def moving_window_sum(trimmed_data, start_pos, end_pos)
+    sum = 0
+    (start_pos..end_pos).each do |i|
+      value = trimmed_data[i][1]   ## because data is an array [[date1, value1], [date2, value2], ...]
+      value /= 2.0 if i == start_pos || i == end_pos
+      sum += value
+    end
+    sum
+  end
+
 end
