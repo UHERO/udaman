@@ -125,8 +125,7 @@ private
       start_pos = window_start(position, last, periods, ma_type)
       end_pos = window_end(position, last, periods, ma_type)
       if start_pos && end_pos
-        halve_endpoints = (end_pos - start_pos) == periods ## for centered ma only, not forward/backward
-        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos, halve_endpoints) / periods.to_f
+        new_data[date] = compute_window_average(trimmed_data, start_pos, end_pos, periods)
       end
       position += 1
     end
@@ -163,14 +162,15 @@ private
     raise "Series <#{self.name}>: unexpected window_end conditions at pos #{position}"
   end
 
-  def moving_window_sum(trimmed_data, start_pos, end_pos, halve_endpoints)
+  def compute_window_average(trimmed_data, start_pos, end_pos, periods)
+    halve_endpoints = (end_pos - start_pos) == periods  ## for centered ma only, not forward/backward
     sum = 0
     (start_pos..end_pos).each do |i|
       value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
-      value *= 0.5 if halve_endpoints && (i == start_pos || i == end_pos)
+      value *= 0.50 if halve_endpoints && (i == start_pos || i == end_pos)
       sum += value
     end
-    sum
+    sum / periods.to_f
   end
 
   def window_size
