@@ -1,62 +1,12 @@
 module SeriesSharing
-  def moving_average_for_sa(start_date = self.data.keys.sort[0])
-    self.moving_average(start_date,"#{(Time.now.to_date << 12).year}-12-01")
-  end
-  
-  def ma_series_data(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
-    return {} if start_date.nil?
-    trimmed_data = get_values_after(start_date - 1.month, end_date).sort
-    new_data = {}
-    position = 0
-    periods = window_size.to_f
-    data_length = trimmed_data.length
-    trimmed_data.each do |date, _|
-      start_pos = window_start(position, data_length - 1, periods, ma_type)
-      end_pos = window_end(position, data_length - 1, periods, ma_type)
-      if start_pos && end_pos
-        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos) / periods
-      end
-      position += 1
-    end
-    new_data
-  end
-
   def ma_series(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Moving Average of #{name}", ma_series_data(ma_type, start_date, end_date))
   end
 
-  def window_size
-    return 12 if frequency == 'month'
-    return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "No window size defined for frequency #{frequency}!"
+  def moving_average_for_sa(start_date = self.data.keys.sort[0])
+    self.moving_average(start_date,"#{(Time.now.to_date << 12).year}-12-01")
   end
 
-  def window_start(position, last, periods, ma_type_string)
-    half_window = periods / 2
-    return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
-    return position - half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
-    return position                 if ma_type_string == 'forward_ma' #forward looking moving average
-    return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
-    return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
-    return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
-    return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    position - periods + 1          if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
-  end
-  
-  def window_end(position, last, periods, ma_type_string)
-    half_window = periods / 2
-    return position + periods - 1   if ma_type_string == 'ma' and position < half_window #forward looking moving average
-    return position + half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position                 if ma_type_string == 'ma' and position > last-half_window #backward looking moving average
-    return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
-    return position                 if ma_type_string == 'backward_ma' #backward looking moving average
-    return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
-    return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
-    return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    position                        if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
-  end
-  
   def moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Moving Average of #{name}", ma_series_data('ma', start_date, end_date))
   end
@@ -76,7 +26,6 @@ module SeriesSharing
   def offset_forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Offset Forward Looking Moving Average of #{name}", ma_series_data('offset_forward_ma', start_date, end_date))
   end
-  
   
   def aa_county_share_for(county_abbrev)
     series_prefix = self.name.split('@')[0]
@@ -164,6 +113,56 @@ module SeriesSharing
   end
 
 private
+  def ma_series_data(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+    return {} if start_date.nil?
+    trimmed_data = get_values_after(start_date - 1.month, end_date).sort
+    data_length = trimmed_data.length
+    new_data = {}
+    position = 0
+    periods = window_size.to_f
+    trimmed_data.each do |date, _|
+      start_pos = window_start(position, data_length - 1, periods, ma_type)
+      end_pos = window_end(position, data_length - 1, periods, ma_type)
+      if start_pos && end_pos
+        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos) / periods
+      end
+      position += 1
+    end
+    new_data
+  end
+
+  def window_size
+    return 12 if frequency == 'month'
+    return 4 if frequency == 'quarter' || frequency == 'year'
+    raise "No window size defined for frequency #{frequency}!"
+  end
+
+  def window_start(position, last, periods, ma_type_string)
+    half_window = periods / 2
+    return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
+    return position - half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
+    return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
+    return position                 if ma_type_string == 'forward_ma' #forward looking moving average
+    return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
+    return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
+    return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
+    return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
+    position - periods + 1          if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
+  end
+
+  def window_end(position, last, periods, ma_type_string)
+    half_window = periods / 2
+    return position + periods - 1   if ma_type_string == 'ma' and position < half_window #forward looking moving average
+    return position + half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
+    return position                 if ma_type_string == 'ma' and position > last-half_window #backward looking moving average
+    return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
+    return position                 if ma_type_string == 'backward_ma' #backward looking moving average
+    return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
+    return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
+    return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
+    position                        if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
+  end
+
   def moving_window_sum(trimmed_data, start_pos, end_pos)
     sum = 0
     (start_pos..end_pos).each do |i|
