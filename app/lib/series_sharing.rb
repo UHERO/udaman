@@ -148,7 +148,8 @@ private
     return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
     return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
     return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    position - periods + 1          if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
+    return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
+    raise "Unexpected window_start conditions for series <#{self.name}>"
   end
 
   def window_end(position, last, periods, ma_type_string)
@@ -161,7 +162,8 @@ private
     return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
     return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
     return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    position                        if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
+    return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
+    raise "Unexpected window_end conditions for series <#{self.name}>"
   end
 
   def moving_window_sum(trimmed_data, start_pos, end_pos)
