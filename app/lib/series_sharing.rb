@@ -125,17 +125,12 @@ private
       start_pos = window_start(position, last, periods, ma_type)
       end_pos = window_end(position, last, periods, ma_type)
       if start_pos && end_pos
-        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos) / periods.to_f
+        halve_endpoints = (end_pos - start_pos) > periods
+        new_data[date] = moving_window_sum(trimmed_data, start_pos, end_pos, halve_endpoints) / periods.to_f
       end
       position += 1
     end
     new_data
-  end
-
-  def window_size
-    return 12 if frequency == 'month'
-    return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "No window size defined for frequency #{frequency}!"
   end
 
   def window_start(position, last, periods, ma_type_string)
@@ -168,14 +163,20 @@ private
     raise "Unexpected window_end conditions for series <#{self.name}> at pos #{position}"
   end
 
-  def moving_window_sum(trimmed_data, start_pos, end_pos)
+  def moving_window_sum(trimmed_data, start_pos, end_pos, halve_endpoints)
     sum = 0
     (start_pos..end_pos).each do |i|
       value = trimmed_data[i][1]   ## because data is an array [[date1, value1], [date2, value2], ...]
-      value /= 2.0 if i == start_pos || i == end_pos
+      value /= 2.0 if halve_endpoints && (i == start_pos || i == end_pos)
       sum += value
     end
     sum
+  end
+
+  def window_size
+    return 12 if frequency == 'month'
+    return 4 if frequency == 'quarter' || frequency == 'year'
+    raise "No window size defined for frequency #{frequency}!"
   end
 
 end
