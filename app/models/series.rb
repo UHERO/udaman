@@ -497,9 +497,9 @@ class Series < ApplicationRecord
   end
 
   ## this method probably vestigial/unused - double check and remove
-  def Series.new_from_data(frequency, data)
-    Series.new_transformation('One off data', data, frequency)
-  end
+  # def Series.new_from_data(frequency, data)
+  #  Series.new_transformation('One off data', data, frequency)
+  # end
   
   def Series.new_transformation(name, data, frequency)
     ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
@@ -524,13 +524,6 @@ class Series < ApplicationRecord
     self.trim_period_end = series_obj.trim_period_end
   end
 
-  #need to spec out tests for this
-  #this would benefit from some caching scheme
-  
-  #SeriesReloadExceptions
-  #until we can figure out a solid for sources ordering, this error is particularly costly
-  #just keeping data the same if there's a problem to preserve the order.
-  
   def load_from(spreadsheet_path, sheet_to_load = nil)
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
