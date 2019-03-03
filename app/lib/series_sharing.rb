@@ -163,7 +163,7 @@ private
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
-    halve_endpoints = (end_pos - start_pos) == periods  ## for centered ma only, not forward/backward
+    halve_endpoints = (end_pos - start_pos) == periods  ## for centered ma only (where win width == periods+1), but not forward/backward
     sum = 0
     (start_pos..end_pos).each do |i|
       value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
