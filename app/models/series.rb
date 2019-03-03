@@ -513,7 +513,7 @@ class Series < ApplicationRecord
     Series.new(
       :name => name,
       :frequency => frequency,
-      :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [Date.parse(date.to_s), value]}]
+      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [Date.parse(date.to_s), value] }]
     ).tap do |o|
       o.propagate_state_from(self)
     end
