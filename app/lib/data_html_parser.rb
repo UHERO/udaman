@@ -4,20 +4,18 @@ class DataHtmlParser
     api_key = ENV['API_KEY_FRED']
     raise 'No API key defined for FRED' unless api_key
     @url = "http://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
-    # frequencies: d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
-    @url += "&frequency=#{frequency.downcase.gsub(/^s$/, 'sa')}" unless frequency.nil?
-    # avg, sum, eop
-    @url += "&aggregation_method=#{aggregation_method.downcase}" unless aggregation_method.nil?
-    @doc = self.download
-    self.get_fred_data
-  end
-  
-  def get_fred_data
-    data_hash ||= {}
-    @doc.css('observation').each do |obs|
-      data_hash[obs[:date]]= obs[:value].to_f unless obs[:value] == '.'
+    if frequency ## d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
+      @url += "&frequency=#{frequency.downcase.sub(/^s$/, 'sa')}"
     end
-    data_hash
+    if aggregation_method ## avg, sum, eop
+      @url += "&aggregation_method=#{aggregation_method.downcase}"
+    end
+    doc = self.download
+    data = {}
+    doc.css('observation').each do |obs|
+      data[obs[:date]] = obs[:value].to_f unless obs[:value] == '.'
+    end
+    data
   end
   
   def get_bls_series(code, frequency = nil)

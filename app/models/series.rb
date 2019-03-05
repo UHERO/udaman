@@ -497,9 +497,9 @@ class Series < ApplicationRecord
   end
 
   ## this method probably vestigial/unused - double check and remove
-  def Series.new_from_data(frequency, data)
-    Series.new_transformation('One off data', data, frequency)
-  end
+  # def Series.new_from_data(frequency, data)
+  #  Series.new_transformation('One off data', data, frequency)
+  # end
   
   def Series.new_transformation(name, data, frequency)
     ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
@@ -507,13 +507,13 @@ class Series < ApplicationRecord
   end
   
   def new_transformation(name, data, frequency = nil)
-    raise "No data provided for new transformation '#{name}'" if data.nil?
+    raise "Undefined dataset for new transformation '#{name}'" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
                 Series.frequency_from_code(Series.parse_name(name)[:freq])
     Series.new(
       :name => name,
       :frequency => frequency,
-      :data => Hash[data.reject {|_, v| v.nil?}.map {|date, value| [(Date.parse date.to_s), value]}]
+      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [Date.parse(date.to_s), value] }]
     ).tap do |o|
       o.propagate_state_from(self)
     end
@@ -524,13 +524,6 @@ class Series < ApplicationRecord
     self.trim_period_end = series_obj.trim_period_end
   end
 
-  #need to spec out tests for this
-  #this would benefit from some caching scheme
-  
-  #SeriesReloadExceptions
-  #until we can figure out a solid for sources ordering, this error is particularly costly
-  #just keeping data the same if there's a problem to preserve the order.
-  
   def load_from(spreadsheet_path, sheet_to_load = nil)
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
@@ -627,30 +620,42 @@ class Series < ApplicationRecord
   ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    raise "No data collected from BEA API for #{dataset} freq=#{frequency}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from BEA API", series_data, frequency)
+    name = "loaded dataset #{dataset} with parameters #{parameters} from BEA API"
+    if series_data.empty?
+      name = "No data collected from BEA API for #{dataset} freq=#{frequency} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, frequency)
   end
   
   def Series.load_from_bls(code, frequency)
-    Series.new.load_from_bls(code, frequency)
+    Series.new.load_from_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
   end
   
   def load_from_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
-    raise "No data collected from BLS API for #{code} freq=#{frequency}" if series_data.nil? || series_data.empty?
-    new_transformation("loaded series code: #{code} from bls website", series_data, frequency)
+    name = "loaded series code: #{code} from BLS API"
+    if series_data.empty?
+      name = "No data collected from BLS API for #{code} freq=#{frequency} - possibly redacted"
+    end
+    new_transformation(name, series_data, frequency)
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
     series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    raise "No data collected from FRED API for #{code} freq=#{frequency}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded series : #{code} from FRED website", series_data, frequency)
+    name = "loaded series: #{code} from FRED API"
+    if series_data.empty?
+      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, frequency)
   end
 
   def Series.load_from_clustermapping(dataset, parameters)
     series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
-    raise "No data collected from Clustermapping API for #{dataset}" if series_data.nil? || series_data.empty?
-    Series.new_transformation("loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API", series_data, 'A')
+    name = "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API"
+    if series_data.empty?
+      name = "No data collected from Clustermapping API for #{dataset}"
+    end
+    Series.new_transformation(name, series_data, 'A')
   end
 
   def days_in_period
