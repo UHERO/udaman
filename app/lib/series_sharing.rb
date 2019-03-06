@@ -65,9 +65,9 @@ module SeriesSharing
 
   def mc_ma_county_share_pf(county_code, series_prefix = self.parse_name[:prefix])
     freq = self.parse_name[:freq]
-    county_name = "#{series_prefix}NS@#{county_code}.#{freq}"
+    county_name = Series.build_name [series_prefix + 'NS', county_code, freq]
     county = county_name.ts
-    state_name = "#{series_prefix}NS@HI.#{freq}"
+    state_name = Series.build_name [series_prefix + 'NS', 'HI', freq]
     state = state_name.ts
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december

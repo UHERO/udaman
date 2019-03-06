@@ -348,8 +348,6 @@ module SeriesArithmetic
   end
   
   def annual_sum
-    #puts "#{self.name}: FREQUENCY: #{self.frequency} - #{self.frequency.class}"    
-    #raise AnnualAverageException if self.frequency != :month and self.frequency != :quarter and self.frequency != "month" and self.frequency != "quarter"
     new_series_data = {}
     annual_values = aggregate_data_by :year, :sum
     self.data.each do |date, _|
