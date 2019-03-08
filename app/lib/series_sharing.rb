@@ -134,16 +134,15 @@ private
 
   def window_start(position, last, periods, ma_type_string)
     half_window = periods / 2
-    return position                 if ma_type_string == 'ma'        and position < half_window #forward looking moving average
-    return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
-    return position - half_window   if ma_type_string == 'ma'        and position >= half_window and position <= last - half_window #centered moving average
-    return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position - periods + 1   if ma_type_string == 'ma'        and position > last - half_window #backward looking moving average
-    return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
-
+    return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
+    return position - half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
+    return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
     return position                 if ma_type_string == 'forward_ma' #forward looking moving average
     return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
     return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
+    return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
+    return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
+    position - periods + 1          if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
     raise "Series <#{self.name}>: unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
