@@ -1,17 +1,17 @@
 class Hash
   def series_merge(other_hash)
-    h = {}
+    merged = {}
     self.merge(other_hash).keys.each do |key|
-      h[key] = other_hash[key] || self[key]
+      merged[key] = other_hash[key] || self[key]
     end
-    return h
+    merged
   end
   
   def sources_merge(single_source_hash)
     self.each do |key, value|
-      self.delete key if value["description"] == single_source_hash[single_source_hash.keys[0]][:description]
+      self.delete key if value['description'] == single_source_hash[single_source_hash.keys[0]][:description]
     end
-    return self.merge single_source_hash
+    self.merge single_source_hash
   end
   
   def cs(series_name)
