@@ -924,7 +924,6 @@ class Series < ApplicationRecord
   def refresh_all_datapoints
     unique_ds = {} #this is actually used ds
     current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
-    puts unique_ds
     eval_statements = []
     self.data_sources_by_last_run.each do |ds| 
       eval_statements.push(ds.get_eval_statement) unless unique_ds.keys.index(ds.id).nil?

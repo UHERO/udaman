@@ -9,7 +9,7 @@ module SeriesAggregation
     validate_aggregation(frequency)
     
     grouped_data = group_data_by frequency, override_prune
-    aggregated_data = Hash.new
+    aggregated_data = {}
     grouped_data.keys.each do |date_string|
       aggregated_data[date_string] = grouped_data[date_string].send(operation)
     end
