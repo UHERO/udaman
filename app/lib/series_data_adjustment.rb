@@ -83,10 +83,11 @@ module SeriesDataAdjustment
     data.reject {|date, value| date < start_date or value.nil? or date > end_date}
   end
 
-  def get_scaled_no_ph_after_inc(start_data, end_data = Time.now.to_date, round_to = 3)
-    start_data = Date.parse start_data.to_s
+  def get_scaled_no_ph_after_inc(start_date, end_date = Time.now.to_date, round_to = 3)
+    start_date = Date.parse(start_date.to_s)
+    end_date = Date.parse(end_date.to_s)
     scaled_data_no_pseudo_history(round_to).reject do |date, value|
-      date < start_data or value.nil? or date > end_data
+      date < start_date or value.nil? or date > end_date
     end
   end
   
