@@ -17,11 +17,11 @@ module SeriesSharing
   end
 
   def moving_average_annavg_padded(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
-    annual_avg_data = annual_average.data
+    ann_avg_data = annual_average.data
     cma_data = ma_series_data('strict_cma', start_date, end_date)
-    new_transformation("Moving Average of #{name} edge-padded with Annual Average", annual_avg_data.series_merge(cma_data))
+    new_transformation("Moving Average of #{name} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
   end
-  
+
   def backward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
@@ -77,9 +77,9 @@ module SeriesSharing
     state = state_name.ts
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december
-    historical = county.moving_average_offset_early(start_date,end_date) / state.moving_average_offset_early(start_date,end_date) * self
+    historical = county.moving_average_annavg_padded(start_date,end_date) / state.moving_average_annavg_padded(start_date,end_date) * self
     mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
-    current_incomplete_year = county.annual_average.get_last_incomplete_year / state.annual_average.get_last_incomplete_year * self
+    current_incomplete_year = county.moving_average_annavg_padded.get_last_incomplete_year / state.moving_average_annavg_padded.get_last_incomplete_year * self
     new_transformation("Share of #{self.name} using ratio of #{county_name} over #{state_name} using a mean corrected moving average (offset early), and annual average for the current year",
         mean_corrected_historical.data.series_merge(current_incomplete_year.data))
   end
