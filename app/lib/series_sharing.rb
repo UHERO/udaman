@@ -16,12 +16,12 @@ module SeriesSharing
     new_transformation("Moving Average of #{name}", ma_series_data('offset_ma', start_date, end_date))
   end
 
-  def moving_average_peter(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
-    annual_avg_series = self.annual_average
+  def moving_average_annavg_padded(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+    annual_avg_data = annual_average.data
     cma_data = ma_series_data('strict_cma', start_date, end_date)
-    new_transformation("Moving Average of #{name} edge-filled with Annual Average", annual_avg_series.data.series_merge(cma_data))
+    new_transformation("Moving Average of #{name} edge-padded with Annual Average", annual_avg_data.series_merge(cma_data))
   end
-
+  
   def backward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
