@@ -15,7 +15,13 @@ module SeriesSharing
   def moving_average_offset_early(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Moving Average of #{name}", ma_series_data('offset_ma', start_date, end_date))
   end
-  
+
+  def moving_average_peter(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+    annual_avg_series = self.annual_average
+    cma_data = ma_series_data('strict_cma', start_date, end_date)
+    new_transformation("Moving Average of #{name} edge-filled with Annual Average", annual_avg_series.data.series_merge(cma_data))
+  end
+
   def backward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
@@ -142,7 +148,9 @@ private
     return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
     return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
     return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    position - periods + 1          if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
+    return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
+    return position - half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
+    return nil                      if ma_type_string == 'strict_cma' ## within first or last half window
     raise "Series <#{self.name}>: unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
@@ -156,7 +164,9 @@ private
     return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
     return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
     return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    position                        if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
+    return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
+    return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
+    return nil                      if ma_type_string == 'strict_cma' ## within first or last half window
     raise "Series <#{self.name}>: unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
