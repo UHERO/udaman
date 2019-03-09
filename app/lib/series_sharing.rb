@@ -17,7 +17,7 @@ module SeriesSharing
   end
 
   def moving_average_annavg_padded(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
-    ann_avg_data = annual_average.data
+    ann_avg_data = annual_average.trim(start_date, end_date).data
     cma_data = ma_series_data('strict_cma', start_date, end_date)
     new_transformation("Moving Average of #{name} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
   end
@@ -79,7 +79,7 @@ module SeriesSharing
     end_date =   county.get_last_complete_december
     historical = county.moving_average_annavg_padded(start_date,end_date) / state.moving_average_annavg_padded(start_date,end_date) * self
     mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
-    current_incomplete_year = county.moving_average_annavg_padded.get_last_incomplete_year / state.moving_average_annavg_padded.get_last_incomplete_year * self
+    current_incomplete_year = Series.new #county.moving_average_annavg_padded.get_last_incomplete_year / state.moving_average_annavg_padded.get_last_incomplete_year * self
     new_transformation("Share of #{self.name} using ratio of #{county_name} over #{state_name} using a mean corrected moving average (offset early), and annual average for the current year",
         mean_corrected_historical.data.series_merge(current_incomplete_year.data))
   end
