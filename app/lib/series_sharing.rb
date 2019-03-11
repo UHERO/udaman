@@ -137,7 +137,7 @@ private
     return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
     return position - half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
     return nil                      if ma_type_string == 'strict_cma' ## within first or last half window
-    raise "Series <#{self.name}>: unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
+    #raise "Series <#{self.name}>: unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
   def window_end(position, last, periods, ma_type_string)
@@ -153,7 +153,7 @@ private
     return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
     return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
     return nil                      if ma_type_string == 'strict_cma' ## within first or last half window
-    raise "Series <#{self.name}>: unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
+    #raise "Series <#{self.name}>: unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
@@ -170,7 +170,7 @@ private
   def window_size
     return 12 if frequency == 'month'
     return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "Series <#{self.name}>: no window size defined for frequency #{frequency}!"
+    #raise "Series <#{self.name}>: no window size defined for frequency #{frequency}!"
   end
 
 end
