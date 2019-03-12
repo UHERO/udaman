@@ -45,10 +45,7 @@ module SeriesSharing
   
   def aa_state_based_county_share_for(county_abbrev)
     series_prefix = self.name.split('@')[0]
-    county_sum = "#{series_prefix}NS@HON.M".ts + "#{series_prefix}NS@HAW.M".ts + "#{series_prefix}NS@MAU.M".ts + "#{series_prefix}NS@KAU.M".ts
-#    county_sum.print
-    state = "#{series_prefix}NS@HI.M".ts 
-#    state.print
+    state = "#{series_prefix}NS@HI.M".ts
     historical = "#{series_prefix}NS@#{county_abbrev}.M".ts.annual_average / state.annual_average * self
     current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.M over #{series_prefix}NS@HI.M , using annual averages where available and a backward looking moving average for the current year",
