@@ -34,10 +34,11 @@ module SeriesAggregation
 
     grouped_data = {}
     orig_series.data.keys.each do |date|
-      next if orig_series.at(date).nil?
+      value = orig_series.at(date)
+      next if value.nil?
       agg_date = date.send(agg_date_method)
       grouped_data[agg_date] ||= AggregatingArray.new
-      grouped_data[agg_date].push orig_series.at(date)
+      grouped_data[agg_date].push value
     end
 
     unless override_prune
