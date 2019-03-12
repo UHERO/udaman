@@ -45,10 +45,7 @@ module SeriesSharing
   
   def aa_state_based_county_share_for(county_abbrev)
     series_prefix = self.name.split('@')[0]
-    county_sum = "#{series_prefix}NS@HON.M".ts + "#{series_prefix}NS@HAW.M".ts + "#{series_prefix}NS@MAU.M".ts + "#{series_prefix}NS@KAU.M".ts
-#    county_sum.print
-    state = "#{series_prefix}NS@HI.M".ts 
-#    state.print
+    state = "#{series_prefix}NS@HI.M".ts
     historical = "#{series_prefix}NS@#{county_abbrev}.M".ts.annual_average / state.annual_average * self
     current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.M over #{series_prefix}NS@HI.M , using annual averages where available and a backward looking moving average for the current year",
@@ -131,13 +128,14 @@ private
     return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
     return position                 if ma_type_string == 'forward_ma' #forward looking moving average
     return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
+    return nil                      if ma_type_string == 'backward_ma' ## window would extend into undefined territory
     return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
     return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
     return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
     return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
     return position - half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
-    return nil                      if ma_type_string == 'strict_cma' ## within first or last half window
-    raise "Series <#{self.name}>: unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
+    return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
+    raise "unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
   def window_end(position, last, periods, ma_type_string)
@@ -146,14 +144,16 @@ private
     return position + half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
     return position                 if ma_type_string == 'ma' and position > last-half_window #backward looking moving average
     return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
+    return nil                      if ma_type_string == 'forward_ma' ## window would extend into undefined territory
     return position                 if ma_type_string == 'backward_ma' #backward looking moving average
     return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
+    return nil                      if ma_type_string == 'offset_forward_ma' ## window would extend into undefined territory
     return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
     return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
     return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
     return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
-    return nil                      if ma_type_string == 'strict_cma' ## within first or last half window
-    raise "Series <#{self.name}>: unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
+    return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
+    raise "unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
@@ -170,7 +170,7 @@ private
   def window_size
     return 12 if frequency == 'month'
     return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "Series <#{self.name}>: no window size defined for frequency #{frequency}!"
+    raise "no window size defined for frequency #{frequency}!"
   end
 
 end
