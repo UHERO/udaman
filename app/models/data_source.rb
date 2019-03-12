@@ -215,6 +215,7 @@ class DataSource < ApplicationRecord
             last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
             last_eval_options_used: nil)
       end
+      Rails.cache.clear
     end
 
     def mark_as_pseudo_history
