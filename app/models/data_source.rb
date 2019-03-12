@@ -326,6 +326,9 @@ class DataSource < ApplicationRecord
   #       function may make use of a value that is computed _prior_ to it in the processing of the replace_options.
   #       See the examples for how this works.
   #
+  #   The +commit+ parameter just tells whether to commit the changes to the database, default is false because you
+  #   should do dry run(s) first to see what the output will be before committing.
+  #
   # Examples:
   #
   # First, let the change set be
@@ -353,10 +356,9 @@ class DataSource < ApplicationRecord
   #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
   #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
   #
-  # BE CAREFUL! If you write lambdas, check their output carefully and run in a test db before running in
-  # production, because results can be unexpected. Common sense.
+  # BE CAREFUL! Always check changes carefully by doing dry runs before committing to the database!
   #
-  def DataSource.mass_update_eval_options(change_set, replace_options)
+  def DataSource.mass_update_eval_options(change_set, replace_options, commit = false)
     change_set.each do |ds|
       begin
         options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
@@ -371,8 +373,13 @@ class DataSource < ApplicationRecord
             options[key] = new_value.to_s
           end
         end
-        ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
-        ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.to_s))
+        opt_string = options.to_s
+        if commit
+          ds.update_attributes(
+              eval: ds.eval.sub(OPTIONS_MATCHER, opt_string),
+              description: ds.description.sub(OPTIONS_MATCHER, opt_string))
+        end
+        puts opt_string
       rescue
           #do something?
           raise
