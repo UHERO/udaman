@@ -356,6 +356,13 @@ class DataSource < ApplicationRecord
   #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
   #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
   #
+  # Here's one that I just used in real life: some load statements have a row: specification like "increment:39:1".
+  # The first integer (39) in each row spec needed to be incremented by one (they're not all 39 in the change set).
+  # The replace_options used is:
+  #
+  #    { row: lambda {|op| nr = (op[:row].split(':'))[1].to_i + 1; op[:row].sub(/:\d+:/, ":#{nr}:") } }
+  #
+  #
   # BE CAREFUL! Always check changes carefully by doing dry runs before committing to the database!
   #
   def DataSource.mass_update_eval_options(change_set, replace_options, commit = false)
