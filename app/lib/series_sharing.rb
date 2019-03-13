@@ -111,8 +111,9 @@ private
     position = 0
     periods = window_size
     trimmed_data.each do |date, _|
-      start_pos = window_start(position, last, periods, ma_type)
-      end_pos = window_end(position, last, periods, ma_type)
+      #start_pos = window_start(position, last, periods, ma_type)
+      #end_pos = window_end(position, last, periods, ma_type)
+      (start_pos, end_pos) = window_range(position, last, periods, ma_type)
       if start_pos && end_pos
         new_data[date] = compute_window_average(trimmed_data, start_pos, end_pos, periods)
       end
@@ -160,15 +161,35 @@ private
     half_window = periods / 2
     at_left_edge = position < half_window
     at_right_edge = position > last - half_window
-    wstart = position - half_window
-    wend = position + half_window
-    backw_start = position - periods + 1
-    case ma_type
-      when 'ma'
-      when 'strict_cma'
-      else
-        raise ''
-    end
+    cen_start = position - half_window
+    cen_end = position + half_window
+    (win_start, win_end) =
+        case ma_type
+          when 'ma', 'offset_ma'
+            case
+              when at_left_edge  then [position, position + periods - 1]  ## forward looking
+              when at_right_edge then [position - periods + 1, position]  ## backward looking
+              else [cen_start, cen_end]  ## centered
+            end
+          when /forward_ma/
+            case
+              when 0 then 1
+              else 0
+            end
+          when /backward_ma/
+            case
+              when 0 then 1
+              else 0
+            end
+          when 'strict_cma'
+            case
+              when at_left_edge || at_right_edge then [nil, nil]
+              else [cen_start, cen_end]
+            end
+          else
+            raise "unexpected window conditions at pos #{position}, ma_type=#{ma_type}"
+        end
+    [win_start, win_end]
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
