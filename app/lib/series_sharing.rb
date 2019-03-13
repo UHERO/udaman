@@ -161,25 +161,21 @@ private
     half_window = periods / 2
     at_left_edge = position < half_window
     at_right_edge = position > last - half_window
-    cen_start = position - half_window
-    cen_end = position + half_window
+    forward_looking =  [position, position + periods - 1]
+    backward_looking = [position - periods + 1, position]
+    centered = [position - half_window, position + half_window]
     (win_start, win_end) =
         case ma_type
           when 'ma', 'offset_ma'
             case
-              when at_left_edge  then [position, position + periods - 1]  ## forward looking
-              when at_right_edge then [position - periods + 1, position]  ## backward looking
-              else [cen_start, cen_end]  ## centered
+              when at_left_edge  then forward_looking
+              when at_right_edge then backward_looking
+              else centered
             end
-          when 'strict_cma'
-            case
-              when at_left_edge || at_right_edge then [-1, 0]
-              else [cen_start, cen_end]
-            end
-          when /forward_ma/  then [position, position + periods - 1]
-          when /backward_ma/ then [position - periods + 1, position]
-          else
-            raise "unexpected window conditions at pos #{position}, ma_type=#{ma_type}"
+          when /forward_ma/  then forward_looking
+          when /backward_ma/ then backward_looking
+          when 'strict_cma'  then centered
+          else raise "unexpected window conditions at pos #{position}, ma_type=#{ma_type}"
         end
     if ma_type =~ /offset/
       ## make adjustment
