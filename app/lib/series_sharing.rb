@@ -171,25 +171,20 @@ private
               when at_right_edge then [position - periods + 1, position]  ## backward looking
               else [cen_start, cen_end]  ## centered
             end
-          when /forward_ma/
-            case
-              when 0 then 1
-              else 0
-            end
-          when /backward_ma/
-            case
-              when 0 then 1
-              else 0
-            end
           when 'strict_cma'
             case
-              when at_left_edge || at_right_edge then [nil, nil]
+              when at_left_edge || at_right_edge then [-1, 0]
               else [cen_start, cen_end]
             end
+          when /forward_ma/  then [position, position + periods - 1]
+          when /backward_ma/ then [position - periods + 1, position]
           else
             raise "unexpected window conditions at pos #{position}, ma_type=#{ma_type}"
         end
-    [win_start, win_end]
+    if ma_type =~ /offset/
+      ## make adjustment
+    end
+    win_start < 0 || win_end > last ? [] : [win_start, win_end]
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
