@@ -156,6 +156,21 @@ private
     raise "unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
+  def window_range(position, last, periods, ma_type)
+    half_window = periods / 2
+    at_left_edge = position < half_window
+    at_right_edge = position > last - half_window
+    wstart = position - half_window
+    wend = position + half_window
+    backw_start = position - periods + 1
+    case ma_type
+      when 'ma'
+      when 'strict_cma'
+      else
+        raise ''
+    end
+  end
+
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
     halve_endpoints = (end_pos - start_pos) == periods  ## for centered ma only (where win width == periods+1), but not forward/backward
     sum = 0
