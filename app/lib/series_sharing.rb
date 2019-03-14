@@ -54,12 +54,11 @@ module SeriesSharing
 
   def mc_ma_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
     freq = self.parse_name[:freq]
-    county_name = Series.build_name(series_prefix + 'NS', county_code, freq)
-    county = county_name.ts
-    state_name = Series.build_name(series_prefix + 'NS', 'HI', freq)
-    state = state_name.ts
+    state = Series.build_name(series_prefix + 'NS', 'HI', freq).ts || raise("no HI.#{freq} series found for #{series_prefix + 'NS'}")
+    county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state.name}")
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december
+
     historical = county.moving_average_annavg_padded(start_date,end_date) / state.moving_average_annavg_padded(start_date,end_date) * self
     mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
     current_incomplete_year = Series.new #county.moving_average_annavg_padded.get_last_incomplete_year / state.moving_average_annavg_padded.get_last_incomplete_year * self
@@ -67,15 +66,20 @@ module SeriesSharing
         mean_corrected_historical.data.series_merge(current_incomplete_year.data))
   end
 
-  def mc_price_share_for(county_abbrev)
-    series_prefix = self.name.split('@')[0]
-    self_region = self.name.split('@')[1].split('.')[0]
-    start_date = "#{series_prefix}NS@#{county_abbrev}.Q".ts.first_value_date
-    shared_series = "#{name}".ts.share_using("#{series_prefix}NS@#{county_abbrev}.Q".ts.trim(start_date, get_last_complete_4th_quarter).moving_average, "#{series_prefix}NS@#{self_region}.Q".ts.trim(start_date, get_last_complete_4th_quarter).moving_average)
-    mean_corrected_series = shared_series.share_using("#{series_prefix}NS@#{county_abbrev}.Q".ts.annual_average, shared_series.annual_average)
-    current_year = "#{series_prefix}NS@#{county_abbrev}.Q".ts.backward_looking_moving_average.get_last_incomplete_year / "#{series_prefix}NS@#{self_region}.Q".ts.backward_looking_moving_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of the moving average #{series_prefix}NS@#{county_abbrev}.Q over the moving average of #{series_prefix}NS@#{self_region}.Q , mean corrected for the year",
-        mean_corrected_series.data.series_merge(current_year.data))
+  def mc_price_share_for(county_code)
+    series_prefix = self.parse_name[:prefix]
+    freq = self.parse_name[:freq]
+    county_name = Series.build_name(series_prefix + 'NS', county_code, freq)
+    county = county_name.ts || raise("series #{county_name} does not exist")
+    my_ns_series = self.find_ns_series
+    start_date = county.first_value_date
+    end_date = get_last_complete_4th_quarter
+
+    shared_series = share_using(county.trim(start_date, end_date).moving_average, my_ns_series.trim(start_date, end_date).moving_average)
+    mean_corrected_series = shared_series.share_using(county.annual_average, shared_series.annual_average)
+    current_incomplete_year = county.backward_looking_moving_average.get_last_incomplete_year / my_ns_series.backward_looking_moving_average.get_last_incomplete_year * self
+    new_transformation("Share of #{name} using ratio of the moving average #{county.name} over the moving average of #{my_ns_series.name}, mean corrected for the year",
+        mean_corrected_series.data.series_merge(current_incomplete_year.data))
   end
 
   #### looks like vestigial code -- commenting out for now, delete later

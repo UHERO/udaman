@@ -295,6 +295,18 @@ class Series < ApplicationRecord
     Series.parse_name(name) && name
   end
 
+  ## Find NS@ correspondent series
+  def find_ns_series(geo)
+    my_name = self.parse_name
+    Series.build_name(my_name[:prefix] + 'NS', geo.upcase, my_name[:freq]).ts
+  end
+
+  ## Find non-NS@ correspondent series
+  def find_non_ns_series(geo)
+    my_name = self.parse_name
+    Series.build_name(my_name[:prefix].sub(/NS$/i,''), geo.upcase, my_name[:freq]).ts
+  end
+
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
     my_name = self.parse_name
