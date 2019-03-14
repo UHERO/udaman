@@ -42,15 +42,13 @@ module SeriesSharing
       historical.data.series_merge(current_year.data))
   end
 
-  ###########################################################################################################################################################
   def aa_state_based_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
-    county_name = Series.build_name [series_prefix + 'NS', county_code, 'M']
-    county = county_name.ts
-    state_name = Series.build_name [series_prefix + 'NS', 'HI', 'M']
-    state = state_name.ts
+    county = Series.build_name([series_prefix + 'NS', county_code, 'M']).ts
+    state = Series.build_name([series_prefix + 'NS', 'HI', 'M']).ts
+
     historical = county.annual_average / state.annual_average * self
     current_incomplete_year = Series.new #county.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of #{county_name} over #{state_name}, using annual averages where available and a backward looking moving average for the current year",
+    new_transformation("Share of #{name} using ratio of #{county.name} over #{state.name} using annual averages, only for full years",
         historical.data.series_merge(current_incomplete_year.data))
   end
 
