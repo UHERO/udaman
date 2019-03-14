@@ -34,29 +34,29 @@ module SeriesSharing
     new_transformation("Offset Forward Looking Moving Average of #{name}", ma_series_data('offset_forward_ma', start_date, end_date))
   end
   
-  def aa_county_share_for(county_abbrev)
-    series_prefix = self.name.split('@')[0]
+  def aa_county_share_for(county_abbrev, series_prefix = self.parse_name[:prefix])
     county_sum = "#{series_prefix}NS@HON.M".ts + "#{series_prefix}NS@HAW.M".ts + "#{series_prefix}NS@MAU.M".ts + "#{series_prefix}NS@KAU.M".ts
     historical = "#{series_prefix}NS@#{county_abbrev}.M".ts.annual_average / county_sum.annual_average * self
     current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_moving_average.get_last_incomplete_year / county_sum.backward_looking_moving_average.get_last_incomplete_year * self
     new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.M over sum of #{series_prefix}NS@HON.M , #{series_prefix}NS@HAW.M , #{series_prefix}NS@MAU.M , #{series_prefix}NS@KAU.M using annual averages where available and a backward looking moving average for the current year",
       historical.data.series_merge(current_year.data))
   end
-  
-  def aa_state_based_county_share_for(county_abbrev)
-    series_prefix = self.name.split('@')[0]
-    state = "#{series_prefix}NS@HI.M".ts
-    historical = "#{series_prefix}NS@#{county_abbrev}.M".ts.annual_average / state.annual_average * self
-    current_year = "#{series_prefix}NS@#{county_abbrev}.M".ts.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of #{series_prefix}NS@#{county_abbrev}.M over #{series_prefix}NS@HI.M , using annual averages where available and a backward looking moving average for the current year",
-    historical.data.series_merge(current_year.data))
+
+  def aa_state_based_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
+    county = Series.build_name(series_prefix + 'NS', county_code, 'M').ts
+    state = Series.build_name(series_prefix + 'NS', 'HI', 'M').ts
+
+    historical = county.annual_average / state.annual_average * self
+    current_incomplete_year = Series.new #county.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
+    new_transformation("Share of #{name} using ratio of #{county.name} over #{state.name} using annual averages, only for full years",
+        historical.data.series_merge(current_incomplete_year.data))
   end
 
   def mc_ma_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
     freq = self.parse_name[:freq]
-    county_name = Series.build_name [series_prefix + 'NS', county_code, freq]
+    county_name = Series.build_name(series_prefix + 'NS', county_code, freq)
     county = county_name.ts
-    state_name = Series.build_name [series_prefix + 'NS', 'HI', freq]
+    state_name = Series.build_name(series_prefix + 'NS', 'HI', freq)
     state = state_name.ts
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december
@@ -113,6 +113,7 @@ private
     trimmed_data.each do |date, _|
       start_pos = window_start(position, last, periods, ma_type)
       end_pos = window_end(position, last, periods, ma_type)
+      #(start_pos, end_pos) = window_range(position, last, periods, ma_type)
       if start_pos && end_pos
         new_data[date] = compute_window_average(trimmed_data, start_pos, end_pos, periods)
       end
@@ -154,6 +155,33 @@ private
     return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
     return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
     raise "unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
+  end
+
+  def window_range(position, last, periods, ma_type)
+    half_window = periods / 2
+    at_left_edge = position < half_window
+    at_right_edge = position > last - half_window
+    forward_looking =  [position, position + periods - 1]
+    backward_looking = [position - periods + 1, position]
+    centered = [position - half_window, position + half_window]
+    (win_start, win_end) =
+        case ma_type
+          when 'ma', 'offset_ma'
+            case
+              when at_left_edge  then forward_looking
+              when at_right_edge then backward_looking
+              else centered
+            end
+          when /forward_ma/  then forward_looking
+          when /backward_ma/ then backward_looking
+          when 'strict_cma'  then centered
+          else raise "unexpected window conditions at pos #{position}, ma_type=#{ma_type}"
+        end
+    if ma_type == 'offset_forward_ma' || (ma_type == 'offset_ma' && at_left_edge)
+      win_start += 1
+      win_end += 1
+    end
+    win_start < 0 || win_end > last ? [] : [win_start, win_end]
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
