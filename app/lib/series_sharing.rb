@@ -113,9 +113,9 @@ private
     position = 0
     periods = window_size
     trimmed_data.each do |date, _|
-      #start_pos = window_start(position, last, periods, ma_type)
-      #end_pos = window_end(position, last, periods, ma_type)
-      (start_pos, end_pos) = window_range(position, last, periods, ma_type)
+      start_pos = window_start(position, last, periods, ma_type)
+      end_pos = window_end(position, last, periods, ma_type)
+      #(start_pos, end_pos) = window_range(position, last, periods, ma_type)
       if start_pos && end_pos
         new_data[date] = compute_window_average(trimmed_data, start_pos, end_pos, periods)
       end
@@ -129,13 +129,13 @@ private
     return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
     return position - half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
     return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
+    return position                 if ma_type_string == 'forward_ma' #forward looking moving average
+    return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
+    return nil                      if ma_type_string == 'backward_ma' ## window would extend into undefined territory
+    return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
     return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
     return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
     return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
-    return position                 if ma_type_string == 'forward_ma' #forward looking moving average
-    return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
-    return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
-    return nil                      if ma_type_string == 'backward_ma' ## window would extend into undefined territory
     return position - half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
     return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
     raise "unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
@@ -146,14 +146,14 @@ private
     return position + periods - 1   if ma_type_string == 'ma' and position < half_window #forward looking moving average
     return position + half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
     return position                 if ma_type_string == 'ma' and position > last-half_window #backward looking moving average
+    return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
+    return nil                      if ma_type_string == 'forward_ma' ## window would extend into undefined territory
+    return position                 if ma_type_string == 'backward_ma' #backward looking moving average
+    return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
+    return nil                      if ma_type_string == 'offset_forward_ma' ## window would extend into undefined territory
     return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
     return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
     return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
-    return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
-    return nil                      if ma_type_string == 'forward_ma' ## window would extend into undefined territory
-    return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
-    return nil                      if ma_type_string == 'offset_forward_ma' ## window would extend into undefined territory
-    return position                 if ma_type_string == 'backward_ma' #backward looking moving average
     return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
     return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
     raise "unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
