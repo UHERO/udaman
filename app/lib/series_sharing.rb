@@ -67,9 +67,7 @@ module SeriesSharing
   end
 
   def mc_price_share_for(county_code)
-    series_prefix = self.parse_name[:prefix]
-    freq = self.parse_name[:freq]
-    county_name = Series.build_name(series_prefix + 'NS', county_code, freq)
+    county_name = build_name(prefix: self.parse_name[:prefix] + 'NS', geo: county_code)
     county = county_name.ts || raise("series #{county_name} does not exist")
     my_ns_series = self.find_ns_series
     start_date = county.first_value_date
