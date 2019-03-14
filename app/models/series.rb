@@ -298,15 +298,13 @@ class Series < ApplicationRecord
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
     my_name = self.parse_name
-    sib_name = Series.build_name(my_name[:prefix], geo.upcase, my_name[:freq])
-    Series.find_by name: sib_name
+    Series.build_name(my_name[:prefix], geo.upcase, my_name[:freq]).ts
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
     my_name = self.parse_name
-    sib_name = Series.build_name(my_name[:prefix], my_name[:geo], freq.upcase)
-    Series.find_by name: sib_name
+    Series.build_name(my_name[:prefix], my_name[:geo], freq.upcase).ts
   end
 
   ## Duplicate series for a different geography

@@ -43,8 +43,8 @@ module SeriesSharing
   end
 
   def aa_state_based_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
-    county = Series.build_name(series_prefix + 'NS', county_code, 'M').ts
-    state = Series.build_name(series_prefix + 'NS', 'HI', 'M').ts
+    state = Series.build_name(series_prefix + 'NS', 'HI', 'M').ts || raise("no HI.M series found for #{series_prefix + 'NS'}")
+    county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state.name}")
 
     historical = county.annual_average / state.annual_average * self
     current_incomplete_year = Series.new #county.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
@@ -63,7 +63,7 @@ module SeriesSharing
     historical = county.moving_average_annavg_padded(start_date,end_date) / state.moving_average_annavg_padded(start_date,end_date) * self
     mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
     current_incomplete_year = Series.new #county.moving_average_annavg_padded.get_last_incomplete_year / state.moving_average_annavg_padded.get_last_incomplete_year * self
-    new_transformation("Share of #{self.name} using ratio of #{county_name} over #{state_name} using a mean corrected moving average (offset early), and annual average for the current year",
+    new_transformation("Share of #{self.name} using ratio of #{county.name} over #{state.name} using a mean corrected moving average, only for full years",
         mean_corrected_historical.data.series_merge(current_incomplete_year.data))
   end
 
