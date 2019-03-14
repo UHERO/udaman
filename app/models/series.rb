@@ -273,7 +273,7 @@ class Series < ApplicationRecord
       geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
               raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
     end
-    properties[:name] = Series.build_name([ name_parts[:prefix], geo.handle, name_parts[:freq] ])
+    properties[:name] = Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] = geo.id
     properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
     Series.create(properties)
@@ -290,22 +290,22 @@ class Series < ApplicationRecord
     Series.parse_name(self.name)
   end
 
-  def Series.build_name(parts)
-    name = parts[0].strip.upcase + '@' + parts[1].strip.upcase + '.' + parts[2].strip.upcase
+  def Series.build_name(prefix, geo, freq)
+    name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
     Series.parse_name(name) && name
   end
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
     my_name = self.parse_name
-    sib_name = Series.build_name([my_name[:prefix], geo.upcase, my_name[:freq]])
+    sib_name = Series.build_name(my_name[:prefix], geo.upcase, my_name[:freq])
     Series.find_by name: sib_name
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
     my_name = self.parse_name
-    sib_name = Series.build_name([my_name[:prefix], my_name[:geo], freq.upcase])
+    sib_name = Series.build_name(my_name[:prefix], my_name[:geo], freq.upcase)
     Series.find_by name: sib_name
   end
 
@@ -317,7 +317,7 @@ class Series < ApplicationRecord
     new = self.dup
     new.update(
         geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
-        name: Series.build_name([name[:prefix], geo, name[:freq]])
+        name: Series.build_name(name[:prefix], geo, name[:freq])
         ## future/next time: the dataPortalName also needs to be copied over (with mods?)
     )
     new.save!

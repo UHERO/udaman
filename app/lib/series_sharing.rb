@@ -43,8 +43,8 @@ module SeriesSharing
   end
 
   def aa_state_based_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
-    county = Series.build_name([series_prefix + 'NS', county_code, 'M']).ts
-    state = Series.build_name([series_prefix + 'NS', 'HI', 'M']).ts
+    county = Series.build_name(series_prefix + 'NS', county_code, 'M').ts
+    state = Series.build_name(series_prefix + 'NS', 'HI', 'M').ts
 
     historical = county.annual_average / state.annual_average * self
     current_incomplete_year = Series.new #county.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
@@ -54,9 +54,9 @@ module SeriesSharing
 
   def mc_ma_county_share_for(county_code, series_prefix = self.parse_name[:prefix])
     freq = self.parse_name[:freq]
-    county_name = Series.build_name [series_prefix + 'NS', county_code, freq]
+    county_name = Series.build_name(series_prefix + 'NS', county_code, freq)
     county = county_name.ts
-    state_name = Series.build_name [series_prefix + 'NS', 'HI', freq]
+    state_name = Series.build_name(series_prefix + 'NS', 'HI', freq)
     state = state_name.ts
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december
