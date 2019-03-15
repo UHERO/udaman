@@ -102,7 +102,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 	</table>
 	
 	<div id= "toggle-units-div">
-		<%= render :partial => 'toggle_units', :locals => {:series => @series} %>
+		<%= render :partial => 'data_display', :locals => {:series => @series} %>
 	</div>
 	<h3><%= @series.name %></h3>
 	<p><%= @desc %></p>
