@@ -4,7 +4,7 @@ class SeriesController < ApplicationController
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
-                                    :all_tsd_chart, :blog_graph, :toggle_units, :render_data_points, :update_notes]
+                                    :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   # GET /series/new
   def new
@@ -235,14 +235,6 @@ class SeriesController < ApplicationController
     @chart_made = chart_to_make
   end
 
-  def toggle_units
-    @series.units = params[:units]
-    #@series.save
-    @series.aremos_comparison(true)
-    @as = AremosSeries.get @series.name
-    render :partial => 'toggle_units'
-  end
-  
   def render_data_points
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
