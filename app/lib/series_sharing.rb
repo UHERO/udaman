@@ -39,9 +39,11 @@ module SeriesSharing
     county_names = %w{HON HAW MAU KAU}.map{|cty| Series.build_name(prefix + 'NS', cty, 'M') } ## list of names like FOONS@HAW.M
     county_sum = 0
     county_names.each do |name|
-      county_sum = name.ts + county_sum ## after first iteration, county_sum becomes a Series
+      county_sum = name.ts + county_sum rescue raise "series #{name} does not exist"
+      ## after first iteration, county_sum becomes a Series
     end
-    county = Series.build_name(prefix + 'NS', county_code, 'M')
+    c_name = Series.build_name(prefix + 'NS', county_code, 'M')
+    county = c_name.ts || raise("series #{c_name} does not exist")
 
     historical = county.annual_average / county_sum.annual_average * self
     incomplete_year = county.backward_looking_moving_average.get_last_incomplete_year / county_sum.backward_looking_moving_average.get_last_incomplete_year * self
