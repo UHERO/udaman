@@ -58,14 +58,14 @@ module SeriesExternalRelationship
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
           diff = a_diff(value, self.units_at(date))
           self.aremos_diff +=  diff
-          logger.debug { "aremos_comparison: #{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
+          #Rails.logger.debug { "aremos_comparison: #{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
         end
       end
       self.save if save_series
       return {:missing => self.aremos_missing, :diff => self.aremos_diff}
     rescue => e
-      puts e.message
-      puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
+      #puts e.message
+      #puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
     end
   end
   
@@ -100,7 +100,7 @@ module SeriesExternalRelationship
           diff = a_diff(value, self.units_at(date))
           dp = DataPoint.where(:series_id => self.id, :date => date, :current=>true)[0]
           source_code = dp.source_type_code
-          logger.debug { "aremos_comp_display_array: #{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
+          #Rails.logger.debug { "aremos_comp_display_array: #{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
           results.push(0+source_code) if diff == 0
           results.push(1+source_code) if diff > 0 and diff <= 1.0
           results.push(2+source_code) if diff > 1.0 and diff  <= 10.0
@@ -116,8 +116,8 @@ module SeriesExternalRelationship
       end
       results
     rescue => e
-      puts e.message
-      puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
+      #puts e.message
+      #puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
     end
     
   end
@@ -217,11 +217,11 @@ module SeriesExternalRelationship
         end
       end
     
-      puts "#{self.name}: SETTING units = #{best_unit}"
+      #puts "#{self.name}: SETTING units = #{best_unit}"
       self.units = best_unit
       self.aremos_comparison  
     rescue
-      puts "#{self.name}: SETTING DEFAULT"
+      #puts "#{self.name}: SETTING DEFAULT"
       self.update_attributes(:units => 1)
     end
   end
