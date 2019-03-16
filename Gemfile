@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'rails', '~> 5.2.2'
+gem 'rails', '~> 5.2.2', '>= 5.2.2.1'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -40,7 +40,7 @@ gem 'sassc-rails', '>= 2.0.0'
 gem 'coffee-rails', '~> 4.2', '>= 4.2.2'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.3', '>= 4.3.3'
-gem 'jquery-ui-rails', '~> 6.0.0', '>= 6.0.0'
+gem 'jquery-ui-rails', '~> 6.0.1'
 gem 'devise', '~> 4.5', '>= 4.5.0'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
