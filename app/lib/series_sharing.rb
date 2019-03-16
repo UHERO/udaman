@@ -39,7 +39,7 @@ module SeriesSharing
     county_names = %w{HON HAW MAU KAU}.map{|cty| Series.build_name(prefix + 'NS', cty, 'M') } ## list of names like FOONS@HAW.M
     county_sum = 0
     county_names.each do |name|
-      county_sum = name.ts + county_sum rescue raise "series #{name} does not exist"
+      county_sum = name.ts + county_sum rescue raise("series #{name} does not exist")
       ## after first iteration, county_sum becomes a Series
     end
     c_name = Series.build_name(prefix + 'NS', county_code, 'M')
