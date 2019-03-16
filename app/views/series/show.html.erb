@@ -93,7 +93,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<table>
 		
 		<tr><td class="label">Output: </td><td></td></tr>
-    <tr><td class="label">Sources: <br />	<%= link_to 'Add', :controller => :data_sources, :action => :new, :series_id => @series.id %>
+    <tr><td class="label">Definitions:<br />	<%= link_to 'Add', :controller => :data_sources, :action => :new, :series_id => @series.id %>
 		</td><td>
 		<%= render :partial => 'source_list', :locals => { :series => @series } %>
 		</td></tr>

@@ -12,7 +12,7 @@ class DownloadsCache
       @skip_override = options.delete(:dont_skip) == 'true'
     end
     if ds_id
-      @data_source = DataSource.find(ds_id) || raise("No data source with id='#{ds_id}' found")
+      @data_source = DataSource.find(ds_id) || raise("No definition with id='#{ds_id}' found")
     end
   end
 

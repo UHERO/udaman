@@ -24,7 +24,7 @@
 							:controller=> "data_sources",
 							:action => 'delete', 
 							:id => ds.id },
-							data: { :confirm => "Delete data source #{ds.id}: Are you sure??" }
+							data: { :confirm => "Delete definition #{ds.id}: Are you sure??" }
 					%><br/>
           <% if myeval =~ /load_from_download/ %>
              <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|

@@ -103,7 +103,6 @@ task :update_seats_links => :environment do
     
     if has_seats_text and is_excel and is_not_already_in_downloads and is_not_in_exclusion_list
       begin
-        puts 'creating Data Source Download for '+href
         file_name = href.split('/')[-1].gsub('%20',' ')
         month = file_name[0..2]
         year = ([2011,2012,2013,2014,2015,2016,2017,2018].keep_if {|year| !file_name.index(year.to_s).nil? })[0]
@@ -115,11 +114,9 @@ task :update_seats_links => :environment do
           dsd.save
           PackagerMailer.download_link_notification(handle, url, dsd.save_path, true).deliver
         else
-          puts dsd
           PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
         end
       rescue
-        puts 'There was an error'
         PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
       end
     end
@@ -151,7 +148,6 @@ task :update_vis_history_links => :environment do
     
     if has_seats_text and is_excel and is_not_already_in_downloads
       begin
-        puts 'creating Data Source Download for '+href
         file_name = href.split('/')[-1].gsub('%20',' ')
         #month = file_name[0..2]
         year = ([2011,2012,2013,2014,2015,2016,2017,2018].keep_if {|year| !file_name.index(year.to_s).nil? })[0]
@@ -163,11 +159,9 @@ task :update_vis_history_links => :environment do
           dsd.save
           PackagerMailer.download_link_notification(handle, url, dsd.save_path, true).deliver
         else
-          puts dsd
           PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
         end
       rescue
-        puts 'There was an error'
         PackagerMailer.download_link_notification(handle, url, dsd.save_path, false).deliver
       end
     end

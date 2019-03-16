@@ -147,7 +147,7 @@ class DataSource < ApplicationRecord
     end
 
     def reload_source(clear_first = false)
-      Rails.logger.info { "Begin reload of data source #{id} for series <#{self.series.name}> [#{description}]" }
+      Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
       options = nil
@@ -181,10 +181,10 @@ class DataSource < ApplicationRecord
                     :runtime => nil,
                     :last_error => e.message[0..254],
                     :last_error_at => t)
-        Rails.logger.error { "Reload data source #{id} for series <#{self.series.name}> [#{description}]: Error: #{e.message}" }
+        Rails.logger.error { "Reload definition #{id} for series <#{self.series.name}> [#{description}]: Error: #{e.message}" }
         return false
       end
-      Rails.logger.info { "Completed reload of data source #{id} for series <#{self.series.name}> [#{description}]" }
+      Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
       true
     end
 
@@ -371,7 +371,7 @@ class DataSource < ApplicationRecord
       begin
         options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
         unless options
-          raise "Data source id=#{ds.id} eval string does not contain a valid options hash"
+          raise "Definition id=#{ds.id} eval string does not contain a valid options hash"
         end
         replace_options.each do |key, value|
           if value.nil?
