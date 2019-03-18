@@ -1,8 +1,4 @@
 <table>
-	<tr>
-		<th>source&nbsp;date</th>
-		<th>description</th>
-	</tr>
 	<% series.data_sources_by_last_run.each do |ds| %>
   	<% myeval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
