@@ -351,6 +351,7 @@ module SeriesArithmetic
     new_series_data = {}
     annual_values = aggregate_data_by :year, :sum
     self.data.each do |date, _|
+      ## don't we need a check if the annual_values array is !nil ?
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
     new_transformation("Annual Sum of #{name}", new_series_data)

@@ -47,7 +47,7 @@ class PackagerMailer < ApplicationMailer
         "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website"
       @post_address = post_address
       @new_data_series = new_data_series
-      mail(:to => %w(james29@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
     rescue => e
       Rails.logger.error { "PackagerMailer.website_post_notification error: #{e.message}" }
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
