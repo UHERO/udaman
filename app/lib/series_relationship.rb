@@ -1,20 +1,15 @@
 module SeriesRelationship
   def all_frequencies
-    s_root = self.name[0..-3]
-    f_array = []
-    
-    %w(A S Q M W D).each do |suffix|
-      f_array.push(s_root + '.' + suffix) unless (s_root + '.' + suffix).ts.nil?
+    results = []
+    %w(A S Q M W D).each do |ftype|
+      fsib = self.find_sibling_for_freq(ftype)
+      results.push(fsib.name) if fsib
     end
-    f_array
+    results
   end
   
   def other_frequencies
-    all_frequencies.reject { |element| self.name == element }
-  end
-  
-  def get_ns_series
-    Series.get name.sub('@','NS@')
+    all_frequencies.reject {|element| self.name == element }
   end
   
   def current_data_points
