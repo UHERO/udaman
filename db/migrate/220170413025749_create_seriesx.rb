@@ -6,16 +6,17 @@ class CreateSeriesx < ActiveRecord::Migration[5.2]
     execute <<~SQL
       INSERT xseries SELECT * FROM series;
     SQL
-    add_reference :series, :xseries, :integer, foreign_key: true, null: false, default: 0, after: :universe
-#   add_foreign_key :series, :xseries, column: :xseries_id
-    add_reference :data_points, :xseries, :integer, foreign_key: true, null: false, default: 0, after: :series_id
-#   add_foreign_key :data_points, :xseries, column: :xseries_id
-    add_reference :public_data_points, :xseries, :integer, foreign_key: true, null: false, default: 0, after: :series_id
-#   add_foreign_key :public_data_points, :xseries, column: :xseries_id
+    #add_reference :series, :xseries, :integer, foreign_key: true, null: false, default: 0, after: :universe
+    add_foreign_key :series, :xseries, after: :universe
+    #add_reference :data_points, :xseries, :integer, foreign_key: true, null: false, default: 0, after: :series_id
+    add_foreign_key :data_points, :xseries, after: :series_id
+    #add_reference :public_data_points, :xseries, :integer, foreign_key: true, null: false, default: 0, after: :series_id
+    add_foreign_key :public_data_points, :xseries, after: :series_id
 
-    add_reference :xseries, :series, :integer, foreign_key: true, null: false, default: 0, after: :id
+    #add_reference :xseries, :series, :integer, foreign_key: true, null: false, default: 0, after: :id
+    add_foreign_key :xseries, :series, after: :id
     rename_column :xseries, :series_id, :primary_series_id
-#    add_column :xseries, :id, :integer, first: true ### can we populate with auto increment?
+    #add_column :xseries, :id, :integer, first: true ### can we populate with auto increment?
     remove_column :xseries, :universe
     remove_column :xseries, :name
     remove_column :xseries, :description
