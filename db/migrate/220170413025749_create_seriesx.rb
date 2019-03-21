@@ -27,6 +27,7 @@ class CreateSeriesx < ActiveRecord::Migration[5.2]
     # cleanup
     remove_column :data_points, :id
     remove_column :data_points, :universe
+    change_column :data_points, :date, :date, after: :series_id
   end
 
   def self.down
