@@ -1,7 +1,10 @@
 class CreateSeriesx < ActiveRecord::Migration[5.2]
   def self.up
     execute <<~SQL
-      CREATE TABLE xseries LIKE series; INSERT xseries SELECT * FROM series;
+      CREATE TABLE xseries LIKE series;
+    SQL
+    execute <<~SQL
+      INSERT xseries SELECT * FROM series;
     SQL
     add_reference :series, :xseries, foreign_key: true, null: false, default: 0, after: :universe
 #   add_foreign_key :series, :xseries, column: :xseries_id
