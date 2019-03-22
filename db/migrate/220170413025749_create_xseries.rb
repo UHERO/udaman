@@ -1,41 +1,35 @@
 class CreateXseries < ActiveRecord::Migration[5.2]
   def self.up
-    execute <<~SQL
+    execute <<-SQL
       CREATE TABLE xseries LIKE series;
     SQL
-    execute <<~SQL
+    execute <<-SQL
       INSERT xseries SELECT * FROM series;
     SQL
 
     add_column :series, :xseries_id, :integer, null: false, after: :universe
-    execute <<~SQL
+    execute <<-SQL
       UPDATE series SET xseries_id = id;
     SQL
     add_foreign_key :series, :xseries
 
     add_column :data_points, :xseries_id, :integer, null: false, after: :series_id
-    execute <<~SQL
-      UPDATE data_points SET xseries_id = series_id;
-    SQL
     execute <<-SQL
-      ALTER TABLE data_points DROP PRIMARY KEY, ADD PRIMARY KEY(`xseries_id`, `date`, `created_at`, `data_source_id`);
+      UPDATE data_points SET xseries_id = series_id;
     SQL
 
     add_column :public_data_points, :xseries_id, :integer, null: false, after: :series_id
-    execute <<~SQL
-      UPDATE public_data_points SET xseries_id = series_id;
-    SQL
     execute <<-SQL
-      ALTER TABLE public_data_points DROP PRIMARY KEY, ADD PRIMARY KEY(`xseries_id`, `date`);
+      UPDATE public_data_points SET xseries_id = series_id;
     SQL
 
     add_column :xseries, :primary_series_id, :integer, null: false, after: :id
-    execute <<~SQL
+    execute <<-SQL
       UPDATE xseries SET primary_series_id = id;
     SQL
     add_foreign_key :xseries, :series, column: :primary_series_id
 
-    ## recreate foreign key indexes so they differ from :series table
+    ## recreate foreign key indexes so names differ from :series table
     remove_foreign_key :xseries, :source
     add_foreign_key :xseries, :source
     remove_foreign_key :xseries, :source_detail
@@ -64,12 +58,12 @@ class CreateXseries < ActiveRecord::Migration[5.2]
   end
 
   def self.down
-    remove_foreign_key :series, :xseries    if column_exists? :series, :xseries_id
-    remove_column :series, :xseries_id      if column_exists? :series, :xseries_id
-    remove_foreign_key :data_points, :xseries if column_exists? :data_points, :xseries_id
-    remove_column :data_points, :xseries_id   if column_exists? :data_points, :xseries_id
-    remove_foreign_key :public_data_points, :xseries if column_exists? :public_data_points, :xseries_id
-    remove_column :public_data_points, :xseries_id   if column_exists? :public_data_points, :xseries_id
+    if column_exists? :series, :xseries_id
+      remove_foreign_key :series, :xseries
+      remove_column :series, :xseries_id
+    end
+    remove_column :data_points, :xseries_id        if column_exists? :data_points, :xseries_id
+    remove_column :public_data_points, :xseries_id if column_exists? :public_data_points, :xseries_id
     drop_table :xseries if table_exists? :xseries
   end
 end
