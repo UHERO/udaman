@@ -51,6 +51,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     # cleanup
     remove_column :data_points, :id       if column_exists? :data_points, :id
     remove_column :data_points, :universe if column_exists? :data_points, :universe
+    remove_column :public_data_points, :universe if column_exists? :public_data_points, :universe
     change_column :data_points, :date, :date, after: :xseries_id
     change_column :xseries, :quarantined, :boolean, after: :restricted
     change_column :xseries, :last_demetra_date, :date, after: :last_demetra_datestring
