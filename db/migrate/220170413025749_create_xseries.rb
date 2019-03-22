@@ -48,7 +48,6 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     remove_foreign_key :xseries, :source_details if foreign_key_exists? :xseries, :source_details
     add_foreign_key :xseries, :source_details
 
-
     # cleanup
     remove_column :data_points, :id       if column_exists? :data_points, :id
     remove_column :data_points, :universe if column_exists? :data_points, :universe
