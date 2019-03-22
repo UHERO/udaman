@@ -54,6 +54,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     change_column :data_points, :date, :date, after: :xseries_id
     change_column :xseries, :quarantined, :boolean, after: :restricted
     change_column :xseries, :last_demetra_date, :date, after: :last_demetra_datestring
+    change_column :xseries, :base_year, :integer, after: :decimals
   end
 
   def self.down
