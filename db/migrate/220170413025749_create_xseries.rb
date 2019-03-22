@@ -29,12 +29,6 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     SQL
     add_foreign_key :xseries, :series, column: :primary_series_id
 
-    ## recreate foreign key indexes so names differ from :series table
-    remove_foreign_key :xseries, :source
-    add_foreign_key :xseries, :source
-    remove_foreign_key :xseries, :source_detail
-    add_foreign_key :xseries, :source_detail
-
     remove_column :xseries, :universe
     remove_column :xseries, :name
     remove_column :xseries, :description
@@ -47,6 +41,12 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     remove_column :xseries, :dependency_depth
     remove_column :xseries, :investigation_notes
     remove_column :xseries, :scratch
+
+    ## recreate foreign key indexes so names differ from :series table
+    remove_foreign_key :xseries, :source
+    add_foreign_key :xseries, :source
+    remove_foreign_key :xseries, :source_detail
+    add_foreign_key :xseries, :source_detail
 
     # cleanup
     remove_column :data_points, :id       if column_exists? :data_points, :id
