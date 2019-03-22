@@ -9,31 +9,31 @@ class CreateXseries < ActiveRecord::Migration[5.2]
 
     add_column :series, :xseries_id, :integer, after: :universe
     add_foreign_key :series, :xseries
+    change_column_null :series, :xseries_id, false
     execute <<~SQL
       UPDATE series SET xseries_id = id;
     SQL
-    change_column_null :series, :xseries_id, false
 
     add_column :data_points, :xseries_id, :integer, after: :series_id
     add_foreign_key :data_points, :xseries
+    change_column_null :data_points, :xseries_id, false
     execute <<~SQL
       UPDATE data_points SET xseries_id = series_id;
     SQL
-    change_column_null :data_points, :xseries_id, false
 
     add_column :public_data_points, :xseries_id, :integer, after: :series_id
     add_foreign_key :public_data_points, :xseries
+    change_column_null :public_data_points, :xseries_id, false
     execute <<~SQL
       UPDATE public_data_points SET xseries_id = series_id;
     SQL
-    change_column_null :public_data_points, :xseries_id, false
 
     add_column :xseries, :primary_series_id, :integer, after: :id
     add_foreign_key :xseries, :series, column: :primary_series_id
+    change_column_null :xseries, :primary_series_id, false
     execute <<~SQL
       UPDATE xseries SET primary_series_id = id;
     SQL
-    change_column_null :xseries, :primary_series_id, false
 
     remove_column :xseries, :universe
     remove_column :xseries, :name
