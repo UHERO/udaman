@@ -64,9 +64,12 @@ class CreateXseries < ActiveRecord::Migration[5.2]
   end
 
   def self.down
+    remove_foreign_key :series, :xseries    if column_exists? :series, :xseries_id
     remove_column :series, :xseries_id      if column_exists? :series, :xseries_id
-    remove_column :data_points, :xseries_id if column_exists? :data_points, :xseries_id
-    remove_column :public_data_points, :xseries_id if column_exists? :public_data_points, :xseries_id
+    remove_foreign_key :data_points, :xseries if column_exists? :data_points, :xseries_id
+    remove_column :data_points, :xseries_id   if column_exists? :data_points, :xseries_id
+    remove_foreign_key :public_data_points, :xseries if column_exists? :public_data_points, :xseries_id
+    remove_column :public_data_points, :xseries_id   if column_exists? :public_data_points, :xseries_id
     drop_table :xseries if table_exists? :xseries
   end
 end
