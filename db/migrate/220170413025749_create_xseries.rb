@@ -1,5 +1,6 @@
 class CreateXseries < ActiveRecord::Migration[5.2]
   def self.up
+=begin
     execute <<-SQL
       CREATE TABLE xseries LIKE series;
     SQL
@@ -41,12 +42,12 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     remove_column :xseries, :dependency_depth
     remove_column :xseries, :investigation_notes
     remove_column :xseries, :scratch
-
+=end
     ## recreate foreign key indexes so names differ from :series table
-    remove_foreign_key :xseries, :source
-    add_foreign_key :xseries, :source
-    remove_foreign_key :xseries, :source_detail
-    add_foreign_key :xseries, :source_detail
+    remove_foreign_key :xseries, :sources
+    add_foreign_key :xseries, :sources
+    remove_foreign_key :xseries, :source_details
+    add_foreign_key :xseries, :source_details
 
     # cleanup
     remove_column :data_points, :id       if column_exists? :data_points, :id
