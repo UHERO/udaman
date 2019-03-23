@@ -42,10 +42,9 @@ class Series < ApplicationRecord
                               NS: 'not_seasonally_adjusted' }
 
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
-  ## columns/attributes based on heuristics over other attributes in the model. In any case, replacing the
-  ## name.split with a Series.parse_name would be better.
+  ## columns/attributes based on heuristics over other attributes in the model.
   after_create do
-    self.update frequency: (Series.frequency_from_code(self.name.split('.').pop) || self.frequency)
+    self.update(frequency: self.frequency_from_name || self.frequency)
   end
 
   def as_json(options = {})
@@ -159,7 +158,15 @@ class Series < ApplicationRecord
     return :day if code == 'D' || code == 'd'
     return nil
   end
-  
+
+  def Series.frequency_from_name(name)
+    Series.frequency_from_code(Series.parse_name(name)[:freq])
+  end
+
+  def frequency_from_name
+    Series.frequency_from_name(self.name)
+  end
+
   def Series.each_spreadsheet_header(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?
