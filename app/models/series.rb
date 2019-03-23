@@ -47,18 +47,6 @@ class Series < ApplicationRecord
     self.update(frequency: self.frequency_from_name || self.frequency)
   end
 
-  def as_json(options = {})
-    as = AremosSeries.get(self.name)
-    desc = as.nil? ? '' : as.description
-    {
-      data: self.data,
-      frequency: self.frequency,
-      units: self.units,
-      description: desc,
-      source: self.original_url
-    }
-  end
-
   def Series.bulk_create(definitions)
     definitions.each { |definition| Kernel::eval definition }
     return true
