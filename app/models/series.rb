@@ -51,10 +51,13 @@ class Series < ApplicationRecord
     definitions.each { |definition| Kernel::eval definition }
     return true
   end
-  
+
+  def first_observation
+    data.keys.sort[0] rescue nil
+  end
+
   def last_observation
-    return nil if data.nil?
-    data.keys.sort[-1]
+    data.keys.sort[-1] rescue nil
   end
   
   def Series.handle_buckets(series_array, handle_hash)
