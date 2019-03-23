@@ -259,7 +259,7 @@ class DataSource < ApplicationRecord
       self.data_points.each do |dp|
         dp.delete
       end
-      Rails.logger.info { "Deleted all data points for DS #{self.description} in #{Time.now - t} seconds" }
+      Rails.logger.info { "Deleted all data points for definition #{id} in #{Time.now - t} seconds" }
     end
     
     def delete
