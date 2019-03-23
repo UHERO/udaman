@@ -20,13 +20,14 @@ class Series < ApplicationRecord
   #serialize :data, Hash
   serialize :factors, Hash
 
+  belongs_to :xseries, inverse_of: :series
+
   has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
   has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
 
   has_and_belongs_to_many :data_lists
 
-  belongs_to :xseries, inverse_of: :series
   belongs_to :source, optional: true, inverse_of: :series
   belongs_to :source_detail, optional: true, inverse_of: :series
   belongs_to :unit, optional: true, inverse_of: :series
