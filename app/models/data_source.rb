@@ -4,11 +4,11 @@ class DataSource < ApplicationRecord
   require 'digest/md5'
   serialize :dependencies, Array
   
-  belongs_to :series
+  belongs_to :series, inverse_of: :data_source
   has_many :data_points, dependent: :delete_all
   has_many :data_source_downloads, dependent: :delete_all
-  has_many :data_source_actions
   has_many :downloads, -> {distinct}, through: :data_source_downloads
+  has_many :data_source_actions
 
   composed_of   :last_run,
                 :class_name => 'Time',

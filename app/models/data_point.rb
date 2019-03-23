@@ -1,6 +1,6 @@
 class DataPoint < ApplicationRecord
   self.primary_key = :series_id, :date, :created_at, :data_source_id
-  belongs_to :series
+  belongs_to :xseries, inverse_of: :data_point
   belongs_to :data_source
   
   def upd(value, data_source)
