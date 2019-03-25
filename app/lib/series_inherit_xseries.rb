@@ -2,6 +2,36 @@ module SeriesInheritXseries
 ## These are the methods necessary for a Series object to inherit the properties/columns now contained in the Xseries
 ## model after the two have been separated.
 
+  def update(newattrs, strict = false)
+    series_attrs = Series.attribute_names
+    xseries_attrs = Xseries.attribute_names
+    begin
+      self.transaction do
+          super.update(newattrs.select{|k,_| series_attrs.include? k.to_s })
+        xseries.update(newattrs.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
+      end
+    rescue
+      Rails.logger.error "Model update failed for Series #{name} (id=#{id})"
+    end
+  end
+
+  alias :update_attributes :update
+
+  def update!(newattrs, strict = false)
+    series_attrs = Series.attribute_names
+    xseries_attrs = Xseries.attribute_names
+    begin
+      self.transaction do
+        super.update!(newattrs.select{|k,_| series_attrs.include? k.to_s })
+        xseries.update!(newattrs.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
+      end
+    rescue
+      Rails.logger.error "Model update! failed for Series #{name} (id=#{id})"
+    end
+  end
+
+  alias :update_attributes! :update!
+
   def frequency
     xseries.frequency
   end
