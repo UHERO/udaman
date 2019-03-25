@@ -1,5 +1,6 @@
 class Series < ApplicationRecord
   include Cleaning
+  include SeriesInheritXseries
   include SeriesArithmetic
   include SeriesAggregation
   include SeriesComparison
@@ -274,7 +275,8 @@ class Series < ApplicationRecord
     end
     properties[:name] = Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] = geo.id
-    properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
+    properties[:frequency] = Series.frequency_from_code(name_parts[:freq]) ||
+        raise("Unknown frequency code #{name_parts[:freq]} in series creation")
     Series.create(properties)
   end
 
