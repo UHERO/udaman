@@ -32,7 +32,7 @@
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
     </div>
     <div class="field">
-      <%= f.label :units, 'Units (1, 10, 1000, etc)' %><br/>
+      <%= f.label :units, 'Units (1, 10, 1000, etc)' %>
       <%= f.text_field :units %>
     </div>
     <div class="field">
@@ -60,24 +60,24 @@
       <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
     </div>
     <div class="field">
-      <%= f.label :percent, 'Percent (prevents calculation of growth rate)' %><br/>
-      <%= f.check_box :percent %>
+      <%= f.label :percent, 'Percent' %>
+      <%= f.check_box :percent %> (prevents calculation of growth rate)
     </div>
     <div class="field">
-      <%= f.label :real, 'Real (prevents adjustment for inflation)' %><br/>
-      <%= f.check_box :real %>
+      <%= f.label :real, 'Real' %>
+      <%= f.check_box :real %> (prevents adjustment for inflation)
     </div>
     <div class="field">
       <%= f.label :decimals %><br>
       <%= f.number_field :decimals, :size => 1 %>
     </div>
     <div class="field">
-      <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %><br/>
+      <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %>
       <%= f.text_field :frequency_transform %>
     </div>
     <div class="field">
-      <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
-      <%= f.check_box :restricted %>
+      <%= f.label :restricted, 'Restricted' %><br/>
+      <%= f.check_box :restricted %> (prevents this series from being visible outside udaman)
     </div>
     <div class="actions">
       <%= f.submit %>

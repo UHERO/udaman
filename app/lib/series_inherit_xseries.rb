@@ -1,6 +1,6 @@
 module SeriesInheritXseries
-## These are the methods necessary for a Series object to inherit the properties/columns now contained in the Xseries
-## model after the two have been separated.
+## These are the glue methods necessary for a Series object to inherit the properties/columns now contained
+## in the Xseries model after the two have been separated.
 
   def update(newattrs, strict = false)
     series_attrs = Series.attribute_names
