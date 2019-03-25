@@ -20,11 +20,11 @@ class SeriesController < ApplicationController
     begin
       @series = Series.create_new(series_params.merge(other_params))
     rescue => error
-      redirect_to({ :action => :new }, :notice => error.message)
+      redirect_to({ action: :new }, :notice => error.message)
       return
     end
     if @series
-      redirect_to @series, notice: 'Series was successfully created.'
+      redirect_to @series, notice: 'Series was successfully created'
     else
       render :new
     end
@@ -33,13 +33,11 @@ class SeriesController < ApplicationController
   def update
     respond_to do |format|
       if @series.update! series_params
-        format.html { redirect_to(@series,
-                                  :notice => 'Data File successfully updated.') }
+        format.html { redirect_to(@series, notice: 'Data File successfully updated') }
         format.xml  { head :ok }
       else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @series.errors,
-                             :status => :unprocessable_entity }
+        format.html { render action: :edit }
+        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
       end
     end
   end
