@@ -6,16 +6,16 @@ class SeriesController < ApplicationController
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
-  # GET /series/new
   def new
     @series = Series.new
   end
 
-  # GET /series/bulk
   def bulk_new
   end
 
-  # POST /series
+  def edit
+  end
+
   def create
     begin
       @series = Series.create_new(series_params.merge(other_params))
@@ -27,6 +27,20 @@ class SeriesController < ApplicationController
       redirect_to @series, notice: 'Series was successfully created.'
     else
       render :new
+    end
+  end
+
+  def update
+    respond_to do |format|
+      if @series.update! series_params
+        format.html { redirect_to(@series,
+                                  :notice => 'Data File successfully updated.') }
+        format.xml  { head :ok }
+      else
+        format.html { render :action => 'edit' }
+        format.xml  { render :xml => @series.errors,
+                             :status => :unprocessable_entity }
+      end
     end
   end
 
@@ -144,23 +158,6 @@ class SeriesController < ApplicationController
     end
   end
   
-  def edit
-  end
-  
-  def update    
-    respond_to do |format|
-      if @series.update! series_params
-        format.html { redirect_to(@series,
-                      :notice => 'Data File successfully updated.') }
-        format.xml  { head :ok }
-      else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @series.errors,
-                      :status => :unprocessable_entity }
-      end
-    end
-  end
-
   def refresh_aremos
     @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
