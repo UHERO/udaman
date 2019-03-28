@@ -22,6 +22,8 @@ class Series < ApplicationRecord
   serialize :factors, Hash
 
   belongs_to :xseries, inverse_of: :series
+  ## methods that Series does not respond_to? should be tried against the contained Xseries
+  delegate_missing_to :xseries
 
   has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
