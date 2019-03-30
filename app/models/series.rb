@@ -104,7 +104,7 @@ class Series < ApplicationRecord
       self.transaction do
         s = Series.create(properties.select{|k,_| series_attrs.include? k.to_s })
         x = Xseries.create(properties.select{|k,_| xseries_attrs.include? k.to_s }.merge(primary_series_id: s.id))
-        s.update(xseries_id: x.id, true)
+        s.update({ xseries_id: x.id }, true)
       end
     rescue => e
       raise "Model object creation failed for name #{attributes[:name]}: #{e.message}"
