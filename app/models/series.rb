@@ -111,6 +111,20 @@ class Series < ApplicationRecord
     s
   end
 
+  ## NOTE: Overriding an important ActiveRecord core method!
+  def update(attributes)
+    series_attrs = Series.attribute_names
+    xseries_attrs = Xseries.attribute_names
+    begin
+      self.transaction do
+        super.update(attributes.select{|k,_| series_attrs.include? k.to_s })
+        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+      end
+    rescue => e
+      raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
+    end
+  end
+
   def Series.parse_name(string)
     if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
       return { prefix: $1, geo: $2, freq: $3.upcase }
