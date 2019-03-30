@@ -106,7 +106,7 @@ class Series < ApplicationRecord
         x.update({ primary_series_id: s.id }, true)
       end
     rescue => e
-      raise "Model object creation failed for name #{attributes[:name]}: #{e.message}"
+      raise "Model object creation failed for name #{properties[:name]}: #{e.message}"
     end
     s
   end

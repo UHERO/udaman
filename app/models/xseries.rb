@@ -3,7 +3,7 @@ class Xseries < ApplicationRecord
   include SeriesInheritXseries
 
   has_many :series, inverse_of: :xseries
-  belongs_to :primary_series, class_name: 'Series'
+  has_one :primary_series, class_name: 'Series'
   has_many :data_points, dependent: :delete_all
 
 end

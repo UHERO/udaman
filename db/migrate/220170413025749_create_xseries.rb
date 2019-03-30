@@ -23,7 +23,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
       UPDATE public_data_points SET xseries_id = series_id;
     SQL
 
-    add_column :xseries, :primary_series_id, :integer, null: false, after: :id
+    add_column :xseries, :primary_series_id, :integer, after: :id
     execute <<-SQL
       UPDATE xseries SET primary_series_id = id;
     SQL
