@@ -2,7 +2,7 @@ module SeriesInheritXseries
 ## These are the glue methods necessary for a Series object to inherit the properties/columns now contained
 ## in the Xseries model after the two have been separated.
 
-  def update(attributes, strict = false)
+  def updateFOOF(attributes, strict = false)
     series_attrs = Series.attribute_names
     xseries_attrs = Xseries.attribute_names
     begin
@@ -15,9 +15,9 @@ module SeriesInheritXseries
     end
   end
 
-  alias :update_attributes :update
+  #alias :update_attributes :update
 
-  def update!(attributes, strict = false)
+  def updateFOOF!(attributes, strict = false)
     series_attrs = Series.attribute_names
     xseries_attrs = Xseries.attribute_names
     begin
@@ -30,6 +30,6 @@ module SeriesInheritXseries
     end
   end
 
-  alias :update_attributes! :update!
+  #alias :update_attributes! :update!
 
 end
