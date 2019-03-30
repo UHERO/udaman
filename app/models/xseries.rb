@@ -1,5 +1,6 @@
 class Xseries < ApplicationRecord
   include Cleaning
+  include SeriesInheritXseries
 
   has_many :series, inverse_of: :xseries
   belongs_to :primary_series, class_name: 'Series'
