@@ -47,7 +47,9 @@ class Series < ApplicationRecord
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
   ## columns/attributes based on heuristics over other attributes in the model.
   after_create do
-    self.update(frequency: self.frequency_from_name || self.frequency)
+    unless frequency
+      self.update(frequency: self.frequency_from_name)
+    end
   end
 
   def first_observation
@@ -117,13 +119,18 @@ class Series < ApplicationRecord
     xseries_attrs = Xseries.attribute_names
     begin
       self.transaction do
-        super.update(attributes.select{|k,_| series_attrs.include? k.to_s })
+        puts ">>>>>>>>>>>>>>>>>>>>>>>>>>>>> updating 1"
+        ## use write_attribute?
+        Series.update(self.id, attributes.select{|k,_| series_attrs.include? k.to_s })
+        puts ">>>>>>>>>>>>>>>>>>>>>>>>>>>>> updating 2"
         xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
     end
   end
+
+  alias update_attributes update
 
   def Series.parse_name(string)
     if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
