@@ -67,6 +67,10 @@ class Series < ApplicationRecord
     Series.where('series.universe like ?', '%' + universe + '%')
   end
 
+  def Series.all_names
+    Series.get_all_uhero.pluck(:name)
+  end
+
   def Series.get(name)
     Series.parse_name(name) && Series.where(name: name).first
   end
@@ -199,10 +203,6 @@ class Series < ApplicationRecord
       mod_buckets[last_update] += 1      
     end
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
-  end
-  
-  def Series.all_names
-    Series.get_all_uhero.pluck(:name)
   end
   
   def Series.region_hash
