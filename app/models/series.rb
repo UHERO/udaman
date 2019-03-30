@@ -51,11 +51,6 @@ class Series < ApplicationRecord
     self.update(frequency: self.frequency_from_name || self.frequency)
   end
 
-  def Series.bulk_create(definitions)
-    definitions.each { |definition| Kernel::eval definition }
-    return true
-  end
-
   def first_observation
     data.keys.sort[0] rescue nil
   end
@@ -78,6 +73,11 @@ class Series < ApplicationRecord
 
   def Series.get_or_new(series_name)
     Series.get(series_name) || Series.create_new({ name: series_name })
+  end
+
+  def Series.bulk_create(definitions)
+    definitions.each { |definition| Kernel::eval definition }
+    return true
   end
 
   def Series.create_new(properties)
