@@ -279,7 +279,19 @@ class Series < ApplicationRecord
     properties[:geography_id] = geo.id
     properties[:frequency] = Series.frequency_from_code(name_parts[:freq]) ||
         raise("Unknown frequency code #{name_parts[:freq]} in series creation")
-    Series.create(properties)
+    series_attrs = Series.attribute_names
+    xseries_attrs = Xseries.attribute_names
+    s = nil
+    begin
+      self.transaction do
+        s = Series.create(properties.select{|k,_| series_attrs.include? k.to_s })
+        x = Xseries.update(properties.select{|k,_| xseries_attrs.include? k.to_s }.merge(primary_series_id: s.id))
+        s.update(xseries_id: x.id, true)
+      end
+    rescue => e
+      raise "Model object creation failed for name #{attributes[:name]}: #{e.message}"
+    end
+    s
   end
 
   def Series.parse_name(string)

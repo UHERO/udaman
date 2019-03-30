@@ -32,20 +32,4 @@ module SeriesInheritXseries
 
   alias :update_attributes! :update!
 
-  def Series.create(attributes)
-    series_attrs = Series.attribute_names
-    xseries_attrs = Xseries.attribute_names
-    s = nil
-    begin
-      self.transaction do
-        s = FOOFNER.create(attributes.select{|k,_| series_attrs.include? k.to_s })
-        x = Xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }.merge(primary_series_id: s.id))
-        s.update(xseries_id: x.id, true)
-      end
-    rescue => e
-      raise "Model object creation failed for name #{attributes[:name]}: #{e.message}"
-    end
-    s
-  end
-
 end
