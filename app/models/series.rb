@@ -63,7 +63,116 @@ class Series < ApplicationRecord
   def last_observation
     data.keys.sort[-1] rescue nil
   end
-  
+
+  def Series.get_all_uhero
+    Series.get_all_universe 'UHERO'
+  end
+
+  def Series.get_all_universe(universe)
+    Series.where('series.universe like ?', '%' + universe + '%')
+  end
+
+  def Series.get(name)
+    Series.parse_name(name) && Series.where(name: name).first
+  end
+
+  def Series.get_or_new(series_name)
+    Series.get(series_name) || Series.create_new({ name: series_name })
+  end
+
+  def Series.create_new(properties)
+    name_parts = properties.delete(:name_parts)
+    if name_parts  ## called from SeriesController#create
+      geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
+    else
+      name_parts = Series.parse_name(properties[:name])
+      geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
+          raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
+    end
+    properties[:name] = Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
+    properties[:geography_id] = geo.id
+    properties[:frequency] = Series.frequency_from_code(name_parts[:freq]) ||
+        raise("Unknown frequency code #{name_parts[:freq]} in series creation")
+    series_attrs = Series.attribute_names
+    xseries_attrs = Xseries.attribute_names
+    s = nil
+    begin
+      self.transaction do
+        s = Series.create(properties.select{|k,_| series_attrs.include? k.to_s })
+        x = Xseries.update(properties.select{|k,_| xseries_attrs.include? k.to_s }.merge(primary_series_id: s.id))
+        s.update(xseries_id: x.id, true)
+      end
+    rescue => e
+      raise "Model object creation failed for name #{attributes[:name]}: #{e.message}"
+    end
+    s
+  end
+
+  def Series.parse_name(string)
+    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
+      return { prefix: $1, geo: $2, freq: $3.upcase }
+    end
+    raise SeriesNameException, "Invalid series name format: #{string}"
+  end
+
+  def parse_name
+    Series.parse_name(self.name)
+  end
+
+  def Series.build_name(prefix, geo, freq)
+    name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
+    Series.parse_name(name) && name
+  end
+
+  ## Build a new name starting from mine, and replacing whatever parts are passed in
+  def build_name(new_parts)
+    name = self.parse_name.merge(new_parts)
+    Series.build_name(name[:prefix], name[:geo], name[:freq])
+  end
+
+  ## Find NS@ correspondent series
+  def find_ns_series
+    self.build_name(prefix: self.parse_name[:prefix] + 'NS').ts
+  end
+
+  ## Find non-NS@ correspondent series
+  def find_non_ns_series
+    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,'')).ts
+  end
+
+  ## Find "sibling" series for a different geography
+  def find_sibling_for_geo(geo)
+    self.build_name(geo: geo.upcase).ts
+  end
+
+  ## Find "sibling" series for a different frequency
+  def find_sibling_for_freq(freq)
+    self.build_name(freq: freq.upcase).ts
+  end
+
+  ## Duplicate series for a different geography
+  def dup_series_for_geo(geo)
+    sib = find_sibling_for_geo(geo)
+    raise "Series #{sib.name} already exists" if sib
+    name = self.parse_name
+    new = self.dup
+    new.update(
+        geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
+        name: Series.build_name(name[:prefix], geo, name[:freq])
+    ## future/next time: the dataPortalName also needs to be copied over (with mods?)
+    )
+    new.save!
+    self.data_sources.each do |ds|
+      new_ds = ds.dup
+      if new_ds.save!
+        new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
+        new.data_sources << new_ds
+        new_ds.reload_source
+      end
+    end
+    new
+  end
+
   def Series.handle_buckets(series_array, handle_hash)
     series_array_buckets = {}
     series_array.each do |s|
@@ -250,115 +359,6 @@ class Series < ApplicationRecord
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
   
-  def Series.get_all_uhero
-    Series.get_all_universe 'UHERO'
-  end
-
-  def Series.get_all_universe(universe)
-    Series.where('series.universe like ?', '%' + universe + '%')
-  end
-
-  def Series.get(name)
-    Series.parse_name(name) && Series.where(name: name).first
-  end
-
-  def Series.get_or_new(series_name)
-    Series.get(series_name) || Series.create_new({ name: series_name })
-  end
-
-  def Series.create_new(properties)
-    name_parts = properties.delete(:name_parts)
-    if name_parts  ## called from SeriesController#create
-      geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
-    else
-      name_parts = Series.parse_name(properties[:name])
-      geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
-              raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
-    end
-    properties[:name] = Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
-    properties[:geography_id] = geo.id
-    properties[:frequency] = Series.frequency_from_code(name_parts[:freq]) ||
-        raise("Unknown frequency code #{name_parts[:freq]} in series creation")
-    series_attrs = Series.attribute_names
-    xseries_attrs = Xseries.attribute_names
-    s = nil
-    begin
-      self.transaction do
-        s = Series.create(properties.select{|k,_| series_attrs.include? k.to_s })
-        x = Xseries.update(properties.select{|k,_| xseries_attrs.include? k.to_s }.merge(primary_series_id: s.id))
-        s.update(xseries_id: x.id, true)
-      end
-    rescue => e
-      raise "Model object creation failed for name #{attributes[:name]}: #{e.message}"
-    end
-    s
-  end
-
-  def Series.parse_name(string)
-    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase }
-    end
-    raise SeriesNameException, "Invalid series name format: #{string}"
-  end
-
-  def parse_name
-    Series.parse_name(self.name)
-  end
-
-  def Series.build_name(prefix, geo, freq)
-    name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
-    Series.parse_name(name) && name
-  end
-
-  ## Build a new name starting from mine, and replacing whatever parts are passed in
-  def build_name(new_parts)
-    name = self.parse_name.merge(new_parts)
-    Series.build_name(name[:prefix], name[:geo], name[:freq])
-  end
-
-  ## Find NS@ correspondent series
-  def find_ns_series
-    self.build_name(prefix: self.parse_name[:prefix] + 'NS').ts
-  end
-
-  ## Find non-NS@ correspondent series
-  def find_non_ns_series
-    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,'')).ts
-  end
-
-  ## Find "sibling" series for a different geography
-  def find_sibling_for_geo(geo)
-    self.build_name(geo: geo.upcase).ts
-  end
-
-  ## Find "sibling" series for a different frequency
-  def find_sibling_for_freq(freq)
-    self.build_name(freq: freq.upcase).ts
-  end
-
-  ## Duplicate series for a different geography
-  def dup_series_for_geo(geo)
-    sib = find_sibling_for_geo(geo)
-    raise "Series #{sib.name} already exists" if sib
-    name = self.parse_name
-    new = self.dup
-    new.update(
-        geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
-        name: Series.build_name(name[:prefix], geo, name[:freq])
-        ## future/next time: the dataPortalName also needs to be copied over (with mods?)
-    )
-    new.save!
-    self.data_sources.each do |ds|
-      new_ds = ds.dup
-      if new_ds.save!
-        new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
-        new.data_sources << new_ds
-        new_ds.reload_source
-      end
-    end
-    new
-  end
-
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
