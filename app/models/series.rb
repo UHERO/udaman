@@ -1,6 +1,5 @@
 class Series < ApplicationRecord
   include Cleaning
-  include SeriesInheritXseries
   include SeriesArithmetic
   include SeriesAggregation
   include SeriesComparison
@@ -129,6 +128,23 @@ class Series < ApplicationRecord
   end
 
   alias update_attributes update
+
+  ## NOTE: Overriding an important ActiveRecord core method!
+  def update!(attributes)
+    series_attrs = Series.attribute_names.reject{|a| a =~ /_at$/ } ## leave out timestamps? Do we want this?
+    xseries_attrs = Xseries.attribute_names.reject{|a| a =~ /_at$/ }
+    begin
+      with_transaction_returning_status do
+        assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
+        save!
+        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+      end
+    rescue => e
+      raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
+    end
+  end
+
+  alias update_attributes! update!
 
   def Series.parse_name(string)
     if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
