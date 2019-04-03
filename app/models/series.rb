@@ -97,8 +97,8 @@ class Series < ApplicationRecord
     properties[:geography_id] = geo.id
     properties[:frequency] = Series.frequency_from_code(name_parts[:freq]) ||
         raise("Unknown frequency code #{name_parts[:freq]} in series creation")
-    series_attrs = Series.attribute_names.reject{|a| a =~ /_at$/ } ## leave out timestamps
-    xseries_attrs = Xseries.attribute_names.reject{|a| a =~ /_at$/ }
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
     s = nil
     begin
       self.transaction do
@@ -114,8 +114,8 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update(attributes, strict = false)
-    series_attrs = Series.attribute_names.reject{|a| a =~ /_at$/ } ## leave out timestamps? Do we want this?
-    xseries_attrs = Xseries.attribute_names.reject{|a| a =~ /_at$/ }
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ } ## leave out timestamps? Do we want this?
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
@@ -131,8 +131,8 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update!(attributes, strict = false)
-    series_attrs = Series.attribute_names.reject{|a| a =~ /_at$/ } ## leave out timestamps? Do we want this?
-    xseries_attrs = Xseries.attribute_names.reject{|a| a =~ /_at$/ }
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ } ## leave out timestamps? Do we want this?
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
