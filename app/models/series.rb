@@ -113,14 +113,14 @@ class Series < ApplicationRecord
   end
 
   ## NOTE: Overriding an important ActiveRecord core method!
-  def update(attributes)
+  def update(attributes, strict = false)
     series_attrs = Series.attribute_names.reject{|a| a =~ /_at$/ } ## leave out timestamps? Do we want this?
     xseries_attrs = Xseries.attribute_names.reject{|a| a =~ /_at$/ }
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save
-        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -130,14 +130,14 @@ class Series < ApplicationRecord
   alias update_attributes update
 
   ## NOTE: Overriding an important ActiveRecord core method!
-  def update!(attributes)
+  def update!(attributes, strict = false)
     series_attrs = Series.attribute_names.reject{|a| a =~ /_at$/ } ## leave out timestamps? Do we want this?
     xseries_attrs = Xseries.attribute_names.reject{|a| a =~ /_at$/ }
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save!
-        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
