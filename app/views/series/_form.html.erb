@@ -67,14 +67,16 @@
       <%= f.label :real, 'Real' %>
       <%= f.check_box :real %> (prevents adjustment for inflation)
     </div>
-    <div class="field">
-      <%= f.label :decimals %><br>
-      <%= f.number_field :decimals, :size => 1 %>
-    </div>
-    <div class="field">
-      <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %>
-      <%= f.text_field :frequency_transform %>
-    </div>
+    <%= f.fields_for :xseries do |xf| %>
+        <div class="field">
+          <%= xf.label :decimals %><br>
+          <%= xf.number_field :decimals, :size => 1 %>
+        </div>
+        <div class="field">
+          <%= xf.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %>
+          <%= xf.text_field :frequency_transform %>
+        </div>
+    <% end %>
     <div class="field">
       <%= f.label :restricted, 'Restricted' %><br/>
       <%= f.check_box :restricted %> (prevents this series from being visible outside udaman)
