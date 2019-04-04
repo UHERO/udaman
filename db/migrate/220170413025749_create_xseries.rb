@@ -57,6 +57,12 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     change_column :xseries, :quarantined, :boolean, after: :restricted
     change_column :xseries, :last_demetra_date, :date, after: :last_demetra_datestring
     change_column :xseries, :base_year, :integer, after: :decimals
+
+    ##remove_column :series, :decimals
+    ##remove_column :series, :base_year
+    ##remove_column :series, :frequency_transform
+    ##alter table `data_points` drop primary key
+    ##alter table `data_points` add primary key (xseries_id, date, created_at, data_source_id)
   end
 
   def self.down
