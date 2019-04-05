@@ -1241,12 +1241,13 @@ class Series < ApplicationRecord
         .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
   end
 
+  def source_link_is_valid
+    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
+
 private
   def Series.display_options(options)
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end
 
-  def source_link_is_valid
-    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
-  end
 end
