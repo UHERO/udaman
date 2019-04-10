@@ -109,7 +109,6 @@ class NtaUpload < ApplicationRecord
     end
 
     # Clean out all the things, but not the root category
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     NtaUpload.delete_universe_nta
 
     root_cat = Category.find_by(universe: 'NTA', ancestry: nil) || raise('No NTA root category found')
@@ -333,6 +332,7 @@ class NtaUpload < ApplicationRecord
   end
 
   def NtaUpload.delete_universe_nta
+    Rails.logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     ActiveRecord::Base.connection.execute <<~SQL
       delete from public_data_points where universe = 'NTA' ;
     SQL
