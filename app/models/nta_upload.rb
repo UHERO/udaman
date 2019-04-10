@@ -163,10 +163,10 @@ class NtaUpload < ApplicationRecord
         Rails.logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
-    ## Alphabetize the parent categories
-    parents = Category.where('universe = "NTA" and ancestry is not null and meta is null')
-    list_order = 0
-    parents.sort {|a,b| a.name <=> b.name }.each {|cat| cat.update!(list_order: list_order); list_order = list_order + 1 }
+    ## Don't alphabetize any more --Alphabetize the parent categories
+    # parents = Category.where('universe = "NTA" and ancestry is not null and meta is null')
+    # list_order = 0
+    # parents.sort {|a,b| a.name <=> b.name }.each {|cat| cat.update!(list_order: list_order); list_order = list_order + 1 }
     true
   end
 
