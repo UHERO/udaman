@@ -64,5 +64,5 @@ group :development do
 
 group :test do
   gem 'rake'
-  gem 'rspec-sidekiq', '~> 3.0, >= 3.0.3'
+  gem 'rspec-sidekiq', '~> 3.0', '>= 3.0.3'
 end
