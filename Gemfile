@@ -55,8 +55,8 @@ gem 'sqlite3'
 
 group :development do
   gem 'listen'
-  gem 'rspec-rails', '~> 3.5', '>= 3.5.2'
-  gem 'factory_bot_rails', '~> 4.11', '>= 4.11.1'
+  gem 'rspec-rails', '~> 3.8.0', '>= 3.8.2'
+  gem 'factory_bot_rails', '~> 5.0', '>= 5.0.1'
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner'
@@ -64,5 +64,5 @@ group :development do
 
 group :test do
   gem 'rake'
-  gem 'rspec-sidekiq', '>= 2.2.0'
+  gem 'rspec-sidekiq', '~> 3.0, >= 3.0.3'
 end
