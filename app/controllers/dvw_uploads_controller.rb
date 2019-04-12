@@ -17,18 +17,18 @@ class DvwUploadsController < ApplicationController
   end
 
   def create
-    @dvw_upload = DvwUpload.new(dbedt_upload_params)
+    @dvw_upload = DvwUpload.new(dvw_upload_params)
 
-    unless @dvw_upload.store_upload_files(dbedt_upload_params[:cats_filename], dbedt_upload_params[:series_filename])
-      redirect_to(action: 'index')
+    unless @dvw_upload.store_upload_files(dvw_upload_params[:series_filename])
+      redirect_to action: :index
       return
     end
-    redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully stored.')
+    redirect_to({ action: :index }, notice: 'DVW upload was successfully stored.')
   end
 
   def make_active
     @dvw_upload.make_active
-    redirect_to(action: 'index')
+    redirect_to action: :index
   end
 
   def active_status
@@ -44,17 +44,17 @@ class DvwUploadsController < ApplicationController
 
   def destroy
     @dvw_upload.destroy
-    redirect_to({action: 'index'}, notice: 'DBEDT upload was successfully destroyed.')
+    redirect_to({ action: :index }, notice: 'DVW upload was successfully destroyed.')
   end
 
 private
     # Use callbacks to share common setup or constraints between actions.
     def set_dvw_upload
-      @dvw_upload = DvwUpload.find(params[:id])
+      @dvw_upload = DvwUpload.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.
     def dvw_upload_params
-      params.require(:dbedt_upload).permit(:filetype, :cats_filename, :series_filename)
+      params.require(:dvw_upload).permit(:filetype, :series_filename)
     end
 end
