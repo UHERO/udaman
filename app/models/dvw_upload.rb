@@ -97,6 +97,7 @@ class DvwUpload < ApplicationRecord
     unless series_filename
       raise 'load_cats_csv: no series_filename'
     end
+    csv_path = path(series_filename).change_file_extension('')
     true
   end
 
@@ -180,7 +181,6 @@ private
       DELETE FROM data_points
       WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
     SQL
-    DataSource.where("eval LIKE 'DvwUpload.load(#{self.id},%)'").delete_all
   end
 
 end
