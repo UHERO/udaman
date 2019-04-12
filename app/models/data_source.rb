@@ -150,7 +150,6 @@ class DataSource < ApplicationRecord
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
-      options = nil
       begin
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
