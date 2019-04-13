@@ -10,14 +10,14 @@ class DvwUpload < ApplicationRecord
     return false unless series_file
     series_file_content = series_file.read
     series_file_ext = series_file.original_filename.split('.')[-1]
-    self.series_filename = NtaUpload.make_filename(now, 'series', series_file_ext)
+    self.series_filename = DvwUpload.make_filename(now, 'series', series_file_ext)
     self.set_status('series', :processing)
 
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DVW upload object save failed'
       write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
-      NtaCsvWorker.perform_async(id)
+      DvwCsvWorker.perform_async(id)
     rescue => e
       self.delete if e.message =~ /disk write failed/
       return false
@@ -110,7 +110,7 @@ class DvwUpload < ApplicationRecord
   end
 
   def DvwUpload.load(id)
-    du = NtaUpload.find(id) || raise("No DvwUpload found with id=#{id}")
+    du = DvwUpload.find(id) || raise("No DvwUpload found with id=#{id}")
     du.full_load
   end
 
