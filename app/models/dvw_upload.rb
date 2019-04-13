@@ -26,13 +26,13 @@ class DvwUpload < ApplicationRecord
   end
 
   def set_active(status)
-    self.update! :active => status
+    self.update! active: status
   end
 
   def make_active
     DvwUpload.update_all active: false
     DvwWorker.perform_async(self.id)
-    self.update series_status: 'processing'
+    self.update series_status: :processing
   end
 
   def make_active_settings
