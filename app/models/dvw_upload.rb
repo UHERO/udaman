@@ -17,7 +17,7 @@ class DvwUpload < ApplicationRecord
     begin
       self.save or raise StandardError, 'DVW upload object save failed'
       write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
-      DvwCsvWorker.perform_async(id)
+      DvwWorker.perform_async(id, true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
       return false
@@ -31,7 +31,7 @@ class DvwUpload < ApplicationRecord
 
   def make_active
     DvwUpload.update_all active: false
-    DvwLoadWorker.perform_async(self.id)
+    DvwWorker.perform_async(self.id)
     self.update series_status: 'processing'
   end
 
@@ -90,6 +90,7 @@ class DvwUpload < ApplicationRecord
     Rails.logger.debug { "DvwLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
     make_active_settings
     Rails.logger.info { "DvwLoadWorker id=#{self.id} loaded as active #{Time.now}" }
+    true
   end
 
   def load_cats_csv
