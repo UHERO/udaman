@@ -22,4 +22,3 @@ class NtaLoadWorker
     end
   end
 end
-8
