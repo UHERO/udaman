@@ -15,7 +15,7 @@ class DvwWorker
     upload = nil
     begin
       upload = DvwUpload.find(dvw_id) || raise("No DvwUpload found with id=#{dvw_id}")
-      csv_proc(upload) if do_csv_proc
+      csv_extract(upload) if do_csv_proc
       Rails.logger.debug { "#{@logprefix}: before full_load" }
       upload.full_load
       Rails.logger.info { "#{@logprefix} id=#{dvw_id}: loaded and active" }
@@ -28,7 +28,7 @@ class DvwWorker
   end
 
 private
-  def csv_proc(upload)
+  def csv_extract(upload)
     xls_path = upload.absolute_path('series')
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
     other_worker = ENV['OTHER_WORKER']

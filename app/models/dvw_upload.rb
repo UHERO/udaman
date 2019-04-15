@@ -81,38 +81,52 @@ class DvwUpload < ApplicationRecord
   end
 
   def full_load
-    Rails.logger.debug { "DvwLoadWorker id=#{self.id} BEGIN full load #{Time.now}" }
-    load_cats_csv
-    Rails.logger.debug { "DvwLoadWorker id=#{self.id} DONE load cats #{Time.now}" }
+    Rails.logger.debug { "DvwUpload id=#{self.id} BEGIN full load #{Time.now}" }
+    # Clean out all the things, but not the root category
+    Rails.logger.debug { "DvwUpload id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
+    DvwUpload.delete_universe_dvw
+
+    load_groups_csv
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load groups #{Time.now}" }
+    load_markets_csv
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load markets #{Time.now}" }
+    load_destinations_csv
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load destinations #{Time.now}" }
+    load_categories_csv
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load categories #{Time.now}" }
+    load_indicators_csv
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load indicators #{Time.now}" }
     load_series_csv
-    Rails.logger.debug { "DvwLoadWorker id=#{self.id} DONE load series #{Time.now}" }
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load series #{Time.now}" }
     load_data_postproc
-    Rails.logger.debug { "DvwLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
+    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load postproc #{Time.now}" }
     make_active_settings
-    Rails.logger.info { "DvwLoadWorker id=#{self.id} loaded as active #{Time.now}" }
+    Rails.logger.info { "DvwUpload id=#{self.id} loaded as active #{Time.now}" }
     true
   end
 
-  def load_cats_csv
-    Rails.logger.debug { 'starting load_cats_csv' }
-    unless series_filename
-      raise 'load_cats_csv: no series_filename'
+  def load_groups_csv
+    Rails.logger.debug { 'starting load_groups_csv' }
+    csv_dir_path = path(series_filename).change_file_extension('')
+    csv_path = File.join(csv_dir_path, 'Group.csv')
+    unless File.exists?(csv_path)
+      raise "DvwUpload: couldn't find file #{csv_path}"
     end
-    csv_path = path(series_filename).change_file_extension('')
+    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+      row_data = {}
+      ## convert row data to a hash keyed on column header. force all blank/empty to nil.
+      row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
+    end
     true
   end
 
   def load_series_csv
     Rails.logger.debug { 'starting load_series_csv' }
-    unless series_filename
-      raise 'load_series_csv: no series_filename'
-    end
     csv_path = path(series_filename).change_file_extension('')
   end
 
   def DvwUpload.load(id)
-    du = DvwUpload.find(id) || raise("No DvwUpload found with id=#{id}")
-    du.full_load
+    DvwUpload.find(id).full_load
   end
 
   def DvwUpload.average(id, group)
@@ -122,12 +136,13 @@ class DvwUpload < ApplicationRecord
 
   def DvwUpload.delete_universe_dvw
     #ActiveRecord::Base.connection.execute <<~SQL
+    #  use dbedt_visitors;
     #  delete from public_data_points where universe = 'NTA' ;
     #SQL
   end
 
   def load_data_postproc
-    Rails.logger.debug { "DEBUG: DvwLoadWorker starting load_data_postproc at #{Time.now}" }
+    #Rails.logger.debug { "DEBUG: DvwWorker starting load_data_postproc at #{Time.now}" }
   end
 
 private
@@ -184,4 +199,7 @@ private
     SQL
   end
 
+  def run_db(query)
+    DvwUpload.connection.execute
+  end
 end
