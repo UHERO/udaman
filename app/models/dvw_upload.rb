@@ -105,17 +105,18 @@ class DvwUpload < ApplicationRecord
     true
   end
 
-  def load_groups_csv
-    Rails.logger.debug { 'starting load_groups_csv' }
+  def load_csv(filename, tablename)
+    Rails.logger.debug { "starting load_csv #{filename}" }
     csv_dir_path = path(series_filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, 'Group.csv')
-    unless File.exists?(csv_path)
-      raise "DvwUpload: couldn't find file #{csv_path}"
-    end
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
-      row_data = {}
+    csv_path = File.join(csv_dir_path, "#{filename}.csv")
+    raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
+
+    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+      row = {}
       ## convert row data to a hash keyed on column header. force all blank/empty to nil.
-      row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
+      row_pairs.to_a.each do |header,data|
+        row[header.to_ascii.strip.downcase] = data.blank? ? nil : data.to_ascii.strip
+      end
     end
     true
   end
@@ -193,13 +194,13 @@ private
   end
 
   def delete_data_and_data_sources
-    DvwUpload.connection.execute <<~SQL
+    run_db <<~SQL
       DELETE FROM data_points
       WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
     SQL
   end
 
   def run_db(query)
-    DvwUpload.connection.execute
+    DvwUpload.connection.execute "use dbedt_visitor_dw; #{query};"
   end
 end
