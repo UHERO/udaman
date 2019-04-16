@@ -86,7 +86,7 @@ class DvwUpload < ApplicationRecord
     Rails.logger.debug { "DvwUpload id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     DvwUpload.delete_universe_dvw
 
-    load_csv('Group', 'groups')
+    load_meta_csv('Group', 'groups')
     Rails.logger.debug { "DvwUpload id=#{self.id} DONE load groups #{Time.now}" }
     load_markets_csv
     Rails.logger.debug { "DvwUpload id=#{self.id} DONE load markets #{Time.now}" }
@@ -105,7 +105,7 @@ class DvwUpload < ApplicationRecord
     true
   end
 
-  def load_csv(filename, tablename)
+  def load_meta_csv(filename, tablename)
     Rails.logger.debug { "starting load_csv #{filename}" }
     csv_dir_path = path(series_filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{filename}.csv")
@@ -120,15 +120,15 @@ class DvwUpload < ApplicationRecord
         row[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
       end
       row_values = []
-      heads = %w{module handle nameP nameW nameT data parent level}
-      heads.concat %w{unit decimal} if filename == 'Indicator'
-      heads.each do |head|
-        raise "Data containing single quote in #{filename}" if row[head] =~ /'/
-        row_values.push case head
-                          when 'data' then row[head].to_i == 0 ? 1 : 0
-                          when 'level', 'decimal' then row[head].to_i
+      columns = %w{module handle nameP nameW nameT data parent level}
+      columns.concat %w{unit decimal} if filename == 'Indicator'
+      columns.each do |col|
+        raise "Data containing single quote in #{filename}, #{col} column" if row[col] =~ /'/
+        row_values.push case col
+                          when 'data' then row[col].to_s == '0' ? 1 : 0 ## this gets inverted, goes in as header
+                          when 'level', 'decimal' then row[col].to_i
                           when 'parent' then last_header
-                          else "'#{row[head]}'"
+                          else "'#{row[col]}'"
                         end
       end
       datae.push '(%s)' % row_values.join(',')
