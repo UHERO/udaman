@@ -86,7 +86,7 @@ class DvwUpload < ApplicationRecord
     Rails.logger.debug { "DvwUpload id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     DvwUpload.delete_universe_dvw
 
-    load_groups_csv
+    load_csv('Group', 'groups')
     Rails.logger.debug { "DvwUpload id=#{self.id} DONE load groups #{Time.now}" }
     load_markets_csv
     Rails.logger.debug { "DvwUpload id=#{self.id} DONE load markets #{Time.now}" }
@@ -111,13 +111,25 @@ class DvwUpload < ApplicationRecord
     csv_path = File.join(csv_dir_path, "#{filename}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
+    datae = []
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       ## convert row data to a hash keyed on column header. force all blank/empty to nil.
       row_pairs.to_a.each do |header,data|
         row[header.to_ascii.strip.downcase] = data.blank? ? nil : data.to_ascii.strip
       end
+      row_string = nil
+      %w{module handle nameP nameW nameT data parent level unit decimal}.each do |head|
+        #x.map {|w| w.class == String ? "'#{w}'" : w}.join(',')
+        row_string = row[head]
+      end
+      datae.push '(%s)' % row_string
     end
+    value_string = datae.join(',')
+    execute_db <<-SQL
+        INSERT INTO #{tablename} (`module`, handle, nameP, nameW, nameT, header, parent_id, `level`) VALUES #{value_string};
+    SQL
+    Rails.logger.debug { "done load_csv #{filename}" }
     true
   end
 
@@ -200,7 +212,7 @@ private
     SQL
   end
 
-  def run_db(query)
+  def execute_db(query)
     DvwUpload.connection.execute "use dbedt_visitor_dw; #{query};"
   end
 end
