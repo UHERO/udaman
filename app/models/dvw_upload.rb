@@ -121,7 +121,7 @@ class DvwUpload < ApplicationRecord
       end
       row_values = []
       columns.each do |col|
-        raise "Data containing single quote in #{dimension}, #{col} column" if row[col] =~ /'/
+        raise "Data contains single quote in #{dimension}, #{row['handle']} row, #{col} column" if row[col] =~ /'/
         if row[col].nil?
           row_values.push 'null'
           next
