@@ -112,14 +112,13 @@ class DvwUpload < ApplicationRecord
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
     datae = []
-    last_header = nil
     columns = %w{module handle nameP nameW nameT data parent level}
     columns.concat %w{unit decimal} if filename == 'Indicator'
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
-      row_pairs.to_a.each do |header, data| ## convert row to a hash keyed on column header, force blank/empty to nil
-        row[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
+      row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
+        row[header.strip] = data.blank? ? nil : data.strip
       end
       row_values = []
       columns.each do |col|
@@ -129,19 +128,16 @@ class DvwUpload < ApplicationRecord
           next
         end
         row_values.push case col
-                          when 'data' then row[col].to_s == '0' ? 1 : 0 ## this gets inverted, goes in as header
+                          when 'data' then (row[col].to_s == '0' ? 1 : 0) ## semantically inverted, goes in as header
                           when 'level', 'decimal' then row[col].to_i
-                          when 'parent' then last_header
                           else "'%s'" % row[col]
                         end
       end
       datae.push '(%s)' % row_values.join(',')
     end
-    cols_string = columns.map{|c| '`%s`' % c }.join(',')
-    values_string = datae.join(',')
-    execute_db <<-SQL
-        INSERT INTO #{tablename} (#{cols_string}) VALUES #{values_string};
-    SQL
+    cols_string = columns.map {|c| '`%s`' % c }.join(',') ## wrap names in backtix
+    vals_string = datae.join(',')
+    execute_db "INSERT INTO #{tablename} (#{cols_string}) VALUES #{vals_string};"
     Rails.logger.debug { "done load_csv #{filename}" }
     true
   end
@@ -149,6 +145,7 @@ class DvwUpload < ApplicationRecord
   def load_series_csv
     Rails.logger.debug { 'starting load_series_csv' }
     csv_path = path(series_filename).change_file_extension('')
+    csv_path
   end
 
   def DvwUpload.load(id)
@@ -161,14 +158,19 @@ class DvwUpload < ApplicationRecord
   end
 
   def DvwUpload.delete_universe_dvw
-    #ActiveRecord::Base.connection.execute <<~SQL
-    #  use dbedt_visitors;
-    #  delete from public_data_points where universe = 'NTA' ;
-    #SQL
+    execute_db <<-SQL
+      delete from data_points;
+      delete from indicators;
+      delete from groups;
+      delete from markets;
+      delete from destinations;
+      delete from categories;
+    SQL
   end
 
   def load_data_postproc
     #Rails.logger.debug { "DEBUG: DvwWorker starting load_data_postproc at #{Time.now}" }
+    # populate the parent_id column based on parent string values
   end
 
 private
