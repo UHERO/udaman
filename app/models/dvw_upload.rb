@@ -113,29 +113,34 @@ class DvwUpload < ApplicationRecord
 
     datae = []
     last_header = nil
+    columns = %w{module handle nameP nameW nameT data parent level}
+    columns.concat %w{unit decimal} if filename == 'Indicator'
+
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
-      ## convert row data to a hash keyed on column header. force all blank/empty to nil.
-      row_pairs.to_a.each do |header, data|
+      row_pairs.to_a.each do |header, data| ## convert row to a hash keyed on column header, force blank/empty to nil
         row[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
       end
       row_values = []
-      columns = %w{module handle nameP nameW nameT data parent level}
-      columns.concat %w{unit decimal} if filename == 'Indicator'
       columns.each do |col|
         raise "Data containing single quote in #{filename}, #{col} column" if row[col] =~ /'/
+        if row[col].nil?
+          row_values.push 'null'
+          next
+        end
         row_values.push case col
                           when 'data' then row[col].to_s == '0' ? 1 : 0 ## this gets inverted, goes in as header
                           when 'level', 'decimal' then row[col].to_i
                           when 'parent' then last_header
-                          else "'#{row[col]}'"
+                          else "'%s'" % row[col]
                         end
       end
       datae.push '(%s)' % row_values.join(',')
     end
+    cols_string = columns.map{|c| '`%s`' % c }.join(',')
     values_string = datae.join(',')
     execute_db <<-SQL
-        INSERT INTO #{tablename} (`module`, handle, nameP, nameW, nameT, header, parent_id, `level`) VALUES #{values_string};
+        INSERT INTO #{tablename} (#{cols_string}) VALUES #{values_string};
     SQL
     Rails.logger.debug { "done load_csv #{filename}" }
     true
