@@ -81,39 +81,38 @@ class DvwUpload < ApplicationRecord
   end
 
   def full_load
-    Rails.logger.debug { "DvwUpload id=#{self.id} BEGIN full load #{Time.now}" }
-    # Clean out all the things, but not the root category
-    Rails.logger.debug { "DvwUpload id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
+    Rails.logger.debug { "DvwUpload id=#{id} BEGIN full load #{Time.now}" }
     DvwUpload.delete_universe_dvw
 
-    load_meta_csv('Group', 'groups')
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load groups #{Time.now}" }
-    load_markets_csv
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load markets #{Time.now}" }
-    load_destinations_csv
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load destinations #{Time.now}" }
-    load_categories_csv
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load categories #{Time.now}" }
-    load_indicators_csv
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load indicators #{Time.now}" }
+    load_meta_csv('Group')
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load groups #{Time.now}" }
+    load_meta_csv('Market')
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load markets #{Time.now}" }
+    load_meta_csv('Destination')
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load destinations #{Time.now}" }
+    load_meta_csv('Category')
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load categories #{Time.now}" }
+    load_meta_csv('Indicator')
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load indicators #{Time.now}" }
+
     load_series_csv
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load series #{Time.now}" }
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load series #{Time.now}" }
     load_data_postproc
-    Rails.logger.debug { "DvwUpload id=#{self.id} DONE load postproc #{Time.now}" }
+    Rails.logger.debug { "DvwUpload id=#{id} DONE load postproc #{Time.now}" }
     make_active_settings
-    Rails.logger.info { "DvwUpload id=#{self.id} loaded as active #{Time.now}" }
+    Rails.logger.info { "DvwUpload id=#{id} loaded as active #{Time.now}" }
     true
   end
 
-  def load_meta_csv(filename, tablename)
-    Rails.logger.debug { "starting load_csv #{filename}" }
+  def load_meta_csv(dimension)
+    Rails.logger.debug { "starting load_csv #{dimension}" }
     csv_dir_path = path(series_filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, "#{filename}.csv")
+    csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
     datae = []
     columns = %w{module handle nameP nameW nameT data parent level}
-    columns.concat %w{unit decimal} if filename == 'Indicator'
+    columns.concat %w{unit decimal} if dimension == 'Indicator'
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
@@ -122,7 +121,7 @@ class DvwUpload < ApplicationRecord
       end
       row_values = []
       columns.each do |col|
-        raise "Data containing single quote in #{filename}, #{col} column" if row[col] =~ /'/
+        raise "Data containing single quote in #{dimension}, #{col} column" if row[col] =~ /'/
         if row[col].nil?
           row_values.push 'null'
           next
@@ -135,10 +134,11 @@ class DvwUpload < ApplicationRecord
       end
       datae.push '(%s)' % row_values.join(',')
     end
+    columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
     cols_string = columns.map {|c| '`%s`' % c }.join(',') ## wrap names in backtix
     vals_string = datae.join(',')
-    execute_db "INSERT INTO #{tablename} (#{cols_string}) VALUES #{vals_string};"
-    Rails.logger.debug { "done load_csv #{filename}" }
+    execute_db "INSERT INTO #{dimension.pluralize} (#{cols_string}) VALUES #{vals_string};"
+    Rails.logger.debug { "done load_csv #{dimension}" }
     true
   end
 
