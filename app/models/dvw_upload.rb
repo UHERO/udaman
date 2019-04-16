@@ -127,9 +127,9 @@ class DvwUpload < ApplicationRecord
           next
         end
         row_values.push case col
-                          when 'data' then (row[col].to_s == '0' ? 1 : 0) ## semantically inverted, goes in as header
-                          when 'level', 'decimal' then row[col].to_i
-                          else "'%s'" % row[col]
+                        when 'data' then (row[col].to_s == '0' ? 1 : 0) ## semantically inverted, goes in as header
+                        when 'level', 'decimal' then row[col].to_i
+                        else "'%s'" % row[col]
                         end
       end
       datae.push '(%s)' % row_values.join(',')
@@ -137,7 +137,7 @@ class DvwUpload < ApplicationRecord
     columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
     cols_string = columns.map {|c| '`%s`' % c }.join(',') ## wrap names in backtix
     vals_string = datae.join(',')
-    execute_db "INSERT INTO #{dimension.pluralize} (#{cols_string}) VALUES #{vals_string};"
+    db_execute "INSERT INTO #{dimension.pluralize} (#{cols_string}) VALUES #{vals_string};"
     Rails.logger.debug { "done load_csv #{dimension}" }
     true
   end
@@ -158,7 +158,7 @@ class DvwUpload < ApplicationRecord
   end
 
   def DvwUpload.delete_universe_dvw
-    execute_db <<-SQL
+    db_execute <<-SQL
       delete from data_points;
       delete from indicators;
       delete from groups;
@@ -227,7 +227,7 @@ private
     SQL
   end
 
-  def execute_db(query)
+  def db_execute(query)
     DvwUpload.connection.execute "use dbedt_visitor_dw; #{query};"
   end
 end
