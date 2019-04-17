@@ -144,8 +144,24 @@ class DvwUpload < ApplicationRecord
 
   def load_series_csv
     Rails.logger.debug { 'starting load_series_csv' }
-    csv_path = path(series_filename).change_file_extension('')
-    csv_path
+    csv_dir_path = path(series_filename).change_file_extension('')
+    csv_path = File.join(csv_dir_path, 'data.csv')
+    raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
+
+    columns = %w{module group market destination category indicator frequency year mq value}
+    columns.concat %w{unit decimal} if dimension == 'Indicator'
+
+    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+      row = {}
+      row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
+        row[header.strip] = data.blank? ? nil : data.strip
+      end
+      row_values = []
+      columns.each do |col|
+        row_values.push 'something'
+      end
+      db_execute "SOMETHING;"
+    end
   end
 
   def DvwUpload.load(id)
