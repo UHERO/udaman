@@ -155,12 +155,19 @@ class DvwUpload < ApplicationRecord
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         row[header.strip] = data.blank? ? nil : data.strip
       end
-      date = make_date(row['year'], row['mq'].to_s)
+      date = make_date(row['year'].to_i, row['mq'].to_s)
       row_values = []
       columns.each do |col|
         row_values.push 'something'
       end
-      db_execute "SOMETHING;"
+      query = <<-SQL % [row['module'], row['frequency'], date, row['value']]
+        insert into data_points
+        (`module`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`,`frequency`,`date`,`value`)
+        select '%s', `group`.id, market.id, destination.id, category.id, `indicator`.id, '%s', '%s', %f
+          
+        ;
+      SQL
+      db_execute(query, row)
     end
   end
 
@@ -243,16 +250,16 @@ private
     SQL
   end
 
-  def db_execute(query)
+  def db_execute(query, values = nil)
     DvwUpload.connection.execute "use dbedt_visitor_dw; #{query};"
   end
 
   def make_date(year, mq)
     month = 1
-    if mq =~ /^([MQ](\d+)/i
+    if mq =~ /([MQ])(\d+)/i
       month = $1 == 'M' ? $2.to_i : first_month_of_quarter($2)
     end
-    '%d-%02d-01' % [year.to_i, month]
+    '%d-%02d-01' % [year, month]
   end
 
   ## This really should be a utility routine easily shared across the whole codebase, but we don't seem
