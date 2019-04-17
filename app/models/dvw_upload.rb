@@ -254,8 +254,9 @@ private
     SQL
   end
 
-  def db_execute(query, values = nil)
-    DvwUpload.connection.execute "use dbedt_visitor_dw; #{query};"
+  def db_execute(query, values = [])
+    stmt = DvwUpload.connection.raw_connection.prepare("use dbedt_visitor_dw; #{query};")
+    stmt.execute(values)
   end
 
   def make_date(year, mq)
