@@ -162,10 +162,14 @@ class DvwUpload < ApplicationRecord
       end
       query = <<-SQL % [row['module'], row['frequency'], date, row['value']]
         insert into data_points
-        (`module`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`,`frequency`,`date`,`value`)
-        select '%s', `group`.id, market.id, destination.id, category.id, `indicator`.id, '%s', '%s', %f
-          
-        ;
+          (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
+        select '%s', '%s', '%s', %f, `group`.id, market.id, destination.id, category.id, `indicator`.id
+          from indicators i
+            left join groups g on g.handle = ?
+            left join markets m on m.handle = ?
+            left join destinations d on d.handle = ?
+            left join categories c on c.handle = ?
+         where indicators.handle = ? ;
       SQL
       db_execute(query, row)
     end
