@@ -149,13 +149,13 @@ class DvwUpload < ApplicationRecord
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
     columns = %w{module group market destination category indicator frequency year mq value}
-    columns.concat %w{unit decimal} if dimension == 'Indicator'
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
-      row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
+      row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         row[header.strip] = data.blank? ? nil : data.strip
       end
+      date = make_date(row['year'], row['mq'].to_s)
       row_values = []
       columns.each do |col|
         row_values.push 'something'
@@ -245,5 +245,20 @@ private
 
   def db_execute(query)
     DvwUpload.connection.execute "use dbedt_visitor_dw; #{query};"
+  end
+
+  def make_date(year, mq)
+    month = 1
+    if mq =~ /^([MQ](\d+)/i
+      month = $1 == 'M' ? $2.to_i : first_month_of_quarter($2)
+    end
+    '%d-%02d-01' % [year.to_i, month]
+  end
+
+  ## This really should be a utility routine easily shared across the whole codebase, but we don't seem
+  ## to have a such a place to put utilities now. I'm sure this computation is done elsewhere, and if you
+  ## find it, try to replace all examples of this with un-redundant calls to a single routine.
+  def first_month_of_quarter(q)
+    (q.to_i - 1) * 3 + 1
   end
 end
