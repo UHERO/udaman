@@ -1,4 +1,4 @@
-development:
+production: &proddb
     adapter: mysql2
     host: <%= ENV['DB_HOST'] || 'localhost' %>
     encoding: utf8
@@ -8,10 +8,17 @@ development:
     password: <%= ENV['DB_PASSWORD'] || '' %>
     port: 3306
 
+development:
+    <<: *proddb  ## "inherit" all other settings from this db
+
+dbedt_visitor:
+    database: dbedt_visitor_dw
+    <<: *proddb
+
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
-test: &test
+test:
     adapter: mysql2
     host: <%= ENV['DB_HOST'] || 'localhost' %>
     encoding: utf8
@@ -20,14 +27,3 @@ test: &test
     username: <%= ENV['DB_USER'] || 'root' %>
     password: <%= ENV['DB_PASSWORD'] || '' %>
     port: 3306
-
-production:
-    adapter: mysql2
-    host: <%= ENV['DB_HOST'] || 'localhost' %>
-    encoding: utf8
-    database: uhero_db_dev
-    pool: 30
-    username: <%= ENV['DB_USER'] || 'root' %>
-    password: <%= ENV['DB_PASSWORD'] || '' %>
-    port: 3306
-
