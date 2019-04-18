@@ -32,10 +32,6 @@
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
     </div>
     <div class="field">
-      <%= f.label :units, 'Units (1, 10, 1000, etc)' %>
-      <%= f.text_field :units %>
-    </div>
-    <div class="field">
       <%= f.label :unit_id %><br>
       <%= f.collection_select :unit_id, Unit.where(universe: 'UHERO').order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
@@ -55,19 +51,23 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <div class="field">
-      <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
-      <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
-    </div>
-    <div class="field">
-      <%= f.label :percent, 'Percent' %>
-      <%= f.check_box :percent %> (prevents calculation of growth rate)
-    </div>
-    <div class="field">
-      <%= f.label :real, 'Real' %>
-      <%= f.check_box :real %> (prevents adjustment for inflation)
-    </div>
     <%= f.fields_for :xseries do |xf| %>
+        <div class="field">
+          <%= f.label :percent, 'Percent' %>
+          <%= f.check_box :percent %> (prevents calculation of growth rate)
+        </div>
+        <div class="field">
+          <%= f.label :real, 'Real' %>
+          <%= f.check_box :real %> (prevents adjustment for inflation)
+        </div>
+        <div class="field">
+          <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
+          <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
+        </div>
+        <div class="field">
+          <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
+          <%= xf.text_field :units %>
+        </div>
         <div class="field">
           <%= xf.label :decimals %><br>
           <%= xf.number_field :decimals, :size => 1 %>
@@ -76,11 +76,11 @@
           <%= xf.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %>
           <%= xf.text_field :frequency_transform %>
         </div>
+        <div class="field">
+          <%= f.label :restricted, 'Restricted' %><br/>
+          <%= f.check_box :restricted %> (prevents this series from being visible outside udaman)
+        </div>
     <% end %>
-    <div class="field">
-      <%= f.label :restricted, 'Restricted' %><br/>
-      <%= f.check_box :restricted %> (prevents this series from being visible outside udaman)
-    </div>
     <div class="actions">
       <%= f.submit %>
     </div>
