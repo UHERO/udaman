@@ -148,31 +148,29 @@ class DvwUpload < ApplicationRecord
     csv_path = File.join(csv_dir_path, 'data.csv')
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
-    columns = %w{module group market destination category indicator frequency year mq value}
+##    columns = %w{module group market destination category indicator frequency year mq value}
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         row[header.strip] = data.blank? ? nil : data.strip
       end
-      date = make_date(row['year'].to_i, row['mq'].to_s)
-      row_values = []
-      columns.each do |col|
-        row_values.push 'something'
-      end
-      query = <<-SQL % [row['module'], row['frequency'], date, row['value']]
+      row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
+      query = <<-SQL % %w{module frequency date value}.map {|d| row[d] }
         insert into data_points
           (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
-        select '%s', '%s', '%s', %f, `group`.id, market.id, destination.id, category.id, `indicator`.id
+        select '%s', '%s', '%s', %f, g.id, m.id, d.id, c.id, i.id
           from indicators i
             left join groups g on g.handle = ?
             left join markets m on m.handle = ?
             left join destinations d on d.handle = ?
             left join categories c on c.handle = ?
-         where indicators.handle = ? ;
+         where i.handle = ? ;
       SQL
-      db_execute(query, row)
+      ## This is likely to be super slow... later work on a way to make it faster
+      db_execute(query, %w{group market destination category indicator}.map {|d| row[d] })
     end
+    Rails.logger.debug { 'done load_series_csv' }
   end
 
   def DvwUpload.load(id)
@@ -262,7 +260,7 @@ private
   def make_date(year, mq)
     month = 1
     if mq =~ /([MQ])(\d+)/i
-      month = $1 == 'M' ? $2.to_i : first_month_of_quarter($2)
+      month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
     end
     '%d-%02d-01' % [year, month]
   end
