@@ -77,7 +77,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(series_name)
-    Series.get(series_name) || Series.create_new({ name: series_name })
+    Series.get(series_name) || Series.create_new(name: series_name)
   end
 
   def Series.bulk_create(definitions)
