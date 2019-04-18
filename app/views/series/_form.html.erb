@@ -53,16 +53,16 @@
     </div>
     <%= f.fields_for :xseries do |xf| %>
         <div class="field">
-          <%= f.label :percent, 'Percent' %>
-          <%= f.check_box :percent %> (prevents calculation of growth rate)
+          <%= xf.label :percent, 'Percent' %>
+          <%= xf.check_box :percent %> (prevents calculation of growth rate)
         </div>
         <div class="field">
-          <%= f.label :real, 'Real' %>
-          <%= f.check_box :real %> (prevents adjustment for inflation)
+          <%= xf.label :real, 'Real' %>
+          <%= xf.check_box :real %> (prevents adjustment for inflation)
         </div>
         <div class="field">
-          <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
-          <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
+          <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
+          <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
         </div>
         <div class="field">
           <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
