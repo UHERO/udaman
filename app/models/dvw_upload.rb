@@ -82,8 +82,9 @@ class DvwUpload < ApplicationRecord
 
   def full_load
     Rails.logger.debug { "DvwUpload id=#{id} BEGIN full load #{Time.now}" }
-    DvwUpload.delete_universe_dvw
+    DvwUpload.establish_connection :dbedt_visitor
 
+    DvwUpload.delete_universe_dvw
     load_meta_csv('Group')
     Rails.logger.debug { "DvwUpload id=#{id} DONE load groups #{Time.now}" }
     load_meta_csv('Market')
@@ -101,7 +102,8 @@ class DvwUpload < ApplicationRecord
     Rails.logger.debug { "DvwUpload id=#{id} DONE load postproc #{Time.now}" }
     make_active_settings
     Rails.logger.info { "DvwUpload id=#{id} loaded as active #{Time.now}" }
-    true
+
+    DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
   end
 
   def load_meta_csv(dimension)
@@ -135,7 +137,7 @@ class DvwUpload < ApplicationRecord
       datae.push '(%s)' % row_values.join(',')
     end
     columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
-    cols_string = columns.map {|c| '`%s`' % c }.join(',') ## wrap names in backtix
+    cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
     vals_string = datae.join(',')
     db_execute "INSERT INTO #{dimension.pluralize} (#{cols_string}) VALUES #{vals_string};"
     Rails.logger.debug { "done load_csv #{dimension}" }
@@ -147,8 +149,6 @@ class DvwUpload < ApplicationRecord
     csv_dir_path = path(series_filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, 'Data.csv')
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
-
-##    columns = %w{module group market destination category indicator frequency year mq value}
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
@@ -168,10 +168,24 @@ class DvwUpload < ApplicationRecord
          where i.handle = ? ;
       SQL
       ## This is likely to be super slow... later work on a way to make it faster
-      ## Maybe add dimension handle columns to the table, insert these, then convert to int IDs in postproc?
+      ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
       db_execute(query, %w{group market destination category indicator}.map {|d| row[d] })
     end
     Rails.logger.debug { 'done load_series_csv' }
+  end
+
+  def DvwUpload.delete_universe_dvw
+    db_execute 'delete from data_points'
+    db_execute 'delete from indicators'
+    db_execute 'delete from groups'
+    db_execute 'delete from markets'
+    db_execute 'delete from destinations'
+    db_execute 'delete from categories'
+  end
+
+  def load_data_postproc
+    #Rails.logger.debug { "DEBUG: DvwWorker starting load_data_postproc at #{Time.now}" }
+    # populate the parent_id column based on parent string values
   end
 
   def DvwUpload.load(id)
@@ -183,23 +197,7 @@ class DvwUpload < ApplicationRecord
     "#{id} #{group}"
   end
 
-  def DvwUpload.delete_universe_dvw
-    db_execute <<-SQL
-      delete from data_points;
-      delete from indicators;
-      delete from groups;
-      delete from markets;
-      delete from destinations;
-      delete from categories;
-    SQL
-  end
-
-  def load_data_postproc
-    #Rails.logger.debug { "DEBUG: DvwWorker starting load_data_postproc at #{Time.now}" }
-    # populate the parent_id column based on parent string values
-  end
-
-private
+  private
   def path(name = nil)
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
@@ -254,8 +252,8 @@ private
   end
 
   def db_execute(query, values = [])
-    stmt = DvwUpload.connection.raw_connection.prepare("use dbedt_visitor_dw; #{query};")
-    stmt.execute(values)
+    stmt = DvwUpload.connection.raw_connection.prepare(query)
+    values.empty? ? stmt.execute : stmt.execute(values)
   end
 
   def make_date(year, mq)
