@@ -145,7 +145,7 @@ class DvwUpload < ApplicationRecord
   def load_series_csv
     Rails.logger.debug { 'starting load_series_csv' }
     csv_dir_path = path(series_filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, 'data.csv')
+    csv_path = File.join(csv_dir_path, 'Data.csv')
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
 ##    columns = %w{module group market destination category indicator frequency year mq value}
@@ -168,6 +168,7 @@ class DvwUpload < ApplicationRecord
          where i.handle = ? ;
       SQL
       ## This is likely to be super slow... later work on a way to make it faster
+      ## Maybe add dimension handle columns to the table, insert these, then convert to int IDs in postproc?
       db_execute(query, %w{group market destination category indicator}.map {|d| row[d] })
     end
     Rails.logger.debug { 'done load_series_csv' }
@@ -269,6 +270,7 @@ private
   ## to have a such a place to put utilities now. I'm sure this computation is done elsewhere, and if you
   ## find it, try to replace all examples of this with un-redundant calls to a single routine.
   def first_month_of_quarter(q)
-    (q.to_i - 1) * 3 + 1
+    qnum = q.to_s.gsub(/\D/,'').to_i  ## allow for caller to pass things like "Q2"
+    (qnum - 1) * 3 + 1
   end
 end
