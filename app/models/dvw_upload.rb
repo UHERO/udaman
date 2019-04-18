@@ -106,6 +106,15 @@ class DvwUpload < ApplicationRecord
     DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
   end
 
+  def DvwUpload.delete_universe_dvw
+    db_execute 'delete from data_points'
+    db_execute 'delete from indicators'
+    db_execute 'delete from categories'
+    db_execute 'delete from destinations'
+    db_execute 'delete from markets'
+    db_execute 'delete from groups'
+  end
+
   def load_meta_csv(dimension)
     Rails.logger.debug { "starting load_csv #{dimension}" }
     csv_dir_path = path(series_filename).change_file_extension('')
@@ -172,15 +181,6 @@ class DvwUpload < ApplicationRecord
       db_execute(query, %w{group market destination category indicator}.map {|d| row[d] })
     end
     Rails.logger.debug { 'done load_series_csv' }
-  end
-
-  def DvwUpload.delete_universe_dvw
-    db_execute 'delete from data_points'
-    db_execute 'delete from indicators'
-    db_execute 'delete from groups'
-    db_execute 'delete from markets'
-    db_execute 'delete from destinations'
-    db_execute 'delete from categories'
   end
 
   def load_data_postproc
