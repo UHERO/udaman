@@ -115,8 +115,9 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update(attributes, strict = false)
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ } ## leave out timestamps? Do we want this?
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }  ## leave out timestamps? Do we want this?
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
+    series_attrs -= xseries_attrs
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
@@ -132,8 +133,9 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update!(attributes, strict = false)
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ } ## leave out timestamps? Do we want this?
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }  ## leave out timestamps? Do we want this?
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
+    series_attrs -= xseries_attrs
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
