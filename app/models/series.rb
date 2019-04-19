@@ -21,7 +21,7 @@ class Series < ApplicationRecord
 
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
-  delegate_missing_to :xseries  ## methods that Series does not respond_to? should be tried against the contained Xseries
+  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
 
   has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
@@ -99,6 +99,7 @@ class Series < ApplicationRecord
         raise("Unknown frequency code #{name_parts[:freq]} in series creation")
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
+    series_attrs -= xseries_attrs
     s = nil
     begin
       self.transaction do
