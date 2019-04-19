@@ -8,6 +8,7 @@ class SeriesController < ApplicationController
 
   def new
     @series = Series.new
+    @series.xseries = Xseries.new
   end
 
   def bulk_new
@@ -274,19 +275,15 @@ private
       params.require(:series).permit(
           :universe,
           :description,
-          :units,
-          :investigation_notes,
           :dataPortalName,
           :unit_id,
-          :seasonal_adjustment,
-          :percent,
-          :real,
-          :decimals,
-          :frequency_transform,
-          :restricted,
           :source_id,
           :source_link,
-          :source_detail_id
+          :source_detail_id,
+          :investigation_notes,
+          xseries_attributes: [
+              :percent, :real, :decimals, :units, :restricted,
+              :seasonal_adjustment, :frequency_transform]
       )
     end
 

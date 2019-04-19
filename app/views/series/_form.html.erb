@@ -61,7 +61,7 @@
           <%= xf.check_box :real %> (prevents adjustment for inflation)
         </div>
         <div class="field">
-          <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
+          <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
           <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
         </div>
         <div class="field">
@@ -69,15 +69,15 @@
           <%= xf.text_field :units %>
         </div>
         <div class="field">
-          <%= xf.label :decimals %><br>
+          <%= xf.label :decimals %>
           <%= xf.number_field :decimals, :size => 1 %>
         </div>
         <div class="field">
-          <%= xf.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %>
-          <%= xf.text_field :frequency_transform %>
+          <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
+          <%= f.select :universe, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
         </div>
         <div class="field">
-          <%= xf.label :restricted, 'Restricted' %><br/>
+          <%= xf.label :restricted, 'Restricted' %>
           <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
         </div>
     <% end %>
