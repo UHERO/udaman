@@ -53,8 +53,8 @@
         <td><%= sa_indicator(series.seasonal_adjustment || 'NA') %></td>
         <td><%= series.dataPortalName %></td>
         <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
-        <td><%= DataPoint.where(series_id: series).minimum(:date) %></td>
-        <td><%= DataPoint.where(series_id: series).maximum(:date) %></td>
+        <td><%= DataPoint.where(xseries_id: series).minimum(:date) %></td>
+        <td><%= DataPoint.where(xseries_id: series).maximum(:date) %></td>
         <td><%= series.source && series.source.description %></td>
       </tr>
     <% end %>

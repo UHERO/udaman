@@ -74,7 +74,7 @@ class SeriesController < ApplicationController
     @all_series =
       case
         when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency LIKE ?', frequency).order(:name)
+        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
         when all then       Series.get_all_uhero.order(:name)
         else []
       end

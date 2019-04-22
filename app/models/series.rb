@@ -64,7 +64,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_all_universe(universe)
-    Series.where('series.universe like ?', '%' + universe + '%')
+    Series.where('series.universe like ?', '%' + universe + '%').joins(:xseries)
   end
 
   def Series.all_names

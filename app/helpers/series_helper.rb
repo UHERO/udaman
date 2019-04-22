@@ -108,7 +108,7 @@ module SeriesHelper
     html = ""
     all_uhero = Series.get_all_uhero
     [:month, :quarter, :year].each do |frequency|
-      count = all_uhero.where(frequency: frequency).count
+      count = all_uhero.where('frequency = ?', frequency).count
       html += link_to(raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {action: :index, freq: frequency})
       html += "&nbsp;"
     end
