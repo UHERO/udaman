@@ -560,11 +560,6 @@ class Series < ApplicationRecord
     data_hash
   end
 
-  ## this method probably vestigial/unused - double check and remove
-  # def Series.new_from_data(frequency, data)
-  #  Series.new_transformation('One off data', data, frequency)
-  # end
-  
   def Series.new_transformation(name, data, frequency)
     ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
     Series.new.new_transformation(name, data, frequency)
@@ -728,7 +723,8 @@ class Series < ApplicationRecord
     new_transformation('days in time periods', series_data, self.frequency)
   end
 
-  def Series.where_ds_like(string)
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def Series.where_ds_like_DELETEME(string)
     ds_array = DataSource.where("eval LIKE '%#{string}%'").all
     series_array = []
     ds_array.each do |ds|
@@ -736,8 +732,9 @@ class Series < ApplicationRecord
     end 
     series_array
   end
-  
-  def ds_like?(string)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def ds_like_DELETEME?(string)
     self.data_sources.each do |ds|
       return true unless ds.eval.index(string).nil?
     end
