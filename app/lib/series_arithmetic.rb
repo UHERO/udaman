@@ -152,18 +152,18 @@ module SeriesArithmetic
 
   def faster_change(id)
     new_series_data = {}
-    sql = %[
+    sql = <<~SQL
     SELECT t1.date, t1.value, (t1.value - t2.last_value) /
       (select if(units is null, 1, units) as units from series where id = #{id} limit 1)
       AS value_change
       FROM (SELECT date, value, @row := @row + 1 AS row
 		    FROM data_points CROSS JOIN (SELECT @row := 0) AS init
-		    WHERE series_id = #{id} AND current = 1 ORDER BY date) AS t1
+		    WHERE xseries_id = #{id} AND current = 1 ORDER BY date) AS t1
       LEFT JOIN (SELECT date, value AS last_value, @other_row := @other_row + 1 AS row
 		    FROM data_points CROSS JOIN (SELECT @other_row := 1) AS init
-		    WHERE series_id = #{id} AND current = 1 ORDER BY date) AS t2
+		    WHERE xseries_id = #{id} AND current = 1 ORDER BY date) AS t2
       ON (t1.row = t2.row);
-    ]
+    SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['value_change'] unless row['value_change'].nil?
     end
@@ -204,14 +204,14 @@ module SeriesArithmetic
 
   def faster_yoy(id)
     new_series_data = {}
-    sql = %[
+    sql = <<~SQL
       SELECT t1.value, t1.date, (t1.value/t2.last_value - 1)*100 AS yoy
       FROM (SELECT value, date, DATE_SUB(date, INTERVAL 1 YEAR) AS last_year
-            FROM data_points WHERE series_id = #{id} AND current = 1) AS t1
+            FROM data_points WHERE xseries_id = #{id} AND current = 1) AS t1
       LEFT JOIN (SELECT value AS last_value, date
-            FROM data_points WHERE series_id = #{id} and current = 1) AS t2
+            FROM data_points WHERE xseries_id = #{id} and current = 1) AS t2
       ON (t1.last_year = t2.date);
-    ]
+    SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['yoy'] unless row['yoy'].nil?
     end
@@ -284,18 +284,18 @@ module SeriesArithmetic
 
   def faster_ytd(id)
     new_series_data = {}
-    sql = %[
+    sql = <<~SQL
       SELECT t1.date, t1.value, (t1.ytd/t2.last_ytd - 1)*100 AS ytd
       FROM (SELECT date, value, @sum := IF(@year = YEAR(date), @sum, 0) + value AS ytd,
             @year := year(date), DATE_SUB(date, INTERVAL 1 YEAR) AS last_year
           FROM data_points CROSS JOIN (SELECT @sum := 0, @year := 0) AS init
-          WHERE series_id = #{id} AND current = 1 ORDER BY date) AS t1
+          WHERE xseries_id = #{id} AND current = 1 ORDER BY date) AS t1
       LEFT JOIN (SELECT date, @sum := IF(@year = YEAR(date), @sum, 0) + value AS last_ytd,
             @year := year(date)
           FROM data_points CROSS JOIN (SELECT @sum := 0, @year := 0) AS init
-          WHERE series_id = #{id} AND current = 1 ORDER BY date) AS t2
+          WHERE xseries_id = #{id} AND current = 1 ORDER BY date) AS t2
       ON (t1.last_year = t2.date);
-    ]
+    SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['ytd'] unless row['ytd'].nil?
     end
@@ -320,16 +320,16 @@ module SeriesArithmetic
 
   def faster_scaled_yoy_diff(id)
     new_series_data = {}
-    sql = %[
+    sql = <<~SQL
       SELECT t1.value, t1.date, (t1.value - t2.last_value) /
       (select if(units is null, 1, units) as units from series where id = #{id} limit 1)
        AS yoy_diff
       FROM (SELECT value, date, DATE_SUB(date, INTERVAL 1 YEAR) AS last_year
-            FROM data_points WHERE series_id = #{id} AND current = 1) AS t1
+            FROM data_points WHERE xseries_id = #{id} AND current = 1) AS t1
       LEFT JOIN (SELECT value AS last_value, date
-            FROM data_points WHERE series_id = #{id} and current = 1) AS t2
+            FROM data_points WHERE xseries_id = #{id} and current = 1) AS t2
       ON (t1.last_year = t2.date);
-    ]
+    SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['yoy_diff'] unless row['yoy_diff'].nil?
     end

@@ -79,11 +79,11 @@ class DataList < ApplicationRecord
   def get_all_series_data_with_changes(freq, geo, sa)
     series_data = {}
     self.measurements.each do |m|
-      series = m.series.joins(:geography)
-                       .where('series.frequency = ? and geographies.handle = ?',
+      series = m.series.joins(:xseries, :geography)
+                       .where('xseries.frequency = ? and geographies.handle = ?',
                                Series.frequency_from_code(freq), geo)
       unless sa == 'all'
-        series = series.where('seasonal_adjustment = ?', sa)
+        series = series.where('xseries.seasonal_adjustment = ?', sa)
       end
 
       series.each do |s|
