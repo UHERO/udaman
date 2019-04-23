@@ -12,6 +12,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
       UPDATE series SET xseries_id = id;
     SQL
     add_foreign_key :series, :xseries
+    add_index :series, [:universe, :xseries_id], unique: true
 
     add_column :data_points, :xseries_id, :integer, null: false, after: :series_id
     execute <<-SQL
@@ -67,6 +68,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
 
   def self.down
     if column_exists? :series, :xseries_id
+      remove_index :series, column: [:universe, :xseries_id]
       remove_foreign_key :series, :xseries
       remove_column :series, :xseries_id
     end
