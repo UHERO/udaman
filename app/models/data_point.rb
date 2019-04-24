@@ -42,7 +42,7 @@ class DataPoint < ApplicationRecord
     return nil if upd_source.priority < self.data_source.priority
     ##now = Time.now
     new_dp = DataPoint.create(
-        series_id: self.series_id,
+        xseries_id: self.xseries_id,
         date: self.date,
         data_source_id: upd_source.id,
         value: upd_value,
@@ -55,7 +55,7 @@ class DataPoint < ApplicationRecord
   end
 
   def restore_prior_dp(upd_value, upd_source)
-    prior_dp = DataPoint.where(series_id: series_id,
+    prior_dp = DataPoint.where(xseries_id: xseries_id,
                                date: date,
                                data_source_id: upd_source.id,
                                value: upd_value).first
@@ -75,7 +75,7 @@ class DataPoint < ApplicationRecord
   end
 
   def delete
-    most_recent = DataPoint.where(series_id: series_id,
+    most_recent = DataPoint.where(xseries_id: xseries_id,
                                   date: date,
                                   current: false).order('updated_at desc').first if current
     self.transaction do

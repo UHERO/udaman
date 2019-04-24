@@ -230,7 +230,7 @@ class Series < ApplicationRecord
   def Series.last_observation_buckets(frequency)
     obs_buckets = {}
     mod_buckets = {}
-    results = Series.get_all_uhero.where(frequency: frequency).select('data, updated_at')
+    results = Series.get_all_uhero.where('frequency = ?', frequency).select('data, updated_at')
     results.each do |s|
       last_date = s.last_observation.nil? ? 'no data' : s.last_observation[0..6]
       last_update = s.updated_at.nil? ? 'never' : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
@@ -477,7 +477,7 @@ class Series < ApplicationRecord
   end
 
   def Series.empty_quarantine
-    Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
+    Series.get_all_uhero.where('quarantined = true').update_all quarantined: false
     DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'))
   end
 

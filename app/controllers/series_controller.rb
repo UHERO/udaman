@@ -96,17 +96,17 @@ class SeriesController < ApplicationController
   end
 
   def no_source
-    @series = Series.get_all_uhero.where(source_id: nil)
+    @series = Series.get_all_uhero.where('source_id is null')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def no_source_no_restrict
-    @series = Series.get_all_uhero.where(source_id: nil, restricted: false)
+    @series = Series.get_all_uhero.where('source_id is null and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def quarantine
-    @series = Series.get_all_uhero.where(quarantined: true, restricted: false)
+    @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
