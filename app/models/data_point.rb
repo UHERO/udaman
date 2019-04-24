@@ -139,24 +139,24 @@ class DataPoint < ApplicationRecord
     insert_type = universe == 'NTA' ? 'replace' : 'insert'
     update_query = <<~SQL
       update public_data_points p
-        join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
-        join series s on s.id = d.series_id
+        join series s on s.id = p.series_id
+        join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       set p.value = d.value,
           p.pseudo_history = d.pseudo_history,
           p.updated_at = coalesce(d.updated_at, now())
       where p.universe = ?
-      and not s.quarantined
+      and not (s.restricted or s.quarantined)
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
     SQL
     insert_query = <<~SQL
       #{insert_type} into public_data_points (universe, series_id, `date`, `value`, pseudo_history, created_at, updated_at)
-      select d.universe, d.series_id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
-      from data_points d
-        join series s on s.id = d.series_id
-        left join public_data_points p on d.series_id = p.series_id and d.date = p.date
-      where d.universe = ?
-      and not s.quarantined
+      select s.universe, s.id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
+      from series s
+        join data_points d on d.xseries_id = s.xseries_id
+        left join public_data_points p on p.series_id = s.id and p.date = d.date
+      where s.universe = ?
+      and not (s.restricted or s.quarantined)
       and d.current
       and p.created_at is null  /* dp doesn't exist in public_data_points yet */
       #{' and s.id = ? ' if series} ;
@@ -165,10 +165,10 @@ class DataPoint < ApplicationRecord
       delete p
       from public_data_points p
         join series s on s.id = p.series_id
-        left join data_points d on d.series_id = p.series_id and d.date = p.date and d.current
+        left join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       where p.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
-           #{'or s.quarantined' if remove_quarantine} )
+           #{'or s.quarantined or s.restricted' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
     SQL
     begin
