@@ -64,7 +64,9 @@ describe DataSource do
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count + @data2_no_nil.count
     dps0.count.should == @data1_no_nil.count
     dps1.count.should == @data2_no_nil.count
-        
+
+    ### NOTE: The following DataPoint.find_by statements cannot succeed, because 'id' column has been removed
+    ### from the data_points table!  If you want to reenable this test, you'll need to rewrite the below part.
     DataPoint.find_by(id: dps0[0].id).should_not be_nil
     DataPoint.find_by(id: dps1[0].id).should_not be_nil
     ds1.delete
@@ -76,8 +78,8 @@ describe DataSource do
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
     ds0.data_points.count.should == @data1_no_nil.count
     
-    DataPoint.find_by(:id => dps1[0].id).first.should be_nil
-    DataPoint.find_by(dps0[0].id).should_not be_nil
+    DataPoint.find_by(id: dps1[0].id).first.should be_nil
+    DataPoint.find_by(id: dps0[0].id).should_not be_nil
   end
     
 

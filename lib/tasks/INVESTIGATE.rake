@@ -49,11 +49,13 @@ task :gen_investigate_csv => :environment do
   
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:series_id).count
+  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:xseries_id).count
   CSV.open('public/dp_added.csv', 'wb') do |csv|
     csv << %w{series_name series_id new_datapoints_added}
-    dps.each do |series_id,count| 
-      csv << [Series.find_by(id: series_id).name, series_id, count]
+    dps.each do |xseries_id, count|
+      series = Xseries.find(xseries_id).primary_series rescue next
+      next unless series
+      csv << [series.name, series.id, count]
     end
   end
   
@@ -86,11 +88,13 @@ task :gen_daily_summary => :environment do
   t = Time.now
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count(:all, :group=> :series_id)
+  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:xseries_id).count
   CSV.open('public/dp_added.csv', 'wb') do |csv|        
     csv << %w(series_name series_id new_datapoints_added)
-    dps.each do |series_id,count| 
-      csv << [Series.find_by(id: series_id).name, series_id, count]
+    dps.each do |xseries_id, count|
+      series = Xseries.find(xseries_id).primary_series rescue next
+      next unless series
+      csv << [series.name, series.id, count]
     end
   end
   
