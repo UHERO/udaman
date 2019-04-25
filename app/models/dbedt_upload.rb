@@ -281,16 +281,16 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         end
         current_data_source.update last_run_in_seconds: Time.now.to_i
       end
-      data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7]})
+      data_points.push({xs_id: current_series.xseries_id, ds_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7]})
     end
     if data_points.length > 0 && !current_series.nil?
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact.uniq{|dp|
-          dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
+          dp[:xs_id].to_s + dp[:ds_id].to_s + dp[:date].to_s
         }.map {|dp|
-          "('DBEDT',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
+          "(#{dp[:xs_id]},#{dp[:ds_id]},STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false,NOW())"
         }.join(',')
-        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (universe, series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
+        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (xseries_id,data_source_id,date,value,current,created_at) VALUES #{values};|)
       end
     end
     dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
