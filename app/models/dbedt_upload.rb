@@ -250,7 +250,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
 
         current_series = Series.find_by name: name
         if current_series.nil?
-          current_series = Series.create(
+          current_series = Series.create_new(
               universe: 'DBEDT',
               name: name,
               frequency: row[4],

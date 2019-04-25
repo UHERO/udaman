@@ -247,7 +247,7 @@ class NtaUpload < ApplicationRecord
                      else nil
                    end
             current_series = Series.find_by(name: series_name) ||
-                             Series.create(
+                             Series.create_new(
                                universe: 'NTA',
                                name: series_name,
                                dataPortalName: indicator_title,

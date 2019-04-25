@@ -86,18 +86,22 @@ class Series < ApplicationRecord
 
   def Series.create_new(properties)
     name_parts = properties.delete(:name_parts)
+    geo = {}
     if name_parts  ## called from SeriesController#create
-      geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
+      geo = Geography.find(name_parts[:geo_id])
     else
       name_parts = Series.parse_name(properties[:name])
-      geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
-          raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
+      unless properties[:geography_id]
+        univ = properties[:universe] || 'UHERO'
+        geo = Geography.find_by(universe: univ, handle: name_parts[:geo]) ||
+            raise("No #{univ} geography (handle=#{name_parts[:geo]}) found")
+      end
     end
-    properties[:name] = Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
-    properties[:geography_id] = geo.id
-    properties[:frequency] = Series.frequency_from_code(name_parts[:freq]) ||
-        raise("Unknown frequency code #{name_parts[:freq]} in series creation")
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }
+    properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
+    properties[:geography_id] ||= geo.id
+    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
+
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
     series_attrs -= xseries_attrs
     s = nil
