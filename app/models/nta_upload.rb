@@ -251,7 +251,7 @@ class NtaUpload < ApplicationRecord
                                universe: 'NTA',
                                name: series_name,
                                dataPortalName: indicator_title,
-                               frequency: 'year',
+                               frequency: :year,
                                geography_id: geo_id,
                                unit_id: measurement.unit_id,
                                percent: measurement.percent,

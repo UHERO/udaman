@@ -85,23 +85,21 @@ class Series < ApplicationRecord
   end
 
   def Series.create_new(properties)
-    name_parts = properties.delete(:name_parts)
-    geo = {}
-    if name_parts  ## called from SeriesController#create
-      geo = Geography.find(name_parts[:geo_id])
+    name_parts = properties.delete(:name_parts)  ## :name_parts only present when called from SeriesController#create
+    properties.merge!(name_parts) if name_parts
+    name_parts ||= Series.parse_name(properties[:name])
+
+    if properties[:geography_id]
+      geo = Geography.find properties[:geography_id]
     else
-      name_parts = Series.parse_name(properties[:name])
-      unless properties[:geography_id]
-        univ = properties[:universe] || 'UHERO'
-        geo = Geography.find_by(universe: univ, handle: name_parts[:geo]) ||
-            raise("No #{univ} geography (handle=#{name_parts[:geo]}) found")
-      end
+      uni = properties[:universe] || 'UHERO'
+      geo = Geography.find_by(universe: uni, handle: name_parts[:geo]) || raise("No #{uni} Geography found, handle=#{name_parts[:geo]}")
     end
     properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] ||= geo.id
     properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
 
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ } ## leave out timestamps? Do we want this?
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
     series_attrs -= xseries_attrs
     s = nil
@@ -416,7 +414,7 @@ class Series < ApplicationRecord
     puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}"
   end
   
-  def save_source(source_desc, eval_statement, data, priority=100, last_run = Time.now)
+  def save_source(source_desc, eval_statement, data, priority = 100)
     source = nil
     data_sources.each do |ds|
       if !eval_statement.nil? and !ds.eval.nil? and eval_statement.strip == ds.eval.strip
@@ -430,17 +428,17 @@ class Series < ApplicationRecord
         :description => source_desc,
         :eval => eval_statement,
         :priority => priority,
-        :last_run => last_run
+        :last_run => Time.now
       )
     
       source = data_sources_by_last_run[-1]
       source.setup
     end
-    update_data(data, source)
+    update_data(data, source, false)
     source
   end
   
-  def update_data(data, source)
+  def update_data(data, source, run_update = true)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
     #instead of calling in save_source
@@ -464,9 +462,9 @@ class Series < ApplicationRecord
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self)
+    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
     aremos_comparison #if we can take out this save, might speed things up a little
-    []
+    true
   end
 
   def add_to_quarantine(run_update = true)
