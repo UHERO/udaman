@@ -58,10 +58,6 @@ module UpdateCore
     true if metadata_headers.include?(cell_data)
   end
 
-  def date_parse(cell_data)
-    Date.parse cell_data.to_s
-  end
-  
   def cell_to_date(row,col)
     cell_data = cell(row,col)
     cell_data = Float cell_data rescue cell_data
@@ -82,8 +78,8 @@ module UpdateCore
       semi_date = cell_data.split(' ')[0] == 'S01' ? '-01-01' : '-07-01'
       return Date.parse cell_data.split(' ')[1] + semi_date
     end
-    
-    date_parse cell_data
+
+    Date.parse cell_data.to_s
   end
   
   #this needs to be speced and tested      
