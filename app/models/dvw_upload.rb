@@ -263,5 +263,5 @@ class DvwUpload < ApplicationRecord
     end
     '%d-%02d-01' % [year, month]
   end
-  
+
 end
