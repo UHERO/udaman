@@ -263,12 +263,5 @@ class DvwUpload < ApplicationRecord
     end
     '%d-%02d-01' % [year, month]
   end
-
-  ## This really should be a utility routine easily shared across the whole codebase, but we don't seem
-  ## to have a such a place to put utilities now. I'm sure this computation is done elsewhere, and if you
-  ## find it, try to replace all examples of this with un-redundant calls to a single routine.
-  def first_month_of_quarter(q)
-    qnum = q.to_s.gsub(/\D/,'').to_i  ## allow for caller to pass things like "Q2"
-    (qnum - 1) * 3 + 1
-  end
+  
 end
