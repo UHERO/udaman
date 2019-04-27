@@ -115,7 +115,8 @@ class DataPoint < ApplicationRecord
     end
   end
 
-  def DataPoint.delete_all_created_on(date)
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def DataPoint.delete_all_created_on_DELETEME(date)
     DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
   end
 
