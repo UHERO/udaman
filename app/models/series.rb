@@ -447,7 +447,8 @@ class Series < ApplicationRecord
     DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'))
   end
 
-  def update_data_hash
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def update_data_hash_DELETEME
     data_hash = {}
     data_points.each do |dp|
       data_hash[dp.date.to_s] = dp.value if dp.current

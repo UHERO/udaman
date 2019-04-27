@@ -10,7 +10,6 @@ task :rebuild => :environment do
     DataPoint.delete_all
     DataSource.delete_all
     Series.delete_all
-    Xseries.delete_all
     Download.delete_all
     DsdLogEntry.delete_all
    
