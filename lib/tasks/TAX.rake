@@ -1,15 +1,5 @@
 #TAX SERIES DOWNLOADS
 
-###*******************************************************************
-###NOTES BOX
-
-#need to also define error handling in packager (or some other high level location)
-
-#With the download being to a zip file, there seems to be a problem in unzipping the data to a usable form.
-
-###*******************************************************************
-
-
 task :tax_upd => :environment do
   t = Time.now
 	collec = {
@@ -370,18 +360,6 @@ end
 
 task :tax_identities => :environment do
   t = Time.now
-  #3/21/12 Ben: try to replace all of these with individual calls since they change and should go in the loads in the other jobs
-  #Series.load_all_mean_corrected_sa_series_from "#{ENV['DATA_PATH']}/tour/seasadj/sadata.xls", "sadata" 
-  #Series.load_all_sa_series_from "#{ENV['DATA_PATH']}/bls/seasadj/sadata.xls", "sadata" 
-  #Series.load_all_sa_series_from "#{ENV['DATA_PATH']}/misc/hbr/seasadj/sadata.xls", "sadata"
-  # replacing this load with individual calls
-  # Series.load_all_sa_series_from "#{ENV['DATA_PATH']}/tax/seasadj/sadata.xls", "sadata"
-  # Series.load_all_mean_corrected_sa_series_from "#{ENV['DATA_PATH']}/tax/seasadj/sadata.xls", "sadata"
-  #maybe should put this in tax section? (but these need to run AFTER all the tax are read in)
-
-  #9/28/12
-  #would be nice if this load could be made more efficient. Not sure why the grouped call isn't working well right now...
-
   ["HI", "HON", "MAU", "KAU", "HAW"].each do |cnty|
     begin
       "TRINNS@#{cnty}.M".ts_eval= %Q|"TRINESNS@#{cnty}.M".ts + "TRINPRNS@#{cnty}.M".ts + "TRINWHNS@#{cnty}.M".ts + "TRINRFNS@#{cnty}.M".ts|

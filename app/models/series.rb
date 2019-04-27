@@ -348,41 +348,6 @@ class Series < ApplicationRecord
     end
   end
 
-  def Series.load_all_mean_corrected_sa_series_from(spreadsheet_path, sheet_to_load = nil)  
-    each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
-      frequency_code = code_from_frequency update_spreadsheet.frequency  
-      sa_base_name = series_name.sub('NS@','@')
-      sa_series_name = sa_base_name+'.'+frequency_code
-      ns_series_name = series_name+'.'+frequency_code
-      
-      demetra_series = new_transformation('demetra series', update_spreadsheet.series(series_name), frequency_code)
-      
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
-
-      unless ns_series_name.ts.nil?
-        mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_series_name.ts.annual_sum 
-        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
-      end
-      # sa_series_name.ts_eval=(%Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      # sa_series_name.ts_eval=(%Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil? 
-      #Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{update_spreadsheet_path}"^)
-      #sa_series_name.ts.update_attributes(:seasonally_adjusted => true, :last_demetra_datestring => update_spreadsheet.dates.keys.sort.last)
-      sa_series_name
-      
-      
-            
-      
-      # demetra_series.frequency = update_spreadsheet.frequency
-      # self.frequency = update_spreadsheet.frequency
-      # mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
-      # new_transformation("mean corrected against #{ns_name} and loaded from #{update_spreadsheet_path}", mean_corrected_demetra_series.data)
-      
-      
-    end
-  end
-  
   def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
@@ -403,8 +368,7 @@ class Series < ApplicationRecord
     desc = 'Source Series Name is blank' if desc.blank?
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
-    source = series_to_set.save_source(desc, eval_statement, series.data, priority)
-    source
+    series_to_set.save_source(desc, eval_statement, series.data, priority)
   end
 
   def Series.eval(series_name, eval_statement, priority=100)
@@ -566,8 +530,7 @@ class Series < ApplicationRecord
   
   def new_transformation(name, data, frequency = nil)
     raise "Undefined dataset for new transformation '#{name}'" if data.nil?
-    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
-                Series.frequency_from_code(Series.parse_name(name)[:freq])
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
     Series.new(
       :name => name,
       :xseries => Xseries.new(frequency: frequency),
