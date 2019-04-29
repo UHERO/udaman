@@ -81,7 +81,7 @@ module UpdateCore
       return Date.parse cell_data.split(' ')[1] + semi_date
     end
 
-    if cell_data =~ /([12]\d\d\d)[ -.]?Q0?([1234])/i  ## Quarter spec like YYYYQ1, YYYY-Q1, YYYY-Q01, "YYYY Q1", etc
+    if cell_data =~ /([12]\d\d\d)[-. ]?Q0?([1234])/i  ## Quarter spec like YYYYQ1, YYYY-Q1, YYYY-Q01, "YYYY Q1", etc
       cell_data = '%s-%02d-01' % [$1, first_month_of_quarter($2)]
     end
     Date.parse cell_data.to_s
