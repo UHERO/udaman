@@ -416,12 +416,13 @@ class Series < ApplicationRecord
     current_data_points.each do |dp|
       dp.upd(data[dp.date], source)
     end
-    observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
+    observation_dates -= current_data_points.map(&:date)
+    now = Time.now
     observation_dates.each do |date|
       data_points.create(
         :date => date,
         :value => data[date],
-        :created_at => Time.now,
+        :created_at => now,
         :current => true,
         :data_source_id => source.id
       )
