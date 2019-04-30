@@ -372,30 +372,30 @@ class Series < ApplicationRecord
   end
 
   def Series.eval(series_name, eval_statement, priority=100)
-    t = Time.now
     new_series = Kernel::eval eval_statement
     Series.store series_name, new_series, new_series.name, eval_statement, priority
-    puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}"
   end
-  
+
   def save_source(source_desc, eval_statement, data, priority = 100)
     source = nil
-    data_sources.each do |ds|
-      if !eval_statement.nil? and !ds.eval.nil? and eval_statement.strip == ds.eval.strip
-        ds.update_attributes(:last_run => Time.now)
-        source = ds 
+    now = Time.now
+    if eval_statement
+      eval_statement.strip!
+      data_sources.each do |ds|
+        if ds.eval && ds.eval.strip == eval_statement
+          ds.update_attributes(last_run: now)
+          source = ds
+        end
       end
     end
-       
+
     if source.nil?
-      data_sources.create(
+      source = data_sources.create(
         :description => source_desc,
         :eval => eval_statement,
         :priority => priority,
-        :last_run => Time.now
+        :last_run => now
       )
-    
-      source = data_sources_by_last_run[-1]
       source.setup
     end
     update_data(data, source, false)
