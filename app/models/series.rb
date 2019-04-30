@@ -745,19 +745,6 @@ class Series < ApplicationRecord
     observations
   end
 
-  # def get_source_colors
-  #   colors = {}
-  #   color_order = ["FFCC99", "CCFFFF", "99CCFF", "CC99FF", "FFFF99", "CCFFCC", "FF99CC", "CCCCFF", "9999FF", "99FFCC"]
-  #   colors
-  # end
-
-  def print
-    data.sort.each do |date, value|
-      puts "#{date}: #{value}"
-    end
-    puts name
-  end
-  
   def new_data?
     data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
