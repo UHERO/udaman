@@ -1,8 +1,7 @@
 module SeriesSeasonalAdjustment
   #may need to spec a test for this in terms of adding the correct source
   def apply_seasonal_adjustment(factor_application)
-    ns_series = find_ns_series
-    raise SeasonalAdjustmentException.new if ns_series.nil?
+    ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
     set_factors factor_application 
     new_ns_values = ns_series.get_values_after(Date.parse last_demetra_date.to_s)
     adjusted_data = {}
