@@ -892,11 +892,7 @@ class Series < ApplicationRecord
     end
   end
 
-  def Series.new_from_tsd_data(tsd_data)
-    return Series.new_transformation(tsd_data['name']+'.'+tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
-  end
-  
-  def get_tsd_series_data(tsd_file)      
+  def get_tsd_series_data(tsd_file)
     url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split('.')[0].gsub('%', '%25')}/json")
     res = Net::HTTP.new(url.host, url.port).request_get(url.path)
     tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
@@ -905,7 +901,7 @@ class Series < ApplicationRecord
     clean_tsd_data = {}
     tsd_data['data'].each {|date_string, value| clean_tsd_data[Date.strptime(date_string, '%Y-%m-%d')] = value}
     tsd_data['data'] = clean_tsd_data
-    Series.new_from_tsd_data(tsd_data)
+    new_transformation(tsd_data['name']+'.'+tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
   end
   
   def tsd_string
