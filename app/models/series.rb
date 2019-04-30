@@ -86,8 +86,11 @@ class Series < ApplicationRecord
 
   def Series.create_new(properties)
     name_parts = properties.delete(:name_parts)  ## :name_parts only present when called from SeriesController#create
-    properties.merge!(name_parts) if name_parts
-    name_parts ||= Series.parse_name(properties[:name])
+    if name_parts
+      properties.merge!(name_parts)
+    else
+      name_parts = Series.parse_name(properties[:name])
+    end
 
     if properties[:geography_id]
       geo = Geography.find properties[:geography_id]
