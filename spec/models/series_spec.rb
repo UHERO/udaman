@@ -134,7 +134,7 @@ describe Series do
       end
     
       xit "should have a counterpart series in the database that can also return any  observations after the last demetra output date" do
-        counterpart_ns_series = @sa_series.get_ns_series
+        counterpart_ns_series = @sa_series.find_ns_series
         ns_values = counterpart_ns_series.get_values_after @sa_series.last_demetra_date
         ns_values.should include("2010-01-01"=>8.6)
         ns_values.should have(7).items

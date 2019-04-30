@@ -13,10 +13,6 @@ module SeriesRelationship
     all_frequencies.reject { |element| self.name == element }
   end
   
-  def get_ns_series
-    Series.get name.sub('@','NS@')
-  end
-  
   def current_data_points
     cdp_hash = {}
     cdp_array = []

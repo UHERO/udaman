@@ -51,6 +51,10 @@ class Series < ApplicationRecord
     end
   end
 
+  def to_s
+    self.name
+  end
+
   def first_observation
     data.keys.sort[0] rescue nil
   end
