@@ -819,8 +819,9 @@ class Series < ApplicationRecord
     product_posts.sort.reverse[0]
     
   end
-  
-  def print_data_points
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def print_data_points_DELETEME
     data_hash = {}
     source_array = []
     

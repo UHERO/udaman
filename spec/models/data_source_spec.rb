@@ -50,12 +50,10 @@ describe DataSource do
     
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
     "YSTWTR@HI.A".ts.data_sources[0].data_points.count.should == @data1_no_nil.count
-#    "YSTWTR@HI.A".ts.print_data_points
-    
+
     "YSTWTR@HI.A".ts_append_eval %Q|"YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
     "YSTWTR@HI.A".ts.data_sources.count.should == 2
-#    "YSTWTR@HI.A".ts.print_data_points
-    
+
     ds0 = "YSTWTR@HI.A".ts.data_sources_by_last_run[0]
     ds1 = "YSTWTR@HI.A".ts.data_sources_by_last_run[1]
     dps0 = ds0.data_points
@@ -71,8 +69,7 @@ describe DataSource do
     DataPoint.find_by(id: dps1[0].id).should_not be_nil
     ds1.delete
     "YSTWTR@HI.A".ts.data_sources.count.should == 1
-#    "YSTWTR@HI.A".ts.print_data_points
-    
+
     ds0 = "YSTWTR@HI.A".ts.data_sources_by_last_run[0]    
     
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
