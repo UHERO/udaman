@@ -343,11 +343,6 @@ class NtaUpload < ApplicationRecord
       where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete x
-      from xseries x join series s on s.xseries_id = x.id
-      where s.universe = 'NTA' ;
-    SQL
-    ActiveRecord::Base.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
@@ -358,6 +353,11 @@ class NtaUpload < ApplicationRecord
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from series where universe = 'NTA' ;
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete x
+      from xseries x join series s on s.xseries_id = x.id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from measurements where universe = 'NTA' ;
