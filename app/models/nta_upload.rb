@@ -333,10 +333,19 @@ class NtaUpload < ApplicationRecord
 
   def NtaUpload.delete_universe_nta
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from public_data_points where universe = 'NTA' ;
+      delete p
+      from public_data_points p join series s on s.id = p.series_id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from data_points where universe = 'NTA' ;
+      delete d
+      from data_points d join series s on s.xseries_id = d.xseries_id
+      where s.universe = 'NTA' ;
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete x
+      from xseries x join series s on s.xseries_id = x.id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA' ;

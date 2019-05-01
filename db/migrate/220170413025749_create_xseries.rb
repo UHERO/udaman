@@ -18,11 +18,12 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     execute <<-SQL
       UPDATE data_points SET xseries_id = series_id;
     SQL
+    add_foreign_key :data_points, :xseries
 
-    add_column :public_data_points, :xseries_id, :integer, null: false, after: :series_id
-    execute <<-SQL
-      UPDATE public_data_points SET xseries_id = series_id;
-    SQL
+#    add_column :public_data_points, :xseries_id, :integer, null: false, after: :series_id
+#    execute <<-SQL
+#      UPDATE public_data_points SET xseries_id = series_id;
+#    SQL
 
     add_column :xseries, :primary_series_id, :integer, after: :id
     execute <<-SQL
