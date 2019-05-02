@@ -145,14 +145,14 @@ class DataPoint < ApplicationRecord
       set p.value = d.value,
           p.pseudo_history = d.pseudo_history,
           p.updated_at = coalesce(d.updated_at, now())
-      where p.universe = ?
+      where s.universe = ?
       and not (s.restricted or s.quarantined)
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
     SQL
     insert_query = <<~SQL
-      #{insert_type} into public_data_points (universe, series_id, `date`, `value`, pseudo_history, created_at, updated_at)
-      select s.universe, s.id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
+      #{insert_type} into public_data_points (series_id, `date`, `value`, pseudo_history, created_at, updated_at)
+      select s.id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
       from series s
         join data_points d on d.xseries_id = s.xseries_id
         left join public_data_points p on p.series_id = s.id and p.date = d.date
@@ -167,7 +167,7 @@ class DataPoint < ApplicationRecord
       from public_data_points p
         join series s on s.id = p.series_id
         left join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
-      where p.universe = ?
+      where s.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
            #{'or s.quarantined or s.restricted' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
