@@ -24,7 +24,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     execute <<~MYSQL
       alter table `data_points` add primary key (xseries_id, `date`, created_at, data_source_id)
     MYSQL
-    add_foreign_key :data_points, :xseries
+    # add_foreign_key :data_points, :xseries
 
     add_column :xseries, :primary_series_id, :integer, after: :id
     execute <<~MYSQL
@@ -66,12 +66,6 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     rename_column :series, :restricted, :restricted_ob if column_exists? :series, :restricted
     rename_column :series, :quarantined, :quarantined_ob if column_exists? :series, :quarantined
     rename_column :series, :base_year, :base_year_ob if column_exists? :series, :base_year
-
-    ## recreate foreign key indexes so names differ from :series table
-    remove_foreign_key :xseries, :sources if foreign_key_exists? :xseries, :sources
-    add_foreign_key :xseries, :sources
-    remove_foreign_key :xseries, :source_details if foreign_key_exists? :xseries, :source_details
-    add_foreign_key :xseries, :source_details
 
     # cleanup
     remove_column :data_points, :id       if column_exists? :data_points, :id
