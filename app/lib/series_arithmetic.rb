@@ -156,7 +156,7 @@ module SeriesArithmetic
     SELECT t1.date, t1.value, (t1.value - t2.last_value) /
       (select if(units is null, 1, units) as units from series where id = #{id} limit 1)
       AS value_change
-      FROM (SELECT date, value, @row := @row + 1 AS row
+      FROM (SELECT `date`, `value`, @row := @row + 1 AS row
 		    FROM data_points CROSS JOIN (SELECT @row := 0) AS init
 		    WHERE xseries_id = #{id} AND current = 1 ORDER BY date) AS t1
       LEFT JOIN (SELECT date, value AS last_value, @other_row := @other_row + 1 AS row

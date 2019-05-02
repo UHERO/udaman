@@ -77,6 +77,30 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     change_column :xseries, :quarantined, :boolean, after: :restricted
     change_column :xseries, :last_demetra_date, :date, after: :last_demetra_datestring
     change_column :xseries, :base_year, :integer, after: :decimals
+
+    execute <<~MYSQL
+      create view `series_v` as
+      select s.*,
+      x.frequency,
+      x.seasonally_adjusted,
+      x.seasonal_adjustment,
+      x.units,
+      x.percent,
+      x.`real`,
+      x.decimals,
+      x.last_demetra_datestring,
+      x.last_demetra_date,
+      x.factors,
+      x.factor_application,
+      x.aremos_missing,
+      x.aremos_diff,
+      x.mult,
+      x.base_year,
+      x.frequency_transform,
+      x.restricted,
+      x.quarantined
+      from series s join xseries x on x.id = s.xseries_id
+    MYSQL
   end
 
   def self.down
@@ -113,5 +137,9 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     rename_column :series, :quarantined_ob, :quarantined if column_exists? :series, :quarantined_ob
     rename_column :series, :base_year_ob, :base_year if column_exists? :series, :base_year_ob
     rename_column :public_data_points, :universe_ob, :universe if column_exists? :public_data_points, :universe_ob
+
+    execute <<~MYSQL
+      drop view `series_v`
+    MYSQL
   end
 end
