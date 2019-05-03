@@ -153,8 +153,8 @@ module SeriesArithmetic
   def faster_change(id)
     new_series_data = {}
     sql = <<~MYSQL
-    SELECT t1.date, t1.value, (t1.value - t2.last_value) /
-      (select coalesce(units, 1) from series_v where id = ? limit 1) AS value_change
+    SELECT t1.date, t1.value, ((t1.value - t2.last_value) /
+      (select coalesce(units, 1) from series_v where id = ? limit 1)) AS value_change
       FROM (
         SELECT `date`, `value`, (@rrow := @rrow + 1) AS row
 		    FROM data_points d JOIN xseries x ON x.id = d.xseries_id
@@ -169,9 +169,11 @@ module SeriesArithmetic
       ) AS t2
       ON (t1.row = t2.row);
     MYSQL
-    stmt = connection.raw_connection.prepare(sql)
-    stmt.execute(id, id, id).each(:as => :hash) do |row|
-      new_series_data[row['date']] = row['value_change'] unless row['value_change'].nil?
+    stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
+    stmt.execute(id, id, id).each do |row|
+      date = row[0]
+      val_chg = row[2]
+      new_series_data[date] = val_chg if val_chg
     end
     new_transformation("Absolute Change of #{name}", new_series_data)
   end
@@ -211,7 +213,7 @@ module SeriesArithmetic
   def faster_yoy(id)
     new_series_data = {}
     sql = <<~MYSQL
-      SELECT t1.value, t1.date, (t1.value / t2.last_value - 1) * 100 AS yoy
+      SELECT t1.date, t1.value, (t1.value / t2.last_value - 1) * 100 AS yoy
       FROM (
         SELECT `value`, `date`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
@@ -224,9 +226,11 @@ module SeriesArithmetic
       ) AS t2
       ON (t1.last_year = t2.date);
     MYSQL
-    stmt = connection.raw_connection.prepare(sql)
-    stmt.execute(id, id).each(:as => :hash) do |row|
-      new_series_data[row['date']] = row['yoy'] unless row['yoy'].nil?
+    stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
+    stmt.execute(id, id).each do |row|
+      date = row[0]
+      yoy = row[2]
+      new_series_data[date] = yoy if yoy
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
@@ -315,9 +319,11 @@ module SeriesArithmetic
       ) AS t2
       ON (t1.last_year = t2.date);
     MYSQL
-    stmt = connection.raw_connection.prepare(sql)
-    stmt.execute(id, id).each(:as => :hash) do |row|
-      new_series_data[row['date']] = row['ytd'] unless row['ytd'].nil?
+    stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
+    stmt.execute(id, id).each do |row|
+      date = row[0]
+      ytd = row[2]
+      new_series_data[date] = ytd if ytd
     end
     new_transformation("Year to Date Percentage Change of #{name}", new_series_data)
   end
@@ -341,8 +347,8 @@ module SeriesArithmetic
   def faster_scaled_yoy_diff(id)
     new_series_data = {}
     sql = <<~MYSQL
-      SELECT t1.value, t1.date, (t1.value - t2.last_value) /
-        (select coalesce(units, 1) from series_v where id = ? limit 1) AS yoy_diff
+      SELECT t1.date, t1.value, ((t1.value - t2.last_value) /
+        (select coalesce(units, 1) from series_v where id = ? limit 1)) AS yoy_diff
       FROM (
         SELECT `value`, `date`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
@@ -355,9 +361,11 @@ module SeriesArithmetic
       ) AS t2
       ON (t1.last_year = t2.date);
     MYSQL
-    stmt = connection.raw_connection.prepare(sql)
-    stmt.execute(id, id, id).each(:as => :hash) do |row|
-      new_series_data[row['date']] = row['yoy_diff'] unless row['yoy_diff'].nil?
+    stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
+    stmt.execute(id, id, id).each do |row|
+      date = row[0]
+      yoy_diff = row[2]
+      new_series_data[date] = yoy_diff if yoy_diff
     end
     new_transformation("Scaled year over year diff of #{name}", new_series_data)
   end
