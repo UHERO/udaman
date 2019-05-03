@@ -85,7 +85,8 @@ class DataList < ApplicationRecord
         filters.push('xseries.seasonal_adjustment = ?')
         values.push(sa)
       end
-      series = m.series.joins(:xseries, :geography).where(filters.join(' and '), values)
+      where_cond = [filters.join(' and '), values].flatten
+      series = m.series.joins(:xseries, :geography).where(where_cond)
 
       series.each do |s|
         all_changes = {}
