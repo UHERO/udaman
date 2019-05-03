@@ -1,5 +1,6 @@
 module SeriesRelationship
   def all_frequencies
+    ### Ugh.... rewrite this with parse_name, etc
     s_root = self.name[0..-3]
     f_array = []
     

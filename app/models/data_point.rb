@@ -1,6 +1,6 @@
 class DataPoint < ApplicationRecord
   self.primary_key = :xseries_id, :date, :created_at, :data_source_id
-  belongs_to :xseries, inverse_of: :data_point
+  belongs_to :xseries, inverse_of: :data_points
   belongs_to :data_source
   
   def upd(value, data_source)
@@ -83,7 +83,11 @@ class DataPoint < ApplicationRecord
       most_recent.update_attributes(:current => true) if most_recent
     end
   end
-  
+
+  def series
+    self.xseries.primary_series
+  end
+
   def source_type
     source_eval = self.data_source.eval
     case 

@@ -24,6 +24,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
     execute <<~MYSQL
       alter table `data_points` add primary key (xseries_id, `date`, created_at, data_source_id)
     MYSQL
+    rename_column :data_points, :series_id, :series_id_ob if column_exists? :data_points, :series_id
     # add_foreign_key :data_points, :xseries
 
     add_column :xseries, :primary_series_id, :integer, after: :id
@@ -109,13 +110,18 @@ class CreateXseries < ActiveRecord::Migration[5.2]
       remove_foreign_key :series, :xseries
       remove_column :series, :xseries_id
     end
-    execute <<~MYSQL
-      alter table `data_points` drop primary key
-    MYSQL
-    execute <<~MYSQL
-      alter table `data_points` add primary key (series_id, `date`, created_at, data_source_id)
-    MYSQL
+
+    if column_exists? :data_points, :series_id_ob
+      rename_column :data_points, :series_id_ob, :series_id
+      execute <<~MYSQL
+        alter table `data_points` drop primary key
+      MYSQL
+      execute <<~MYSQL
+        alter table `data_points` add primary key (series_id, `date`, created_at, data_source_id)
+      MYSQL
+    end
     remove_column :data_points, :xseries_id if column_exists? :data_points, :xseries_id
+
     drop_table :xseries if table_exists? :xseries
 
     rename_column :series, :frequency_ob, :frequency if column_exists? :series, :frequency_ob
