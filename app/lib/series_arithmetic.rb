@@ -152,24 +152,25 @@ module SeriesArithmetic
 
   def faster_change(id)
     new_series_data = {}
-    sql = <<~SQL
+    sql = <<~MYSQL
     SELECT t1.date, t1.value, (t1.value - t2.last_value) /
-      (select coalesce(units, 1) from series_v where id = #{id} limit 1) AS value_change
+      (select coalesce(units, 1) from series_v where id = ? limit 1) AS value_change
       FROM (
-        SELECT `date`, `value`, (@row := @row + 1) AS row
+        SELECT `date`, `value`, (@rrow := @rrow + 1) AS row
 		    FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-          CROSS JOIN (SELECT @row := 0) AS init
-		    WHERE x.primary_series_id = #{id} AND `current` = 1 ORDER BY `date`
+          CROSS JOIN (SELECT @rrow := 0) AS init
+		    WHERE x.primary_series_id = ? AND `current` = 1 ORDER BY `date`
       ) AS t1
       LEFT JOIN (
         SELECT `date`, `value` AS last_value, (@other_row := @other_row + 1) AS row
 		    FROM data_points d JOIN xseries x ON x.id = d.xseries_id
 		      CROSS JOIN (SELECT @other_row := 1) AS init
-		    WHERE x.primary_series_id = #{id} AND `current` = 1 ORDER BY `date`
+		    WHERE x.primary_series_id = ? AND `current` = 1 ORDER BY `date`
       ) AS t2
       ON (t1.row = t2.row);
-    SQL
-    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
+    MYSQL
+    stmt = connection.raw_connection.prepare(sql)
+    stmt.execute(id, id, id).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['value_change'] unless row['value_change'].nil?
     end
     new_transformation("Absolute Change of #{name}", new_series_data)
@@ -209,21 +210,22 @@ module SeriesArithmetic
 
   def faster_yoy(id)
     new_series_data = {}
-    sql = <<~SQL
+    sql = <<~MYSQL
       SELECT t1.value, t1.date, (t1.value / t2.last_value - 1) * 100 AS yoy
       FROM (
         SELECT `value`, `date`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = #{id} AND `current` = 1
+        WHERE x.primary_series_id = ? AND `current` = 1
       ) AS t1
       LEFT JOIN (
         SELECT `value` AS last_value, `date`
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = #{id} and `current` = 1
+        WHERE x.primary_series_id = ? and `current` = 1
       ) AS t2
       ON (t1.last_year = t2.date);
-    SQL
-    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
+    MYSQL
+    stmt = connection.raw_connection.prepare(sql)
+    stmt.execute(id, id).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['yoy'] unless row['yoy'].nil?
     end
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
@@ -295,25 +297,26 @@ module SeriesArithmetic
 
   def faster_ytd(id)
     new_series_data = {}
-    sql = <<~SQL
+    sql = <<~MYSQL
       SELECT t1.date, t1.value, (t1.ytd / t2.last_ytd - 1) * 100 AS ytd
       FROM (
-        SELECT `date`, `value`, (@sum := IF(@year = YEAR(`date`), @sum, 0) + `value`) AS ytd,
-            @year := year(`date`), DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
+        SELECT `date`, `value`, (@sum := IF(@yr = YEAR(`date`), @sum, 0) + `value`) AS ytd,
+            @yr := YEAR(`date`), DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-          CROSS JOIN (SELECT @sum := 0, @year := 0) AS init
-        WHERE x.primary_series_id = #{id} AND `current` = 1 ORDER BY `date`
+          CROSS JOIN (SELECT @sum := 0, @yr := 0) AS init
+        WHERE x.primary_series_id = ? AND `current` = 1 ORDER BY `date`
       ) AS t1
       LEFT JOIN (
-        SELECT `date`, (@sum := IF(@year = YEAR(`date`), @sum, 0) + `value`) AS last_ytd,
-            @year := year(`date`)
+        SELECT `date`, (@sum := IF(@yr = YEAR(`date`), @sum, 0) + `value`) AS last_ytd,
+            @yr := year(`date`)
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-          CROSS JOIN (SELECT @sum := 0, @year := 0) AS init
-        WHERE x.primary_series_id = #{id} AND `current` = 1 ORDER BY `date`
+          CROSS JOIN (SELECT @sum := 0, @yr := 0) AS init
+        WHERE x.primary_series_id = ? AND `current` = 1 ORDER BY `date`
       ) AS t2
       ON (t1.last_year = t2.date);
-    SQL
-    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
+    MYSQL
+    stmt = connection.raw_connection.prepare(sql)
+    stmt.execute(id, id).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['ytd'] unless row['ytd'].nil?
     end
     new_transformation("Year to Date Percentage Change of #{name}", new_series_data)
@@ -337,22 +340,23 @@ module SeriesArithmetic
 
   def faster_scaled_yoy_diff(id)
     new_series_data = {}
-    sql = <<~SQL
+    sql = <<~MYSQL
       SELECT t1.value, t1.date, (t1.value - t2.last_value) /
-        (select coalesce(units, 1) from series_v where id = #{id} limit 1) AS yoy_diff
+        (select coalesce(units, 1) from series_v where id = ? limit 1) AS yoy_diff
       FROM (
         SELECT `value`, `date`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = #{id} AND `current` = 1
+        WHERE x.primary_series_id = ? AND `current` = 1
       ) AS t1
       LEFT JOIN (
         SELECT `value` AS last_value, `date`
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = #{id} and `current` = 1
+        WHERE x.primary_series_id = ? and `current` = 1
       ) AS t2
       ON (t1.last_year = t2.date);
-    SQL
-    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
+    MYSQL
+    stmt = connection.raw_connection.prepare(sql)
+    stmt.execute(id, id, id).each(:as => :hash) do |row|
       new_series_data[row['date']] = row['yoy_diff'] unless row['yoy_diff'].nil?
     end
     new_transformation("Scaled year over year diff of #{name}", new_series_data)
