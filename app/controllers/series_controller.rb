@@ -7,8 +7,7 @@ class SeriesController < ApplicationController
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
-    @series = Series.new
-    @series.xseries = Xseries.new
+    @series = Series.new(xseries: Xseries.new)
   end
 
   def bulk_new
