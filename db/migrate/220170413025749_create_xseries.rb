@@ -99,7 +99,10 @@ class CreateXseries < ActiveRecord::Migration[5.2]
       x.base_year,
       x.frequency_transform,
       x.restricted,
-      x.quarantined
+      x.quarantined,
+      x.primary_series_id,
+      x.created_at as xs_created_at,
+      x.updated_at as xs_updated_at
       from series s join xseries x on x.id = s.xseries_id
     MYSQL
   end

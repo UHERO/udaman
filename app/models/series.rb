@@ -52,7 +52,7 @@ class Series < ApplicationRecord
   end
 
   def to_s
-    self.name || 'NO SERIES NAME'
+    self.name || 'NO_SERIES_NAME'
   end
 
   def first_observation
@@ -124,9 +124,9 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update(attributes, strict = false)
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }  ## leave out timestamps? Do we want this?
-    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
-    series_attrs -= xseries_attrs
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
@@ -142,9 +142,9 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update!(attributes, strict = false)
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /_at$/ }  ## leave out timestamps? Do we want this?
-    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
-    series_attrs -= xseries_attrs
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
@@ -201,7 +201,9 @@ class Series < ApplicationRecord
   end
 
   ## Duplicate series for a different geography
-  def dup_series_for_geo(geo)
+  ## This won't work with the new Xseries architecture, but maybe is not needed anymore.
+  ## Was only used for a one-off job. If needed again, refactor carefully.
+  def dup_series_for_geo_DONTUSE(geo)
     sib = find_sibling_for_geo(geo)
     raise "Series #{sib.name} already exists" if sib
     name = self.parse_name
