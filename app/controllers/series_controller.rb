@@ -283,12 +283,13 @@ private
           :investigation_notes,
           xseries_attributes: [
               :percent, :real, :decimals, :units, :restricted,
-              :seasonal_adjustment, :frequency_transform]
+              :seasonal_adjustment, :frequency_transform
+          ]
       )
     end
 
   def other_params
-    params.permit(:definitions, name_parts: [:prefix, :geo_id, :freq])
+    params.permit(name_parts: [:prefix, :geography_id, :freq])
   end
 
   def set_series
