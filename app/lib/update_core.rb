@@ -1,4 +1,6 @@
 module UpdateCore
+  include HelperUtilities
+
   def load_error?
     @load_error ||= false
   end
@@ -58,15 +60,11 @@ module UpdateCore
     true if metadata_headers.include?(cell_data)
   end
 
-  def date_parse(cell_data)
-    Date.parse cell_data.to_s
-  end
-  
   def cell_to_date(row,col)
     cell_data = cell(row,col)
     cell_data = Float cell_data rescue cell_data
-    #puts "#{cell_data.class}: #{cell_data} row - #{row}"
     return nil if cell_data.nil? or metadata_header(cell_data)
+
     if cell_data.class == Float
       return Date.parse cell_data.to_s.split('.')[0]+'-01-01' if cell_data < 2100 and cell_data > 1900 and cell_data.to_s.split('.')[1] == 0
       return Date.parse cell_data.to_s[0..3]+'-'+cell_data.to_s[4..5]+'-01' if cell_data > 9999
@@ -82,8 +80,11 @@ module UpdateCore
       semi_date = cell_data.split(' ')[0] == 'S01' ? '-01-01' : '-07-01'
       return Date.parse cell_data.split(' ')[1] + semi_date
     end
-    
-    date_parse cell_data
+
+    ## If it's a quarter spec (YYYYQ2, etc) then convert to a date (else don't)
+    cell_data = convert_qspec_to_date(cell_data) || cell_data
+
+    Date.parse cell_data.to_s
   end
   
   #this needs to be speced and tested      
