@@ -289,7 +289,7 @@ private
     end
 
   def other_params
-    params.permit(name_parts: [:prefix, :geography_id, :freq])
+    params.permit(:definitions, name_parts: [:prefix, :geography_id, :freq])
   end
 
   def set_series
