@@ -89,7 +89,12 @@ class Series < ApplicationRecord
   end
 
   def Series.create_new(properties)
-    name_parts = properties.delete(:name_parts)  ## :name_parts only present when called from SeriesController#create
+    ## :xseries_attributes and :name_parts only present when called from SeriesController#create
+    xs_attrs = properties.delete(:xseries_attributes)
+    if xs_attrs
+      properties.merge!(xs_attrs)
+    end
+    name_parts = properties.delete(:name_parts)
     if name_parts
       properties.merge!(name_parts)
     else
@@ -124,6 +129,10 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update(attributes, strict = false)
+    xs_attrs = attributes.delete(:xseries_attributes)
+    if xs_attrs
+      attributes.merge!(xs_attrs)
+    end
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     series_attrs -= xseries_attrs  ## probably no longer need this after deployment
@@ -142,6 +151,10 @@ class Series < ApplicationRecord
 
   ## NOTE: Overriding an important ActiveRecord core method!
   def update!(attributes, strict = false)
+    xs_attrs = attributes.delete(:xseries_attributes)
+    if xs_attrs
+      attributes.merge!(xs_attrs)
+    end
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     series_attrs -= xseries_attrs  ## probably no longer need this after deployment
