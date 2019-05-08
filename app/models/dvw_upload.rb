@@ -122,30 +122,43 @@ class DvwUpload < ApplicationRecord
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 
     datae = []
-    columns = %w{module handle nameP nameW nameT data parent level}
-    columns.concat %w{unit decimal} if dimension == 'Indicator'
+    columns = nil
 
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
+      unless columns  ## get column headers, but leave out L_* and O_*
+        columns = row_pairs.to_a.map{|x,_| x.strip.downcase }.reject{|x| x =~ /^[lo]_/ }
+        columns.push('level', 'order')  ## computed columns
+        next
+      end
+      columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
+
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-        row[header.strip] = data.blank? ? nil : data.strip
+        row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
+      row['handle'] = row['id']  ## make a dup under preferred name
+
       row_values = []
-      columns.each do |col|
-        raise "Data contains single quote in #{dimension}, #{row['handle']} row, #{col} column" if row[col] =~ /'/
-        if row[col].nil?
-          row_values.push 'null'
-          next
+      row['module'].strip.split(/\s*,\s*/).each do |mod|
+        columns.each do |col|
+          raise "Data contains single quote in #{dimension}, #{row['handle']} row, #{col} column" if row[col] =~ /'/
+          if row[col].nil?
+            row_values.push 'null'
+            next
+          end
+          row_values.push case col
+                          when 'module' then mod
+                          when 'header' then (row[col].to_s == '0' ? 1 : 0)  ## semantically inverted, was "data"
+                          when 'decimal' then row[col].to_i
+                          when 'level' then row["l_#{mod.downcase}"] || row['level']
+                          when 'order' then compute_order(row)
+                          else "'%s'" % row[col]
+                          end
         end
-        row_values.push case col
-                        when 'data' then (row[col].to_s == '0' ? 1 : 0) ## semantically inverted, goes in as header
-                        when 'level', 'decimal' then row[col].to_i
-                        else "'%s'" % row[col]
-                        end
-      end
-      datae.push '(%s)' % row_values.join(',')
+        datae.push '(%s)' % row_values.join(',')
     end
-    columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
+
+    raise 'No column headers found' if columns.nil?
     cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
     vals_string = datae.join(',')
     db_execute "INSERT INTO #{dimension.pluralize} (#{cols_string}) VALUES #{vals_string};"
@@ -197,7 +210,11 @@ class DvwUpload < ApplicationRecord
     "#{id} #{group}"
   end
 
-  private
+private
+  def compute_order(row)
+    row['order']
+  end
+
   def path(name = nil)
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
