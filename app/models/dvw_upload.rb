@@ -116,7 +116,7 @@ class DvwUpload < ApplicationRecord
   end
 
   def load_meta_csv(dimension)
-    Rails.logger.debug { "starting load_csv #{dimension}" }
+    Rails.logger.debug { "starting load_csv for #{dimension}" }
     csv_dir_path = path(series_filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
@@ -132,6 +132,7 @@ class DvwUpload < ApplicationRecord
         columns = row_pairs.to_a.map{|x,_| x.strip.downcase }.reject{|x| x =~ /^[lo]_/ }
         columns.push('level', 'order')  ## computed columns
         columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
+        columns.each {|c| raise("Illegal character in column header: #{c}, dimension #{dimension}") if c =~ /\W/ }
         next
       end
 
@@ -141,6 +142,9 @@ class DvwUpload < ApplicationRecord
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type
       end
       row['handle'] ||= row['id']  ## rename id if necessary
+      if row['parent']
+        parent_set.push [row['parent'], row['handle']]
+      end
 
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         row_values = []
@@ -165,29 +169,23 @@ class DvwUpload < ApplicationRecord
                           end
         end
         datae.push row_values
-        if row['parent']
-          ##### THIS CANNOT WORK- need to incorporate module, so oyako from same module get connected together
-          parent_set.push [<<~MYSQL % [table, table], row['parent'], row['handle']]
-            update %s t1 join %s t2 set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
-          MYSQL
-        end
       end
     end
 
     raise 'No column headers found' if columns.nil?
-    #cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
-    #vals_string = datae.join(',')
+    cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
     qmarks = (['?'] * datae.count).join(',')
-    insert_query = <<~MYSQL % [table, qmarks, qmarks]
+    insert_query = <<~MYSQL % [table, cols_string, qmarks]
       insert into %s (%s) VALUES %s;
     MYSQL
-    datae.each do |values|
-      db_execute insert_query, [columns, values]
-    end
-    parent_set.each do |query|
-      db_execute query.shift, query
-    end
-    Rails.logger.debug { "done load_csv #{dimension}" }
+    db_execute_set insert_query, datae
+
+    parent_query = <<~MYSQL % [table, table]
+      update %s t1 join %s t2 on t1.module = t2.module set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
+    MYSQL
+    db_execute_set parent_query, parent_set
+
+    Rails.logger.debug { "done load_csv for #{dimension}" }
     true
   end
 
@@ -287,15 +285,20 @@ private
   end
 
   def delete_data_and_data_sources
-    run_db <<~SQL
+    db_execute <<~MYSQL
       DELETE FROM data_points
       WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
-    SQL
+    MYSQL
   end
 
   def db_execute(query, values = [])
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+    stmt = self.connection.raw_connection.prepare(query)
     stmt.execute(*values)
+  end
+
+  def db_execute_set(query, set)
+    stmt = self.connection.raw_connection.prepare(query)
+    set.each {|values| stmt.execute(*values) }
   end
 
   def make_date(year, mq)
