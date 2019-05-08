@@ -137,7 +137,8 @@ class DvwUpload < ApplicationRecord
 
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-        row[header.strip.downcase] = data.blank? ? nil : data.strip
+        val = data.blank? ? nil : data.strip
+        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type
       end
       row['handle'] ||= row['id']  ## rename id if necessary
 
