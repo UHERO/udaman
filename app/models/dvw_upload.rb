@@ -141,12 +141,12 @@ class DvwUpload < ApplicationRecord
 
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         row_values = []
-        level = row["l_#{mod.downcase}"] || row['level']
-        ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming max depth is 5
+        level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
+        ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
         ordering[mod][level] += 1
 
         columns.each do |col|
-          raise "Data contains single quote in #{dimension}, #{row['handle']} row, #{col} column" if row[col] =~ /'/
+          raise "Data contains single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
           if row[col].nil?
             row_values.push 'null'
             next
@@ -161,6 +161,7 @@ class DvwUpload < ApplicationRecord
                           end
         end
         datae.push '(%s)' % row_values.join(',')
+      end
     end
 
     raise 'No column headers found' if columns.nil?
