@@ -123,23 +123,28 @@ class DvwUpload < ApplicationRecord
 
     datae = []
     columns = nil
+    ordering = {}
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns  ## get column headers, but leave out L_* and O_*
         columns = row_pairs.to_a.map{|x,_| x.strip.downcase }.reject{|x| x =~ /^[lo]_/ }
         columns.push('level', 'order')  ## computed columns
+        columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
         next
       end
-      columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
 
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
-      row['handle'] ||= row['id']  ## make a dup under preferred name
+      row['handle'] ||= row['id']  ## rename id if necessary
 
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         row_values = []
+        level = row["l_#{mod.downcase}"] || row['level']
+        ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming max depth is 5
+        ordering[mod][level] += 1
+
         columns.each do |col|
           raise "Data contains single quote in #{dimension}, #{row['handle']} row, #{col} column" if row[col] =~ /'/
           if row[col].nil?
@@ -150,8 +155,8 @@ class DvwUpload < ApplicationRecord
                           when 'module' then "'%s'" % mod
                           when 'header' then (row[col].to_s == '0' ? 1 : 0)  ## semantically inverted, was "data"
                           when 'decimal' then row[col].to_i
-                          when 'level' then row["l_#{mod.downcase}"] || row['level']
-                          when 'order' then compute_order(row)
+                          when 'level' then level
+                          when 'order' then row["o_#{mod.downcase}"] || ordering[mod][level]
                           else "'%s'" % row[col]
                           end
         end
