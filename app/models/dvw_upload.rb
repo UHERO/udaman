@@ -120,8 +120,10 @@ class DvwUpload < ApplicationRecord
     csv_dir_path = path(series_filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
+    table = dimension.pluralize
 
     datae = []
+    parent_set = []
     columns = nil
     ordering = {}
 
@@ -155,19 +157,35 @@ class DvwUpload < ApplicationRecord
                           when 'module' then "'%s'" % mod
                           when 'header' then (row[col].to_s == '0' ? 1 : 0)  ## semantically inverted, was "data"
                           when 'decimal' then row[col].to_i
+                          when 'parent' then 'null'  ## updated later
                           when 'level' then level
                           when 'order' then row["o_#{mod.downcase}"] || ordering[mod][level]
                           else "'%s'" % row[col]
                           end
         end
-        datae.push '(%s)' % row_values.join(',')
+        datae.push row_values
+        if row['parent']
+          ##### THIS CANNOT WORK- need to incorporate module, so oyako from same module get connected together
+          parent_set.push [<<~MYSQL % [table, table], row['parent'], row['handle']]
+            update %s t1 join %s t2 set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
+          MYSQL
+        end
       end
     end
 
     raise 'No column headers found' if columns.nil?
-    cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
-    vals_string = datae.join(',')
-    db_execute "INSERT INTO #{dimension.pluralize} (#{cols_string}) VALUES #{vals_string};"
+    #cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
+    #vals_string = datae.join(',')
+    qmarks = (['?'] * datae.count).join(',')
+    insert_query = <<~MYSQL % [table, qmarks, qmarks]
+      insert into %s (%s) VALUES %s;
+    MYSQL
+    datae.each do |values|
+      db_execute insert_query, [columns, values]
+    end
+    parent_set.each do |query|
+      db_execute query.shift, query
+    end
     Rails.logger.debug { "done load_csv #{dimension}" }
     true
   end
@@ -276,7 +294,7 @@ private
 
   def db_execute(query, values = [])
     stmt = DvwUpload.connection.raw_connection.prepare(query)
-    values.empty? ? stmt.execute : stmt.execute(values)
+    stmt.execute(*values)
   end
 
   def make_date(year, mq)
