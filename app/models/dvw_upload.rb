@@ -136,10 +136,10 @@ class DvwUpload < ApplicationRecord
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
-      row['handle'] = row['id']  ## make a dup under preferred name
+      row['handle'] ||= row['id']  ## make a dup under preferred name
 
-      row_values = []
       row['module'].strip.split(/\s*,\s*/).each do |mod|
+        row_values = []
         columns.each do |col|
           raise "Data contains single quote in #{dimension}, #{row['handle']} row, #{col} column" if row[col] =~ /'/
           if row[col].nil?
@@ -147,7 +147,7 @@ class DvwUpload < ApplicationRecord
             next
           end
           row_values.push case col
-                          when 'module' then mod
+                          when 'module' then "'%s'" % mod
                           when 'header' then (row[col].to_s == '0' ? 1 : 0)  ## semantically inverted, was "data"
                           when 'decimal' then row[col].to_i
                           when 'level' then row["l_#{mod.downcase}"] || row['level']
