@@ -10,13 +10,13 @@ class DvwUpload < ApplicationRecord
     return false unless series_file
     series_file_content = series_file.read
     series_file_ext = series_file.original_filename.split('.')[-1]
-    self.series_filename = DvwUpload.make_filename(now, 'series', series_file_ext)
+    self.filename = DvwUpload.make_filename(now, 'series', series_file_ext)
     self.set_status('series', :processing)
 
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DVW upload object save failed'
-      write_file_to_disk(series_filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
+      write_file_to_disk(filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
       DvwWorker.perform_async(id, true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
@@ -57,22 +57,20 @@ class DvwUpload < ApplicationRecord
   end
 
   def absolute_path(which = nil)
-    if which == 'cats'
-      path(cats_filename)
-    elsif which == 'series'
-      path(series_filename)
+    if which == 'series'
+      path(filename)
     else
       path
     end
   end
 
   def retrieve_series_file
-    read_file_from_disk(series_filename)
+    read_file_from_disk(filename)
   end
 
   def delete_series_file
     xlspath = absolute_path('series')
-    if series_filename && File.exists?(xlspath)
+    if filename && File.exists?(xlspath)
       r = delete_file_from_disk xlspath
       r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
       return (r || throw(:abort))
@@ -117,7 +115,7 @@ class DvwUpload < ApplicationRecord
 
   def load_meta_csv(dimension)
     Rails.logger.debug { "starting load_csv for #{dimension}" }
-    csv_dir_path = path(series_filename).change_file_extension('')
+    csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
     table = dimension.pluralize
@@ -191,7 +189,7 @@ class DvwUpload < ApplicationRecord
 
   def load_series_csv
     Rails.logger.debug { 'starting load_series_csv' }
-    csv_dir_path = path(series_filename).change_file_extension('')
+    csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, 'Data.csv')
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
 

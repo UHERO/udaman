@@ -11,18 +11,18 @@ class DvwWorker
   end
 
   def perform(dvw_id, do_csv_proc = false)
-    Rails.logger.debug { "ENTER perform async: id=#{dvw_id}" }
+    mylogger :debug, "ENTER perform async: id=#{dvw_id}"
     upload = nil
     begin
       upload = DvwUpload.find(dvw_id) || raise("No DvwUpload found with id=#{dvw_id}")
       csv_extract(upload) if do_csv_proc
-      Rails.logger.debug { "#{@logprefix}: before full_load" }
+      mylogger :debug, "before full_load"
       upload.full_load
-      Rails.logger.info { "#{@logprefix} id=#{dvw_id}: loaded and active" }
+      mylogger :info, "id=#{dvw_id}: loaded and active"
       upload.update(series_status: :ok, last_error: nil, last_error_at: nil) if upload
     rescue => error
-      Rails.logger.error "#{@logprefix}: #{error.message}"
-      Rails.logger.error error.backtrace
+      mylogger :error, error.message
+      mylogger :error, error.backtrace
       upload.update(series_status: :fail, last_error: error.message[0..254], last_error_at: Time.now) if upload
     end
   end
@@ -48,5 +48,9 @@ private
     if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
       raise "#{@logprefix}: Could not copy #{csv_path} for #{upload.id} to $OTHER_WORKER: #{other_worker}"
     end
+  end
+
+  def mylogger(level, message)
+    Rails.logger.send(level) { "#{@logprefix}: #{message}" }
   end
 end
