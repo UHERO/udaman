@@ -128,11 +128,11 @@ class DvwUpload < ApplicationRecord
     ordering = {}
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
-      unless columns  ## get column headers, but leave out L_* and O_*
-        columns = row_pairs.to_a.map{|x,_| x.strip.downcase }.reject{|x| x =~ /^[lo]_/ }
+      unless columns
+        columns = row_pairs.to_a.map{|x,_| x.strip.downcase }.reject{|x| x =~ /^[lo]_/ }  ## leave out L_* and O_*
         columns.push('level', 'order')  ## computed columns
         columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
-        columns.each {|c| raise("Illegal character in column header: #{c}, dimension #{dimension}") if c =~ /\W/ }
+        columns.each {|c| raise("Illegal character in #{dimension} column header: #{c}") if c =~ /\W/ }
         next
       end
 
@@ -176,7 +176,7 @@ class DvwUpload < ApplicationRecord
     cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
     qmarks = (['?'] * datae.count).join(',')
     insert_query = <<~MYSQL % [table, cols_string, qmarks]
-      insert into %s (%s) VALUES %s;
+      insert into %s (%s) values %s;
     MYSQL
     db_execute_set insert_query, datae
 
