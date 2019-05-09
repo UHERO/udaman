@@ -78,11 +78,18 @@ class DvwUpload < ApplicationRecord
     true
   end
 
+  def testfoo
+    DvwUpload.establish_connection :dbedt_visitor
+    delete_universe_dvw
+    load_meta_csv('Group')
+    mylogger :debug, "DONE load groups #{Time.now}"
+    DvwUpload.establish_connection Rails.env.to_sym
+  end
   def full_load
     Rails.logger.debug { "DvwUpload id=#{id} BEGIN full load #{Time.now}" }
     DvwUpload.establish_connection :dbedt_visitor
 
-    DvwUpload.delete_universe_dvw
+    delete_universe_dvw
     load_meta_csv('Group')
     Rails.logger.debug { "DvwUpload id=#{id} DONE load groups #{Time.now}" }
     load_meta_csv('Market')
@@ -104,7 +111,7 @@ class DvwUpload < ApplicationRecord
     DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
   end
 
-  def DvwUpload.delete_universe_dvw
+  def delete_universe_dvw
     db_execute 'delete from data_points'
     db_execute 'delete from indicators'
     db_execute 'delete from categories'
@@ -118,7 +125,7 @@ class DvwUpload < ApplicationRecord
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
-    table = dimension.pluralize
+    table = dimension.pluralize.downcase
 
     datae = []
     parent_set = []
@@ -127,15 +134,20 @@ class DvwUpload < ApplicationRecord
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
-        columns = row_pairs.to_a.map{|x,_| x.strip.downcase }.reject{|x| x =~ /^[lo]_/ }  ## leave out L_* and O_*
+#        puts ">>>>>>>>>>>> |#{row_pairs.class}|#{row_pairs}|#{row_pairs.to_a}|"
+#        raise "BOO"
+        columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
         columns.push('level', 'order')  ## computed columns
         columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
+        columns[columns.index('parent')] = 'parent_id'
+        columns.delete('id')  ## renamed to handle
         columns.each {|c| raise("Illegal character in #{dimension} column header: #{c}") if c =~ /\W/ }
         next
       end
 
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
+        next if header.blank?
         val = data.blank? ? nil : data.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type
       end
@@ -160,7 +172,7 @@ class DvwUpload < ApplicationRecord
                           when 'module' then "'%s'" % mod
                           when 'header' then (row[col].to_s == '0' ? 1 : 0)  ## semantically inverted, was "data"
                           when 'decimal' then row[col].to_i
-                          when 'parent' then 'null'  ## updated later
+                          when 'parent_id' then 'null'  ## updated later
                           when 'level' then level
                           when 'order' then row["o_#{mod.downcase}"] || ordering[mod][level]
                           else "'%s'" % row[col]
@@ -172,10 +184,11 @@ class DvwUpload < ApplicationRecord
 
     raise 'No column headers found' if columns.nil?
     cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
-    qmarks = (['?'] * datae.count).join(',')
+    qmarks = (['?'] * datae[0].count).join(',')
     insert_query = <<~MYSQL % [table, cols_string, qmarks]
-      insert into %s (%s) values %s;
+      insert into %s (%s) values (%s);
     MYSQL
+#    puts ">>>>>>>>>> |#{insert_query}|"
     db_execute_set insert_query, datae
 
     parent_query = <<~MYSQL % [table, table]
@@ -231,7 +244,7 @@ class DvwUpload < ApplicationRecord
     "#{id} #{group}"
   end
 
-private
+  private
   def compute_order(row)
     row['order']
   end
@@ -290,13 +303,16 @@ private
   end
 
   def db_execute(query, values = [])
-    stmt = self.connection.raw_connection.prepare(query)
+    stmt = DvwUpload.connection.raw_connection.prepare(query)
     stmt.execute(*values)
   end
 
   def db_execute_set(query, set)
-    stmt = self.connection.raw_connection.prepare(query)
-    set.each {|values| stmt.execute(*values) }
+    stmt = DvwUpload.connection.raw_connection.prepare(query)
+    set.each do |values|
+      puts ">>>>>>>>>>> inserting |#{values}|"
+      stmt.execute(*values)
+    end
   end
 
   def make_date(year, mq)
@@ -307,4 +323,7 @@ private
     '%d-%02d-01' % [year, month]
   end
 
+  def mylogger(level, message)
+    Rails.logger.send(level) { "DvwUpload id=#{self.id}: #{message}" }
+  end
 end
