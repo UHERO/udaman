@@ -121,7 +121,7 @@ class DvwUpload < ApplicationRecord
   end
 
   def load_meta_csv(dimension)
-    Rails.logger.debug { "starting load_csv for #{dimension}" }
+    mylogger :debug, "starting load_csv for #{dimension}"
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
@@ -189,14 +189,16 @@ class DvwUpload < ApplicationRecord
       insert into %s (%s) values (%s);
     MYSQL
 #    puts ">>>>>>>>>> |#{insert_query}|"
+    mylogger :debug, "doing inserts for #{dimension}"
     db_execute_set insert_query, datae
 
     parent_query = <<~MYSQL % [table, table]
       update %s t1 join %s t2 on t1.module = t2.module set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
     MYSQL
+    mylogger :debug, "doing parent updates for #{dimension}"
     db_execute_set parent_query, parent_set
 
-    Rails.logger.debug { "done load_csv for #{dimension}" }
+    mylogger :debug, "done load_csv for #{dimension}"
     true
   end
 
