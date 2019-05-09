@@ -7,7 +7,7 @@ class CreateDvwUploads < ActiveRecord::Migration[5.2]
       t.string :last_error
       t.datetime :last_error_at
     end
-    add_column :nta_uploads, :cats_status, %q{ENUM('processing','ok','fail')}, after: :active
-    add_column :nta_uploads, :series_status, %q{ENUM('processing','ok','fail')}, after: :cats_status
+    add_column :dvw_uploads, :cats_status, %q{ENUM('processing','ok','fail')}, after: :active
+    add_column :dvw_uploads, :series_status, %q{ENUM('processing','ok','fail')}, after: :cats_status
   end
 end
