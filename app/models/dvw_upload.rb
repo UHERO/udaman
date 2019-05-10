@@ -78,35 +78,28 @@ class DvwUpload < ApplicationRecord
     true
   end
 
-  def testfoo
-    DvwUpload.establish_connection :dbedt_visitor
-    delete_universe_dvw
-    load_meta_csv('Group')
-    mylogger :debug, "DONE load groups #{Time.now}"
-    DvwUpload.establish_connection Rails.env.to_sym
-  end
   def full_load
     Rails.logger.debug { "DvwUpload id=#{id} BEGIN full load #{Time.now}" }
     DvwUpload.establish_connection :dbedt_visitor
 
     delete_universe_dvw
     load_meta_csv('Group')
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load groups #{Time.now}" }
+    mylogger :debug, "DONE load groups"
     load_meta_csv('Market')
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load markets #{Time.now}" }
+    mylogger :debug, "DONE load markets"
     load_meta_csv('Destination')
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load destinations #{Time.now}" }
+    mylogger :debug, "DONE load destinations"
     load_meta_csv('Category')
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load categories #{Time.now}" }
+    mylogger :debug, "DONE load categories"
     load_meta_csv('Indicator')
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load indicators #{Time.now}" }
+    mylogger :debug, "DONE load indicators"
 
-    load_series_csv
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load series #{Time.now}" }
-    load_data_postproc
-    Rails.logger.debug { "DvwUpload id=#{id} DONE load postproc #{Time.now}" }
-    make_active_settings
-    Rails.logger.info { "DvwUpload id=#{id} loaded as active #{Time.now}" }
+#    load_series_csv
+#    Rails.logger.debug { "DvwUpload id=#{id} DONE load series #{Time.now}" }
+#    load_data_postproc
+#    Rails.logger.debug { "DvwUpload id=#{id} DONE load postproc #{Time.now}" }
+#    make_active_settings
+#    Rails.logger.info { "DvwUpload id=#{id} loaded as active #{Time.now}" }
 
     DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
   end
@@ -134,13 +127,11 @@ class DvwUpload < ApplicationRecord
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
-#        puts ">>>>>>>>>>>> |#{row_pairs.class}|#{row_pairs}|#{row_pairs.to_a}|"
-#        raise "BOO"
         columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
-        columns.push('level', 'order')  ## computed columns
-        columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
-        columns[columns.index('parent')] = 'parent_id'
+        columns.push('handle', 'level', 'order')  ## add renamed/computed columns
         columns.delete('id')  ## renamed to handle
+        columns.delete('parent')  ## filled in by SQL at the end
+        columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
         columns.each {|c| raise("Illegal character in #{dimension} column header: #{c}") if c =~ /\W/ }
         next
       end
@@ -164,18 +155,13 @@ class DvwUpload < ApplicationRecord
 
         columns.each do |col|
           raise "Data contains single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
-          if row[col].nil?
-            row_values.push 'null'
-            next
-          end
           row_values.push case col
-                          when 'module' then "'%s'" % mod
-                          when 'header' then (row[col].to_s == '0' ? 1 : 0)  ## semantically inverted, was "data"
+                          when 'module' then mod
+                          when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
                           when 'decimal' then row[col].to_i
-                          when 'parent_id' then 'null'  ## updated later
                           when 'level' then level
                           when 'order' then row["o_#{mod.downcase}"] || ordering[mod][level]
-                          else "'%s'" % row[col]
+                          else row[col]  ## can be nil
                           end
         end
         datae.push row_values
@@ -188,7 +174,6 @@ class DvwUpload < ApplicationRecord
     insert_query = <<~MYSQL % [table, cols_string, qmarks]
       insert into %s (%s) values (%s);
     MYSQL
-#    puts ">>>>>>>>>> |#{insert_query}|"
     mylogger :debug, "doing inserts for #{dimension}"
     db_execute_set insert_query, datae
 
@@ -311,10 +296,7 @@ class DvwUpload < ApplicationRecord
 
   def db_execute_set(query, set)
     stmt = DvwUpload.connection.raw_connection.prepare(query)
-    set.each do |values|
-      puts ">>>>>>>>>>> inserting |#{values}|"
-      stmt.execute(*values)
-    end
+    set.each {|values| stmt.execute(*values) }
   end
 
   def make_date(year, mq)
