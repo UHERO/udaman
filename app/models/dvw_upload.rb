@@ -154,7 +154,7 @@ class DvwUpload < ApplicationRecord
         row_values = []
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
         level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
-        order = row["ffo_#{mod.downcase}"] || incr_order(ordering[mod], level)
+        order = row["o_#{mod.downcase}"] || incr_order(ordering[mod], level)
 
         columns.each do |col|
           raise "Data contains single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
