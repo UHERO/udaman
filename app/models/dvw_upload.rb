@@ -79,10 +79,12 @@ class DvwUpload < ApplicationRecord
   end
 
   def full_load
-    Rails.logger.debug { "DvwUpload id=#{id} BEGIN full load #{Time.now}" }
+    mylogger :debug, "BEGIN full load"
     DvwUpload.establish_connection :dbedt_visitor
 
     delete_universe_dvw
+    mylogger :debug, "DONE deleting universe"
+
     load_meta_csv('Group')
     mylogger :debug, "DONE load groups"
     load_meta_csv('Market')
@@ -102,6 +104,7 @@ class DvwUpload < ApplicationRecord
 #    Rails.logger.info { "DvwUpload id=#{id} loaded as active #{Time.now}" }
 
     DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
+    mylogger :debug, "DONE full load"
   end
 
   def delete_universe_dvw
@@ -149,9 +152,9 @@ class DvwUpload < ApplicationRecord
 
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         row_values = []
-        level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
-        ordering[mod][level] += 1
+        level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
+        order = row["ffo_#{mod.downcase}"] || incr_order(ordering[mod], level)
 
         columns.each do |col|
           raise "Data contains single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
@@ -160,7 +163,7 @@ class DvwUpload < ApplicationRecord
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
                           when 'decimal' then row[col].to_i
                           when 'level' then level
-                          when 'order' then row["o_#{mod.downcase}"] || ordering[mod][level]
+                          when 'order' then order
                           else row[col]  ## can be nil
                           end
         end
@@ -231,11 +234,7 @@ class DvwUpload < ApplicationRecord
     "#{id} #{group}"
   end
 
-  private
-  def compute_order(row)
-    row['order']
-  end
-
+private
   def path(name = nil)
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
@@ -307,7 +306,16 @@ class DvwUpload < ApplicationRecord
     '%d-%02d-01' % [year, month]
   end
 
+  def incr_order(ohash, level)
+    ## all lower levels get reset each time we increment a level
+    (level+1..).each do |n|
+      break if ohash[n].nil?
+      ohash[n] = 0
+    end
+    ohash[level] += 1
+  end
+
   def mylogger(level, message)
-    Rails.logger.send(level) { "DvwUpload id=#{self.id}: #{message}" }
+    Rails.logger.send(level) { "#{Time.now} DvwUpload id=#{self.id}: #{message}" }
   end
 end
