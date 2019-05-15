@@ -146,7 +146,7 @@ class DvwUpload < ApplicationRecord
         val = data.blank? ? nil : data.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
-      row['handle'] ||= row['id']  ## rename id if necessary
+      row['handle'] ||= row['id']  ## rename id as necessary
       if row['parent']
         parent_set.push [row['parent'], row['handle']]
       end
@@ -162,7 +162,6 @@ class DvwUpload < ApplicationRecord
           row_values.push case col
                           when 'module' then mod
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
-                          when 'decimal' then row[col].to_i
                           when 'level' then level
                           when 'order' then order
                           else row[col]  ## can be nil
@@ -206,7 +205,7 @@ class DvwUpload < ApplicationRecord
       end
       next if row['value'].nil?
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
-      row_values = %w{module frequency date value group market destination category indicator}.map {|d| row[d] }
+      row_values = %w{module frequency date value group market destination category indicator}.map{|d| row[d] }
       dp_data_set.push row_values
     end
 
@@ -229,15 +228,6 @@ class DvwUpload < ApplicationRecord
 
   def load_data_postproc
     ## Nothing to do at this time
-  end
-
-  def DvwUpload.load(id)
-    DvwUpload.find(id).full_load
-  end
-
-  def DvwUpload.average(id, group)
-    # this method is a noop/placeholder
-    "#{id} #{group}"
   end
 
 private
