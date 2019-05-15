@@ -212,15 +212,15 @@ class DvwUpload < ApplicationRecord
     end
 
     dp_query = <<~MYSQL
-        insert into data_points
-          (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
-        select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
-          from indicators i
-            left join `groups` g on g.handle = ?
-            left join markets m on m.handle = ?
-            left join destinations d on d.handle = ?
-            left join categories c on c.handle = ?
-         where i.handle = ? ;
+      insert into data_points
+        (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
+      select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
+        from indicators i
+          left join `groups` g on g.handle = ?
+          left join markets m on m.handle = ?
+          left join destinations d on d.handle = ?
+          left join categories c on c.handle = ?
+       where i.handle = ? ;
     MYSQL
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
