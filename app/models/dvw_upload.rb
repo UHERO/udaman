@@ -79,32 +79,32 @@ class DvwUpload < ApplicationRecord
   end
 
   def full_load
-    mylogger :debug, "BEGIN full load"
+    mylogger :info, 'BEGIN full load'
     DvwUpload.establish_connection :dbedt_visitor
 
     delete_universe_dvw
-    mylogger :debug, "DONE deleting universe"
+    mylogger :debug, 'DONE deleting universe'
 
     load_meta_csv('Group')
-    mylogger :debug, "DONE load groups"
+    mylogger :debug, 'DONE load groups'
     load_meta_csv('Market')
-    mylogger :debug, "DONE load markets"
+    mylogger :debug, 'DONE load markets'
     load_meta_csv('Destination')
-    mylogger :debug, "DONE load destinations"
+    mylogger :debug, 'DONE load destinations'
     load_meta_csv('Category')
-    mylogger :debug, "DONE load categories"
+    mylogger :debug, 'DONE load categories'
     load_meta_csv('Indicator')
-    mylogger :debug, "DONE load indicators"
+    mylogger :debug, 'DONE load indicators'
 
-#    load_series_csv
-#    Rails.logger.debug { "DvwUpload id=#{id} DONE load series #{Time.now}" }
-#    load_data_postproc
-#    Rails.logger.debug { "DvwUpload id=#{id} DONE load postproc #{Time.now}" }
-#    make_active_settings
-#    Rails.logger.info { "DvwUpload id=#{id} loaded as active #{Time.now}" }
+    load_series_csv
+    mylogger :debug, 'DONE load series'
+    load_data_postproc
+    mylogger :debug, 'DONE postproc'
+    make_active_settings
+    mylogger :debug, 'DONE make active'
 
     DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
-    mylogger :debug, "DONE full load"
+    mylogger :info, 'DONE full load'
   end
 
   def delete_universe_dvw
@@ -117,10 +117,10 @@ class DvwUpload < ApplicationRecord
   end
 
   def load_meta_csv(dimension)
-    mylogger :info, "starting load_csv for #{dimension}"
+    mylogger :info, "starting load_meta_csv for #{dimension}"
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
-    raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
+    raise "File #{csv_path} not found" unless File.exists? csv_path
     table = dimension.pluralize.downcase
 
     datae = []
@@ -157,7 +157,7 @@ class DvwUpload < ApplicationRecord
 
         row_values = []
         columns.each do |col|
-          raise "Data contains single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
+          raise "Single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
           row_values.push case col
                           when 'module' then mod
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
@@ -186,43 +186,43 @@ class DvwUpload < ApplicationRecord
     mylogger :debug, "doing parent updates for #{dimension}"
     db_execute_set parent_query, parent_set
 
-    mylogger :info, "done load_csv for #{dimension}"
+    mylogger :info, "done load_meta_csv for #{dimension}"
     true
   end
 
   def load_series_csv
-    Rails.logger.debug { 'starting load_series_csv' }
+    mylogger :info, 'starting load_series_csv'
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, 'Data.csv')
-    raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
+    raise "File #{csv_path} not found" unless File.exists? csv_path
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
-        row[header.strip] = data.blank? ? nil : data.strip
+        next if header.blank?
+        row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
-      query = <<-SQL % %w{module frequency date value}.map {|d| row[d] }
+      query = <<~MYSQL % %w{module frequency date value}.map {|d| row[d] }
         insert into data_points
           (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
         select '%s', '%s', '%s', %f, g.id, m.id, d.id, c.id, i.id
           from indicators i
-            left join groups g on g.handle = ?
+            left join `groups` g on g.handle = ?
             left join markets m on m.handle = ?
             left join destinations d on d.handle = ?
             left join categories c on c.handle = ?
          where i.handle = ? ;
-      SQL
+      MYSQL
       ## This is likely to be super slow... later work on a way to make it faster
       ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
       db_execute(query, %w{group market destination category indicator}.map {|d| row[d] })
     end
-    Rails.logger.debug { 'done load_series_csv' }
+    mylogger :info, 'done load_series_csv'
   end
 
   def load_data_postproc
-    #Rails.logger.debug { "DEBUG: DvwWorker starting load_data_postproc at #{Time.now}" }
-    # populate the parent_id column based on parent string values
+    ## Nothing to do this time
   end
 
   def DvwUpload.load(id)
