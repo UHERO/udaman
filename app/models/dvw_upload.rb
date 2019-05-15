@@ -117,7 +117,7 @@ class DvwUpload < ApplicationRecord
   end
 
   def load_meta_csv(dimension)
-    mylogger :debug, "starting load_csv for #{dimension}"
+    mylogger :info, "starting load_csv for #{dimension}"
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "DvwUpload: couldn't find file #{csv_path}" unless File.exists? csv_path
@@ -131,10 +131,10 @@ class DvwUpload < ApplicationRecord
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
         columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
-        columns.push('handle', 'level', 'order')  ## add renamed/computed columns
-        columns.delete('id')  ## renamed to handle
+        columns.push('level', 'order')  ## add renamed/computed columns
         columns.delete('parent')  ## filled in by SQL at the end
-        columns[columns.index('data')] = 'header'  ## rename "data" column as "header" - kinda hacky
+        columns[columns.index('id')] = 'handle'    ## rename "id" column as "handle" - kinda hacky
+        columns[columns.index('data')] = 'header'  ## rename "data" column as "header"
         columns.each {|c| raise("Illegal character in #{dimension} column header: #{c}") if c =~ /\W/ }
         next
       end
@@ -143,7 +143,7 @@ class DvwUpload < ApplicationRecord
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
         val = data.blank? ? nil : data.strip
-        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type
+        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
       row['handle'] ||= row['id']  ## rename id if necessary
       if row['parent']
@@ -151,11 +151,11 @@ class DvwUpload < ApplicationRecord
       end
 
       row['module'].strip.split(/\s*,\s*/).each do |mod|
-        row_values = []
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
         level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
         order = row["o_#{mod.downcase}"] || incr_order(ordering[mod], level)
 
+        row_values = []
         columns.each do |col|
           raise "Data contains single quote in #{row['handle']} row, #{col} column" if row[col] =~ /'/
           row_values.push case col
@@ -186,7 +186,7 @@ class DvwUpload < ApplicationRecord
     mylogger :debug, "doing parent updates for #{dimension}"
     db_execute_set parent_query, parent_set
 
-    mylogger :debug, "done load_csv for #{dimension}"
+    mylogger :info, "done load_csv for #{dimension}"
     true
   end
 
