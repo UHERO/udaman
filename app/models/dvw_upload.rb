@@ -196,33 +196,38 @@ class DvwUpload < ApplicationRecord
     csv_path = File.join(csv_dir_path, 'Data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
+    dp_data = []
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
         row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
+      next if row['value'].nil?
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
-      query = <<~MYSQL % %w{module frequency date value}.map {|d| row[d] }
+      row_values = %w{module frequency date value group market destination category indicator}.map {|d| row[d] }
+      dp_data.push row_values
+    end
+
+    dp_query = <<~MYSQL
         insert into data_points
           (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
-        select '%s', '%s', '%s', %f, g.id, m.id, d.id, c.id, i.id
+        select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
           from indicators i
             left join `groups` g on g.handle = ?
             left join markets m on m.handle = ?
             left join destinations d on d.handle = ?
             left join categories c on c.handle = ?
          where i.handle = ? ;
-      MYSQL
-      ## This is likely to be super slow... later work on a way to make it faster
-      ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
-      db_execute(query, %w{group market destination category indicator}.map {|d| row[d] })
-    end
+    MYSQL
+    ## This is likely to be slow... later work on a way to make it faster?
+    ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
+    db_execute_set dp_query, dp_data
     mylogger :info, 'done load_series_csv'
   end
 
   def load_data_postproc
-    ## Nothing to do this time
+    ## Nothing to do at this time
   end
 
   def DvwUpload.load(id)
