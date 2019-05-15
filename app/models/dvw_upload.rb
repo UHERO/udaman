@@ -37,8 +37,10 @@ class DvwUpload < ApplicationRecord
   end
 
   def make_active_settings
-    DvwUpload.update_all active: false
-    self.update! active: true, last_error: nil, last_error_at: nil
+    self.transaction do
+      DvwUpload.update_all active: false
+      self.update active: true, last_error: nil, last_error_at: nil
+    end
   end
 
   def get_status(which)
