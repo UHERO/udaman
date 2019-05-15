@@ -1,4 +1,5 @@
 class DvwUpload < ApplicationRecord
+  include HelperUtilities
   require 'date'
   before_destroy :delete_files_from_disk
   before_destroy :delete_data_and_data_sources
@@ -100,10 +101,10 @@ class DvwUpload < ApplicationRecord
     mylogger :debug, 'DONE load series'
     load_data_postproc
     mylogger :debug, 'DONE postproc'
-    make_active_settings
-    mylogger :debug, 'DONE make active'
 
     DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
+    make_active_settings
+    mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
   end
 
@@ -196,7 +197,7 @@ class DvwUpload < ApplicationRecord
     csv_path = File.join(csv_dir_path, 'Data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
-    dp_data = []
+    dp_data_set = []
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
@@ -206,7 +207,7 @@ class DvwUpload < ApplicationRecord
       next if row['value'].nil?
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
       row_values = %w{module frequency date value group market destination category indicator}.map {|d| row[d] }
-      dp_data.push row_values
+      dp_data_set.push row_values
     end
 
     dp_query = <<~MYSQL
@@ -222,7 +223,7 @@ class DvwUpload < ApplicationRecord
     MYSQL
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
-    db_execute_set dp_query, dp_data
+    db_execute_set dp_query, dp_data_set
     mylogger :info, 'done load_series_csv'
   end
 
