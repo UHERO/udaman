@@ -98,32 +98,27 @@ module UpdateCore
     quarter_dates
   end
   
-  def nil_if_blank(value)
-    if value.class == String and value.strip == ''
-      nil
-    else
-      value
-    end
-  end
   def series(series_name)
-    #puts "series name: " + series_name
     series_name = series_name.split('.')[0] if series_name.split('.').count > headers.keys[0].split('.').count
     series_hash = Hash.new
     
-    if self.header_location == 'columns'
-      col = headers[series_name]
-      dates.each do |date,row|
-        series_hash[date] = nil_if_blank(self.cell(row,col))
+    if header_location == 'columns'
+      col = headers[series_name] || raise("Cannot find series name #{series_name} in a column")
+      dates.each do |date, row|
+        row = Integer(row) rescue raise "Illegal row coordinate=#{row || 'nil'}: expecting integer"
+        value = self.cell(row, col)
+        series_hash[date] = value.blank? ? nil : value
       end
-    end
-    
-    if self.header_location == 'rows'
-      row = headers[series_name]
-      dates.each do |date,col|
-        series_hash[date] = nil_if_blank(self.cell(row,col))
+    elsif header_location == 'rows'
+      row = headers[series_name] || raise("Cannot find series name #{series_name} in a row")
+      dates.each do |date, col|
+        col = Integer(col) rescue raise "Illegal column coordinate=#{col || 'nil'}: expecting integer"
+        value = self.cell(row, col)
+        series_hash[date] = value.blank? ? nil : value
       end
+    else
+      raise "Unknown header location=#{header_location}: was expecting 'rows' or 'columns'"
     end
-
     series_hash
   end
       
