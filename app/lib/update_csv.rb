@@ -9,7 +9,7 @@ class UpdateCSV
     end
   end
   
-  def cell (row, col)
+  def cell(row, col)
     val = @data[row-1][col-1]
     val = val.gsub(',','') if val.class == String
     Float(val) rescue @data[row-1][col-1]
@@ -46,7 +46,4 @@ class UpdateCSV
     @dates
   end
   
-  def date_parse(cell_data)
-    Date.parse cell_data.to_s.split(' ').join('/')
-  end
 end
