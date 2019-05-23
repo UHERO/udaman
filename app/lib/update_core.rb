@@ -105,14 +105,14 @@ module UpdateCore
     if header_location == 'columns'
       col = headers[series_name] || raise("Cannot find series name #{series_name} in a column")
       dates.each do |date, row|
-        row = Integer(row) rescue raise "Illegal row coordinate=#{row || 'nil'}: expecting integer"
+        row = Integer(row) rescue raise("Illegal row coordinate=#{row || 'nil'}: expecting integer")
         value = self.cell(row, col)
         series_hash[date] = value.blank? ? nil : value
       end
     elsif header_location == 'rows'
       row = headers[series_name] || raise("Cannot find series name #{series_name} in a row")
       dates.each do |date, col|
-        col = Integer(col) rescue raise "Illegal column coordinate=#{col || 'nil'}: expecting integer"
+        col = Integer(col) rescue raise("Illegal column coordinate=#{col || 'nil'}: expecting integer")
         value = self.cell(row, col)
         series_hash[date] = value.blank? ? nil : value
       end
