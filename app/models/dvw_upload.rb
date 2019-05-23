@@ -298,10 +298,15 @@ private
 
   def make_date(year, mq)
     month = 1
-    if mq =~ /([MQ])(\d+)/i
-      month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
+    begin
+      if mq =~ /([MQ])(\d+)/i
+        month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
+      end
+      '%d-%02d-01' % [year, month]
+    rescue
+      year_msg = year.blank? ? ' is empty' : "=#{year}"
+      raise "Bad date params: year#{year_msg}, MQ='#{mq}'"
     end
-    '%d-%02d-01' % [year, month]
   end
 
   def incr_order(ohash, level)
