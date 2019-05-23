@@ -206,8 +206,14 @@ class DvwUpload < ApplicationRecord
         row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
       next if row['value'].nil?
+  ##row['value'] = 0.0 if row['value'].nil?
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
-      row_values = %w{module frequency date value group market destination category indicator}.map{|d| row[d] }
+      row_values = %w{module frequency date value
+                              group module
+                              market module
+                              destination module
+                              category module
+                              indicator module}.map{|d| row[d] }
       dp_data_set.push row_values
     end
 
@@ -216,11 +222,12 @@ class DvwUpload < ApplicationRecord
         (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
       select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
         from indicators i
-          left join `groups` g on g.handle = ?
-          left join markets m on m.handle = ?
-          left join destinations d on d.handle = ?
-          left join categories c on c.handle = ?
-       where i.handle = ? ;
+          left join `groups` g on g.handle = ? and g.module = ?
+          left join markets m on m.handle = ? and m.module = ?
+          left join destinations d on d.handle = ? and d.module = ?
+          left join categories c on c.handle = ? and c.module = ?
+       where i.handle = ?
+         and i.module = ?;
     MYSQL
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
