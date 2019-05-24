@@ -206,7 +206,6 @@ class DvwUpload < ApplicationRecord
         row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
       next if row['value'].nil?
-  ##row['value'] = 0.0 if row['value'].nil?
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
       row_values = %w{module frequency date value
                               group module
@@ -216,6 +215,7 @@ class DvwUpload < ApplicationRecord
                               indicator module}.map{|d| row[d] }
       dp_data_set.push row_values
     end
+#    puts ">>>>>>>>>>>>>>>>>> data len=#{dp_data_set.count}"
 
     dp_query = <<~MYSQL
       insert into data_points
@@ -231,7 +231,9 @@ class DvwUpload < ApplicationRecord
     MYSQL
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
-    db_execute_set dp_query, dp_data_set
+    dp_data_set.in_groups_of(1000, false) do |dps|
+      db_execute_set dp_query, dps
+    end
     mylogger :info, 'done load_series_csv'
   end
 
@@ -295,7 +297,7 @@ private
 
   def db_execute(query, values = [])
     stmt = DvwUpload.connection.raw_connection.prepare(query)
-    stmt.execute(*values)
+    stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
   def db_execute_set(query, set)
