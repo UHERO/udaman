@@ -111,8 +111,8 @@ class Series < ApplicationRecord
     properties[:geography_id] ||= geo.id
     properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
 
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ } ## leave out timestamps? Do we want this?
-    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /_at$/ }
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     series_attrs -= xseries_attrs
     s = nil
     begin
