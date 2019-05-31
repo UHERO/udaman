@@ -112,11 +112,17 @@ class DvwUpload < ApplicationRecord
 
   def delete_universe_dvw
     db_execute 'delete from data_points'
+    mylogger :debug, 'DONE deleting data points'
     db_execute 'delete from indicators'
+    mylogger :debug, 'DONE deleting indicators'
     db_execute 'delete from categories'
+    mylogger :debug, 'DONE deleting categories'
     db_execute 'delete from destinations'
+    mylogger :debug, 'DONE deleting destinations'
     db_execute 'delete from markets'
+    mylogger :debug, 'DONE deleting markets'
     db_execute 'delete from groups'
+    mylogger :debug, 'DONE deleting groups'
   end
 
   def load_meta_csv(dimension)

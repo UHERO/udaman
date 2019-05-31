@@ -25,8 +25,8 @@
                   </div>
               <% end %>
         <td></td>
-        <td><%= f.file_field :series_filename %></td>
-        <td><div class="actions"><%= f.submit 'Upload files', id: 'upload-files-button' %></div></td>
+        <td><%= f.file_field :filename %></td>
+        <td><div class="actions"><%= f.submit 'Upload file', id: 'upload-files-button' %></div></td>
         <% end %>
       </tr>
    <% controls_display = now_processing?(DvwUpload) ? 'none' : 'inline'
