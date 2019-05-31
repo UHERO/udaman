@@ -221,7 +221,6 @@ class DvwUpload < ApplicationRecord
                               indicator module}.map{|d| row[d] }
       dp_data_set.push row_values
     end
-#    puts ">>>>>>>>>>>>>>>>>> data len=#{dp_data_set.count}"
 
     dp_query = <<~MYSQL
       insert into data_points
