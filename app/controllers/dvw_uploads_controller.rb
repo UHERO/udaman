@@ -19,7 +19,7 @@ class DvwUploadsController < ApplicationController
   def create
     @dvw_upload = DvwUpload.new(dvw_upload_params)
 
-    unless @dvw_upload.store_upload_files(dvw_upload_params[:series_filename])
+    unless @dvw_upload.store_upload_files(dvw_upload_params[:filename])
       redirect_to action: :index
       return
     end
@@ -55,6 +55,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def dvw_upload_params
-      params.require(:dvw_upload).permit(:filetype, :series_filename)
+      params.require(:dvw_upload).permit(:filetype, :filename)
     end
 end
