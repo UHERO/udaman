@@ -54,8 +54,10 @@ class DbedtUpload < ApplicationRecord
       return false
     end
     Rails.logger.debug { 'DONE DataPoint.update_public_data_points' }
-    DbedtUpload.update_all active: false
-    self.update active: true, last_error: nil, last_error_at: nil
+    self.transaction do
+      DbedtUpload.update_all active: false
+      self.update active: true, last_error: nil, last_error_at: nil
+    end
   end
 
   def get_status(which)

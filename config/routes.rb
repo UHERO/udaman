@@ -27,6 +27,12 @@ Rails.application.routes.draw do
       get 'active_status' => 'dbedt_uploads#active_status'
     end
   end
+  resources :dvw_uploads do
+    member do
+      get 'status/:which' => 'dvw_uploads#status'
+      get 'active_status' => 'dvw_uploads#active_status'
+    end
+  end
   resources :nta_uploads do
     member do
       get 'status/:which' => 'nta_uploads#status'

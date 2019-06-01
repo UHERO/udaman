@@ -383,7 +383,7 @@ class NtaUpload < ApplicationRecord
   end
 
   def load_data_postproc
-    Rails.logger.debug { "DEBUG: NtaLoadWorker starting load_cats_postproc at #{Time.now}" }
+    Rails.logger.debug { "DEBUG: NtaLoadWorker starting load_data_postproc at #{Time.now}" }
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn ***/
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)
