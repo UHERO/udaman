@@ -6,7 +6,7 @@ class DvwWorker
   sidekiq_options queue: :critical
 
   def initialize
-    Rails.logger.level = Logger::DEBUG
+    Rails.logger.level = Logger::INFO
     @logprefix = self.class
   end
 
