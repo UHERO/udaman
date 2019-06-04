@@ -81,13 +81,13 @@ class CreateXseries < ActiveRecord::Migration[5.2]
 
     execute <<~MYSQL
       create view `series_v` as
-      select s.*,
+      select series.*,
       x.frequency,
       x.seasonally_adjusted,
       x.seasonal_adjustment,
       x.units,
       x.percent,
-      x.`real`,
+      x.real,
       x.decimals,
       x.last_demetra_datestring,
       x.last_demetra_date,
@@ -103,7 +103,7 @@ class CreateXseries < ActiveRecord::Migration[5.2]
       x.primary_series_id,
       x.created_at as xs_created_at,
       x.updated_at as xs_updated_at
-      from series s join xseries x on x.id = s.xseries_id
+      from series join xseries x on x.id = series.xseries_id
     MYSQL
   end
 
