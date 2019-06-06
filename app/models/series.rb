@@ -441,7 +441,7 @@ class Series < ApplicationRecord
     observation_dates -= current_data_points.map(&:date)
     now = Time.now
     observation_dates.each do |date|
-      data_points.create(
+      xseries.data_points.create(
         :date => date,
         :value => data[date],
         :created_at => now,
