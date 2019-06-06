@@ -18,7 +18,7 @@ class SeriesController < ApplicationController
 
   def create
     begin
-      @series = Series.create_new(series_params.merge(other_params))
+      @series = Series.create_new( series_params.merge(name_parts: name_parts) )
     rescue => error
       redirect_to({ action: :new }, notice: error.message)
       return
@@ -44,7 +44,7 @@ class SeriesController < ApplicationController
 
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create other_params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
+    if Series.bulk_create bulk_params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
       redirect_to '/series'
     end
   end
@@ -282,14 +282,17 @@ private
           :source_detail_id,
           :investigation_notes,
           xseries_attributes: [
-              :percent, :real, :decimals, :units, :restricted,
-              :seasonal_adjustment, :frequency_transform
+              :percent, :real, :decimals, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
       )
     end
 
-  def other_params
-    params.permit(:definitions, name_parts: [:prefix, :geography_id, :freq])
+  def name_parts
+    params.require(:name_parts).permit(:prefix, :geography_id, :freq)
+  end
+
+  def bulk_params
+    params.require(:bulk_defs).permit(:definitions)
   end
 
   def set_series
