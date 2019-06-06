@@ -44,7 +44,7 @@ class SeriesController < ApplicationController
 
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create bulk_params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
+    if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to '/series'
     end
   end
