@@ -24,7 +24,7 @@ class SeriesController < ApplicationController
       return
     end
     if @series
-      redirect_to @series, notice: 'Series was successfully created'
+      redirect_to @series, notice: 'Series successfully created'
     else
       render :new
     end
@@ -33,7 +33,7 @@ class SeriesController < ApplicationController
   def update
     respond_to do |format|
       if @series.update! series_params
-        format.html { redirect_to(@series, notice: 'Data File successfully updated') }
+        format.html { redirect_to(@series, notice: 'Series successfully updated') }
         format.xml  { head :ok }
       else
         format.html { render action: :edit }
