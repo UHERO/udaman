@@ -177,6 +177,7 @@ class DataPoint < ApplicationRecord
       #{' and s.id = ? ' if series} ;
     SQL
     begin
+      ### Refactor the following using splat * operator
       ActiveRecord::Base.transaction do
         stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
         series ? stmt.execute(universe, series.id) : stmt.execute(universe)
