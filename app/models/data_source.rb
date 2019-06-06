@@ -208,13 +208,13 @@ class DataSource < ApplicationRecord
       nil
     end
 
-    def reset
+    def reset(clear_cache = true)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
             last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
             last_eval_options_used: nil)
       end
-      Rails.cache.clear
+      Rails.cache.clear if clear_cache
     end
 
     def mark_as_pseudo_history
