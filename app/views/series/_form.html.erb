@@ -62,7 +62,7 @@
         </div>
         <div class="field">
           <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
-          <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
+          <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
         </div>
         <div class="field">
           <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>

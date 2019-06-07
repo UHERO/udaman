@@ -50,7 +50,7 @@
       <% row += 1 %>
       <tr class="row<%= row % 2 %>">
         <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fas fa-ban redban" title="restricted"></i><% end %></td>
-        <td><%= sa_indicator(series.seasonal_adjustment || 'NA') %></td>
+        <td><%= sa_indicator(series.seasonal_adjustment) %></td>
         <td><%= series.dataPortalName %></td>
         <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
         <td><%= DataPoint.where(xseries_id: series.xseries_id).minimum(:date) %></td>

@@ -39,9 +39,9 @@ class Series < ApplicationRecord
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
-  enum seasonal_adjustment: { NA: 'not_applicable',
-                              SA: 'seasonally_adjusted',
-                              NS: 'not_seasonally_adjusted' }
+  enum seasonal_adjustment: { not_applicable: 'not_applicable',
+                              seasonally_adjusted: 'seasonally_adjusted',
+                              not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
   ## columns/attributes based on heuristics over other attributes in the model.

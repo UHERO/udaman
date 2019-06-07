@@ -127,6 +127,8 @@ module SeriesHelper
   end
 
   def sa_indicator(string)
-    string == 'NA' ? '-' : "<span class='#{string.downcase}-indicator'>#{string}</span>".html_safe
+    sa_sym = string.to_sym rescue :none
+    short = { not_applicable: 'NA', seasonally_adjusted: 'SA', not_seasonally_adjusted: 'NS' }[sa_sym] || 'NA'
+    short == 'NA' ? '-' : "<span class='#{short.downcase}-indicator'>#{short}</span>".html_safe
   end
 end
