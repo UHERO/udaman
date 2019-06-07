@@ -182,15 +182,19 @@ class DataPoint < ApplicationRecord
         stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
         series ? stmt.execute(universe, series.id) : stmt.execute(universe)
         stmt.close
+        Rails.logger.debug { "update_public_data_points: DONE doing update" }
         stmt = ActiveRecord::Base.connection.raw_connection.prepare(insert_query)
         series ? stmt.execute(universe, series.id) : stmt.execute(universe)
         stmt.close
+        Rails.logger.debug { "update_public_data_points: DONE doing insert" }
         stmt = ActiveRecord::Base.connection.raw_connection.prepare(delete_query)
         series ? stmt.execute(universe, series.id) : stmt.execute(universe)
         stmt.close
+        Rails.logger.debug { "update_public_data_points: DONE doing delete" }
       end
-    rescue
-        return false
+    rescue => e
+      Rails.logger.error { "update_public_data_points: encountered an ERROR: #{e.message}" }
+      return false
     end
     if series.nil?
       CSV.open('public/rake_time.csv', 'a') do |csv|
