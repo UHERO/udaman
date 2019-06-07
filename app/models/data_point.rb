@@ -144,7 +144,7 @@ class DataPoint < ApplicationRecord
     insert_type = universe == 'NTA' ? 'replace' : 'insert'
     update_query = <<~SQL
       update public_data_points p
-        join series s on s.id = p.series_id
+        join series_v s on s.id = p.series_id
         join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       set p.value = d.value,
           p.pseudo_history = d.pseudo_history,
@@ -157,7 +157,7 @@ class DataPoint < ApplicationRecord
     insert_query = <<~SQL
       #{insert_type} into public_data_points (series_id, `date`, `value`, pseudo_history, created_at, updated_at)
       select s.id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
-      from series s
+      from series_v s
         join data_points d on d.xseries_id = s.xseries_id
         left join public_data_points p on p.series_id = s.id and p.date = d.date
       where s.universe = ?
@@ -169,7 +169,7 @@ class DataPoint < ApplicationRecord
     delete_query = <<~SQL
       delete p
       from public_data_points p
-        join series s on s.id = p.series_id
+        join series_v s on s.id = p.series_id
         left join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       where s.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
