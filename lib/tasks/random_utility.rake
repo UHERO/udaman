@@ -174,3 +174,15 @@ task :ua_994 => :environment do
     puts "done."
   end
 end
+
+## JIRA UA-1139
+task :ua_1139 => :environment do
+  uherocoh = Series.where(universe: 'UHEROCOH')
+  uherocoh.each do |u|
+    puts " Splitting #{u.name}"
+    c = u.clone
+    c.save!
+    u.update!(universe: 'UHERO')
+    c.update!(universe: 'COH')
+  end
+end
