@@ -177,6 +177,12 @@ end
 
 ## JIRA UA-1139
 task :ua_1139 => :environment do
+  uhero_meas = Measurement.where(universe: 'UHERO')
+  uhero_meas.each do |m|
+    dls = m.data_lists.reject{|dl| dl.universe == 'UHERO'}
+    next if dls.count == 0
+    raise "WOW dls.count == #{dls.count} for meas id=#{m.id}" if dls.count > 1
+  end
   uherocoh = Series.where(universe: 'UHEROCOH')
   uherocoh.each do |u|
     puts " Splitting #{u.name}"
