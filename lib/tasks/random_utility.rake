@@ -179,16 +179,25 @@ end
 task :ua_1139 => :environment do
   uhero_meas = Measurement.where(universe: 'UHERO')
   uhero_meas.each do |m|
-    dls = m.data_lists.reject{|dl| dl.universe == 'UHERO'}
-    next if dls.count == 0
-    raise "WOW dls.count == #{dls.count} for meas id=#{m.id}" if dls.count > 1
-  end
-  uherocoh = Series.where(universe: 'UHEROCOH')
-  uherocoh.each do |u|
-    puts " Splitting #{u.name}"
-    c = u.clone
-    c.save!
-    u.update!(universe: 'UHERO')
-    c.update!(universe: 'COH')
+    dls = m.data_lists.reject{|dl| dl.universe == 'UHERO' }
+    next if dls.empty?
+    new_m = m.dup
+    new_m.assign_attributes(universe: 'COH', prefix: 'COH_' + m.prefix)
+    new_m.save!
+    dls.each do |list|
+      if list.universe != 'COH'
+        Rails.logger.warn { "---------------------------- UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
+      end
+      list.measurements.delete(m)
+      list.measurements << new_m
+    end
+    siriz = m.series
+    siriz.each do |u|
+      #puts " Splitting #{u.name}"
+      c = u.clone
+      c.save!
+      u.update!(universe: 'UHERO')
+      c.update!(universe: 'COH')
+    end
   end
 end
