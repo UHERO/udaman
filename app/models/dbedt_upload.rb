@@ -294,7 +294,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
                      .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
                      .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                      .join(',')
-        self.connection.execute <<~MYSQL
+        DbedtUpload.connection.execute <<~MYSQL
           INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
         MYSQL
       end
