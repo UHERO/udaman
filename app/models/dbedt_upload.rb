@@ -225,6 +225,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     current_data_source = nil
     current_measurement = nil
     data_points = []
+    Rails.logger.info { 'load_series_csv: read lines from csv file' }
     CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
       region = row[3].strip
@@ -288,6 +289,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
                         date: get_date(row[5], row[6]),
                         value: row[7]})
     end
+    Rails.logger.info { 'load_series_csv: insert data points' }
     if data_points.length > 0 && !current_series.nil?
       data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact
@@ -299,14 +301,16 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         MYSQL
       end
     end
-    dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
-    dbedt_data_sources.in_groups_of(500, false) do |db_ds|
-      DataPoint.where(data_source_id: db_ds).update_all(current: false)
-    end
-    new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
-    new_dbedt_data_sources.in_groups_of(500, false) do |db_ds|
-      DataPoint.where(data_source_id: db_ds).update_all(current: true)
-    end
+    Rails.logger.info { 'load_series_csv: set all DBEDT data points to current = false' }
+    DbedtUpload.connection.execute <<~MYSQL
+      update data_points dp join data_sources ds on ds.id = dp.data_source_id
+      set dp.current = false where ds.eval LIKE 'DbedtUpload.load(%)'
+    MYSQL
+    Rails.logger.info { 'load_series_csv: set all DBEDT data points for id to current = true' }
+    DbedtUpload.connection.execute <<~MYSQL % [id]
+      update data_points dp join data_sources ds on ds.id = dp.data_source_id
+      set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d,%%)'
+    MYSQL
     run_active_settings ? self.make_active_settings : true
     Rails.logger.info { 'done load_series_csv' }
   end
