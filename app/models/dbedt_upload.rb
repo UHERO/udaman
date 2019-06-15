@@ -289,7 +289,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
                         value: row[7]})
     end
     if data_points.length > 0 && !current_series.nil?
-      data_points.in_groups_of(1000) do |dps|
+      data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact
                      .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
                      .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
@@ -300,10 +300,13 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       end
     end
     dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
-    DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
+    dbedt_data_sources.in_groups_of(500, false) do |db_ds|
+      DataPoint.where(data_source_id: db_ds).update_all(current: false)
+    end
     new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
-    DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
-
+    new_dbedt_data_sources.in_groups_of(500, false) do |db_ds|
+      DataPoint.where(data_source_id: db_ds).update_all(current: true)
+    end
     run_active_settings ? self.make_active_settings : true
     Rails.logger.info { 'done load_series_csv' }
   end
