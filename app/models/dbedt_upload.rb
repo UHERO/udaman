@@ -197,7 +197,7 @@ class DbedtUpload < ApplicationRecord
     true
   end
 
-  def load_series_csv(run_active_settings=false)
+  def load_series_csv(run_active_settings = false)
     Rails.logger.info { 'starting load_series_csv' }
     unless series_filename
       Rails.logger.error { "DBEDT Upload id=#{id}: no series_filename" }
@@ -213,10 +213,7 @@ class DbedtUpload < ApplicationRecord
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
       Rails.logger.debug { 'DBEDT data already loaded' }
-      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
-      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id},%)');|
+      set_this_load_dp_as_current
       return true
     end
 
@@ -301,6 +298,13 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         MYSQL
       end
     end
+    set_this_load_dp_as_current
+    success = run_active_settings ? self.make_active_settings : true
+    Rails.logger.info { 'done load_series_csv' }
+    success
+  end
+
+  def set_this_load_dp_as_current
     Rails.logger.info { 'load_series_csv: set all DBEDT data points to current = false' }
     DbedtUpload.connection.execute <<~MYSQL
       update data_points dp join data_sources ds on ds.id = dp.data_source_id
@@ -311,8 +315,6 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
       update data_points dp join data_sources ds on ds.id = dp.data_source_id
       set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d,%%)'
     MYSQL
-    run_active_settings ? self.make_active_settings : true
-    Rails.logger.info { 'done load_series_csv' }
   end
 
   def DbedtUpload.load(id, series_id)
