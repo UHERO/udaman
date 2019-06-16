@@ -299,7 +299,7 @@ class DbedtUpload < ApplicationRecord
       end
     end
     set_this_load_dp_as_current
-    success = run_active_settings ? self.make_active_settings : true
+    success = run_active_settings ? make_active_settings : true
     Rails.logger.info { 'done load_series_csv' }
     success
   end
