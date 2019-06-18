@@ -86,7 +86,7 @@ class DvwUpload < ApplicationRecord
     DvwUpload.establish_connection :dbedt_visitor
 
     delete_universe_dvw
-    mylogger :debug, 'DONE deleting universe'
+    mylogger :info, 'DONE deleting universe'
 
     load_meta_csv('Group')
     mylogger :debug, 'DONE load groups'

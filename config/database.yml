@@ -4,6 +4,7 @@ production: &default
     encoding: utf8
     database: uhero_db_dev
     pool: 30
+    prepared_statements: true
     username: <%= ENV['DB_USER'] || 'root' %>
     password: <%= ENV['DB_PASSWORD'] || '' %>
     port: 3306

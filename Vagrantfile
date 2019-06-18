@@ -28,7 +28,7 @@ Vagrant.configure('2') do |config|
 
   # provisioning steps
   config.vm.provision 'shell', inline: $script
-  config.vm.provision :reload
+  ## config.vm.provision :reload
   config.vm.provision 'shell', path: 'vagrant_support_script.txt', privileged: false
 
   # Forwarded port mapping for http

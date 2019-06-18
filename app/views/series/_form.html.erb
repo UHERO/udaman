@@ -15,7 +15,7 @@
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
-        <%= select :name_parts, :geo_id, Geography.where(universe: 'UHERO').collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
+        <%= select :name_parts, :geography_id, Geography.where(universe: 'UHERO').collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
         <%= select :name_parts, :freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
       </div>
     <% end %>
@@ -30,10 +30,6 @@
     <div class="field">
       <%= f.label :description %><br/>
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
-    </div>
-    <div class="field">
-      <%= f.label :units, 'Units (1, 10, 1000, etc)' %><br/>
-      <%= f.text_field :units %>
     </div>
     <div class="field">
       <%= f.label :unit_id %><br>
@@ -55,30 +51,36 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <div class="field">
-      <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
-      <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
-    </div>
-    <div class="field">
-      <%= f.label :percent, 'Percent (prevents calculation of growth rate)' %><br/>
-      <%= f.check_box :percent %>
-    </div>
-    <div class="field">
-      <%= f.label :real, 'Real (prevents adjustment for inflation)' %><br/>
-      <%= f.check_box :real %>
-    </div>
-    <div class="field">
-      <%= f.label :decimals %><br>
-      <%= f.number_field :decimals, :size => 1 %>
-    </div>
-    <div class="field">
-      <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %><br/>
-      <%= f.text_field :frequency_transform %>
-    </div>
-    <div class="field">
-      <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
-      <%= f.check_box :restricted %>
-    </div>
+    <%= f.fields_for :xseries do |xf| %>
+        <div class="field">
+          <%= xf.label :percent, 'Percent' %>
+          <%= xf.check_box :percent %> (prevents calculation of growth rate)
+        </div>
+        <div class="field">
+          <%= xf.label :real, 'Real' %>
+          <%= xf.check_box :real %> (prevents adjustment for inflation)
+        </div>
+        <div class="field">
+          <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
+          <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
+        </div>
+        <div class="field">
+          <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
+          <%= xf.text_field :units %>
+        </div>
+        <div class="field">
+          <%= xf.label :decimals %>
+          <%= xf.number_field :decimals, :size => 1 %>
+        </div>
+        <div class="field">
+          <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
+          <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
+        </div>
+        <div class="field">
+          <%= xf.label :restricted, 'Restricted' %>
+          <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
+        </div>
+    <% end %>
     <div class="actions">
       <%= f.submit %>
     </div>

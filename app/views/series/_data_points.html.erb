@@ -8,8 +8,8 @@
 		<th>Values</th>
 	</tr>
 <%
-    as = nil
-    as = @as.data unless @as.nil?
+  ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
+    as = @as && @as.data
 
     def process_missing_dates(as)
       date_hash = {}

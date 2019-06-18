@@ -108,7 +108,7 @@ module SeriesHelper
     html = ""
     all_uhero = Series.get_all_uhero
     [:month, :quarter, :year].each do |frequency|
-      count = all_uhero.where(frequency: frequency).count
+      count = all_uhero.where('frequency = ?', frequency).count
       html += link_to(raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {action: :index, freq: frequency})
       html += "&nbsp;"
     end
@@ -127,6 +127,8 @@ module SeriesHelper
   end
 
   def sa_indicator(string)
-    string == 'NA' ? '-' : "<span class='#{string.downcase}-indicator'>#{string}</span>".html_safe
+    sa_sym = string.to_sym rescue :none
+    short = { not_applicable: 'NA', seasonally_adjusted: 'SA', not_seasonally_adjusted: 'NS' }[sa_sym] || 'NA'
+    short == 'NA' ? '-' : "<span class='#{short.downcase}-indicator'>#{short}</span>".html_safe
   end
 end

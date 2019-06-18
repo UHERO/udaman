@@ -1,5 +1,6 @@
 module SeriesRelationship
   def all_frequencies
+    ### Ugh.... rewrite this with parse_name, etc
     s_root = self.name[0..-3]
     f_array = []
     
@@ -11,10 +12,6 @@ module SeriesRelationship
   
   def other_frequencies
     all_frequencies.reject { |element| self.name == element }
-  end
-  
-  def get_ns_series
-    Series.get name.sub('@','NS@')
   end
   
   def current_data_points

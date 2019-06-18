@@ -4,11 +4,11 @@ class DataSource < ApplicationRecord
   require 'digest/md5'
   serialize :dependencies, Array
   
-  belongs_to :series
+  belongs_to :series, inverse_of: :data_sources
   has_many :data_points, dependent: :delete_all
   has_many :data_source_downloads, dependent: :delete_all
-  has_many :data_source_actions
   has_many :downloads, -> {distinct}, through: :data_source_downloads
+  has_many :data_source_actions
 
   composed_of   :last_run,
                 :class_name => 'Time',
@@ -208,13 +208,13 @@ class DataSource < ApplicationRecord
       nil
     end
 
-    def reset
+    def reset(clear_cache = true)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
             last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
             last_eval_options_used: nil)
       end
-      Rails.cache.clear
+      Rails.cache.clear if clear_cache
     end
 
     def mark_as_pseudo_history
@@ -258,7 +258,7 @@ class DataSource < ApplicationRecord
       self.data_points.each do |dp|
         dp.delete
       end
-      Rails.logger.info { "Deleted all data points for DS #{self.description} in #{Time.now - t} seconds" }
+      Rails.logger.info { "Deleted all data points for definition #{id} in #{Time.now - t} seconds" }
     end
     
     def delete

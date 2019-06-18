@@ -247,11 +247,11 @@ class NtaUpload < ApplicationRecord
                      else nil
                    end
             current_series = Series.find_by(name: series_name) ||
-                             Series.create(
+                             Series.create_new(
                                universe: 'NTA',
                                name: series_name,
                                dataPortalName: indicator_title,
-                               frequency: 'year',
+                               frequency: :year,
                                geography_id: geo_id,
                                unit_id: measurement.unit_id,
                                percent: measurement.percent,
@@ -272,8 +272,8 @@ class NtaUpload < ApplicationRecord
               current_data_source.update last_run_in_seconds: Time.now.to_i
             end
         end
-        data_points.push({series_id: current_series.id,
-                          data_source_id: current_data_source.id,
+        data_points.push({xs_id: current_series.xseries_id,
+                          ds_id: current_data_source.id,
                           date: row_data['year'] + '-01-01',
                           value: row_data[indicator_name]}) if row_data[indicator_name]
       end
@@ -282,13 +282,12 @@ class NtaUpload < ApplicationRecord
     if current_series && data_points.length > 0
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact
-                    .uniq {|dp| '%s %s %s' % [dp[:series_id], dp[:data_source_id], dp[:date]] }
-                    .map {|dp| %q|('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true)| %
-                               ['NTA', dp[:series_id], dp[:data_source_id], dp[:date], dp[:value]] }
+                    .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
+                    .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                     .join(',')
-        NtaUpload.connection.execute <<~SQL
-          REPLACE INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
-        SQL
+        self.connection.execute <<~MYSQL
+          REPLACE INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
+        MYSQL
       end
     end
     Rails.logger.debug { 'DEBUG: Final data source updating' }
@@ -334,10 +333,14 @@ class NtaUpload < ApplicationRecord
 
   def NtaUpload.delete_universe_nta
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from public_data_points where universe = 'NTA' ;
+      delete p
+      from public_data_points p join series s on s.id = p.series_id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from data_points where universe = 'NTA' ;
+      delete d
+      from data_points d join series s on s.xseries_id = d.xseries_id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA' ;
@@ -350,6 +353,11 @@ class NtaUpload < ApplicationRecord
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from series where universe = 'NTA' ;
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete x
+      from xseries x join series s on s.xseries_id = x.id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from measurements where universe = 'NTA' ;

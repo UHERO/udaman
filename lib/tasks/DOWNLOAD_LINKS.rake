@@ -4,6 +4,7 @@
 # 75 - 2.5.6
 # 253Y - 6.20B
 # 253Q - 6.20B
+####### I strongly suspect the following task is long obsolete. Talk to someone about 86ing it.
 task :update_bea_links => :environment do
    t = Time.now
    bea_table_links = {
@@ -56,7 +57,7 @@ task :update_bea_links => :environment do
 
 
 
-  require 'watir-webdriver'
+  require 'watir'
   b = Watir::Browser.new :phantomjs
   new_links = {}
   bea_table_links.each do |handle, url| 

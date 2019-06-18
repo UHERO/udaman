@@ -6,33 +6,45 @@ class SeriesController < ApplicationController
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
-  # GET /series/new
   def new
-    @series = Series.new
+    @series = Series.new(xseries: Xseries.new)
   end
 
-  # GET /series/bulk
   def bulk_new
   end
 
-  # POST /series
+  def edit
+  end
+
   def create
     begin
-      @series = Series.create_new(series_params.merge(other_params))
+      @series = Series.create_new( series_params.merge(name_parts: name_parts) )
     rescue => error
-      redirect_to({ :action => :new }, :notice => error.message)
+      redirect_to({ action: :new }, notice: error.message)
       return
     end
     if @series
-      redirect_to @series, notice: 'Series was successfully created.'
+      redirect_to @series, notice: 'Series successfully created'
     else
       render :new
     end
   end
 
+  def update
+    respond_to do |format|
+      if @series.update! series_params
+        format.html { redirect_to(@series, notice: 'Series successfully updated') }
+        format.xml  { head :ok }
+      else
+        format.html { render action: :edit }
+        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
+      end
+    end
+  end
+
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create other_params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
+    if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to '/series'
     end
   end
@@ -61,7 +73,7 @@ class SeriesController < ApplicationController
     @all_series =
       case
         when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency LIKE ?', frequency).order(:name)
+        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
         when all then       Series.get_all_uhero.order(:name)
         else []
       end
@@ -83,17 +95,17 @@ class SeriesController < ApplicationController
   end
 
   def no_source
-    @series = Series.get_all_uhero.where(source_id: nil)
+    @series = Series.get_all_uhero.where('source_id is null')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def no_source_no_restrict
-    @series = Series.get_all_uhero.where(source_id: nil, restricted: false)
+    @series = Series.get_all_uhero.where('source_id is null and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def quarantine
-    @series = Series.get_all_uhero.where(quarantined: true, restricted: false)
+    @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
@@ -129,7 +141,8 @@ class SeriesController < ApplicationController
   def json_with_change
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
   end
-  
+
+  ## IS THIS ACTION REALLY USED by users? If not, it and the model method get_tsd_series_data() it calls can be 86-ed.
   def show_forecast
     tsd_file = params[:tsd_file]
     if tsd_file.nil?
@@ -144,23 +157,6 @@ class SeriesController < ApplicationController
     end
   end
   
-  def edit
-  end
-  
-  def update    
-    respond_to do |format|
-      if @series.update! series_params
-        format.html { redirect_to(@series,
-                      :notice => 'Data File successfully updated.') }
-        format.xml  { head :ok }
-      else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @series.errors,
-                      :status => :unprocessable_entity }
-      end
-    end
-  end
-
   def refresh_aremos
     @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
@@ -279,24 +275,24 @@ private
       params.require(:series).permit(
           :universe,
           :description,
-          :units,
-          :investigation_notes,
           :dataPortalName,
           :unit_id,
-          :seasonal_adjustment,
-          :percent,
-          :real,
-          :decimals,
-          :frequency_transform,
-          :restricted,
           :source_id,
           :source_link,
-          :source_detail_id
+          :source_detail_id,
+          :investigation_notes,
+          xseries_attributes: [
+              :percent, :real, :decimals, :units, :restricted, :seasonal_adjustment, :frequency_transform
+          ]
       )
     end
 
-  def other_params
-    params.permit(:definitions, name_parts: [:prefix, :geo_id, :freq])
+  def name_parts
+    params.require(:name_parts).permit(:prefix, :geography_id, :freq)
+  end
+
+  def bulk_params
+    params.require(:bulk_defs).permit(:definitions)
   end
 
   def set_series
