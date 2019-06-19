@@ -197,7 +197,7 @@ class DbedtUpload < ApplicationRecord
     true
   end
 
-  def load_series_csv(run_active_settings=false)
+  def load_series_csv(run_active_settings = false)
     Rails.logger.info { 'starting load_series_csv' }
     unless series_filename
       Rails.logger.error { "DBEDT Upload id=#{id}: no series_filename" }
@@ -213,10 +213,7 @@ class DbedtUpload < ApplicationRecord
     # if data_sources exist => set their current: true
     if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
       Rails.logger.debug { 'DBEDT data already loaded' }
-      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 0
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(%)');|
-      DbedtUpload.connection.execute %Q|UPDATE data_points SET current = 1
-WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DbedtUpload.load(#{id},%)');|
+      set_this_load_dp_as_current
       return true
     end
 
@@ -225,6 +222,7 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
     current_data_source = nil
     current_measurement = nil
     data_points = []
+    Rails.logger.info { 'load_series_csv: read lines from csv file' }
     CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
       prefix = "DBEDT_#{row[0]}"
       region = row[3].strip
@@ -252,10 +250,10 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
 
         current_series = Series.find_by name: name
         if current_series.nil?
-          current_series = Series.create(
+          current_series = Series.create_new(
               universe: 'DBEDT',
               name: name,
-              frequency: row[4],
+              frequency: Series.frequency_from_code(row[4]),
               geography_id: geo_id,
               description: row[1],
               dataPortalName: row[1],
@@ -283,25 +281,40 @@ WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE
         end
         current_data_source.update last_run_in_seconds: Time.now.to_i
       end
-      data_points.push({series_id: current_series.id, data_source_id: current_data_source.id, date: get_date(row[5], row[6]), value: row[7]})
+      data_points.push({xs_id: current_series.xseries_id,
+                        ds_id: current_data_source.id,
+                        date: get_date(row[5], row[6]),
+                        value: row[7]})
     end
+    Rails.logger.info { 'load_series_csv: insert data points' }
     if data_points.length > 0 && !current_series.nil?
-      data_points.in_groups_of(1000) do |dps|
-        values = dps.compact.uniq{|dp|
-          dp[:series_id].to_s + dp[:data_source_id].to_s + dp[:date].to_s
-        }.map {|dp|
-          "('DBEDT',#{dp[:series_id]},#{dp[:data_source_id]},NOW(),STR_TO_DATE('#{dp[:date]}', '%Y-%m-%d'),#{dp[:value]},false)"
-        }.join(',')
-        DbedtUpload.connection.execute(%Q|INSERT INTO data_points (universe, series_id, data_source_id, created_at, date, value, current) VALUES #{values};|)
+      data_points.in_groups_of(1000, false) do |dps|
+        values = dps.compact
+                     .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
+                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
+                     .join(',')
+        DbedtUpload.connection.execute <<~MYSQL
+          INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
+        MYSQL
       end
     end
-    dbedt_data_sources = DataSource.where('eval LIKE "DbedtUpload.load(%)"').pluck(:id)
-    DataPoint.where(data_source_id: dbedt_data_sources).update_all(current: false)
-    new_dbedt_data_sources = DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").pluck(:id)
-    DataPoint.where(data_source_id: new_dbedt_data_sources).update_all(current: true)
-
-    run_active_settings ? self.make_active_settings : true
+    set_this_load_dp_as_current
+    success = run_active_settings ? make_active_settings : true
     Rails.logger.info { 'done load_series_csv' }
+    success
+  end
+
+  def set_this_load_dp_as_current
+    Rails.logger.info { 'load_series_csv: set all DBEDT data points to current = false' }
+    DbedtUpload.connection.execute <<~MYSQL
+      update data_points dp join data_sources ds on ds.id = dp.data_source_id
+      set dp.current = false where ds.eval LIKE 'DbedtUpload.load(%)'
+    MYSQL
+    Rails.logger.info { 'load_series_csv: set all DBEDT data points for id to current = true' }
+    DbedtUpload.connection.execute <<~MYSQL % [id]
+      update data_points dp join data_sources ds on ds.id = dp.data_source_id
+      set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d,%%)'
+    MYSQL
   end
 
   def DbedtUpload.load(id, series_id)

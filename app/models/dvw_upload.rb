@@ -86,7 +86,7 @@ class DvwUpload < ApplicationRecord
     DvwUpload.establish_connection :dbedt_visitor
 
     delete_universe_dvw
-    mylogger :debug, 'DONE deleting universe'
+    mylogger :info, 'DONE deleting universe'
 
     load_meta_csv('Group')
     mylogger :debug, 'DONE load groups'
@@ -188,12 +188,13 @@ class DvwUpload < ApplicationRecord
     mylogger :debug, "doing inserts for #{dimension}"
     db_execute_set insert_query, datae
 
-    parent_query = <<~MYSQL % [table, table]
-      update %s t1 join %s t2 on t1.module = t2.module set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
-    MYSQL
-    mylogger :debug, "doing parent updates for #{dimension}"
-    db_execute_set parent_query, parent_set
-
+    unless parent_set.empty?
+      parent_query = <<~MYSQL % [table, table]
+        update %s t1 join %s t2 on t1.module = t2.module set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
+      MYSQL
+      mylogger :debug, "doing parent updates for #{dimension}"
+      db_execute_set parent_query, parent_set
+    end
     mylogger :info, "done load_meta_csv for #{dimension}"
     true
   end

@@ -11,9 +11,9 @@ class Measurement < ApplicationRecord
   has_many :series, -> {distinct}, through: :measurement_series
   accepts_nested_attributes_for :series
 
-  enum seasonal_adjustment: { NA: 'not_applicable',
-                              SA: 'seasonally_adjusted',
-                              NS: 'not_seasonally_adjusted' }
+  enum seasonal_adjustment: { not_applicable: 'not_applicable',
+                              seasonally_adjusted: 'seasonally_adjusted',
+                              not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"

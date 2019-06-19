@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe DataPoint do
   before(:each) do
-    @s = Series.create name: 'FOOTEST@HI.Q'
+    @s = Series.create_new(name: 'FOOTEST@HI.Q')
     @ds1_80 = DataSource.create priority: 80
     @ds2_80 = DataSource.create priority: 80
     @ds2_70 = DataSource.create priority: 70
@@ -11,7 +11,7 @@ describe DataPoint do
     @arbitrary_float = 75.42
     @dp = DataPoint.create(date: '2011-03-01',
                            value: 100.0,
-                           series_id: @s.id,
+                           xseries_id: @s.xseries_id,
                            data_source_id: @ds1_80.id,
                            ytd: @arbitrary_float,
                            current: true)

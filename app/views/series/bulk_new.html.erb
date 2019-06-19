@@ -11,8 +11,7 @@
       The last definition assigned will be given implicit priority above previous definitions.
     </p>
   <div class="field">
-    <%= label_tag(:definitions, 'List of Definitions') %>
-    <%= text_area_tag :definitions, nil, rows: 20, cols: 100 %>
+    <%= text_area_tag 'bulk_defs[definitions]', nil, rows: 20, cols: 100 %>
   </div>
   <div class="actions">
     <%= submit_tag('Create All Definitions') %>

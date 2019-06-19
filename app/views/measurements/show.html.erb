@@ -139,7 +139,7 @@
             <td><%= series.source.description.to_s if series.source %></td>
             <td><%= series.source_link.to_s %></td>
             <td><%= series.source_detail.description.to_s if series.source_detail %></td>
-            <td><%= series[:seasonal_adjustment].to_s %></td>
+            <td><%= sa_indicator(series.seasonal_adjustment) %></td>
             <td><%= series.percent.to_s %></td>
             <td><%= series.real.to_s %></td>
             <td><%= series.decimals.to_s %></td>

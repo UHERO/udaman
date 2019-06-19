@@ -1,16 +1,4 @@
 module SeriesDataLists
-  #may consolidate the insides of these into a standard creation method later 
-  #leaving old methods intact until the rest of the tests are refactored
-  # def Series.new_from_data_hash(name, data_hash)
-  #   frequency = frequency_from_code(name.split(".")[1])
-  #   new_series = Series.new(
-  #     :name => name,
-  #     :data => data_hash[name].clone,
-  #     :frequency => frequency
-  #     )
-  #   
-  # end
-
   def Series.grab_data(list, start_date = Date.new(1900))
     series_data = {}
     list.each do |s|

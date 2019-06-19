@@ -47,27 +47,27 @@
   <% end %>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
-    <%= f.select :seasonal_adjustment, Measurement.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
+    <%= f.select :seasonal_adjustment, Measurement.seasonal_adjustments.to_a, {:include_blank => true} %>
   </div>
   <div class="field">
-    <%= f.label :percent %><br>
-    <%= f.check_box :percent %>
+    <%= f.label :percent, 'Percent' %>
+    <%= f.check_box :percent %> (prevents calculation of growth rate)
   </div>
   <div class="field">
-    <%= f.label :real %><br>
-    <%= f.check_box :real %>
+    <%= f.label :real, 'Real' %>
+    <%= f.check_box :real %> (prevents adjustment for inflation)
   </div>
   <div class="field">
-    <%= f.label :decimals %><br>
+    <%= f.label :decimals %>
     <%= f.number_field :decimals, :size => 1 %>
   </div>
   <div class="field">
-    <%= f.label :frequency_transform, 'Frequency transformation method (average, sum, or last)' %><br/>
-    <%= f.text_field :frequency_transform %>
+    <%= f.label :frequency_transform, 'Frequency transformation method' %>
+    <%= f.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
     </div>
   <div class="field">
-    <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
-    <%= f.check_box :restricted %>
+    <%= f.label :restricted, 'Restricted?' %>
+    <%= f.check_box :restricted %> (prevents display outside of udaman)
   </div>
   <div class="field">
     <%= f.label :notes %><br>
