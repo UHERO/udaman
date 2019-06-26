@@ -181,23 +181,37 @@ task :ua_1139 => :environment do
   uhero_meas.each do |m|
     dls = m.data_lists.reject{|dl| dl.universe == 'UHERO' }
     next if dls.empty?
-    new_m = m.dup
-    new_m.assign_attributes(universe: 'COH', prefix: 'COH_' + m.prefix)
-    new_m.save!
+    coh_m = m.dup
+    coh_m.assign_attributes(universe: 'COH', prefix: 'COH_' + m.prefix)
+    coh_m.save!
+    puts ">>> Created new meas #{coh_m.prefix}"
     dls.each do |list|
       if list.universe != 'COH'
-        Rails.logger.warn { "---------------------------- UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
+        Rails.logger.warn { "---------------------------- DL UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
       end
-      list.measurements.delete(m)
-      list.measurements << new_m
+      self.transaction do
+        list.measurements.delete(m)
+        list.measurements << coh_m
+      end
+      puts ">>> Replaced #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
     end
     siriz = m.series
-    siriz.each do |u|
-      #puts " Splitting #{u.name}"
-      c = u.clone
-      c.save!
-      u.update!(universe: 'UHERO')
-      c.update!(universe: 'COH')
+    siriz.each do |s|
+      if s.universe == 'COH'
+        self.transaction do
+          m.series.delete(s)
+          coh_m.series << s
+        end
+      else ## s.universe is UHERO or UHEROCOH
+        coh_s = s.dup
+        coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name)
+        coh_s.save!
+        self.transaction do
+          s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
+          coh_m.series << coh_s
+        end
+      end
+      #puts ">>> Replaced #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
     end
   end
 end
