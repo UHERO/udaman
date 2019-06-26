@@ -133,7 +133,7 @@ class Series < ApplicationRecord
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
       with_transaction_returning_status do
@@ -154,7 +154,7 @@ class Series < ApplicationRecord
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
       with_transaction_returning_status do
