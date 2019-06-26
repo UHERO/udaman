@@ -14,6 +14,17 @@ class SeriesController < ApplicationController
   end
 
   def edit
+    univ = @series.universe
+    @all_geos = Geography.where(universe: univ)
+    if @all_geos.empty?
+      raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
+    end
+    @all_units = Unit.where(universe: univ)
+    @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
+    @all_sources = Source.where(universe: univ)
+    @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: univ)
+    @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
   end
 
   def create

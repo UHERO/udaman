@@ -184,7 +184,7 @@ task :ua_1139 => :environment do
     coh_m = m.dup
     coh_m.assign_attributes(universe: 'COH', prefix: 'COH_' + m.prefix)
     coh_m.save!
-    puts ">>> Created new meas #{coh_m.prefix}"
+    puts ">>> Created new COH meas #{coh_m.prefix}"
     dls.each do |list|
       if list.universe != 'COH'
         Rails.logger.warn { "---------------------------- DL UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
