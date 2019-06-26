@@ -203,6 +203,10 @@ task :ua_1139 => :environment do
           coh_m.series << s
         end
       else ## s.universe is UHERO or UHEROCOH
+        unless %w(HAW HI).include?(s.geography.handle)
+          s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
+          next
+        end
         coh_s = s.dup
         coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name)
         coh_s.save!

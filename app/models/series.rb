@@ -135,7 +135,6 @@ class Series < ApplicationRecord
     end
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
@@ -157,7 +156,6 @@ class Series < ApplicationRecord
     end
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
