@@ -215,8 +215,8 @@ task :ua_1139 => :environment do
         coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
         self.transaction do
           coh_s.save!
-          s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
           coh_m.series << coh_s
+          s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
         end
       end
       #puts ">>> Replaced #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
