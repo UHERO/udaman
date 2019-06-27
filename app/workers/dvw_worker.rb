@@ -11,12 +11,12 @@ class DvwWorker
   end
 
   def perform(dvw_id, do_csv_proc = false)
-    mylogger :debug, "ENTER perform async: id=#{dvw_id}"
+    mylogger :info, "Entering perform async: id=#{dvw_id}"
     upload = nil
     begin
       upload = DvwUpload.find(dvw_id) || raise("No DvwUpload found with id=#{dvw_id}")
       csv_extract(upload) if do_csv_proc
-      mylogger :debug, "before full_load"
+      mylogger :info, "before full_load"
       upload.full_load
       mylogger :info, "id=#{dvw_id}: loaded and active"
       upload.update(series_status: :ok, last_error: nil, last_error_at: nil) if upload
@@ -34,7 +34,7 @@ private
     other_worker = ENV['OTHER_WORKER']
 
     unless File.exists?(xls_path)
-      Rails.logger.debug { "#{@logprefix}: xls file #{xls_path} does not exist" }
+      Rails.logger.warn { "#{@logprefix}: xls file #{xls_path} does not exist" }
       if other_worker.blank?
         raise "#{@logprefix}: Could not find xlsx file ((#{xls_path}) #{upload.id}) and no $OTHER_WORKER defined"
       end
