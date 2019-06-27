@@ -16,7 +16,7 @@ class DvwWorker
     begin
       upload = DvwUpload.find(dvw_id) || raise("No DvwUpload found with id=#{dvw_id}")
       csv_extract(upload) if do_csv_proc
-      mylogger :info, "before full_load"
+      mylogger :debug, "before full_load"
       upload.full_load
       mylogger :info, "id=#{dvw_id}: loaded and active"
       upload.update(series_status: :ok, last_error: nil, last_error_at: nil) if upload
