@@ -154,6 +154,7 @@ class DvwUpload < ApplicationRecord
         val = data.blank? ? nil : data.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
+      break if row['id'].nil?  ## in case there are blank rows appended at the end
       row['handle'] ||= row['id']  ## rename id as necessary
       if row['parent']
         parent_set.push [row['parent'], row['handle']]
@@ -213,6 +214,7 @@ class DvwUpload < ApplicationRecord
         row[header.strip.downcase] = data.blank? ? nil : data.strip
       end
       next if row['value'].nil?
+      break if row['module'].nil?  ## in case there are blank rows appended at the end
       row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
       row_values = %w{module frequency date value
                               group module
