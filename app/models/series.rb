@@ -421,7 +421,14 @@ class Series < ApplicationRecord
     update_data(data, source, false)
     source
   end
-  
+
+  def data_sources_sort_for_display
+    ## Non-nightlies at the top, then sort by priority, then by id within priority groups.
+    data_sources.sort_by {|ds| [(ds.reload_nightly ? 1 : 0), ds.priority, ds.id] }
+    ## For some reason, sort_by does not take the reload_nightly boolean attribute as-is,
+    ## but it needs to be "reconverted" to integer - I am mystified by this.
+  end
+
   def update_data(data, source, run_update = true)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils

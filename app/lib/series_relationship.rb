@@ -36,7 +36,6 @@ module SeriesRelationship
   #Also need to add in priority
   
   def data_sources_by_last_run
-    #data_sources.sort_by(&:last_run)
     data_sources.sort_by { |ds| [ds.priority, ds.last_run ] }
   end
 
