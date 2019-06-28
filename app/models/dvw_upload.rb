@@ -85,26 +85,28 @@ class DvwUpload < ApplicationRecord
     mylogger :info, 'BEGIN full load'
     DvwUpload.establish_connection :dbedt_visitor
 
-    delete_universe_dvw
-    mylogger :info, 'DONE deleting universe'
+    begin
+      delete_universe_dvw
+      mylogger :info, 'DONE deleting universe'
 
-    load_meta_csv('Group')
-    mylogger :debug, 'DONE load groups'
-    load_meta_csv('Market')
-    mylogger :debug, 'DONE load markets'
-    load_meta_csv('Destination')
-    mylogger :debug, 'DONE load destinations'
-    load_meta_csv('Category')
-    mylogger :debug, 'DONE load categories'
-    load_meta_csv('Indicator')
-    mylogger :debug, 'DONE load indicators'
+      load_meta_csv('Group')
+      mylogger :debug, 'DONE load groups'
+      load_meta_csv('Market')
+      mylogger :debug, 'DONE load markets'
+      load_meta_csv('Destination')
+      mylogger :debug, 'DONE load destinations'
+      load_meta_csv('Category')
+      mylogger :debug, 'DONE load categories'
+      load_meta_csv('Indicator')
+      mylogger :debug, 'DONE load indicators'
 
-    load_series_csv
-    mylogger :debug, 'DONE load series'
-    load_data_postproc
-    mylogger :debug, 'DONE postproc'
-
-    DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
+      load_series_csv
+      mylogger :debug, 'DONE load series'
+      load_data_postproc
+      mylogger :debug, 'DONE postproc'
+    ensure
+      DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
+    end
     make_active_settings
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
