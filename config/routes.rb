@@ -33,12 +33,6 @@ Rails.application.routes.draw do
       get 'active_status' => 'dvw_uploads#active_status'
     end
   end
-  resources :nta_uploads do
-    member do
-      get 'status/:which' => 'nta_uploads#status'
-      get 'active_status' => 'nta_uploads#active_status'
-    end
-  end
 
   get 'data_points/:series_id/:date_string' => 'data_points#show'
   get 'exports/:id/add_series/:series_id' => 'exports#add_series'
