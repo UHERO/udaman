@@ -222,4 +222,12 @@ task :ua_1139 => :environment do
       end
     end
   end
+
+  ## At this point, all the series that COH should have in their portal have already been handled in the above loop,
+  ## and if there are any leftover series still under universe: 'UHEROCOH', it should be safe to simply
+  ## reassign these to plain ol' UHERO.
+  Series.where(universe: 'UHEROCOH').each do |s|
+    puts ">>> Resetting #{s.name} from UHEROCOH to UHERO"
+    s.update({ universe: 'UHERO' }, true)
+  end
 end
