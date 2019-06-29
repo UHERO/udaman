@@ -177,8 +177,8 @@ end
 
 ## JIRA UA-1139
 task :ua_1139 => :environment do
-  coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW in COH')
-  coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI in COH')
+  coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW geography in COH')
+  coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
 
   uhero_meas = Measurement.where(universe: 'UHERO')
   uhero_meas.each do |m|
@@ -205,21 +205,21 @@ task :ua_1139 => :environment do
           m.series.delete(s)
           coh_m.series << s
         end
-      else ## s.universe is UHERO or UHEROCOH
-        s_geo = s.geography.handle.upcase
-        unless s_geo == 'HAW' || s_geo == 'HI'
-          s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
-          next
-        end
-        coh_s = s.dup
-        coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
-        self.transaction do
-          coh_s.save!
-          coh_m.series << coh_s
-          s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
-        end
+        next
       end
-      #puts ">>> Replaced #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
+      ## else s.universe is UHERO or UHEROCOH
+      s_geo = s.geography.handle.upcase
+      unless s_geo == 'HAW' || s_geo == 'HI'
+        s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
+        next
+      end
+      coh_s = s.dup
+      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+      self.transaction do
+        coh_s.save!
+        coh_m.series << coh_s
+        s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
+      end
     end
   end
 end
