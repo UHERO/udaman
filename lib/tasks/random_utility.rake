@@ -196,7 +196,7 @@ task :ua_1139 => :environment do
         list.measurements.delete(m)
         list.measurements << coh_m
       end
-      puts ">>> Replaced #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
+      puts ">>> Replaced meas #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
     end
     siriz = m.series
     siriz.each do |s|
@@ -210,6 +210,7 @@ task :ua_1139 => :environment do
       ## else s.universe is UHERO or UHEROCOH
       s_geo = s.geography.handle.upcase
       unless s_geo == 'HAW' || s_geo == 'HI'
+        puts ">>> non-COH geography: #{s.name}"
         s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
         next
       end
@@ -218,6 +219,7 @@ task :ua_1139 => :environment do
       self.transaction do
         coh_s.save!
         coh_m.series << coh_s
+        puts ">>> New COH series #{coh_s.name} for COH meas #{coh_m.prefix}"
         s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
       end
     end
