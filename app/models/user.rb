@@ -24,10 +24,6 @@ class User < ApplicationRecord
     universe == 'DBEDT' && external?
   end
 
-  def nta?
-    universe == 'NTA' && external?
-  end
-
   def internal_user?
     universe == 'UHERO' && (internal? || admin? || dev?)
   end
