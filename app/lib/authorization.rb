@@ -25,13 +25,6 @@ module Authorization
     check_authorization
   end
 
-  def check_nta_upload_authorization
-    if current_user.nta?
-      return
-    end
-    check_authorization
-  end
-
   def check_authorization
     unless current_user.internal_user?
       redirect_back fallback_location: '/', flash: { error: 'Access not authorized' }

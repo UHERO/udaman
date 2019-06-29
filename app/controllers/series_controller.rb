@@ -58,10 +58,6 @@ class SeriesController < ApplicationController
       redirect_to :controller => :dbedt_uploads, :action => :index
       return
     end
-    if current_user.nta?
-      redirect_to :controller => :nta_uploads, :action => :index
-      return
-    end
     unless current_user.internal_user?
       render text: 'Your current role only gets to see this page.', layout: true
       return
