@@ -180,8 +180,7 @@ task :ua_1139 => :environment do
   coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW geography in COH')
   coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
 
-  uhero_meas = Measurement.where(universe: 'UHERO')
-  uhero_meas.each do |m|
+  Measurement.where(universe: 'UHERO').each do |m|
     dls = m.data_lists.reject{|dl| dl.universe == 'UHERO' }
     next if dls.empty?
     coh_m = m.dup
@@ -214,6 +213,7 @@ task :ua_1139 => :environment do
         s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
         next
       end
+      ## s.geography is HAW or HI
       coh_s = s.dup
       coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
       self.transaction do
