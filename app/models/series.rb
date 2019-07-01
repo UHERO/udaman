@@ -17,8 +17,6 @@ class Series < ApplicationRecord
   validates :name, presence: true, uniqueness: true
   validate :source_link_is_valid
 
-  serialize :factors, Hash
-
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
   delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
