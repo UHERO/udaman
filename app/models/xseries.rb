@@ -5,4 +5,6 @@ class Xseries < ApplicationRecord
   has_one :primary_series, class_name: 'Series'
   has_many :data_points, dependent: :delete_all
 
+  serialize :factors, Hash
+
 end
