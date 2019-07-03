@@ -191,7 +191,7 @@ task :ua_1139 => :environment do
       if list.universe != 'COH'
         Rails.logger.warn { "---------------------------- DL UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
       end
-      self.transaction do
+      DataList.transaction do
         list.measurements.delete(m)
         list.measurements << coh_m
       end
@@ -200,7 +200,7 @@ task :ua_1139 => :environment do
     siriz = m.series
     siriz.each do |s|
       if s.universe == 'COH'
-        self.transaction do
+        Series.transaction do
           m.series.delete(s)
           coh_m.series << s
         end
@@ -216,7 +216,7 @@ task :ua_1139 => :environment do
       ## s.geography is HAW or HI
       coh_s = s.dup
       coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
-      self.transaction do
+      Series.transaction do
         coh_s.save!
         coh_m.series << coh_s
         puts ">>> New COH series #{coh_s.name} for COH meas #{coh_m.prefix}"
