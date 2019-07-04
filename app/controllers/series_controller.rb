@@ -309,6 +309,7 @@ private
     @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
     @all_details = SourceDetail.where(universe: univ)
     @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
+    @this_series_primary = @series && @series.xseries.primary_series_id == @series.id
   end
 
   # obsolete/vestigial code?

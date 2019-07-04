@@ -47,7 +47,7 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <% if @universe == 'UHERO' %>
+    <% if @this_series_primary %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
             <%= xf.label :percent, 'Percent' %>
@@ -78,6 +78,9 @@
             <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
           </div>
       <% end %>
+    <% else %>
+      Other metadata fields must be edited in the primary series:
+      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show %>
     <% end %>
     <div class="actions">
       <%= hidden_field_tag(:universe, @universe) %>
