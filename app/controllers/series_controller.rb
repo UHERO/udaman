@@ -7,8 +7,9 @@ class SeriesController < ApplicationController
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
-    @series = Series.new(xseries: Xseries.new)
-    set_resource_values(params[:u])
+    @universe = params[:u]
+    @series = Series.new(universe: @universe, xseries: Xseries.new)
+    set_resource_values(@universe)
     @default_name_pref = (@universe == 'UHERO') ? nil : @universe + '_'
   end
 
@@ -299,7 +300,6 @@ private
   end
 
   def set_resource_values(univ)
-    @universe = univ
     @all_geos = Geography.where(universe: univ)
     if @all_geos.empty?
       raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
@@ -310,7 +310,7 @@ private
     @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
     @all_details = SourceDetail.where(universe: univ)
     @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
-    @this_series_primary = @series && @series.xseries.primary_series_id == @series.id
+    @this_series_primary = @series && @series.xseries && @series.xseries.primary_series_id == @series.id
   end
 
   # obsolete/vestigial code?

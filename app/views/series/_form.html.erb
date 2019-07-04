@@ -83,7 +83,7 @@
       <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %></p>
     <% end %>
     <div class="actions">
-      <%= hidden_field_tag(:universe, @universe) %>
+      <%= f.hidden_field :universe %>
       <%= f.submit %>
     </div>
 <% end %>
