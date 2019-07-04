@@ -79,10 +79,9 @@
           </div>
       <% end %>
     <% else %>
-      <strong>Other metadata fields must be edited in the primary series:</strong>
-      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %>
+    <p><strong>Other metadata fields must be edited in the primary series:</strong>
+      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %></p>
     <% end %>
-    <p>&nbsp;</p>
     <div class="actions">
       <%= hidden_field_tag(:universe, @universe) %>
       <%= f.submit %>
