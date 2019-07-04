@@ -111,7 +111,6 @@ class Series < ApplicationRecord
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     s = nil
     begin
       self.transaction do
