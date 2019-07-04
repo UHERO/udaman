@@ -8,8 +8,9 @@
   <% if current_user.internal_user? %>
       <br />
     <div>
-      <%= link_to 'Create Series', controller: 'series', action: 'new' %>
-      <%= link_to 'Bulk Series Create', controller: 'series', action: 'bulk_new' %>
+      <%= link_to 'Create UHERO Series', controller: :series, action: 'new', u: 'UHERO' %> |
+      <%= link_to 'Create COH Series', controller: :series, action: 'new', u: 'COH' %> |
+      <%= link_to 'Bulk Series Create', controller: :series, action: 'bulk_new' %>
     </div>
     <div>
       <br />

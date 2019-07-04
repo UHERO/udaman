@@ -8,23 +8,14 @@ class SeriesController < ApplicationController
 
   def new
     @series = Series.new(xseries: Xseries.new)
+    set_resource_values(params[:u])
   end
 
   def bulk_new
   end
 
   def edit
-    univ = @series.universe
-    @all_geos = Geography.where(universe: univ)
-    if @all_geos.empty?
-      raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
-    end
-    @all_units = Unit.where(universe: univ)
-    @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
-    @all_sources = Source.where(universe: univ)
-    @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
-    @all_details = SourceDetail.where(universe: univ)
-    @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
+    set_resource_values(@series.universe)
   end
 
   def create
@@ -304,6 +295,20 @@ private
 
   def set_series
     @series = Series.find params[:id]
+  end
+
+  def set_resource_values(univ)
+    @universe = univ
+    @all_geos = Geography.where(universe: univ)
+    if @all_geos.empty?
+      raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
+    end
+    @all_units = Unit.where(universe: univ)
+    @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
+    @all_sources = Source.where(universe: univ)
+    @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: univ)
+    @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
   end
 
   # obsolete/vestigial code?
