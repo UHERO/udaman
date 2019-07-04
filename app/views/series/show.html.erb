@@ -68,6 +68,13 @@ google.visualization.events.addListener(chart, 'select', function() {
       </td></tr>
     <% end %>
     <tr><td>Universe</td><td><%= @series.universe %></td></tr>
+    <% if @series.xseries.primary_series_id != @series.id %>
+      <tr><td>Primary Series</td>
+        <td>
+          <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %>
+        </td>
+      </tr>
+    <% end %>
   </table>
 
 	<div id="navigation">
