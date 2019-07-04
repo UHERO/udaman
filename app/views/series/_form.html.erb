@@ -14,7 +14,7 @@
     <% if request.path !~ /edit/ %>
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
-        <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
+        <%= text_field_tag 'name_parts[prefix]', @default_name_pref, :size => 20 %> @
         <%= select :name_parts, :geography_id, @all_geos.collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
         <%= select :name_parts, :freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
       </div>

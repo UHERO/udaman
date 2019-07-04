@@ -9,6 +9,7 @@ class SeriesController < ApplicationController
   def new
     @series = Series.new(xseries: Xseries.new)
     set_resource_values(params[:u])
+    @default_name_pref = (@universe == 'UHERO') ? nil : @universe + '_'
   end
 
   def bulk_new
