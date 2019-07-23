@@ -48,7 +48,12 @@ class DashboardsController < ApplicationController
   end
 
   def update_public_dp
+    Rails.logger.info { 'update_public_data_points: UHERO' }
     DataPoint.update_public_data_points('UHERO')
+    Rails.logger.info { 'update_public_data_points: COH' }
+    DataPoint.update_public_data_points('COH')
+    Rails.logger.info { 'update_public_data_points: UHEROCOH' }
+    DataPoint.update_public_data_points('UHEROCOH')
     respond_to do |format|
       format.js { head :ok }
     end
