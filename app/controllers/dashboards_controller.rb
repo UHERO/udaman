@@ -48,7 +48,7 @@ class DashboardsController < ApplicationController
   end
 
   def update_public_dp
-    DataPoint.update_public_data_points('UHERO')
+    DataPoint.update_public_all_universes
     respond_to do |format|
       format.js { head :ok }
     end
