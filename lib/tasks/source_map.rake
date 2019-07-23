@@ -105,6 +105,11 @@ task :reload_bea_series_only => :environment do
 end
 
 task :update_public_data_points => :environment do
+  Rails.logger.info { 'update_public_data_points: UHERO' }
   DataPoint.update_public_data_points('UHERO')
+  Rails.logger.info { 'update_public_data_points: COH' }
+  DataPoint.update_public_data_points('COH')
+  Rails.logger.info { 'update_public_data_points: UHEROCOH' }
+  DataPoint.update_public_data_points('UHEROCOH')
+  Rails.logger.info { 'update_public_data_points: task DONE' }
 end
-
