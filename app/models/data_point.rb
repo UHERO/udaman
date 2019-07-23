@@ -124,6 +124,15 @@ class DataPoint < ApplicationRecord
     DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
   end
 
+  def DataPoint.update_public_all_universes
+    Rails.logger.info { 'update_public_data_points: UHERO' }
+    DataPoint.update_public_data_points('UHERO')
+    Rails.logger.info { 'update_public_data_points: COH' }
+    DataPoint.update_public_data_points('COH')
+    Rails.logger.info { 'update_public_data_points: UHEROCOH' }
+    DataPoint.update_public_data_points('UHEROCOH')
+  end
+
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
     remove_quarantine = FeatureToggle.is_set('remove_quarantined_from_public', false, universe)
     if series && series.quarantined?

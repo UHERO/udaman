@@ -451,25 +451,25 @@ class Series < ApplicationRecord
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
+    DataPoint.update_public_data_points(universe, self) if run_update
     aremos_comparison #if we can take out this save, might speed things up a little
     true
   end
 
   def add_to_quarantine(run_update = true)
     self.update! quarantined: true
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
+    DataPoint.update_public_data_points(universe, self) if run_update
   end
 
   def remove_from_quarantine(run_update = true)
     raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
     self.update! quarantined: false
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
+    DataPoint.update_public_data_points(universe, self) if run_update
   end
 
   def Series.empty_quarantine
     Series.get_all_uhero.where('quarantined = true').update_all quarantined: false
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'))
+    DataPoint.update_public_data_points(universe)
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
