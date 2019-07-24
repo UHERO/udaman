@@ -174,3 +174,20 @@ task :ua_994 => :environment do
     puts "done."
   end
 end
+
+## JIRA UA-1160
+task :ua_1160 => :environment do
+  old = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
+  new = %w[CA4 CA5N CA6N RPI1 RPI2 RPP1 RPP2 IRPD1 IRPD2 SA4 SA5N SA6N SQ4 SQ5 SQ5N SQ6N]
+
+  sids = DataSource.get_all_uhero.where(%q{eval like '%load_from_bea%'}).map {|ds| ds.series.id }.uniq
+  sids.each do |s|
+    bea_defs = Series.find(s).data_sources.select {|d| d.eval =~ /load_from_bea.*Regional/ }
+    next if bea_defs.count < 2
+    bea_defs.each do |reg|
+      if reg.eval =~ /load_from_bea\s*\((.*?)\)/            ## extract load_from_bea parameters only
+        (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
+      end
+    end
+  end
+end
