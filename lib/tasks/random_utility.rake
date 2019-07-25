@@ -198,14 +198,14 @@ task :ua_1160 => :environment do
     bea_defs.each do |d|
       next unless d.eval =~ /load_from_bea\s*\((.+?)\)/
       (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)
-      table_index = new.index(opts[:TableName])
-      next unless dataset == 'Regional' && table_index  ## only look at these
+      name_index = new.index(opts[:TableName])
+      next unless dataset == 'Regional' && name_index  ## only look at these
 
-      old_slug = [freq, 'RegionalIncome', old[table_index]].join('|')
+      old_slug = [freq, 'RegionalIncome', old[name_index]].join('|')
       old_def = exists[old_slug]
       if old_def
         puts ">>>> DESTROYING #{old_slug}"
-        old_def.destroy
+        ## old_def.destroy
       end
     end
   end
