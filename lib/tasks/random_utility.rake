@@ -177,16 +177,33 @@ end
 
 ## JIRA UA-1160
 task :ua_1160 => :environment do
-  old = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
-  new = %w[CA4 CA5N CA6N RPI1 RPI2 RPP1 RPP2 IRPD1 IRPD2 SA4 SA5N SA6N SQ4 SQ5 SQ5N SQ6N]
+  old = %w[CA4    CA5N    CA6N    RPI1  RPI2  RPP1  RPP2  IRPD1  IRPD2  SA4    SA5N    SA6N    SQ4    SQ5    SQ5N    SQ6N]
+  new = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
 
   sids = DataSource.get_all_uhero.where(%q{eval like '%load_from_bea%'}).map {|ds| ds.series.id }.uniq
   sids.each do |s|
     bea_defs = Series.find(s).data_sources.select {|d| d.eval =~ /load_from_bea.*Regional/ }
     next if bea_defs.count < 2
-    bea_defs.each do |reg|
-      if reg.eval =~ /load_from_bea\s*\((.*?)\)/            ## extract load_from_bea parameters only
-        (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
+
+    exists = {}
+    ## first pass to load up what's here
+    bea_defs.each do |d|
+      next unless d.eval =~ /load_from_bea\s*\((.+?)\)/  ## extract load_from_bea parameters only
+      (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)   ## reconstitute into an array - Ruby rox
+      slug = freq + '_' + dataset + '_' + opts[:TableName]
+      exists[slug] = d
+    end
+    ## second pass to check and delete
+    bea_defs.each do |d|
+      next unless d.eval =~ /load_from_bea\s*\((.+?)\)/
+      (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)
+      if dataset == 'Regional'
+        old_slug = freq + '_RegionalIncome_' + old[ new.index(opts[:TableName]) ]
+        old_def = exists[old_slug]
+        if old_def
+          puts ">>>> DESTROYING #{old_def.eval}"
+          old_def.destroy
+        end
       end
     end
   end
