@@ -181,8 +181,9 @@ task :ua_1160 => :environment do
   new = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
 
   sids = DataSource.get_all_uhero.where(%q{eval like '%load\_from\_bea%'}).map {|ds| ds.series.id }.uniq
-  sids.each do |s|
-    bea_defs = Series.find(s).data_sources.select {|d| d.eval =~ /load_from_bea.*Regional/ }
+  sids.each do |sid|
+    siriz = Series.find(sid)
+    bea_defs = siriz.data_sources.select {|d| d.eval =~ /load_from_bea.*Regional/ }
     next if bea_defs.count < 2
 
     exists = {}
@@ -192,7 +193,7 @@ task :ua_1160 => :environment do
       (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
       slug = [freq, dataset, opts[:TableName]].join('|')
       exists[slug] = d
-      puts ">>>> FOUND #{slug}"
+      puts ">>>> FOUND #{siriz} => #{slug}"
     end
     ## second pass to check and delete, and make changes
     bea_defs.each do |d|
@@ -204,13 +205,13 @@ task :ua_1160 => :environment do
       old_slug = [freq, 'RegionalIncome', old[name_index]].join('|')
       old_def = exists[old_slug]
       if old_def
-        puts ">>>> DESTROYING #{old_slug}"
+        puts ">>>> DESTROYING #{siriz} => #{old_slug}"
         ## old_def.destroy
       end
 
       if opts[:TableName] == 'SAINC4' || opts[:TableName] == 'SQINC4'
         unless d.eval =~ /\*\s*1000\s*$/
-          puts ">>>> ADDING * 1000 to #{d.eval}"
+          puts ">>>> ADDING * 1000 to #{siriz} => #{d.eval}"
           ## d.update!(eval: d.eval + ' * 1000')
         end
       end
