@@ -186,24 +186,26 @@ task :ua_1160 => :environment do
     next if bea_defs.count < 2
 
     exists = {}
-    ## first pass to load up what's here
+    ## first pass to load up what exists here
     bea_defs.each do |d|
-      next unless d.eval =~ /load_from_bea\s*\((.+?)\)/  ## extract load_from_bea parameters only
-      (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)   ## reconstitute into an array - Ruby rox
-      slug = freq + '_' + dataset + '_' + opts[:TableName]
+      next unless d.eval =~ /load_from_bea\s*\((.+?)\)/   ## extract load_from_bea parameters as a string
+      (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
+      slug = [freq, dataset, opts[:TableName]].join('|')
       exists[slug] = d
+      puts ">>>> FOUND #{slug}"
     end
     ## second pass to check and delete
     bea_defs.each do |d|
       next unless d.eval =~ /load_from_bea\s*\((.+?)\)/
       (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)
-      if dataset == 'Regional'
-        old_slug = freq + '_RegionalIncome_' + old[ new.index(opts[:TableName]) ]
-        old_def = exists[old_slug]
-        if old_def
-          puts ">>>> DESTROYING #{old_def.eval}"
-          old_def.destroy
-        end
+      table_index = new.index(opts[:TableName])
+      next unless dataset == 'Regional' && table_index  ## only look at these
+
+      old_slug = [freq, 'RegionalIncome', old[table_index]].join('|')
+      old_def = exists[old_slug]
+      if old_def
+        puts ">>>> DESTROYING #{old_slug}"
+        old_def.destroy
       end
     end
   end
