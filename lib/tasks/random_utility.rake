@@ -180,7 +180,7 @@ task :ua_1160 => :environment do
   old = %w[CA4    CA5N    CA6N    RPI1  RPI2  RPP1  RPP2  IRPD1  IRPD2  SA4    SA5N    SA6N    SQ4    SQ5    SQ5N    SQ6N]
   new = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
 
-  sids = DataSource.get_all_uhero.where(%q{eval like '%load_from_bea%'}).map {|ds| ds.series.id }.uniq
+  sids = DataSource.get_all_uhero.where(%q{eval like '%load\_from\_bea%'}).map {|ds| ds.series.id }.uniq
   sids.each do |s|
     bea_defs = Series.find(s).data_sources.select {|d| d.eval =~ /load_from_bea.*Regional/ }
     next if bea_defs.count < 2
