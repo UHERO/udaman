@@ -194,7 +194,7 @@ task :ua_1160 => :environment do
       exists[slug] = d
       puts ">>>> FOUND #{slug}"
     end
-    ## second pass to check and delete
+    ## second pass to check and delete, and make changes
     bea_defs.each do |d|
       next unless d.eval =~ /load_from_bea\s*\((.+?)\)/
       (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)
@@ -206,6 +206,13 @@ task :ua_1160 => :environment do
       if old_def
         puts ">>>> DESTROYING #{old_slug}"
         ## old_def.destroy
+      end
+
+      if opts[:TableName] == 'SAINC4' || opts[:TableName] == 'SQINC4'
+        unless d.eval =~ /\*\s*1000\s*$/
+          puts ">>>> ADDING * 1000 to #{d.eval}"
+          ## d.update!(eval: d.eval + ' * 1000')
+        end
       end
     end
   end
