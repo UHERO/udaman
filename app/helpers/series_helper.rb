@@ -22,7 +22,18 @@ module SeriesHelper
       end
     end
   end
-  
+
+  ## Method can be deleted right after job is complete
+  def ua_1164_csv_generate
+    CSV.generate do |csv|
+      @old_bea_series.each do |s|
+        s.data_sources.select {|d| d.eval =~ /load_from_bea/ }.each do |d|
+          csv << [s.name, d.eval]
+        end
+      end
+    end
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
