@@ -26,8 +26,12 @@ module SeriesHelper
   ## Method can be deleted right after job is complete
   def ua_1164_csv_generate
     CSV.generate do |csv|
+      puts "\n>>>> there are #{@old_bea_series.count} series here\n"
       @old_bea_series.each do |s|
-        s.data_sources.select {|d| d.eval =~ /load_from_bea/ }.each do |d|
+        foo = s.data_sources.select {|d| d.eval =~ /load_from_bea/ }
+        puts "\n>>>>>> there are #{foo.count} definitions here\n"
+        foo.each do |d|
+          puts "\n>>>>>>>> inside #{d.eval}\n"
           csv << [s.name, d.eval]
         end
       end
