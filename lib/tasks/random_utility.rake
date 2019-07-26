@@ -193,7 +193,7 @@ task :ua_1160 => :environment do
       (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
       slug = [freq, dataset, opts[:TableName]].join('|')
       exists[slug] = d
-      puts ">>>> FOUND #{siriz} => #{slug}"
+      puts "FOUND #{d.eval}"
     end
     ## second pass to check and delete, and make changes
     bea_defs.each do |d|
@@ -205,16 +205,17 @@ task :ua_1160 => :environment do
       old_slug = [freq, 'RegionalIncome', old[name_index]].join('|')
       old_def = exists[old_slug]
       if old_def
-        puts ">>>> DESTROYING #{siriz} => #{old_slug}"
+        puts "DESTROY #{old_slug}"
         ## old_def.destroy
       end
 
       if opts[:TableName] == 'SAINC4' || opts[:TableName] == 'SQINC4'
         unless d.eval =~ /\*\s*1000\s*$/
-          puts ">>>> ADDING * 1000 to #{siriz} => #{d.eval}"
+          puts "ADD * 1000 to #{d.eval}"
           ## d.update!(eval: d.eval + ' * 1000')
         end
       end
     end
+    puts "---- #{siriz} -----------------" unless exists.empty?
   end
 end
