@@ -892,7 +892,7 @@ class Series < ApplicationRecord
       f.close
 
       bank = filename.sub('.txt', '')
-      frequency_code = bank.split('_')[1].upcase
+      frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
       Rails.logger.debug { ">>>> tsd_exports: exporting series to #{output_file}" }
