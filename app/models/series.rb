@@ -884,20 +884,19 @@ class Series < ApplicationRecord
     dates
   end
 
-  def Series.run_tsd_exports(banks = nil, out_path = nil, in_path = nil)
-    banks ||= %w{bea_a bls_a census_a jp_a misc_a tax_a tour_a us_a
-      bea_s bls_s bea_q bls_q census_q jp_q misc_q tax_q tour_q us_q
-      bls_m jp_m misc_m tax_m tour_m us_m misc_w tour_w tour_d }
+  def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+       files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
-    banks.each do |bank|
-      filename = File.join(in_path, bank + '.txt')
+    files.each do |filename|
       Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
-      f = open filename
+      f = open File.join(in_path, filename)
       list = f.read.split(/\s+/).reject {|x| x.blank? }
       f.close
-      frequency_code = bank.split('_')[1].upcase
+
+      bank = filename.sub('.txt', '')
+      frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
       Rails.logger.debug { ">>>> tsd_exports: exporting series to #{output_file}" }
