@@ -1,7 +1,7 @@
 module SeriesHelper
   include Validators
   require 'csv'
-  
+
   def csv_helper
     CSV.generate do |csv| 
       # series_data = @data_list.series_data
@@ -25,16 +25,18 @@ module SeriesHelper
 
   ## Method can be deleted right after job is complete
   def ua_1164_csv_generate
-    CSV.generate do |csv|
-      puts "\n>>>> there are #{@old_bea_series.count} series here\n"
+    #require 'nokogiri'
+    CSV.generate(nil, {col_sep: "\t"}) do |csv|
+      i = []
       @old_bea_series.each do |s|
-        foo = s.data_sources.select {|d| d.eval =~ /load_from_bea/ }
-        puts "\n>>>>>> there are #{foo.count} definitions here\n"
+        foo = s.data_sources##.select {|d| d.eval =~ /load_from_bea/ }
         foo.each do |d|
-          puts "\n>>>>>>>> inside #{d.eval}\n"
           csv << [s.name, d.eval]
+          i.push(d.eval)
         end
       end
+#      print i.join("\n") + "\n"
+#      puts ">>>>>> >>>>>> >>>>>> >>>>>> >>>>>> ADDED #{i.count} rows, out of total #{@old_bea_series.count} series"
     end
   end
 
