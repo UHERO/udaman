@@ -23,15 +23,21 @@ module SeriesHelper
     end
   end
 
-  ## Method can be deleted right after job is complete
+  ## Method can be deleted right after story is complete
   def ua_1164_csv_generate
     #require 'nokogiri'
     CSV.generate(nil, {col_sep: "\t"}) do |csv|
       i = []
       @old_bea_series.each do |s|
-        foo = s.data_sources##.select {|d| d.eval =~ /load_from_bea/ }
-        foo.each do |d|
-          csv << [s.name, d.eval]
+        ds = s.data_sources.reject {|d| d.eval =~ /load_from_bea/ }
+        ds.each do |d|
+          row = [s.name, d.eval]
+          if d.eval =~ /load_from_download\s*"(.+?)"/
+            if dl = Download.find_by handle: $1
+              row.push "https://udaman.uhero.hawaii.edu/downloads/#{dl.id}"
+            end
+          end
+          csv << row
           i.push(d.eval)
         end
       end
