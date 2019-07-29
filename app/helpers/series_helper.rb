@@ -41,8 +41,6 @@ module SeriesHelper
           i.push(d.eval)
         end
       end
-#      print i.join("\n") + "\n"
-#      puts ">>>>>> >>>>>> >>>>>> >>>>>> >>>>>> ADDED #{i.count} rows, out of total #{@old_bea_series.count} series"
     end
   end
 
