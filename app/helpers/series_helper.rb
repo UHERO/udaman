@@ -27,7 +27,6 @@ module SeriesHelper
   def ua_1164_csv_generate
     #require 'nokogiri'
     CSV.generate(nil, {col_sep: "\t"}) do |csv|
-      i = []
       @old_bea_series.each do |s|
         ds = s.data_sources.reject {|d| d.eval =~ /load_from_bea/ }
         ds.each do |d|
@@ -38,7 +37,6 @@ module SeriesHelper
             end
           end
           csv << row
-          i.push(d.eval)
         end
       end
     end
