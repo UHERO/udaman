@@ -206,13 +206,13 @@ task :ua_1160 => :environment do
       old_def = exists[old_slug]
       if old_def
         puts "DESTROY #{old_slug}"
-        ## old_def.destroy
+        old_def.destroy
       end
 
       if opts[:TableName] == 'SAINC4' || opts[:TableName] == 'SQINC4'
         unless d.eval =~ /\*\s*1000\s*$/
           puts "ADD * 1000 to #{d.eval}"
-          ## d.update!(eval: d.eval + ' * 1000')
+          d.update!(eval: d.eval + ' * 1000')
         end
       end
     end
