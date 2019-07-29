@@ -33,7 +33,7 @@ module SeriesHelper
         ds.each do |d|
           row = [s.name, d.eval]
           if d.eval =~ /load_from_download\s*"(.+?)"/
-            if dl = Download.find_by handle: $1
+            if dl = Download.find_by(handle: $1)
               row.push "https://udaman.uhero.hawaii.edu/downloads/#{dl.id}"
             end
           end
