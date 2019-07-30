@@ -237,6 +237,6 @@ task :ua_1165 => :environment do
     idx = old.index(opts[:TableName]) || next
     new_eval = d.eval.sub('RegionalIncome','Regional').sub(opts[:TableName], new[idx])
     puts "replacing | #{d.eval} | with | #{new_eval} |"
-    ##d.update!(eval: new_eval)
+    d.update!(eval: new_eval)
   end
 end
