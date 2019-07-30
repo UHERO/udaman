@@ -219,3 +219,24 @@ task :ua_1160 => :environment do
     puts "---- #{siriz} -----------------" unless exists.empty?
   end
 end
+
+## JIRA UA-1165
+task :ua_1165 => :environment do
+  old = %w[CA4    CA5N    CA6N    RPI1  RPI2  RPP1  RPP2  IRPD1  IRPD2  SA4    SA5N    SA6N    SQ4    SQ5    SQ5N    SQ6N]
+  new = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
+
+  ds = DataSource.get_all_uhero.where(%q{eval like "%load\_from\_bea%'RegionalIncome'%"})
+  ds.each do |d|
+    unless d.eval =~ /load_from_bea\s*\((.+?)\)/
+      raise "MATCH ERROR ON id = #{d.id}"
+    end
+    (_, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
+    unless dataset == 'RegionalIncome'
+      raise "DATASET ERROR ON id = #{d.id}"
+    end
+    idx = old.index(opts[:TableName]) || next
+    new_eval = d.eval.sub('RegionalIncome','Regional').sub(opts[:TableName], new[idx])
+    puts "replacing | #{d.eval} | with | #{new_eval} |"
+    d.update!(eval: new_eval)
+  end
+end
