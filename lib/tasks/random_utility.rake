@@ -234,7 +234,7 @@ task :ua_1165 => :environment do
     unless dataset == 'RegionalIncome'
       raise "DATASET ERROR ON id = #{d.id}"
     end
-    idx = old.index(opts[:TableName]) || raise("UNEXPECTED TABLENAME #{opts[:TableName]}")
+    idx = old.index(opts[:TableName]) || next
     new_eval = d.eval.sub('RegionalIncome','Regional').sub(opts[:TableName], new[idx])
     puts "replacing | #{d.eval} | with | #{new_eval} |"
     ##d.update!(eval: new_eval)
