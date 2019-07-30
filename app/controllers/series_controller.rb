@@ -111,6 +111,10 @@ class SeriesController < ApplicationController
 
   def old_bea_download
     @old_bea_series = Series.get_old_bea_downloads
+    respond_to do |format|
+      format.csv { render layout: false }
+      format.html
+    end
   end
 
   def sidekiq_failed

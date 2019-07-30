@@ -1,7 +1,7 @@
 module SeriesHelper
   include Validators
   require 'csv'
-  
+
   def csv_helper
     CSV.generate do |csv| 
       # series_data = @data_list.series_data
@@ -22,7 +22,26 @@ module SeriesHelper
       end
     end
   end
-  
+
+  ## Method can be deleted right after story is complete
+  def ua_1164_csv_generate
+    #require 'nokogiri'
+    CSV.generate(nil, {col_sep: "\t"}) do |csv|
+      @old_bea_series.each do |s|
+        ds = s.data_sources.reject {|d| d.eval =~ /load_from_bea/ }
+        ds.each do |d|
+          row = [s.name, d.eval]
+          if d.eval =~ /load_from_download\s*"(.+?)"/
+            if dl = Download.find_by(handle: $1)
+              row.push "https://udaman.uhero.hawaii.edu/downloads/#{dl.id}"
+            end
+          end
+          csv << row
+        end
+      end
+    end
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
