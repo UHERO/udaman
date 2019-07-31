@@ -113,7 +113,7 @@ class DataListsController < ApplicationController
 
   def edit
     @dl_measurements = []
-    @data_list.data_list_measurements.sort_by{|m| m.list_order}.each do |dlm|
+    @data_list.data_list_measurements.sort_by(&:list_order).each do |dlm|
         if dlm.measurement.nil?
           @data_list.data_list_measurements.destroy(dlm)
           next
@@ -164,12 +164,7 @@ class DataListsController < ApplicationController
   end
 
   def add_measurement
-    if params[:commit] =~ /DBEDTCOH/
-      mid = params[:data_list][:dbedtcoh_meas_id]
-    else
-      mid = params[:data_list][:uhero_meas_id]
-    end
-    unless @data_list.add_measurement Measurement.find(mid.to_i)
+    unless @data_list.add_measurement(Measurement.find params[:data_list][:meas_id].to_i)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end

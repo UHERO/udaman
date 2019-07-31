@@ -16,6 +16,7 @@ class DataList < ApplicationRecord
         raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << line should have created it
       new_dlm.update_attributes(list_order: list_order, indent: indent)
     end
+    true
   end
 
   def series_names
