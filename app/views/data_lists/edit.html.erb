@@ -29,7 +29,7 @@
     <%= f2.collection_select :meas_id, Measurement.where(universe: @data_list.universe).all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {include_blank: false, selected: nil} %>
     <span class="actions"><%= f2.submit 'Add measurement' %></span>
     <br/>or <%= link_to 'Create a new measurement for this data list',
-                        {controller: :measurements, action: :new, universe: 'UHERO', data_list_id: @data_list.id, target: '_blank'} %>
+                        {controller: :measurements, action: :new, universe: @data_list.universe, data_list_id: @data_list.id, target: '_blank'} %>
   </div>
 <% end %>
 <p>
