@@ -230,7 +230,7 @@ task :ua_1139 => :environment do
   ## reassign these to plain ol' UHERO.
   Series.where(universe: 'UHEROCOH').each do |s|
     puts ">>> Resetting #{s.name} from UHEROCOH to UHERO"
-    s.update({ universe: 'UHERO' }, true)
+    s.update!({ universe: 'UHERO' }, true)
   end
 end
 
