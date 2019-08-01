@@ -36,13 +36,11 @@ class MeasurementsController < ApplicationController
   def new
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
     universe = params[:universe] || 'UHERO'
-    @resource_universe = get_resource_universe(universe)
     @measurement = Measurement.new(universe: universe)
   end
 
   # GET /measurements/1/edit
   def edit
-    @resource_universe = get_resource_universe(@measurement.universe)
   end
 
   # POST /measurements
@@ -67,13 +65,11 @@ class MeasurementsController < ApplicationController
     new_measurement.prefix = @measurement.prefix + ' (copy)'
     new_measurement.series = @measurement.series
     new_measurement.save
-    @resource_universe = get_resource_universe(@measurement.universe)
     redirect_to edit_measurement_url(new_measurement.id)
   end
 
   # PATCH/PUT /measurements/1
   def update
-    @resource_universe = get_resource_universe(@measurement.universe)
     if @measurement.update(measurement_params)
       redirect_to @measurement, notice: 'Measurement was successfully updated.'
     else
@@ -121,14 +117,6 @@ class MeasurementsController < ApplicationController
   end
 
   private
-    def get_resource_universe(universe)
-      case universe
-        when 'UHEROCOH' then 'UHERO'
-        when 'DBEDTCOH' then 'DBEDT'
-        else universe
-      end
-    end
-
     def translate(name)
       # Translate column names from Measurement table form to Series table form
       trans_hash = {'data_portal_name' => 'dataPortalName'}

@@ -29,17 +29,17 @@
   </div>
     <div class="field">
       <%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, Unit.where(universe: @resource_universe).order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+      <%= f.collection_select :unit_id, Unit.where(universe: @measurement.universe).order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
   <div class="field">
     <%= f.label :source_id %><br>
-    <%= f.collection_select :source_id, Source.where(universe: @resource_universe).all.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_id, Source.where(universe: @measurement.universe).all.order(:description), :id, :description, {:include_blank => true} %>
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
     <%= f.text_field :source_link, :size => 80 %>
   </div>
-  <% if @resource_universe == 'UHERO' %>
+  <% if @measurement.universe == 'UHERO' %>
     <div class="field">
       <%= f.label :source_detail_id %><br>
       <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
