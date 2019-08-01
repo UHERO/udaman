@@ -36,11 +36,13 @@ class MeasurementsController < ApplicationController
   def new
     @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
     universe = params[:universe] || 'UHERO'
-    @measurement = Measurement.new(universe: universe)
+    @measurement = Measurement.new(universe: universe, prefix: universe + '_')
+    set_resource_values(@measurement.universe)
   end
 
   # GET /measurements/1/edit
   def edit
+    set_resource_values(@measurement.universe)
   end
 
   # POST /measurements
@@ -117,6 +119,15 @@ class MeasurementsController < ApplicationController
   end
 
   private
+    def set_resource_values(univ)
+      @all_units = Unit.where(universe: univ)
+      @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
+      @all_sources = Source.where(universe: univ)
+      @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
+      @all_details = SourceDetail.where(universe: univ)
+      @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
+    end
+
     def translate(name)
       # Translate column names from Measurement table form to Series table form
       trans_hash = {'data_portal_name' => 'dataPortalName'}
