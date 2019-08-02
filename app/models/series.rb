@@ -125,7 +125,7 @@ class Series < ApplicationRecord
   end
 
   ## NOTE: Overriding an important ActiveRecord core method!
-  def update(attributes, strict = false)
+  def update(attributes)
     xs_attrs = attributes.delete(:xseries_attributes)
     if xs_attrs
       attributes.merge!(xs_attrs)
@@ -136,7 +136,7 @@ class Series < ApplicationRecord
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save
-        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
+        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -146,7 +146,7 @@ class Series < ApplicationRecord
   alias update_attributes update
 
   ## NOTE: Overriding an important ActiveRecord core method!
-  def update!(attributes, strict = false)
+  def update!(attributes)
     xs_attrs = attributes.delete(:xseries_attributes)
     if xs_attrs
       attributes.merge!(xs_attrs)
@@ -157,7 +157,7 @@ class Series < ApplicationRecord
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save!
-        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
+        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
