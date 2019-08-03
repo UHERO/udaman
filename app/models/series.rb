@@ -1057,13 +1057,11 @@ class Series < ApplicationRecord
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
     dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
+    where_clause = "((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))"
 
-    series_results = Series.get_all_universe(universe)
-                           .where("((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))")
-                           .limit(num_results)
+    series_results = Series.get_all_universe(universe).where(where_clause).limit(num_results)
 
     results = []
-  
     series_results.each do |s|
       description = s.description ||
                     (AremosSeries.get(s.name).description rescue nil) ||
