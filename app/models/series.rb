@@ -1054,6 +1054,11 @@ class Series < ApplicationRecord
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
+    u = search_parts.select {|s| s =~ /^u:/ }.shift
+    if u
+      search_parts.delete(u)
+      universe = u[2..]  ## chop off first two chars
+    end
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
     dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
