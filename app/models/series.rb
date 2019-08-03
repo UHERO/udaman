@@ -701,6 +701,15 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
+  def Series.load_from_eia(parameters)
+    series_data = DataHtmlParser.new.get_eia_series(parameters)
+    name = "loaded dataset #{dataset} with parameters #{parameters} from U.S. EIA API"
+    if series_data.empty?
+      name = "No data collected from U.S. EIA API for #{dataset}"
+    end
+    Series.new_transformation(name, series_data)
+  end
+  
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
