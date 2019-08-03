@@ -703,11 +703,11 @@ class Series < ApplicationRecord
 
   def Series.load_from_eia(parameters)
     series_data = DataHtmlParser.new.get_eia_series(parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from U.S. EIA API"
+    name = "loaded series with parameters #{parameters} from U.S. EIA API"
     if series_data.empty?
-      name = "No data collected from U.S. EIA API for #{dataset}"
+      name = "No data collected from U.S. EIA API for #{parameters}"
     end
-    Series.new_transformation(name, series_data)
+    Series.new_transformation(name, series_data, parameters[-1])
   end
   
   def days_in_period
