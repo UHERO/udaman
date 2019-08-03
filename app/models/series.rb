@@ -1057,7 +1057,8 @@ class Series < ApplicationRecord
     u = search_parts.select {|s| s =~ /^u:/ }.shift
     if u
       search_parts.delete(u)
-      universe = u[2..]  ## chop off first two chars
+      u = u[2..]  ## chop off first two chars
+      universe = { 'uh' => 'UHERO', 'db' => 'DBEDT' }[u] || u
     end
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
