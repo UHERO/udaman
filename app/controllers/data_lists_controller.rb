@@ -7,7 +7,8 @@ class DataListsController < ApplicationController
   before_action :set_data_list, except: [:index, :new, :create]
 
   def index
-    @data_lists = DataList.where(universe: 'UHERO').order(:name).all
+    univ = params[:u] || 'UHERO'
+    @data_lists = DataList.where(universe: univ).order(:name).all
 
     respond_to do |format|
       format.html # index.html.erb
