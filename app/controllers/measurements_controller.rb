@@ -21,11 +21,12 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements
   def index
+    univ = params[:u] || 'UHERO'
     if params[:unrestricted]
-      @measurements = Measurement.where(universe: 'UHERO').includes(:series).where(:series => {:restricted => false}).order(:prefix)
+      @measurements = Measurement.where(universe: univ).includes(:series).where(series: {restricted: false}).order(:prefix)
       return
     end
-    @measurements = Measurement.where(universe: 'UHERO').order(:prefix).all
+    @measurements = Measurement.where(universe: univ).order(:prefix).all
   end
 
   # GET /measurements/1

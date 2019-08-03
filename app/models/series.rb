@@ -1055,7 +1055,7 @@ class Series < ApplicationRecord
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     u = search_parts.select {|s| s =~ /^u:/ }.shift
-    if u
+    if u  ## universe explicitly supplied in search box
       search_parts.delete(u)
       u = u[2..]  ## chop off first two chars
       universe = { 'uh' => 'UHERO', 'db' => 'DBEDT' }[u] || u
