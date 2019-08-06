@@ -53,7 +53,7 @@ google.visualization.events.addListener(chart, 'select', function() {
     <tr><td>Base Year</td><td><%= @series.base_year %></td></tr>
     <tr><td>Seasonal Adjustment</td><td><%= sa_indicator(@series.seasonal_adjustment) %></td></tr>
     <tr><td>Source</td><td><%= @series.source && @series.source.description %></td></tr>
-    <tr><td>Source Link</td><td><%= make_live_link(@series.source_link || (@series.source && @series.source.link)) %></td></tr>
+    <tr><td>Source Link</td><td><%= make_hyperlink(@series.source_link || (@series.source && @series.source.link)) %></td></tr>
     <tr><td>Source Details</td><td><%= @series.source_detail && @series.source_detail.description %></td></tr>
     <tr><td>Restricted</td><td>
       <% if @series.restricted %> true <i class="fas fa-ban redban" title="restricted"></i>
@@ -68,7 +68,13 @@ google.visualization.events.addListener(chart, 'select', function() {
       </td></tr>
     <% end %>
     <tr><td>Universe</td><td><%= @series.universe %></td></tr>
-    <% if @series.xseries.primary_series_id != @series.id %>
+    <% if @series.universe == 'UHERO' %>
+      <tr><td>Parallel universes</td>
+        <td>
+          <%= make_alt_universe_links(@series) %>
+        </td>
+      </tr>
+    <% elsif @series.xseries.primary_series %>
       <tr><td>Primary Series</td>
         <td>
           <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %>

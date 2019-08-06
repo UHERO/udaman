@@ -208,6 +208,24 @@ class Series < ApplicationRecord
     self.build_name(freq: freq.upcase).ts
   end
 
+  ## Make a name for this series in an alternate universe
+  def name_in_universe(univ)
+    univ.upcase + '_' + name.to_s  ## to_s is needed, trust me
+  end
+
+  def dup_uhero_for(universe)
+    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
+    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
+    new_attrs = { universe: universe, name: name_in_universe(universe), geography_id: new_geo.id }
+    new = nil
+    self.transaction do
+      new = self.dup
+      new.assign_attributes(new_attrs)
+      new.save!
+    end
+    new
+  end
+
   ## Duplicate series for a different geography
   ## This won't work with the new Xseries architecture, but maybe is not needed anymore.
   ## Was only used for a one-off job. If needed again, refactor carefully.

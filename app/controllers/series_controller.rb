@@ -2,7 +2,7 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :analyze, :add_to_quarantine, :remove_from_quarantine,
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :dup_uhero_for, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
@@ -10,7 +10,7 @@ class SeriesController < ApplicationController
     @universe = params[:u]
     @series = Series.new(universe: @universe, xseries: Xseries.new)
     set_resource_values(@universe)
-    @default_name_pref = (@universe == 'UHERO') ? nil : @universe + '_'
+    @name_pattern = (@universe == 'UHERO') ? nil : @series.name_in_universe(@universe)
   end
 
   def bulk_new
@@ -32,6 +32,11 @@ class SeriesController < ApplicationController
     else
       render :new
     end
+  end
+
+  def dup_uhero_for
+    @series = @series.dup_uhero_for(params[:new_univ])
+    redirect_to @series, action: :edit
   end
 
   def update

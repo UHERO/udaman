@@ -139,7 +139,7 @@ module SeriesHelper
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 
-  def make_live_link(url, text = url)
+  def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
     "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
@@ -149,5 +149,22 @@ module SeriesHelper
     sa_sym = string.to_sym rescue :none
     short = { not_applicable: 'NA', seasonally_adjusted: 'SA', not_seasonally_adjusted: 'NS' }[sa_sym] || 'NA'
     short == 'NA' ? '-' : "<span class='#{short.downcase}-indicator'>#{short}</span>".html_safe
+  end
+
+  def make_alt_universe_links(series)
+    ## Following array is ONLY the alt universes normally shared with UHERO. Yes, they are hardcoded. So sue me.
+    alt_univs = %w{COH}
+    links = []
+    seen = {}
+    Series.where(primary_series_id: series.id).sort_by(&:name).each do |s|
+      links.push link_to(s.universe, controller: :series, action: :show, id: s.id)
+      seen[s.universe] = true
+    end
+    alt_univs.reverse.each do |univ|
+      unless seen[univ]
+        links.unshift link_to("[#{univ}]", controller: :series, action: :dup_uhero_for, new_univ: univ, id: @series)
+      end
+    end
+    links.join(' ')
   end
 end
