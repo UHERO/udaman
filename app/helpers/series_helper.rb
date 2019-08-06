@@ -156,7 +156,7 @@ module SeriesHelper
     alt_univs = %w{COH}
     links = []
     seen = {}
-    Series.where(primary_series_id: series.id).sort_by(&:name).each do |s|
+    Series.joins(:xseries).where('xseries.primary_series_id = ? and xseries.primary_series_id <> series.id', series.id).sort_by(&:name).each do |s|
       links.push link_to(s.universe, controller: :series, action: :show, id: s.id)
       seen[s.universe] = true
     end

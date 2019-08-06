@@ -69,12 +69,12 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% end %>
     <tr><td>Universe</td><td><%= @series.universe %></td></tr>
     <% if @series.universe == 'UHERO' %>
-      <tr><td>Parallel universes</td>
+      <tr><td>Alt universes</td>
         <td>
-          <%= make_alt_universe_links(@series) %>
+          <%= raw make_alt_universe_links(@series) %>
         </td>
       </tr>
-    <% elsif @series.xseries.primary_series %>
+    <% elsif @series.xseries.primary_series_id != @series.id %>
       <tr><td>Primary Series</td>
         <td>
           <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %>
