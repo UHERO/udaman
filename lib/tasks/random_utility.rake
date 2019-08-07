@@ -175,6 +175,72 @@ task :ua_994 => :environment do
   end
 end
 
+## JIRA UA-1139
+task :ua_1139 => :environment do
+  coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW geography in COH')
+  coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
+
+  Measurement.where(universe: 'UHERO').each do |m|
+    dls = m.data_lists.reject{|dl| dl.universe == 'UHERO' }
+    next if dls.empty?
+    coh_m = m.dup
+    coh_m.assign_attributes(universe: 'COH', prefix: 'COH_' + m.prefix)
+    coh_m.save!
+    puts ">>> Created new COH meas #{coh_m.prefix}"
+    dls.each do |list|
+      if list.universe != 'COH'
+        Rails.logger.warn { "---------------------------- DL UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
+      end
+      DataList.transaction do
+        list.measurements.delete(m)
+        list.measurements << coh_m
+      end
+      puts ">>> Replaced meas #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
+    end
+    siriz = m.series
+    siriz.each do |s|
+      if s.universe == 'COH'
+        Series.transaction do
+          m.series.delete(s)
+          coh_m.series << s
+        end
+        next
+      end
+      ## else s.universe is UHERO or UHEROCOH
+      s_geo = s.geography.handle.upcase
+      unless s_geo == 'HAW' || s_geo == 'HI'
+        puts ">>> non-COH geography: #{s.name}"
+        s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
+        next
+      end
+      ## s.geography is HAW or HI
+      coh_s = s.dup
+      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+      Series.transaction do
+        coh_s.save!
+        coh_m.series << coh_s
+        puts ">>> New COH series #{coh_s.name} for COH meas #{coh_m.prefix}"
+        s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
+      end
+    end
+  end
+
+  ## At this point, all the series that COH should have in their portal have already been handled in the above loop,
+  ## and if there are any leftover series still under universe: 'UHEROCOH', it should be safe to simply
+  ## reassign these to plain ol' UHERO.
+  Series.where(universe: 'UHEROCOH').each do |s|
+    puts ">>> Resetting #{s.name} from UHEROCOH to UHERO"
+    s.update!({ universe: 'UHERO' })
+  end
+end
+
+## JIRA UA-1152
+task :ua_1152 => :environment do
+  Measurement.where(universe: 'DBEDTCOH').each do |m|
+    m.update(prefix: m.prefix.sub('DBEDT','COHDBEDT'))
+  end
+end
+
 ## JIRA UA-1160
 task :ua_1160 => :environment do
   old = %w[CA4    CA5N    CA6N    RPI1  RPI2  RPP1  RPP2  IRPD1  IRPD2  SA4    SA5N    SA6N    SQ4    SQ5    SQ5N    SQ6N]
