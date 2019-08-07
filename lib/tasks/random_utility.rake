@@ -257,6 +257,14 @@ task :ua_1152 => :environment do
     end
     m.update!(universe: 'COH', prefix: m.prefix.sub('DBEDT','COHDB'))
   end
+
+  ## At this point, all the series that COH should have in their portal have already been handled in the above loop,
+  ## and if there are any leftover series still under universe: 'DBEDTCOH', it should be safe to simply
+  ## reassign these to plain ol' DBEDT.
+  Series.where(universe: 'DBEDTCOH').each do |s|
+    puts ">>> Resetting #{s.name} from DBEDTCOH to DBEDT"
+    s.update!(universe: 'DBEDT')
+  end
 end
 
 ## JIRA UA-1160
