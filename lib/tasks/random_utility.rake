@@ -237,7 +237,17 @@ end
 ## JIRA UA-1152
 task :ua_1152 => :environment do
   Measurement.where(universe: 'DBEDTCOH').each do |m|
-    m.update(prefix: m.prefix.sub('DBEDT','COHDBEDT'))
+    m.update(universe: 'COH', prefix: m.prefix.sub('DBEDT','COH'))
+    siriz = m.series
+    siriz.each do |s|
+      s.update!(universe: 'DBEDT')
+      m.series.delete(s)
+      next unless s.geography.handle == 'HAW' || s.geography.handle == 'HI'
+      ## else s.geography is HAW or HI
+      coh_s = s.dup
+      coh_s.update!(universe: 'COH', name: 'foo', primary_series_id: s.id)
+      m.series << coh_s
+    end
   end
 end
 
