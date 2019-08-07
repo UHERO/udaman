@@ -40,6 +40,21 @@ Series.load_from_bea('A', 'NIPA', { TableName:'T10109', LineNumber:'1' , Frequen
 
 <i>Note that for dataset NIPA in particular, Frequency and Year are mandatory parameters</i>
 
+<h2>EIA Definition options</h2>
+<p><code>Series.load_from_eia()</code> takes exactly 1 required argument.</p>
+
+<ol>
+  <li>Series ID (e.g. "ELEC.GEN.ALL-HI-99.A"). Series IDs can be found through EIA's <a target="_blank" rel="noopener" href="https://www.eia.gov/opendata/qb.php?category=371">API Query Browser</a>. Click through the child categories and select a child series.</li>
+</ol>
+
+<p>
+  Example <strong>eval</strong>
+</p>
+
+<pre>
+Series.load_from_eia('ELEC.GEN.ALL-HI-99.A')
+</pre>
+
 <h2>US Cluster Mapping Definition options</h2>
 <p><a target="_blank" rel="noopener" href="http://clustermapping.us/sites/default/files/files/page/ClusterMapping-API-Docs.pdf">Cluster Mapping API Documentation</a></p>
 <p>Retrieve cluster-level by region</p>

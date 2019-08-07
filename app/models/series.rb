@@ -701,13 +701,15 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
-  def Series.load_from_eia(parameters)
-    series_data = DataHtmlParser.new.get_eia_series(parameters)
-    name = "loaded series with parameters #{parameters} from U.S. EIA API"
+  def Series.load_from_eia(parameter)
+    # Series ID in the EIA API is case sensitive
+    series_id = parameter.upcase
+    series_data = DataHtmlParser.new.get_eia_series(series_id)
+    name = "loaded series with parameters #{series_id} from U.S. EIA API"
     if series_data.empty?
-      name = "No data collected from U.S. EIA API for #{parameters}"
+      name = "No data collected from U.S. EIA API for #{series_id}"
     end
-    Series.new_transformation(name, series_data, parameters[-1])
+    Series.new_transformation(name, series_data, series_id[-1])
   end
   
   def days_in_period
