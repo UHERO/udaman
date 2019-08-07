@@ -240,14 +240,13 @@ task :ua_1152 => :environment do
   coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
 
   Measurement.where(universe: 'DBEDTCOH').each do |m|
-    m.update(universe: 'COH', prefix: m.prefix.sub('DBEDT','COH'))
     siriz = m.series
     siriz.each do |s|
       s_geo = s.geography.handle.upcase
       self.transaction do
         s.update!(universe: 'DBEDT')
         m.series.delete(s)
-        if s.geography.handle == 'HAW' || s.geography.handle == 'HI'
+        if s_geo == 'HAW' || s_geo == 'HI'
           coh_s = s.dup
           coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
                                   primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
@@ -256,6 +255,7 @@ task :ua_1152 => :environment do
         end
       end
     end
+    m.update!(universe: 'COH', prefix: m.prefix.sub('DBEDT','COHDB'))
   end
 end
 
