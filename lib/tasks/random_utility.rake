@@ -210,7 +210,7 @@ task :ua_1139 => :environment do
       s_geo = s.geography.handle.upcase
       unless s_geo == 'HAW' || s_geo == 'HI'
         puts ">>> non-COH geography: #{s.name}"
-        s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
+        s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
         next
       end
       ## s.geography is HAW or HI
@@ -220,7 +220,7 @@ task :ua_1139 => :environment do
         coh_s.save!
         coh_m.series << coh_s
         puts ">>> New COH series #{coh_s.name} for COH meas #{coh_m.prefix}"
-        s.update({ universe: 'UHERO' }, true) if s.universe == 'UHEROCOH'
+        s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
       end
     end
   end

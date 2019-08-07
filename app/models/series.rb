@@ -216,13 +216,9 @@ class Series < ApplicationRecord
   def dup_uhero_for(universe)
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
-    new_attrs = { universe: universe, name: name_in_universe(universe), geography_id: new_geo.id }
-    new = nil
-    self.transaction do
-      new = self.dup
-      new.assign_attributes(new_attrs)
-      new.save!
-    end
+    new = self.dup
+    new.assign_attributes(universe: universe, name: name_in_universe(universe), geography_id: new_geo.id)
+    new.save!
     new
   end
 
