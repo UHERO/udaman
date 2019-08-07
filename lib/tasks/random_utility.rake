@@ -215,7 +215,8 @@ task :ua_1139 => :environment do
       end
       ## s.geography is HAW or HI
       coh_s = s.dup
-      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name,
+                              primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
       Series.transaction do
         coh_s.save!
         coh_m.series << coh_s
