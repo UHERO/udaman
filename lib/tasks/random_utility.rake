@@ -249,10 +249,15 @@ task :ua_1152 => :environment do
         m.series.delete(s)
         puts ">>> Removed #{s.name} from meas #{m.prefix} and universe -> DBEDT"
         if s_geo == 'HAW' || s_geo == 'HI'
-          coh_s = s.dup
-          coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
-                                  primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
-          coh_s.save!
+          coh_s = Series.find_by(universe: 'COH', xseries_id: s.xseries_id)
+          if coh_s
+            puts "-----------> FOUND EXISTING #{coh_s.name}"
+          else
+            coh_s = s.dup
+            coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
+                                    primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+            coh_s.save!
+          end
           m.series << coh_s
           puts ">>> New COH series #{coh_s.name} for COH meas #{m.prefix}"
         else
