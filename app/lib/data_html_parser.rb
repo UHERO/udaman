@@ -91,7 +91,7 @@ class DataHtmlParser
   def get_eia_series(parameter)
     api_key = ENV['API_KEY_EIA']
     raise 'No API key defined for EIA' unless api_key
-    @url = "http://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
+    @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content
