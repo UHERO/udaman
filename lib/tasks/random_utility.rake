@@ -215,7 +215,8 @@ task :ua_1139 => :environment do
       end
       ## s.geography is HAW or HI
       coh_s = s.dup
-      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name,
+                              primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
       Series.transaction do
         coh_s.save!
         coh_m.series << coh_s
@@ -231,6 +232,39 @@ task :ua_1139 => :environment do
   Series.where(universe: 'UHEROCOH').each do |s|
     puts ">>> Resetting #{s.name} from UHEROCOH to UHERO"
     s.update!({ universe: 'UHERO' })
+  end
+end
+
+## JIRA UA-1152
+task :ua_1152 => :environment do
+  coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW geography in COH')
+  coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
+
+  Measurement.where(universe: 'DBEDTCOH').each do |m|
+    siriz = m.series
+    siriz.each do |s|
+      s_geo = s.geography.handle.upcase
+      self.transaction do
+        s.update!(universe: 'DBEDT')
+        m.series.delete(s)
+        if s_geo == 'HAW' || s_geo == 'HI'
+          coh_s = s.dup
+          coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
+                                  primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+          coh_s.save!
+          m.series << coh_s
+        end
+      end
+    end
+    m.update!(universe: 'COH', prefix: m.prefix.sub('DBEDT','COHDB'))
+  end
+
+  ## At this point, all the series that COH should have in their portal have already been handled in the above loop,
+  ## and if there are any leftover series still under universe: 'DBEDTCOH', it should be safe to simply
+  ## reassign these to plain ol' DBEDT.
+  Series.where(universe: 'DBEDTCOH').each do |s|
+    puts ">>> Resetting #{s.name} from DBEDTCOH to DBEDT"
+    s.update!(universe: 'DBEDT')
   end
 end
 
