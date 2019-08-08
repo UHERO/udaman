@@ -244,7 +244,7 @@ task :ua_1152 => :environment do
     siriz = m.series
     siriz.each do |s|
       s_geo = s.geography.handle.upcase
-      self.transaction do
+      Measurement.transaction do
         s.update!(universe: 'DBEDT')
         m.series.delete(s)
         puts ">>> Removed #{s.name} from meas #{m.prefix} and universe -> DBEDT"
