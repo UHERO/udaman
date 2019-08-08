@@ -241,8 +241,11 @@ task :ua_1152 => :environment do
   coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
 
   Measurement.where(universe: 'DBEDTCOH').each do |m|
-    siriz = m.series
-    siriz.each do |s|
+    siriz = m.series.map(&:id)
+    puts ">>>>>>>>>>>>>>>>>> PROC measurement #{m.prefix}, count #{siriz.count}"
+    siriz.each do |sid|
+      s = Series.find sid
+      puts ">>>>>>>>>>>>>> PROC series #{s.name} (#{sid})"
       s_geo = s.geography.handle.upcase
       Measurement.transaction do
         s.update!(universe: 'DBEDT')
@@ -251,7 +254,7 @@ task :ua_1152 => :environment do
         if s_geo == 'HAW' || s_geo == 'HI'
           coh_s = Series.find_by(universe: 'COH', xseries_id: s.xseries_id)
           if coh_s
-            puts "-----------> FOUND EXISTING #{coh_s.name}"
+            puts "-----------> FOUND EXISTING #{coh_s.name} (#{coh_s.id})"
           else
             coh_s = s.dup
             coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
@@ -259,7 +262,7 @@ task :ua_1152 => :environment do
             coh_s.save!
           end
           m.series << coh_s
-          puts ">>> New COH series #{coh_s.name} for COH meas #{m.prefix}"
+          puts ">>> New COH series #{coh_s.name} (#{coh_s.id}) for COH meas #{m.prefix}"
         else
           puts ">>> non-COH geography: #{s.name}"
         end
