@@ -247,15 +247,20 @@ task :ua_1152 => :environment do
       self.transaction do
         s.update!(universe: 'DBEDT')
         m.series.delete(s)
+        puts ">>> Removed #{s.name} from meas #{m.prefix} and universe -> DBEDT"
         if s_geo == 'HAW' || s_geo == 'HI'
           coh_s = s.dup
           coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
                                   primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
           coh_s.save!
           m.series << coh_s
+          puts ">>> New COH series #{coh_s.name} for COH meas #{m.prefix}"
+        else
+          puts ">>> non-COH geography: #{s.name}"
         end
       end
     end
+    puts ">>> Rename Measurement #{m.prefix} to COHDB and universe -> COH"
     m.update!(universe: 'COH', prefix: m.prefix.sub('DBEDT','COHDB'))
   end
 
