@@ -1,4 +1,5 @@
 class DataHtmlParser
+  include HelperUtilities
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED']
@@ -168,26 +169,15 @@ class DataHtmlParser
 
   def get_date(year_string, other_string)
     month = case other_string
-    # Monthly observations
-    when /^((M0[1-9])|(M1[0-2]))\b/
-      Date.new(year_string.to_i, other_string[1..2].to_i)
-    when /^((0[1-9])|(1[0-2]))\b/
-      Date.new(year_string.to_i, other_string.to_i)
-    # Observations that should evaluate to January of year_string (including other_string === '')
-    when /^$|^((M13)|(Q|S)(1|01))\b/
-      Date.new(year_string.to_i)
-    # (Quarterly) Observations that should evaluate to April of year_string
-    when /^Q(2|02)\b/
-      Date.new(year_string.to_i, 4)
-    # (Quarterly/Semi-Annual) Observations that should evaluate to July of year_string
-    when /^(S02|Q(3|03))\b/
-      Date.new(year_string.to_i, 7)
-    # (Quarterly) Observations that should evaluate to October of year_string
-    when /^Q(4|04)\b/
-      Date.new(year_string.to_i, 10)
-    else
-     'Error: invalid date %s-%s' % [year_string, other_string]
-    end
+              when /^M(0[1-9]|1[0-2])\b/ then $1.to_i
+              when /^(0[1-9]|1[0-2])\b/  then $1.to_i
+              when /^(M13|S1|S01)\b/     then 1
+              when /^(S2|S02)\b/         then 7
+              when /^Q0?([1-4])\b/       then first_month_of_quarter($1)
+              when ''                    then 1
+              else raise('Error: invalid date %s-%s' % [year_string, other_string])
+            end
+    Date.new(year_string.to_i, month)
   end
   
   def download
