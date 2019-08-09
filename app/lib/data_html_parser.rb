@@ -165,18 +165,29 @@ class DataHtmlParser
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
   end
-  
+
   def get_date(year_string, other_string)
-    return Date.new(year_string.to_i) if other_string == 'M13'
-    return Date.new(year_string.to_i, other_string[1..2].to_i) unless %w(M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12).index(other_string).nil?
-    return Date.new(year_string.to_i, other_string.to_i) unless %w(01 02 03 04 05 06 07 08 09 10 11 12).index(other_string).nil?
-    return Date.new(year_string.to_i) if other_string == 'S01'
-    return Date.new(year_string.to_i, 7) if other_string == 'S02'
-    return Date.new(year_string.to_i) unless %w(Q1 Q01).index(other_string).nil?
-    return Date.new(year_string.to_i, 4) unless %w(Q2 Q02).index(other_string).nil?
-    return Date.new(year_string.to_i, 7) unless %w(Q3 Q03).index(other_string).nil?
-    return Date.new(year_string.to_i, 10) unless %w(Q4 Q04).index(other_string).nil?
-    Date.new(year_string.to_i) if other_string == ''
+    case other_string
+    # Monthly observations
+    when /^((M0[1-9])|(M1[0-2]))\b/
+      Date.new(year_string.to_i, other_string[1..2].to_i)
+    when /^((0[1-9])|(1[0-2]))\b/
+      Date.new(year_string.to_i, other_string.to_i)
+    # Observations that should evaluate to January of year_string (including other_string === '')
+    when /^$|^((M13)|(Q|S)(1|01))\b/
+      Date.new(year_string.to_i)
+    # (Quarterly) Observations that should evaluate to April of year_string
+    when /^Q(2|02)\b/
+      Date.new(year_string.to_i, 4)
+    # (Quarterly/Semi-Annual) Observations that should evaluate to July of year_string
+    when /^(S02|Q(3|03))\b/
+      Date.new(year_string.to_i, 7)
+    # (Quarterly) Observations that should evaluate to October of year_string
+    when /^Q(4|04)\b/
+      Date.new(year_string.to_i, 10)
+    else
+     'Error: invalid date %s-%s' % [year_string, other_string]
+    end
   end
   
   def download
