@@ -241,8 +241,8 @@ task :ua_1152 => :environment do
   coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
 
   Measurement.where(universe: 'DBEDTCOH').each do |m|
-    siriz = m.series.map(&:id)
-    puts ">>>>>>>>>>>>>>>>>> PROC measurement #{m.prefix}, count #{siriz.count}"
+    siriz = m.series.map(&:id)  ## had trouble gathering/iterating over series objects, so use ids to be "safer"
+    puts "======================= PROC measurement #{m.prefix}, count #{siriz.count}"
     siriz.each do |sid|
       s = Series.find sid
       puts ">>>>>>>>>>>>>> PROC series #{s.name} (#{sid})"
@@ -254,7 +254,7 @@ task :ua_1152 => :environment do
         if s_geo == 'HAW' || s_geo == 'HI'
           coh_s = Series.find_by(universe: 'COH', xseries_id: s.xseries_id)
           if coh_s
-            puts "-----------> FOUND EXISTING #{coh_s.name} (#{coh_s.id})"
+            puts "-----------> FOUND EXISTING #{coh_s.name} (#{coh_s.id}) to match #{s.name}"
           else
             coh_s = s.dup
             coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),

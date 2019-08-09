@@ -152,8 +152,8 @@ module SeriesHelper
   end
 
   def make_alt_universe_links(series)
-    ## Following array is ONLY the alt universes normally shared with UHERO. Yes, they are hardcoded. So sue me.
-    alt_univs = %w{COH}
+    alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{COH} }  ## Yes, these alt univ relations are hardcoded. So sue me.
+    return nil unless alt_univs[series.universe]
     links = []
     seen = {}
     alt_series = Series.joins(:xseries).where('xseries.primary_series_id = ? and xseries.primary_series_id <> series.id', series.id)
@@ -161,7 +161,7 @@ module SeriesHelper
       links.push link_to(s.universe, controller: :series, action: :show, id: s.id)
       seen[s.universe] = true
     end
-    alt_univs.reverse.each do |univ|
+    alt_univs[series.universe].reverse.each do |univ|
       unless seen[univ]
         links.unshift link_to("[#{univ}]", controller: :series, action: :dup_uhero_for, new_univ: univ, id: @series)
       end
