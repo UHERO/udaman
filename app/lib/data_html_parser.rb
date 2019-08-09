@@ -167,7 +167,7 @@ class DataHtmlParser
   end
 
   def get_date(year_string, other_string)
-    case other_string
+    month = case other_string
     # Monthly observations
     when /^((M0[1-9])|(M1[0-2]))\b/
       Date.new(year_string.to_i, other_string[1..2].to_i)
