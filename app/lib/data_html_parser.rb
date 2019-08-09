@@ -171,8 +171,8 @@ class DataHtmlParser
     month = case other_string
               when /^M(0[1-9]|1[0-2])\b/ then $1.to_i
               when /^(0[1-9]|1[0-2])\b/  then $1.to_i
-              when /^(M13|S1|S01)\b/     then 1
-              when /^(S2|S02)\b/         then 7
+              when /^(M13|S0?1)\b/       then 1
+              when /^S0?2\b/             then 7
               when /^Q0?([1-4])\b/       then first_month_of_quarter($1)
               when ''                    then 1
               else raise('Error: invalid date %s-%s' % [year_string, other_string])
