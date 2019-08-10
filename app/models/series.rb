@@ -226,6 +226,10 @@ class Series < ApplicationRecord
     new
   end
 
+  def i_am_primary
+    xseries.primary_series == self
+  end
+
   ## Duplicate series for a different geography
   ## This won't work with the new Xseries architecture, but maybe is not needed anymore.
   ## Was only used for a one-off job. If needed again, refactor carefully.

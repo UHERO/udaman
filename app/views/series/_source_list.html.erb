@@ -7,17 +7,17 @@
 					ds.last_run ? ds.last_run.localtime.strftime("%H:%M:%S") : '-' %></span>&nbsp;(<%= ds.priority %>)<br />
  					<%= 
 						link_to 'load', {
-							:controller=> 'data_sources',
+							:controller => 'data_sources',
 							:action => 'source', 
 							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
 						link_to 'clear', {
-							:controller=> 'data_sources',
+							:controller => 'data_sources',
 							:action => 'clear',
 							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
 						link_to 'delete', {
-							:controller=> 'data_sources',
+							:controller => 'data_sources',
 							:action => 'delete', 
 							:id => ds.id },
 							data: { :confirm => "Delete definition #{ds.id}: Are you sure??" }
