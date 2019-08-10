@@ -164,7 +164,7 @@ module SeriesHelper
     end
     alt_univs[series.universe].reverse.each do |univ|
       unless seen[univ]
-        links.unshift link_to("[#{univ}]", controller: :series, action: :dup_uhero_for, new_univ: univ, id: @series)
+        links.unshift link_to("[#{univ}]", { controller: :series, action: :dup_primary_for, new_univ: univ, id: @series }, title: 'Create new')
       end
     end
     links.join(' ')

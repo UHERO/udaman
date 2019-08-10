@@ -35,7 +35,7 @@ class SeriesController < ApplicationController
   end
 
   def dup_uhero_for
-    @series = @series.dup_uhero_for(params[:new_univ])
+    @series = @series.dup_primary_for(params[:new_univ])
     redirect_to @series, action: :edit
   end
 

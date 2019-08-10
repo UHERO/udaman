@@ -214,7 +214,7 @@ class Series < ApplicationRecord
     univ == 'UHERO' ? name : univ.upcase + '_' + name
   end
 
-  def dup_uhero_for(universe)
+  def dup_primary_for(universe)
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
