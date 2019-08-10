@@ -74,7 +74,7 @@ google.visualization.events.addListener(chart, 'select', function() {
       <tr><td>Alt universes</td>
         <td><%= raw alt_univ_links %></td>
       </tr>
-    <% else if @series.xseries.primary_series_id != @series.id %>
+    <% else if !@series.i_am_primary %>
       <tr><td>Primary Series</td>
         <td>
           <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %>
