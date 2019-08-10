@@ -210,7 +210,8 @@ class Series < ApplicationRecord
 
   ## Make a name for this series in an alternate universe
   def name_in_universe(univ)
-    univ.upcase + '_' + name.to_s  ## to_s is needed, trust me
+    name = self.name.to_s  ## to_s is needed, trust me
+    univ == 'UHERO' ? name : univ.upcase + '_' + name
   end
 
   def dup_uhero_for(universe)

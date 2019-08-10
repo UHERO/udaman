@@ -7,10 +7,10 @@ class SeriesController < ApplicationController
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
-    @universe = params[:u]
+    @universe = params[:u] || 'UHERO'
     @series = Series.new(universe: @universe, xseries: Xseries.new)
+    @name_pattern = @series.name_in_universe(@universe)
     set_resource_values(@universe)
-    @name_pattern = (@universe == 'UHERO') ? nil : @series.name_in_universe(@universe)
   end
 
   def bulk_new
