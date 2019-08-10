@@ -73,6 +73,7 @@ class MeasurementsController < ApplicationController
     new_measurement.prefix = @measurement.prefix + ' (copy)'
     new_measurement.series = @measurement.series
     new_measurement.save
+    set_resource_values(@measurement.universe)
     redirect_to edit_measurement_url(new_measurement.id)
   end
 
@@ -87,11 +88,12 @@ class MeasurementsController < ApplicationController
 
   def add_series
     series = Series.find(params[:series_id])
+    set_resource_values(@measurement.universe)
     if @measurement.series.include? series
       redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
       return
     end
-    @measurement.add_series(series)
+    @measurement.series << series
     respond_to do |format|
       format.html { redirect_to edit_measurement_url(@measurement.id) }
       format.js {}
@@ -103,7 +105,7 @@ class MeasurementsController < ApplicationController
       format.js { head :ok }
     end
     series = Series.find(params[:series_id])
-    @measurement.remove_series(series)
+    @measurement.series.delete(series)
   end
 
   def propagate
