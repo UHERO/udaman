@@ -215,7 +215,7 @@ class Series < ApplicationRecord
   end
 
   def i_am_primary
-    xseries.primary_series == self
+    xseries.primary_series === self
   end
 
   def dup_primary_for(universe)
