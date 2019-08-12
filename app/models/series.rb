@@ -50,7 +50,7 @@ class Series < ApplicationRecord
   end
 
   def to_s
-    self.name || 'NO_SERIES_NAME'
+    self.name || 'NO_NAME_SERIES'
   end
 
   def first_observation
@@ -214,7 +214,12 @@ class Series < ApplicationRecord
     univ == 'UHERO' ? name : univ.upcase + '_' + name
   end
 
+  def i_am_primary
+    xseries.primary_series == self
+  end
+
   def dup_primary_for(universe)
+    raise "#{self} is not a primary series, cannot alias" unless i_am_primary
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
@@ -224,10 +229,6 @@ class Series < ApplicationRecord
                           geography_id: new_geo.id)
     new.save!
     new
-  end
-
-  def i_am_primary
-    xseries.primary_series == self
   end
 
   ## Duplicate series for a different geography
