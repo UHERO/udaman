@@ -2,7 +2,7 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :dup_uhero_for, :analyze, :add_to_quarantine, :remove_from_quarantine,
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :dup_primary_for, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
@@ -34,7 +34,7 @@ class SeriesController < ApplicationController
     end
   end
 
-  def dup_uhero_for
+  def dup_primary_for
     @series = @series.dup_primary_for(params[:new_univ])
     redirect_to @series, action: :edit
   end

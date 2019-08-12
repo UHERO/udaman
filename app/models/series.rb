@@ -231,7 +231,7 @@ class Series < ApplicationRecord
     new
   end
 
-  ## Duplicate series for a different geography
+  ## Duplicate series for a different geography.
   ## This won't work with the new Xseries architecture, but maybe is not needed anymore.
   ## Was only used for a one-off job. If needed again, refactor carefully.
   def dup_series_for_geo_DONTUSE(geo)
