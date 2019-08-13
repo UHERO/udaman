@@ -71,7 +71,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 
     <% alt_univ_links = make_alt_universe_links(@series) %>
     <% unless alt_univ_links.blank? %>
-      <tr><td>Alt universes</td>
+      <tr><td>Aliases</td>
         <td><%= raw alt_univ_links %></td>
       </tr>
     <% else unless @series.i_am_primary %>
