@@ -159,7 +159,7 @@ module SeriesHelper
     existing_alt_series = Series.joins(:xseries)
                                 .where('xseries.primary_series_id = ? and xseries.primary_series_id <> series.id', series.id)
     existing_alt_series.sort_by(&:name).each do |s|
-      links.push link_to(s.universe, controller: :series, action: :show, id: s.id)
+      links.push link_to(s.universe, { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
     alt_univs[series.universe].reverse.each do |univ|
