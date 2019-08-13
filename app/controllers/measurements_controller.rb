@@ -22,10 +22,6 @@ class MeasurementsController < ApplicationController
   # GET /measurements
   def index
     univ = params[:u] || 'UHERO'
-    if params[:unrestricted]
-      @measurements = Measurement.where(universe: univ).includes(:series).where(series: {restricted: false}).order(:prefix)
-      return
-    end
     @measurements = Measurement.where(universe: univ).order(:prefix).all
   end
 
@@ -150,8 +146,7 @@ class MeasurementsController < ApplicationController
     # Only allow a trusted parameter "white list" through.
     def measurement_params
       params.require(:measurement).permit(:universe, :prefix, :data_portal_name, :table_prefix, :table_postfix,
-                                          :unit_id, :percent, :real, :notes,
-                                          :restricted, :unrestricted, :series_id, :decimals,
+                                          :unit_id, :percent, :real, :notes, :restricted, :series_id, :decimals,
                                           :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link,
                                           :field_boxes, :series_boxes)

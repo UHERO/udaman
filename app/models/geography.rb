@@ -12,11 +12,7 @@ class Geography < ApplicationRecord
   end
 
   def Geography.get(attrs)
-    attrs[:universe] = case
-                         when attrs[:universe] == 'UHEROCOH' then 'UHERO'
-                         when attrs[:universe] == 'DBEDTCOH' then 'DBEDT'
-                         else attrs[:universe] || 'UHERO'
-                       end
+    attrs[:universe] ||= 'UHERO'
     Geography.find_by(attrs)
   end
 
