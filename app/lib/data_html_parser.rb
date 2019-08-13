@@ -88,6 +88,30 @@ class DataHtmlParser
     new_data
   end
 
+  def get_eia_series(parameter)
+    api_key = ENV['API_KEY_EIA']
+    raise 'No API key defined for EIA' unless api_key
+    @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
+    Rails.logger.info { "Getting data from EIA API: #{@url}" }
+    @doc = self.download
+    response = JSON.parse self.content
+    raise 'EIA API: unknown failure' unless response
+    err = response['data'] && response['data']['error']
+    if err
+      raise 'EIA API error: %s' % response['data']['error']
+    end
+    new_data = {}
+    series_data = response['series'][0]['data']
+    series_data.each do |data_point|
+      time_period = data_point[0]
+      value = data_point[1]
+      if value
+        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
+      end
+    end
+    new_data
+  end
+
   def request_match(request, data_point)
     dp = data_point.map{|k,v| [k.upcase, v] }.to_h
     request.keys.each do |key|
@@ -141,17 +165,29 @@ class DataHtmlParser
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
   end
-  
+
   def get_date(year_string, other_string)
-    return Date.new(year_string.to_i) if other_string == 'M13'
-    return Date.new(year_string.to_i, other_string[1..2].to_i) unless %w(M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12).index(other_string).nil?
-    return Date.new(year_string.to_i) if other_string == 'S01'
-    return Date.new(year_string.to_i, 7) if other_string == 'S02'
-    return Date.new(year_string.to_i) unless %w(Q1 Q01).index(other_string).nil?
-    return Date.new(year_string.to_i, 4) unless %w(Q2 Q02).index(other_string).nil?
-    return Date.new(year_string.to_i, 7) unless %w(Q3 Q03).index(other_string).nil?
-    return Date.new(year_string.to_i, 10) unless %w(Q4 Q04).index(other_string).nil?
-    Date.new(year_string.to_i) if other_string == ''
+    case other_string
+    # Monthly observations
+    when /^((M0[1-9])|(M1[0-2]))\b/
+      Date.new(year_string.to_i, other_string[1..2].to_i)
+    when /^((0[1-9])|(1[0-2]))\b/
+      Date.new(year_string.to_i, other_string.to_i)
+    # Observations that should evaluate to January of year_string (including other_string === '')
+    when /^$|^((M13)|(Q|S)(1|01))\b/
+      Date.new(year_string.to_i)
+    # (Quarterly) Observations that should evaluate to April of year_string
+    when /^Q(2|02)\b/
+      Date.new(year_string.to_i, 4)
+    # (Quarterly/Semi-Annual) Observations that should evaluate to July of year_string
+    when /^(S02|Q(3|03))\b/
+      Date.new(year_string.to_i, 7)
+    # (Quarterly) Observations that should evaluate to October of year_string
+    when /^Q(4|04)\b/
+      Date.new(year_string.to_i, 10)
+    else
+     'Error: invalid date %s-%s' % [year_string, other_string]
+    end
   end
   
   def download
