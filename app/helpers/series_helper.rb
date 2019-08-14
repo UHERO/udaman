@@ -155,7 +155,7 @@ module SeriesHelper
     alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
-    series.my_aliases.sort_by(&:universe).each do |s|
+    series.get_aliases.sort_by(&:universe).each do |s|
       links.push link_to(display_universe(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end

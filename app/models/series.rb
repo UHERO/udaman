@@ -212,8 +212,7 @@ class Series < ApplicationRecord
     xseries.primary_series === self
   end
 
-  def my_aliases
-    raise "#{self} is not a primary series, cannot have aliases" unless is_primary
+  def get_aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
