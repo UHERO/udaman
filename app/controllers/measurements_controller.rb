@@ -21,8 +21,8 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements
   def index
-    univ = params[:u] || 'UHERO'
-    @measurements = Measurement.where(universe: univ).order(:prefix).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @measurements = Measurement.where(universe: @universe).order(:prefix).all
   end
 
   # GET /measurements/1

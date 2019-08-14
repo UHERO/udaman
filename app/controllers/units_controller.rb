@@ -3,7 +3,7 @@ class UnitsController < ApplicationController
 
   # GET /units
   def index
-    @universe = params[:u] || 'UHERO'
+    @universe = params[:u].upcase rescue 'UHERO'
     @units = Unit.where(universe: @universe).order(:short_label, :long_label).all
   end
 
