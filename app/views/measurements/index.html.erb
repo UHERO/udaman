@@ -3,7 +3,7 @@
 <h1><%= @universe %> Measurements</h1>
 
 <p>
-  <%= link_to 'New Measurement', new_measurement_path %>
+  <%= link_to 'New Measurement', new_measurement_path(universe: @universe) %>
 </p>
 
 <table class="list_table">
@@ -34,7 +34,3 @@
     <% end %>
   </tbody>
 </table>
-
-<br>
-
-<%= link_to 'New Measurement', new_measurement_path %>

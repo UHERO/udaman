@@ -169,7 +169,7 @@ module SeriesHelper
   end
 
   def display_universe(series)
-    series.is_primary ? "<span class='primary_series'>#{series.universe}</span>" : series.universe
+    series.is_primary ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
   end
 
 end
