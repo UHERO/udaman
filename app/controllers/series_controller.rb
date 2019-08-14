@@ -9,7 +9,6 @@ class SeriesController < ApplicationController
   def new
     @universe = params[:u] || 'UHERO'
     @series = Series.new(universe: @universe, xseries: Xseries.new)
-    @name_pattern = @series.name_in_universe(@universe)
     set_resource_values(@universe)
   end
 

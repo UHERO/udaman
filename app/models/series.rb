@@ -208,23 +208,21 @@ class Series < ApplicationRecord
     self.build_name(freq: freq.upcase).ts
   end
 
-  ## Make a name for this series in an alternate universe
-  def name_in_universe(univ)
-    name = self.name.to_s  ## to_s is needed, trust me
-    univ == 'UHERO' ? name : univ.upcase + '_' + name
-  end
-
-  def i_am_primary
+  def is_primary
     xseries.primary_series === self
   end
 
+  def my_aliases
+    raise "#{self} is not a primary series, cannot have aliases" unless is_primary
+    Series.where('xseries_id = ? and id <> ?', xseries_id, id)
+  end
+
   def dup_primary_for(universe)
-    raise "#{self} is not a primary series, cannot alias" unless i_am_primary
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
     new.assign_attributes(universe: universe,
-                          name: name_in_universe(universe),
                           primary_series_id: self.id,
                           geography_id: new_geo.id)
     new.save!
@@ -1088,11 +1086,11 @@ class Series < ApplicationRecord
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
-    u = search_parts.select {|s| s =~ /^u:/ }.shift
+    u = search_parts.select {|s| s =~ /^\// }.shift
     if u  ## universe explicitly supplied in search box
       search_parts.delete(u)
-      u = u[2..]  ## chop off first two chars
-      universe = { 'uh' => 'UHERO', 'db' => 'DBEDT' }[u] || u
+      u = u[1..]  ## chop off first / char
+      universe = { 'u' => 'UHERO', 'db' => 'DBEDT' }[u] || u
     end
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')

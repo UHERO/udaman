@@ -3,7 +3,8 @@ class SourceDetailsController < ApplicationController
 
   # GET /source_details
   def index
-    @source_details = SourceDetail.where(universe: 'UHERO').order(:description).all
+    univ = params[:u] || 'UHERO'
+    @source_details = SourceDetail.where(universe: univ).order(:description).all
   end
 
   # GET /source_details/1

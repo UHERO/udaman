@@ -41,9 +41,14 @@ google.visualization.events.addListener(chart, 'select', function() {
   <h3><%= @series.description %></h3>
 
   <table>
+    <tr><td>Universe</td><td><%= display_universe(@series) %></td></tr>
+    <% alt_univ_links = make_alt_universe_links(@series) %>
+    <% unless alt_univ_links.blank? %>
+      <tr><td>Aliases</td><td><%= raw alt_univ_links %></td></tr>
+    <% end %>
     <tr><td>Measurements</td><td>
       <% @series.measurements.each do |measurement| %>
-      <%= link_to(measurement.prefix, measurement) %>
+         <%= link_to(measurement.prefix, measurement) %>
       <% end %>
     </td></tr>
     <tr><td>Data Portal Name</td><td><%= @series.dataPortalName %></td></tr>
@@ -66,21 +71,6 @@ google.visualization.events.addListener(chart, 'select', function() {
             <%= link_to('(remove)', action: :remove_from_quarantine, id: @series) if @series.quarantined %>
          </span>
       </td></tr>
-    <% end %>
-    <tr><td>Universe</td><td><%= @series.universe %></td></tr>
-
-    <% alt_univ_links = make_alt_universe_links(@series) %>
-    <% unless alt_univ_links.blank? %>
-      <tr><td>Aliases</td>
-        <td><%= raw alt_univ_links %></td>
-      </tr>
-    <% else unless @series.i_am_primary %>
-      <tr><td>Primary Series</td>
-        <td>
-          <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %>
-        </td>
-      </tr>
-         <% end %>
     <% end %>
   </table>
 

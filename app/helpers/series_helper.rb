@@ -152,21 +152,24 @@ module SeriesHelper
   end
 
   def make_alt_universe_links(series)
-    alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{COH} }  ## Yes, these alt univ relations are hardcoded. So sue me.
-    return nil unless alt_univs[series.universe]
+    alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
-    existing_alt_series = Series.joins(:xseries)
-                                .where('xseries.primary_series_id = ? and xseries.primary_series_id <> series.id', series.id)
-    existing_alt_series.sort_by(&:name).each do |s|
-      links.push link_to(s.universe, { controller: :series, action: :show, id: s.id }, title: s.name)
+    series.my_aliases.sort_by(&:universe).each do |s|
+      links.push link_to(display_universe(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    alt_univs[series.universe].reverse.each do |univ|
-      unless seen[univ]
-        links.unshift link_to("[#{univ}]", { controller: :series, action: :dup_primary_for, new_univ: univ, id: @series }, title: 'Create new')
+    if series.is_primary
+      alt_univs[series.universe].each do |univ|
+        next if seen[univ]
+        links.push link_to("[#{univ}]", { controller: :series, action: :dup_primary_for, new_univ: univ, id: series }, title: 'Create new')
       end
     end
     links.join(' ')
   end
+
+  def display_universe(series)
+    series.is_primary ? "<span class='primary_series'>#{series.universe}</span>" : series.universe
+  end
+
 end

@@ -184,7 +184,7 @@ task :ua_1139 => :environment do
     dls = m.data_lists.reject{|dl| dl.universe == 'UHERO' }
     next if dls.empty?
     coh_m = m.dup
-    coh_m.assign_attributes(universe: 'COH', prefix: 'COH_' + m.prefix)
+    coh_m.assign_attributes(universe: 'COH')
     coh_m.save!
     puts ">>> Created new COH meas #{coh_m.prefix}"
     dls.each do |list|
@@ -215,12 +215,11 @@ task :ua_1139 => :environment do
       end
       ## s.geography is HAW or HI
       coh_s = s.dup
-      coh_s.assign_attributes(universe: 'COH', name: 'COH_' + s.name,
-                              primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+      coh_s.assign_attributes(universe: 'COH', primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
       Series.transaction do
         coh_s.save!
         coh_m.series << coh_s
-        puts ">>> New COH series #{coh_s.name} for COH meas #{coh_m.prefix}"
+        puts ">>> New COH series created"
         s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
       end
     end
@@ -257,8 +256,7 @@ task :ua_1152 => :environment do
             puts "-----------> FOUND EXISTING #{coh_s.name} (#{coh_s.id}) to match #{s.name}"
           else
             coh_s = s.dup
-            coh_s.assign_attributes(universe: 'COH', name: s.name.sub('DBEDT','COHDB'),
-                                    primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+            coh_s.assign_attributes(universe: 'COH', primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
             coh_s.save!
           end
           m.series << coh_s
@@ -269,7 +267,7 @@ task :ua_1152 => :environment do
       end
     end
     puts ">>> Rename Measurement #{m.prefix} to COHDB and universe -> COH"
-    m.update!(universe: 'COH', prefix: m.prefix.sub('DBEDT','COHDB'))
+    m.update!(universe: 'COH')
   end
 
   ## At this point, all the series that COH should have in their portal have already been handled in the above loop,

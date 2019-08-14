@@ -6,7 +6,8 @@ class SourcesController < ApplicationController
 
   # GET /sources
   def index
-    @sources = Source.where(universe: 'UHERO').order(:description).all
+    univ = params[:u] || 'UHERO'
+    @sources = Source.where(universe: univ).order(:description).all
   end
 
   # GET /sources/1
