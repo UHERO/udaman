@@ -1,6 +1,6 @@
 <h1><%= @universe %> Data Lists</h1>
 
-<%= link_to 'New Data list', new_data_list_path %>
+<%= link_to 'New Data list', new_data_list_path(universe: @universe) %>
 
 <table class="list_table">
   <tr>

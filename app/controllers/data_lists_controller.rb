@@ -96,6 +96,7 @@ class DataListsController < ApplicationController
   
   def new
     @category_id = Category.find(params[:category_id].to_i).id rescue nil
+    @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
     @data_list = DataList.new
 
     respond_to do |format|
@@ -126,7 +127,11 @@ class DataListsController < ApplicationController
   def create
     properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id, owned_by: current_user.id)
     category = Category.find(params[:category_id].to_i) rescue nil
-    properties.merge!(universe: category.universe) if category
+    if category
+      properties.merge!(universe: category.universe)
+    elsif !params[:universe].blank?
+      properties.merge!(universe: params[:universe])
+    end
     @data_list = DataList.new(properties)
 
     respond_to do |format|

@@ -2,6 +2,8 @@
 
 <h1><%= @universe %> Geographies</h1>
 
+<%= link_to 'New Geography', new_geography_path(universe: @universe) %>
+
 <table class="list_table">
   <thead>
     <tr>
@@ -26,6 +28,3 @@
   </tbody>
 </table>
 
-<br>
-
-<%= link_to 'New Geography', new_geography_path %>
