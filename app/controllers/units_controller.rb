@@ -3,8 +3,8 @@ class UnitsController < ApplicationController
 
   # GET /units
   def index
-    univ = params[:u] || 'UHERO'
-    @units = Unit.where(universe: univ).order(:short_label, :long_label).all
+    @universe = params[:u] || 'UHERO'
+    @units = Unit.where(universe: @universe).order(:short_label, :long_label).all
   end
 
   # GET /units/1

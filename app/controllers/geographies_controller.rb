@@ -6,8 +6,8 @@ class GeographiesController < ApplicationController
 
   # GET /geographies
   def index
-    univ = params[:u] || 'UHERO'
-    @geographies = Geography.where(universe: univ).order(:display_name).all
+    @universe = params[:u] || 'UHERO'
+    @geographies = Geography.where(universe: @universe).order(:display_name).all
   end
 
   # GET /geographies/1
