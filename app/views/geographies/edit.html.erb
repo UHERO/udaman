@@ -2,5 +2,5 @@
 
 <%= render 'form' %>
 
-<%= link_to 'Show', @geography %> |
-<%= link_to 'Back', geographies_path %>
+<%= link_to 'List', geographies_path(u: @geography.universe) %> |
+<%= link_to 'Back', :back %>

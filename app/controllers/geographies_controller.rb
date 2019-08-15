@@ -26,10 +26,15 @@ class GeographiesController < ApplicationController
 
   # POST /geographies
   def create
-    @geography = Geography.new(geography_params)
+    properties = geography_params
+    unless params[:universe].blank?
+      properties.merge!(universe: params[:universe])
+    end
+    @geography = Geography.new(properties)
 
     if @geography.save
-      redirect_to @geography, notice: 'Geography was successfully created.'
+      @geography.reload
+      redirect_to geographies_path(u: @geography.universe), notice: 'Geography was successfully created.'
     else
       render :new
     end
@@ -38,16 +43,10 @@ class GeographiesController < ApplicationController
   # PATCH/PUT /geographies/1
   def update
     if @geography.update(geography_params)
-      redirect_to @geography, notice: 'Geography was successfully updated.'
+      redirect_to geographies_path(u: @geography.universe), notice: 'Geography was successfully updated.'
     else
       render :edit
     end
-  end
-
-  # DELETE /geographies/1
-  def destroy
-    @geography.destroy
-    redirect_to geographies_url, notice: 'Geography was successfully destroyed.'
   end
 
   private
