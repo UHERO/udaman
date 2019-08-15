@@ -31,8 +31,9 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
-    @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    @universe = params[:universe].upcase rescue 'UHERO'
+    data_list = DataList.find(params[:data_list_id].to_i) rescue nil
+    @data_list_id = data_list && data_list.id
+    @universe = data_list.universe rescue params[:universe].upcase rescue 'UHERO'
     @measurement = Measurement.new(universe: @universe)
     set_resource_values(@universe)
   end

@@ -20,6 +20,7 @@
 <p><%= render 'add_series', { universe: @measurement.universe } %></p>
 <p>
 <%= link_to 'Show', @measurement %> |
+<%= link_to 'Index', measurements_path(u: @measurement.universe) %> |
 <%= link_to 'Back', :back %>
 </p>
 <hr>

@@ -1,11 +1,9 @@
 <p id="notice"><%= notice %></p>
 
 <h1><%= @universe %> Measurements</h1>
-
 <p>
-  <%= link_to 'New Measurement', new_measurement_path(universe: @universe) %>
+  <%= link_to "New Measurement for #{@universe}", new_measurement_path(universe: @universe) %>
 </p>
-
 <table class="list_table">
   <thead>
     <tr>

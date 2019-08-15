@@ -95,9 +95,10 @@ class DataListsController < ApplicationController
   end
   
   def new
-    @category_id = Category.find(params[:category_id].to_i).id rescue nil
-    @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
-    @data_list = DataList.new
+    category = Category.find(params[:category_id].to_i) rescue nil
+    @category_id = category && category.id
+    @universe = category.universe rescue params[:universe].upcase rescue 'UHERO'
+    @data_list = DataList.new(universe: @universe)
 
     respond_to do |format|
       format.html # new.html.erb
@@ -161,10 +162,11 @@ class DataListsController < ApplicationController
   end
 
   def destroy
+    univ = @data_list.universe
     @data_list.destroy
 
     respond_to do |format|
-      format.html { redirect_to(data_lists_url) }
+      format.html { redirect_to data_lists_path(u: univ) }
       format.xml  { head :ok }
     end
   end
