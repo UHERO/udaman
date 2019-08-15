@@ -62,7 +62,7 @@
 
 </style>
 <span id="data_list_name"><%= @data_list.name %></span>:
- <%= link_to 'Edit list', action: :edit %> || <%= link_to 'Reset filters', {} %>
+ <%= link_to 'Edit list', action: :edit %> | <%= link_to 'Index', data_lists_path(u: @data_list.universe) %> | <%= link_to 'Reset filters', {} %>
 <div id="frequency_selector">
   <%= form_tag "/data_lists/super_table/#{@data_list.id}" %>
     <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
