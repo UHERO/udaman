@@ -82,7 +82,7 @@ class MeasurementsController < ApplicationController
     series = Series.find(params[:series_id])
     unless series.universe == @measurement.universe
       series = series.alias_primary_for(@measurement.universe)
-      redirect_to series, action: :edit
+      redirect_to edit_series_path(series, add_to_meas: @measurement.id)
       return
     end
     set_resource_values(@measurement.universe)

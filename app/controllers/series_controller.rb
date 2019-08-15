@@ -16,6 +16,7 @@ class SeriesController < ApplicationController
   end
 
   def edit
+    @add2meas = params[:add_to_meas]
     set_resource_values(@series.universe)
   end
 
@@ -41,6 +42,11 @@ class SeriesController < ApplicationController
   def update
     respond_to do |format|
       if @series.update! series_params
+        mid = params[:add2meas].to_i
+        if mid > 0
+          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+          return
+        end
         format.html { redirect_to(@series, notice: 'Series successfully updated') }
         format.xml  { head :ok }
       else
