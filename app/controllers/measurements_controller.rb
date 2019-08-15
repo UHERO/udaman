@@ -80,6 +80,11 @@ class MeasurementsController < ApplicationController
 
   def add_series
     series = Series.find(params[:series_id])
+    unless series.universe == @measurement.universe
+      series = series.alias_primary_for(@measurement.universe)
+      redirect_to series, action: :edit
+      return
+    end
     set_resource_values(@measurement.universe)
     if @measurement.series.include? series
       redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'

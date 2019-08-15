@@ -162,7 +162,7 @@ module SeriesHelper
     if series.is_primary
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to("[#{univ}]", { controller: :series, action: :dup_primary_for, new_univ: univ, id: series }, title: 'Create new')
+        links.push link_to("[#{univ}]", { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
       end
     end
     links.join(' ')

@@ -216,8 +216,9 @@ class Series < ApplicationRecord
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
-  def dup_primary_for(universe)
+  def alias_primary_for(universe)
     raise "#{self} is not a primary series, cannot be aliased" unless is_primary
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
