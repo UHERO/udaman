@@ -16,7 +16,7 @@ class SeriesController < ApplicationController
   end
 
   def edit
-    @add2meas = params[:add_to_meas]
+    @add2meas = params[:add_to_meas].to_i
     set_resource_values(@series.universe)
   end
 

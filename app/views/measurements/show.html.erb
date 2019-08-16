@@ -117,6 +117,7 @@
         <th class="propagate_controls"></th>
         <th>Series</th>
         <th>Data portal name</th>
+        <th>Primary</th>
         <th>Units</th>
         <th>Source</th>
         <th>Detailed source link</th>
@@ -131,10 +132,12 @@
       </thead>
       <tbody>
       <% @measurement.series.to_a.sort_by{|s| s.name}.each do |series| %>
+          <% primary = series.xseries.primary_series %>
           <tr>
             <td class="propagate_controls"><%= check_box_tag("series_boxes[#{series.name}]", 1) %></td>
             <td><%= link_to series.name, series %></td>
             <td><%= series.dataPortalName.to_s %></td>
+            <td><%= link_to(primary.universe, primary, title: primary.name) unless series.is_primary %></td>
             <td><%= series.unit.to_s if series.unit %></td>
             <td><%= series.source.description.to_s if series.source %></td>
             <td><%= series.source_link.to_s %></td>
