@@ -222,10 +222,9 @@ class Series < ApplicationRecord
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
-    new.assign_attributes(universe: universe,
-                          primary_series_id: self.id,
-                          geography_id: new_geo.id)
+    new.assign_attributes(universe: universe, geography_id: new_geo.id)
     new.save!
+    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
     new
   end
 
