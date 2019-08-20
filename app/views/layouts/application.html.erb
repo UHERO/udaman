@@ -12,7 +12,7 @@
   <!-- javascript_include_tag 'ui/jquery-ui' %>-->
 
 </head>
-<body <%= 'class="nonprod"' unless Socket.gethostname =~ /udaman|prod/ %>>
+<body class="<%= 'nonprod' unless Socket.gethostname =~ /udaman|prod/ %>">
 <% if user_signed_in? %>
   <div id="top-level-nav">
   	<%= 
