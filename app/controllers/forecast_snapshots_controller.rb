@@ -8,10 +8,11 @@ class ForecastSnapshotsController < ApplicationController
   # GET /forecast_snapshots
   def index
     if current_user.internal_user?
-      @forecast_snapshots = ForecastSnapshot.all.order("updated_at desc").paginate(page: params[:page], per_page: 50)
+      @forecast_snapshots = ForecastSnapshot.all.order('updated_at desc')
     else
-      @forecast_snapshots = ForecastSnapshot.where(:published => true).order("updated_at desc").paginate(page: params[:page], per_page: 50)
+      @forecast_snapshots = ForecastSnapshot.where(published: true).order('updated_at desc')
     end
+    @forecast_snapshots.paginate(page: params[:page].to_i, per_page: 50)
   end
 
   # GET /forecast_snapshots/1
