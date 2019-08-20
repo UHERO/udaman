@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'rails', '~> 5.2.2', '>= 5.2.2.1'
+gem 'rails', '~> 5.2', '>= 5.2.3'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -32,7 +32,7 @@ gem 'net-sftp'
 gem 'dalli', '~> 2.7'
 gem 'rails-assets-select2', '~> 4.0.5', source: 'https://rails-assets.org'
 gem 'ancestry'
-gem 'will_paginate', '~> 3.1.1'
+gem 'will_paginate', '~> 3.1.1', '>= 3.1.5'
 gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
@@ -44,7 +44,7 @@ gem 'jquery-ui-rails', '~> 6.0.1'
 gem 'devise', '~> 4.6', '>= 4.6.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
-gem 'nokogiri', '~> 1.10.4'
+gem 'nokogiri', '~> 1.10', '>= 1.10.4'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'
