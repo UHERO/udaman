@@ -3,9 +3,6 @@
 <head>
   <title><%= @series.nil? ? 'UHERO Data Manager' : "#{@series.name} - " %><%= @desc unless @desc.nil? %></title>
   <%= stylesheet_link_tag 'application' %>
-  <% unless Socket.gethostname =~ /prod|udaman.uhero/ %>
-    <%= stylesheet_link_tag 'non_prod_style' %>
-  <% end %>
 
 <!--Load the AJAX API-->
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
@@ -15,7 +12,7 @@
   <!-- javascript_include_tag 'ui/jquery-ui' %>-->
 
 </head>
-<body>
+<body <%= 'class="nonprod"' unless Socket.gethostname =~ /udaman|prod/ %>>
 <% if user_signed_in? %>
   <div id="top-level-nav">
   	<%= 
