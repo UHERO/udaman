@@ -3,7 +3,7 @@
 <head>
   <title><%= @series.nil? ? 'UHERO Data Manager' : "#{@series.name} - " %><%= @desc unless @desc.nil? %></title>
   <%= stylesheet_link_tag 'application' %>
-  <% unless Socket.gethostname =~ /udaman.uhero/ %>
+  <% unless Socket.gethostname =~ /prod|udaman.uhero/ %>
     <%= stylesheet_link_tag 'non_prod_style' %>
   <% end %>
 
