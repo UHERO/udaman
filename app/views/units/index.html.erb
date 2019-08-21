@@ -19,7 +19,6 @@
       <tr>
         <td><%= unit.short_label %></td>
         <td class="linkselect"><%= link_to unit.long_label, edit_unit_path(unit) %></td>
-        <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: "Destroy unit #{unit.to_s}.\n#{num_affected(unit)}. Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>

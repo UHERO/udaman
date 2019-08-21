@@ -14,7 +14,6 @@
     <% @source_details.each do |source_detail| %>
       <tr>
         <td class="linkselect"><%= link_to source_detail.description, edit_source_detail_path(source_detail) %></td>
-        <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: "Destroy #{source_detail.description[0..40]}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>

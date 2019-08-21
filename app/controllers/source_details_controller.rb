@@ -40,13 +40,6 @@ class SourceDetailsController < ApplicationController
     end
   end
 
-  # DELETE /source_details/1
-  def destroy
-    univ = @source_detail.universe
-    @source_detail.destroy
-    redirect_to source_details_path(u: univ), notice: 'Source detail was successfully destroyed.'
-  end
-
 private
     # Use callbacks to share common setup or constraints between actions.
     def set_source_detail

@@ -78,13 +78,6 @@ class UnitsController < ApplicationController
     end
   end
 
-  # DELETE /units/1
-  def destroy
-    univ = @unit.universe
-    @unit.destroy
-    redirect_to units_path(u: univ), notice: 'Unit was successfully destroyed.'
-  end
-
 private
     # Use callbacks to share common setup or constraints between actions.
     def set_unit

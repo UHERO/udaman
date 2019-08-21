@@ -21,7 +21,6 @@
       <tr>
         <td class="linkselect"><%= link_to source.description, edit_source_path(source) %></td>
         <td><%= make_hyperlink(source.link) %></td>
-        <td><%= link_to 'Destroy', source, method: :delete, data: { confirm: "Destroy #{source.description}: Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>

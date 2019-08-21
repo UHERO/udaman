@@ -44,13 +44,6 @@ class SourcesController < ApplicationController
     end
   end
 
-  # DELETE /sources/1
-  def destroy
-    univ = @source.universe
-    @source.destroy
-    redirect_to sources_path(u: univ), notice: 'Source was successfully destroyed.'
-  end
-
 private
     # Use callbacks to share common setup or constraints between actions.
     def set_source
