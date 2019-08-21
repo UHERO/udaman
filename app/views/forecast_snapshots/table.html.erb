@@ -20,7 +20,7 @@
     <% end %>
   </tr>
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
-      <% precision = s[:udaman_series].nil? ? 1 : s[:udaman_series][:decimals] %>
+      <% precision = s[:udaman_series].nil? ? 1 : s[:udaman_series][:decimals_ob] %>
     <tr>
       <%
         mnemonic = s[:name] + '.' + s[:frequency]
