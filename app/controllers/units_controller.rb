@@ -43,7 +43,8 @@ class UnitsController < ApplicationController
     end
 
     if saved
-      redirect_to @unit, notice: 'Unit was successfully created.'
+      @unit.reload
+      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully created.'
     else
       redirect_to({ :action => :new }, notice: error)
     end
@@ -71,7 +72,7 @@ class UnitsController < ApplicationController
     end
 
     if updated
-      redirect_to @unit, notice: 'Unit was successfully updated.'
+      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully updated.'
     else
       render({:action => :edit}, notice: error)
     end
@@ -79,8 +80,9 @@ class UnitsController < ApplicationController
 
   # DELETE /units/1
   def destroy
+    univ = @unit.universe
     @unit.destroy
-    redirect_to units_url, notice: 'Unit was successfully destroyed.'
+    redirect_to units_path(u: univ), notice: 'Unit was successfully destroyed.'
   end
 
 private
