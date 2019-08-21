@@ -246,7 +246,7 @@ class NtaUpload < ApplicationRecord
                                                 geotype: 'incgrp4' }).id
                      else nil
                    end
-            current_series = Series.find_by(name: series_name) ||
+            current_series = Series.find_by(universe: 'NTA', name: series_name) ||
                              Series.create_new(
                                universe: 'NTA',
                                name: series_name,
@@ -258,7 +258,7 @@ class NtaUpload < ApplicationRecord
                                source_id: measurement.source_id
                            )
             eval_str = "NtaUpload.load(#{id}, #{current_series.id})"
-            current_data_source = DataSource.find_by(eval: eval_str)
+            current_data_source = DataSource.find_by(universe: 'NTA', eval: eval_str)
             if current_data_source.nil?
               current_data_source = DataSource.create(
                 universe: 'NTA',

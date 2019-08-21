@@ -119,8 +119,8 @@ class MeasurementsController < ApplicationController
       return
     end
     new_vals_hash = fields_to_update.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
-    series.keys.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
-    redirect_to(@measurement, notice: 'Field(s) '+fields_to_update.join(', ')+' propagated successfully.')
+    series.keys.each {|name| Series.find_by(universe: @measurement.universe, name: name).update_attributes new_vals_hash }
+    redirect_to(@measurement, notice: 'Field(s) ' + fields_to_update.join(', ') + ' propagated successfully.')
   end
 
   private
