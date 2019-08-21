@@ -276,6 +276,7 @@ class DbedtUpload < ApplicationRecord
               eval: "DbedtUpload.load(#{id}, #{current_series.id})",
               description: "DBEDT Upload #{id} for series #{current_series.id}",
               series_id: current_series.id,
+              reload_nightly: false,
               last_run: Time.now
           )
         end

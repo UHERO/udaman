@@ -3,7 +3,8 @@ class UnitsController < ApplicationController
 
   # GET /units
   def index
-    @units = Unit.where(universe: 'UHERO').order(:short_label, :long_label).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @units = Unit.where(universe: @universe).order(:short_label, :long_label).all
   end
 
   # GET /units/1
@@ -42,7 +43,8 @@ class UnitsController < ApplicationController
     end
 
     if saved
-      redirect_to @unit, notice: 'Unit was successfully created.'
+      @unit.reload
+      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully created.'
     else
       redirect_to({ :action => :new }, notice: error)
     end
@@ -70,16 +72,10 @@ class UnitsController < ApplicationController
     end
 
     if updated
-      redirect_to @unit, notice: 'Unit was successfully updated.'
+      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully updated.'
     else
       render({:action => :edit}, notice: error)
     end
-  end
-
-  # DELETE /units/1
-  def destroy
-    @unit.destroy
-    redirect_to units_url, notice: 'Unit was successfully destroyed.'
   end
 
 private

@@ -7,7 +7,8 @@ class DataListsController < ApplicationController
   before_action :set_data_list, except: [:index, :new, :create]
 
   def index
-    @data_lists = DataList.where(universe: 'UHERO').order(:name).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @data_lists = DataList.where(universe: @universe).order(:name).all
 
     respond_to do |format|
       format.html # index.html.erb
@@ -94,8 +95,10 @@ class DataListsController < ApplicationController
   end
   
   def new
-    @category_id = Category.find(params[:category_id].to_i).id rescue nil
-    @data_list = DataList.new
+    category = Category.find(params[:category_id].to_i) rescue nil
+    @category_id = category && category.id
+    @universe = category.universe rescue params[:universe].upcase rescue 'UHERO'
+    @data_list = DataList.new(universe: @universe)
 
     respond_to do |format|
       format.html # new.html.erb
@@ -113,7 +116,7 @@ class DataListsController < ApplicationController
 
   def edit
     @dl_measurements = []
-    @data_list.data_list_measurements.sort_by{|m| m.list_order}.each do |dlm|
+    @data_list.data_list_measurements.sort_by(&:list_order).each do |dlm|
         if dlm.measurement.nil?
           @data_list.data_list_measurements.destroy(dlm)
           next
@@ -125,7 +128,11 @@ class DataListsController < ApplicationController
   def create
     properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id, owned_by: current_user.id)
     category = Category.find(params[:category_id].to_i) rescue nil
-    properties.merge!(universe: category.universe) if category
+    if category
+      properties.merge!(universe: category.universe)
+    elsif !params[:universe].blank?
+      properties.merge!(universe: params[:universe])
+    end
     @data_list = DataList.new(properties)
 
     respond_to do |format|
@@ -155,21 +162,17 @@ class DataListsController < ApplicationController
   end
 
   def destroy
+    univ = @data_list.universe
     @data_list.destroy
 
     respond_to do |format|
-      format.html { redirect_to(data_lists_url) }
+      format.html { redirect_to data_lists_path(u: univ) }
       format.xml  { head :ok }
     end
   end
 
   def add_measurement
-    if params[:commit] =~ /DBEDTCOH/
-      mid = params[:data_list][:dbedtcoh_meas_id]
-    else
-      mid = params[:data_list][:uhero_meas_id]
-    end
-    unless @data_list.add_measurement Measurement.find(mid.to_i)
+    unless @data_list.add_measurement(Measurement.find params[:data_list][:meas_id].to_i)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
       return
     end

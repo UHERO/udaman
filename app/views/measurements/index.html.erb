@@ -1,15 +1,9 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Listing Measurements</h1>
-
+<h1><%= @universe %> Measurements</h1>
 <p>
-  <%= link_to 'Measurements in the Data Portal', measurements_path(:unrestricted => true) %>
+  <%= link_to "New Measurement for #{@universe}", new_measurement_path(universe: @universe) %>
 </p>
-
-<p>
-  <%= link_to 'New Measurement', new_measurement_path %>
-</p>
-
 <table class="list_table">
   <thead>
     <tr>
@@ -38,7 +32,3 @@
     <% end %>
   </tbody>
 </table>
-
-<br>
-
-<%= link_to 'New Measurement', new_measurement_path %>
