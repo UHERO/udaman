@@ -3,7 +3,8 @@ class SourceDetailsController < ApplicationController
 
   # GET /source_details
   def index
-    @source_details = SourceDetail.where(universe: 'UHERO').order(:description).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @source_details = SourceDetail.where(universe: @universe).order(:description).all
   end
 
   # GET /source_details/1
@@ -39,13 +40,7 @@ class SourceDetailsController < ApplicationController
     end
   end
 
-  # DELETE /source_details/1
-  def destroy
-    @source_detail.destroy
-    redirect_to source_details_url, notice: 'Source detail was successfully destroyed.'
-  end
-
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_source_detail
       @source_detail = SourceDetail.find params[:id]

@@ -8,12 +8,15 @@ class DataList < ApplicationRecord
   def add_measurement(measurement, list_order = nil, indent = nil)
     return nil if measurements.include?(measurement)
     last_dlm = DataListMeasurement.where(data_list_id: id).order(:list_order).last
-    self.measurements << measurement
-    new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
-        raise('DataListMeasurement creation failed')
     list_order ||= last_dlm ? last_dlm.list_order.to_i + 1 : 0
-    indent ||= (last_dlm && last_dlm.indent) ? last_dlm.indent : 'indent0'
-    new_dlm.update_attributes(list_order: list_order, indent: indent)
+    indent ||= (last_dlm && last_dlm.indent) || 'indent0'
+    self.transaction do
+      self.measurements << measurement
+      new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
+        raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
+      new_dlm.update_attributes(list_order: list_order, indent: indent)
+    end
+    true
   end
 
   def series_names

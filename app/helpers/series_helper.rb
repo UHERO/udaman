@@ -139,7 +139,7 @@ module SeriesHelper
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 
-  def make_live_link(url, text = url)
+  def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
     "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
@@ -150,4 +150,26 @@ module SeriesHelper
     short = { not_applicable: 'NA', seasonally_adjusted: 'SA', not_seasonally_adjusted: 'NS' }[sa_sym] || 'NA'
     short == 'NA' ? '-' : "<span class='#{short.downcase}-indicator'>#{short}</span>".html_safe
   end
+
+  def make_alt_universe_links(series)
+    alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
+    links = []
+    seen = {}
+    series.get_aliases.sort_by{|x| [x.is_primary ? 0 : 1, x.universe] }.each do |s|
+      links.push link_to(display_universe(s), { controller: :series, action: :show, id: s.id }, title: s.name)
+      seen[s.universe] = true
+    end
+    if series.is_primary
+      alt_univs[series.universe].each do |univ|
+        next if seen[univ]
+        links.push link_to("[#{univ}]", { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
+      end
+    end
+    links.join(' ')
+  end
+
+  def display_universe(series)
+    series.is_primary ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
+  end
+
 end

@@ -3,7 +3,7 @@
 <%= link_to 'Series without a source', 'series/no_source' %><br/>
 <%= link_to 'Unrestricted series without a source', 'series/no_source_no_restrict' %>
 
-<h1>Listing Sources</h1>
+<h1><%= @universe %> Sources</h1>
 <%= link_to 'New Source', new_source_path %>
 <p></p>
 
@@ -20,8 +20,7 @@
     <% @sources.each do |source| %>
       <tr>
         <td class="linkselect"><%= link_to source.description, edit_source_path(source) %></td>
-        <td><%= make_live_link(source.link) %></td>
-        <td><%= link_to 'Destroy', source, method: :delete, data: { confirm: "Destroy #{source.description}: Are you sure??" } %></td>
+        <td><%= make_hyperlink(source.link) %></td>
       </tr>
     <% end %>
   </tbody>

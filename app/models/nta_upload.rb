@@ -266,6 +266,7 @@ class NtaUpload < ApplicationRecord
                 description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
                 series_id: current_series.id,
                 last_run: Time.now,
+                reload_nightly: false,
                 last_run_in_seconds: Time.now.to_i
               )
             else

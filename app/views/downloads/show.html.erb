@@ -39,7 +39,7 @@ div#summary_area h2 {font-size:30px;}
 	<% DataSource.where("eval LIKE '%#{@output_file.handle}%'").all.each do |ds| %>
 	<% s = ds.series %>
 	<tr>
-		<td><%= link_to(s.name, {:controller => "series", :action => 'show', :id => s.id}, :target => "_blank")  %></td>
+		<td><%= link_to(s.name, {:controller => 'series', :action => 'show', :id => s.id})  %></td>
 		<td><%= s.aremos_diff %></td>
 		<td><%= s.aremos_missing %></td>
 	</tr>
