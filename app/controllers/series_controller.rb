@@ -7,7 +7,7 @@ class SeriesController < ApplicationController
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
-    @universe = params[:u] || 'UHERO'
+    @universe = params[:u].upcase rescue 'UHERO'
     @series = Series.new(universe: @universe, xseries: Xseries.new)
     set_resource_values(@universe)
   end
@@ -324,7 +324,6 @@ private
     @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
     @all_details = SourceDetail.where(universe: univ)
     @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
-    @this_series_primary = @series && @series.xseries && @series.xseries.primary_series_id == @series.id
   end
 
   # obsolete/vestigial code?

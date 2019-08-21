@@ -47,7 +47,7 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <% if @this_series_primary %>
+    <% if @series.is_primary %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
             <%= xf.label :percent, 'Percent' %>

@@ -13,7 +13,7 @@ class DataList < ApplicationRecord
     self.transaction do
       self.measurements << measurement
       new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
-        raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << line should have created it
+        raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
       new_dlm.update_attributes(list_order: list_order, indent: indent)
     end
     true

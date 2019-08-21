@@ -50,7 +50,7 @@ class Series < ApplicationRecord
   end
 
   def to_s
-    self.name || 'NO_NAME_SERIES'
+    self.name || 'UNNAMED_SERIES'
   end
 
   def first_observation
