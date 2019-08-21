@@ -209,7 +209,11 @@ class Series < ApplicationRecord
   end
 
   def is_primary
-    xseries.primary_series === self ? universe : nil
+    xseries && xseries.primary_series === self
+  end
+
+  def has_primary
+    xseries && xseries.primary_series
   end
 
   def get_aliases
