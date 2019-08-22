@@ -80,7 +80,7 @@
       <% end %>
     <% elsif @series.has_primary %>
       <p><strong>Other metadata fields must be edited in the primary series:</strong>
-      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %></p>
+      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id: @series.xseries.primary_series_id %></p>
     <% end %>
     <div class="actions">
       <%= f.hidden_field :universe %>

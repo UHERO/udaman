@@ -162,7 +162,7 @@ module SeriesHelper
     if series.is_primary
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to("[#{univ}]", { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
+        links.push link_to(univ_create(univ), { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
       end
     end
     links.join(' ')
@@ -170,6 +170,10 @@ module SeriesHelper
 
   def display_universe(series)
     series.is_primary ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
+  end
+
+  def univ_create(text)
+    "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 
 end
