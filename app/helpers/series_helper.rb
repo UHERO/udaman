@@ -80,24 +80,20 @@ module SeriesHelper
   end
   
   def linked_version_with_action(description, action)
-    return '' if description.nil?
+    return '' if description.blank?
     new_words = []
     description.split(' ').each do |word|
-      #new_word = word.index('@').nil? ? word : link_to(word, {:action => 'show', :id => word.ts.id})
       new_word = word
-      begin
-        new_word = (word.index('@').nil? or word.split('.')[-1].length > 1) ? word : link_to(word, {:action => action, :id => word.ts.id}, :target=>'_blank' )
-      rescue
-        new_word = word
+      if valid_series_name(word)
+        series = word.ts
+        new_word = link_to(word, { action: action, id: series }) if series
       end
       new_words.push new_word
     end
     new_words.join(' ')
   end
   
-#  def aremos_color(val, aremos_val)
   def aremos_color(diff)
-
 #    diff = (val - aremos_val).abs
     mult = 5000
     gray = "99"
@@ -160,6 +156,7 @@ module SeriesHelper
       seen[s.universe] = true
     end
     if series.is_primary
+      ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
         links.push link_to(univ_create(univ), { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
