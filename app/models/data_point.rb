@@ -129,8 +129,6 @@ class DataPoint < ApplicationRecord
     DataPoint.update_public_data_points('UHERO')
     Rails.logger.info { 'update_public_data_points: COH' }
     DataPoint.update_public_data_points('COH')
-    Rails.logger.info { 'update_public_data_points: UHEROCOH' }
-    DataPoint.update_public_data_points('UHEROCOH')
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)

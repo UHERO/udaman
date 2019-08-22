@@ -14,7 +14,7 @@ class Series < ApplicationRecord
   include SeriesStatistics
   include Validators
 
-  validates :name, presence: true, uniqueness: true
+  validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
 
   belongs_to :xseries, inverse_of: :series
@@ -50,7 +50,7 @@ class Series < ApplicationRecord
   end
 
   def to_s
-    self.name || 'NO_SERIES_NAME'
+    self.name || 'UNNAMED_SERIES'
   end
 
   def first_observation
@@ -111,7 +111,6 @@ class Series < ApplicationRecord
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     s = nil
     begin
       self.transaction do
@@ -126,19 +125,18 @@ class Series < ApplicationRecord
   end
 
   ## NOTE: Overriding an important ActiveRecord core method!
-  def update(attributes, strict = false)
+  def update(attributes)
     xs_attrs = attributes.delete(:xseries_attributes)
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save
-        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
+        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -148,19 +146,18 @@ class Series < ApplicationRecord
   alias update_attributes update
 
   ## NOTE: Overriding an important ActiveRecord core method!
-  def update!(attributes, strict = false)
+  def update!(attributes)
     xs_attrs = attributes.delete(:xseries_attributes)
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    series_attrs -= xseries_attrs  ## probably no longer need this after deployment
     begin
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save!
-        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) unless strict
+        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
@@ -211,7 +208,31 @@ class Series < ApplicationRecord
     self.build_name(freq: freq.upcase).ts
   end
 
-  ## Duplicate series for a different geography
+  def is_primary
+    xseries && xseries.primary_series === self
+  end
+
+  def has_primary
+    xseries && xseries.primary_series
+  end
+
+  def get_aliases
+    Series.where('xseries_id = ? and id <> ?', xseries_id, id)
+  end
+
+  def alias_primary_for(universe)
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
+    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
+    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
+    new = self.dup
+    new.assign_attributes(universe: universe, geography_id: new_geo.id)
+    new.save!
+    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    new
+  end
+
+  ## Duplicate series for a different geography.
   ## This won't work with the new Xseries architecture, but maybe is not needed anymore.
   ## Was only used for a one-off job. If needed again, refactor carefully.
   def dup_series_for_geo_DONTUSE(geo)
@@ -421,7 +442,14 @@ class Series < ApplicationRecord
     update_data(data, source, false)
     source
   end
-  
+
+  def data_sources_sort_for_display
+    ## Non-nightlies at the top, then sort by priority, then by id within priority groups.
+    data_sources.sort_by {|ds| [(ds.reload_nightly ? 1 : 0), ds.priority, ds.id] }
+    ## For some reason, sort_by does not take the reload_nightly boolean attribute as-is,
+    ## but it needs to be "reconverted" to integer - I am mystified by this.
+  end
+
   def update_data(data, source, run_update = true)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
@@ -1061,16 +1089,20 @@ class Series < ApplicationRecord
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
+    u = search_parts.select {|s| s =~ /^\// }.shift
+    if u  ## universe explicitly supplied in search box
+      search_parts.delete(u)
+      u = u[1..]  ## chop off first / char
+      universe = { 'u' => 'UHERO', 'db' => 'DBEDT' }[u] || u
+    end
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
     dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
+    where_clause = "((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))"
 
-    series_results = Series.get_all_universe(universe)
-                           .where("((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))")
-                           .limit(num_results)
+    series_results = Series.get_all_universe(universe).where(where_clause).limit(num_results)
 
     results = []
-  
     series_results.each do |s|
       description = s.description ||
                     (AremosSeries.get(s.name).description rescue nil) ||

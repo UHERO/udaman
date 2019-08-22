@@ -2,18 +2,22 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :analyze, :add_to_quarantine, :remove_from_quarantine,
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :alias_primary_for, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
-    @series = Series.new(xseries: Xseries.new)
+    @universe = params[:u].upcase rescue 'UHERO'
+    @series = Series.new(universe: @universe, xseries: Xseries.new)
+    set_resource_values(@universe)
   end
 
   def bulk_new
   end
 
   def edit
+    @add2meas = params[:add_to_meas].to_i
+    set_resource_values(@series.universe)
   end
 
   def create
@@ -30,9 +34,19 @@ class SeriesController < ApplicationController
     end
   end
 
+  def alias_primary_for
+    @series = @series.alias_primary_for(params[:new_univ])
+    redirect_to edit_series_path(@series)
+  end
+
   def update
     respond_to do |format|
       if @series.update! series_params
+        mid = params[:add2meas].to_i
+        if mid > 0
+          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+          return
+        end
         format.html { redirect_to(@series, notice: 'Series successfully updated') }
         format.xml  { head :ok }
       else
@@ -297,6 +311,19 @@ private
 
   def set_series
     @series = Series.find params[:id]
+  end
+
+  def set_resource_values(univ)
+    @all_geos = Geography.where(universe: univ)
+    if @all_geos.empty?
+      raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
+    end
+    @all_units = Unit.where(universe: univ)
+    @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
+    @all_sources = Source.where(universe: univ)
+    @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: univ)
+    @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
   end
 
   # obsolete/vestigial code?

@@ -1,5 +1,12 @@
-<h1>New series</h1>
+<h1>New series for <%= @universe %></h1>
+<% if @universe != 'UHERO' %>
+  <p>
+  <i>Note! This screen can only be used when creating a series uniquely for <%= @universe %> that is not shared
+  with other universes.<br/>
+  If you need to create an alias of a UHERO (or other universe) series within <%= @universe %>, check the
+    <strong>Aliases</strong> section on<br/> the original series page.</i></p>
+<% end %>
 
 <%= render 'form' %>
 
-<%= link_to 'Back', series_index_path %>
+<%= link_to 'Back', :back %>

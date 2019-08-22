@@ -13,6 +13,7 @@ Rails.application.config.assets.paths << Rails.root.join('node_modules')
 # folder are already added.
 # Rails.application.config.assets.precompile += %w( admin.js admin.css )
 Rails.application.config.assets.precompile += %w(
+  non_prod_style.scss
   humblefinance/hsd.js
   humblefinance/base64.js
   humblefinance/canvas2image.js

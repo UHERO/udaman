@@ -146,11 +146,11 @@ class DbedtUpload < ApplicationRecord
       parent_indicator_id = row[4]
       parent_label = "DBEDT_#{parent_indicator_id}"
       if row[2].blank?
-        category = Category.find_by(meta: "DBEDT_#{indicator_id}")
+        category = Category.find_by(universe: 'DBEDT', meta: "DBEDT_#{indicator_id}")
         if category.nil?
           ancestry = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
           unless parent_indicator_id.nil?
-            parent_category = Category.find_by(meta: parent_label)
+            parent_category = Category.find_by(universe: 'DBEDT', meta: parent_label)
             unless parent_category.nil?
               ancestry = parent_category.ancestry + '/' + parent_category.id.to_s
             end
@@ -168,14 +168,14 @@ class DbedtUpload < ApplicationRecord
 
       # data_list_measurements entry
       unless row[2].blank?
-        data_list = DataList.find_by(name: parent_label)
+        data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
           data_list = DataList.create(name: parent_label, universe: 'DBEDT')
           unless category.nil?
             category.update data_list_id: data_list.id
           end
         end
-        measurement = Measurement.find_by(prefix: "DBEDT_#{indicator_id}")
+        measurement = Measurement.find_by(universe: 'DBEDT', prefix: "DBEDT_#{indicator_id}")
         if measurement.nil?
           measurement = Measurement.create(
               universe: 'DBEDT',
@@ -229,7 +229,7 @@ class DbedtUpload < ApplicationRecord
       (geo_handle, geo_fips) = get_geo_codes(region)
       name = Series.build_name(prefix, geo_handle, row[4])
       if current_measurement.nil? || current_measurement.prefix != prefix
-        current_measurement = Measurement.find_by prefix: prefix
+        current_measurement = Measurement.find_by(universe: 'DBEDT', prefix: prefix)
         if current_measurement.nil?
           current_measurement = Measurement.create(
               universe: 'DBEDT',
@@ -248,7 +248,7 @@ class DbedtUpload < ApplicationRecord
         unit_str = row[8] && row[8].to_ascii.strip
         unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
 
-        current_series = Series.find_by name: name
+        current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series.nil?
           current_series = Series.create_new(
               universe: 'DBEDT',
@@ -269,13 +269,14 @@ class DbedtUpload < ApplicationRecord
           current_measurement.series << current_series
           Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         end
-        current_data_source = DataSource.find_by eval: "DbedtUpload.load(#{id}, #{current_series.id})"
+        current_data_source = DataSource.find_by(universe: 'DBEDT', eval: "DbedtUpload.load(#{id}, #{current_series.id})")
         if current_data_source.nil?
           current_data_source = DataSource.create(
               universe: 'DBEDT',
               eval: "DbedtUpload.load(#{id}, #{current_series.id})",
               description: "DBEDT Upload #{id} for series #{current_series.id}",
               series_id: current_series.id,
+              reload_nightly: false,
               last_run: Time.now
           )
         end
