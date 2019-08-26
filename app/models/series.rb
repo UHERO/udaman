@@ -227,8 +227,8 @@ class Series < ApplicationRecord
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
     new.assign_attributes(universe: universe, geography_id: new_geo.id)
-    new.save!
-    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    #new.save!
+    #new.xseries.update!(primary_series_id: self.id)  ## just for insurance
     new
   end
 

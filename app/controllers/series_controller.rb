@@ -36,7 +36,7 @@ class SeriesController < ApplicationController
 
   def alias_primary_for
     @series = @series.alias_primary_for(params[:new_univ])
-    redirect_to edit_series_path(@series)
+    render :edit
   end
 
   def update

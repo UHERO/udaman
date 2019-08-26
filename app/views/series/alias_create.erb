@@ -1,0 +1,48 @@
+<%= form_for(@series) do |f| %>
+  <% if @series.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>
+
+      <ul>
+        <% @series.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
+    <%= f.text_field :dataPortalName, :size => 80 %>
+  </div>
+  <div class="field">
+    <%= f.label :description %><br/>
+    <%= f.text_area :description, :rows => 5, :cols => 60 %>
+  </div>
+  <div class="field">
+    <%= f.label :unit_id %><br>
+    <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+  </div>
+  <div class="field">
+    <%= f.label :source_id %><br>
+    <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
+  </div>
+  <div class="field">
+    <%= f.label :source_link, 'Source link (web link more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
+    <%= f.text_field :source_link, :size => 80 %>
+  </div>
+  <div class="field">
+    <%= f.label :source_detail_id %><br>
+    <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
+  </div>
+  <div class="field">
+    <%= f.label :investigation_notes %><br/>
+    <%= f.text_area :investigation_notes %>
+  </div>
+  <div class="actions">
+    <%= f.hidden_field :universe %>
+    <%= f.hidden_field :geography_id %>
+    <%= hidden_field_tag(:add2meas, @add2meas) %>
+    <%= f.submit %>
+  </div>
+<% end %>
