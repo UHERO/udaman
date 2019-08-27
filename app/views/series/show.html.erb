@@ -69,13 +69,14 @@ google.visualization.events.addListener(chart, 'select', function() {
          </span>
       </td></tr>
     <% end %>
+    <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
+    <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
   </table>
 
 	<div id="navigation">
     <% if current_user.internal_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
     <% end %>
-		<%= link_to 'Back', :back %> |
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
 		<%= link_to 'Comparison Chart', :action => 'comparison_graph', :id => @series %> | 
 		<%= link_to 'Blog Chart', :action => 'blog_graph', :id => @series %> | 
