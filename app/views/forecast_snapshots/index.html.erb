@@ -32,8 +32,8 @@
         <% if current_user.internal_user? %>
           <td align="center"><%= fs.published ? 'Y' : 'N' %></td>
         <% end %>
-        <td><%= fs.created_at.localtime.strftime("%m/%d/%y") %></td>
-        <td><%= fs.updated_at.localtime.strftime("%m/%d/%y") %></td>
+        <td><%= fs.created_at.strftime("%m/%d/%y") %></td>
+        <td><%= fs.updated_at.strftime("%m/%d/%y") %></td>
         <td>
           <%= link_to 'Table', forecast_snapshot_path(fs) + '/table' %>
         </td>

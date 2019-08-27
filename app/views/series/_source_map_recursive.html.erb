@@ -1,7 +1,7 @@
 <!-- #def render_operations_map(source, color, colors, depth, seen) -->
 <!-- #to get it back Time.at(1056030443784/1000.0).strftime("%Y-%m-%d %H:%M.%S") -->
  	<td style="background-color:#<%= color %>}"><%= source.description %> <br> 
-	[<%= source.last_run.localtime.strftime("%Y-%m-%d %H:%M:%S") %>]</td>
+	[<%= source.last_run.strftime("%Y-%m-%d %H:%M:%S") %>]</td>
 
 <% if depth <= 6 %>
 	<% components = [] %>

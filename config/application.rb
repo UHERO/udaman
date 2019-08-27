@@ -44,6 +44,8 @@ module UheroDb
     # Configure the default encoding used in templates for Ruby 1.9.
     config.encoding = 'utf-8'
 
+    config.time_zone = 'Pacific/Honolulu'
+
     config.log_formatter = proc do |sev, time, progname, msg|
       "#{time.strftime('%F %T')} [#{progname ? sev+' '+progname : sev}]: #{msg}\n"
     end
