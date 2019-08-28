@@ -159,7 +159,7 @@ module SeriesHelper
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to(univ_create(univ), { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
+        links.push link_to(univ_create(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
       end
     end
     links.join(' ')

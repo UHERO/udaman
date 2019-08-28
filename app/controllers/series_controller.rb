@@ -2,7 +2,7 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :alias_primary_for, :analyze, :add_to_quarantine, :remove_from_quarantine,
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
@@ -34,9 +34,22 @@ class SeriesController < ApplicationController
     end
   end
 
-  def alias_primary_for
-    @series = @series.alias_primary_for(params[:new_univ])
-    render :edit
+  def new_alias
+    @orig_sid = @series.id
+    @series = @series.dup
+    @series.assign_attributes(universe: params[:new_univ])
+    set_resource_values(@series.universe)
+    @add2meas = params[:add_to_meas].to_i
+  end
+
+  def alias_create
+    @series = @series.create_alias(series_params)
+    mid = params[:add2meas].to_i
+    if mid > 0
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+    else
+      redirect_to @series, notice: 'Alias series successfully created'
+    end
   end
 
   def update
@@ -316,7 +329,7 @@ private
   def set_resource_values(univ)
     @all_geos = Geography.where(universe: univ)
     if @all_geos.empty?
-      raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
+      raise "Universe #{univ} has no geographies of its own"
     end
     @all_units = Unit.where(universe: univ)
     @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
