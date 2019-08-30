@@ -41,7 +41,7 @@ google.visualization.events.addListener(chart, 'select', function() {
   <h3><%= @series.description %></h3>
 
   <table>
-    <tr><td>Universe</td><td><%= display_universe(@series) %></td></tr>
+    <tr><td>Universe</td><td><%= universe_label(@series) %></td></tr>
     <tr><td>Aliases</td><td><%= raw make_alt_universe_links(@series) %></td></tr>
     <tr><td>Measurements</td><td>
       <% @series.measurements.each do |measurement| %>
