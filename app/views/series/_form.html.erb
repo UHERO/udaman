@@ -47,7 +47,7 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <% if @series.is_primary || @series.id.nil? %>
+    <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
             <%= xf.label :percent, 'Percent' %>
@@ -78,7 +78,7 @@
             <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
           </div>
       <% end %>
-    <% elsif @series.has_primary %>
+    <% elsif @series.has_primary? %>
       <p><strong>Other metadata fields must be edited in the primary series:</strong>
       <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id: @series.xseries.primary_series_id %></p>
     <% end %>

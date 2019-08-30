@@ -151,25 +151,25 @@ module SeriesHelper
     alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
-    series.get_aliases.sort_by{|x| [x.is_primary ? 0 : 1, x.universe] }.each do |s|
+    series.get_aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|
       links.push link_to(display_universe(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary
+    if series.is_primary?
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to(univ_create(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
+        links.push link_to(univ_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
       end
     end
     links.join(' ')
   end
 
   def display_universe(series)
-    series.is_primary ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
+    series.is_primary? ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
   end
 
-  def univ_create(text)
+  def univ_create_label(text)
     "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 

@@ -9,7 +9,7 @@ class SeriesController < ApplicationController
   def new
     @universe = params[:u].upcase rescue 'UHERO'
     @series = Series.new(universe: @universe, xseries: Xseries.new)
-    set_resource_values(@universe)
+    set_attrib_resource_values(@series)
   end
 
   def bulk_new
@@ -17,7 +17,7 @@ class SeriesController < ApplicationController
 
   def edit
     @add2meas = params[:add_to_meas].to_i
-    set_resource_values(@series.universe)
+    set_attrib_resource_values(@series)
   end
 
   def create
@@ -38,7 +38,7 @@ class SeriesController < ApplicationController
     @orig_sid = @series.id
     @series = @series.dup
     @series.assign_attributes(universe: params[:new_univ])
-    set_resource_values(@series.universe)
+    set_attrib_resource_values(@series)
     @add2meas = params[:add_to_meas].to_i
   end
 
@@ -326,17 +326,18 @@ private
     @series = Series.find params[:id]
   end
 
-  def set_resource_values(univ)
-    @all_geos = Geography.where(universe: univ)
+  def set_attrib_resource_values(series)
+    primary_univ = series.has_primary? ? series.primary_series.universe : 'UHERO'
+    @all_geos = Geography.where(universe: series.universe)
     if @all_geos.empty?
-      raise "Universe #{univ} has no geographies of its own"
+      raise "Universe #{series.universe} has no geographies of its own"
     end
-    @all_units = Unit.where(universe: univ)
-    @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
-    @all_sources = Source.where(universe: univ)
-    @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
-    @all_details = SourceDetail.where(universe: univ)
-    @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
+    @all_units = Unit.where(universe: series.universe)
+    @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_sources = Source.where(universe: series.universe)
+    @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: series.universe)
+    @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
   end
 
   # obsolete/vestigial code?

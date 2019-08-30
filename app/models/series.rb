@@ -208,11 +208,11 @@ class Series < ApplicationRecord
     self.build_name(freq: freq.upcase).ts
   end
 
-  def is_primary
+  def is_primary?
     xseries.primary_series === self
   end
 
-  def has_primary
+  def has_primary?
     xseries.primary_series
   end
 
@@ -222,7 +222,7 @@ class Series < ApplicationRecord
 
   def create_alias(parameters)
     universe = parameters[:universe] || raise('Universe must be specified to create alias')
-    raise "#{self} is not a primary series, cannot be aliased" unless is_primary
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
     raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
