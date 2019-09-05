@@ -344,3 +344,81 @@ task :ua_1165 => :environment do
     d.update!(eval: new_eval)
   end
 end
+
+## JIRA UA-1179, first pass, reassigning DBEDT series with UHERO units to DBEDT units
+task :ua_1179a => :environment do
+  uh2db = {
+      4 => 157,
+      7 => 158,
+      9 => 143,
+      10 => 166,
+      14 => 165,
+      17 => 161,
+      20 => [144, 164, 151],
+      21 => 171,
+      22 => 146,
+      26 => 156,
+      27 => 159,
+      30 => 145,
+      32 => 148,
+      33 => 163,
+      34 => 162,
+      41 => [141, 172],
+      43 => 167,
+      44 => 139,
+      45 => 140,
+      46 => 168,
+      47 => 155,
+      48 => 169,
+      49 => 170,
+      50 => 152,
+      51 => 154,
+      54 => 147,
+      57 => 138,
+      63 => 149,
+      67 => 150,
+      69 => 160,
+      70 => 153,
+      131 => 142
+  }
+  db2uh = {}
+
+  uh2db.keys.each do |k|
+    v = uh2db[k]
+    x = v.class == Array ? v[0] : v
+    if db2uh[x]
+      raise "already saw unit key #{x}"
+    end
+    db2uh[x] = k
+  end
+
+  i = 0
+  deebs = Series.joins(:unit).where(%q{series.universe = 'DBEDT' and units.universe = 'UHERO'})
+  deebs.each do |ds|
+    new_unit = uh2db[ds.unit_id]
+    if new_unit.class == Array
+      new_unit = new_unit[0]
+    end
+    puts "deebs changing #{ds.unit_id} to #{new_unit}"
+    ds.update(unit_id: new_unit)
+    i += 1
+  end
+  puts "========================================================= end: changed #{i} records"
+  i = 0
+  coes = Series.joins(:unit).where(%q{series.universe = 'COH' and units.universe = 'UHERO'})
+  coes.each do |c|
+    next if c.primary_series && c.primary_series.universe != 'DBEDT'
+    new_unit = c.primary_series.unit_id
+    puts "coes changing #{c.unit_id} to #{new_unit}"
+    uh_unit = uh2db[c.unit_id]
+    if uh_unit.class == Array
+      uh_unit = uh_unit[0]
+    end
+    if uh_unit != new_unit
+      puts "-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=--=-==-=-=-=-=-=-=-=-=>>>>> uh #{uh_unit} != db #{new_unit}"
+    end
+    c.update(unit_id: new_unit)
+    i += 1
+  end
+  puts "========================================================= end: changed #{i} records"
+end
