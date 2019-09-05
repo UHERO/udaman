@@ -14,7 +14,7 @@
       <td><%= dsa.eval %></td>
       <td><%= dsa.priority %></td>
       <td><%= dsa.user_email %></td>
-  		<td><%= dsa.created_at.localtime.strftime("%m/%d/%y %H:%M:%S") %></td>
+  		<td><%= dsa.created_at.strftime("%m/%d/%y %H:%M:%S") %></td>
     </tr>
   <% end %>
 </table>
