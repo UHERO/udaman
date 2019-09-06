@@ -1008,15 +1008,7 @@ class Series < ApplicationRecord
     end
     self.delete
   end
-    
-  def last_data_added
-    self.data_points.order(:created_at).last.created_at
-  end
-  
-  def last_data_added_string
-    last_data_added.strftime('%B %e, %Y')
-  end
-  
+
   def Series.get_all_series_by_eval(patterns)
     if patterns.class == String
       patterns = [patterns]
