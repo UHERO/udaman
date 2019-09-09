@@ -1,25 +1,19 @@
 <p class="notice"><%= notice %></p>
 
 <%
-  series = @data_points.first.series
-  aremos_series = series.aremos_series
-  desc = aremos_series.nil? ? 'No Aremos Series' : aremos_series.description
+  current_dp = @data_points.select {|p| p.current }.first
+  other_dps = @data_points.reject {|p| p === current_dp }.sort {|p1, p2| p2.created_at <=> p1.created_at }
+  units = current_dp.xseries.units
 %>
-
-
-<h1><%= link_to series.name, series, :method => :get %></h1>
-<p><%= desc %></p>
-<h2><%= @data_points.first.date %></h2>
+<h2><%= current_dp.date %></h2>
 Current<br/>
 <%
-  current_dp = @data_points.select{|p| p.current }
-  other_dps = @data_points.reject{|p| p.current }.sort{|p1,p2| p2.created_at <=> p1.created_at }
   [current_dp, other_dps].flatten.each do |dp|
-    dp_val = dp.value / series.units
+    dp_val = dp.value / units
     data_source = dp.data_source
-    bgcolor = data_source.color rescue 'FFF'
-  %>
-  <div class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
-    <%= '%.3f' % dp_val %><sup><%= dp_superscript(dp) %></sup>
-  </div>
+    bgcolor = data_source.color || 'FFF'
+%>
+    <div class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
+      <%= '%.3f' % dp_val %><sup><%= dp_superscript(dp) %></sup>
+    </div>
 <% end %>
