@@ -179,32 +179,12 @@ task :output_active_downloads => :environment do
   end
 end
 
-task :clear_visual_notification => :environment do
-    begin
-        PackagerMailer.visual_notification.deliver
-    rescue => e
-        puts e.message
-    end
-end
-
-task :test_visual_notification => :environment do
-    begin
-        first = 1
-        second = 2
-        third = 3
-        PackagerMailer.visual_notification.deliver
-    rescue => e
-        puts e.message
-    end
-end
-
-
 # From README.md: Exporting list of priorities to save
 task :output_priorities => :environment do
     File.open('lib/tasks/REBUILD_PRIORITIES.rb', 'w') do |file|
-        DataSource.where("priority != 100").each do |ds|
+        DataSource.get_all_uhero.where("priority != 100").each do |ds|
             puts "wrote: #{ds.id}"
-            file.puts %Q!DataSource.where(%Q|eval LIKE '%#{ds.eval}%'|).first.update_attributes(:priority => #{ds.priority})!
+            file.puts %Q!DataSource.get_all_uhero.where(%Q|eval LIKE '%#{ds.eval}%'|).first.update_attributes(:priority => #{ds.priority})!
         end
     end
 end

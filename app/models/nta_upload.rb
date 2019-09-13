@@ -1,4 +1,4 @@
-class NtaUpload < ActiveRecord::Base
+class NtaUpload < ApplicationRecord
   require 'date'
   before_destroy :delete_files_from_disk
   before_destroy :delete_data_and_data_sources
@@ -6,7 +6,7 @@ class NtaUpload < ActiveRecord::Base
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(series_file)
-    now = Time.now.localtime
+    now = Time.now
     return false unless series_file
     series_file_content = series_file.read
     series_file_ext = series_file.original_filename.split('.')[-1]
@@ -37,7 +37,7 @@ class NtaUpload < ActiveRecord::Base
 
   def make_active_settings
     return false unless DataPoint.update_public_data_points 'NTA'
-    logger.debug { 'DONE DataPoint.update_public_data_points' }
+    Rails.logger.debug { 'DONE DataPoint.update_public_data_points' }
     NtaUpload.update_all active: false
     self.update! active: true, last_error: nil, last_error_at: nil
   end
@@ -77,25 +77,25 @@ class NtaUpload < ActiveRecord::Base
     if series_filename && File.exists?(xlspath)
       r = delete_file_from_disk xlspath
       r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
-      return r
+      return (r || throw(:abort))
     end
     true
   end
 
   def full_load
-    logger.debug { "NtaLoadWorker id=#{self.id} BEGIN full load #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{self.id} BEGIN full load #{Time.now}" }
     load_cats_csv
-    logger.debug { "NtaLoadWorker id=#{self.id} DONE load cats #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load cats #{Time.now}" }
     load_series_csv
-    logger.debug { "NtaLoadWorker id=#{self.id} DONE load series #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load series #{Time.now}" }
     load_data_postproc
-    logger.debug { "NtaLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
     make_active_settings
-    logger.info { "NtaLoadWorker id=#{self.id} loaded as active #{Time.now}" }
+    Rails.logger.info { "NtaLoadWorker id=#{self.id} loaded as active #{Time.now}" }
   end
 
   def load_cats_csv
-    logger.debug { 'starting load_cats_csv' }
+    Rails.logger.debug { 'starting load_cats_csv' }
     unless series_filename
       raise 'load_cats_csv: no series_filename'
     end
@@ -109,7 +109,7 @@ class NtaUpload < ActiveRecord::Base
     end
 
     # Clean out all the things, but not the root category
-    logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{self.id} BEGIN DELETING THE WORLD #{Time.now}" }
     NtaUpload.delete_universe_nta
 
     root_cat = Category.find_by(universe: 'NTA', ancestry: nil) || raise('No NTA root category found')
@@ -161,18 +161,18 @@ class NtaUpload < ActiveRecord::Base
       end
       if data_list.measurements.where(id: measurement.id).empty?
         DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
-        logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
+        Rails.logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
-    ## Alphabetize the parent categories
-    parents = Category.where('universe = "NTA" and ancestry is not null and meta is null')
-    list_order = 0
-    parents.sort {|a,b| a.name <=> b.name }.each {|cat| cat.update!(list_order: list_order); list_order = list_order + 1 }
+    ## Don't alphabetize nav cats any more
+    # parents = Category.where('universe = "NTA" and ancestry is not null and meta is null')
+    # list_order = 0
+    # parents.sort {|a,b| a.name <=> b.name }.each {|cat| cat.update!(list_order: list_order); list_order = list_order + 1 }
     true
   end
 
   def load_series_csv
-    logger.debug { 'starting load_series_csv' }
+    Rails.logger.debug { 'starting load_series_csv' }
     unless series_filename
       raise 'load_series_csv: no series_filename'
     end
@@ -187,21 +187,21 @@ class NtaUpload < ActiveRecord::Base
 
     # if data_sources exist => set their current flag to true
     if DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").count > 0
-      logger.debug { 'NTA data already loaded; Resetting current column values' }
+      Rails.logger.debug { 'NTA data already loaded; Resetting current column values' }
       NtaUpload.connection.execute <<~SQL
         UPDATE data_points SET current = 0
         WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(%)');
       SQL
-      logger.debug { 'Reset all to current = false' }
+      Rails.logger.debug { 'Reset all to current = false' }
       NtaUpload.connection.execute <<~SQL
         UPDATE data_points SET current = 1
         WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{id},%)');
       SQL
-      logger.debug { 'Reset this upload to current = true' }
+      Rails.logger.debug { 'Reset this upload to current = true' }
       return true
     end
 
-    logger.debug { 'start loading NTA data' }
+    Rails.logger.debug { 'start loading NTA data' }
     current_series = nil
     current_data_source = nil
     data_points = []
@@ -209,7 +209,7 @@ class NtaUpload < ActiveRecord::Base
 
     indicators = Category.where('universe = "NTA" and meta is not null')
     indicators.each do |cat|
-      logger.debug { "LOADING category #{cat.meta}\t\t\tat #{Time.now}" }
+      Rails.logger.debug { "LOADING category #{cat.meta}\t\t\tat #{Time.now}" }
       measurement = cat.data_list.measurements.first rescue raise("load_series_csv: no data list for #{cat.meta}")
       raise("load_series_csv: no measurement for #{cat.meta}") unless measurement
       prefix = measurement.prefix
@@ -246,19 +246,19 @@ class NtaUpload < ActiveRecord::Base
                                                 geotype: 'incgrp4' }).id
                      else nil
                    end
-            current_series = Series.find_by(name: series_name) ||
-                             Series.create(
+            current_series = Series.find_by(universe: 'NTA', name: series_name) ||
+                             Series.create_new(
                                universe: 'NTA',
                                name: series_name,
                                dataPortalName: indicator_title,
-                               frequency: 'year',
+                               frequency: :year,
                                geography_id: geo_id,
                                unit_id: measurement.unit_id,
                                percent: measurement.percent,
                                source_id: measurement.source_id
                            )
             eval_str = "NtaUpload.load(#{id}, #{current_series.id})"
-            current_data_source = DataSource.find_by(eval: eval_str)
+            current_data_source = DataSource.find_by(universe: 'NTA', eval: eval_str)
             if current_data_source.nil?
               current_data_source = DataSource.create(
                 universe: 'NTA',
@@ -266,32 +266,32 @@ class NtaUpload < ActiveRecord::Base
                 description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
                 series_id: current_series.id,
                 last_run: Time.now,
+                reload_nightly: false,
                 last_run_in_seconds: Time.now.to_i
               )
             else
               current_data_source.update last_run_in_seconds: Time.now.to_i
             end
         end
-        data_points.push({series_id: current_series.id,
-                          data_source_id: current_data_source.id,
+        data_points.push({xs_id: current_series.xseries_id,
+                          ds_id: current_data_source.id,
                           date: row_data['year'] + '-01-01',
                           value: row_data[indicator_name]}) if row_data[indicator_name]
       end
     end
-    logger.debug { 'DEBUG: starting to load data points in batches of 1000' }
+    Rails.logger.debug { 'DEBUG: starting to load data points in batches of 1000' }
     if current_series && data_points.length > 0
       data_points.in_groups_of(1000) do |dps|
         values = dps.compact
-                    .uniq {|dp| '%s %s %s' % [dp[:series_id], dp[:data_source_id], dp[:date]] }
-                    .map {|dp| %q|('%s', %s, %s, NOW(), STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true)| %
-                               ['NTA', dp[:series_id], dp[:data_source_id], dp[:date], dp[:value]] }
+                    .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
+                    .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                     .join(',')
-        NtaUpload.connection.execute <<~SQL
-          REPLACE INTO data_points (universe,series_id,data_source_id,created_at,`date`,`value`,`current`) VALUES #{values};
-        SQL
+        self.connection.execute <<~MYSQL
+          REPLACE INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
+        MYSQL
       end
     end
-    logger.debug { 'DEBUG: Final data source updating' }
+    Rails.logger.debug { 'DEBUG: Final data source updating' }
     nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
     DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
     new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
@@ -334,10 +334,14 @@ class NtaUpload < ActiveRecord::Base
 
   def NtaUpload.delete_universe_nta
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from public_data_points where universe = 'NTA' ;
+      delete p
+      from public_data_points p join series s on s.id = p.series_id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
-      delete from data_points where universe = 'NTA' ;
+      delete d
+      from data_points d join series s on s.xseries_id = d.xseries_id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA' ;
@@ -350,6 +354,11 @@ class NtaUpload < ActiveRecord::Base
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from series where universe = 'NTA' ;
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+      delete x
+      from xseries x join series s on s.xseries_id = x.id
+      where s.universe = 'NTA' ;
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from measurements where universe = 'NTA' ;
@@ -375,7 +384,7 @@ class NtaUpload < ActiveRecord::Base
   end
 
   def load_data_postproc
-    logger.debug { "DEBUG: NtaLoadWorker starting load_cats_postproc at #{Time.now}" }
+    Rails.logger.debug { "DEBUG: NtaLoadWorker starting load_data_postproc at #{Time.now}" }
     NtaUpload.connection.execute <<~SQL
       /*** Create measurements NTA_<var>_regn ***/
       insert measurements (universe, prefix, data_portal_name, unit_id, percent, source_id, created_at, updated_at)

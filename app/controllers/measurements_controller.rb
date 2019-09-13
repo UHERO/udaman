@@ -2,8 +2,7 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series,
-                                         :propagate]
+  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :duplicate, :propagate]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
@@ -22,11 +21,8 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements
   def index
-    if params[:unrestricted]
-      @measurements = Measurement.where(universe: 'UHERO').includes(:series).where(:series => {:restricted => false}).order(:prefix)
-      return
-    end
-    @measurements = Measurement.where(universe: 'UHERO').order(:prefix).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @measurements = Measurement.where(universe: @universe).order(:prefix).all
   end
 
   # GET /measurements/1
@@ -35,15 +31,16 @@ class MeasurementsController < ApplicationController
 
   # GET /measurements/new
   def new
-    @data_list_id = DataList.find(params[:data_list_id]).id rescue nil
-    universe = params[:universe] || 'UHERO'
-    @resource_universe = get_resource_universe(universe)
-    @measurement = Measurement.new(universe: universe)
+    data_list = DataList.find(params[:data_list_id].to_i) rescue nil
+    @data_list_id = data_list && data_list.id
+    @universe = data_list.universe rescue params[:universe].upcase rescue 'UHERO'
+    @measurement = Measurement.new(universe: @universe)
+    set_resource_values(@universe)
   end
 
   # GET /measurements/1/edit
   def edit
-    @resource_universe = get_resource_universe(@measurement.universe)
+    set_resource_values(@measurement.universe)
   end
 
   # POST /measurements
@@ -64,11 +61,11 @@ class MeasurementsController < ApplicationController
   end
   
   def duplicate
-    original_measurement = Measurement.find params[:id]
-    new_measurement = original_measurement.dup
-    new_measurement.prefix = original_measurement.prefix + ' (copy)'
-    new_measurement.series = original_measurement.series
+    new_measurement = @measurement.dup
+    new_measurement.prefix = @measurement.prefix + ' (copy)'
+    new_measurement.series = @measurement.series
     new_measurement.save
+    set_resource_values(@measurement.universe)
     redirect_to edit_measurement_url(new_measurement.id)
   end
 
@@ -83,11 +80,16 @@ class MeasurementsController < ApplicationController
 
   def add_series
     series = Series.find(params[:series_id])
+    unless series.universe == @measurement.universe
+      redirect_to controller: :series, action: :new_alias, id: series, new_univ: @measurement.universe, add_to_meas: @measurement.id
+      return
+    end
+    set_resource_values(@measurement.universe)
     if @measurement.series.include? series
       redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
       return
     end
-    @measurement.add_series(series)
+    @measurement.series << series
     respond_to do |format|
       format.html { redirect_to edit_measurement_url(@measurement.id) }
       format.js {}
@@ -96,10 +98,10 @@ class MeasurementsController < ApplicationController
 
   def remove_series
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok }
     end
     series = Series.find(params[:series_id])
-    @measurement.remove_series(series)
+    @measurement.series.delete(series)
   end
 
   def propagate
@@ -116,17 +118,18 @@ class MeasurementsController < ApplicationController
       return
     end
     new_vals_hash = fields_to_update.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h
-    series.keys.each {|s| Series.find_by(name: s).update_attributes new_vals_hash }
-    redirect_to(@measurement, notice: 'Field(s) '+fields_to_update.join(', ')+' propagated successfully.')
+    series.keys.each {|name| Series.find_by(universe: @measurement.universe, name: name).update_attributes(new_vals_hash) }
+    redirect_to(@measurement, notice: 'Field(s) ' + fields_to_update.join(', ') + ' propagated successfully.')
   end
 
   private
-    def get_resource_universe(universe)
-      case universe
-        when 'UHEROCOH' then 'UHERO'
-        when 'DBEDTCOH' then 'DBEDT'
-        else universe
-      end
+    def set_resource_values(univ)
+      @all_units = Unit.where(universe: univ)
+      @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
+      @all_sources = Source.where(universe: univ)
+      @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
+      @all_details = SourceDetail.where(universe: univ)
+      @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
     end
 
     def translate(name)
@@ -137,14 +140,13 @@ class MeasurementsController < ApplicationController
 
     # Use callbacks to share common setup or constraints between actions.
     def set_measurement
-      @measurement = Measurement.find(params[:id])
+      @measurement = Measurement.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.
     def measurement_params
       params.require(:measurement).permit(:universe, :prefix, :data_portal_name, :table_prefix, :table_postfix,
-                                          :unit_id, :percent, :real, :notes,
-                                          :restricted, :unrestricted, :series_id, :decimals,
+                                          :unit_id, :percent, :real, :notes, :restricted, :series_id, :decimals,
                                           :seasonally_adjusted, :seasonal_adjustment, :frequency_transform,
                                           :source_detail_id, :source_id, :source_link,
                                           :field_boxes, :series_boxes)

@@ -1,4 +1,5 @@
-class TsdFile < ActiveRecord::Base
+class TsdFile < ApplicationRecord
+  include Cleaning
   require 'digest/md5'
   require 'date'
   belongs_to :forecast_snapshot
@@ -39,7 +40,7 @@ class TsdFile < ActiveRecord::Base
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge!(get_second_line_attributes)
-    series_hash[:udaman_series] = Series.find_by(name: series_hash[:name] + '.' + series_hash[:frequency])
+    series_hash[:udaman_series] = Series.find_by(universe: 'UHERO', name: series_hash[:name] + '.' + series_hash[:frequency])
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency])
@@ -308,13 +309,13 @@ private
       File.delete(path)
     rescue StandardError => e
       Rails.logger.error e.message
-      return false  ## prevents destruction of the model object
+      throw(:abort)  ## prevents destruction of the model object
     end
 	  true
   end
 
   def tsd_rel_filepath(name)
-    string = self.forecast_snapshot.created_at.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
+    string = self.forecast_snapshot.created_at.utc.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
     hash = Digest::MD5.new << string
     File.join(TsdFile.path_prefix, hash.to_s+'_'+name)
   end

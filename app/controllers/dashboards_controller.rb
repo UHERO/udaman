@@ -24,30 +24,11 @@ class DashboardsController < ApplicationController
     @sa_count = @type_buckets.delete :sa_load
     @load_count = @type_buckets.delete(:load) + @sa_count + @type_buckets[:mean_corrected_load]
   end
-  
-  def broken_data_sources
-    #this is also in the rake file. May want to match
-    @inactive_ds = DataSource.where('FROM_DAYS(719528 + (last_run_in_seconds / 3600 - 10) / 24)  < FROM_DAYS(TO_DAYS(NOW()))').order(:last_run_in_seconds)
-  end
 
-  def search_data_sources
-    #this is also in the rake file. May want to match
-    @inactive_ds = DataSource.where("eval LIKE '%LF@hiwi.org%'").each {|ds| ds.print_eval_statement}
-    render 'broken_data_sources'
-  end
-  
   def investigate
-    #@maybe_ok_count = Series.where('aremos_missing = 0 AND ABS(aremos_diff) < 0.1 AND ABS(aremos_diff) > 0.0').count
-    #@wrong_count = Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 0.1 AND ABS(aremos_diff) < 1000').count
-    #@way_off_count = Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1000').count
-    #@way_off = Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1000').limit(20)
-    #Series.where(:aremos_missing => '> 0').count
-    #@missing_count = Series.where('aremos_missing > 0').count
-    #@missing_high_to_low = Series.where('aremos_missing > 0').order('aremos_missing DESC').limit(10)
-    
-    @maybe_ok = Series.where('aremos_missing = 0 AND ABS(aremos_diff) < 1.0 AND ABS(aremos_diff) > 0.0').order('aremos_diff DESC')   
-    @wrong = Series.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1.0').order('aremos_diff DESC')
-    @missing_low_to_high = Series.where('aremos_missing > 0').order('aremos_missing ASC')
+    @maybe_ok = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) < 1.0 AND ABS(aremos_diff) > 0.0').order('aremos_diff DESC')
+    @wrong = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1.0').order('aremos_diff DESC')
+    @missing_low_to_high = Series.get_all_uhero.where('aremos_missing > 0').order('aremos_missing ASC')
     
     handle_hash = DataSource.handle_hash
     @maybe_ok_buckets = Series.handle_buckets(@maybe_ok, handle_hash)
@@ -63,13 +44,13 @@ class DashboardsController < ApplicationController
       @to_investigate = []
       return
     end
-    @to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
+    @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
   end
 
   def update_public_dp
-    DataPoint.update_public_data_points('UHERO')
+    DataPoint.update_public_all_universes
     respond_to do |format|
-      format.js { render nothing: true, status: 200 }
+      format.js { head :ok }
     end
   end
 
@@ -86,15 +67,7 @@ class DashboardsController < ApplicationController
   
   def rake_report
   end
-  
-  def investigate_no_source
-    @no_source = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0')
-                     .joins('JOIN data_sources ON series.id = series_id')
-                     .where("eval NOT LIKE '%load_from_download%'")
-                     .group(:name)
-                     .order(:name).all
-  end
-  
+
   def mapping
     @exempted = DataSource.all_history_and_manual_series_names
     @pattern = DataSource.all_pattern_series_names - @exempted
@@ -403,39 +376,34 @@ KVASTB@HON.M KVASTR@HON.M KVAONR@HON.M KVAOTH@HON.M KVA@HON.M)
     @end_date = dates[:end_date]
     render 'tableview'
   end
+
 private
   def set_dates_m(params)
     if params[:num_years].nil?
       start_date = (Time.now.to_date << (15))
-      end_date = nil
     else
       start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 1))
-      end_date = nil
     end
-    {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => nil}
   end
 
   def set_dates_q(params)
     if params[:num_years].nil?
       start_date = (Time.now.to_date << (34))
-      end_date = nil
     else
       start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4))
-      end_date = nil
     end
-    {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => nil}
   end
 
   def set_dates_a(params)
     if params[:num_years].nil?
       current_year = Time.now.to_date.year
       start_date = Date.new(current_year - 10)
-      end_date = nil
     else
       start_date = (Time.now.to_date << (12 * params[:num_years].to_i + 4))
-      end_date = nil
     end
-    {:start_date => start_date, :end_date => end_date}
+    {:start_date => start_date, :end_date => nil}
   end
 end
 

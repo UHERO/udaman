@@ -2,7 +2,7 @@
 Udaman: UHERO Data Manager
 ======
 
-Udaman is [UHERO](http://uhero.hawaii.edu)'s data management system.
+Udaman is [UHERO](https://uhero.hawaii.edu)'s data management system.
 
 To set up your development environment,
 

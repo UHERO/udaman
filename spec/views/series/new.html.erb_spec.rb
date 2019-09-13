@@ -11,7 +11,6 @@ describe "series/new.html.erb" do
       :last_demetra_date => "MyString",
       :factors => "",
       :factor_application => "MyString",
-      :prognoz_data_file_id => "MyString",
       :aremos_missing => 1,
       :aremos_diff => 1.5,
       :mult => 1,
@@ -32,7 +31,6 @@ describe "series/new.html.erb" do
       assert_select "input#series_last_demetra_date", :name => "series[last_demetra_date]"
       assert_select "input#series_factors", :name => "series[factors]"
       assert_select "input#series_factor_application", :name => "series[factor_application]"
-      assert_select "input#series_prognoz_data_file_id", :name => "series[prognoz_data_file_id]"
       assert_select "input#series_aremos_missing", :name => "series[aremos_missing]"
       assert_select "input#series_aremos_diff", :name => "series[aremos_diff]"
       assert_select "input#series_mult", :name => "series[mult]"

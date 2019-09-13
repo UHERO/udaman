@@ -24,28 +24,11 @@ end
 
 task :tsd_exports => :environment do
   t = Time.now
-  path = "#{ENV['DATA_PATH']}/BnkLists/"
-  %w{bea_a bls_a census_a jp_a misc_a tax_a tour_a us_a 
-    bea_s bls_s 
-    bea_q bls_q census_q jp_q misc_q tax_q tour_q us_q
-    bls_m jp_m misc_m tax_m tour_m us_m
-    misc_w tour_w tour_d }.each do |bank|
-  # ["misc_w"].each do |bank|
-    # ["bls_m"].each do |bank|
-    t = Time.now
-    frequency_code = bank.split('_')[1].upcase
-    filename = path + bank + '.txt'
-    f = open filename
-    list = f.read.split("\r\n")
-    f.close
-    list.map! {|name| "#{name}.#{frequency_code}"}
-    Series.write_data_list_tsd list, "#{ENV['DATA_PATH']}/udaman_tsd/#{bank}.tsd"
-    puts "#{ '%.2f' % (Time.now - t) } | #{ list.count } | #{ bank }"
-    
-  end
+  Series.run_tsd_exports
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['tsd_exports', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
+### Do we really still need this? What was the compelling reason for introducing it in the first place?
 task :categories_backup => :environment do
   misc_dir = File.join(ENV['DATA_PATH'], 'misc')
   new_dump = File.join(misc_dir, 'new_dump.sql')

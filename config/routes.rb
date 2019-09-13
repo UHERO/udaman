@@ -1,4 +1,5 @@
-UheroDb::Application.routes.draw do
+Rails.application.routes.draw do
+# For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
   resources :units
   resources :feature_toggles
   resources :user_feedbacks
@@ -26,10 +27,10 @@ UheroDb::Application.routes.draw do
       get 'active_status' => 'dbedt_uploads#active_status'
     end
   end
-  resources :nta_uploads do
+  resources :dvw_uploads do
     member do
-      get 'status/:which' => 'nta_uploads#status'
-      get 'active_status' => 'nta_uploads#active_status'
+      get 'status/:which' => 'dvw_uploads#status'
+      get 'active_status' => 'dvw_uploads#active_status'
     end
   end
 
@@ -46,8 +47,6 @@ UheroDb::Application.routes.draw do
     mount Sidekiq::Web => '/sidekiq'
   end
 
-  #map.devise_for :users
-  
   get 'series/bulk', to: 'series#bulk_new'
   post 'series/bulk', to: 'series#bulk_create'
   get 'series/stale', to: 'series#stale'
@@ -62,8 +61,6 @@ UheroDb::Application.routes.draw do
   resources :series
 
   resources :data_sources
-  resources :prognoz_data_files
-  resources :series_data_files
   resources :dashboards
   resources :data_lists do
     member do
@@ -71,13 +68,9 @@ UheroDb::Application.routes.draw do
     end
   end
 
-  get 'broken_data_sources' => 'dashboards#broken_data_sources'
-  get 'search_data_sources' => 'dashboards#search_data_sources'
-  get 'send_prognoz_export' => 'prognoz_data_files#send_prognoz_export'
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
-  get 'investigate_no_source' => 'dashboards#investigate_no_source'
   get 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'rake_report' => 'dashboards#rake_report'

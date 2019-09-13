@@ -3,7 +3,8 @@ class UnitsController < ApplicationController
 
   # GET /units
   def index
-    @units = Unit.where(universe: 'UHERO').order(:short_label, :long_label).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @units = Unit.where(universe: @universe).order(:short_label, :long_label).all
   end
 
   # GET /units/1
@@ -22,12 +23,12 @@ class UnitsController < ApplicationController
   # POST /units
   def create
     # Don't allow empty or whitespace strings in the db
-    if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
+    if unit_params[:short_label].blank? || unit_params[:long_label].blank?
       redirect_to({ :action => :new }, notice: 'Blank entries not allowed')
       return
     end
-    params[:unit][:short_label].strip!
-    params[:unit][:long_label].strip!
+    unit_params[:short_label].strip!
+    unit_params[:long_label].strip!
     @unit = Unit.new(unit_params)
     error = 'Unknown error'
 
@@ -42,7 +43,8 @@ class UnitsController < ApplicationController
     end
 
     if saved
-      redirect_to @unit, notice: 'Unit was successfully created.'
+      @unit.reload
+      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully created.'
     else
       redirect_to({ :action => :new }, notice: error)
     end
@@ -51,12 +53,12 @@ class UnitsController < ApplicationController
   # PATCH/PUT /units/1
   def update
     # Don't allow empty or whitespace strings in the db
-    if params[:unit][:short_label].blank? || params[:unit][:long_label].blank?
+      if unit_params[:short_label].blank? || unit_params[:long_label].blank?
       redirect_to({ :action => :edit }, notice: 'Blank entries not allowed')
       return
     end
-    params[:unit][:short_label].strip!
-    params[:unit][:long_label].strip!
+    unit_params[:short_label].strip!
+    unit_params[:long_label].strip!
     error = 'Unknown error'
 
     begin
@@ -70,22 +72,16 @@ class UnitsController < ApplicationController
     end
 
     if updated
-      redirect_to @unit, notice: 'Unit was successfully updated.'
+      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully updated.'
     else
       render({:action => :edit}, notice: error)
     end
   end
 
-  # DELETE /units/1
-  def destroy
-    @unit.destroy
-    redirect_to units_url, notice: 'Unit was successfully destroyed.'
-  end
-
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_unit
-      @unit = Unit.find(params[:id])
+      @unit = Unit.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.

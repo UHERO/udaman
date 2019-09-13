@@ -50,12 +50,10 @@ describe DataSource do
     
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
     "YSTWTR@HI.A".ts.data_sources[0].data_points.count.should == @data1_no_nil.count
-#    "YSTWTR@HI.A".ts.print_data_points
-    
+
     "YSTWTR@HI.A".ts_append_eval %Q|"YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
     "YSTWTR@HI.A".ts.data_sources.count.should == 2
-#    "YSTWTR@HI.A".ts.print_data_points
-    
+
     ds0 = "YSTWTR@HI.A".ts.data_sources_by_last_run[0]
     ds1 = "YSTWTR@HI.A".ts.data_sources_by_last_run[1]
     dps0 = ds0.data_points
@@ -64,20 +62,21 @@ describe DataSource do
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count + @data2_no_nil.count
     dps0.count.should == @data1_no_nil.count
     dps1.count.should == @data2_no_nil.count
-        
+
+    ### NOTE: The following DataPoint.find_by statements cannot succeed, because 'id' column has been removed
+    ### from the data_points table!  If you want to reenable this test, you'll need to rewrite the below part.
     DataPoint.find_by(id: dps0[0].id).should_not be_nil
     DataPoint.find_by(id: dps1[0].id).should_not be_nil
     ds1.delete
     "YSTWTR@HI.A".ts.data_sources.count.should == 1
-#    "YSTWTR@HI.A".ts.print_data_points
-    
+
     ds0 = "YSTWTR@HI.A".ts.data_sources_by_last_run[0]    
     
     "YSTWTR@HI.A".ts.data_points.count.should == @data1_no_nil.count
     ds0.data_points.count.should == @data1_no_nil.count
     
-    DataPoint.find_by(:id => dps1[0].id).first.should be_nil
-    DataPoint.find_by(dps0[0].id).should_not be_nil
+    DataPoint.find_by(id: dps1[0].id).first.should be_nil
+    DataPoint.find_by(id: dps0[0].id).should_not be_nil
   end
     
 
@@ -136,7 +135,7 @@ describe DataSource do
 
      history = "YSTWTR@HI.A".ts.data_points.where(:date => delete_date).first.history
      history.should_not be_nil
-     history.localtime.to_date.should == Time.now.to_date
+     history.to_date.should == Time.now.to_date
    end
 
   it "should be able to determine a color for itself" do

@@ -1,6 +1,4 @@
-class PackagerMailer < ActionMailer::Base
-  default :from => 'udaman@hawaii.edu'
-
+class PackagerMailer < ApplicationMailer
   def rake_notification(rake_task, download_results, errors, series, output_path, is_error)
     begin
       @download_results = download_results
@@ -27,21 +25,6 @@ class PackagerMailer < ActionMailer::Base
     end
   end
 
-  # def visual_notification(new_dps = 0, changed_files = 0, new_downloads = 0)
-  def visual_notification
-    begin
-      attachments.inline['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
-      attachments['photo.png'] = File.read(Rails.root.to_s + '/script/investigate_visual.png')
-
-      recipients = %w(james29@hawaii.edu fuleky@hawaii.edu ashleysh@hawaii.edu vward@hawaii.edu djiann@hawaii.edu)
-      subject = 'Udamacmini Download Report'
-      mail(:to => recipients, :subject => subject)
-    rescue => e
-      Rails.logger.error { "PackagerMailer.visual_notification error: #{e.message}" }
-      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.visual_notification error', :body => e.message, :content_type => 'text/plain')
-    end
-  end
-
   def download_link_notification(handle = nil, url = nil, save_path = nil, created = false)
     begin
       subject = created ?
@@ -64,20 +47,10 @@ class PackagerMailer < ActionMailer::Base
         "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website"
       @post_address = post_address
       @new_data_series = new_data_series
-      mail(:to => %w(james29@hawaii.edu vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
+      mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => subject) #{})
     rescue => e
       Rails.logger.error { "PackagerMailer.website_post_notification error: #{e.message}" }
       mail(:to => %w(vward@hawaii.edu djiann@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
-    end
-  end
-
-  def circular_series_notification(series)
-    begin
-      @series = series
-      mail(to: %w(djiann@hawaii.edu), subject: 'Circular Series')
-    rescue => e
-      Rails.logger.error { "PackagerMailer.circular_series_notification error: #{e.message}" }
-      mail(to: %w(djiann@hawaii.edu), subject: 'PackagerMailer.circular_series_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 

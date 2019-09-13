@@ -9,8 +9,9 @@ class DataSourcesController < ApplicationController
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
-  def clear_and_reload
-    @data_source.clear_and_reload_source
+  def clear
+    @data_source.delete_data_points
+    @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
@@ -18,6 +19,11 @@ class DataSourcesController < ApplicationController
     if @data_source.destroy
       create_action @data_source, 'DELETE'
     end
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
+  end
+
+  def reset
+    @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
 
@@ -31,14 +37,16 @@ class DataSourcesController < ApplicationController
     @data_source = DataSource.new(:series_id => @series.id)
   end
 
+  def show
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
+  end
+
   def edit
   end
 
   def update
-    @data_source.update_attributes(:priority => params[:data_source][:priority].to_i)
-    if @data_source.update_attributes(:eval => params[:data_source][:eval])
+    if @data_source.update_attributes(eval: data_source_params[:eval], priority: data_source_params[:priority])
       create_action @data_source, 'UPDATE'
-      @data_source.reload_source
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
     else
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource had a problem'
@@ -46,10 +54,9 @@ class DataSourcesController < ApplicationController
   end
 
   def inline_update
-    if @data_source.update_attributes(:eval => params[:data_source][:eval])
+    if @data_source.update_attributes(eval: data_source_params[:eval])
       create_action @data_source, 'UPDATE'
       begin
-        @data_source.reload_source
         render partial: 'inline_edit', locals: {:ds => @data_source, :notice => "OK, (#{@data_source.series.aremos_diff})"}
       rescue
         render partial: 'inline_edit', locals: {:ds => @data_source, :notice => 'BROKE ON LOAD'}

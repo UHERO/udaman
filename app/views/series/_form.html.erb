@@ -15,14 +15,10 @@
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
-        <%= select :name_parts, :geo_id, Geography.where(universe: 'UHERO').collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
+        <%= select :name_parts, :geography_id, @all_geos.collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
         <%= select :name_parts, :freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
       </div>
     <% end %>
-    <div class="field">
-      <%= f.label :universe, 'Universe' %>
-      <%= f.select :universe, %w(UHERO UHEROCOH).collect {|x| [x, x] }, {:include_blank => false} %>
-    </div>
     <div class="field">
       <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
       <%= f.text_field :dataPortalName, :size => 80 %>
@@ -32,16 +28,12 @@
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
     </div>
     <div class="field">
-      <%= f.label :units, 'Units (1, 1000)' %><br/>
-      <%= f.text_field :units %>
-    </div>
-    <div class="field">
       <%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, Unit.where(universe: 'UHERO').order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+      <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :source_id %><br>
-      <%= f.collection_select :source_id, Source.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :source_link, 'Source link (web link more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
@@ -49,37 +41,50 @@
     </div>
     <div class="field">
       <%= f.label :source_detail_id %><br>
-      <%= f.collection_select :source_detail_id, SourceDetail.where(universe: 'UHERO').all.order(:description), :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <div class="field">
-      <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
-      <%= f.select :seasonal_adjustment, Series.seasonal_adjustments.collect {|s| [ s[1], s[0] ] }, {:include_blank => true} %>
-    </div>
-    <div class="field">
-      <%= f.label :percent, 'Percent (prevents calculation of growth rate)' %><br/>
-      <%= f.check_box :percent %>
-    </div>
-    <div class="field">
-      <%= f.label :real, 'Real (prevents adjustment for inflation)' %><br/>
-      <%= f.check_box :real %>
-    </div>
-    <div class="field">
-      <%= f.label :decimals %><br>
-      <%= f.number_field :decimals, :size => 1 %>
-    </div>
-    <div class="field">
-      <%= f.label :frequency_transform, 'Frequency Transformation Method (average, sum, or last)' %><br/>
-      <%= f.text_field :frequency_transform %>
-    </div>
-    <div class="field">
-      <%= f.label :restricted, 'Restricted? (prevents this series from being visible in the REST-API or the public data portal)' %><br/>
-      <%= f.check_box :restricted %>
-    </div>
+    <% if @series.is_primary? || @series.id.nil? %>
+      <%= f.fields_for :xseries do |xf| %>
+          <div class="field">
+            <%= xf.label :percent, 'Percent' %>
+            <%= xf.check_box :percent %> (prevents calculation of growth rate)
+          </div>
+          <div class="field">
+            <%= xf.label :real, 'Real' %>
+            <%= xf.check_box :real %> (prevents adjustment for inflation)
+          </div>
+          <div class="field">
+            <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
+            <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
+          </div>
+          <div class="field">
+            <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
+            <%= xf.text_field :units %>
+          </div>
+          <div class="field">
+            <%= xf.label :decimals %>
+            <%= xf.number_field :decimals, :size => 1 %>
+          </div>
+          <div class="field">
+            <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
+            <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
+          </div>
+          <div class="field">
+            <%= xf.label :restricted, 'Restricted' %>
+            <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
+          </div>
+      <% end %>
+    <% elsif @series.has_primary? %>
+      <p><strong>Other metadata fields must be edited in the primary series:</strong>
+      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id: @series.xseries.primary_series_id %></p>
+    <% end %>
     <div class="actions">
+      <%= f.hidden_field :universe %>
+      <%= hidden_field_tag(:add2meas, @add2meas) %>
       <%= f.submit %>
     </div>
 <% end %>

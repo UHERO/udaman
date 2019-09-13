@@ -1,4 +1,5 @@
-class User < ActiveRecord::Base
+class User < ApplicationRecord
+  include Cleaning
   has_many :data_source_actions
   enum role: {
       external: 'external',
@@ -19,15 +20,8 @@ class User < ActiveRecord::Base
   # :token_authenticatable, :encryptable, :confirmable, :lockable, :timeoutable and :omniauthable, :registerable, :recoverable,
   devise :database_authenticatable, :rememberable, :trackable, :validatable, :recoverable, :registerable
 
-  # Setup accessible (or protected) attributes for your model
-  #attr_accessible :email, :password, :password_confirmation, :remember_me
-
   def dbedt?
     universe == 'DBEDT' && external?
-  end
-
-  def nta?
-    universe == 'NTA' && external?
   end
 
   def internal_user?

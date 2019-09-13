@@ -30,43 +30,11 @@ task :update_diffs => :environment do
   end
 end
 
-
-task :gen_prognoz_diffs => :environment do
-  t = Time.now
-  diff_data = []
-
-  PrognozDataFile.all.each do |file|
-    t1 = Time.now
-    os = UpdateSpreadsheet.new file.safe_filename
-    os.headers_with_frequency_code.each do |header|
-      if header.ts.nil?
-        diff_data.push({:pdf_id => file.id, :id => 0, :name => header, :display_array => [-1]})
-        next
-      end
-      ddiff = header.ts.data_diff(os.series(header.split('.')[0]), 3)
-      diff_hash = ddiff[:display_array]
-      if diff_hash.count > 0
-        diff_data.push({:pdf_id => file.id, :id => header.ts.id, :name => header, :display_array => diff_hash})
-      end
-    end
-    file.write_export
-    puts "#{'%.2f' %(Time.now - t1)} | #{file.filename}"
-  end
-
-  CSV.open('public/prognoz_diffs.csv', 'wb') do |csv|        
-    diff_data.each do |dd|
-      csv << [dd[:pdf_id]]+[dd[:name]] + [dd[:id]] + dd[:display_array]
-    end
-  end
-
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_prognoz_diffs', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
-end
-
 task :gen_investigate_csv => :environment do
   t = Time.now
   # diff_data = [{:id => 1, :name => "he", :display_array => [1,2,2,2] }]
   diff_data = []
-  to_investigate = Series.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('frequency, name ASC')
+  to_investigate = Series.joins(:xseries).where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('frequency, name ASC')
   
   to_investigate.each do |ts| 
     aremos_series = AremosSeries.get ts.name
@@ -81,11 +49,13 @@ task :gen_investigate_csv => :environment do
   
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:series_id).count
+  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:xseries_id).count
   CSV.open('public/dp_added.csv', 'wb') do |csv|
     csv << %w{series_name series_id new_datapoints_added}
-    dps.each do |series_id,count| 
-      csv << [Series.find_by(id: series_id).name, series_id, count]
+    dps.each do |xseries_id, count|
+      series = Xseries.find(xseries_id).primary_series rescue next
+      next unless series
+      csv << [series.name, series.id, count]
     end
   end
   
@@ -111,14 +81,6 @@ task :gen_investigate_csv => :environment do
   puts "cd #{Rails.root}/script && casperjs rasterize.js"
   system("cd #{Rails.root}/script && casperjs rasterize.js")
   puts "dps.count = #{dps.count}, changed_files = #{changed_files}, downloads = #{downloads}"
-  puts 'finished this now sending'
-  begin
-      # PackagerMailer.visual_notification(dps.count, changed_files, downloads).deliver
-      PackagerMailer.visual_notification.deliver
-  rescue => e
-      puts e.message
-    PackagerMailer.rake_error(e, '').deliver
-  end  
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_investigate_csv', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -126,11 +88,13 @@ task :gen_daily_summary => :environment do
   t = Time.now
   downloads = 0
   changed_files = 0
-  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count(:all, :group=> :series_id)
+  dps = DataPoint.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').group(:xseries_id).count
   CSV.open('public/dp_added.csv', 'wb') do |csv|        
     csv << %w(series_name series_id new_datapoints_added)
-    dps.each do |series_id,count| 
-      csv << [Series.find_by(id: series_id).name, series_id, count]
+    dps.each do |xseries_id, count|
+      series = Xseries.find(xseries_id).primary_series rescue next
+      next unless series
+      csv << [series.name, series.id, count]
     end
   end
   
@@ -154,9 +118,6 @@ task :gen_daily_summary => :environment do
     end
   end
   system 'cd /Users/uhero/Documents/udaman/current/script && casperjs rasterize.js'
-  puts 'finished this now sending'
-  
-  PackagerMailer.visual_notification.deliver
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['gen_daily_summary', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
@@ -178,7 +139,7 @@ task :clean_obvious_missing_data_issues do
   # data_source == 1 is a weak criteria. Just noticed it was less likely to bring in series we didn't want to mess with... Should probably be something else
   Series.where('aremos_diff > 10000000000').each do |s| 
     if s.data_sources.count == 1
-      s.data_sources[0].clear_and_reload_source
+      s.data_sources[0].reload_source(true)
       puts s.name
     end
   end
@@ -186,8 +147,8 @@ end
 
 task :clean_data_sources => :environment do
 
-  active_ds = DataSource.where('last_run > FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
-  inactive_ds = DataSource.where('last_run <= FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
+  active_ds = DataSource.get_all_uhero.where('last_run > FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
+  inactive_ds = DataSource.get_all_uhero.where('last_run <= FROM_DAYS(TO_DAYS(NOW()))').order(:last_run); 0
 
 # active_but_not_current = active_ds.reject {|elem| elem.current? }
 # active_current = active_ds.reject {|elem| !elem.current? }
@@ -231,7 +192,7 @@ task :clean_data_sources => :environment do
   puts 'COPY THESE INTO AN ARCHIVE'
   inactive_not_current.each do |ds|
     begin
-      ds.print_eval_statement
+      puts "\"#{ds.series.name}\".ts_eval= %Q|#{ds.eval}|"
       #ds.delete
     rescue
       puts "ERROR! Series ID: #{ds.id}"

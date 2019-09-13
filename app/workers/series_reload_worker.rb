@@ -11,33 +11,33 @@ class SeriesReloadWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
-  def perform(batch_id, series_id, depth)
+  def perform(batch_id, series_id, depth, clear_first = false)
     @batch = batch_id
     @series = series_id
     @depth = depth
     begin
       series = Series.find(series_id) rescue nil
-      errors = []
+      success = nil
       log = SeriesReloadLog.find_by(batch_id: batch_id, series_id: series_id)
       unless log
         mylogger :warn, 'no reload log found'
         raise "no reload log found for batch=#{@batch}, series=#{@series}"
       end
       if series
-        @series = "#{series.name} (#{series_id})"
+        @series = "<#{series.name}> (#{series_id})"
         mylogger :info, 'reload started'
-        errors = series.reload_sources(true)
+        success = series.reload_sources(true, clear_first)  ####       <<===== here's where the work happens
       else
         mylogger :warn, 'no such series found'
-        errors.push 'no such series found'
+        success = false
       end
-      if errors.empty?
+
+      if success
         log.update_attributes(status: 'succeeded') unless log.reload.status
         mylogger :info, 'reload SUCCEEDED'
       else
         log.update_attributes(status: 'error occurred') unless log.reload.status
-        mylogger :warn, 'reload ERRORED: check reload_errors.log'
-        File.open('public/reload_errors.log', 'a') {|f| f.puts errors }
+        mylogger :warn, 'reload ERRORED: check logs'
       end
     rescue Exception => e
       if log && log.reload.status.nil?

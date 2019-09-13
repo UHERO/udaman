@@ -1,4 +1,4 @@
-class SeriesReloadLog < ActiveRecord::Base
+class SeriesReloadLog < ApplicationRecord
   self.primary_key = :batch_id, :series_id
 
   def SeriesReloadLog.purge_old_logs(horizon = 2.weeks)

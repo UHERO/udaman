@@ -12,7 +12,6 @@ describe "series/index.html.erb" do
         :last_demetra_date => "Last Demetra Date",
         :factors => {},
         :factor_application => "Factor Application",
-        :prognoz_data_file_id => "Prognoz Data File",
         :aremos_missing => 2,
         :aremos_diff => 1.5,
         :mult => 3,
@@ -27,7 +26,6 @@ describe "series/index.html.erb" do
         :last_demetra_date => "Last Demetra Date",
         :factors => {},
         :factor_application => "Factor Application",
-        :prognoz_data_file_id => "Prognoz Data File",
         :aremos_missing => 2,
         :aremos_diff => 1.5,
         :mult => 3,
@@ -47,7 +45,6 @@ describe "series/index.html.erb" do
     assert_select "tr>td", :text => "Last Demetra Date".to_s, :count => 2
     assert_select "tr>td", :text => "Name".to_s, :count => 2 #should actually be the factors hash
     assert_select "tr>td", :text => "Factor Application".to_s, :count => 2
-    assert_select "tr>td", :text => "Prognoz Data File".to_s, :count => 2
     assert_select "tr>td", :text => 2.to_s, :count => 2
     assert_select "tr>td", :text => 1.5.to_s, :count => 2
     assert_select "tr>td", :text => 3.to_s, :count => 2

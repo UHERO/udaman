@@ -8,8 +8,8 @@
 		<th>Values</th>
 	</tr>
 <%
-    as = nil
-    as = @as.data unless @as.nil?
+  ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
+    as = @as && @as.data
 
     def process_missing_dates(as)
       date_hash = {}
@@ -19,12 +19,12 @@
     end
 
     def display_data_points(date_hash, as)
-      units = @series.units || 1
+      units = @series.units
       chg_data = @chg.data.clone unless @chg.nil? or @chg.data.nil?
       ytd_data = @ytd_chg.data.clone unless @ytd_chg.nil? or @ytd_chg.data.nil?
       lvl_data = @lvl_chg.data.clone unless @lvl_chg.nil? or @lvl_chg.data.nil?
       bgcolor_hash = {}
-      @series.data_sources.each {|ds| bgcolor_hash[ds.id] = ds.color }
+      @series.primary_series.data_sources.each {|ds| bgcolor_hash[ds.id] = ds.color }
 
       date_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
@@ -42,7 +42,7 @@
           bgcolor = bgcolor_hash[cdp.data_source_id] rescue "FFF"
 %>
       <tr>
-        <td><%= link_to cdp.date, controller: 'data_points', action: 'show', series_id: @series.id, date: cdp.date %></td>
+        <td><%= link_to cdp.date, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: cdp.date %></td>
         <td><span style='color:<%= a_color %>'><%= a_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= chg_value %><%= "%" if chg_value != "-" %></span></td>
@@ -60,7 +60,7 @@
           a_color = element == 1000000000000000.0 ? 'gray' : 'red'
 %>
       <tr>
-        <td><%= link_to date_string, controller: 'data_points', action: 'show', series_id: @series.id, date: date_string %></td>
+        <td><%= link_to date_string, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: date_string %></td>
         <td><span style='color:<%= a_color %>'><%= element %></span></td>
         <td></td>
         <td style="text-align:center"><span style='color:red'> - </span></td>

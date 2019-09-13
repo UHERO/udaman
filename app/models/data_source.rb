@@ -1,18 +1,20 @@
-class DataSource < ActiveRecord::Base
+class DataSource < ApplicationRecord
+  include Cleaning
+  include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
-  belongs_to :series
+  belongs_to :series, inverse_of: :data_sources
   has_many :data_points, dependent: :delete_all
   has_many :data_source_downloads, dependent: :delete_all
-  has_many :data_source_actions
   has_many :downloads, -> {distinct}, through: :data_source_downloads
+  has_many :data_source_actions
 
   composed_of   :last_run,
                 :class_name => 'Time',
                 :mapping => %w(last_run_in_seconds to_r),
-                :constructor => Proc.new { |t| Time.at(t || 0) },
-                :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.at(t/1000.0) }
+                :constructor => Proc.new { |t| Time.zone.at(t || 0) },
+                :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.zone.at(t/1000.0) }
 
   before_update :set_dependencies_without_save
 
@@ -62,7 +64,7 @@ class DataSource < ActiveRecord::Base
       end
       handle_hash
     end
-    
+
     def DataSource.all_load_from_file_series_names
       series_names = []
       DataSource.where("eval LIKE '%load_from %'").all.each do |ds|
@@ -145,10 +147,9 @@ class DataSource < ActiveRecord::Base
     end
 
     def reload_source(clear_first = false)
-      Rails.logger.info { "Begin reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
       t = Time.now
       eval_stmt = self['eval'].dup
-      options = nil
       begin
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
@@ -161,30 +162,28 @@ class DataSource < ActiveRecord::Base
         s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
-          Rails.logger.info { "Reload data source #{id} for series #{self.series.name} [#{description}]: Cleared data points before reload" }
         end
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
-          self.series.update(:base_year => base_year.to_i)
+          self.series.update!(:base_year => base_year.to_i)
         end
         self.series.update_data(s.data, self)
-        self.update(:description => s.name,
+        self.update!(:description => s.name,
                     :last_run => t,
                     :last_run_at => t,
                     :runtime => (Time.now - t),
                     :last_error => nil,
                     :last_error_at => nil)
-
       rescue => e
-        self.update(:last_run => t,
+        self.update!(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
-                    :last_error => e.message,
+                    :last_error => e.message[0..254],
                     :last_error_at => t)
-        Rails.logger.error { "Reload data source #{id} for series #{self.series.name} [#{description}]: Error: #{e.message}" }
+        Rails.logger.error { "Reload definition #{id} for series <#{self.series.name}> [#{description}]: Error: #{e.message}" }
         return false
       end
-      Rails.logger.info { "Completed reload of data source #{id} for series #{self.series.name} [#{description}]" }
+      Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
       true
     end
 
@@ -209,12 +208,15 @@ class DataSource < ActiveRecord::Base
       nil
     end
 
-    def clear_and_reload_source
-      reload_source(true)
+    def reset(clear_cache = true)
+      self.data_source_downloads.each do |dsd|
+        dsd.update_attributes(
+            last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
+            last_eval_options_used: nil)
+      end
+      Rails.cache.clear if clear_cache
     end
-    
-    # DataSource.where("eval LIKE '%bls_histextend_date_format_correct.xls%'").each {|ds| ds.mark_as_pseudo_history}
-    
+
     def mark_as_pseudo_history
       data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
     end
@@ -230,7 +232,8 @@ class DataSource < ActiveRecord::Base
     def unmark_as_pseudo_history_before(date)
       data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
-    
+
+    ## This method appears to be vestigial - confirm and delete later
     def delete_all_other_sources
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
@@ -255,7 +258,7 @@ class DataSource < ActiveRecord::Base
       self.data_points.each do |dp|
         dp.delete
       end
-      puts "#{Time.now - t} | deleted all data points for DS #{self.description}"
+      Rails.logger.info { "Deleted all data points for definition #{id} in #{Time.now - t} seconds" }
     end
     
     def delete
@@ -286,30 +289,20 @@ class DataSource < ActiveRecord::Base
     def get_eval_statement
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
-    
-    def print_eval_statement
-      puts "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
-    end
-
-    def set_dependencies
-      self.dependencies = []
-      self.description.split(' ').each do |word|
-        unless word.index('@').nil? or word.split('.')[-1].length > 1
-          self.dependencies.push(word)
-        end
-      end unless self.description.nil?
-      self.dependencies.uniq!
-      self.save
-    end
 
   def set_dependencies_without_save
+    self.set_dependencies(true)
+  end
+
+  def set_dependencies(dont_save = false)
     self.dependencies = []
     self.description.split(' ').each do |word|
-      unless word.index('@').nil? or word.split('.')[-1].length > 1
+      if valid_series_name(word)
         self.dependencies.push(word)
       end
     end unless self.description.nil?
     self.dependencies.uniq!
+    self.save unless dont_save
   end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
@@ -333,42 +326,51 @@ class DataSource < ActiveRecord::Base
   #       function may make use of a value that is computed _prior_ to it in the processing of the replace_options.
   #       See the examples for how this works.
   #
+  #   The +commit+ parameter just tells whether to commit the changes to the database, default is false because you
+  #   should do dry run(s) first to see what the output will be before committing.
+  #
   # Examples:
   #
   # First, let the change set be
   #
-  #  set = DataSource.where(%q{eval like '%UIC@haw%'})
+  #  cset = DataSource.where(%q{eval like '%UIC@haw%'})
   #
   # then we can:
   # Change the :start_date for all rows to be July 4, 2011:
   #
-  #   DataSource.mass_update_eval_options(set, { start_date: "2011-07-04" })
+  #   DataSource.mass_update_eval_options(cset, { start_date: "2011-07-04" })
   #
   # Remove the :frequency option from all rows:
   #
-  #   DataSource.mass_update_eval_options(set, { frequency: nil })
+  #   DataSource.mass_update_eval_options(cset, { frequency: nil })
   #
   # On the XLS worksheet "iwcweekly", a new column was added at the far left, causing all other columns to shift
   # to the right by one:
   #
-  #   DataSource.mass_update_eval_options(set, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
+  #   DataSource.mass_update_eval_options(cset, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
   #
   # Change :start_date to be "2015-01-01" plus the number of months indicated by :col, and then (sequentially) set :end_date to
   # be exactly 10 years and 1 day after the new start_date:
   #
-  #   DataSource.mass_update_eval_options(set,
+  #   DataSource.mass_update_eval_options(cset,
   #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
   #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
   #
-  # BE CAREFUL! If you write lambdas, check their output carefully and run in a test db before running in
-  # production, because results can be unexpected. Common sense.
+  # Here's one that I just used in real life: some load statements have a :row specification like "increment:39:1".
+  # The first integer (39 here) in each row spec needed to be incremented by one (they're not all 39 in the change set).
+  # The replace_options used is:
   #
-  def DataSource.mass_update_eval_options(change_set, replace_options)
+  #    { row: lambda {|op| nr = (op[:row].split(':'))[1].to_i + 1; op[:row].sub(/:\d+:/, ":#{nr}:") } }
+  #
+  #
+  # BE CAREFUL! Always check changes carefully by doing dry runs before committing to the database!
+  #
+  def DataSource.mass_update_eval_options(change_set, replace_options, commit = false)
     change_set.each do |ds|
       begin
         options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
         unless options
-          raise "Data source id=#{ds.id} eval string does not contain a valid options hash"
+          raise "Definition id=#{ds.id} eval string does not contain a valid options hash"
         end
         replace_options.each do |key, value|
           if value.nil?
@@ -378,8 +380,13 @@ class DataSource < ActiveRecord::Base
             options[key] = new_value.to_s
           end
         end
-        ds.update_attributes(eval: ds.eval.sub(OPTIONS_MATCHER, options.to_s))
-        ds.update_attributes(description: ds.description.sub(OPTIONS_MATCHER, options.to_s))
+        opt_string = options.to_s
+        if commit
+          ds.update_attributes(
+              eval: ds.eval.sub(OPTIONS_MATCHER, opt_string),
+              description: ds.description.sub(OPTIONS_MATCHER, opt_string))
+        end
+        puts opt_string
       rescue
           #do something?
           raise

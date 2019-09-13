@@ -1,54 +1,47 @@
 <table>
-	<tr>
-		<th>source&nbsp;date</th>
-		<th>description</th>
-	</tr>
-	<% series.data_sources_by_last_run.each do |ds| %>
-  	<% eval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
+	<% series.data_sources_sort_for_display.each do |ds| %>
+  	<% myeval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
   		<td>
-      <%= ds.last_run ? ds.last_run.localtime.strftime("%m/%d/%y") : '-' %>&nbsp;<span style="color:gray"><%=
-					ds.last_run ? ds.last_run.localtime.strftime("%H:%M:%S") : '-' %></span>&nbsp;(<%= ds.priority %>)<br />
+      <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>&nbsp;<span style="color:gray"><%=
+					ds.last_run ? ds.last_run.strftime("%H:%M:%S") : '-' %></span>&nbsp;(<%= ds.priority %>)<br />
  					<%= 
-						link_to "load", {   	
-							:controller=> "data_sources", 
+						link_to 'load', {
+							:controller => 'data_sources',
 							:action => 'source', 
-							:id => ds.id} unless ds.eval.nil? 
+							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
-						link_to "clear", {   	
-							:controller=> "data_sources", 
-							:action => 'clear_and_reload', 
-							:id => ds.id} unless ds.eval.nil? 
+						link_to 'clear', {
+							:controller => 'data_sources',
+							:action => 'clear',
+							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
-						link_to "delete", {
-							:controller=> "data_sources",
+						link_to 'delete', {
+							:controller => 'data_sources',
 							:action => 'delete', 
 							:id => ds.id },
-							data: { :confirm => "Are you sure you want to delete data source #{ds.id}?" }
-					%><br/><%=
-							link_to "edit", { 	
-								:controller=> "data_sources", 
-								:action => 'edit', 
-								:id => ds.id}
-					%>
+							data: { :confirm => "Delete definition #{ds.id}: Are you sure??" }
+					%><br/>
+          <% if myeval =~ /load_from_download/ %>
+             <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
+          <% end %>
+          <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %>
         <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" unless ds.runtime.nil? %>)</span><br/>
         <%= link_to nightly_actuator(ds.reload_nightly), {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
         <% if ds.last_error %>
           <p>
             <span style='color:red;' title='<%= ds.last_error %>'>Last error<br/>
-              <%= ds.last_error_at.localtime.strftime('%m/%d/%y %H:%M:%S') %>
+              <%= ds.last_error_at.strftime('%m/%d/%y %H:%M:%S') %>
             </span> <br/>
             <%= ds.last_error %>
           </p>
         <% end %>
   		</td>
 		<td>
-			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fa fa-clock-o" aria-hidden="true"></i><% end %></h3>
+			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fas fa-clock" aria-hidden="true"></i><% end %></h3>
 			<%= raw linked_version(ds.description) %>
 			<br /> 
-			<%= raw eval %>
-			<%= #render(:partial => 'pattern', :locals => {:pattern_id => ds.description.split(" ")[4]}) if ds.description.start_with?("loaded from pattern id")
-			%>
+			<%= raw myeval %>
 		</td>
 	</tr>      
 	<% end %>

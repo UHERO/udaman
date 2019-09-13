@@ -2,34 +2,76 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
+                                    :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
+                                    :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
-  # GET /series/new
   def new
-    @series = Series.new
+    @universe = params[:u].upcase rescue 'UHERO'
+    @series = Series.new(universe: @universe, xseries: Xseries.new)
+    set_attrib_resource_values(@series)
   end
 
-  # GET /series/bulk
   def bulk_new
   end
 
-  # POST /series
+  def edit
+    @add2meas = params[:add_to_meas].to_i
+    set_attrib_resource_values(@series)
+  end
+
   def create
     begin
-      @series = Series.create_new(series_params.merge(other_params))
+      @series = Series.create_new( series_params.merge(name_parts: name_parts) )
     rescue => error
-      redirect_to({ :action => :new }, :notice => error.message)
+      redirect_to({ action: :new }, notice: error.message)
       return
     end
     if @series
-      redirect_to @series, notice: 'Series was successfully created.'
+      redirect_to @series, notice: 'Series successfully created'
     else
       render :new
     end
   end
 
+  def new_alias
+    @orig_sid = @series.id
+    @series = @series.dup
+    @series.assign_attributes(universe: params[:new_univ])
+    set_attrib_resource_values(@series)
+    @add2meas = params[:add_to_meas].to_i
+  end
+
+  def alias_create
+    @series = @series.create_alias(series_params)
+    mid = params[:add2meas].to_i
+    if mid > 0
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+    else
+      redirect_to @series, notice: 'Alias series successfully created'
+    end
+  end
+
+  def update
+    respond_to do |format|
+      if @series.update! series_params
+        mid = params[:add2meas].to_i
+        if mid > 0
+          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+          return
+        end
+        format.html { redirect_to(@series, notice: 'Series successfully updated') }
+        format.xml  { head :ok }
+      else
+        format.html { render action: :edit }
+        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
+      end
+    end
+  end
+
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
+    if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to '/series'
     end
   end
@@ -43,30 +85,25 @@ class SeriesController < ApplicationController
       redirect_to :controller => :dbedt_uploads, :action => :index
       return
     end
-    if current_user.nta?
-      redirect_to :controller => :nta_uploads, :action => :index
-      return
-    end
     unless current_user.internal_user?
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    frequency = params.has_key?(:freq) ? params[:freq] : nil
-    prefix = params.has_key?(:prefix) ? params[:prefix] : nil
-    all = params.has_key?(:all) ? true : false
+    frequency = params[:freq]
+    prefix = params[:prefix]
+    all = params.has_key?(:all)
 
     @all_series =
       case
         when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency LIKE ?', frequency).order(:name)
+        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
         when all then       Series.get_all_uhero.order(:name)
         else []
       end
   end
 
   def show
-    @series = Series.find_by id: params[:id]
-    @as = AremosSeries.get @series.name 
+    @as = AremosSeries.get @series.name
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
@@ -81,22 +118,26 @@ class SeriesController < ApplicationController
   end
 
   def no_source
-    @series = Series.get_all_uhero.where(source_id: nil)
+    @series = Series.get_all_uhero.where('source_id is null')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def no_source_no_restrict
-    @series = Series.get_all_uhero.where(source_id: nil, restricted: false)
+    @series = Series.get_all_uhero.where('source_id is null and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def quarantine
-    @series = Series.get_all_uhero.where(quarantined: true, restricted: false)
+    @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def old_bea_download
     @old_bea_series = Series.get_old_bea_downloads
+    respond_to do |format|
+      format.csv { render layout: false }
+      format.html
+    end
   end
 
   def sidekiq_failed
@@ -104,7 +145,6 @@ class SeriesController < ApplicationController
   end
 
   def add_to_quarantine
-    @series = Series.find_by id: params[:id]
     if @series
       @series.add_to_quarantine
     end
@@ -113,9 +153,8 @@ class SeriesController < ApplicationController
 
   def remove_from_quarantine
     dest = { action: params[:next_action] || :show }
-    dest[:id] = params[:id] if dest[:action] == :show
-    @series = Series.find_by id: params[:id]
     if @series
+      dest[:id] = @series.id if dest[:action] == :show
       @series.remove_from_quarantine
     end
     redirect_to dest
@@ -127,12 +166,11 @@ class SeriesController < ApplicationController
   end
 
   def json_with_change
-    @series = Series.find_by id: params[:id]
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
   end
-  
+
+  ## IS THIS ACTION REALLY USED by users? If not, it and the model method get_tsd_series_data() it calls can be 86-ed.
   def show_forecast
-    @series = Series.find_by id: params[:id]
     tsd_file = params[:tsd_file]
     if tsd_file.nil?
       render inline: 'WRITE AN ERROR TEMPLATE: You need a tsd_file parameter'
@@ -146,34 +184,13 @@ class SeriesController < ApplicationController
     end
   end
   
-  def edit
-    @series = Series.find_by id: params[:id]
-  end
-  
-  def update    
-    @series = Series.find_by id: params[:id]
-    respond_to do |format|
-      if @series.update! series_params
-        format.html { redirect_to(@series,
-                      :notice => 'Data File successfully updated.') }
-        format.xml  { head :ok }
-      else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @series.errors,
-                      :status => :unprocessable_entity }
-      end
-    end
-  end
-
   def refresh_aremos
-    Series.find_by(id: params[:id]).aremos_comparison
+    @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
   end
 
   def destroy
-    @series = Series.find_by id: params[:id]
     @series.destroy
-    
     redirect_to :action => 'index'
   end
   
@@ -187,12 +204,10 @@ class SeriesController < ApplicationController
   end
 
   def comparison_graph
-    @series = Series.find_by id: params[:id]
     @comp = @series.aremos_data_side_by_side
   end
 
   def outlier_graph
-    @series = Series.find_by id: params[:id]
     @comp = @series.ma_data_side_by_side
     #residuals is actually whole range of values.
     residuals = @comp.map { |_, ma_hash| ma_hash[:udaman] }
@@ -202,7 +217,6 @@ class SeriesController < ApplicationController
   end
   
   def all_tsd_chart
-    @series = Series.find_by id: params[:id]
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
     @all_tsd_files.each do |tsd|
@@ -217,7 +231,8 @@ class SeriesController < ApplicationController
         )) unless data.nil? or data['frequency'] != @series.name[-1]
     end
   end
-  
+
+  # obsolete/vestigial code?
   def transform
     eval_statement = convert_to_udaman_notation(params[:eval])
     puts eval_statement
@@ -231,11 +246,9 @@ class SeriesController < ApplicationController
   end
   
   def analyze
-    @series = Series.find_by id: params[:id]
   end
   
   def blog_graph
-    @series = Series.find_by id: params[:id]
     @start_date = params[:start_date]
     @end_date = params[:end_date]
     chart_to_make = params[:create_post]
@@ -244,44 +257,14 @@ class SeriesController < ApplicationController
     end
     @chart_made = chart_to_make
   end
-  
-  def validate
-    @series = Series.find_by id: params[:id]
-    @prognoz_data_results = @series.prognoz_data_results
-  end
-  
-  def replace_block
-    render :partial => 'replace_block'
-  end
-  
-  def toggle_units
-    @series = Series.find_by id: params[:id]
-    @series.units = params[:units]
-    #@series.save
-    @series.aremos_comparison(true)
-    @as = AremosSeries.get @series.name
-    render :partial => 'toggle_units.html'
-  end
-  
+
   def render_data_points
-    @series = Series.find_by id: params[:id]
-    
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
   
-  def toggle_multiplier
-    @series = Series.find_by id: params[:id]
-    @series.toggle_mult
-    #@series.save
-    @output_file = PrognozDataFile.find_by id: @series.prognoz_data_file_id
-    @output_file.update_series_validated_for @series
-    render :partial => 'validate_row'
-  end
-
   def update_notes
-    @series = Series.find_by id: params[:id]
-    @series.update_attributes({:investigation_notes => params[:note]})
-    render :partial => 'investigation_sort.html'
+    @series.update_attributes(investigation_notes: params[:note])
+    render :partial => 'investigation_sort'
   end
 
   def stale
@@ -314,39 +297,58 @@ class SeriesController < ApplicationController
     @loaded_series
   end
 
-  private
+private
     def series_params
       params.require(:series).permit(
           :universe,
           :description,
-          :units,
-          :investigation_notes,
           :dataPortalName,
           :unit_id,
-          :seasonal_adjustment,
-          :percent,
-          :real,
-          :decimals,
-          :frequency_transform,
-          :restricted,
           :source_id,
           :source_link,
-          :source_detail_id
+          :source_detail_id,
+          :investigation_notes,
+          xseries_attributes: [
+              :percent, :real, :decimals, :units, :restricted, :seasonal_adjustment, :frequency_transform
+          ]
       )
     end
 
-  def other_params
-    params.permit(name_parts: [:prefix, :geo_id, :freq])
+  def name_parts
+    params.require(:name_parts).permit(:prefix, :geography_id, :freq)
   end
 
-  def convert_to_udaman_notation(eval_string)
-      operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
-      (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
-    end
+  def bulk_params
+    params.require(:bulk_defs).permit(:definitions)
+  end
 
-    def json_from_heroku_tsd(series_name, tsd_file)
-      url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
-      res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-      res.code == '500' ? nil : JSON.parse(res.body)
+  def set_series
+    @series = Series.find params[:id]
+  end
+
+  def set_attrib_resource_values(series)
+    primary_univ = series.has_primary? ? series.primary_series.universe : 'UHERO'
+    @all_geos = Geography.where(universe: series.universe)
+    if @all_geos.empty?
+      raise "Universe #{series.universe} has no geographies of its own"
     end
+    @all_units = Unit.where(universe: series.universe)
+    @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_sources = Source.where(universe: series.universe)
+    @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: series.universe)
+    @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
+  end
+
+  # obsolete/vestigial code?
+  def convert_to_udaman_notation(eval_string)
+    operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
+    (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
+  end
+
+  def json_from_heroku_tsd(series_name, tsd_file)
+    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{series_name[0..-3]}/json")
+    res = Net::HTTP.new(url.host, url.port).request_get(url.path)
+    res.code == '500' ? nil : JSON.parse(res.body)
+  end
 end

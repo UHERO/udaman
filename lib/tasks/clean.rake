@@ -1,15 +1,3 @@
-desc 'Set current false for older data_points when there are multiple current data_points for a given date'
-task :clean_current => :environment do
-  Series.get_all_uhero.each { |series|
-    DataPoint.select('max(created_at) as created_at, date').where(series_id: series.id, current: 1).group(:date).each { |dp|
-      DataPoint.where(series_id: series.id, current: 1, date: dp.date).where('created_at < ?', dp.created_at).each do |inner_dp|
-        inner_dp.current = false
-        inner_dp.save
-      end
-    }
-  }
-end
-
 desc 'Keep only the two most recent data_points for each series, data_source, and date'
 task :trim_data_point_history => :environment do
   ActiveRecord::Base.connection.execute(%Q|DELETE FROM data_points

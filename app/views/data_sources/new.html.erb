@@ -1,5 +1,5 @@
 <div id="summary_area">
-	<h2>Add Data Source <%= @series.name %></h2>
+	<h4>Add Definition to<br/><%= @series.name %></h4>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
@@ -15,7 +15,7 @@
 		</div>
 		<div class="actions">
       <%= ds.hidden_field :series_id %>
-			<%= ds.submit %>
+			<%= ds.submit 'Save Definition' %>
 		</div>
 	<% end %>
 </div>

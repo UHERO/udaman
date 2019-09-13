@@ -2,7 +2,6 @@
 	<h2>Downloads</h2>
 	<div id="navigation"><%= link_to "Add Download", {:action => 'new' }%></div>
 </div>
-<div id="details_mask"></div>
 <div id="details_area">
 	<% @domain_hash.sort.each do |domain, handle_array| %>
 		<h2><%= domain %></h2>
@@ -34,11 +33,12 @@
 					<% if download.handle.nil? %>
 					<td><strong style="color:#DDD"><%= filename %></strong></td>
 					<% else %>
-					<td class="linkselect"><%= link_to download.handle , {:action => 'show', :id => download.id}, target: '_blank' %></td>
+					<td class="linkselect"><%= link_to download.handle, download %></td>
 					<% end %>
-					<td><%= link_to "download" , {:action => 'download', :id => download.id}%></td>
-					<td><%= link_to "edit" , {:action => 'edit', :id => download.id} %></td>
-					<td><%= link_to "delete", download, :method => :delete, :confirm => "Are you sure you want to delete this?"  %></td>
+					<td><%= link_to 'edit', { action: :edit, id: download.id } %></td>
+					<td><%= link_to 'delete', download, method: :delete, data: { confirm: "Deleting #{download.handle}: Are you sure??" } %></td>
+          <td><%= link_to 'download-to-server', { action: :download, id: download.id }%></td>
+          <td><%= link_to 'download-to-user', download.url %></td>
 			</tr>
 			<% end %>
 		</table>

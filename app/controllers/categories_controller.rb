@@ -24,8 +24,7 @@ class CategoriesController < ApplicationController
 
   # POST /categories
   def create
-    ## Don't put empty strings in the db
-    @category = Category.new(category_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h)
+    @category = Category.new(category_params)
 
     if @category.save
       redirect_to @category, notice: 'Category was successfully created.'
@@ -36,8 +35,7 @@ class CategoriesController < ApplicationController
 
   # PATCH/PUT /categories/1
   def update
-    ## Don't put empty strings in the db
-    if @category.update(category_params.map {|k,v| [k, v.blank? ? nil : v] }.to_h)
+    if @category.update(category_params)
       redirect_to categories_url, notice: 'Category was successfully updated.'
     else
       render :edit
@@ -97,7 +95,7 @@ class CategoriesController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_category
-      @category = Category.find(params[:id])
+      @category = Category.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.

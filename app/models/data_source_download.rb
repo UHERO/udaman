@@ -1,4 +1,4 @@
-class DataSourceDownload < ActiveRecord::Base
+class DataSourceDownload < ApplicationRecord
   belongs_to :data_source
   belongs_to :download
 

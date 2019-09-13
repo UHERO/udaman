@@ -51,7 +51,7 @@ class TransformationsController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_transformation
-      @transformation = Transformation.find(params[:id])
+      @transformation = Transformation.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.

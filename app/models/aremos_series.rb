@@ -1,4 +1,5 @@
-class AremosSeries < ActiveRecord::Base
+class AremosSeries < ApplicationRecord
+  include Cleaning
   serialize :data, Hash
   serialize :aremos_data, Array
   

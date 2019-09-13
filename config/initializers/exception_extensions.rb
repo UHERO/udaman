@@ -16,9 +16,6 @@ end
 class SeriesNameException < StandardError
 end
 
-class PrognozDataFindException < StandardError
-end
-
 class SeriesReloadException < StandardError
 end
 

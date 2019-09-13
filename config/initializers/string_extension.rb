@@ -15,15 +15,6 @@ class String
       Series.eval self, eval_statement
   end
 
-  def ts_eval_force=(eval_statement)
-     begin
-        Series.eval self, eval_statement
-     rescue Exception => e
-      Series.store self, Series.new_transformation(self, {}, Series.frequency_from_code(self[-1])), "Source Series rescued: #{e.message}", eval_statement
-      puts "#{self} | #{eval_statement} | Source Series rescued, #{e.message}" 
-     end
-  end
-    
   def ts_append(series)
     Series.store self, series
   end
@@ -38,10 +29,6 @@ class String
 
   def is_numeric?
     true if Float self rescue false
-  end
-  
-  def pdf
-    PrognozDataFile.where(:filename => /Data_#{self}.xls$/)[0]
   end
 
   def time

@@ -40,6 +40,10 @@ every 1.day, :at => "4:00 pm" do
   rake :update_bea_links
 end
 
+every 1.day, :at => '6:20 pm' do
+  rake :reload_stales_only
+end
+
 every 1.day, :at => '8:00 pm' do
   rake :reload_aremos
 end
@@ -81,7 +85,7 @@ every 1.day, :at => "#{hour.to_i+5}:50 am" do
   rake :aremos_exports
 end
 
-every 1.day, :at => "#{hour.to_i+5}:55 am" do
+every 1.day, :at => "#{hour.to_i+7}:50 am" do
   rake :tsd_exports
 end
 
@@ -99,98 +103,5 @@ end
 
 #bring down pv file daily
 every 1.day, :at => '9:15 am' do
-  runner 'Download.get(\'PV_HON@hawaii.gov\').download'
+  runner %q|Download.get('PV_HON@hawaii.gov').download|
 end
-
-#alternatives in case of emergency
-
-# every 1.day, :at => "12:05 pm" do
-#   rake "update_bea_links"
-# end
-# 
-# every 1.day, :at => "12:05 pm" do
-#   rake "jp_upd_a"
-#   rake "jp_upd_q"
-#   rake "jp_upd_m"
-# end
-# 
-# every 1.day, :at => "12:10 pm" do
-#   rake "tour_PC_upd"
-#   rake "tour_seats_upd"
-#   rake "tour_upd"
-#   rake "tour_ocup_upd"
-# end
-# 
-# every 1.day, :at => "12:30 pm" do
-#   rake "uic_upd"
-#   rake "const_upd_q"
-#   rake "const_upd_m"
-# end
-# 
-# every 1.day, :at => "12:35 pm" do
-#   rake "tax_upd"
-# end
-# 
-# every 1.day, :at => "12:40 pm" do
-#   rake "tour_rev_upd"
-# end
-# 
-# every 1.day, :at => "1:00 pm" do
-#   rake "tax_identities"
-# end
-# 
-# 
-# every 1.day, :at => "1:15 pm" do
-#   rake "gsp_upd" 
-#   rake "inc_upd_q"
-#   rake "inc_upd_a"
-#   rake "com_upd"
-# end
-# 
-# every 1.day, :at => "1:40 pm" do
-#   rake "us_upd_a"
-#   rake "us_upd_q"
-#   rake "us_upd_m"
-# end
-# 
-# every 1.day, :at => "2:00 pm" do 
-#   rake "bls_cpi_upd_m"
-#   rake "bls_job_upd_m"
-#   rake "bls_cpi_upd_s"
-#   rake "hiwi_upd"
-# end
-# 
-# every 1.day, :at => "2:30 pm" do 
-#   rake "bls_identities"
-#   rake "bea_identities"
-# end
-# 
-# every 1.day, :at => "3:00 pm" do
-#   rake "expenditures_and_nbi"
-#   rake "visitor_identities"
-#   rake "const_identities"
-# end
-# 
-# 
-# every 1.day, :at => "3:20 pm" do
-#   rake "run_aggregations"
-#   rake "run_aggregations2"
-#   rake "run_aggregations3"
-#   rake "run_aggregations4"
-#   rake "run_aggregations5"
-# end
-# 
-# every 1.day, :at => "3:40 pm" do
-#   rake "bls_nbis"
-# end
-# 
-# every 1.day, :at => "3:50 pm" do
-#   rake "gen_investigate_csv"
-# end
-
-
-
-
-
-
-

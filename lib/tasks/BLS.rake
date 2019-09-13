@@ -1031,39 +1031,5 @@ task :bls_identities => :environment do
     end
   end
   
-  # ["EGV", "E_LH", "E_PBS", "E_FIR", "EAE"].each do |s_name|
-  #   ["HON", "HAW", "MAU", "KAU"].each do |county|
-  #     puts "distributing #{s_name}, #{county}"
-  #     "#{s_name}@#{county}.M".ts_eval= %Q|"#{s_name}@HI.M".ts.aa_county_share_for("#{county}")|
-  #   end
-  # end
-  
-  # EAF@HI.M
-  # Before 1990 calculate with identity  
-  #circular reference
-  #"EAF@HI.M".ts_eval= %Q|("EAFAC@HI.M".ts + "EAFFD@HI.M".ts).trim("1972-01-01","1989-12-01")|
-
-  # E_FIR@HI.M
-  # Before 1990 calculate with identity:
-  #circular reference
-  #somehow got uncommented. Still a circular reference
-  #"E_FIR@HI.M".ts_eval= %Q|("EFI@HI.M".ts + "ERE@HI.M".ts).trim("1958-01-01","1989-12-01")|
-
-  # E_TTU@cnty
-  # Before 1990 distribute HI to CNTY
-  # circular refs
-  # ["HON", "HAW", "MAU", "KAU"].each do |county| 
-  #   "E_TTU@#{county}.M".ts_eval= %Q|"E_TU@HI.M".ts.aa_state_based_county_share_for("#{county}").trim("1972-01-01","1989-12-01")|
-  # end 
-
-  # E_trade/tradens @hi/cnty
-  # Before 1990 calculate with identity
-  ["HI", "HON", "HAW", "MAU", "KAU"].each do |county|
-    #causes mismatches (but not circular references... though there does seem to be weird related slowdowns)
-    #{}"E_TRADENS@#{county}.M".ts_eval= %Q|("E_TTUNS@#{county}.M".ts - "E_TUNS@#{county}.M".ts).trim("1972-01-01","1989-12-01")|
-    #circular reference
-    #"E_TRADE@#{county}.M".ts_eval= %Q|("E_TTU@#{county}.M".ts - "E_TU@#{county}.M".ts).trim("1972-01-01","1989-12-01")|
-  end
-  
   CSV.open("public/rake_time.csv", "a") {|csv| csv << ["bls_identities", "%.2f" % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
