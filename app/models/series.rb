@@ -208,25 +208,26 @@ class Series < ApplicationRecord
     self.build_name(freq: freq.upcase).ts
   end
 
-  def is_primary
-    xseries && xseries.primary_series === self
+  def is_primary?
+    xseries.primary_series === self
   end
 
-  def has_primary
-    xseries && xseries.primary_series
+  def has_primary?
+    xseries.primary_series
   end
 
   def get_aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
-  def alias_primary_for(universe)
-    raise "#{self} is not a primary series, cannot be aliased" unless is_primary
+  def create_alias(parameters)
+    universe = parameters[:universe] || raise('Universe must be specified to create alias')
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
     raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
-    new.assign_attributes(universe: universe, geography_id: new_geo.id)
+    new.assign_attributes(parameters.merge(geography_id: new_geo.id))
     new.save!
     new.xseries.update!(primary_series_id: self.id)  ## just for insurance
     new
@@ -1007,15 +1008,7 @@ class Series < ApplicationRecord
     end
     self.delete
   end
-    
-  def last_data_added
-    self.data_points.order(:created_at).last.created_at
-  end
-  
-  def last_data_added_string
-    last_data_added.strftime('%B %e, %Y')
-  end
-  
+
   def Series.get_all_series_by_eval(patterns)
     if patterns.class == String
       patterns = [patterns]

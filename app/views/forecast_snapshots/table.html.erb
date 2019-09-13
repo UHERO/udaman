@@ -7,7 +7,7 @@
 <%= link_to 'Back', forecast_snapshots_path %>
 
 <h2 class="snapshot-table-title"><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
-<p><%= @forecast_snapshot.created_at.localtime.strftime('%m/%d/%y') %></p>
+<p><%= @forecast_snapshot.created_at.strftime('%m/%d/%y') %></p>
 
 <table class="snapshot-table">
   <tr>

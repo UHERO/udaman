@@ -126,7 +126,7 @@ class DataListsController < ApplicationController
   end
 
   def create
-    properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id, owned_by: current_user.id)
+    properties = data_list_params.merge(created_by: current_user.id, updated_by: current_user.id)
     category = Category.find(params[:category_id].to_i) rescue nil
     if category
       properties.merge!(universe: category.universe)
@@ -151,7 +151,7 @@ class DataListsController < ApplicationController
 
   def update
     respond_to do |format|
-      if @data_list.update! data_list_params.merge({ :updated_by => current_user.id })
+      if @data_list.update! data_list_params.merge(updated_by: current_user.id)
         format.html { redirect_to(@data_list, :notice => 'Data list was successfully updated.') }
         format.xml  { head :ok }
       else

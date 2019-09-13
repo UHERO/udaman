@@ -315,7 +315,7 @@ private
   end
 
   def tsd_rel_filepath(name)
-    string = self.forecast_snapshot.created_at.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
+    string = self.forecast_snapshot.created_at.utc.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
     hash = Digest::MD5.new << string
     File.join(TsdFile.path_prefix, hash.to_s+'_'+name)
   end
