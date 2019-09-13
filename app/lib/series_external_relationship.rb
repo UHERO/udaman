@@ -98,7 +98,7 @@ module SeriesExternalRelationship
         date = datestring.to_date
         unless data[date].nil?
           diff = a_diff(value, self.units_at(date))
-          dp = DataPoint.where(:series_id => self.id, :date => date, :current=>true)[0]
+          dp = DataPoint.where(:xseries_id => self.xseries.id, :date => date, :current => true)[0]
           source_code = dp.source_type_code
           #Rails.logger.debug { "aremos_comp_display_array: #{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
           results.push(0+source_code) if diff == 0

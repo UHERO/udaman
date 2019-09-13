@@ -6,9 +6,6 @@ describe SeriesAggregation do
   before(:all) do
     
     @dh = get_data_hash
-    #DataPoint.ensure_index :series_id
-    #DataPoint.ensure_index :date_string
-    #DataPoint.ensure_index :current
     @expected_years         = [ "2001-01-01", "2002-01-01" ]
     @expected_month_to_year_sums     = { "2001-01-01"=>162, "2002-01-01"=>306 }
     @expected_month_to_year_avgs     = { "2001-01-01"=>13.5, "2002-01-01"=>25.5 }

@@ -6,10 +6,10 @@ class ForecastSnapshot < ApplicationRecord
 
   # Get series name from series mnemonic
   def retrieve_name(name)
-    s = Series.find_by(name: name)
+    s = Series.find_by(universe: 'UHERO', name: name)
     if s.nil?
       prefix = name[/[^@]*/]
-      like_series = Series.find_by("name LIKE '#{prefix}@%'")
+      like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
       return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
     end
     s.aremos_series.description.titlecase
@@ -17,7 +17,7 @@ class ForecastSnapshot < ApplicationRecord
 
   # Get series percent from series mnemonic
   def retrieve_percent(name)
-    s = Series.find_by(name: name)
+    s = Series.find_by(universe: 'UHERO', name: name)
     if s.nil?
       return ''
     end
@@ -26,14 +26,14 @@ class ForecastSnapshot < ApplicationRecord
 
   # Get series units
   def retrieve_units(prefix)
-    m = Measurement.find_by(prefix: prefix.chomp('NS'))
+    m = Measurement.find_by(universe: 'UHERO', prefix: prefix.chomp('NS'))
     return 'Values' if m.nil?
     m.unit ? m.unit.short_label : 'Values'
   end
 
   # Get series ID for each series
   def retrieve_series_id(name)
-    s = Series.find_by(name: name)
+    s = Series.find_by(universe: 'UHERO', name: name)
     if s.nil?
       return ''
     end
@@ -42,7 +42,7 @@ class ForecastSnapshot < ApplicationRecord
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
   def unrestrict_series(name)
-    s = Series.find_by(name: name)
+    s = Series.find_by(universe: 'UHERO', name: name)
     if !s.nil? && s.restricted
       s.update_attributes({:restricted => false})
     end
@@ -99,7 +99,7 @@ class ForecastSnapshot < ApplicationRecord
     history_tsd_filename ? delete_file_from_disk(history_tsd_filename) : true
   end
 
-  private
+private
   def write_file_to_disk(name, content)
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
@@ -139,8 +139,8 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def tsd_rel_filepath(name)
-    string = self.created_at.to_s+'_'+self.id.to_s+'_'+name
+    string = self.created_at.utc.to_s+'_'+self.id.to_s+'_'+name
     hash = Digest::MD5.new << string
     File.join('tsd_files', hash.to_s+'_'+name)
-    end
+  end
 end

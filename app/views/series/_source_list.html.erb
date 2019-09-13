@@ -1,23 +1,23 @@
 <table>
-	<% series.data_sources_by_last_run.each do |ds| %>
+	<% series.data_sources_sort_for_display.each do |ds| %>
   	<% myeval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
   		<td>
-      <%= ds.last_run ? ds.last_run.localtime.strftime("%m/%d/%y") : '-' %>&nbsp;<span style="color:gray"><%=
-					ds.last_run ? ds.last_run.localtime.strftime("%H:%M:%S") : '-' %></span>&nbsp;(<%= ds.priority %>)<br />
+      <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>&nbsp;<span style="color:gray"><%=
+					ds.last_run ? ds.last_run.strftime("%H:%M:%S") : '-' %></span>&nbsp;(<%= ds.priority %>)<br />
  					<%= 
-						link_to "load", {   	
-							:controller=> "data_sources", 
+						link_to 'load', {
+							:controller => 'data_sources',
 							:action => 'source', 
 							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
-						link_to "clear", {   	
-							:controller=> "data_sources", 
+						link_to 'clear', {
+							:controller => 'data_sources',
 							:action => 'clear',
 							:id => ds.id} unless myeval.blank?
 					%>&nbsp;|&nbsp;<%= 
-						link_to "delete", {
-							:controller=> "data_sources",
+						link_to 'delete', {
+							:controller => 'data_sources',
 							:action => 'delete', 
 							:id => ds.id },
 							data: { :confirm => "Delete definition #{ds.id}: Are you sure??" }
@@ -31,7 +31,7 @@
         <% if ds.last_error %>
           <p>
             <span style='color:red;' title='<%= ds.last_error %>'>Last error<br/>
-              <%= ds.last_error_at.localtime.strftime('%m/%d/%y %H:%M:%S') %>
+              <%= ds.last_error_at.strftime('%m/%d/%y %H:%M:%S') %>
             </span> <br/>
             <%= ds.last_error %>
           </p>

@@ -174,3 +174,251 @@ task :ua_994 => :environment do
     puts "done."
   end
 end
+
+## JIRA UA-1139
+task :ua_1139 => :environment do
+  coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW geography in COH')
+  coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
+
+  Measurement.where(universe: 'UHERO').each do |m|
+    dls = m.data_lists.reject{|dl| dl.universe == 'UHERO' }
+    next if dls.empty?
+    coh_m = m.dup
+    coh_m.assign_attributes(universe: 'COH')
+    coh_m.save!
+    puts ">>> Created new COH meas #{coh_m.prefix}"
+    dls.each do |list|
+      if list.universe != 'COH'
+        Rails.logger.warn { "---------------------------- DL UNIVERSE OTHER THAN COH => id=#{list.id}, u=#{list.universe} found!" }
+      end
+      DataList.transaction do
+        list.measurements.delete(m)
+        list.measurements << coh_m
+      end
+      puts ">>> Replaced meas #{m.prefix} with #{coh_m.prefix} in DL #{list.name}"
+    end
+    siriz = m.series
+    siriz.each do |s|
+      if s.universe == 'COH'
+        Series.transaction do
+          m.series.delete(s)
+          coh_m.series << s
+        end
+        next
+      end
+      ## else s.universe is UHERO or UHEROCOH
+      s_geo = s.geography.handle.upcase
+      unless s_geo == 'HAW' || s_geo == 'HI'
+        puts ">>> non-COH geography: #{s.name}"
+        s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
+        next
+      end
+      ## s.geography is HAW or HI
+      coh_s = s.dup
+      coh_s.assign_attributes(universe: 'COH', primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+      Series.transaction do
+        coh_s.save!
+        coh_m.series << coh_s
+        puts ">>> New COH series created"
+        s.update({ universe: 'UHERO' }) if s.universe == 'UHEROCOH'
+      end
+    end
+  end
+
+  ## At this point, all the series that COH should have in their portal have already been handled in the above loop,
+  ## and if there are any leftover series still under universe: 'UHEROCOH', it should be safe to simply
+  ## reassign these to plain ol' UHERO.
+  Series.where(universe: 'UHEROCOH').each do |s|
+    puts ">>> Resetting #{s.name} from UHEROCOH to UHERO"
+    s.update!({ universe: 'UHERO' })
+  end
+end
+
+## JIRA UA-1152
+task :ua_1152 => :environment do
+  coh_haw = Geography.find_by(universe: 'COH', handle: 'HAW').id rescue raise('No HAW geography in COH')
+  coh_hi = Geography.find_by(universe: 'COH', handle: 'HI').id rescue raise('No HI geography in COH')
+
+  Measurement.where(universe: 'DBEDTCOH').each do |m|
+    siriz = m.series.map(&:id)  ## had trouble gathering/iterating over series objects, so use ids to be "safer"
+    puts "======================= PROC measurement #{m.prefix}, count #{siriz.count}"
+    siriz.each do |sid|
+      s = Series.find sid
+      puts ">>>>>>>>>>>>>> PROC series #{s.name} (#{sid})"
+      s_geo = s.geography.handle.upcase
+      Measurement.transaction do
+        s.update!(universe: 'DBEDT')
+        m.series.delete(s)
+        puts ">>> Removed #{s.name} from meas #{m.prefix} and universe -> DBEDT"
+        if s_geo == 'HAW' || s_geo == 'HI'
+          coh_s = Series.find_by(universe: 'COH', xseries_id: s.xseries_id)
+          if coh_s
+            puts "-----------> FOUND EXISTING #{coh_s.name} (#{coh_s.id}) to match #{s.name}"
+          else
+            coh_s = s.dup
+            coh_s.assign_attributes(universe: 'COH', primary_series_id: s.id, geography_id: s_geo == 'HI' ? coh_hi : coh_haw)
+            coh_s.save!
+          end
+          m.series << coh_s
+          puts ">>> New COH series #{coh_s.name} (#{coh_s.id}) for COH meas #{m.prefix}"
+        else
+          puts ">>> non-COH geography: #{s.name}"
+        end
+      end
+    end
+    puts ">>> Rename Measurement #{m.prefix} to COHDB and universe -> COH"
+    m.update!(universe: 'COH')
+  end
+
+  ## At this point, all the series that COH should have in their portal have already been handled in the above loop,
+  ## and if there are any leftover series still under universe: 'DBEDTCOH', it should be safe to simply
+  ## reassign these to plain ol' DBEDT.
+  Series.where(universe: 'DBEDTCOH').each do |s|
+    puts ">>> Resetting #{s.name} from DBEDTCOH to DBEDT"
+    s.update!(universe: 'DBEDT')
+  end
+end
+
+## JIRA UA-1160
+task :ua_1160 => :environment do
+  old = %w[CA4    CA5N    CA6N    RPI1  RPI2  RPP1  RPP2  IRPD1  IRPD2  SA4    SA5N    SA6N    SQ4    SQ5    SQ5N    SQ6N]
+  new = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
+
+  sids = DataSource.get_all_uhero.where(%q{eval like '%load\_from\_bea%'}).map {|ds| ds.series.id }.uniq
+  sids.each do |sid|
+    siriz = Series.find(sid)
+    bea_defs = siriz.data_sources.select {|d| d.eval =~ /load_from_bea.*Regional/ }
+    next if bea_defs.count < 2
+
+    exists = {}
+    ## first pass to load up what exists here
+    bea_defs.each do |d|
+      next unless d.eval =~ /load_from_bea\s*\((.+?)\)/   ## extract load_from_bea parameters as a string
+      (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
+      slug = [freq, dataset, opts[:TableName]].join('|')
+      exists[slug] = d
+      puts "FOUND #{d.eval}"
+    end
+    ## second pass to check and delete, and make changes
+    bea_defs.each do |d|
+      next unless d.eval =~ /load_from_bea\s*\((.+?)\)/
+      (freq, dataset, opts) = Kernel::eval ('[%s]' % $1)
+      name_index = new.index(opts[:TableName])
+      next unless dataset == 'Regional' && name_index  ## only look at these
+
+      old_slug = [freq, 'RegionalIncome', old[name_index]].join('|')
+      old_def = exists[old_slug]
+      if old_def
+        puts "DESTROY #{old_slug}"
+        old_def.destroy
+      end
+
+      if opts[:TableName] == 'SAINC4' || opts[:TableName] == 'SQINC4'
+        unless d.eval =~ /\*\s*1000\s*$/
+          puts "ADD * 1000 to #{d.eval}"
+          d.update!(eval: d.eval + ' * 1000')
+        end
+      end
+    end
+    puts "---- #{siriz} -----------------" unless exists.empty?
+  end
+end
+
+## JIRA UA-1165
+task :ua_1165 => :environment do
+  old = %w[CA4    CA5N    CA6N    RPI1  RPI2  RPP1  RPP2  IRPD1  IRPD2  SA4    SA5N    SA6N    SQ4    SQ5    SQ5N    SQ6N]
+  new = %w[CAINC4 CAINC5N CAINC6N SARPI MARPI SARPP MARPP SAIRPD MAIRPD SAINC4 SAINC5N SAINC6N SQINC4 SQINC5 SQINC5N SQINC6N]
+
+  ds = DataSource.get_all_uhero.where(%q{eval like "%load\_from\_bea%'RegionalIncome'%"})
+  ds.each do |d|
+    unless d.eval =~ /load_from_bea\s*\((.+?)\)/
+      raise "MATCH ERROR ON id = #{d.id}"
+    end
+    (_, dataset, opts) = Kernel::eval ('[%s]' % $1)  ## reconstitute into an array - Ruby rox
+    unless dataset == 'RegionalIncome'
+      raise "DATASET ERROR ON id = #{d.id}"
+    end
+    idx = old.index(opts[:TableName]) || next
+    new_eval = d.eval.sub('RegionalIncome','Regional').sub(opts[:TableName], new[idx])
+    puts "replacing | #{d.eval} | with | #{new_eval} |"
+    d.update!(eval: new_eval)
+  end
+end
+
+## JIRA UA-1179, first pass, reassigning DBEDT series with UHERO units to DBEDT units
+task :ua_1179a => :environment do
+  uh2db = {
+      4 => 157,
+      7 => 158,
+      9 => 143,
+      10 => 166,
+      14 => 165,
+      17 => 161,
+      20 => [144, 164, 151],
+      21 => 171,
+      22 => 146,
+      26 => 156,
+      27 => 159,
+      30 => 145,
+      32 => 148,
+      33 => 163,
+      34 => 162,
+      41 => [141, 172],
+      43 => 167,
+      44 => 139,
+      45 => 140,
+      46 => 168,
+      47 => 155,
+      48 => 169,
+      49 => 170,
+      50 => 152,
+      51 => 154,
+      54 => 147,
+      57 => 138,
+      63 => 149,
+      67 => 150,
+      69 => 160,
+      70 => 153,
+      131 => 142
+  }
+  db2uh = {}
+
+  uh2db.keys.each do |k|
+    v = uh2db[k]
+    x = v.class == Array ? v[0] : v
+    if db2uh[x]
+      raise "already saw unit key #{x}"
+    end
+    db2uh[x] = k
+  end
+
+  i = 0
+  deebs = Series.joins(:unit).where(%q{series.universe = 'DBEDT' and units.universe = 'UHERO'})
+  deebs.each do |ds|
+    new_unit = uh2db[ds.unit_id]
+    if new_unit.class == Array
+      new_unit = new_unit[0]
+    end
+    puts "deebs changing #{ds.unit_id} to #{new_unit}"
+    ds.update(unit_id: new_unit)
+    i += 1
+  end
+  puts "========================================================= end: changed #{i} records"
+  i = 0
+  coes = Series.joins(:unit).where(%q{series.universe = 'COH' and units.universe = 'UHERO'})
+  coes.each do |c|
+    next if c.primary_series && c.primary_series.universe != 'DBEDT'
+    new_unit = c.primary_series.unit_id
+    puts "coes changing #{c.unit_id} to #{new_unit}"
+    uh_unit = uh2db[c.unit_id]
+    if uh_unit.class == Array
+      uh_unit = uh_unit[0]
+    end
+    if uh_unit != new_unit
+      puts "-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=--=-==-=-=-=-=-=-=-=-=>>>>> uh #{uh_unit} != db #{new_unit}"
+    end
+    c.update(unit_id: new_unit)
+    i += 1
+  end
+  puts "========================================================= end: changed #{i} records"
+end

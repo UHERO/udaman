@@ -34,7 +34,7 @@ class XlsCsvWorker
       end
       Rails.logger.debug { "#{which}: before load_csv" }
       dbu.load_csv(which)
-      dbu = DbedtUpload.find(dbu.id) ## reload dbu to get updated other_proc_status -dji
+      dbu.reload ## to get updated other_proc_status
       other_proc_status = (which == 'cats') ? dbu.series_status : dbu.cats_status
       if other_proc_status == 'ok'
         Rails.logger.debug { "#{which}: calling make_active_settings" }

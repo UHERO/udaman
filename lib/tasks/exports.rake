@@ -28,6 +28,7 @@ task :tsd_exports => :environment do
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['tsd_exports', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
+### Do we really still need this? What was the compelling reason for introducing it in the first place?
 task :categories_backup => :environment do
   misc_dir = File.join(ENV['DATA_PATH'], 'misc')
   new_dump = File.join(misc_dir, 'new_dump.sql')

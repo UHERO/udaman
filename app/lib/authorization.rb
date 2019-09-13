@@ -12,7 +12,7 @@ module Authorization
   end
 
   def check_forecast_snapshot_authorization
-    if current_user.heco? && (%w(index show).include?(params[:action]))
+    if current_user.heco? && (%w(index show table).include?(params[:action]))
       return
     end
     check_authorization
@@ -25,27 +25,20 @@ module Authorization
     check_authorization
   end
 
-  def check_nta_upload_authorization
-    if current_user.nta?
-      return
-    end
-    check_authorization
-  end
-
   def check_authorization
     unless current_user.internal_user?
-      redirect_to :back, flash: { error: 'Not authorized to view' }
+      redirect_back fallback_location: '/', flash: { error: 'Access not authorized' }
       return
     end
-    if !current_user.admin_user? && !Authorization::EDIT_ACTIONS.index(params[:action]).nil?
-      puts 'not admin AND edit command'
-      redirect_to :back, flash: { error: 'Not authorized to edit' }
+    if Authorization::EDIT_ACTIONS.include?(params[:action]) && !current_user.admin_user?
+      redirect_back fallback_location: '/', flash: { error: 'Edit not authorized' }
       return
     end
-    if !current_user.dev_user? && params[:action] == 'destroy'
-      redirect_to :back, flash: { error: 'Not authorized to destroy' }
+    if params[:action] == 'destroy' && !current_user.dev_user?
+      redirect_back fallback_location: '/', flash: { error: 'Destroy not authorized' }
       return
     end
+    true
   end
 
 private

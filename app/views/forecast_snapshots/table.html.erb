@@ -1,11 +1,13 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Charts', forecast_snapshot_path(@forecast_snapshot) %> |
-<%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<% if current_user.internal_user? %>
+  <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<% end %>
 <%= link_to 'Back', forecast_snapshots_path %>
 
 <h2 class="snapshot-table-title"><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
-<p><%= @forecast_snapshot.created_at.localtime.strftime('%m/%d/%y') %></p>
+<p><%= @forecast_snapshot.created_at.strftime('%m/%d/%y') %></p>
 
 <table class="snapshot-table">
   <tr>
@@ -18,7 +20,7 @@
     <% end %>
   </tr>
   <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
-      <% precision = s[:udaman_series].nil? ? 1 : s[:udaman_series][:decimals] %>
+      <% precision = (s[:udaman_series].decimals || 1) rescue 1 %>
     <tr>
       <%
         mnemonic = s[:name] + '.' + s[:frequency]

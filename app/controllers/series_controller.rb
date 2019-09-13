@@ -2,37 +2,76 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :analyze, :add_to_quarantine, :remove_from_quarantine,
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
-  # GET /series/new
   def new
-    @series = Series.new
+    @universe = params[:u].upcase rescue 'UHERO'
+    @series = Series.new(universe: @universe, xseries: Xseries.new)
+    set_attrib_resource_values(@series)
   end
 
-  # GET /series/bulk
   def bulk_new
   end
 
-  # POST /series
+  def edit
+    @add2meas = params[:add_to_meas].to_i
+    set_attrib_resource_values(@series)
+  end
+
   def create
     begin
-      @series = Series.create_new(series_params.merge(other_params))
+      @series = Series.create_new( series_params.merge(name_parts: name_parts) )
     rescue => error
-      redirect_to({ :action => :new }, :notice => error.message)
+      redirect_to({ action: :new }, notice: error.message)
       return
     end
     if @series
-      redirect_to @series, notice: 'Series was successfully created.'
+      redirect_to @series, notice: 'Series successfully created'
     else
       render :new
     end
   end
 
+  def new_alias
+    @orig_sid = @series.id
+    @series = @series.dup
+    @series.assign_attributes(universe: params[:new_univ])
+    set_attrib_resource_values(@series)
+    @add2meas = params[:add_to_meas].to_i
+  end
+
+  def alias_create
+    @series = @series.create_alias(series_params)
+    mid = params[:add2meas].to_i
+    if mid > 0
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+    else
+      redirect_to @series, notice: 'Alias series successfully created'
+    end
+  end
+
+  def update
+    respond_to do |format|
+      if @series.update! series_params
+        mid = params[:add2meas].to_i
+        if mid > 0
+          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+          return
+        end
+        format.html { redirect_to(@series, notice: 'Series successfully updated') }
+        format.xml  { head :ok }
+      else
+        format.html { render action: :edit }
+        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
+      end
+    end
+  end
+
   # POST /series/bulk
   def bulk_create
-    if Series.bulk_create other_params[:definitions].split(/\n+/).map{|dfn| dfn.strip }
+    if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to '/series'
     end
   end
@@ -46,10 +85,6 @@ class SeriesController < ApplicationController
       redirect_to :controller => :dbedt_uploads, :action => :index
       return
     end
-    if current_user.nta?
-      redirect_to :controller => :nta_uploads, :action => :index
-      return
-    end
     unless current_user.internal_user?
       render text: 'Your current role only gets to see this page.', layout: true
       return
@@ -61,7 +96,7 @@ class SeriesController < ApplicationController
     @all_series =
       case
         when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency LIKE ?', frequency).order(:name)
+        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
         when all then       Series.get_all_uhero.order(:name)
         else []
       end
@@ -83,22 +118,26 @@ class SeriesController < ApplicationController
   end
 
   def no_source
-    @series = Series.get_all_uhero.where(source_id: nil)
+    @series = Series.get_all_uhero.where('source_id is null')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def no_source_no_restrict
-    @series = Series.get_all_uhero.where(source_id: nil, restricted: false)
+    @series = Series.get_all_uhero.where('source_id is null and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def quarantine
-    @series = Series.get_all_uhero.where(quarantined: true, restricted: false)
+    @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
   def old_bea_download
     @old_bea_series = Series.get_old_bea_downloads
+    respond_to do |format|
+      format.csv { render layout: false }
+      format.html
+    end
   end
 
   def sidekiq_failed
@@ -129,7 +168,8 @@ class SeriesController < ApplicationController
   def json_with_change
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
   end
-  
+
+  ## IS THIS ACTION REALLY USED by users? If not, it and the model method get_tsd_series_data() it calls can be 86-ed.
   def show_forecast
     tsd_file = params[:tsd_file]
     if tsd_file.nil?
@@ -144,23 +184,6 @@ class SeriesController < ApplicationController
     end
   end
   
-  def edit
-  end
-  
-  def update    
-    respond_to do |format|
-      if @series.update! series_params
-        format.html { redirect_to(@series,
-                      :notice => 'Data File successfully updated.') }
-        format.xml  { head :ok }
-      else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @series.errors,
-                      :status => :unprocessable_entity }
-      end
-    end
-  end
-
   def refresh_aremos
     @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
@@ -279,28 +302,42 @@ private
       params.require(:series).permit(
           :universe,
           :description,
-          :units,
-          :investigation_notes,
           :dataPortalName,
           :unit_id,
-          :seasonal_adjustment,
-          :percent,
-          :real,
-          :decimals,
-          :frequency_transform,
-          :restricted,
           :source_id,
           :source_link,
-          :source_detail_id
+          :source_detail_id,
+          :investigation_notes,
+          xseries_attributes: [
+              :percent, :real, :decimals, :units, :restricted, :seasonal_adjustment, :frequency_transform
+          ]
       )
     end
 
-  def other_params
-    params.permit(:definitions, name_parts: [:prefix, :geo_id, :freq])
+  def name_parts
+    params.require(:name_parts).permit(:prefix, :geography_id, :freq)
+  end
+
+  def bulk_params
+    params.require(:bulk_defs).permit(:definitions)
   end
 
   def set_series
     @series = Series.find params[:id]
+  end
+
+  def set_attrib_resource_values(series)
+    primary_univ = series.has_primary? ? series.primary_series.universe : 'UHERO'
+    @all_geos = Geography.where(universe: series.universe)
+    if @all_geos.empty?
+      raise "Universe #{series.universe} has no geographies of its own"
+    end
+    @all_units = Unit.where(universe: series.universe)
+    @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_sources = Source.where(universe: series.universe)
+    @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: series.universe)
+    @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
   end
 
   # obsolete/vestigial code?

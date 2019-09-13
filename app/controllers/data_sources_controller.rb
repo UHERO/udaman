@@ -11,6 +11,7 @@ class DataSourcesController < ApplicationController
   
   def clear
     @data_source.delete_data_points
+    @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   

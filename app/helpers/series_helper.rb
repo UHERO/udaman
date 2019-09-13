@@ -1,7 +1,7 @@
 module SeriesHelper
   include Validators
   require 'csv'
-  
+
   def csv_helper
     CSV.generate do |csv| 
       # series_data = @data_list.series_data
@@ -22,7 +22,26 @@ module SeriesHelper
       end
     end
   end
-  
+
+  ## Method can be deleted right after story is complete
+  def ua_1164_csv_generate
+    #require 'nokogiri'
+    CSV.generate(nil, {col_sep: "\t"}) do |csv|
+      @old_bea_series.each do |s|
+        ds = s.data_sources.reject {|d| d.eval =~ /load_from_bea/ }
+        ds.each do |d|
+          row = [s.name, d.eval]
+          if d.eval =~ /load_from_download\s*"(.+?)"/
+            if dl = Download.find_by(handle: $1)
+              row.push "https://udaman.uhero.hawaii.edu/downloads/#{dl.id}"
+            end
+          end
+          csv << row
+        end
+      end
+    end
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
@@ -61,24 +80,20 @@ module SeriesHelper
   end
   
   def linked_version_with_action(description, action)
-    return '' if description.nil?
+    return '' if description.blank?
     new_words = []
     description.split(' ').each do |word|
-      #new_word = word.index('@').nil? ? word : link_to(word, {:action => 'show', :id => word.ts.id})
       new_word = word
-      begin
-        new_word = (word.index('@').nil? or word.split('.')[-1].length > 1) ? word : link_to(word, {:action => action, :id => word.ts.id}, :target=>'_blank' )
-      rescue
-        new_word = word
+      if valid_series_name(word)
+        series = word.ts
+        new_word = link_to(word, { action: action, id: series }) if series
       end
       new_words.push new_word
     end
     new_words.join(' ')
   end
   
-#  def aremos_color(val, aremos_val)
   def aremos_color(diff)
-
 #    diff = (val - aremos_val).abs
     mult = 5000
     gray = "99"
@@ -108,7 +123,7 @@ module SeriesHelper
     html = ""
     all_uhero = Series.get_all_uhero
     [:month, :quarter, :year].each do |frequency|
-      count = all_uhero.where(frequency: frequency).count
+      count = all_uhero.where('frequency = ?', frequency).count
       html += link_to(raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {action: :index, freq: frequency})
       html += "&nbsp;"
     end
@@ -120,13 +135,42 @@ module SeriesHelper
     (nightly ? 'disable' : 'enable') + ' nightly reload'
   end
 
-  def make_live_link(url, text = url)
+  def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
     "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
   end
 
   def sa_indicator(string)
-    string == 'NA' ? '-' : "<span class='#{string.downcase}-indicator'>#{string}</span>".html_safe
+    sa_sym = string.to_sym rescue :none
+    short = { not_applicable: 'NA', seasonally_adjusted: 'SA', not_seasonally_adjusted: 'NS' }[sa_sym] || 'NA'
+    short == 'NA' ? '-' : "<span class='#{short.downcase}-indicator'>#{short}</span>".html_safe
   end
+
+  def make_alt_universe_links(series)
+    alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
+    links = []
+    seen = {}
+    series.get_aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|
+      links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
+      seen[s.universe] = true
+    end
+    if series.is_primary?
+      ## Add creation links
+      alt_univs[series.universe].each do |univ|
+        next if seen[univ]
+        links.push link_to(univ_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
+      end
+    end
+    links.join(' ')
+  end
+
+  def universe_label(series)
+    series.is_primary? ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
+  end
+
+  def univ_create_label(text)
+    "<span class='grayedout'>[#{text}]</span>".html_safe
+  end
+
 end

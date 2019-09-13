@@ -14,16 +14,16 @@ class Series < ApplicationRecord
   include SeriesStatistics
   include Validators
 
-  validates :name, presence: true, uniqueness: true
+  validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
 
-  #serialize :data, Hash
-  serialize :factors, Hash
-  
-  has_many :data_points, dependent: :delete_all
-  has_many :data_sources, dependent: :destroy
+  belongs_to :xseries, inverse_of: :series
+  accepts_nested_attributes_for :xseries
+  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
+
+  has_many :data_points, through: :xseries
+  has_many :data_sources, inverse_of: :series, dependent: :destroy
   has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
-  has_many :sidekiq_failures  ## really only has one, but stupid Rails error prevented relation from working with has_one :(
 
   has_and_belongs_to_many :data_lists
 
@@ -37,39 +37,227 @@ class Series < ApplicationRecord
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
 
-  enum seasonal_adjustment: { NA: 'not_applicable',
-                              SA: 'seasonally_adjusted',
-                              NS: 'not_seasonally_adjusted' }
+  enum seasonal_adjustment: { not_applicable: 'not_applicable',
+                              seasonally_adjusted: 'seasonally_adjusted',
+                              not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
-  ## columns/attributes based on heuristics over other attributes in the model. In any case, replacing the
-  ## name.split with a Series.parse_name would be better.
+  ## columns/attributes based on heuristics over other attributes in the model.
   after_create do
-    self.update frequency: (Series.frequency_from_code(self.name.split('.').pop) || self.frequency)
+    unless frequency
+      self.update(frequency: self.frequency_from_name)
+    end
   end
 
-  def as_json(options = {})
-    as = AremosSeries.get(self.name)
-    desc = as.nil? ? '' : as.description
-    {
-      data: self.data,
-      frequency: self.frequency,
-      units: self.units,
-      description: desc,
-      source: self.original_url
-    }
+  def to_s
+    self.name || 'UNNAMED_SERIES'
+  end
+
+  def first_observation
+    data.keys.sort[0] rescue nil
+  end
+
+  def last_observation
+    data.keys.sort[-1] rescue nil
+  end
+
+  def Series.get_all_uhero
+    Series.get_all_universe 'UHERO'
+  end
+
+  def Series.get_all_universe(universe)
+    Series.joins(:xseries).where('series.universe like ?', '%' + universe + '%')
+  end
+
+  def Series.all_names
+    Series.get_all_uhero.pluck(:name)
+  end
+
+  def Series.get(name)
+    Series.parse_name(name) && Series.where(name: name).first
+  end
+
+  def Series.get_or_new(series_name)
+    Series.get(series_name) || Series.create_new(name: series_name)
   end
 
   def Series.bulk_create(definitions)
     definitions.each { |definition| Kernel::eval definition }
     return true
   end
-  
-  def last_observation
-    return nil if data.nil?
-    data.keys.sort[-1]
+
+  def Series.create_new(properties)
+    ## :xseries_attributes and :name_parts only present when called from SeriesController#create
+    xs_attrs = properties.delete(:xseries_attributes)
+    if xs_attrs
+      properties.merge!(xs_attrs)
+    end
+    name_parts = properties.delete(:name_parts)
+    if name_parts
+      properties.merge!(name_parts)
+    else
+      name_parts = Series.parse_name(properties[:name])
+    end
+
+    if properties[:geography_id]
+      geo = Geography.find properties[:geography_id]
+    else
+      uni = properties[:universe] || 'UHERO'
+      geo = Geography.find_by(universe: uni, handle: name_parts[:geo]) || raise("No #{uni} Geography found, handle=#{name_parts[:geo]}")
+    end
+    properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
+    properties[:geography_id] ||= geo.id
+    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
+
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    s = nil
+    begin
+      self.transaction do
+        x = Xseries.create!(properties.select{|k,_| xseries_attrs.include? k.to_s })
+        s = Series.create!(properties.select{|k,_| series_attrs.include? k.to_s }.merge(xseries_id: x.id))
+        x.update(primary_series_id: s.id)
+      end
+    rescue => e
+      raise "Model object creation failed for name #{properties[:name]}: #{e.message}"
+    end
+    s
   end
-  
+
+  ## NOTE: Overriding an important ActiveRecord core method!
+  def update(attributes)
+    xs_attrs = attributes.delete(:xseries_attributes)
+    if xs_attrs
+      attributes.merge!(xs_attrs)
+    end
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    begin
+      with_transaction_returning_status do
+        assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
+        save
+        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+      end
+    rescue => e
+      raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
+    end
+  end
+
+  alias update_attributes update
+
+  ## NOTE: Overriding an important ActiveRecord core method!
+  def update!(attributes)
+    xs_attrs = attributes.delete(:xseries_attributes)
+    if xs_attrs
+      attributes.merge!(xs_attrs)
+    end
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    begin
+      with_transaction_returning_status do
+        assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
+        save!
+        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+      end
+    rescue => e
+      raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
+    end
+  end
+
+  alias update_attributes! update!
+
+  def Series.parse_name(string)
+    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
+      return { prefix: $1, geo: $2, freq: $3.upcase }
+    end
+    raise SeriesNameException, "Invalid series name format: #{string}"
+  end
+
+  def parse_name
+    Series.parse_name(self.name)
+  end
+
+  def Series.build_name(prefix, geo, freq)
+    name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
+    Series.parse_name(name) && name
+  end
+
+  ## Build a new name starting from mine, and replacing whatever parts are passed in
+  def build_name(new_parts)
+    name = self.parse_name.merge(new_parts)
+    Series.build_name(name[:prefix], name[:geo], name[:freq])
+  end
+
+  ## Find NS@ correspondent series
+  def find_ns_series
+    self.build_name(prefix: self.parse_name[:prefix] + 'NS').ts
+  end
+
+  ## Find non-NS@ correspondent series
+  def find_non_ns_series
+    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,'')).ts
+  end
+
+  ## Find "sibling" series for a different geography
+  def find_sibling_for_geo(geo)
+    self.build_name(geo: geo.upcase).ts
+  end
+
+  ## Find "sibling" series for a different frequency
+  def find_sibling_for_freq(freq)
+    self.build_name(freq: freq.upcase).ts
+  end
+
+  def is_primary?
+    xseries.primary_series === self
+  end
+
+  def has_primary?
+    xseries.primary_series
+  end
+
+  def get_aliases
+    Series.where('xseries_id = ? and id <> ?', xseries_id, id)
+  end
+
+  def create_alias(parameters)
+    universe = parameters[:universe] || raise('Universe must be specified to create alias')
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
+    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
+    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
+    new = self.dup
+    new.assign_attributes(parameters.merge(geography_id: new_geo.id))
+    new.save!
+    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    new
+  end
+
+  ## Duplicate series for a different geography.
+  ## This won't work with the new Xseries architecture, but maybe is not needed anymore.
+  ## Was only used for a one-off job. If needed again, refactor carefully.
+  def dup_series_for_geo_DONTUSE(geo)
+    sib = find_sibling_for_geo(geo)
+    raise "Series #{sib.name} already exists" if sib
+    name = self.parse_name
+    new = self.dup
+    new.update(
+        geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
+        name: Series.build_name(name[:prefix], geo, name[:freq])
+    ## future/next time: the dataPortalName also needs to be copied over (with mods?)
+    )
+    new.save!
+    self.data_sources.each do |ds|
+      new_ds = ds.dup
+      if new_ds.save!
+        new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
+        new.data_sources << new_ds
+        new_ds.reload_source
+      end
+    end
+    new
+  end
+
   def Series.handle_buckets(series_array, handle_hash)
     series_array_buckets = {}
     series_array.each do |s|
@@ -86,7 +274,7 @@ class Series < ApplicationRecord
   def Series.last_observation_buckets(frequency)
     obs_buckets = {}
     mod_buckets = {}
-    results = Series.get_all_uhero.where(frequency: frequency).select('data, updated_at')
+    results = Series.get_all_uhero.where('frequency = ?', frequency).select('data, updated_at')
     results.each do |s|
       last_date = s.last_observation.nil? ? 'no data' : s.last_observation[0..6]
       last_update = s.updated_at.nil? ? 'never' : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
@@ -96,10 +284,6 @@ class Series < ApplicationRecord
       mod_buckets[last_update] += 1      
     end
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
-  end
-  
-  def Series.all_names
-    Series.get_all_uhero.pluck(:name)
   end
   
   def Series.region_hash
@@ -159,7 +343,15 @@ class Series < ApplicationRecord
     return :day if code == 'D' || code == 'd'
     return nil
   end
-  
+
+  def Series.frequency_from_name(name)
+    Series.frequency_from_code(Series.parse_name(name)[:freq])
+  end
+
+  def frequency_from_name
+    Series.frequency_from_name(self.name)
+  end
+
   def Series.each_spreadsheet_header(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?
@@ -198,41 +390,6 @@ class Series < ApplicationRecord
     end
   end
 
-  def Series.load_all_mean_corrected_sa_series_from(spreadsheet_path, sheet_to_load = nil)  
-    each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
-      frequency_code = code_from_frequency update_spreadsheet.frequency  
-      sa_base_name = series_name.sub('NS@','@')
-      sa_series_name = sa_base_name+'.'+frequency_code
-      ns_series_name = series_name+'.'+frequency_code
-      
-      demetra_series = new_transformation('demetra series', update_spreadsheet.series(series_name), frequency_code)
-      
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => demetra_series.data), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
-
-      unless ns_series_name.ts.nil?
-        mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_series_name.ts.annual_sum 
-        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-        Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => mean_corrected_demetra_series.data), "mean corrected against #{ns_series_name} and loaded from #{spreadsheet_path}", %Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
-      end
-      # sa_series_name.ts_eval=(%Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      # sa_series_name.ts_eval=(%Q^"#{sa_series_name}".tsn.load_mean_corrected_sa_from "#{update_spreadsheet_path}"^) if sheet_to_load.nil? 
-      #Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), update_spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{update_spreadsheet_path}"^)
-      #sa_series_name.ts.update_attributes(:seasonally_adjusted => true, :last_demetra_datestring => update_spreadsheet.dates.keys.sort.last)
-      sa_series_name
-      
-      
-            
-      
-      # demetra_series.frequency = update_spreadsheet.frequency
-      # self.frequency = update_spreadsheet.frequency
-      # mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
-      # new_transformation("mean corrected against #{ns_name} and loaded from #{update_spreadsheet_path}", mean_corrected_demetra_series.data)
-      
-      
-    end
-  end
-  
   def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
@@ -248,143 +405,53 @@ class Series < ApplicationRecord
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
   
-  def Series.get_all_uhero
-    Series.get_all_universe 'UHERO'
-  end
-
-  def Series.get_all_universe(universe)
-    Series.where('series.universe like ?', '%' + universe + '%')
-  end
-
-  def Series.get(name)
-    Series.parse_name(name) && Series.where(name: name).first
-  end
-
-  def Series.get_or_new(series_name)
-    Series.get(series_name) || Series.create_new({ name: series_name })
-  end
-
-  def Series.create_new(properties)
-    name_parts = properties.delete(:name_parts)
-    if name_parts  ## called from SeriesController#create
-      geo = Geography.find(name_parts[:geo_id]) || raise("No geography (id=#{name_parts[:geo_id]}) found for series creation")
-    else
-      name_parts = Series.parse_name(properties[:name])
-      geo = Geography.find_by(universe: 'UHERO', handle: name_parts[:geo]) ||
-              raise("No UHERO geography (handle=#{name_parts[:geo]}) found for series creation")
-    end
-    properties[:name] = Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
-    properties[:geography_id] = geo.id
-    properties[:frequency] = Series.frequency_from_code(name_parts[:freq])
-    Series.create(properties)
-  end
-
-  def Series.parse_name(string)
-    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase }
-    end
-    raise SeriesNameException, "Invalid series name format: #{string}"
-  end
-
-  def parse_name
-    Series.parse_name(self.name)
-  end
-
-  def Series.build_name(prefix, geo, freq)
-    name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
-    Series.parse_name(name) && name
-  end
-
-  ## Build a new name starting from mine, and replacing whatever parts are passed in
-  def build_name(new_parts)
-    name = self.parse_name.merge(new_parts)
-    Series.build_name(name[:prefix], name[:geo], name[:freq])
-  end
-
-  ## Find NS@ correspondent series
-  def find_ns_series
-    self.build_name(prefix: self.parse_name[:prefix] + 'NS').ts
-  end
-
-  ## Find non-NS@ correspondent series
-  def find_non_ns_series
-    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,'')).ts
-  end
-
-  ## Find "sibling" series for a different geography
-  def find_sibling_for_geo(geo)
-    self.build_name(geo: geo.upcase).ts
-  end
-
-  ## Find "sibling" series for a different frequency
-  def find_sibling_for_freq(freq)
-    self.build_name(freq: freq.upcase).ts
-  end
-
-  ## Duplicate series for a different geography
-  def dup_series_for_geo(geo)
-    sib = find_sibling_for_geo(geo)
-    raise "Series #{sib.name} already exists" if sib
-    name = self.parse_name
-    new = self.dup
-    new.update(
-        geography_id: Geography.get(universe: universe, handle: geo).id, ## raises err if geo does not exist
-        name: Series.build_name(name[:prefix], geo, name[:freq])
-        ## future/next time: the dataPortalName also needs to be copied over (with mods?)
-    )
-    new.save!
-    self.data_sources.each do |ds|
-      new_ds = ds.dup
-      if new_ds.save!
-        new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
-        new.data_sources << new_ds
-        new_ds.reload_source
-      end
-    end
-    new
-  end
-
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
-    source = series_to_set.save_source(desc, eval_statement, series.data, priority)
-    source
+    series_to_set.save_source(desc, eval_statement, series.data, priority)
   end
 
   def Series.eval(series_name, eval_statement, priority=100)
-    t = Time.now
     new_series = Kernel::eval eval_statement
     Series.store series_name, new_series, new_series.name, eval_statement, priority
-    puts "#{'%.2f' % (Time.now - t)} | #{series_name} | #{eval_statement}"
   end
-  
-  def save_source(source_desc, eval_statement, data, priority=100, last_run = Time.now)
+
+  def save_source(source_desc, eval_statement, data, priority = 100)
     source = nil
-    data_sources.each do |ds|
-      if !eval_statement.nil? and !ds.eval.nil? and eval_statement.strip == ds.eval.strip
-        ds.update_attributes(:last_run => Time.now)
-        source = ds 
+    now = Time.now
+    if eval_statement
+      eval_statement.strip!
+      data_sources.each do |ds|
+        if ds.eval && ds.eval.strip == eval_statement
+          ds.update_attributes(last_run: now)
+          source = ds
+        end
       end
     end
-       
+
     if source.nil?
-      data_sources.create(
+      source = data_sources.create(
         :description => source_desc,
         :eval => eval_statement,
         :priority => priority,
-        :last_run => last_run
+        :last_run => now
       )
-    
-      source = data_sources_by_last_run[-1]
       source.setup
     end
-    update_data(data, source)
+    update_data(data, source, false)
     source
   end
-  
-  def update_data(data, source)
+
+  def data_sources_sort_for_display
+    ## Non-nightlies at the top, then sort by priority, then by id within priority groups.
+    data_sources.sort_by {|ds| [(ds.reload_nightly ? 1 : 0), ds.priority, ds.id] }
+    ## For some reason, sort_by does not take the reload_nightly boolean attribute as-is,
+    ## but it needs to be "reconverted" to integer - I am mystified by this.
+  end
+
+  def update_data(data, source, run_update = true)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
     #instead of calling in save_source
@@ -398,38 +465,40 @@ class Series < ApplicationRecord
     current_data_points.each do |dp|
       dp.upd(data[dp.date], source)
     end
-    observation_dates = observation_dates - current_data_points.map {|dp| dp.date}
+    observation_dates -= current_data_points.map(&:date)
+    now = Time.now
     observation_dates.each do |date|
-      data_points.create(
+      xseries.data_points.create(
         :date => date,
         :value => data[date],
-        :created_at => Time.now,
+        :created_at => now,
         :current => true,
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self)
+    DataPoint.update_public_data_points(universe, self) if run_update
     aremos_comparison #if we can take out this save, might speed things up a little
-    []
+    true
   end
 
   def add_to_quarantine(run_update = true)
     self.update! quarantined: true
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
+    DataPoint.update_public_data_points(universe, self) if run_update
   end
 
   def remove_from_quarantine(run_update = true)
     raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
     self.update! quarantined: false
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'), self) if run_update
+    DataPoint.update_public_data_points(universe, self) if run_update
   end
 
   def Series.empty_quarantine
-    Series.get_all_uhero.where(quarantined: true).update_all quarantined: false
-    DataPoint.update_public_data_points(universe.sub(/^UHERO.*/, 'UHERO'))
+    Series.get_all_uhero.where('quarantined = true').update_all quarantined: false
+    DataPoint.update_public_data_points(universe)
   end
 
-  def update_data_hash
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def update_data_hash_DELETEME
     data_hash = {}
     data_points.each do |dp|
       data_hash[dp.date.to_s] = dp.value if dp.current
@@ -495,24 +564,16 @@ class Series < ApplicationRecord
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    # data_points.each do |dp|
-    #   data_hash[dp.date_string] = (dp.value / self.units).round(round_to) if dp.current
-    # end
-    sql = %[
+    sql = <<~SQL
       SELECT round(value/#{self.units}, #{round_to}) AS value, date
-      FROM data_points WHERE series_id = #{self.id} AND current = 1;
-    ]
+      FROM data_points WHERE xseries_id = #{self.xseries.id} AND current = 1;
+    SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
       data_hash[row['date']] = row['value']
     end
     data_hash
   end
 
-  ## this method probably vestigial/unused - double check and remove
-  # def Series.new_from_data(frequency, data)
-  #  Series.new_transformation('One off data', data, frequency)
-  # end
-  
   def Series.new_transformation(name, data, frequency)
     ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
     Series.new.new_transformation(name, data, frequency)
@@ -520,11 +581,10 @@ class Series < ApplicationRecord
   
   def new_transformation(name, data, frequency = nil)
     raise "Undefined dataset for new transformation '#{name}'" if data.nil?
-    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency ||
-                Series.frequency_from_code(Series.parse_name(name)[:freq])
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
     Series.new(
       :name => name,
-      :frequency => frequency,
+      :xseries => Xseries.new(frequency: frequency),
       :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [Date.parse(date.to_s), value] }]
     ).tap do |o|
       o.propagate_state_from(self)
@@ -670,13 +730,25 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
+  def Series.load_from_eia(parameter)
+    # Series ID in the EIA API is case sensitive
+    series_id = parameter.upcase
+    series_data = DataHtmlParser.new.get_eia_series(series_id)
+    name = "loaded series with parameters #{series_id} from U.S. EIA API"
+    if series_data.empty?
+      name = "No data collected from U.S. EIA API for #{series_id}"
+    end
+    Series.new_transformation(name, series_data, series_id[-1])
+  end
+  
   def days_in_period
     series_data = {}
     data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
     new_transformation('days in time periods', series_data, self.frequency)
   end
 
-  def Series.where_ds_like(string)
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def Series.where_ds_like_DELETEME(string)
     ds_array = DataSource.where("eval LIKE '%#{string}%'").all
     series_array = []
     ds_array.each do |ds|
@@ -684,8 +756,9 @@ class Series < ApplicationRecord
     end 
     series_array
   end
-  
-  def ds_like?(string)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def ds_like_DELETEME?(string)
     self.data_sources.each do |ds|
       return true unless ds.eval.index(string).nil?
     end
@@ -733,19 +806,6 @@ class Series < ApplicationRecord
     observations
   end
 
-  # def get_source_colors
-  #   colors = {}
-  #   color_order = ["FFCC99", "CCFFFF", "99CCFF", "CC99FF", "FFFF99", "CCFFCC", "FF99CC", "CCCCFF", "9999FF", "99FFCC"]
-  #   colors
-  # end
-
-  def print
-    data.sort.each do |date, value|
-      puts "#{date}: #{value}"
-    end
-    puts name
-  end
-  
   def new_data?
     data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
@@ -807,8 +867,9 @@ class Series < ApplicationRecord
     product_posts.sort.reverse[0]
     
   end
-  
-  def print_data_points
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def print_data_points_DELETEME
     data_hash = {}
     source_array = []
     
@@ -859,20 +920,19 @@ class Series < ApplicationRecord
     dates
   end
 
-  def Series.run_tsd_exports(banks = nil, out_path = nil, in_path = nil)
-    banks ||= %w{bea_a bls_a census_a jp_a misc_a tax_a tour_a us_a
-      bea_s bls_s bea_q bls_q census_q jp_q misc_q tax_q tour_q us_q
-      bls_m jp_m misc_m tax_m tour_m us_m misc_w tour_w tour_d }
+  def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+       files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
-    banks.each do |bank|
-      filename = File.join(in_path, bank + '.txt')
+    files.each do |filename|
       Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
-      f = open filename
+      f = open File.join(in_path, filename)
       list = f.read.split(/\s+/).reject {|x| x.blank? }
       f.close
-      frequency_code = bank.split('_')[1].upcase
+
+      bank = filename.sub('.txt', '')
+      frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
       Rails.logger.debug { ">>>> tsd_exports: exporting series to #{output_file}" }
@@ -880,11 +940,7 @@ class Series < ApplicationRecord
     end
   end
 
-  def Series.new_from_tsd_data(tsd_data)
-    return Series.new_transformation(tsd_data['name']+'.'+tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
-  end
-  
-  def get_tsd_series_data(tsd_file)      
+  def get_tsd_series_data(tsd_file)
     url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split('.')[0].gsub('%', '%25')}/json")
     res = Net::HTTP.new(url.host, url.port).request_get(url.path)
     tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
@@ -893,7 +949,7 @@ class Series < ApplicationRecord
     clean_tsd_data = {}
     tsd_data['data'].each {|date_string, value| clean_tsd_data[Date.strptime(date_string, '%Y-%m-%d')] = value}
     tsd_data['data'] = clean_tsd_data
-    Series.new_from_tsd_data(tsd_data)
+    new_transformation(tsd_data['name']+'.'+tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
   end
   
   def tsd_string
@@ -952,15 +1008,7 @@ class Series < ApplicationRecord
     end
     self.delete
   end
-    
-  def last_data_added
-    self.data_points.order(:created_at).last.created_at
-  end
-  
-  def last_data_added_string
-    last_data_added.strftime('%B %e, %Y')
-  end
-  
+
   def Series.get_all_series_by_eval(patterns)
     if patterns.class == String
       patterns = [patterns]
@@ -1034,16 +1082,20 @@ class Series < ApplicationRecord
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
+    u = search_parts.select {|s| s =~ /^\// }.shift
+    if u  ## universe explicitly supplied in search box
+      search_parts.delete(u)
+      u = u[1..]  ## chop off first / char
+      universe = { 'u' => 'UHERO', 'db' => 'DBEDT' }[u] || u
+    end
     name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
     desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
     dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
+    where_clause = "((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))"
 
-    series_results = Series.get_all_universe(universe)
-                           .where("((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))")
-                           .limit(num_results)
+    series_results = Series.get_all_universe(universe).where(where_clause).limit(num_results)
 
     results = []
-  
     series_results.each do |s|
       description = s.description ||
                     (AremosSeries.get(s.name).description rescue nil) ||
@@ -1191,12 +1243,13 @@ class Series < ApplicationRecord
         .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
   end
 
+  def source_link_is_valid
+    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
+
 private
   def Series.display_options(options)
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end
 
-  def source_link_is_valid
-    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
-  end
 end

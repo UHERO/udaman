@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<h1>Listing Units</h1>
+<h1><%= @universe %> Units</h1>
 
 <%= link_to 'New Unit', new_unit_path %>
 <p>
@@ -19,7 +19,6 @@
       <tr>
         <td><%= unit.short_label %></td>
         <td class="linkselect"><%= link_to unit.long_label, edit_unit_path(unit) %></td>
-        <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: "Destroy unit #{unit.to_s}.\n#{num_affected(unit)}. Are you sure??" } %></td>
       </tr>
     <% end %>
   </tbody>

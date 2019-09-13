@@ -6,7 +6,8 @@ class SourcesController < ApplicationController
 
   # GET /sources
   def index
-    @sources = Source.where(universe: 'UHERO').order(:description).all
+    @universe = params[:u].upcase rescue 'UHERO'
+    @sources = Source.where(universe: @universe).order(:description).all
   end
 
   # GET /sources/1
@@ -27,7 +28,8 @@ class SourcesController < ApplicationController
     @source = Source.new(source_params)
 
     if @source.save
-      redirect_to @source, notice: 'Source was successfully created.'
+      @source.reload
+      redirect_to sources_path(u: @source.universe), notice: 'Source was successfully created.'
     else
       render :new
     end
@@ -36,19 +38,13 @@ class SourcesController < ApplicationController
   # PATCH/PUT /sources/1
   def update
     if @source.update(source_params)
-      redirect_to @source, notice: 'Source was successfully updated.'
+      redirect_to sources_path(u: @source.universe), notice: 'Source was successfully updated.'
     else
       render :edit
     end
   end
 
-  # DELETE /sources/1
-  def destroy
-    @source.destroy
-    redirect_to sources_url, notice: 'Source was successfully destroyed.'
-  end
-
-  private
+private
     # Use callbacks to share common setup or constraints between actions.
     def set_source
       @source = Source.find params[:id]

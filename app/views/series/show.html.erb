@@ -41,9 +41,11 @@ google.visualization.events.addListener(chart, 'select', function() {
   <h3><%= @series.description %></h3>
 
   <table>
+    <tr><td>Universe</td><td><%= universe_label(@series) %></td></tr>
+    <tr><td>Aliases</td><td><%= raw make_alt_universe_links(@series) %></td></tr>
     <tr><td>Measurements</td><td>
       <% @series.measurements.each do |measurement| %>
-      <%= link_to(measurement.prefix, measurement) %>
+         <%= link_to(measurement.prefix, measurement) %>
       <% end %>
     </td></tr>
     <tr><td>Data Portal Name</td><td><%= @series.dataPortalName %></td></tr>
@@ -51,9 +53,9 @@ google.visualization.events.addListener(chart, 'select', function() {
     <tr><td>Geography</td><td><%= @series.geography ? @series.geography.display_name : '<span style="color:red;">Not linked</span>'.html_safe %></td></tr>
     <tr><td>Decimals</td><td><%= @series.decimals.to_s %></td></tr>
     <tr><td>Base Year</td><td><%= @series.base_year %></td></tr>
-    <tr><td>Seasonal Adjustment</td><td><%= @series[:seasonal_adjustment].to_s %></td></tr>
+    <tr><td>Seasonal Adjustment</td><td><%= sa_indicator(@series.seasonal_adjustment) %></td></tr>
     <tr><td>Source</td><td><%= @series.source && @series.source.description %></td></tr>
-    <tr><td>Source Link</td><td><%= make_live_link(@series.source_link || (@series.source && @series.source.link)) %></td></tr>
+    <tr><td>Source Link</td><td><%= make_hyperlink(@series.source_link || (@series.source && @series.source.link)) %></td></tr>
     <tr><td>Source Details</td><td><%= @series.source_detail && @series.source_detail.description %></td></tr>
     <tr><td>Restricted</td><td>
       <% if @series.restricted %> true <i class="fas fa-ban redban" title="restricted"></i>
@@ -67,14 +69,17 @@ google.visualization.events.addListener(chart, 'select', function() {
          </span>
       </td></tr>
     <% end %>
-    <tr><td>Universe</td><td><%= @series.universe %></td></tr>
+    <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
+    <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
   </table>
+
+  <div id="chart_div"></div>
+  <div id="notes"><p><%= @series.investigation_notes %></p></div>
 
 	<div id="navigation">
     <% if current_user.internal_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
     <% end %>
-		<%= link_to 'Back', :action => 'index' %> |
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
 		<%= link_to 'Comparison Chart', :action => 'comparison_graph', :id => @series %> | 
 		<%= link_to 'Blog Chart', :action => 'blog_graph', :id => @series %> | 
@@ -82,13 +87,9 @@ google.visualization.events.addListener(chart, 'select', function() {
 		<a href="/listseries/<%=@series.name.chop.chop%>">TSDs</a> |
 		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> 
 
-		<div id="chart_div"></div>
-		<div id="notes"><p><%= @series.investigation_notes %></p></div>
-
 	</div>
 </div>
 
-<div id="details_mask"></div>
 <div id="details_area">
 	<table>
     <tr>

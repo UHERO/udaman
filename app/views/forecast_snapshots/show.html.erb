@@ -1,11 +1,13 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Table', forecast_snapshot_path(@forecast_snapshot) + '/table' %> |
-<%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<% if current_user.internal_user? %>
+    <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<% end %>
 <%= link_to 'Back', forecast_snapshots_path %>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
-<p><%= @forecast_snapshot.created_at.localtime.strftime('%m/%d/%y') %></p>
+<p><%= @forecast_snapshot.created_at.strftime('%m/%d/%y') %></p>
 
 <div id="charts_container"></div>
 
