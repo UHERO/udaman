@@ -41,7 +41,7 @@ gem 'coffee-rails', '~> 4.2', '>= 4.2.2'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.3', '>= 4.3.5'
 gem 'jquery-ui-rails', '~> 6.0.1'
-gem 'devise', '~> 4.6', '>= 4.6.1'
+gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
 gem 'nokogiri', '~> 1.10', '>= 1.10.4'
