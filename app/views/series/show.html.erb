@@ -42,7 +42,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 
   <table>
     <tr><td>Universe</td><td><%= universe_label(@series) %></td></tr>
-    <tr><td>Aliases</td><td><%= raw make_alt_universe_links(@series) %></td></tr>
+    <tr><td><%= @series.is_primary? ? 'Aliases' : 'Alias of' %></td><td><%= raw make_alt_universe_links(@series) %></td></tr>
     <tr><td>Measurements</td><td>
       <% @series.measurements.each do |measurement| %>
          <%= link_to(measurement.prefix, measurement) %>
