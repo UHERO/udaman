@@ -44,12 +44,12 @@
       <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
-      <%= f.label :decimals %>
-      <%= f.number_field :decimals, :size => 1 %>
-    </div>
-    <div class="field">
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
+    </div>
+    <div class="field">
+      <%= f.label :decimals %>
+      <%= f.number_field :decimals, :size => 1 %>
     </div>
     <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
