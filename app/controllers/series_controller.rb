@@ -307,8 +307,8 @@ private
           :source_id,
           :source_link,
           :source_detail_id,
-          :decimals,
           :investigation_notes,
+          :decimals,
           xseries_attributes: [
               :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
