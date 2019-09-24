@@ -47,6 +47,10 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
+    <div class="field">
+      <%= f.label :decimals %>
+      <%= f.number_field :decimals, :size => 1 %>
+    </div>
     <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
@@ -64,10 +68,6 @@
           <div class="field">
             <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
             <%= xf.text_field :units %>
-          </div>
-          <div class="field">
-            <%= xf.label :decimals %>
-            <%= xf.number_field :decimals, :size => 1 %>
           </div>
           <div class="field">
             <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
