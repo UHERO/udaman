@@ -311,9 +311,9 @@ module SeriesInterpolation
   end
 
 private
-  ## Find interpolated values in between start_month and end_month, and redistribute the difference between
-  ## the semiannual value and the average of all the monthlies in that range across the interpolated months.
-  ## Note! This code assumes that the even numbered months are interpolated and odd numbered ones have real data.
+  ## Find interpolated values in the 6-month range starting at start_month, and redistribute the difference between
+  ## the semiannual value and the average of all the monthlies in that range across (only) the interpolated months.
+  ## Note! This code assumes that the even (calendar) numbered months are interpolated and odd numbered ones have real data.
   def redistribute_semi(semi_annual_val, start_month, data)
     six_month = []
     (0..5).each do |offset|
