@@ -65,7 +65,7 @@ module SeriesInterpolation
         semi_date = date - 5.months
         semi_val = semi.at(semi_date)
         if semi_val
-          redistribute_semi(semi_val, semi_date, date, new_dp)
+          redistribute_semi(semi_val, semi_date, new_dp)
         end
       end
       date += 2.months ## track only the missing data points
@@ -310,8 +310,18 @@ module SeriesInterpolation
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
   end
 
-  private
-  def redistribute_semi(semi_val, start_month, end_month, data)
-
+private
+  ## Find interpolated values in between start_month and end_month, and redistribute the difference between
+  ## the semi-annual value and the average of all the monthlies in that range across the interpolated months.
+  ## Note! This code assumes that the even numbered months are interpolated and odd numbered ones have real data.
+  def redistribute_semi(semi_val, start_month, data)
+    hantosi = AggregatingArray.new
+    (0..5).each do |offset|
+      hantosi.push(data[start_month + offset.months])
+    end
+    diff = (semi_val - hantosi.average) / 3.0  ## must be float division
+    data[start_month + 1.months] += diff
+    data[start_month + 3.months] += diff
+    data[start_month + 5.months] += diff
   end
 end
