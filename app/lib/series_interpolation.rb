@@ -312,14 +312,14 @@ module SeriesInterpolation
 
 private
   ## Find interpolated values in between start_month and end_month, and redistribute the difference between
-  ## the semi-annual value and the average of all the monthlies in that range across the interpolated months.
+  ## the semiannual value and the average of all the monthlies in that range across the interpolated months.
   ## Note! This code assumes that the even numbered months are interpolated and odd numbered ones have real data.
-  def redistribute_semi(semi_val, start_month, data)
-    hantosi = AggregatingArray.new
+  def redistribute_semi(semi_annual_val, start_month, data)
+    six_month = []
     (0..5).each do |offset|
-      hantosi.push(data[start_month + offset.months])
+      six_month.push(data[start_month + offset.months])
     end
-    diff = (semi_val - hantosi.average) / 3.0  ## must be float division
+    diff = (semi_annual_val - six_month.average) / 3.0  ## must be float division
     data[start_month + 1.months] += diff
     data[start_month + 3.months] += diff
     data[start_month + 5.months] += diff
