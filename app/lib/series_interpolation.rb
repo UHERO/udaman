@@ -48,6 +48,7 @@ module SeriesInterpolation
   ## with the mean of surrounding monthly values.
   def fill_alternate_missing_months(start_date_range = nil, end_date_range = nil)
     raise InterpolationException unless frequency == 'month'
+    semi = find_sibling_for_freq('S')
     cur_data = data
     start_date = start_date_range ? Date.strptime(start_date_range) : cur_data.sort[0][0]
     end_date = end_date_range ? Date.strptime(end_date_range) : cur_data.sort[-1][0]
@@ -56,11 +57,18 @@ module SeriesInterpolation
     while date < end_date do
       prevm = date - 1.month
       nextm = date + 1.month
-      unless cur_data[prevm]  && cur_data[nextm]
+      unless cur_data[prevm] && cur_data[nextm]
         raise InterpolationException, 'data not strictly alternating months'
       end
       new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2
-      date += 2.months ## track the missing data points
+      if semi && date.month % 6 == 0
+        semi_date = date - 5.months
+        semi_val = semi.at(semi_date)
+        if semi_val
+          redistribute_semi(semi_val, semi_date, date, new_dp)
+        end
+      end
+      date += 2.months ## track only the missing data points
     end
     new_transformation("Interpolation of alternate missing months from #{name}", new_dp)
   end
@@ -300,5 +308,10 @@ module SeriesInterpolation
     end
     
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
+  end
+
+  private
+  def redistribute_semi(semi_val, start_month, end_month, data)
+
   end
 end
