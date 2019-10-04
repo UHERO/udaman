@@ -49,22 +49,23 @@ module SeriesInterpolation
   def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil)
     raise InterpolationException unless frequency == 'month'
     semi = find_sibling_for_freq('S')
-    cur_data = data
-    start_date = range_start_date ? Date.strptime(range_start_date) : cur_data.sort[0][0]
-    end_date = range_end_date ? Date.strptime(range_end_date) : cur_data.sort[-1][0]
+    start_date = range_start_date ? Date.strptime(range_start_date) : data.sort[0][0]
+    end_date = range_end_date ? Date.strptime(range_end_date) : data.sort[-1][0]
     new_dp = {}
     date = start_date + 1.month
     while date < end_date do
       prevm = date - 1.month
       nextm = date + 1.month
-      unless cur_data[prevm] && cur_data[nextm]
+      unless data[prevm] && data[nextm]
         raise InterpolationException, 'data not strictly alternating months'
       end
-      new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2.0
+      new_dp[date] = (data[prevm] + data[nextm]) / 2.0
       if semi && date.month % 6 == 0
+#        puts ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DOING A SEMI REDIST"
         semi_date = date - 5.months
         semi_val = semi.at(semi_date)
         if semi_val
+#          puts ">>>>>>>>>>>>>> semi_val EXISTS"
           redistribute_semi(semi_val, semi_date, new_dp)
         end
       end
@@ -314,14 +315,23 @@ private
   ## Find interpolated values in the 6-month range starting at start_month, and redistribute the difference between
   ## the semiannual value and the average of all the monthlies in that range across (only) the interpolated months.
   ## Note! This code assumes that the even (calendar) numbered months are interpolated and odd numbered ones have real data.
-  def redistribute_semi(semi_annual_val, start_month, data)
+  def redistribute_semi(semi_annual_val, start_month, new_data)
+    ##puts "MMMMMMMMMMMMMMMMMMMMM HERE TIS: #{new_data}"
     six_month = []
     (0..5).each do |offset|
-      six_month.push(data[start_month + offset.months])
+      date = start_month + offset.months
+      value = new_data[date] || data[date]
+      unless value  ## bail if even a single monthly value is missing
+        puts "-------------------> VALUE MISSING FOR #{start_month + offset.months}"
+        return
+      end
+#      puts "===================> VALUE #{value} FOR #{start_month + offset.months}"
+      six_month.push(value)
     end
     diff = (semi_annual_val - six_month.average) / 3.0  ## must be float division
-    data[start_month + 1.months] += diff
-    data[start_month + 3.months] += diff
-    data[start_month + 5.months] += diff
+    new_data[start_month + 1.months] += diff
+    new_data[start_month + 3.months] += diff
+    new_data[start_month + 5.months] += diff
+#    puts ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DONE REDISTRIBBING"
   end
 end
