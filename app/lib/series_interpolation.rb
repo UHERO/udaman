@@ -61,11 +61,9 @@ module SeriesInterpolation
       end
       new_dp[date] = (data[prevm] + data[nextm]) / 2.0
       if semi && date.month % 6 == 0
-#        puts ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DOING A SEMI REDIST"
         semi_date = date - 5.months
         semi_val = semi.at(semi_date)
         if semi_val
-#          puts ">>>>>>>>>>>>>> semi_val EXISTS"
           redistribute_semi(semi_val, semi_date, new_dp)
         end
       end
