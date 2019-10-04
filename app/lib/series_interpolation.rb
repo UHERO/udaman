@@ -60,7 +60,7 @@ module SeriesInterpolation
       unless cur_data[prevm] && cur_data[nextm]
         raise InterpolationException, 'data not strictly alternating months'
       end
-      new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2
+      new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2.0
       if semi && date.month % 6 == 0
         semi_date = date - 5.months
         semi_val = semi.at(semi_date)
