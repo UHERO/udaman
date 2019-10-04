@@ -316,22 +316,16 @@ private
   ## the semiannual value and the average of all the monthlies in that range across (only) the interpolated months.
   ## Note! This code assumes that the even (calendar) numbered months are interpolated and odd numbered ones have real data.
   def redistribute_semi(semi_annual_val, start_month, new_data)
-    ##puts "MMMMMMMMMMMMMMMMMMMMM HERE TIS: #{new_data}"
     six_month = []
     (0..5).each do |offset|
       date = start_month + offset.months
       value = new_data[date] || data[date]
-      unless value  ## bail if even a single monthly value is missing
-        puts "-------------------> VALUE MISSING FOR #{start_month + offset.months}"
-        return
-      end
-#      puts "===================> VALUE #{value} FOR #{start_month + offset.months}"
+      return if value.nil?  ## bail if even a single monthly value is missing
       six_month.push(value)
     end
     diff = (semi_annual_val - six_month.average) / 3.0  ## must be float division
     new_data[start_month + 1.months] += diff
     new_data[start_month + 3.months] += diff
     new_data[start_month + 5.months] += diff
-#    puts ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> DONE REDISTRIBBING"
   end
 end
