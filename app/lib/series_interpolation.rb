@@ -321,7 +321,7 @@ private
       return if value.nil?  ## bail if even a single monthly value is missing
       six_month.push(value)
     end
-    diff = (semi_annual_val - six_month.average) / 3.0  ## must be float division
+    diff = (semi_annual_val - six_month.average) * 2.0  ## must be float multiplication
     new_data[start_month + 1.months] += diff
     new_data[start_month + 3.months] += diff
     new_data[start_month + 5.months] += diff
