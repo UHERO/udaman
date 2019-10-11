@@ -217,7 +217,7 @@ class DvwUpload < ApplicationRecord
       end
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end
-      row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
+      row['date'] = make_date(row['year'].to_i, row['qm'].to_s)
       row_values = %w{module frequency date value
                               group module
                               market module
@@ -324,7 +324,7 @@ private
       '%d-%02d-01' % [year, month]
     rescue
       year_msg = year.blank? ? ' is empty' : "=#{year}"
-      raise "Bad date params: year#{year_msg}, MQ='#{mq}'"
+      raise "Bad date params: year#{year_msg}, QM='#{mq}'"
     end
   end
 
