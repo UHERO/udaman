@@ -256,7 +256,7 @@ class DvwUpload < ApplicationRecord
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
     full_load && mylogger(:info, "loaded and active")
-    self.update(series_status: :ok, last_error: nil, last_error_at: nil) if upload
+    self.update(series_status: :ok, last_error: nil, last_error_at: nil)
   end
 
 private
