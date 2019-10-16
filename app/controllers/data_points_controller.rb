@@ -4,7 +4,6 @@ class DataPointsController < ApplicationController
   before_action :check_authorization
 
   def show
-    @data_points = DataPoint.joins(:xseries)
-                            .where('primary_series_id = ? and date = ?', params[:series_id].to_i, params[:date].to_s)
+    @data_points = DataPoint.where(xseries_id: params[:xseries_id].to_i, date: params[:date].to_s)
   end
 end

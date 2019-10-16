@@ -6,7 +6,7 @@ class DbedtUpload < ApplicationRecord
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(cats_file, series_file)
-    now = Time.now.localtime
+    now = Time.now
     if cats_file
       cats_file_content = cats_file.read
       cats_file_ext = cats_file.original_filename.split('.')[-1]

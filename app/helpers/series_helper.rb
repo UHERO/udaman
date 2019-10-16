@@ -80,24 +80,20 @@ module SeriesHelper
   end
   
   def linked_version_with_action(description, action)
-    return '' if description.nil?
+    return '' if description.blank?
     new_words = []
     description.split(' ').each do |word|
-      #new_word = word.index('@').nil? ? word : link_to(word, {:action => 'show', :id => word.ts.id})
       new_word = word
-      begin
-        new_word = (word.index('@').nil? or word.split('.')[-1].length > 1) ? word : link_to(word, {:action => action, :id => word.ts.id}, :target=>'_blank' )
-      rescue
-        new_word = word
+      if valid_series_name(word)
+        series = word.ts
+        new_word = link_to(word, { action: action, id: series }) if series
       end
       new_words.push new_word
     end
     new_words.join(' ')
   end
   
-#  def aremos_color(val, aremos_val)
   def aremos_color(diff)
-
 #    diff = (val - aremos_val).abs
     mult = 5000
     gray = "99"
@@ -155,21 +151,26 @@ module SeriesHelper
     alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
-    series.get_aliases.sort_by{|x| [x.is_primary ? 0 : 1, x.universe] }.each do |s|
-      links.push link_to(display_universe(s), { controller: :series, action: :show, id: s.id }, title: s.name)
+    series.get_aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|
+      links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary
+    if series.is_primary?
+      ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to("[#{univ}]", { controller: :series, action: :alias_primary_for, new_univ: univ, id: series }, title: 'Create new')
+        links.push link_to(univ_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
       end
     end
     links.join(' ')
   end
 
-  def display_universe(series)
-    series.is_primary ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
+  def universe_label(series)
+    series.is_primary? ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
+  end
+
+  def univ_create_label(text)
+    "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 
 end

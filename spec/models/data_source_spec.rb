@@ -135,7 +135,7 @@ describe DataSource do
 
      history = "YSTWTR@HI.A".ts.data_points.where(:date => delete_date).first.history
      history.should_not be_nil
-     history.localtime.to_date.should == Time.now.to_date
+     history.to_date.should == Time.now.to_date
    end
 
   it "should be able to determine a color for itself" do

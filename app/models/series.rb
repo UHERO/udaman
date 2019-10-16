@@ -62,11 +62,11 @@ class Series < ApplicationRecord
   end
 
   def Series.get_all_uhero
-    Series.get_all_universe 'UHERO'
+    Series.get_all_universe('UHERO')
   end
 
   def Series.get_all_universe(universe)
-    Series.joins(:xseries).where('series.universe like ?', '%' + universe + '%')
+    Series.joins(:xseries).where(universe: universe)
   end
 
   def Series.all_names
@@ -110,12 +110,14 @@ class Series < ApplicationRecord
     properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
     s = nil
     begin
       self.transaction do
-        x = Xseries.create!(properties.select{|k,_| xseries_attrs.include? k.to_s })
-        s = Series.create!(properties.select{|k,_| series_attrs.include? k.to_s }.merge(xseries_id: x.id))
+        x = Xseries.create!(xseries_props)
+        s = Series.create!(series_props.merge(xseries_id: x.id))
         x.update(primary_series_id: s.id)
       end
     rescue => e
@@ -208,25 +210,26 @@ class Series < ApplicationRecord
     self.build_name(freq: freq.upcase).ts
   end
 
-  def is_primary
-    xseries && xseries.primary_series === self
+  def is_primary?
+    xseries.primary_series === self
   end
 
-  def has_primary
-    xseries && xseries.primary_series
+  def has_primary?
+    xseries.primary_series
   end
 
   def get_aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
-  def alias_primary_for(universe)
-    raise "#{self} is not a primary series, cannot be aliased" unless is_primary
+  def create_alias(parameters)
+    universe = parameters[:universe] || raise('Universe must be specified to create alias')
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
     raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
-    new.assign_attributes(universe: universe, geography_id: new_geo.id)
+    new.assign_attributes(parameters.merge(geography_id: new_geo.id))
     new.save!
     new.xseries.update!(primary_series_id: self.id)  ## just for insurance
     new
@@ -1007,15 +1010,7 @@ class Series < ApplicationRecord
     end
     self.delete
   end
-    
-  def last_data_added
-    self.data_points.order(:created_at).last.created_at
-  end
-  
-  def last_data_added_string
-    last_data_added.strftime('%B %e, %Y')
-  end
-  
+
   def Series.get_all_series_by_eval(patterns)
     if patterns.class == String
       patterns = [patterns]
@@ -1124,13 +1119,13 @@ class Series < ApplicationRecord
     Rails.logger.info { "Assign_dependency_depth: start at #{Time.now}" }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe LIKE 'UHERO%'
+          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources WHERE universe LIKE 'UHERO%'
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
     SQL
-    ActiveRecord::Base.connection.execute(<<~SQL)   ### Only needed because #braindead MySQL :(
+    ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE t2_series LIKE t_series
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)

@@ -32,7 +32,7 @@
    <% controls_display = now_processing?(DvwUpload) ? 'none' : 'inline'
 
       @dvw_uploads.each do |dvw_upload|
-        timestamp = dvw_upload.upload_at.localtime.strftime('%Y-%m-%d %H:%M:%S') %>
+        timestamp = dvw_upload.upload_at.strftime('%Y-%m-%d %H:%M:%S') %>
       <tr>
         <td align="center">
           <span class="controls" style="display:<%= controls_display %>;">

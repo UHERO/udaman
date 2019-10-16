@@ -2,14 +2,14 @@ class SeriesController < ApplicationController
   include Authorization
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :alias_primary_for, :analyze, :add_to_quarantine, :remove_from_quarantine,
+  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
                                     :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
                                     :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
     @series = Series.new(universe: @universe, xseries: Xseries.new)
-    set_resource_values(@universe)
+    set_attrib_resource_values(@series)
   end
 
   def bulk_new
@@ -17,7 +17,7 @@ class SeriesController < ApplicationController
 
   def edit
     @add2meas = params[:add_to_meas].to_i
-    set_resource_values(@series.universe)
+    set_attrib_resource_values(@series)
   end
 
   def create
@@ -34,9 +34,22 @@ class SeriesController < ApplicationController
     end
   end
 
-  def alias_primary_for
-    @series = @series.alias_primary_for(params[:new_univ])
-    redirect_to edit_series_path(@series)
+  def new_alias
+    @orig_sid = @series.id
+    @series = @series.dup
+    @series.assign_attributes(universe: params[:new_univ])
+    set_attrib_resource_values(@series)
+    @add2meas = params[:add_to_meas].to_i
+  end
+
+  def alias_create
+    @series = @series.create_alias(series_params)
+    mid = params[:add2meas].to_i
+    if mid > 0
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+    else
+      redirect_to @series, notice: 'Alias series successfully created'
+    end
   end
 
   def update
@@ -295,8 +308,9 @@ private
           :source_link,
           :source_detail_id,
           :investigation_notes,
+          :decimals,
           xseries_attributes: [
-              :percent, :real, :decimals, :units, :restricted, :seasonal_adjustment, :frequency_transform
+              :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
       )
     end
@@ -313,17 +327,18 @@ private
     @series = Series.find params[:id]
   end
 
-  def set_resource_values(univ)
-    @all_geos = Geography.where(universe: univ)
+  def set_attrib_resource_values(series)
+    primary_univ = series.has_primary? ? series.primary_series.universe : 'UHERO'
+    @all_geos = Geography.where(universe: series.universe)
     if @all_geos.empty?
-      raise "Universe #{univ} has no geographies of its own. If they are not needed, have developer code an exception for this."
+      raise "Universe #{series.universe} has no geographies of its own"
     end
-    @all_units = Unit.where(universe: univ)
-    @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
-    @all_sources = Source.where(universe: univ)
-    @all_sources = Source.where(universe: 'UHERO') if @all_sources.empty?
-    @all_details = SourceDetail.where(universe: univ)
-    @all_details = SourceDetail.where(universe: 'UHERO') if @all_details.empty?
+    @all_units = Unit.where(universe: series.universe)
+    @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_sources = Source.where(universe: series.universe)
+    @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_details = SourceDetail.where(universe: series.universe)
+    @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
   end
 
   # obsolete/vestigial code?

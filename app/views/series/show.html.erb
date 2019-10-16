@@ -41,8 +41,8 @@ google.visualization.events.addListener(chart, 'select', function() {
   <h3><%= @series.description %></h3>
 
   <table>
-    <tr><td>Universe</td><td><%= display_universe(@series) %></td></tr>
-    <tr><td>Aliases</td><td><%= raw make_alt_universe_links(@series) %></td></tr>
+    <tr><td>Universe</td><td><%= universe_label(@series) %></td></tr>
+    <tr><td><%= @series.is_primary? ? 'Aliases' : 'Alias of' %></td><td><%= raw make_alt_universe_links(@series) %></td></tr>
     <tr><td>Measurements</td><td>
       <% @series.measurements.each do |measurement| %>
          <%= link_to(measurement.prefix, measurement) %>
@@ -69,22 +69,23 @@ google.visualization.events.addListener(chart, 'select', function() {
          </span>
       </td></tr>
     <% end %>
+    <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
+    <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
   </table>
+
+  <div id="chart_div"></div>
+  <div id="notes"><p><%= @series.investigation_notes %></p></div>
 
 	<div id="navigation">
     <% if current_user.internal_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
     <% end %>
-		<%= link_to 'Back', :back %> |
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
 		<%= link_to 'Comparison Chart', :action => 'comparison_graph', :id => @series %> | 
 		<%= link_to 'Blog Chart', :action => 'blog_graph', :id => @series %> | 
 		<%= link_to 'Outlier Chart', :action => 'outlier_graph', :id => @series %> |
 		<a href="/listseries/<%=@series.name.chop.chop%>">TSDs</a> |
 		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> 
-
-		<div id="chart_div"></div>
-		<div id="notes"><p><%= @series.investigation_notes %></p></div>
 
 	</div>
 </div>

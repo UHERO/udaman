@@ -99,7 +99,7 @@ class ForecastSnapshot < ApplicationRecord
     history_tsd_filename ? delete_file_from_disk(history_tsd_filename) : true
   end
 
-  private
+private
   def write_file_to_disk(name, content)
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
@@ -139,8 +139,8 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def tsd_rel_filepath(name)
-    string = self.created_at.to_s+'_'+self.id.to_s+'_'+name
+    string = self.created_at.utc.to_s+'_'+self.id.to_s+'_'+name
     hash = Digest::MD5.new << string
     File.join('tsd_files', hash.to_s+'_'+name)
-    end
+  end
 end

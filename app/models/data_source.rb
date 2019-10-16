@@ -13,8 +13,8 @@ class DataSource < ApplicationRecord
   composed_of   :last_run,
                 :class_name => 'Time',
                 :mapping => %w(last_run_in_seconds to_r),
-                :constructor => Proc.new { |t| Time.at(t || 0) },
-                :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.at(t/1000.0) }
+                :constructor => Proc.new { |t| Time.zone.at(t || 0) },
+                :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.zone.at(t/1000.0) }
 
   before_update :set_dependencies_without_save
 
@@ -46,7 +46,7 @@ class DataSource < ApplicationRecord
     end
 
     def DataSource.get_all_uhero
-      DataSource.where(%q{data_sources.universe like 'UHERO%'})
+      DataSource.where(universe: 'UHERO')
     end
 
     #technically, this will not check for duplicate series

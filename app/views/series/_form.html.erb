@@ -47,7 +47,11 @@
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
-    <% if @series.is_primary || @series.id.nil? %>
+    <div class="field">
+      <%= f.label :decimals %>
+      <%= f.number_field :decimals, :size => 1 %>
+    </div>
+    <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
             <%= xf.label :percent, 'Percent' %>
@@ -66,10 +70,6 @@
             <%= xf.text_field :units %>
           </div>
           <div class="field">
-            <%= xf.label :decimals %>
-            <%= xf.number_field :decimals, :size => 1 %>
-          </div>
-          <div class="field">
             <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
             <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
           </div>
@@ -78,9 +78,9 @@
             <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
           </div>
       <% end %>
-    <% elsif @series.has_primary %>
+    <% elsif @series.has_primary? %>
       <p><strong>Other metadata fields must be edited in the primary series:</strong>
-      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id:  @series.xseries.primary_series_id %></p>
+      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id: @series.xseries.primary_series_id %></p>
     <% end %>
     <div class="actions">
       <%= f.hidden_field :universe %>

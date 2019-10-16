@@ -85,7 +85,7 @@ every 1.day, :at => "#{hour.to_i+5}:50 am" do
   rake :aremos_exports
 end
 
-every 1.day, :at => "#{hour.to_i+5}:55 am" do
+every 1.day, :at => "#{hour.to_i+7}:50 am" do
   rake :tsd_exports
 end
 
