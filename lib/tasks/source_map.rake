@@ -109,3 +109,41 @@ task :update_public_data_points => :environment do
   DataPoint.update_public_all_universes
   Rails.logger.info { 'update_public_all_universes: task DONE' }
 end
+
+task :encachitize_rest_api => :environment do
+  puts "Hammer (#{$$}): Start at #{Time.now}"
+  start_time = Time.now.to_i
+  token = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
+  url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
+  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % token
+
+  uh_cats = Category.where(%q{universe = 'UHERO' and foo far})
+
+  uh_cats.each do |cid|
+    %w{HI HAW HON KAU MAU}.each do |geo|
+      %w{A Q M}.each do |freq|
+        full_url = url % [cid, geo, freq]
+        secs = Time.now.to_i
+        %x{#{cmd + full_url}}
+        secs = Time.now.to_i - secs
+        ##puts "UH (#{$$}): #{full_url} (#{secs} sec)"
+      end
+    end
+  end
+
+  coh_cats = Category.where(%q{universe = 'COH' and foo far})
+
+  coh_cats.each do |cid|
+    %w{HI HAW}.each do |geo|
+      %w{A Q M}.each do |freq|
+        full_url = url % [cid, geo, freq]
+        secs = Time.now.to_i
+        %x{#{cmd + full_url}}
+        secs = Time.now.to_i - secs
+        ##puts "COH (#{$$}): #{full_url} (#{secs} sec)"
+      end
+    end
+  end
+  duration = (Time.now.to_i - start_time) / 60
+  puts "Hammer (#{$$}): End at #{Time.now} (took #{duration} mins)"
+end
