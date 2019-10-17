@@ -110,6 +110,7 @@ class DvwUpload < ApplicationRecord
     make_active_settings
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
+    true
   end
 
   def delete_universe_dvw
@@ -217,7 +218,7 @@ class DvwUpload < ApplicationRecord
       end
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end
-      row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
+      row['date'] = make_date(row['year'].to_i, row['qm'].to_s)
       row_values = %w{module frequency date value
                               group module
                               market module
@@ -251,7 +252,36 @@ class DvwUpload < ApplicationRecord
     ## Nothing to do at this time
   end
 
+  def worker_tasks(do_csv_proc = false)
+    csv_extract if do_csv_proc
+    mylogger :debug, "before full_load"
+    full_load && mylogger(:info, "loaded and active")
+    self.update(series_status: :ok, last_error: nil, last_error_at: nil)
+  end
+
 private
+  def csv_extract
+    xls_path = absolute_path('series')
+    csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
+    other_worker = ENV['OTHER_WORKER']
+
+    unless File.exists?(xls_path)
+      Rails.logger.warn { "#{@logprefix}: xls file #{xls_path} does not exist" }
+      if other_worker.blank?
+        raise "#{@logprefix}: Could not find xlsx file ((#{xls_path}) #{upload.id}) and no $OTHER_WORKER defined"
+      end
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{upload.absolute_path}")
+        raise "#{@logprefix}: Could not get xlsx file ((#{xls_path}) #{upload.id}) from $OTHER_WORKER: #{other_worker}"
+      end
+    end
+    unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
+      raise "#{@logprefix}: Could not transform xlsx to csv (#{upload.id})"
+    end
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
+      raise "#{@logprefix}: Could not copy #{csv_path} for #{upload.id} to $OTHER_WORKER: #{other_worker}"
+    end
+  end
+
   def path(name = nil)
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
@@ -324,7 +354,7 @@ private
       '%d-%02d-01' % [year, month]
     rescue
       year_msg = year.blank? ? ' is empty' : "=#{year}"
-      raise "Bad date params: year#{year_msg}, MQ='#{mq}'"
+      raise "Bad date params: year#{year_msg}, QM='#{mq}'"
     end
   end
 

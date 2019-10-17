@@ -46,7 +46,7 @@ class DataSource < ApplicationRecord
     end
 
     def DataSource.get_all_uhero
-      DataSource.where(%q{data_sources.universe like 'UHERO%'})
+      DataSource.where(universe: 'UHERO')
     end
 
     #technically, this will not check for duplicate series

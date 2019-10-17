@@ -2,29 +2,29 @@ module SeriesStatistics
 
   def sum
     num_array = (self.data.sort.reject{|a| a[1].nil?}).map { |a| a[1]}
-    return num_array.inject(0, :+){ | sum, x | sum + x }
+    num_array.inject(0, :+){ | sum, x | sum + x }
   end
   
   def average
-    return sum / self.observation_count
+    sum / self.observation_count
   end 
 
   def variance
     # m = self.mean
     num_array = self.data.sort.map { |a| a[1]}
     sum_var = num_array.inject(0){ | sum, x | sum + (x - average) ** 2 }
-    return sum_var / (self.observation_count - 1 )
+    sum_var / (self.observation_count - 1 )
   end
   
   def standard_deviation
-    return Math.sqrt(self.variance)
+    Math.sqrt(self.variance)
   end
 
   def median
     num_array = (self.data.reject{|a| a.nil?}).map { |a| a[1]}.sort
     return nil if num_array.empty?
     median_index = num_array.size / 2
-    return num_array.size % 2 == 1 ? num_array[median_index] : (num_array[median_index - 1] + num_array[median_index]) / 2.0
+    num_array.size % 2 == 1 ? num_array[median_index] : (num_array[median_index - 1] + num_array[median_index]) / 2.0
   end
 
   def outlier

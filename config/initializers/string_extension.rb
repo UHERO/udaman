@@ -92,6 +92,12 @@ class Array
   def last_column
     self[0].length
   end
+
+  def average
+    raise 'Cannot average an empty array' if self.count == 0
+    self.sum / self.count.to_f
+  end
+
 end
 
 class Float
