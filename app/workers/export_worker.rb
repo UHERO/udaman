@@ -1,10 +1,20 @@
-# generates udaman_tsd files
+## Export TSD format files and sync up to both production and Mac mini
 class ExportWorker
   include Sidekiq::Worker
-  sidekiq_options queue: 'critical'
+  sidekiq_options queue: :critical
 
   def perform
     Series.run_tsd_exports
-    ### then rsync the results to prod
+
+    local_dir = '/data/udaman_tsd/'  ## final slash on source dir name is needed
+    prod_location = 'uhero@uhero1.colo.hawaii.edu:/data/udaman_tsd'
+    ## Domain name "macmini" is defined in /etc/hosts - change there if need be
+    mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
+    unless system("rsync #{local_dir} #{mini_location}")
+      raise "Could not copy contents of #{local_dir} directory to Mac mini server"
+    end
+    unless system("rsync #{local_dir} #{prod_location}")
+      raise "Could not copy contents of #{local_dir} directory to production server"
+    end
   end
 end
