@@ -10,10 +10,10 @@ class ExportWorker
     prod_location = 'uhero@uhero1.colo.hawaii.edu:/data/udaman_tsd'
     ## Domain name "macmini" is defined in /etc/hosts - change there if need be
     mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
-    unless system("rsync #{local_dir} #{mini_location}")
+    unless system("rsync -r #{local_dir} #{mini_location}")
       raise "Could not copy contents of #{local_dir} directory to Mac mini server"
     end
-    unless system("rsync #{local_dir} #{prod_location}")
+    unless system("rsync -r #{local_dir} #{prod_location}")
       raise "Could not copy contents of #{local_dir} directory to production server"
     end
   end
