@@ -6,8 +6,8 @@ class ExportWorker
   def perform
     Series.run_tsd_exports
 
-    local_dir = '/data/udaman_tsd/'  ## final slash on source dir name is needed
-    prod_location = 'uhero@uhero1.colo.hawaii.edu:/data/udaman_tsd'
+    local_dir = File.join(ENV['DATA_PATH'], 'udaman_tsd/')       ## final slash on source dir name is needed
+    prod_location = 'uhero@uhero1.colo.hawaii.edu:' + local_dir  ## assumes DATA_PATH is same on both, but this is probly safe
     ## Domain name "macmini" is defined in /etc/hosts - change there if need be
     mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
     unless system("rsync -r #{local_dir} #{mini_location}")

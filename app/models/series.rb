@@ -928,7 +928,7 @@ class Series < ApplicationRecord
        files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
     files.each do |filename|
-      Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
+      Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
       f = open File.join(in_path, filename)
       list = f.read.split(/\s+/).reject {|x| x.blank? }
       f.close
@@ -937,7 +937,7 @@ class Series < ApplicationRecord
       frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
-      Rails.logger.debug { ">>>> tsd_exports: exporting series to #{output_file}" }
+      Rails.logger.info { "run_tsd_exports: exporting series to #{output_file}" }
       Series.write_data_list_tsd(list, output_file)
     end
   end
