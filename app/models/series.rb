@@ -927,6 +927,7 @@ class Series < ApplicationRecord
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
        files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
+    Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
     files.each do |filename|
       Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
       f = open File.join(in_path, filename)
@@ -940,6 +941,7 @@ class Series < ApplicationRecord
       Rails.logger.info { "run_tsd_exports: exporting series to #{output_file}" }
       Series.write_data_list_tsd(list, output_file)
     end
+    Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
   def get_tsd_series_data(tsd_file)
