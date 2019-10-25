@@ -70,6 +70,11 @@ class DataHtmlParser
     new_data
   end
 
+  def get_estatjp_series
+    api_key = ENV['API_KEY_ESTATJP']
+    api_key
+  end
+
   def get_clustermapping_series(dataset, parameters)
     query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"

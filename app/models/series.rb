@@ -723,6 +723,15 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
 
+  def Series.load_from_estatjp(code, frequency = nil, aggregation_method = nil)
+    series_data = DataHtmlParser.new.get_estatjp_series(code, frequency, aggregation_method)
+    name = "loaded series: #{code} from FRED API"
+    if series_data.empty?
+      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, frequency)
+  end
+
   def Series.load_from_clustermapping(dataset, parameters)
     series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
     name = "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API"
