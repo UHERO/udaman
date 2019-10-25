@@ -723,11 +723,11 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
 
-  def Series.load_from_estatjp(code, frequency = nil, aggregation_method = nil)
-    series_data = DataHtmlParser.new.get_estatjp_series(code, frequency, aggregation_method)
-    name = "loaded series: #{code} from FRED API"
+  def Series.load_from_estatjp(code, frequency)
+    series_data = DataHtmlParser.new.get_estatjp_series(code)
+    name = "loaded series: #{code} from ESTATJP API"
     if series_data.empty?
-      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+      name = "No data collected from ESTATJP API for #{code} freq=#{frequency} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
