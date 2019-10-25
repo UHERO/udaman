@@ -70,9 +70,21 @@ class DataHtmlParser
     new_data
   end
 
-  def get_estatjp_series
+  def get_estatjp_series(code)
     api_key = ENV['API_KEY_ESTATJP']
-    api_key
+    raise 'No API key defined for ESTATJP' unless api_key
+    @url = "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?statsDataId=#{code}&lang=E&metaGetFlg=Y&cntGetFlg=N&sectionHeaderFlg=1&appId=#{api_key}"
+    Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
+    @doc = self.download
+    json = JSON.parse self.content
+    apireturn = json['GET_STATS_DATA'] || raise('ESTATJP API: major unknown failure')
+    raise 'ESTATJP API: no results included' unless apireturn['STATISTICAL_DATA']# || apireturn['ERROR']
+    err = apireturn['Error'] || apireturn['Results'] && apireturn['Results']['Error']
+    if err
+      raise 'ESTATJP API Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
+    end
+    results_data = apireturn['GET_STATS_DATA']['STATISTICAL_DATA']['DATA_INF']['VALUE']
+    raise 'ESTATJP API: results, but no data' unless results_data
   end
 
   def get_clustermapping_series(dataset, parameters)
