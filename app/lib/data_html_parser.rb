@@ -78,8 +78,7 @@ class DataHtmlParser
     @doc = self.download
     json = JSON.parse self.content
     apireturn = json['GET_STATS_DATA'] || raise('ESTATJP: major unknown failure')
-    err = apireturn['RESULT']['STATUS'] != 0
-    if err
+    if apireturn['RESULT']['STATUS'] != 0
       raise 'ESTATJP Error: %s' % apireturn['RESULT']['ERROR_MSG']
     end
     statdata = apireturn['STATISTICAL_DATA'] || raise('ESTATJP: no results included')
@@ -91,7 +90,7 @@ class DataHtmlParser
     new_data = {}
     results.each do |data_point|
       time_period = convert_estatjp_date(data_point['@time'])
-      value = data_point['$']
+      value = data_point['$']  ## apparently all values are money, even when they're not ;)
       if value && value.gsub(',','').is_numeric?
         new_data[time_period] = value.gsub(',','').to_f
       end
