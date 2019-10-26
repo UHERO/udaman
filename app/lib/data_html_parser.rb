@@ -71,8 +71,7 @@ class DataHtmlParser
   end
 
   def get_estatjp_series(code, frequency, filters)
-    api_key = ENV['API_KEY_ESTATJP']
-    raise 'No API key defined for ESTATJP' unless api_key
+    api_key = ENV['API_KEY_ESTATJP'] || raise('No API key defined for ESTATJP')
     @url = "https://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{api_key}&statsDataId=#{code}&lang=E&metaGetFlg=Y&cntGetFlg=N&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
     @doc = self.download
