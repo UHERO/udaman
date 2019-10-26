@@ -723,8 +723,8 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
 
-  def Series.load_from_estatjp(code, frequency)
-    series_data = DataHtmlParser.new.get_estatjp_series(code)
+  def Series.load_from_estatjp(code, frequency, filters)
+    series_data = DataHtmlParser.new.get_estatjp_series(code, frequency, filters)
     name = "loaded series: #{code} from ESTATJP API"
     if series_data.empty?
       name = "No data collected from ESTATJP API for #{code} freq=#{frequency} - possibly redacted"
