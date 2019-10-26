@@ -924,16 +924,17 @@ class Series < ApplicationRecord
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
-    out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd/')  ## final slashes on dir names are needed for rsync!
-     in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists/')
+    out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd/')  ## final slashes on dir name needed for rsync!
+     in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
        files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
     ## Hostname alias "macmini" is defined in /etc/hosts - change there if necessary
-    unless system("rsync -r --del uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/BnkLists/ #{in_path}")
-      raise "Could not sync contents of #{in_path} directory from Mac mini to local #{in_path}"
+    if system("rsync -r --del uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/BnkLists/ #{in_path}")
+      Rails.logger.info { "run_tsd_exports: synced #{in_path} from Mac mini to local disk" }
+    else
+      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from Mac mini to local disk - using existing files" }
     end
-    Rails.logger.info { "run_tsd_exports: synced #{in_path} contents from Mac mini to local disk" }
 
     files.each do |filename|
       Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
@@ -949,15 +950,14 @@ class Series < ApplicationRecord
       Series.write_data_list_tsd(list, output_file)
     end
 
-    prod_location = 'uhero@uhero1.colo.hawaii.edu:' + out_path
-#   mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
-#   unless system("rsync -r #{out_path} #{mini_location}")
-#     raise "Could not copy contents of #{out_path} directory to Mac mini server"
-#   end
-    unless system("rsync -r #{out_path} #{prod_location}")
-      raise "Could not copy contents of #{out_path} directory to production server"
+    mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
+    unless system("rsync -r #{out_path} #{mini_location}")
+      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
     end
-
+    prod_location = 'deploy@udaman.uhero.hawaii.edu:' + out_path
+    unless system("rsync -r #{out_path} #{prod_location}")
+      Rails.logger.error { "run_tsd_exports: Could not copy #{out_path} to production" }
+    end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
