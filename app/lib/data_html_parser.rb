@@ -73,28 +73,27 @@ class DataHtmlParser
   def get_estatjp_series(code)
     api_key = ENV['API_KEY_ESTATJP']
     raise 'No API key defined for ESTATJP' unless api_key
-    @url = "http://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{api_key}&statsDataId=#{code}&lang=E&metaGetFlg=Y&cntGetFlg=N&sectionHeaderFlg=1"
+    @url = "https://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{api_key}&statsDataId=#{code}&lang=E&metaGetFlg=Y&cntGetFlg=N&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
     json = JSON.parse self.content
     apireturn = json['GET_STATS_DATA'] || raise('ESTATJP: major unknown failure')
-    err = apireturn['RESULT']['STATUS'] == 0
+    err = apireturn['RESULT']['STATUS'] != 0
     if err
       raise 'ESTATJP Error: %s' % apireturn['RESULT']['ERROR_MSG']
     end
     statdata = apireturn['STATISTICAL_DATA'] || raise('ESTATJP: no results included')
-    if statdata['CLASS_INF']['CLASS_OBJ'].select {|h| h['@name'] =~ /time.*month/i }.empty?
+    if statdata['CLASS_INF']['CLASS_OBJ'].select {|h| h['@id'] == 'time' && h['@name'] =~ /month/i }.empty?
       raise 'ESTATJP: Expecting monthly data, but seems we did not get it'
     end
-    results = statdata['DATA_INF']['VALUE']
-    raise 'ESTATJP: results, but no data' unless results
+    results = statdata['DATA_INF']['VALUE'] || raise('ESTATJP: results, but no data')
 
     new_data = {}
     results.each do |data_point|
       time_period = convert_estatjp_date(data_point['@time'])
       value = data_point['$']
       if value && value.gsub(',','').is_numeric?
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value.gsub(',','').to_f
+        new_data[time_period] = value.gsub(',','').to_f
       end
     end
     new_data
