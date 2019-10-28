@@ -924,7 +924,7 @@ class Series < ApplicationRecord
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
-    out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd/')  ## final slashes on dir name needed for rsync!
+    out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
        files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
@@ -951,11 +951,11 @@ class Series < ApplicationRecord
     end
 
     mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
-    unless system("rsync -r #{out_path} #{mini_location}")
+    unless system("rsync -r #{out_path}/ #{mini_location}")  ## final slash needed on source dir name
       Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
     end
     prod_location = 'deploy@udaman.uhero.hawaii.edu:' + out_path
-    unless system("rsync -r #{out_path} #{prod_location}")
+    unless system("rsync -r #{out_path}/ #{prod_location}")  ## this copy might not be needed. If not, 86 it later.
       Rails.logger.error { "run_tsd_exports: Could not copy #{out_path} to production" }
     end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
