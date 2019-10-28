@@ -72,7 +72,7 @@ class DataHtmlParser
 
   def get_estatjp_series(code, frequency, filters)
     api_key = ENV['API_KEY_ESTATJP'] || raise('No API key defined for ESTATJP')
-    @url = "https://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{api_key}&statsDataId=#{code}&lang=E&metaGetFlg=Y&cntGetFlg=N&sectionHeaderFlg=1"
+    @url = "https://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{api_key}&statsDataId=#{code}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
     @doc = self.download
     json = JSON.parse self.content
@@ -89,7 +89,7 @@ class DataHtmlParser
     new_data = {}
     results.each do |data_point|
       next unless estatjp_filter_match(filters, data_point)
-      time_period = convert_estatjp_date(data_point['@time'])
+      time_period = estatjp_convert_date(data_point['@time'])
       value = data_point['$']  ## apparently all values are money, even when they're not ;)
       if value && value.gsub(',','').is_numeric?
         new_data[time_period] = value.gsub(',','').to_f
@@ -194,7 +194,7 @@ class DataHtmlParser
     'Q' if other_string[0] == 'Q'
   end
 
-  def convert_estatjp_date(datecode)
+  def estatjp_convert_date(datecode)
     year = datecode[0..3]
     month = datecode[-2..-1]
     '%s-%s-01' % [year, month]
