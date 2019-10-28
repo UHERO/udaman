@@ -926,7 +926,6 @@ class Series < ApplicationRecord
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
-       files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
     ## Hostname alias "macmini" is defined in /etc/hosts - change there if necessary
@@ -936,6 +935,7 @@ class Series < ApplicationRecord
       Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from Mac mini to local disk - using existing files" }
     end
 
+    files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
     files.each do |filename|
       Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
       f = open File.join(in_path, filename)
