@@ -37,10 +37,6 @@ class DataHtmlParser
     self.data[frequency]
   end
 
-  # working Y@HI.A query
-  # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=RegionalData&KeyCode=TPI_SI&GeoFIPS=15000&ResultFormat=JSON&
-  # NIPA Test
-  # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=NIPA&TableID=6&Frequency=A&Year=X&GeoFIPS=15001&ResultFormat=JSON&
   def get_bea_series(dataset, parameters)
     api_key = ENV['API_KEY_BEA']
     raise 'No API key defined for BEA' unless api_key
