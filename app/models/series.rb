@@ -932,12 +932,21 @@ class Series < ApplicationRecord
   end
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
+    ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
-       files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
+    Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
+    ## Hostname alias "macmini" is defined in /etc/hosts - change there if necessary
+    if system("rsync -r --del uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/BnkLists/ #{in_path}")
+      Rails.logger.info { "run_tsd_exports: synced #{in_path} from Mac mini to local disk" }
+    else
+      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from Mac mini to local disk - using existing files" }
+    end
+
+    files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
     files.each do |filename|
-      Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
+      Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
       f = open File.join(in_path, filename)
       list = f.read.split(/\s+/).reject {|x| x.blank? }
       f.close
@@ -946,9 +955,19 @@ class Series < ApplicationRecord
       frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
-      Rails.logger.debug { ">>>> tsd_exports: exporting series to #{output_file}" }
+      Rails.logger.info { "run_tsd_exports: exporting series to #{output_file}" }
       Series.write_data_list_tsd(list, output_file)
     end
+
+    mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
+    unless system("rsync -r #{out_path}/ #{mini_location}")  ## final slash needed on source dir name
+      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
+    end
+    prod_location = 'deploy@udaman.uhero.hawaii.edu:' + out_path
+    unless system("rsync -r #{out_path}/ #{prod_location}")  ## this copy might not be needed. If not, 86 it later.
+      Rails.logger.error { "run_tsd_exports: Could not copy #{out_path} to production" }
+    end
+    Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
   def get_tsd_series_data(tsd_file)
