@@ -37,10 +37,10 @@ class DataHtmlParser
     self.data[frequency]
   end
 
-  def get_bea_series(dataset, parameters)
+  def get_bea_series(dataset, filters)
     api_key = ENV['API_KEY_BEA']
     raise 'No API key defined for BEA' unless api_key
-    query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
+    query_pars = filters.map {|k,v| "#{k}=#{v}" }.join('&')
     @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
@@ -56,7 +56,7 @@ class DataHtmlParser
 
     new_data = {}
     results_data.each do |data_point|
-      next unless request_match(parameters, data_point)
+      next unless request_match(filters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.gsub(',','').is_numeric?
@@ -70,9 +70,9 @@ class DataHtmlParser
     #### NOTE: This routine is written to collect ONLY monthly data
     api_key = ENV['API_KEY_ESTATJP'] || raise('No API key defined for ESTATJP')
     api_version = '3.0'
-    filt = filters.keys.map {|key| 'cd%s=%s' % [key.to_s.titlecase, filters[key]] }.join('&')
+    query = filters.keys.map {|key| 'cd%s=%s' % [key.to_s.titlecase, filters[key]] }.join('&')
     @url = "https://api.e-stat.go.jp/rest/#{api_version}/app/json/getStatsData?" +
-           "appId=#{api_key}&statsDataId=#{code}&#{filt}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
+           "appId=#{api_key}&statsDataId=#{code}&#{query}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
     @doc = self.download
     json = JSON.parse self.content
@@ -98,8 +98,8 @@ class DataHtmlParser
     new_data
   end
 
-  def get_clustermapping_series(dataset, parameters)
-    query_params = parameters.map(&:to_s).join('/')
+  def get_clustermapping_series(dataset, filters)
+    query_params = filters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
     Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
