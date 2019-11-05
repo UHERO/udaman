@@ -66,9 +66,13 @@ class DataHtmlParser
     new_data
   end
 
-  def get_estatjp_series(code, frequency, filters)
+  def get_estatjp_series(code, filters)
+    #### NOTE: This routine is written to collect ONLY monthly data
     api_key = ENV['API_KEY_ESTATJP'] || raise('No API key defined for ESTATJP')
-    @url = "https://api.e-stat.go.jp/rest/3.0/app/json/getStatsData?appId=#{api_key}&statsDataId=#{code}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
+    api_version = '3.0'
+    filt = filters.keys.map {|key| 'cd%s=%s' % [key.titlecase, filters[key]] }.join('&')
+    @url = "https://api.e-stat.go.jp/rest/#{api_version}/app/json/getStatsData?" +
+           "appId=#{api_key}&statsDataId=#{code}&#{filt}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
     @doc = self.download
     json = JSON.parse self.content
@@ -77,15 +81,15 @@ class DataHtmlParser
       raise 'ESTATJP Error: %s' % apireturn['RESULT']['ERROR_MSG']
     end
     statdata = apireturn['STATISTICAL_DATA'] || raise('ESTATJP: no results included')
-    if statdata['CLASS_INF']['CLASS_OBJ'].select{|h| h['@id'] == 'time' && h['@name'] =~ /#{frequency}/i }.empty?
-      raise "ESTATJP: Expecting data with freq type #{frequency}, but seems we did not get it"
-    end
+#    if statdata['CLASS_INF']['CLASS_OBJ'].select{|h| h['@id'] == 'time' && h['@name'] =~ /#{frequency}/i }.empty?
+#      raise "ESTATJP: Expecting data with freq type #{frequency}, but seems we did not get it"
+#    end
     results = statdata['DATA_INF'] && statdata['DATA_INF']['VALUE'] || raise('ESTATJP: results, but no data')
 
     new_data = {}
     results.each do |data_point|
       next unless estatjp_filter_match(filters, data_point)
-      time_period = estatjp_convert_date(data_point['@time'])
+      time_period = estatjp_convert_date(data_point['@time']) || next
       value = data_point['$']  ## apparently all values are money, even when they're not ;)
       if value && value.gsub(',','').is_numeric?
         new_data[time_period] = value.gsub(',','').to_f
@@ -192,8 +196,10 @@ class DataHtmlParser
 
   def estatjp_convert_date(datecode)
     year = datecode[0..3]
-    month = datecode[-2..-1]
-    '%s-%s-01' % [year, month]
+    m1 = datecode[-4..-3].to_i
+    m2 = datecode[-2..-1].to_i
+    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
+    '%s-%02d-01' % [year, m2]
   end
 
   def estatjp_filter_match(filters, dp)
