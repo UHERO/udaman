@@ -98,8 +98,8 @@ class DataHtmlParser
     new_data
   end
 
-  def get_clustermapping_series(dataset, filters)
-    query_params = filters.map(&:to_s).join('/')
+  def get_clustermapping_series(dataset, parameters)
+    query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
     Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
