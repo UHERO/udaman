@@ -70,7 +70,7 @@ class DataHtmlParser
     #### NOTE: This routine is written to collect ONLY monthly data
     api_key = ENV['API_KEY_ESTATJP'] || raise('No API key defined for ESTATJP')
     api_version = '3.0'
-    filt = filters.keys.map {|key| 'cd%s=%s' % [key.titlecase, filters[key]] }.join('&')
+    filt = filters.keys.map {|key| 'cd%s=%s' % [key.to_s.titlecase, filters[key]] }.join('&')
     @url = "https://api.e-stat.go.jp/rest/#{api_version}/app/json/getStatsData?" +
            "appId=#{api_key}&statsDataId=#{code}&#{filt}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
