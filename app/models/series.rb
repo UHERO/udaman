@@ -723,6 +723,16 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
 
+  def Series.load_from_estatjp(code, filters)
+    ### Note: Code is written to collect _only_ monthly data!
+    series_data = DataHtmlParser.new.get_estatjp_series(code, filters)
+    name = "loaded series: #{code} from ESTATJP API"
+    if series_data.empty?
+      name = "No data collected from ESTATJP API for #{code} freq=M - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, 'M')
+  end
+
   def Series.load_from_clustermapping(dataset, parameters)
     series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
     name = "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API"
