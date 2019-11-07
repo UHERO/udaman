@@ -17,8 +17,15 @@ class PostUnivSplitCleanup < ActiveRecord::Migration[5.2]
     remove_column :series,  :restricted_ob
     remove_column :series,  :quarantined_ob
     remove_column :series,  :base_year_ob
+    remove_column :series,  :measurement_id
+
     remove_column :series,  :unitsLabel
     remove_column :series,  :unitsLabelShort
+    remove_column :measurements,  :units_label
+    remove_column :measurements,  :units_label_short
+
+    remove_column :data_lists, :startdate
+    remove_column :data_lists, :enddate
 
     remove_column :xseries, :decimals_ob
     remove_column :data_points, :series_id_ob
