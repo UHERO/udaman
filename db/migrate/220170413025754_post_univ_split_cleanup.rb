@@ -1,6 +1,5 @@
 class PostUnivSplitCleanup < ActiveRecord::Migration[5.2]
   def change
-    remove_column :xseries, :decimals_ob
     remove_column :series,  :frequency_ob
     remove_column :series,  :seasonally_adjusted_ob
     remove_column :series,  :seasonal_adjustment_ob
@@ -18,5 +17,13 @@ class PostUnivSplitCleanup < ActiveRecord::Migration[5.2]
     remove_column :series,  :restricted_ob
     remove_column :series,  :quarantined_ob
     remove_column :series,  :base_year_ob
+
+    remove_column :xseries, :decimals_ob
+    remove_column :geographies, :subregion
+    remove_column :geographies, :incgrp2015
+    remove_column :data_points, :series_id_ob
+
+    change_column :series, :universe, %q(ENUM('UHERO','COH','DBEDT','NTA')), null: false, default: 'UHERO'
+    change_column :measurements, :universe, %q(ENUM('UHERO','COH','DBEDT','NTA')), null: false, default: 'UHERO'
   end
 end
