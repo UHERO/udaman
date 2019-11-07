@@ -19,7 +19,7 @@ class PostUnivSplitCleanup < ActiveRecord::Migration[5.2]
     remove_column :series,  :base_year_ob
     remove_column :series,  :measurement_id
 
-    change_column :series, :dataPortalName, :string, after: :name
+    change_column :series, :dataPortalName, :string, after: :name  ## just a move, for human convenience
 
     remove_column :series,  :unitsLabel
     remove_column :series,  :unitsLabelShort
