@@ -17,14 +17,19 @@ class PostUnivSplitCleanup < ActiveRecord::Migration[5.2]
     remove_column :series,  :restricted_ob
     remove_column :series,  :quarantined_ob
     remove_column :series,  :base_year_ob
+    remove_column :series,  :unitsLabel
+    remove_column :series,  :unitsLabelShort
 
     remove_column :xseries, :decimals_ob
+    remove_column :data_points, :series_id_ob
     remove_column :geographies, :subregion
     remove_column :geographies, :incgrp2015
-    remove_column :data_points, :series_id_ob
 
     change_column :series, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
     change_column :measurements, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
     change_column :feature_toggles, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
+
+    drop_table :category_geographies
+    drop_table :category_frequencies
   end
 end
