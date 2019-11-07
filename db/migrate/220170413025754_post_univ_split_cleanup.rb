@@ -23,7 +23,8 @@ class PostUnivSplitCleanup < ActiveRecord::Migration[5.2]
     remove_column :geographies, :incgrp2015
     remove_column :data_points, :series_id_ob
 
-    change_column :series, :universe, %q(ENUM('UHERO','COH','DBEDT','NTA')), null: false, default: 'UHERO'
-    change_column :measurements, :universe, %q(ENUM('UHERO','COH','DBEDT','NTA')), null: false, default: 'UHERO'
+    change_column :series, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
+    change_column :measurements, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
+    change_column :feature_toggles, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
   end
 end
