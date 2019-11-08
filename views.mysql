@@ -1,0 +1,23 @@
+create or replace view `series_v` as
+select  series.*,
+        x.primary_series_id,
+        x.frequency,
+        x.seasonally_adjusted,
+        x.seasonal_adjustment,
+        x.units,
+        x.percent,
+        x.`real`,
+        x.last_demetra_datestring,
+        x.last_demetra_date,
+        x.factors,
+        x.factor_application,
+        x.aremos_missing,
+        x.aremos_diff,
+        x.mult,
+        x.base_year,
+        x.frequency_transform,
+        x.restricted,
+        x.quarantined,
+        x.created_at as xs_created_at,
+        x.updated_at as xs_updated_at
+from series join xseries x on x.id = series.xseries_id
