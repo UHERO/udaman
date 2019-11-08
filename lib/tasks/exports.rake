@@ -23,9 +23,7 @@ task :aremos_exports => :environment do
 end
 
 task :tsd_exports => :environment do
-  t = Time.now
-  Series.run_tsd_exports
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['tsd_exports', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+  ExportWorker.perform_async
 end
 
 ### Do we really still need this? What was the compelling reason for introducing it in the first place?

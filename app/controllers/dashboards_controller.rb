@@ -56,7 +56,7 @@ class DashboardsController < ApplicationController
 
   def export_tsd
     ExportWorker.perform_async
-    render :json => {message: 'Export TSD in Queue'}
+    render :json => { message: 'Export TSD in Queue' }
   end
 
   def udamacmini_comparison

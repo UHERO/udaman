@@ -13,6 +13,8 @@ public/
 *.log
 *.out
 *.sql
+*.pid
+*.lock
 config/deploy.rb
 config/deploy/*
 Capfile

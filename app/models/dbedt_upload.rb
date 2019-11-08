@@ -257,8 +257,6 @@ class DbedtUpload < ApplicationRecord
               description: row[1],
               dataPortalName: row[1],
               unit_id: unit && unit.id,
-              unitsLabel: unit_str,
-              unitsLabelShort: unit_str,
               source_id: source && source.id,
               decimals: row[10],
               units: 1
