@@ -33,7 +33,8 @@
 					<% if download.handle.nil? %>
 					<td><strong style="color:#DDD"><%= filename %></strong></td>
 					<% else %>
-					<td class="linkselect"><%= link_to download.handle, download %></td>
+					<td><%= link_to download.handle, download %>
+              <% if download.freeze_dl %><i class="fas fa-ban redban" title="frozen"></i><% end %></td>
 					<% end %>
 					<td><%= link_to 'edit', { action: :edit, id: download.id } %></td>
 					<td><%= link_to 'delete', download, method: :delete, data: { confirm: "Deleting #{download.handle}: Are you sure??" } %></td>
