@@ -187,7 +187,7 @@ class DownloadsCache
     csv_data
   end
 
-  def make_cache_key(file_type, handle, sheet=nil)
+  def make_cache_key(file_type, handle, sheet = nil)
     parts = [file_type, handle]
     parts.push(sheet) if sheet
     parts.join('|')
@@ -199,7 +199,7 @@ class DownloadsCache
     value.nil? ? nil : Marshal.load(value)
   end
 
-  def set_files_cache(key, value, options=nil)
+  def set_files_cache(key, value, options = nil)
     Rails.logger.debug { ">>> Entered method set_files_cache, key=#{key}" }
     options ||= { expires_in: 6.hours }
     Rails.cache.write(key, Marshal.dump(value), options)
