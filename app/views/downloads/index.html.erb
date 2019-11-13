@@ -34,7 +34,7 @@
 					<td><strong style="color:#DDD"><%= filename %></strong></td>
 					<% else %>
 					<td><%= link_to download.handle, download %>
-                 <% if download.freeze_dl %><i class="fas fa-ban redban" title="frozen"></i><% end %>
+                 <% if download.freeze_file %><i class="fas fa-ban redban" title="frozen"></i><% end %>
           </td>
 					<% end %>
 					<td><%= link_to 'edit', { action: :edit, id: download.id } %></td>

@@ -90,7 +90,7 @@ class Download < ApplicationRecord
 
   def download
     Rails.logger.debug { '... Entered method Download.download' }
-    if self.freeze_dl
+    if self.freeze_file
       Rails.logger.info { "Download handle #{handle} temporarily frozen - not downloading" }
       return nil
     end

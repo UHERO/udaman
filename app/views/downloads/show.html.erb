@@ -7,7 +7,7 @@ div#summary_area h2 {font-size:30px;}
 </style>
 <h1 style="font-size:45px"><%= @output_file.handle %></h1>
 <h3><%= link_to 'Edit', edit_download_path(@output_file) %></h3>
-<% if @output_file.freeze_dl %>
+<% if @output_file.freeze_file %>
   <h3 style="color:red;">Download temporarily frozen</h3>
 <% end %>
 <div id="summary_area">
