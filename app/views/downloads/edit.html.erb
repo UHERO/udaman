@@ -17,7 +17,13 @@
 			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
 		</div>
 
-     <div class="field">
+    <div class="field">
+      <%= f.check_box :freeze_dl %>
+      If checked, this download is temporarily frozen, i.e. the file will not be downloaded from its upstream source,
+      but an existing file on the server will be maintained and continue to have series data drawn from it.
+    </div>
+
+    <div class="field">
        <%= f.label 'Save path' %>
        <%= text_field_tag :save_path_display, @output_file.save_path, size: 120, disabled: true %>
      </div>

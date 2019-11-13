@@ -21,6 +21,7 @@ class DownloadsController < ApplicationController
 
   def create
     myparams = download_params
+    myparams[:freeze_dl] = nil unless myparams[:freeze_dl]  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
     @output_file = Download.new myparams
     if @output_file.save
@@ -33,6 +34,7 @@ class DownloadsController < ApplicationController
   
   def update
     myparams = download_params
+    myparams[:freeze_dl] = nil unless myparams[:freeze_dl]  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
     respond_to do |format|
       if @output_file.update! myparams
@@ -83,7 +85,7 @@ class DownloadsController < ApplicationController
 
   private
   def download_params
-    params.require(:download).permit(:handle, :url, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
+    params.require(:download).permit(:handle, :url, :freeze_dl, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
   end
 
   def set_download
