@@ -19,9 +19,15 @@ class DownloadsController < ApplicationController
     @output_file = Download.new
   end
 
+  def show
+  end
+
+  def edit
+  end
+
   def create
     myparams = download_params
-    myparams[:freeze_dl] = nil unless myparams[:freeze_dl]  ## convert false to null in db
+    myparams[:freeze_dl] = nil unless myparams[:freeze_dl] == '1'  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
     @output_file = Download.new myparams
     if @output_file.save
@@ -34,7 +40,7 @@ class DownloadsController < ApplicationController
   
   def update
     myparams = download_params
-    myparams[:freeze_dl] = nil unless myparams[:freeze_dl]  ## convert false to null in db
+    myparams[:freeze_dl] = nil unless myparams[:freeze_dl] == '1'  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
     respond_to do |format|
       if @output_file.update! myparams
