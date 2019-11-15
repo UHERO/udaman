@@ -99,7 +99,9 @@ module UpdateCore
   end
   
   def series(series_name)
-    series_name = series_name.split('.')[0] if series_name.split('.').count > headers.keys[0].split('.').count
+    if series_name.split('.').count > headers.keys[0].split('.').count
+      series_name = series_name.split('.')[0]
+    end
     series_hash = Hash.new
     
     if header_location == 'columns'
@@ -149,14 +151,14 @@ module UpdateCore
     if self.header_location == 'columns'
       2.upto(self.last_column) do |col|
         header_string = self.cell(1,col)
-        @headers[header_string] = col unless header_string.nil? or header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
+        @headers[header_string] = col unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
     
     if self.header_location == 'rows'
       2.upto(self.last_row) do |row|
         header_string = self.cell(row,1)
-        @headers[header_string] = row unless header_string.nil? or header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
+        @headers[header_string] = row unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
     
