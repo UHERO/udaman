@@ -966,7 +966,7 @@ class Series < ApplicationRecord
     else
       Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
     end
-    prod_location = 'deploy@udaman.uhero.hawaii.edu:' + out_path
+    prod_location = 'uhero@udaman.uhero.hawaii.edu:' + out_path
     if system("rsync -r #{out_path}/ #{prod_location}")  ## this copy might not be needed. If not, 86 it later.
       Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to production" }
     else
