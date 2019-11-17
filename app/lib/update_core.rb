@@ -12,7 +12,7 @@ module UpdateCore
   def headers
     @headers ||= read_headers
   end
-   # test that ordeer corresponds to col headings  
+
   def headers_with_frequency_code
     return self.headers.keys if self.headers.keys[0].split('.').count == 2
     return_array = Array.new
@@ -99,6 +99,7 @@ module UpdateCore
   end
   
   def series(series_name)
+    series_name.upcase!
     if series_name.split('.').count > headers.keys[0].split('.').count
       series_name = series_name.split('.')[0]
     end
@@ -150,14 +151,14 @@ module UpdateCore
 
     if self.header_location == 'columns'
       2.upto(self.last_column) do |col|
-        header_string = self.cell(1,col)
+        header_string = self.cell(1,col).upcase
         @headers[header_string] = col unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
     
     if self.header_location == 'rows'
       2.upto(self.last_row) do |row|
-        header_string = self.cell(row,1)
+        header_string = self.cell(row,1).upcase
         @headers[header_string] = row unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
