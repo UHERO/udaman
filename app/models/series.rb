@@ -606,7 +606,7 @@ class Series < ApplicationRecord
 
     unless update_spreadsheet.class == UpdateCSV
       default_sheet = update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load
+      update_spreadsheet.default_sheet = sheet_to_load || default_sheet
     end
     raise SeriesReloadException, 'update not formatted' unless update_spreadsheet.update_formatted?
     #return self unless update_spreadsheet.update_formatted?
@@ -649,7 +649,7 @@ class Series < ApplicationRecord
     ns_name = self.name.sub('@', 'NS@')
     unless update_spreadsheet.class == UpdateCSV
       # default_sheet = update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load
+      update_spreadsheet.default_sheet = sheet_to_load || 'sadata'
     end
     #raise SeriesReloadException unless update_spreadsheet.update_formatted?
     unless update_spreadsheet.update_formatted?
