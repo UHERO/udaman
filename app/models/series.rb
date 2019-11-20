@@ -618,11 +618,7 @@ class Series < ApplicationRecord
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
-    if update_spreadsheet.load_error?
-      ##raise SeriesReloadException
-      return self
-    end
-    unless update_spreadsheet.update_formatted?
+    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
       ##raise SeriesReloadException
       return self
     end
@@ -639,11 +635,7 @@ class Series < ApplicationRecord
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
-    if update_spreadsheet.load_error?
-      ##raise SeriesReloadException
-      return self
-    end
-    unless update_spreadsheet.update_formatted?
+    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
       ##raise SeriesReloadException
       return self
     end
