@@ -6,13 +6,17 @@
 	<%= form_for(@data_source) do |ds| %>
 		<div class="field">
 			<%= ds.label :eval %>
-			<!-- could also try to add this with javascript -->
-			<%= ds.text_field :eval, :size => 120 %>
+			<%= ds.text_field :eval, size: 120 %>
     </div>
     <div class="field">
 			<%= ds.label :priority %>
-			<%= ds.number_field :priority, :size => 3 %>
+			<%= ds.number_field :priority, size: 3 %>
 		</div>
+    <div class="field">
+      <%= ds.label :presave_hook %>
+      <%= ds.text_field :presave_hook, size: 30 %>
+      The name of a method to be called immediately prior to storing data points during a Definition load operation.
+    </div>
 		<div class="actions">
 			<%= ds.submit %>
 		</div>

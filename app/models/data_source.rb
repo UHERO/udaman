@@ -163,6 +163,8 @@ class DataSource < ApplicationRecord
         if clear_first
           delete_data_points
         end
+        self.send(presave_hook) if presave_hook
+
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
           self.series.update!(:base_year => base_year.to_i)
