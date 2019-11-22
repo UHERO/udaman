@@ -117,7 +117,7 @@ task :encachitize_rest_api => :environment do
   url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
   cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % token
 
-  uh_cats = Category.where(%q{universe = 'UHERO' and data_list_id is not null})
+  uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A Q M}.each do |freq|
@@ -128,7 +128,7 @@ task :encachitize_rest_api => :environment do
     end
   end
 
-  coh_cats = Category.where(%q{universe = 'COH' and data_list_id is not null})
+  coh_cats = Category.where(%q{universe = 'COH' and not (hidden or masked) and data_list_id is not null})
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
       %w{A Q M}.each do |freq|
