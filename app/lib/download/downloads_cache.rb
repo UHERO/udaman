@@ -98,7 +98,7 @@ class DownloadsCache
     begin
       excel.default_sheet = def_sheet
     rescue
-      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dload.save_path_flex}' [handle: #{@handle}]"
+      raise 'no sheet matching "%s" found in file %s [handle=%s]' % [sheet, @dload.save_path_flex, @handle]
     end
     sheet_key = make_cache_key('xls', @path, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
