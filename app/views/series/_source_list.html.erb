@@ -42,6 +42,9 @@
 			<%= raw linked_version(ds.description) %>
 			<br /> 
 			<%= raw myeval %>
+      <% if ds.presave_hook %>
+        <br/>Presave hook: <%= ds.presave_hook %>
+      <% end %>
 		</td>
 	</tr>      
 	<% end %>

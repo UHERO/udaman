@@ -54,11 +54,11 @@ class Series < ApplicationRecord
   end
 
   def first_observation
-    data.keys.sort[0] rescue nil
+    data.reject {|_,val| val.nil? }.keys.sort[0] rescue nil
   end
 
   def last_observation
-    data.keys.sort[-1] rescue nil
+    data.reject {|_,val| val.nil? }.keys.sort[-1] rescue nil
   end
 
   def Series.get_all_uhero
