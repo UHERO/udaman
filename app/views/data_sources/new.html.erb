@@ -15,8 +15,6 @@
     <div class="field">
       <%= ds.label :presave_hook %>
       <%= ds.text_field :presave_hook, size: 30 %>
-      The name of a method to be called immediately prior to storing data points during a Definition load operation. The method must be
-      an instance method of the DataSource class, and must take a single parameter (the new series).
     </div>
 		<div class="actions">
       <%= ds.hidden_field :series_id %>

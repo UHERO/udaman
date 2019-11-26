@@ -1,6 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
   include Validators
+  include DataSourceHooks
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -308,14 +309,6 @@ class DataSource < ApplicationRecord
     end unless self.description.nil?
     self.dependencies.uniq!
     self.save unless dont_save
-  end
-
-  ## This method is intended to be used only as a presave_hook
-  def update_full_years_top_priority(series)
-    Rails.logger.warn { "" }
-    new_prio = colleagues.map(&:priority).push(self.priority).max + 1
-    self.priority = new_prio  ## don't update/save object! this is only for one run/current scope
-    series.no_trim_past.trim(nil, series.get_last_complete_december)
   end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
