@@ -14,7 +14,7 @@
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
-      <%= ds.text_field :presave_hook, size: 30 %>
+      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true } %>
     </div>
 		<div class="actions">
       <%= ds.hidden_field :series_id %>
