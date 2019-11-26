@@ -644,12 +644,12 @@ class Series < ApplicationRecord
       update_spreadsheet.default_sheet = sheet_to_load
     end
 
-    ns_name = self.name.sub('@','NS@')
-    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_name))
+    ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
+    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_series.name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
-    mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
-    new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
+    mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
+    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
   end
   
   def Series.load_from_download(handle, options)
