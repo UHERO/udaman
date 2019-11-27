@@ -648,8 +648,8 @@ class Series < ApplicationRecord
     demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_series.name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
-    mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
-    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
+    mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
+    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
   
   def Series.load_from_download(handle, options)
