@@ -39,12 +39,11 @@
   		</td>
 		<td>
 			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fas fa-clock" aria-hidden="true"></i><% end %></h3>
-			<%= raw linked_version(ds.description) %>
-			<br /> 
-			<%= raw myeval %>
       <% if ds.presave_hook %>
-        <br/>Presave hook: <%= ds.presave_hook %>
+        <strong>Presave hook:</strong> <%= ds.presave_hook %><br/>
       <% end %>
+			<%= raw linked_version(ds.description) %><br/>
+			<%= raw myeval %>
 		</td>
 	</tr>      
 	<% end %>

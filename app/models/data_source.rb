@@ -174,6 +174,7 @@ class DataSource < ApplicationRecord
           self.series.update!(:base_year => base_year.to_i)
         end
         self.series.update_data(s.data, self)
+        self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will get saved below
         self.update!(:description => s.name,
                     :last_run => t,
                     :last_run_at => t,
@@ -181,6 +182,7 @@ class DataSource < ApplicationRecord
                     :last_error => nil,
                     :last_error_at => nil)
       rescue => e
+        self.reload if presave_hook
         self.update!(:last_run => t,
                     :last_run_at => t,
                     :runtime => nil,
