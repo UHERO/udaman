@@ -652,7 +652,7 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
 
-  def load_random(start_date, end_date, low_range, high_range)
+  def generate_random(start_date, end_date, low_range, high_range)
     freq = self.frequency
     incr = 1
     if freq == 'quarter'
@@ -666,7 +666,7 @@ class Series < ApplicationRecord
       series_data[iter] = low_range + rand(high_range - low_range)
       iter += incr.send(freq)
     end
-    new_transformation("loaded randomly for testing", series_data)
+    new_transformation("generated randomly for testing", series_data)
   end
 
   def Series.load_from_download(handle, options)
