@@ -142,7 +142,7 @@ class DataSource < ApplicationRecord
       true
     end
 
-    ## Other defintions for my series, not including me
+    ## Other definitions for my series, not including me
     def colleagues
       series.data_sources.reject {|d| d.id == self.id }
     end
