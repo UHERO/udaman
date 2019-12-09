@@ -652,6 +652,7 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
 
+  ## This is for code testing purposes
   def generate_random(start_date, end_date, low_range, high_range)
     freq = self.frequency
     incr = 1
