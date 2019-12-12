@@ -168,7 +168,9 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        delete_data_points if clear_first
+        if clear_first
+          delete_data_points
+        end
         s = self.send(presave_hook, s) if presave_hook
 
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
