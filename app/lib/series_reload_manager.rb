@@ -61,7 +61,7 @@ private
     outstanding.each do |log|
       status = Sidekiq::Status::status(log.job_id)
       next if status == :working || status == :queued
-      log.update_attributes(status: status || 'expired')
+      log.update_attributes(status: status[0..253] || 'expired')
       updated += 1
     end
     updated == outstanding.count

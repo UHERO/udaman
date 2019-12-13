@@ -54,11 +54,11 @@ class Series < ApplicationRecord
   end
 
   def first_observation
-    data.keys.sort[0] rescue nil
+    data.reject {|_,val| val.nil? }.keys.sort[0] rescue nil
   end
 
   def last_observation
-    data.keys.sort[-1] rescue nil
+    data.reject {|_,val| val.nil? }.keys.sort[-1] rescue nil
   end
 
   def Series.get_all_uhero
@@ -644,14 +644,32 @@ class Series < ApplicationRecord
       update_spreadsheet.default_sheet = sheet_to_load
     end
 
-    ns_name = self.name.sub('@','NS@')
-    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_name))
+    ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
+    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_series.name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
-    mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
-    new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
+    mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
+    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
-  
+
+  ## This is for code testing purposes
+  def generate_random(start_date, end_date, low_range, high_range)
+    freq = self.frequency
+    incr = 1
+    if freq == 'quarter'
+      freq = 'month'
+      incr = 3
+    end
+    series_data = {}
+    iter = Date.parse(start_date)
+    upto = Date.parse(end_date)
+    while iter <= upto do
+      series_data[iter] = low_range + rand(high_range - low_range)
+      iter += incr.send(freq)
+    end
+    new_transformation("generated randomly for testing", series_data)
+  end
+
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
