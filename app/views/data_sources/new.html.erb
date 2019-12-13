@@ -6,13 +6,16 @@
 	<%= form_for(@data_source) do |ds| %>
 		<div class="field">
 			<%= ds.label :eval %>
-			<!-- could also try to add this with javascript -->
-			<%= ds.text_field :eval, :value => (' '), :size => 120 %>
+			<%= ds.text_field :eval, size: 120 %>
 		</div>
 		<div class="field">
       <%= ds.label :priority %>
-      <%= ds.number_field :priority, :size => 3 %>
+      <%= ds.number_field :priority, size: 3 %>
 		</div>
+    <div class="field">
+      <%= ds.label :presave_hook %>
+      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true } %>
+    </div>
 		<div class="actions">
       <%= ds.hidden_field :series_id %>
 			<%= ds.submit 'Save Definition' %>
