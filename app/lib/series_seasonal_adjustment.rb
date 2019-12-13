@@ -14,7 +14,7 @@ module SeriesSeasonalAdjustment
     new_transformation("Applied #{factor_application} Seasonal Adjustment against #{ns_series}", adjusted_data)
   end
   
-  def apply_growth_rate_incomp_year
+  def apply_growth_rate_incompl_year
     apply_ns_growth_rate_sa.no_trim_future.get_last_incomplete_year
   end
 
