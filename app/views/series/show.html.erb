@@ -92,10 +92,13 @@ google.visualization.events.addListener(chart, 'select', function() {
 
 <div id="details_area">
 	<table>
-    <tr>
-      <td style="font-weight:bold;">Definitions
-        <%= link_to '(add)', controller: :data_sources, action: :new, series_id: @series.id %></td></tr>
-      <tr><td><%= render partial: 'source_list', locals: { series: @series } %></td></tr>
+    <% if @series.is_primary? %>
+      <tr>
+        <td style="font-weight:bold;">Definitions
+          <%= link_to '(add)', controller: :data_sources, action: :new, series_id: @series.id %></td>
+      </tr>
+    <% end %>
+    <tr><td><%= render partial: 'source_list', locals: { series: @series } %></td></tr>
 	</table>
 	
 	<div id= "toggle-units-div">
