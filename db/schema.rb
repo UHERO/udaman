@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025755) do
+ActiveRecord::Schema.define(version: 220170413025756) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -167,6 +167,7 @@ ActiveRecord::Schema.define(version: 220170413025755) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.boolean "reload_nightly", default: true
+    t.string "presave_hook"
     t.datetime "last_run_at"
     t.decimal "last_run_in_seconds", precision: 17, scale: 3
     t.string "last_error"
