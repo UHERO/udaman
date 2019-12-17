@@ -87,7 +87,7 @@ class DvwUpload < ApplicationRecord
 
     begin
       delete_universe_dvw
-      mylogger :info, 'DONE deleting universe'
+      mylogger :info, 'DONE deleting the universe'
 
       load_meta_csv('Group')
       mylogger :debug, 'DONE load groups'
@@ -114,18 +114,20 @@ class DvwUpload < ApplicationRecord
   end
 
   def delete_universe_dvw
-    db_execute 'delete from data_points'
-    mylogger :debug, 'DONE deleting data points'
-    db_execute 'delete from indicators'
-    mylogger :debug, 'DONE deleting indicators'
-    db_execute 'delete from categories'
-    mylogger :debug, 'DONE deleting categories'
-    db_execute 'delete from destinations'
-    mylogger :debug, 'DONE deleting destinations'
-    db_execute 'delete from markets'
-    mylogger :debug, 'DONE deleting markets'
-    db_execute 'delete from groups'
-    mylogger :debug, 'DONE deleting groups'
+    db_execute 'set foreign_key_checks = 0;'
+    db_execute 'truncate table data_points'
+    mylogger :debug, 'DONE truncating data points'
+    db_execute 'truncate table indicators'
+    mylogger :debug, 'DONE truncating indicators'
+    db_execute 'truncate table categories'
+    mylogger :debug, 'DONE truncating categories'
+    db_execute 'truncate table destinations'
+    mylogger :debug, 'DONE truncating destinations'
+    db_execute 'truncate table markets'
+    mylogger :debug, 'DONE truncating markets'
+    db_execute 'truncate table groups'
+    mylogger :debug, 'DONE truncating groups'
+    db_execute 'set foreign_key_checks = 1;'
   end
 
   def load_meta_csv(dimension)
