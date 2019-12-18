@@ -330,6 +330,8 @@ private
     delete_series_file
   end
 
+  ### This doesn't really do what it seems to be intended for, right? Check back into it later...
+  ###
   def delete_data_and_data_sources
     db_execute <<~MYSQL
       DELETE FROM data_points
