@@ -87,7 +87,7 @@ class DvwUpload < ApplicationRecord
 
     begin
       delete_universe_dvw
-      mylogger :info, 'DONE deleting universe'
+      mylogger :info, 'DONE deleting the universe'
 
       load_meta_csv('Group')
       mylogger :debug, 'DONE load groups'
@@ -114,18 +114,20 @@ class DvwUpload < ApplicationRecord
   end
 
   def delete_universe_dvw
-    db_execute 'delete from data_points'
-    mylogger :debug, 'DONE deleting data points'
-    db_execute 'delete from indicators'
-    mylogger :debug, 'DONE deleting indicators'
-    db_execute 'delete from categories'
-    mylogger :debug, 'DONE deleting categories'
-    db_execute 'delete from destinations'
-    mylogger :debug, 'DONE deleting destinations'
-    db_execute 'delete from markets'
-    mylogger :debug, 'DONE deleting markets'
-    db_execute 'delete from groups'
-    mylogger :debug, 'DONE deleting groups'
+    db_execute 'set foreign_key_checks = 0;'
+    db_execute 'truncate table data_points'
+    mylogger :debug, 'DONE truncating data points'
+    db_execute 'truncate table indicators'
+    mylogger :debug, 'DONE truncating indicators'
+    db_execute 'truncate table categories'
+    mylogger :debug, 'DONE truncating categories'
+    db_execute 'truncate table destinations'
+    mylogger :debug, 'DONE truncating destinations'
+    db_execute 'truncate table markets'
+    mylogger :debug, 'DONE truncating markets'
+    db_execute 'truncate table groups'
+    mylogger :debug, 'DONE truncating groups'
+    db_execute 'set foreign_key_checks = 1;'
   end
 
   def load_meta_csv(dimension)
@@ -165,7 +167,7 @@ class DvwUpload < ApplicationRecord
 
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
-        level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
+        level = row["l_#{mod.downcase}"] || row['level'] || next   ## finally just skip this entry if level is not specified
         order = row["o_#{mod.downcase}"] || incr_order(ordering[mod], level)
 
         row_values = []
@@ -328,6 +330,8 @@ private
     delete_series_file
   end
 
+  ### This doesn't really do what it seems to be intended for, right? Check back into it later...
+  ###
   def delete_data_and_data_sources
     db_execute <<~MYSQL
       DELETE FROM data_points
