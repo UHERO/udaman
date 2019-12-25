@@ -268,19 +268,19 @@ private
     other_worker = ENV['OTHER_WORKER']
 
     unless File.exists?(xls_path)
-      Rails.logger.warn { "#{@logprefix}: xls file #{xls_path} does not exist" }
+      mylogger :warn, "xls file #{xls_path} does not exist"
       if other_worker.blank?
-        raise "#{@logprefix}: Could not find xlsx file ((#{xls_path}) #{upload.id}) and no $OTHER_WORKER defined"
+        raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
       end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{upload.absolute_path}")
-        raise "#{@logprefix}: Could not get xlsx file ((#{xls_path}) #{upload.id}) from $OTHER_WORKER: #{other_worker}"
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{absolute_path}")
+        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker}"
       end
     end
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
-      raise "#{@logprefix}: Could not transform xlsx to csv (#{upload.id})"
+      raise "Could not transform xlsx to csv (#{id})"
     end
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
-      raise "#{@logprefix}: Could not copy #{csv_path} for #{upload.id} to $OTHER_WORKER: #{other_worker}"
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
+      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker}"
     end
   end
 
