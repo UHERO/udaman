@@ -80,8 +80,7 @@ private
   def new_span_id(node)
     require 'digest/md5'
     return if node.is_childless?
-    seed_string = node.ancestors.map{|a| a.name }.concat([node.name]).to_s
-    hash = Digest::MD5.new << seed_string
+    hash = Digest::MD5.new << node.unique_id_string
     'cat_' + hash.to_s[0..9]
   end
 end
