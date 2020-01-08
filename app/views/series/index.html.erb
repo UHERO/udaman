@@ -1,10 +1,8 @@
 <div id="summary_area">
 	<h1>Data Series</h1>
-	<h2>Total: <%= @all_series.count %></h2>
-	<div id="navigation">
-		<%= raw navigation_by_frequency %>
-		<%= raw navigation_by_letter %>
-	</div>
+  <% if @all_series.count > 0 %>
+      <h2>Total: <%= @all_series.count %></h2>
+  <% end %>
   <% if current_user.internal_user? %>
       <br />
     <div>

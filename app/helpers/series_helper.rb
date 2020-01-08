@@ -105,7 +105,8 @@ module SeriesHelper
     blue = 20 if blue < 20
     "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
   end
-  
+
+  ### Obsolete/vestigial now: remove later
   def navigation_by_letter
     html = "<br />"
     all_uhero = Series.get_all_uhero
@@ -118,7 +119,8 @@ module SeriesHelper
     end
     html
   end
-  
+
+  ### Obsolete/vestigial now: remove later
   def navigation_by_frequency
     html = ""
     all_uhero = Series.get_all_uhero

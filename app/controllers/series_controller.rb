@@ -89,17 +89,6 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    frequency = params[:freq]
-    prefix = params[:prefix]
-    all = params.has_key?(:all)
-
-    @all_series =
-      case
-        when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
-        when all then       Series.get_all_uhero.order(:name)
-        else []
-      end
   end
 
   def show
@@ -204,7 +193,8 @@ class SeriesController < ApplicationController
   end
 
   def new_search
-    params[:search_term]
+    @all_series = Series.new_search(params[:search_term])
+    render :index
   end
 
   def comparison_graph

@@ -1119,7 +1119,21 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  
+  def Series.new_search(input_string)
+    conditions = []
+    univ = 'UHERO'
+    input_string.split.each do |term|
+      if term =~ /^\//
+        u = term[1..]
+        univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[u] || u
+      end
+      if term =~ /^@/
+
+      end
+    end
+    get_all_universe(univ).where(conditions)
+  end
+
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     regex = /"([^"]*)"/
