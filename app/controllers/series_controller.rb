@@ -203,6 +203,10 @@ class SeriesController < ApplicationController
                           .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
   end
 
+  def new_search
+    params[:search_term]
+  end
+
   def comparison_graph
     @comp = @series.aremos_data_side_by_side
   end
