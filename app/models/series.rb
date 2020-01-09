@@ -1149,7 +1149,7 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    all.where(conditions.join(' and '), *bindvars)
+    all.where(conditions.join(' and '), *bindvars).limit(100)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
