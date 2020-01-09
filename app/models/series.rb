@@ -1139,7 +1139,8 @@ class Series < ApplicationRecord
           bindvars.push term[1..]
         when /^[.]/
           freqs = term[1..].split(//)  ## split to individual characters
-          conditions.push %q{xseries.frequency in (%s)} % (['?'] * freqs.count).join(',')
+          qmarks = (['?'] * freqs.count).join(',')
+          conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need the splat * to push elements rather than one array
         else
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) like concat('%',?,'%')}
