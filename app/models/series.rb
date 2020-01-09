@@ -1131,7 +1131,7 @@ class Series < ApplicationRecord
           a = term[1..]
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[a] || a
         when /^[~]/
-          conditions.push %q{substring_index(series.name,'@',1) like concat('%',?,'%')}
+          conditions.push %q{substring_index(name,'@',1) like concat('%',?,'%')}
           bindvars.push term[1..]
         when /^[@]/
           all = all.joins(:geography)
@@ -1139,10 +1139,11 @@ class Series < ApplicationRecord
           bindvars.push term[1..]
         when /^[.]/
           freqs = term[1..].split(//)  ## split to individual characters
-          conditions.push %q{xseries.frequency in (%s)} %
-                       [ freqs.map {|f| Series.frequency_from_code(f) }.map {|s| "'%s'" % [s] }.join(',') ]
+          conditions.push %q{xseries.frequency in (%s)} % (['?'] * freqs.count).join(',')
+          bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need the splat * to push elements rather than one array
         else
-          conditions.push "bigsnax"
+          conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) like concat('%',?,'%')}
+          bindvars.push term
       end
     end
     conditions.push %q{series.universe = ?}
