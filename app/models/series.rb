@@ -335,15 +335,16 @@ class Series < ApplicationRecord
     return ''
   end
   
-  #There are duplicates of these in other file... non series version 
   def Series.frequency_from_code(code)
-    return :year if code == 'A' || code =='a'
-    return :quarter if code == 'Q' || code =='q'
-    return :month if code == 'M' || code == 'm'
-    return :semi if code == 'S' || code == 's'
-    return :week if code == 'W' || code == 'w'
-    return :day if code == 'D' || code == 'd'
-    return nil
+    case code.upcase
+      when 'A' then :year
+      when 'Q' then :quarter
+      when 'M' then :month
+      when 'S' then :semi
+      when 'W' then :week
+      when 'D' then :day
+      else nil
+    end
   end
 
   def Series.frequency_from_name(name)
