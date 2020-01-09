@@ -1120,18 +1120,23 @@ class Series < ApplicationRecord
   end
   
   def Series.new_search(input_string)
-    conditions = []
+    all = Series
     univ = 'UHERO'
+    conditions = []
     input_string.split.each do |term|
-      if term =~ /^\//
-        u = term[1..]
-        univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[u] || u
-      end
-      if term =~ /^@/
-
+      case term
+        when /^\//
+          a = term[1..]
+          univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[a] || a
+        when /^@/
+          all = all.joins(:geography).where(handle: term[1..])
+        when /^\./
+          all = all.joins(:xseries).where(frequency: Series.frequency_from_code(term[1..]))
+        else
+          conditions.push "bigsnax"
       end
     end
-    get_all_universe(univ).where(conditions)
+    all.where(universe: univ).where(conditions)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
