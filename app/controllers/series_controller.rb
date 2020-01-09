@@ -193,7 +193,7 @@ class SeriesController < ApplicationController
   end
 
   def new_search
-    @all_series = Series.new_search(params[:search_term])
+    @all_series = Series.new_search(params[:search_string])
     render :index
   end
 
