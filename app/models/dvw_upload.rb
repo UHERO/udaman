@@ -272,15 +272,15 @@ private
       if other_worker.blank?
         raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
       end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{absolute_path}")
-        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker}"
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{upload.absolute_path}")
+        raise "#{@logprefix}: Could not get xlsx file ((#{xls_path}) #{upload.id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
       end
     end
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
-      raise "Could not transform xlsx to csv (#{id})"
+      raise "#{@logprefix}: Could not transform xlsx to csv (#{upload.id}:#{$?})"
     end
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
-      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker}"
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
+      raise "#{@logprefix}: Could not copy #{csv_path} for #{upload.id} to $OTHER_WORKER: #{other_worker} (#{$?})"
     end
   end
 
