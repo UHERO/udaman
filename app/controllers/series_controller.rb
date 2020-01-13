@@ -89,6 +89,7 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
+    @all_series = []
   end
 
   def show

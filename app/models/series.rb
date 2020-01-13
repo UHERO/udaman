@@ -1130,6 +1130,9 @@ class Series < ApplicationRecord
         when /^\//
           a = term[1..]
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[a] || a
+        when /^[!]/
+          conditions.push %q{series.name = ?}
+          bindvars.push term[1..]
         when /^[~]/
           conditions.push %q{substring_index(name,'@',1) like concat('%',?,'%')}
           bindvars.push term[1..]
@@ -1142,6 +1145,9 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
+        when /^[-]/
+          conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
+          bindvars.push term[1..]
         else
           ## ordinary word
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) like concat('%',?,'%')}
@@ -1150,7 +1156,7 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    all.where(conditions.join(' and '), *bindvars).limit(100)
+    all.where(conditions.join(' and '), *bindvars).limit(500)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
