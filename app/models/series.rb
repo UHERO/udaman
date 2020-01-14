@@ -1168,7 +1168,7 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions}, bindvars: #{bindvars}" }
+    Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
     all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
   end
 
