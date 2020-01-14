@@ -28,7 +28,12 @@
 <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
 
-<% unless @all_series.empty? %>
+<% if @search_string %>
+  <h3>Search: <%= sanitize @search_string %></h3>
+<% end %>
+<% if @all_series.empty? %>
+  No results.
+<% else %>
   <table class="list_table">
     <thead>
     <tr>

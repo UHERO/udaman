@@ -1,6 +1,6 @@
-<div class="ui-widget" style="display:inline;">
+<div class="ui-widget" style="display:inline;font-size:14px">
   <%= form_with url: '/series/new_search' do |f| %>
-    <%= f.text_field :search_string, size: 30 %>
+    <%= f.text_field :search_string, size: 30, spellcheck: false %>
     <input type="submit" style="display:none" />
   <% end %>
 </div>

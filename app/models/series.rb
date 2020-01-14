@@ -1126,16 +1126,19 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      term.gsub!(/_/, '\_').gsub!(/%/, '\%')  ## escape SQL wildcards
+      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub!)
       case term
         when /^\//
           a = term[1..]
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[a] || a
-        when /^[!]/
+        when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push term[1..]
         when /^[~]/  ## tilde
           conditions.push %q{substring_index(name,'@',1) like concat('%',?,'%')}
+          bindvars.push term[1..]
+        when /^\^/
+          conditions.push %q{substring_index(name,'@',1) like concat(?,'%')}
           bindvars.push term[1..]
         when /^[@]/
           all = all.joins(:geography)
@@ -1149,10 +1152,12 @@ class Series < ApplicationRecord
         when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
           bindvars.push term[1..]
-        when /^[=]/
+        when /^[&]/
           case term[1..]
-            when 'r' then conditions.push %q{xseries.restricted = true}
-            when 'R' then conditions.push %q{xseries.restricted = false}
+            when 'r' then conditions.push %q{restricted = true}
+            when 'R' then conditions.push %q{restricted = false}
+            when 'sa' then conditions.push %q{seasonal_adjustment = 'seasonally_adjusted'}
+            when 'ns' then conditions.push %q{seasonal_adjustment = 'not_seasonally_adjusted'}
             else nil
           end
         else
@@ -1163,7 +1168,8 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    all.where(conditions.join(' and '), *bindvars).limit(500)
+    Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions}, bindvars: #{bindvars}" }
+    all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
