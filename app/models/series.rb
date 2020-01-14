@@ -1149,9 +1149,6 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
-        when /^[-]/  ## minus
-          conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
-          bindvars.push tane
         when /^[&]/
           case tane
             when 'r' then conditions.push %q{restricted = true}
@@ -1160,6 +1157,9 @@ class Series < ApplicationRecord
             when 'ns' then conditions.push %q{seasonal_adjustment = 'not_seasonally_adjusted'}
             else nil
           end
+        when /^[-]/  ## minus
+          conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
+          bindvars.push tane
         else
           ## a "naked" word
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) like concat('%',?,'%')}
