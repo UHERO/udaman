@@ -1126,34 +1126,34 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub!)
+      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub! method)
+      tane = term[1..]
       case term
         when /^\//
-          a = term[1..]
-          univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[a] || a
+          univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
         when /^[=]/
           conditions.push %q{series.name = ?}
-          bindvars.push term[1..]
+          bindvars.push tane
         when /^[~]/  ## tilde
           conditions.push %q{substring_index(name,'@',1) like concat('%',?,'%')}
-          bindvars.push term[1..]
+          bindvars.push tane
         when /^\^/
           conditions.push %q{substring_index(name,'@',1) like concat(?,'%')}
-          bindvars.push term[1..]
+          bindvars.push tane
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
-          bindvars.push term[1..]
+          bindvars.push tane
         when /^[.]/
-          freqs = term[1..].split(//)  ## split to individual characters
+          freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
         when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
-          bindvars.push term[1..]
+          bindvars.push tane
         when /^[&]/
-          case term[1..]
+          case tane
             when 'r' then conditions.push %q{restricted = true}
             when 'R' then conditions.push %q{restricted = false}
             when 'sa' then conditions.push %q{seasonal_adjustment = 'seasonally_adjusted'}
