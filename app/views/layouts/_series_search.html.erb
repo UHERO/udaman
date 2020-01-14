@@ -1,6 +1,8 @@
 <script>
   function setSeriesSearch(set_text) {
-      document.getElementById("topSeriesSearchBox").value = set_text
+      var e = document.getElementById("topSeriesSearchBox");
+      e.value = set_text;
+      e.focus();
   }
 </script>
 <div class="ui-widget" style="display:inline;font-size:14px">
