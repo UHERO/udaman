@@ -29,7 +29,8 @@
 		<%= render :partial => 'calculate_form' %>
 
 <% if @search_string %>
-  <h3>Search: <%= sanitize @search_string %></h3>
+    <h3>Search: <a href="#" style="text-decoration:none;"
+                   onClick="setSeriesSearch('<%= sanitize @search_string %>');"><%= sanitize @search_string %></a></h3>
 <% end %>
 <% if @all_series.empty? %>
   No results.
