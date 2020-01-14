@@ -24,7 +24,19 @@
     <a href="/investigate_visual">Investigation Dashboard</a> |
     <a href="/data_lists?u=uhero">Data Lists</a> |
     <a href="/exports">Exports</a> |
-    <a href="/help">Help</a> | Search
+    <a href="/help">Help</a> |
+      <a href="#" title="Special operators:
+^     match start of mnemonic
+~    (tilde) match anywhere in mnemonic
+-     (minus) omit matching from results
+@   match geography
+.      match frequency (combine as .am .mq etc)
+&R   unrestricted only
+&r     restricted only
+&sa  seasonally adjusted only
+&ns  non-seasonally adjusted only
+=      get an exact series based on full name
+/       change universe (db short for dbedt, u short for uhero)"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></a>
   	<div id="search" style="display:inline">
   		<%= render :partial => '/layouts/series_search' %>
   	</div>
