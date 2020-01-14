@@ -336,7 +336,7 @@ class Series < ApplicationRecord
   end
   
   def Series.frequency_from_code(code)
-    case code.upcase
+    case code && code.upcase
       when 'A' then :year
       when 'Q' then :quarter
       when 'M' then :month
@@ -1126,6 +1126,7 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
+      term.gsub!(/_/, '\_').gsub!(/%/, '\%')  ## escape SQL wildcards
       case term
         when /^\//
           a = term[1..]
@@ -1133,7 +1134,7 @@ class Series < ApplicationRecord
         when /^[!]/
           conditions.push %q{series.name = ?}
           bindvars.push term[1..]
-        when /^[~]/
+        when /^[~]/  ## tilde
           conditions.push %q{substring_index(name,'@',1) like concat('%',?,'%')}
           bindvars.push term[1..]
         when /^[@]/
@@ -1145,11 +1146,17 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
-        when /^[-]/
+        when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
           bindvars.push term[1..]
+        when /^[=]/
+          case term[1..]
+            when 'r' then conditions.push %q{xseries.restricted = true}
+            when 'R' then conditions.push %q{xseries.restricted = false}
+            else nil
+          end
         else
-          ## ordinary word
+          ## a "naked" word
           conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) like concat('%',?,'%')}
           bindvars.push term
       end

@@ -92,14 +92,26 @@ class SeriesController < ApplicationController
     @all_series = []
   end
 
-  def show
+  def new_search
+    @all_series = Series.new_search(params[:search_string])
+    if @all_series.count == 1
+      @series = @all_series.first
+      show(true)  ## call controller prep without render
+      render :show
+      return
+    end
+    render :index
+  end
+
+  def show(no_render = false)
     @as = AremosSeries.get @series.name
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
     @dsas = @series.data_source_actions
-    
+    return if no_render
+
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb
@@ -191,11 +203,6 @@ class SeriesController < ApplicationController
   def autocomplete_search
     render :json => Series.web_search(params[:term], params[:universe])
                           .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
-  end
-
-  def new_search
-    @all_series = Series.new_search(params[:search_string])
-    render :index
   end
 
   def comparison_graph
