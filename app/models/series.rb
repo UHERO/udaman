@@ -1135,11 +1135,11 @@ class Series < ApplicationRecord
           conditions.push %q{series.name = ?}
           bindvars.push tane
         when /^[~]/  ## tilde
-          conditions.push %q{substring_index(name,'@',1) like concat('%',?,'%')}
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push tane
         when /^\^/
-          conditions.push %q{substring_index(name,'@',1) like concat(?,'%')}
-          bindvars.push tane
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
@@ -1158,11 +1158,11 @@ class Series < ApplicationRecord
             else nil
           end
         when /^[-]/  ## minus
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not like concat('%',?,'%')}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
           bindvars.push tane
         else
           ## a "naked" word
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) like concat('%',?,'%')}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) regexp ?}
           bindvars.push term
       end
     end
