@@ -1158,11 +1158,11 @@ class Series < ApplicationRecord
             else nil
           end
         when /^[-]/  ## minus
-          conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) not like concat('%',?,'%')}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not like concat('%',?,'%')}
           bindvars.push tane
         else
           ## a "naked" word
-          conditions.push %q{concat(substring_index(name,'@',1),'|',dataPortalName,'|',description) like concat('%',?,'%')}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) like concat('%',?,'%')}
           bindvars.push term
       end
     end
@@ -1174,6 +1174,7 @@ class Series < ApplicationRecord
 
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
+    Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     u = search_parts.select {|s| s =~ /^\// }.shift
