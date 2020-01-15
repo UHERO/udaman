@@ -1150,13 +1150,13 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
         when /^[&]/
-          case tane
-            when 'pub' then conditions.push %q{restricted = false}
-            when 'r'   then conditions.push %q{restricted = true}
-            when 'sa'  then conditions.push %q{seasonal_adjustment = 'seasonally_adjusted'}
-            when 'ns'  then conditions.push %q{seasonal_adjustment = 'not_seasonally_adjusted'}
-            else nil
-          end
+          conditions.push case tane
+                            when 'pub' then %q{restricted = false}
+                            when 'r'   then %q{restricted = true}
+                            when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
+                            when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                            else nil
+                          end
         when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
           bindvars.push tane
