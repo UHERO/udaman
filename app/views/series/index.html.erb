@@ -1,10 +1,8 @@
 <div id="summary_area">
 	<h1>Data Series</h1>
-	<h2>Total: <%= @all_series.count %></h2>
-	<div id="navigation">
-		<%= raw navigation_by_frequency %>
-		<%= raw navigation_by_letter %>
-	</div>
+  <% if @all_series && @all_series.count > 0 %>
+      <h2>Total: <%= @all_series.count %></h2>
+  <% end %>
   <% if current_user.internal_user? %>
       <br />
     <div>
@@ -30,7 +28,13 @@
 <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
 
-<% unless @all_series.empty? %>
+<% if @search_string %>
+    <h3>Search: <a href="#" style="text-decoration:none;"
+                   onClick="setSeriesSearch('<%= sanitize @search_string %>');"><%= sanitize @search_string %></a></h3>
+<% end %>
+<% if @all_series && @all_series.empty? %>
+  No results.
+<% elsif @all_series %>
   <table class="list_table">
     <thead>
     <tr>

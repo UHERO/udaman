@@ -89,27 +89,30 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    frequency = params[:freq]
-    prefix = params[:prefix]
-    all = params.has_key?(:all)
-
-    @all_series =
-      case
-        when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
-        when all then       Series.get_all_uhero.order(:name)
-        else []
-      end
+    @all_series = nil ## this is the clue that we're on an initial page-load and not listing search results
   end
 
-  def show
+  def new_search
+    @search_string = params[:search_string]
+    @all_series = Series.new_search(@search_string)
+    if @all_series.count == 1
+      @series = @all_series.first
+      show(true)  ## call controller prep without render
+      render :show
+      return
+    end
+    render :index
+  end
+
+  def show(no_render = false)
     @as = AremosSeries.get @series.name
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
     @dsas = @series.data_source_actions
-    
+    return if no_render
+
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb

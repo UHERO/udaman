@@ -335,15 +335,16 @@ class Series < ApplicationRecord
     return ''
   end
   
-  #There are duplicates of these in other file... non series version 
   def Series.frequency_from_code(code)
-    return :year if code == 'A' || code =='a'
-    return :quarter if code == 'Q' || code =='q'
-    return :month if code == 'M' || code == 'm'
-    return :semi if code == 'S' || code == 's'
-    return :week if code == 'W' || code == 'w'
-    return :day if code == 'D' || code == 'd'
-    return nil
+    case code && code.upcase
+      when 'A' then :year
+      when 'Q' then :quarter
+      when 'M' then :month
+      when 'S' then :semi
+      when 'W' then :week
+      when 'D' then :day
+      else nil
+    end
   end
 
   def Series.frequency_from_name(name)
@@ -1119,9 +1120,61 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  
+  def Series.new_search(input_string)
+    all = Series.joins(:xseries)
+    univ = 'UHERO'
+    conditions = []
+    bindvars = []
+    input_string.split.each do |term|
+      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub! method)
+      tane = term[1..]
+      case term
+        when /^\//
+          univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+        when /^[=]/
+          conditions.push %q{series.name = ?}
+          bindvars.push tane
+        when /^[~]/  ## tilde
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push tane
+        when /^\^/
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
+        when /^[@]/
+          all = all.joins(:geography)
+          conditions.push %q{geographies.handle = ?}
+          bindvars.push tane
+        when /^[.]/
+          freqs = tane.split(//)  ## split to individual characters
+          qmarks = (['?'] * freqs.count).join(',')
+          conditions.push %Q{xseries.frequency in (#{qmarks})}
+          bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
+        when /^[&]/
+          conditions.push case tane
+                            when 'pub' then %q{restricted = false}
+                            when 'r'   then %q{restricted = true}
+                            when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
+                            when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                            else nil
+                          end
+        when /^[-]/  ## minus
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
+          bindvars.push tane
+        else
+          ## a "naked" word
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) regexp ?}
+          bindvars.push term
+      end
+    end
+    conditions.push %q{series.universe = ?}
+    bindvars.push univ
+    Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
+    all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
+  end
+
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
+    Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     u = search_parts.select {|s| s =~ /^\// }.shift
