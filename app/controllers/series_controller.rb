@@ -89,7 +89,7 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    @all_series = []
+    @all_series = nil ## this is the clue that we're on a first page-load and not listing search results
   end
 
   def new_search

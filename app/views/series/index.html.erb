@@ -1,6 +1,6 @@
 <div id="summary_area">
 	<h1>Data Series</h1>
-  <% if @all_series.count > 0 %>
+  <% if @all_series && @all_series.count > 0 %>
       <h2>Total: <%= @all_series.count %></h2>
   <% end %>
   <% if current_user.internal_user? %>
@@ -32,9 +32,9 @@
     <h3>Search: <a href="#" style="text-decoration:none;"
                    onClick="setSeriesSearch('<%= sanitize @search_string %>');"><%= sanitize @search_string %></a></h3>
 <% end %>
-<% if @all_series.empty? %>
+<% if @all_series && @all_series.empty? %>
   No results.
-<% else %>
+<% elsif @all_series %>
   <table class="list_table">
     <thead>
     <tr>
