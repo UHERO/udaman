@@ -20,9 +20,8 @@
           })
           .autocomplete({
               source: function( request, response ) {
-                  var the_term = request.term.slice(1);
                   $.getJSON( "/autocomplete", {
-                      term: extractLast( the_term )
+                      term: extractLast( request.term.slice(1) )  // slice off the "=" character
                   }, response );
               },
               search: function() {
