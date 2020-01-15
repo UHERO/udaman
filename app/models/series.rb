@@ -16,6 +16,7 @@ class Series < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
+  before_destroy :last_rites, prepend: true
 
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
@@ -218,7 +219,7 @@ class Series < ApplicationRecord
     xseries.primary_series
   end
 
-  def get_aliases
+  def aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
@@ -1340,6 +1341,10 @@ class Series < ApplicationRecord
 
   def source_link_is_valid
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
+
+  def last_rites
+    throw(:abort) if is_primary? && !aliases.empty?
   end
 
 private
