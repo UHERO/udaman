@@ -1151,10 +1151,10 @@ class Series < ApplicationRecord
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
         when /^[&]/
           case tane
-            when 'r' then conditions.push %q{restricted = true}
-            when 'R' then conditions.push %q{restricted = false}
-            when 'sa' then conditions.push %q{seasonal_adjustment = 'seasonally_adjusted'}
-            when 'ns' then conditions.push %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+            when 'pub' then conditions.push %q{restricted = false}
+            when 'r'   then conditions.push %q{restricted = true}
+            when 'sa'  then conditions.push %q{seasonal_adjustment = 'seasonally_adjusted'}
+            when 'ns'  then conditions.push %q{seasonal_adjustment = 'not_seasonally_adjusted'}
             else nil
           end
         when /^[-]/  ## minus
