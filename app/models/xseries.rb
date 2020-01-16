@@ -10,6 +10,6 @@ class Xseries < ApplicationRecord
 
   def last_rites
     ### The use of throw(:abort) prevents the object from being destroyed
-    throw(:abort) if somethingggggggg
+    throw(:abort) if primary_series.scratch != 90909  ## check Series.last_rites for meaning of this
   end
 end

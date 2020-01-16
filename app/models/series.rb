@@ -1356,6 +1356,7 @@ class Series < ApplicationRecord
       Rails.logger.warn { "Unable to delete public data points before destruction of series <#{self}> id=#{id}" }
       throw(:abort)
     end
+    self.update_attributes(scratch: 90909)  ## a code to indicate this series is in process of destruction
     if is_primary?
       xseries.destroy!
     end
