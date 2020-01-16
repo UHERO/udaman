@@ -1344,7 +1344,18 @@ class Series < ApplicationRecord
   end
 
   def last_rites
+    ### The use of throw(:abort) prevents the series from being destroyed
     throw(:abort) if is_primary? && !aliases.empty?
+    begin
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
+          delete from public_data_points where series_id = ?
+      MYSQL
+      stmt.execute(id)
+      stmt.close
+    rescue
+      Rails.logger.warn { "Unable to delete public data points before destruction of series <#{self}> id=#{id}" }
+      throw(:abort)
+    end
   end
 
 private
