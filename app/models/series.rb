@@ -74,12 +74,12 @@ class Series < ApplicationRecord
     Series.get_all_uhero.pluck(:name)
   end
 
-  def Series.get(name)
-    Series.parse_name(name) && Series.where(name: name).first
+  def Series.get(name, universe = 'UHERO')
+    Series.parse_name(name) && Series.where(universe: universe, name: name).first
   end
 
-  def Series.get_or_new(series_name)
-    Series.get(series_name) || Series.create_new(name: series_name)
+  def Series.get_or_new(series_name, universe = 'UHERO')
+    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name)
   end
 
   def Series.bulk_create(definitions)
