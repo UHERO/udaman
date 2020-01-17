@@ -15,7 +15,7 @@
 							:controller => 'data_sources',
 							:action => 'clear',
 							:id => ds.id} unless myeval.blank?
-					%>&nbsp
+					%>&nbsp;
           <% if current_user.admin_user? %>
             |&nbsp;<%= link_to 'delete', {
                 :controller => 'data_sources',
