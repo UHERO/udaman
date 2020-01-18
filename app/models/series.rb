@@ -17,14 +17,15 @@ class Series < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
   before_destroy :last_rites, prepend: true
+  after_destroy :post_mortem, prepend: true
 
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
   delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
 
-  has_many :data_points, through: :xseries
+##  has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
-  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
+##  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
 
   has_and_belongs_to_many :data_lists
 
@@ -1356,8 +1357,23 @@ class Series < ApplicationRecord
       Rails.logger.warn { "Unable to delete public data points before destruction of series <#{self}> id=#{id}" }
       throw(:abort)
     end
+    if is_primary?
+      xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
+    end
+=begin
     self.update_attributes(scratch: 90909)  ## a flag to indicate this Series object is in process of destruction
     if is_primary?
+      xs = xseries
+      self.update_attributes(xseries_id: 0)  ## avoid the failure on foreign key constraint that would happen otherwise
+##      self.reload
+      xs.destroy!
+    end
+=end
+  end
+
+  def post_mortem
+    if is_primary?
+      Rails.logger.warn { ">>>>>>>>>>>>>>>>> right here: #{self.xseries_id}|#{self.xseries.frequency}|" }
       xseries.destroy!
     end
   end

@@ -9,7 +9,10 @@ class Xseries < ApplicationRecord
   serialize :factors, Hash
 
   def last_rites
+    Rails.logger.warn { ">>>>>>>>>>>>>>>>> entering last rites: #{primary_series_id}|" }
+    primary_series.reload rescue return
     ### The use of throw(:abort) prevents the object from being destroyed
-    throw(:abort) if primary_series.scratch != 90909  ## check Series.last_rites for meaning of this
+    Rails.logger.warn { ">>>>>>>>>>>>>>>>> now here" }
+    throw(:abort)  ## this line is only reached if primary_series still exists
   end
 end
