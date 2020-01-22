@@ -1359,21 +1359,12 @@ class Series < ApplicationRecord
     end
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
+      self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
     end
-=begin
-    self.update_attributes(scratch: 90909)  ## a flag to indicate this Series object is in process of destruction
-    if is_primary?
-      xs = xseries
-      self.update_attributes(xseries_id: 0)  ## avoid the failure on foreign key constraint that would happen otherwise
-##      self.reload
-      xs.destroy!
-    end
-=end
   end
 
   def post_mortem
-    if is_primary?
-      Rails.logger.warn { ">>>>>>>>>>>>>>>>> right here: #{self.xseries_id}|#{self.xseries.frequency}|" }
+    if scratch == 90909
       xseries.destroy!
     end
   end
