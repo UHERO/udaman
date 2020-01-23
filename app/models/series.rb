@@ -21,7 +21,7 @@ class Series < ApplicationRecord
 
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
-  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
+  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' are tried against the contained Xseries
 
 ##  has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
