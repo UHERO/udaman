@@ -110,7 +110,10 @@ class SeriesController < ApplicationController
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
-    @dsas = @series.data_source_actions
+    @dsas = []
+    @series.data_sources.each do |ds|
+      @dsas.concat ds.data_source_actions
+    end
     return if no_render
 
     respond_to do |format|

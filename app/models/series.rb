@@ -16,14 +16,16 @@ class Series < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
+  before_destroy :last_rites, prepend: true
+  after_destroy :post_mortem, prepend: true
 
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
-  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
+  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' are tried against the contained Xseries
 
-  has_many :data_points, through: :xseries
+##  has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
-  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
+##  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
 
   has_and_belongs_to_many :data_lists
 
@@ -73,12 +75,12 @@ class Series < ApplicationRecord
     Series.get_all_uhero.pluck(:name)
   end
 
-  def Series.get(name)
-    Series.parse_name(name) && Series.where(name: name).first
+  def Series.get(name, universe = 'UHERO')
+    Series.parse_name(name) && Series.where(universe: universe, name: name).first
   end
 
-  def Series.get_or_new(series_name)
-    Series.get(series_name) || Series.create_new(name: series_name)
+  def Series.get_or_new(series_name, universe = 'UHERO')
+    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name)
   end
 
   def Series.bulk_create(definitions)
@@ -218,7 +220,7 @@ class Series < ApplicationRecord
     xseries.primary_series
   end
 
-  def get_aliases
+  def aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
@@ -1340,6 +1342,31 @@ class Series < ApplicationRecord
 
   def source_link_is_valid
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
+
+  def last_rites
+    ### The use of throw(:abort) prevents the object from being destroyed
+    throw(:abort) if is_primary? && !aliases.empty?
+    begin
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
+          delete from public_data_points where series_id = ?
+      MYSQL
+      stmt.execute(id)
+      stmt.close
+    rescue
+      Rails.logger.warn { "Unable to delete public data points before destruction of series <#{self}> id=#{id}" }
+      throw(:abort)
+    end
+    if is_primary?
+      xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
+      self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
+    end
+  end
+
+  def post_mortem
+    if scratch == 90909
+      xseries.destroy!
+    end
   end
 
 private
