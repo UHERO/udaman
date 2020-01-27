@@ -117,6 +117,8 @@ class DvwUpload < ApplicationRecord
     db_execute 'set foreign_key_checks = 0;'
     db_execute 'truncate table data_points'
     mylogger :debug, 'DONE truncating data points'
+    db_execute 'truncate table data_toc'
+    mylogger :debug, 'DONE truncating data_toc'
     db_execute 'truncate table indicators'
     mylogger :debug, 'DONE truncating indicators'
     db_execute 'truncate table categories'
@@ -251,7 +253,14 @@ class DvwUpload < ApplicationRecord
   end
 
   def load_data_postproc
-    ## Nothing to do at this time
+    ## generate the data table of contents
+    db_execute <<~MYSQL
+      insert into data_toc
+      select distinct module, group_id, market_id, destination_id, category_id, indicator_id, count(*)
+      from data_points
+      group by 1, 2, 3, 4, 5, 6;
+    MYSQL
+    mylogger :debug, 'DONE generate data toc'
   end
 
   def worker_tasks(do_csv_proc = false)
