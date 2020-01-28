@@ -15,13 +15,14 @@
 							:controller => 'data_sources',
 							:action => 'clear',
 							:id => ds.id} unless myeval.blank?
-					%>&nbsp;|&nbsp;<%= 
-						link_to 'delete', {
-							:controller => 'data_sources',
-							:action => 'delete', 
-							:id => ds.id },
-							data: { :confirm => "Delete definition #{ds.id}: Are you sure??" }
-					%><br/>
+					%>&nbsp;
+          <% if current_user.admin_user? %>
+            |&nbsp;<%= link_to 'delete', {
+                :controller => 'data_sources',
+                :action => 'delete',
+                :id => ds.id },
+                data: { :confirm => "Delete definition #{ds.id}: Are you sure??" } %>
+          <% end %><br/>
           <% if myeval =~ /load_from_download/ %>
              <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
           <% end %>
