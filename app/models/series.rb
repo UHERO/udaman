@@ -23,9 +23,7 @@ class Series < ApplicationRecord
   accepts_nested_attributes_for :xseries
   delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' are tried against the contained Xseries
 
-##  has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
-##  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
 
   has_and_belongs_to_many :data_lists
 
@@ -1170,7 +1168,7 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
+    ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
     all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
   end
 
@@ -1345,8 +1343,10 @@ class Series < ApplicationRecord
   end
 
   def last_rites
-    ### The use of throw(:abort) prevents the object from being destroyed
-    throw(:abort) if is_primary? && !aliases.empty?
+    if is_primary? && !aliases.empty?
+      Rails.logger.error { "Cannot delete primary series <#{self}> that has aliases. Delete aliases first." }
+      throw(:abort)
+    end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
           delete from public_data_points where series_id = ?
