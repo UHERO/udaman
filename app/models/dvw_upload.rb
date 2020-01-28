@@ -255,7 +255,7 @@ class DvwUpload < ApplicationRecord
   def load_data_postproc
     ## generate the data table of contents
     db_execute <<~MYSQL
-      insert into data_toc
+      insert into data_toc (module, group_id, market_id, destination_id, category_id, indicator_id, `count`)
       select distinct module, group_id, market_id, destination_id, category_id, indicator_id, count(*)
       from data_points
       group by 1, 2, 3, 4, 5, 6;
