@@ -1342,6 +1342,7 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
+private
   def last_rites
     if is_primary? && !aliases.empty?
       Rails.logger.error { "Cannot delete primary series <#{self}> that has aliases. Delete aliases first." }
@@ -1369,7 +1370,6 @@ class Series < ApplicationRecord
     end
   end
 
-private
   def Series.display_options(options)
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end

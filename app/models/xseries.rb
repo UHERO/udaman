@@ -8,9 +8,11 @@ class Xseries < ApplicationRecord
 
   serialize :factors, Hash
 
+private
   def last_rites
     primary_series.reload rescue return
     Rails.logger.error { "Cannot delete xseries (id=#{id}) because its primary series still exists." }
     throw(:abort)
   end
+
 end
