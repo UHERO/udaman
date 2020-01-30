@@ -17,7 +17,7 @@ module SeriesRelationship
   def current_data_points
     cdp_hash = {}
     cdp_array = []
-    self.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
+    xseries.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
       if cdp_hash[cdp.date]
         cdp.update_attributes!(:current => false)
       else

@@ -505,7 +505,7 @@ class Series < ApplicationRecord
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def update_data_hash_DELETEME
     data_hash = {}
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       data_hash[dp.date.to_s] = dp.value if dp.current
     end
     self.save
@@ -549,7 +549,7 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     hash = {}
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       hash[dp.date] = dp[column] if dp.current
     end
     hash
@@ -559,7 +559,7 @@ class Series < ApplicationRecord
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
     end
     data_hash
@@ -829,7 +829,7 @@ class Series < ApplicationRecord
   end
 
   def new_data?
-    data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
+    xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
   #used to use app.get trick
@@ -897,7 +897,7 @@ class Series < ApplicationRecord
     
     data_sources.each { |ds| source_array.push ds.id }  
     source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
-    data_points.each do |dp|  
+    xseries.data_points.each do |dp|
       data_hash[dp.date] ||= []
       data_hash[dp.date].push("#{'H' unless dp.history.nil?}#{'|' unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10, ' '))
     end
@@ -999,7 +999,7 @@ class Series < ApplicationRecord
   
   def tsd_string
     data_string = ''
-    lm = data_points.order(:updated_at).last.updated_at
+    lm = xseries.data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
     as_description = as.nil? ? '' : as.description
