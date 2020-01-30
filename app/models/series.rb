@@ -1342,10 +1342,21 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
+  def force_destroy
+    self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
+    self.destroy!
+  end
+
 private
   def last_rites
     if is_primary? && !aliases.empty?
-      Rails.logger.error { "Cannot delete primary series <#{self}> that has aliases. Delete aliases first." }
+      Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
+      #errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
+      throw(:abort)
+    end
+    if !who_depends_on_me.empty? && !destroy_forced
+      Rails.logger.error { 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.' }
+      #errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
       throw(:abort)
     end
     begin
@@ -1355,7 +1366,8 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      Rails.logger.warn { "Unable to delete public data points before destruction of series <#{self}> id=#{id}" }
+      Rails.logger.error { 'ERROR: Unable to delete public data points before destruction of series' }
+      #errors.add(:base, 'Unable to delete public data points before destruction of series.')
       throw(:abort)
     end
     if is_primary?
@@ -1368,6 +1380,10 @@ private
     if scratch == 90909
       xseries.destroy!
     end
+  end
+
+  def destroy_forced
+    scratch == 44444
   end
 
   def Series.display_options(options)

@@ -11,7 +11,8 @@ class Xseries < ApplicationRecord
 private
   def last_rites
     primary_series.reload rescue return
-    Rails.logger.error { "Cannot delete xseries (id=#{id}) because its primary series still exists." }
+    Rails.logger.error { "ERROR: Cannot destroy xseries (id=#{id}) because its primary series still exists." }
+    #errors.add(:base, 'Cannot destroy xseries when its primary series still exists.')
     throw(:abort)
   end
 
