@@ -1149,6 +1149,10 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
+        when /^[#]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.eval regexp ?}
+          bindvars.push tane
         when /^[&]/
           conditions.push case tane
                             when 'pub' then %q{restricted = false}
