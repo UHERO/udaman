@@ -23,9 +23,7 @@ class Series < ApplicationRecord
   accepts_nested_attributes_for :xseries
   delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' are tried against the contained Xseries
 
-##  has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
-##  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
 
   has_and_belongs_to_many :data_lists
 
@@ -505,7 +503,7 @@ class Series < ApplicationRecord
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def update_data_hash_DELETEME
     data_hash = {}
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       data_hash[dp.date.to_s] = dp.value if dp.current
     end
     self.save
@@ -549,7 +547,7 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     hash = {}
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       hash[dp.date] = dp[column] if dp.current
     end
     hash
@@ -559,7 +557,7 @@ class Series < ApplicationRecord
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
     end
     data_hash
@@ -829,7 +827,7 @@ class Series < ApplicationRecord
   end
 
   def new_data?
-    data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
+    xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
   #used to use app.get trick
@@ -897,7 +895,7 @@ class Series < ApplicationRecord
     
     data_sources.each { |ds| source_array.push ds.id }  
     source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
-    data_points.each do |dp|  
+    xseries.data_points.each do |dp|
       data_hash[dp.date] ||= []
       data_hash[dp.date].push("#{'H' unless dp.history.nil?}#{'|' unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10, ' '))
     end
@@ -999,7 +997,7 @@ class Series < ApplicationRecord
   
   def tsd_string
     data_string = ''
-    lm = data_points.order(:updated_at).last.updated_at
+    lm = xseries.data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
     as_description = as.nil? ? '' : as.description
@@ -1151,6 +1149,10 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
+        when /^[#]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.eval regexp ?}
+          bindvars.push tane
         when /^[&]/
           conditions.push case tane
                             when 'pub' then %q{restricted = false}
@@ -1170,7 +1172,7 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
+    ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
     all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
   end
 
@@ -1344,9 +1346,23 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
+  def force_destroy
+    self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
+    self.destroy!
+  end
+
+private
   def last_rites
-    ### The use of throw(:abort) prevents the object from being destroyed
-    throw(:abort) if is_primary? && !aliases.empty?
+    if is_primary? && !aliases.empty?
+      Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
+      #errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
+      throw(:abort)
+    end
+    if !who_depends_on_me.empty? && !destroy_forced
+      Rails.logger.error { 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.' }
+      #errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
+      throw(:abort)
+    end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
           delete from public_data_points where series_id = ?
@@ -1354,7 +1370,8 @@ class Series < ApplicationRecord
       stmt.execute(id)
       stmt.close
     rescue
-      Rails.logger.warn { "Unable to delete public data points before destruction of series <#{self}> id=#{id}" }
+      Rails.logger.error { 'ERROR: Unable to delete public data points before destruction of series' }
+      #errors.add(:base, 'Unable to delete public data points before destruction of series.')
       throw(:abort)
     end
     if is_primary?
@@ -1369,7 +1386,10 @@ class Series < ApplicationRecord
     end
   end
 
-private
+  def destroy_forced
+    scratch == 44444
+  end
+
   def Series.display_options(options)
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end
