@@ -1346,7 +1346,7 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
-  def force_destroy
+  def force_destroy!
     self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
     self.destroy!
   end
