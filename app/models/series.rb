@@ -547,8 +547,10 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     hash = {}
-    xseries.data_points.each do |dp|
-      hash[dp.date] = dp[column] if dp.current
+    if xseries
+      xseries.data_points.each do |dp|
+        hash[dp.date] = dp[column] if dp.current
+      end
     end
     hash
   end
