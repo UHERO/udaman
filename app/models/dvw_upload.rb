@@ -288,7 +288,7 @@ private
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
       raise "Could not transform xlsx to csv (#{id}:#{$?})"
     end
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
       raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
     end
   end
