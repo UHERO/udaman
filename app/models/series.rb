@@ -1356,14 +1356,16 @@ class Series < ApplicationRecord
 private
   def last_rites
     if is_primary? && !aliases.empty?
-      Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
-#      errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
-      raise SeriesDestroyException, 'Cannot destroy a series that has aliases. Delete aliases first.'
+      error = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
+      Rails.logger.error { error }
+#      errors.add(:base, error)
+      raise SeriesDestroyException, error
     end
     if !who_depends_on_me.empty? && !destroy_forced
-      Rails.logger.error { 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.' }
-#      errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
-      raise SeriesDestroyException, 'Cannot destroy a series that has dependent series. Delete dependencies first.'
+      error = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
+      Rails.logger.error { error }
+#      errors.add(:base, error)
+      raise SeriesDestroyException, error
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
@@ -1372,9 +1374,10 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      Rails.logger.error { 'ERROR: Unable to delete public data points before destruction of series' }
-#      errors.add(:base, 'Unable to delete public data points before destruction of series.')
-      raise SeriesDestroyException, 'ERROR: Unable to delete public data points before destruction of series'
+      error = 'ERROR: Unable to delete public data points before destruction of series'
+      Rails.logger.error { error }
+#      errors.add(:base, error)
+      raise SeriesDestroyException, error
     end
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
