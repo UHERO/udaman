@@ -86,8 +86,12 @@ google.visualization.events.addListener(chart, 'select', function() {
 		<%= link_to 'Outlier Chart', :action => 'outlier_graph', :id => @series %> |
 		<a href="/listseries/<%=@series.name.chop.chop%>">TSDs</a> |
 		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %>
+    <script>
+        document.getElementById("conf-dia-but").onclick = loseFocus;
+        function loseFocus() { document.getElementById("conf-dia-but").blur(); }
+    </script>
     <% if current_user.dev_user? %>
-      | <td><%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %></td>
+      | <td><%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??", id: 'conf-dia-but' } %></td>
     <% end %>
   </div>
 </div>
