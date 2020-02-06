@@ -91,7 +91,7 @@ google.visualization.events.addListener(chart, 'select', function() {
         function loseFocus() { document.getElementById("conf-dia-but").blur(); }
     </script>
     <% if current_user.dev_user? %>
-      | <td><%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??", id: 'conf-dia-but' } %></td>
+      | <td><%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" }, class: 'button', id: 'conf-dia-but' %></td>
     <% end %>
   </div>
 </div>
