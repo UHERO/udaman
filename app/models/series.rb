@@ -1349,7 +1349,7 @@ class Series < ApplicationRecord
   end
 
   def force_destroy!
-    self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
+    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
     self.destroy!
   end
 
