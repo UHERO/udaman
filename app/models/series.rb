@@ -1349,21 +1349,25 @@ class Series < ApplicationRecord
   end
 
   def force_destroy!
-    self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
+    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
     self.destroy!
   end
 
 private
+
   def last_rites
     if is_primary? && !aliases.empty?
-      Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
-      #errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
-      throw(:abort)
+      message = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
+      ## Although Rails 5 documentation states that callbacks such as this one should be aborted using throw(:abort),
+      ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
+      ## as a result I've decided to use raise instead. It seems to work just as well.
     end
     if !who_depends_on_me.empty? && !destroy_forced
-      Rails.logger.error { 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.' }
-      #errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
-      throw(:abort)
+      message = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
@@ -1372,9 +1376,9 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      Rails.logger.error { 'ERROR: Unable to delete public data points before destruction of series' }
-      #errors.add(:base, 'Unable to delete public data points before destruction of series.')
-      throw(:abort)
+      message = 'ERROR: Unable to delete public data points before destruction of series'
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
     end
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
