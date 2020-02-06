@@ -1356,16 +1356,16 @@ class Series < ApplicationRecord
 private
   def last_rites
     if is_primary? && !aliases.empty?
-      error = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
-      Rails.logger.error { error }
-#      errors.add(:base, error)
-      raise SeriesDestroyException, error
+      message = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
+      Rails.logger.error { message }
+#      errors.add(:base, message)
+      raise SeriesDestroyException, message
     end
     if !who_depends_on_me.empty? && !destroy_forced
-      error = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
-      Rails.logger.error { error }
-#      errors.add(:base, error)
-      raise SeriesDestroyException, error
+      message = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
+      Rails.logger.error { message }
+#      errors.add(:base, message)
+      raise SeriesDestroyException, message
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
@@ -1374,10 +1374,10 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      error = 'ERROR: Unable to delete public data points before destruction of series'
-      Rails.logger.error { error }
-#      errors.add(:base, error)
-      raise SeriesDestroyException, error
+      message = 'ERROR: Unable to delete public data points before destruction of series'
+      Rails.logger.error { message }
+#      errors.add(:base, message)
+      raise SeriesDestroyException, message
     end
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
