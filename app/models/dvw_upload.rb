@@ -175,7 +175,6 @@ class DvwUpload < ApplicationRecord
 
         row_values = []
         columns.each do |col|
-          raise "Quote character in #{row['handle']} row, #{col} column" if row[col] =~ /['"]/
           row_values.push case col
                           when 'module' then mod
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
