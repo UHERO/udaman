@@ -547,8 +547,10 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     hash = {}
-    xseries.data_points.each do |dp|
-      hash[dp.date] = dp[column] if dp.current
+    if xseries
+      xseries.data_points.each do |dp|
+        hash[dp.date] = dp[column] if dp.current
+      end
     end
     hash
   end
@@ -1346,7 +1348,7 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
-  def force_destroy
+  def force_destroy!
     self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
     self.destroy!
   end
