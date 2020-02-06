@@ -1349,22 +1349,24 @@ class Series < ApplicationRecord
   end
 
   def force_destroy!
-    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
+    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
     self.destroy!
   end
 
 private
+
   def last_rites
     if is_primary? && !aliases.empty?
       message = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
       Rails.logger.error { message }
-#      errors.add(:base, message)
       raise SeriesDestroyException, message
+      ## Although Rails 5 documentation states that callbacks such as this one should be aborted using throw(:abort),
+      ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
+      ## as a result I've decided to use raise instead. It seems to work just as well.
     end
     if !who_depends_on_me.empty? && !destroy_forced
       message = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
       Rails.logger.error { message }
-#      errors.add(:base, message)
       raise SeriesDestroyException, message
     end
     begin
@@ -1376,7 +1378,6 @@ private
     rescue
       message = 'ERROR: Unable to delete public data points before destruction of series'
       Rails.logger.error { message }
-#      errors.add(:base, message)
       raise SeriesDestroyException, message
     end
     if is_primary?
