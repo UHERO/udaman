@@ -1355,10 +1355,6 @@ class Series < ApplicationRecord
 
 private
   def last_rites
-#    throw(:abort) unless destroyable
-#  end
-
-#  def destroyable
     if is_primary? && !aliases.empty?
       Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
 #      errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
@@ -1384,7 +1380,6 @@ private
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
       self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
     end
-    true
   end
 
   def post_mortem
