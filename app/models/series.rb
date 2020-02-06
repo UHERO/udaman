@@ -1355,15 +1355,21 @@ class Series < ApplicationRecord
 
 private
   def last_rites
+    throw(:abort) unless destroyable
+  end
+
+  def destroyable
     if is_primary? && !aliases.empty?
       Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
-      #errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
-      throw(:abort)
+      errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
+      raise SeriesDestroyException
+      return false
     end
     if !who_depends_on_me.empty? && !destroy_forced
       Rails.logger.error { 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.' }
-      #errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
-      throw(:abort)
+      errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
+      raise SeriesDestroyException
+      return false
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
@@ -1373,13 +1379,15 @@ private
       stmt.close
     rescue
       Rails.logger.error { 'ERROR: Unable to delete public data points before destruction of series' }
-      #errors.add(:base, 'Unable to delete public data points before destruction of series.')
-      throw(:abort)
+      errors.add(:base, 'Unable to delete public data points before destruction of series.')
+      raise SeriesDestroyException
+      return false
     end
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
       self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
     end
+    true
   end
 
   def post_mortem
