@@ -1150,7 +1150,7 @@ class Series < ApplicationRecord
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
-          bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
+          bindvars.concat freqs.map {|f| Series.frequency_from_code(f) }
         when /^[#]/
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
@@ -1163,6 +1163,9 @@ class Series < ApplicationRecord
                             when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                             else nil
                           end
+        when /^\d+$/
+          conditions.push %q{series.id = ?}
+          bindvars.push term
         when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
           bindvars.push tane
