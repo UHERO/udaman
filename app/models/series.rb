@@ -1163,6 +1163,9 @@ class Series < ApplicationRecord
                             when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                             else nil
                           end
+        when /^\d+$/
+          conditions.push %q{series.id = ?}
+          bindvars.push term
         when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
           bindvars.push tane
