@@ -58,6 +58,7 @@ module SeriesRelationship
   end
 
   ## full recursive tree of dependents
+  ##   THIS IS NOT RELATIVIZED FOR DIFFERENT UNIVERSES, BUT PROB OK FOR JUST UHERO FOR NOW
   def Series.all_who_depend_on(name, already_seen = [])
     return [] if already_seen.include?(name)
     already_seen.push(name)
@@ -81,10 +82,10 @@ module SeriesRelationship
   end
 
   ## the immediate (first order) dependents
-  def Series.who_depends_on(name)
+  def Series.who_depends_on(name, universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
-      .where('data_sources.description RLIKE ?', name_match)
+      .where('data_sources.universe = ? and data_sources.description RLIKE ?', universe, name_match)
       .joins(:series)
       .pluck(:name)
       .uniq
@@ -94,7 +95,7 @@ module SeriesRelationship
   ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
   ## already exists anyway)
   def who_depends_on_me
-    Series.who_depends_on(self.name)
+    Series.who_depends_on(self.name, self.universe)
   end
 
   def who_i_depend_on(direct_only = false)

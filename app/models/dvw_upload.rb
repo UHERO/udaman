@@ -167,6 +167,7 @@ class DvwUpload < ApplicationRecord
         parent_set.push [row['parent'], row['handle']]
       end
 
+      raise "Module not specified for ID #{row['id']}" unless row['module']
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
         level = row["l_#{mod.downcase}"] || row['level'] || next   ## finally just skip this entry if level is not specified
@@ -174,7 +175,6 @@ class DvwUpload < ApplicationRecord
 
         row_values = []
         columns.each do |col|
-          raise "Quote character in #{row['handle']} row, #{col} column" if row[col] =~ /['"]/
           row_values.push case col
                           when 'module' then mod
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
@@ -281,15 +281,15 @@ private
       if other_worker.blank?
         raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
       end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{upload.absolute_path}")
-        raise "#{@logprefix}: Could not get xlsx file ((#{xls_path}) #{upload.id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{absolute_path}")
+        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
       end
     end
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
-      raise "#{@logprefix}: Could not transform xlsx to csv (#{upload.id}:#{$?})"
+      raise "Could not transform xlsx to csv (#{id}:#{$?})"
     end
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
-      raise "#{@logprefix}: Could not copy #{csv_path} for #{upload.id} to $OTHER_WORKER: #{other_worker} (#{$?})"
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
+      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
     end
   end
 

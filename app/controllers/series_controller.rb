@@ -196,8 +196,8 @@ class SeriesController < ApplicationController
   end
 
   def destroy
-    @series.destroy
-    redirect_to :action => 'index'
+    @series.destroy!
+    redirect_to action: :index
   end
   
   def search

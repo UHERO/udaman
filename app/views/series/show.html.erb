@@ -85,9 +85,11 @@ google.visualization.events.addListener(chart, 'select', function() {
 		<%= link_to 'Blog Chart', :action => 'blog_graph', :id => @series %> | 
 		<%= link_to 'Outlier Chart', :action => 'outlier_graph', :id => @series %> |
 		<a href="/listseries/<%=@series.name.chop.chop%>">TSDs</a> |
-		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> 
-
-	</div>
+		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %>
+    <% if current_user.dev_user? %>
+      | <td><%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %></td>
+    <% end %>
+  </div>
 </div>
 
 <div id="details_area">
