@@ -82,7 +82,6 @@ class SeriesController < ApplicationController
       return
     end
     if current_user.dbedt?
-      redirect_to :controller => :dbedt_uploads, :action => :index
       return
     end
     unless current_user.internal_user?

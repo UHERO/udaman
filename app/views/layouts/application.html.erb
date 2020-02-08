@@ -54,12 +54,12 @@
   <div id="chart-board-nav">
   <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a> |
   <a href="/feature_toggles" title="Edit Feature Toggles">Feature Toggles</a>
-  <% if current_user.dev_user? %>
+  <% end %>
+  <% if current_user.dev_user? || current_user.dbedt? %>
     | <a href="/dbedt_uploads" title="DBEDT Uploads">DBEDT Legacy Uploads</a>
     | <a href="/dvw_uploads" title="DVW Uploads">DBEDT Visitor Uploads</a>
   <% end %>
   </div>
-    <% end %>
 <!--
      Link for HECO users of forecast snapshots
 -->
