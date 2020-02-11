@@ -277,7 +277,7 @@ private
     other_worker = ENV['OTHER_WORKER']
 
     unless File.exists?(xls_path)
-      Rails.logger.warn { "xls file #{xls_path} does not exist" }
+      mylogger :warn, "xls file #{xls_path} does not exist"
       if other_worker.blank?
         raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
       end

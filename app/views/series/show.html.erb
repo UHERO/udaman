@@ -37,7 +37,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 
 <div id="summary_area">
 	<h3><%= @series.name %></h3>
-	<h3><%= @desc %></h3>
+	<h3><%= @desc %></h3> <!-- Aremos description -->
   <h3><%= @series.description %></h3>
 
   <table>
@@ -71,6 +71,7 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% end %>
     <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
     <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
+    <tr><td>Internal ID</td><td><%= @series.id %></td></tr>
   </table>
 
   <div id="chart_div"></div>
@@ -87,7 +88,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 		<a href="/listseries/<%=@series.name.chop.chop%>">TSDs</a> |
 		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %>
     <% if current_user.dev_user? %>
-      | <td><%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %></td>
+      | <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %>
     <% end %>
   </div>
 </div>
