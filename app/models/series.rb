@@ -1360,7 +1360,7 @@ private
 
   def last_rites
     if is_primary? && !aliases.empty?
-      message = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
+      message = "ERROR: Cannot delete primary series #{self}, which has aliases. Delete aliases first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
       ## Although Rails 5 documentation states that callbacks such as this one should be aborted using throw(:abort),
@@ -1368,7 +1368,7 @@ private
       ## as a result I've decided to use raise instead. It seems to work just as well.
     end
     if !who_depends_on_me.empty? && !destroy_forced
-      message = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
+      message = "ERROR: Cannot delete series #{self}, which has dependent series. Delete dependencies first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
@@ -1379,7 +1379,7 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      message = 'ERROR: Unable to delete public data points before destruction of series'
+      message = "ERROR: Unable to delete public data points before destruction of series #{self}"
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
