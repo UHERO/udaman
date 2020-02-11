@@ -82,7 +82,6 @@ class SeriesController < ApplicationController
       return
     end
     if current_user.dbedt?
-      redirect_to :controller => :dbedt_uploads, :action => :index
       return
     end
     unless current_user.internal_user?
@@ -94,7 +93,7 @@ class SeriesController < ApplicationController
 
   def new_search
     @search_string = params[:search_string]
-    @all_series = Series.new_search(@search_string)
+    @all_series = Series.search_box(@search_string)
     if @all_series.count == 1
       @series = @all_series.first
       show(true)  ## call controller prep without render
@@ -196,8 +195,8 @@ class SeriesController < ApplicationController
   end
 
   def destroy
-    @series.destroy
-    redirect_to :action => 'index'
+    @series.destroy!
+    redirect_to action: :index
   end
   
   def search
