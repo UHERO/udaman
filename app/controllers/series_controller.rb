@@ -93,7 +93,7 @@ class SeriesController < ApplicationController
 
   def new_search
     @search_string = params[:search_string]
-    @all_series = Series.new_search(@search_string)
+    @all_series = Series.search_box(@search_string)
     if @all_series.count == 1
       @series = @all_series.first
       show(true)  ## call controller prep without render
