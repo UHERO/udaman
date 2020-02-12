@@ -151,14 +151,16 @@ module UpdateCore
 
     if self.header_location == 'columns'
       2.upto(self.last_column) do |col|
-        header_string = self.cell(1,col).upcase
+        cell = self.cell(1, col)
+        header_string = cell && cell.upcase
         @headers[header_string] = col unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
     
     if self.header_location == 'rows'
       2.upto(self.last_row) do |row|
-        header_string = self.cell(row,1).upcase
+        cell = self.cell(row, 1)
+        header_string = cell && cell.upcase
         @headers[header_string] = row unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
