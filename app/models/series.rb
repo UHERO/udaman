@@ -1178,7 +1178,7 @@ class Series < ApplicationRecord
     conditions.push %q{series.universe = ?}
     bindvars.push univ
     ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
-    all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
+    all.distinct.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
@@ -1360,7 +1360,7 @@ private
 
   def last_rites
     if is_primary? && !aliases.empty?
-      message = 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.'
+      message = "ERROR: Cannot destroy primary series #{self} with aliases. Delete aliases first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
       ## Although Rails 5 documentation states that callbacks such as this one should be aborted using throw(:abort),
@@ -1368,7 +1368,7 @@ private
       ## as a result I've decided to use raise instead. It seems to work just as well.
     end
     if !who_depends_on_me.empty? && !destroy_forced
-      message = 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.'
+      message = "ERROR: Cannot destroy series #{self} with dependent series. Delete dependencies first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
@@ -1379,7 +1379,7 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      message = 'ERROR: Unable to delete public data points before destruction of series'
+      message = "ERROR: Unable to delete public data points before destruction of series #{self}"
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
