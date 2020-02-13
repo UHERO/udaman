@@ -1,9 +1,10 @@
-<div id="summary_area">
-	<h1>Data Series</h1>
+<% if current_user.internal_user? %>
+
+  <div id="summary_area">
+ 	<h1>Data Series</h1>
   <% if @all_series && @all_series.count > 0 %>
       <h2>Total: <%= @all_series.count %></h2>
   <% end %>
-  <% if current_user.internal_user? %>
       <br />
     <div>
       <%= link_to 'Create UHERO Series', controller: :series, action: :new, u: 'UHERO' %> |
@@ -22,7 +23,6 @@
       <br />
       <%= link_to 'BEA Series without an API source', controller: :series, action: :old_bea_download %>
     </div>
-  <% end %>
 </div>
 
 <div id="details_area">
@@ -67,3 +67,5 @@
   <p>
 <% end %>
 </div>
+
+<% end %>

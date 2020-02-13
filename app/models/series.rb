@@ -547,8 +547,10 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     hash = {}
-    xseries.data_points.each do |dp|
-      hash[dp.date] = dp[column] if dp.current
+    if xseries
+      xseries.data_points.each do |dp|
+        hash[dp.date] = dp[column] if dp.current
+      end
     end
     hash
   end
@@ -1120,7 +1122,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.new_search(input_string)
+  def Series.search_box(input_string)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1148,7 +1150,7 @@ class Series < ApplicationRecord
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
-          bindvars.push *freqs.map {|f| Series.frequency_from_code(f) }  ## need splat * to push elements rather than array
+          bindvars.concat freqs.map {|f| Series.frequency_from_code(f) }
         when /^[#]/
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
@@ -1161,6 +1163,9 @@ class Series < ApplicationRecord
                             when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                             else nil
                           end
+        when /^\d+$/
+          conditions.push %q{series.id = ?}
+          bindvars.push term
         when /^[-]/  ## minus
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
           bindvars.push tane
@@ -1173,7 +1178,7 @@ class Series < ApplicationRecord
     conditions.push %q{series.universe = ?}
     bindvars.push univ
     ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
-    all.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
+    all.distinct.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
@@ -1346,22 +1351,26 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
-  def force_destroy
-    self.update(scratch: 44444)  ## a flag to permit destruction even if there are inhibiting factors
+  def force_destroy!
+    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
     self.destroy!
   end
 
 private
+
   def last_rites
     if is_primary? && !aliases.empty?
-      Rails.logger.error { 'ERROR: Cannot delete primary series that has aliases. Delete aliases first.' }
-      #errors.add(:base, 'Cannot destroy a series that has aliases. Delete aliases first.')
-      throw(:abort)
+      message = "ERROR: Cannot destroy primary series #{self} with aliases. Delete aliases first."
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
+      ## Although Rails 5 documentation states that callbacks such as this one should be aborted using throw(:abort),
+      ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
+      ## as a result I've decided to use raise instead. It seems to work just as well.
     end
     if !who_depends_on_me.empty? && !destroy_forced
-      Rails.logger.error { 'ERROR: Cannot delete a series that has dependent series. Delete dependencies first.' }
-      #errors.add(:base, 'Cannot destroy a series that has dependent series. Delete dependencies first.')
-      throw(:abort)
+      message = "ERROR: Cannot destroy series #{self} with dependent series. Delete dependencies first."
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
@@ -1370,9 +1379,9 @@ private
       stmt.execute(id)
       stmt.close
     rescue
-      Rails.logger.error { 'ERROR: Unable to delete public data points before destruction of series' }
-      #errors.add(:base, 'Unable to delete public data points before destruction of series.')
-      throw(:abort)
+      message = "ERROR: Unable to delete public data points before destruction of series #{self}"
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
     end
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint

@@ -1,4 +1,7 @@
 class UserFeedbacksController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_user_feedback, only: [:show, :edit, :update, :destroy]
 
   # GET /user_feedbacks
