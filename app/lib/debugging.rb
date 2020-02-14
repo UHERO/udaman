@@ -9,7 +9,7 @@ module Debugging
     while true
       status = Sidekiq::Status::status(job_id)
       break if status == :complete
-      puts "Waiting for completion (still :#{status})"
+      puts "Waiting for completion of job #{job_id} (still :#{status})"
       sleep 3
     end
     puts 'Done'
