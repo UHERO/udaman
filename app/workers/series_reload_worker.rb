@@ -15,9 +15,9 @@ class SeriesReloadWorker
     @batch = batch_id
     @series = series_id
     @depth = depth
+    log = nil
     begin
       series = Series.find(series_id) rescue nil
-      success = nil
       log = SeriesReloadLog.find_by(batch_id: batch_id, series_id: series_id)
       unless log
         mylogger :warn, 'no reload log found'
@@ -41,9 +41,9 @@ class SeriesReloadWorker
       end
     rescue Exception => e
       if log && log.reload.status.nil?
-        log.update_attributes(status: "error rescued: #{e.message}")
+        log.update_attributes(status: "rescued: #{e.message}"[0..253])  ## don't overflow the string field
       end
-      mylogger :error, "error rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
+      mylogger :error, "rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
     end
   end
 

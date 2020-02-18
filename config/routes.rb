@@ -43,7 +43,7 @@ Rails.application.routes.draw do
   devise_for :users
 
   require 'sidekiq/web'
-  authenticate :user do
+  authenticate :user, ->(user) { user.admin_user? } do
     mount Sidekiq::Web => '/sidekiq'
   end
 
