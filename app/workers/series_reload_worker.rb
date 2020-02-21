@@ -39,7 +39,7 @@ class SeriesReloadWorker
         log.update_attributes(status: 'error occurred') unless log.reload.status
         mylogger :warn, 'reload ERRORED: check logs'
       end
-    rescue Exception => e
+    rescue => e
       if log && log.reload.status.nil?
         log.update_attributes(status: "rescued: #{e.message}"[0..253])  ## don't overflow the string field
       end
