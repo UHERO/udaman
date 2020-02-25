@@ -1106,7 +1106,7 @@ class Series < ApplicationRecord
         unless success
           raise 'error in reload_source method, should be logged above'
         end
-      rescue Exception => e
+      rescue => e
         series_success = false
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series <#{self.name}> (#{self.id})" }
       end
