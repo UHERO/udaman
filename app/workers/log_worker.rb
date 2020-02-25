@@ -3,6 +3,7 @@ require 'redis'
 
 class LogWorker
   include Sidekiq::Worker
+  include Sidekiq::Status::Worker
 
   def perform(level)
     Rails.logger.level = level unless level.nil?  ## if nil, only do log output below to report current state
