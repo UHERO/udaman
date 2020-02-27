@@ -1356,7 +1356,11 @@ class Series < ApplicationRecord
     self.destroy!
   end
 
-private
+  def debug_reload?
+    scratch == 50505  ## a flag to permit change of loglevel when debugging on sidekiq, etc.
+  end
+
+  private
 
   def last_rites
     if is_primary? && !aliases.empty?
