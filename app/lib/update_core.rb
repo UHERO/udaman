@@ -59,8 +59,8 @@ module UpdateCore
   end
   
   def metadata_header(cell_data)
-    metadata_headers =  ['LineCode','LineTitle','Industry Code','Industry','Definitions', 'UNIT', 'Year Month', 'Value']
     return false unless cell_data.class == String
+    metadata_headers = ['LineCode','LineTitle','Industry Code','Industry','Definitions', 'UNIT', 'Year Month', 'Value']
     metadata_headers.include?(cell_data)
   end
 
