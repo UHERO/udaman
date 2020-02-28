@@ -1136,12 +1136,12 @@ class Series < ApplicationRecord
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
-        when /^[~]/  ## tilde
-          conditions.push %q{substring_index(name,'@',1) regexp ?}
-          bindvars.push tane
         when /^\^/
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
+        when /^[~]/  ## tilde
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push tane
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
@@ -1154,6 +1154,10 @@ class Series < ApplicationRecord
         when /^[#]/
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
+          bindvars.push tane
+        when /^[!]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.last_error regexp ?}
           bindvars.push tane
         when /^[&]/
           conditions.push case tane
@@ -1322,12 +1326,10 @@ class Series < ApplicationRecord
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
       dl.data_sources.each do |ds|
-        if ds.series.data_sources.select{|x| x.eval =~ /load_from_(bea|bls|fred)/ }.empty?
-          series.push ds.series
-        end
+        series.push ds.series
       end
     end
-    series.sort{|x,y| x.name <=> y.name }
+    series.sort_by(&:name)
   end
 
   def Series.stale_since(past_day)
