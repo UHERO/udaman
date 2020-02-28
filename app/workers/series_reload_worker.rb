@@ -16,6 +16,7 @@ class SeriesReloadWorker
     @series = series_id
     @depth = depth
     log = nil
+    old_level = nil
     begin
       series = Series.find(series_id) rescue nil
       log = SeriesReloadLog.find_by(batch_id: batch_id, series_id: series_id)
@@ -24,6 +25,10 @@ class SeriesReloadWorker
         raise "no reload log found for batch=#{@batch}, series=#{@series}"
       end
       if series
+        if series.debug_reload?
+          old_level = Rails.logger.level
+          Rails.logger.level = 0  ## DEBUG
+        end
         @series = "<#{series.name}> (#{series_id})"
         mylogger :info, 'reload started'
         success = series.reload_sources(true, clear_first)  ####       <<===== here's where the work happens
@@ -44,6 +49,8 @@ class SeriesReloadWorker
         log.update_attributes(status: "rescued: #{e.message}"[0..253])  ## don't overflow the string field
       end
       mylogger :error, "rescued: #{e.message}, backtrace follows:\n#{e.backtrace}"
+    ensure
+      Rails.logger.level = old_level if old_level
     end
   end
 

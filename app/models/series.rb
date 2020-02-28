@@ -1356,6 +1356,10 @@ class Series < ApplicationRecord
     self.destroy!
   end
 
+  def debug_reload?
+    scratch == 50505  ## a flag to permit change of loglevel when debugging on sidekiq, etc.
+  end
+
 private
 
   def last_rites
