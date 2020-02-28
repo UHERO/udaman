@@ -1322,12 +1322,10 @@ class Series < ApplicationRecord
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
       dl.data_sources.each do |ds|
-        if ds.series.data_sources.select{|x| x.eval =~ /load_from_(bea|bls|fred)/ }.empty?
-          series.push ds.series
-        end
+        series.push ds.series
       end
     end
-    series.sort{|x,y| x.name <=> y.name }
+    series.sort_by(&:name)
   end
 
   def Series.stale_since(past_day)
