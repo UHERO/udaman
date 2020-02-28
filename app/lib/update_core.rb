@@ -47,17 +47,21 @@ module UpdateCore
   end
   
   def date_frequency
-    return :year if (365..366) === date_interval
-    return :semi if (168..183) === date_interval
-    return :quarter if (84..93) === date_interval
-    return :month if (28..31) === date_interval
-    :week if date_interval == 7
+    case date_interval
+      when (365..366) then :year
+      when (168..183) then :semi
+      when (84..93) then :quarter
+      when (28..31) then :month
+      when 7 then :week
+      when 1 then :day
+      else raise("Cannot compute date_frequency for interval of #{date_interval}")
+    end
   end
   
   def metadata_header(cell_data)
-    metadata_headers =  ['LineCode','LineTitle','Industry Code','Industry','Definitions', 'UNIT', 'Year Month', 'Value']
     return false unless cell_data.class == String
-    true if metadata_headers.include?(cell_data)
+    metadata_headers = ['LineCode','LineTitle','Industry Code','Industry','Definitions', 'UNIT', 'Year Month', 'Value']
+    metadata_headers.include?(cell_data)
   end
 
   def cell_to_date(row,col)
