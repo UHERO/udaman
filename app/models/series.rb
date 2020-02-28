@@ -1155,6 +1155,10 @@ class Series < ApplicationRecord
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
           bindvars.push tane
+        when /^[!]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.last_error regexp ?}
+          bindvars.push tane
         when /^[&]/
           conditions.push case tane
                             when 'pub' then %q{restricted = false}
