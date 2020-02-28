@@ -1327,7 +1327,7 @@ class Series < ApplicationRecord
         end
       end
     end
-    series.sort{|x,y| x.name <=> y.name }
+    series.sort_by(&:name)
   end
 
   def Series.stale_since(past_day)
