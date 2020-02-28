@@ -1360,7 +1360,7 @@ class Series < ApplicationRecord
     scratch == 50505  ## a flag to permit change of loglevel when debugging on sidekiq, etc.
   end
 
-  private
+private
 
   def last_rites
     if is_primary? && !aliases.empty?
