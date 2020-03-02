@@ -1171,11 +1171,11 @@ class Series < ApplicationRecord
           conditions.push %q{series.id = ?}
           bindvars.push term
         when /^[-]/  ## minus
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else
           ## a "naked" word
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) regexp ?}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) regexp ?}
           bindvars.push term
       end
     end
