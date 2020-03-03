@@ -1075,10 +1075,8 @@ class Series < ApplicationRecord
     Series.where(name: all_names)
   end
 
-  #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
-  #could do everything with no dependencies first and do all of those in concurrent fashion...
-  #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
-  
+  ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
+  ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
     series_list.each do |s_name|
       next unless already_run[s_name].nil?
@@ -1106,7 +1104,7 @@ class Series < ApplicationRecord
         unless success
           raise 'error in reload_source method, should be logged above'
         end
-      rescue Exception => e
+      rescue => e
         series_success = false
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series <#{self.name}> (#{self.id})" }
       end
@@ -1136,12 +1134,12 @@ class Series < ApplicationRecord
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
-        when /^[~]/  ## tilde
-          conditions.push %q{substring_index(name,'@',1) regexp ?}
-          bindvars.push tane
         when /^\^/
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
+        when /^[~]/  ## tilde
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push tane
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
@@ -1155,6 +1153,10 @@ class Series < ApplicationRecord
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
           bindvars.push tane
+        when /^[!]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.last_error regexp ?}
+          bindvars.push tane
         when /^[&]/
           conditions.push case tane
                             when 'pub' then %q{restricted = false}
@@ -1167,11 +1169,11 @@ class Series < ApplicationRecord
           conditions.push %q{series.id = ?}
           bindvars.push term
         when /^[-]/  ## minus
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) not regexp ?}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else
           ## a "naked" word
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(description,'')) regexp ?}
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) regexp ?}
           bindvars.push term
       end
     end
@@ -1322,12 +1324,10 @@ class Series < ApplicationRecord
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
       dl.data_sources.each do |ds|
-        if ds.series.data_sources.select{|x| x.eval =~ /load_from_(bea|bls|fred)/ }.empty?
-          series.push ds.series
-        end
+        series.push ds.series
       end
     end
-    series.sort{|x,y| x.name <=> y.name }
+    series.sort_by(&:name)
   end
 
   def Series.stale_since(past_day)
@@ -1354,6 +1354,10 @@ class Series < ApplicationRecord
   def force_destroy!
     self.update_attributes(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
     self.destroy!
+  end
+
+  def debug_reload?
+    scratch == 50505  ## a flag to permit change of loglevel when debugging on sidekiq, etc.
   end
 
 private

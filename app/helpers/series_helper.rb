@@ -23,25 +23,6 @@ module SeriesHelper
     end
   end
 
-  ## Method can be deleted right after story is complete
-  def ua_1164_csv_generate
-    #require 'nokogiri'
-    CSV.generate(nil, {col_sep: "\t"}) do |csv|
-      @old_bea_series.each do |s|
-        ds = s.data_sources.reject {|d| d.eval =~ /load_from_bea/ }
-        ds.each do |d|
-          row = [s.name, d.eval]
-          if d.eval =~ /load_from_download\s*"(.+?)"/
-            if dl = Download.find_by(handle: $1)
-              row.push "https://udaman.uhero.hawaii.edu/downloads/#{dl.id}"
-            end
-          end
-          csv << row
-        end
-      end
-    end
-  end
-
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
@@ -130,7 +111,7 @@ module SeriesHelper
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary?
+    if series.is_primary? && alt_univs[series.universe]
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
