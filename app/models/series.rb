@@ -1075,10 +1075,8 @@ class Series < ApplicationRecord
     Series.where(name: all_names)
   end
 
-  #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
-  #could do everything with no dependencies first and do all of those in concurrent fashion...
-  #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
-  
+  ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
+  ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
     series_list.each do |s_name|
       next unless already_run[s_name].nil?
