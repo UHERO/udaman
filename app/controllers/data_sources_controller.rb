@@ -70,7 +70,7 @@ class DataSourcesController < ApplicationController
     @data_source = DataSource.new data_source_params
     if @data_source.create_from_form
       create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'Definition processed successfully'
     else
       @series = Series.find_by id: @data_source.series_id
       render :action => 'new', :series_id => @data_source.series_id

@@ -32,7 +32,7 @@ class DataPoint < ApplicationRecord
   end
 
   def trying_to_replace_with_nil?(value)
-     value.nil? and !self.value.nil?
+     value.nil? && !self.value.nil?
   end
   
   def create_new_dp(upd_value, upd_source)
