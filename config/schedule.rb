@@ -73,10 +73,6 @@ every 1.day, :at => '6:00 am' do
 end
 # -----------------------------------------------------------
 
-every 1.day, :at => "#{bls_hour.to_i+2}:30 am" do
-  rake :write_ur_dash
-end
-
 every 1.day, :at => "#{hour.to_i+5}:30 am" do
   rake :gen_investigate_csv
 end
