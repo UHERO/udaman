@@ -15,7 +15,7 @@ export_ids.each do |xid|
     startdate = series['seriesObservations']['observationStart']
     enddate = series['seriesObservations']['observationEnd']
     levels = series['seriesObservations']['transformationResults'][0]
-    data_dates = levels['dates']
-    data_values = levels['values']
+    data = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
+    data
   end
 end
