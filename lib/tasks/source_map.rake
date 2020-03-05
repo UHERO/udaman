@@ -113,9 +113,8 @@ end
 task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Start at #{Time.now}" }
   start_time = Time.now.to_i
-  token = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
   url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
-  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % token
+  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % get_api_token
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   uh_cats.each do |cat|
@@ -141,3 +140,45 @@ task :encachitize_rest_api => :environment do
   duration = (Time.now.to_i - start_time) / 60
   Rails.logger.info { "Encachitize: End at #{Time.now} (took #{duration} mins)" }
 end
+
+task :export_kauai_dashboard => :environment do
+  Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
+  cmd = %q{curl --silent -H "Authorization: Bearer %s" } % get_api_token
+  url = %q{https://api.uhero.hawaii.edu/v1/package/export?id=%d\&nocache}
+
+  export_ids = %w{127 141 143}  ### probly automate this
+
+  export_ids.each do |xid|
+    response = %x{#{cmd + url % xid}}
+    json = JSON.parse response
+    data = {}
+    names = []
+    titles = {}
+    series_array = json['data']
+    series_array.each do |series|
+      name = series['name']
+      names.push name
+      titles[name] = series['title']
+      levels = series['seriesObservations']['transformationResults'][0]
+      data[name] = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
+    end
+  end
+  CSV.generate do |csv|
+    csv << ['date'] + names
+    get_all_dates(data).each do |date|
+      csv << [date] + names.map {|series_name| data[series_name][date] }
+    end
+  end
+  Rails.logger.info { "export_kauai_dashboard: End at #{Time.now}" }
+end
+
+private
+  def get_all_dates(series_data)
+    dates_array = []
+    series_data.each {|_, data| dates_array |= data.keys }
+    dates_array.sort
+  end
+
+  def get_api_token
+    '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
+  end
