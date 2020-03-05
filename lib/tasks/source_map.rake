@@ -110,11 +110,13 @@ task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task DONE' }
 end
 
+API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
+
 task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Start at #{Time.now}" }
   start_time = Time.now.to_i
   url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
-  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % get_api_token
+  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % API_TOKEN
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   uh_cats.each do |cat|
@@ -143,15 +145,33 @@ end
 
 task :export_kauai_dashboard => :environment do
   Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
-  cmd = %q{curl --silent -H "Authorization: Bearer %s" } % get_api_token
+  cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
   url = %q{https://api.uhero.hawaii.edu/v1/package/export?id=%d\&nocache}
 
-  export_ids = %w{127 141 143}  ### probly automate this
+  udaman_exports = {
+  'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
+  'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
+  'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
+  'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
+  'Kauai Dashboard Jobs Seasonally Adjusted Data - A' => %w{jobs_a.csv jobs_a_export.csv},
+  'Kauai Dashboard Jobs Seasonally Adjusted Data - Q' => %w{jobs_q.csv jobs_q_export.csv},
+  'Kauai Dashboard Jobs Seasonally Adjusted Data - M' => %w{jobs_m.csv jobs_m_export.csv},
+  'Kauai Dashboard Income Data - A' => %w{income_a.csv income_a_export.csv},
+  'Kauai Dashboard Income Data - Q' => %w{income_q.csv},
+  'Kauai Dashboard Income Data - M' => %w{income_m.csv},
+  'Kauai Dashboard Construction Data - A' => %w{const_a.csv	const_a_export.csv},
+  'Kauai Dashboard Construction Data - Q' => %w{const_q.csv const_q_export.csv},
+  'Kauai Dashboard Construction Data - M' => %w{const_m.csv},
+  'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv},
+  'Kauai Dashboard Budget Data - Q' => %w{county_rev_q.csv},
+  'Kauai Dashboard Budget Data - M' => %w{county_rev_m.csv}
+  }
+  data = {}
 
-  export_ids.each do |xid|
-    response = %x{#{cmd + url % xid}}
+  udaman_exports.keys.each do |export_name|
+    xport = Export.find_by name:(export_name) || raise("Cannot find Export with name #{export_name}")
+    response = %x{#{cmd + url % xport.id}}  ## API call
     json = JSON.parse response
-    data = {}
     names = []
     titles = {}
     series_array = json['data']
@@ -163,9 +183,10 @@ task :export_kauai_dashboard => :environment do
       data[name] = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
     end
   end
+  all_dates = get_all_dates(data)
   CSV.generate do |csv|
     csv << ['date'] + names
-    get_all_dates(data).each do |date|
+    all_dates.each do |date|
       csv << [date] + names.map {|series_name| data[series_name][date] }
     end
   end
@@ -175,10 +196,6 @@ end
 private
   def get_all_dates(series_data)
     dates_array = []
-    series_data.each {|_, data| dates_array |= data.keys }
+    series_data.each {|_,data| dates_array |= data.keys }
     dates_array.sort
-  end
-
-  def get_api_token
-    '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
   end
