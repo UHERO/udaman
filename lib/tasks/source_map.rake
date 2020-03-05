@@ -149,27 +149,27 @@ task :export_kauai_dashboard => :environment do
   url = %q{https://api.uhero.hawaii.edu/v1/package/export?id=%d\&nocache}
 
   udaman_exports = {
-  'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
-  'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
-  'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
-  'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
-  'Kauai Dashboard Jobs Seasonally Adjusted Data - A' => %w{jobs_a.csv jobs_a_export.csv},
-  'Kauai Dashboard Jobs Seasonally Adjusted Data - Q' => %w{jobs_q.csv jobs_q_export.csv},
-  'Kauai Dashboard Jobs Seasonally Adjusted Data - M' => %w{jobs_m.csv jobs_m_export.csv},
-  'Kauai Dashboard Income Data - A' => %w{income_a.csv income_a_export.csv},
-  'Kauai Dashboard Income Data - Q' => %w{income_q.csv},
-  'Kauai Dashboard Income Data - M' => %w{income_m.csv},
-  'Kauai Dashboard Construction Data - A' => %w{const_a.csv	const_a_export.csv},
-  'Kauai Dashboard Construction Data - Q' => %w{const_q.csv const_q_export.csv},
-  'Kauai Dashboard Construction Data - M' => %w{const_m.csv},
-  'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv},
-  'Kauai Dashboard Budget Data - Q' => %w{county_rev_q.csv},
-  'Kauai Dashboard Budget Data - M' => %w{county_rev_m.csv}
+    'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
+    'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
+    'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
+    'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
+    'Kauai Dashboard Jobs Seasonally Adjusted Data - A' => %w{jobs_a.csv jobs_a_export.csv},
+    'Kauai Dashboard Jobs Seasonally Adjusted Data - Q' => %w{jobs_q.csv jobs_q_export.csv},
+    'Kauai Dashboard Jobs Seasonally Adjusted Data - M' => %w{jobs_m.csv jobs_m_export.csv},
+    'Kauai Dashboard Income Data - A' => %w{income_a.csv income_a_export.csv},
+    'Kauai Dashboard Income Data - Q' => %w{income_q.csv},
+    'Kauai Dashboard Income Data - M' => %w{income_m.csv},
+    'Kauai Dashboard Construction Data - A' => %w{const_a.csv	const_a_export.csv},
+    'Kauai Dashboard Construction Data - Q' => %w{const_q.csv const_q_export.csv},
+    'Kauai Dashboard Construction Data - M' => %w{const_m.csv},
+    'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv},
+    'Kauai Dashboard Budget Data - Q' => %w{county_rev_q.csv},
+    'Kauai Dashboard Budget Data - M' => %w{county_rev_m.csv}
   }
   data = {}
 
   udaman_exports.keys.each do |export_name|
-    xport = Export.find_by name:(export_name) || raise("Cannot find Export with name #{export_name}")
+    xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
     response = %x{#{cmd + url % xport.id}}  ## API call
     json = JSON.parse response
     names = []
@@ -182,12 +182,12 @@ task :export_kauai_dashboard => :environment do
       levels = series['seriesObservations']['transformationResults'][0]
       data[name] = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
     end
-  end
-  all_dates = get_all_dates(data)
-  CSV.generate do |csv|
-    csv << ['date'] + names
-    all_dates.each do |date|
-      csv << [date] + names.map {|series_name| data[series_name][date] }
+    all_dates = get_all_dates(data)
+    CSV.generate do |csv|
+      csv << ['date'] + names
+      all_dates.each do |date|
+        csv << [date] + names.map {|series_name| data[series_name][date] }
+      end
     end
   end
   Rails.logger.info { "export_kauai_dashboard: End at #{Time.now}" }
