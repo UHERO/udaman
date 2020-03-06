@@ -175,7 +175,7 @@ task :export_kauai_dashboard => :environment do
     all_dates = xport.data_dates
 
     ### Create the file using series names for dashboard-internal use
-    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', udaman_exports[export_name][0])
+    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'data', udaman_exports[export_name][0])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
@@ -185,7 +185,7 @@ task :export_kauai_dashboard => :environment do
     ### Create the file using series titles for end-user download (if filename is provided)
     next unless udaman_exports[export_name][1]
     titles = xport_series.pluck(:dataPortalName)
-    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', udaman_exports[export_name][1])
+    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data', udaman_exports[export_name][1])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + titles
       all_dates.each do |date|
