@@ -71,6 +71,11 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bea_series_only
   rake :reload_bls_series_only
 end
+
+every :weekday, :at => '3:30 pm' do
+  rake :reload_vap_hi_daily_series_only
+end
+
 # -----------------------------------------------------------
 
 every 1.day, :at => "#{hour.to_i+5}:30 am" do
