@@ -176,6 +176,7 @@ task :export_kauai_dashboard => :environment do
     names = []
     titles = []
     series_array = json['data']
+    ### Extract individual series metadata and data points in this udaman export
     series_array.each do |series|
       name = series['name']
       names.push name
@@ -183,13 +184,18 @@ task :export_kauai_dashboard => :environment do
       levels = series['seriesObservations']['transformationResults'][0]
       data[name] = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
     end
-    all_dates = get_all_dates(data)
+    ### Find all unique dates across all series in this udaman export
+    all_dates = []
+    data.each {|_,series_data| all_dates |= series_data.keys }
+    all_dates.sort!
+    ### Create the file using series names for dashboard-internal use
     CSV.open(udaman_exports[export_name][0], 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
         csv << [date] + names.map {|name| data[name][date] }
       end
     end
+    ### Create the file using series titles for end-user download
     CSV.open(udaman_exports[export_name][1], 'wb') do |csv|
       csv << ['date'] + titles
       all_dates.each do |date|
@@ -203,6 +209,4 @@ end
 private
   def get_all_dates(series_data)
     dates_array = []
-    series_data.each {|_,data| dates_array |= data.keys }
-    dates_array.sort
   end
