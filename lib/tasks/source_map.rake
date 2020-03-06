@@ -81,7 +81,7 @@ task :reload_hiwi_series_only => :environment do
   mgr = SeriesReloadManager.new(hiwi_series, 'hiwi')
   Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['hiwi series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_hiwi_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_bls_series_only => :environment do
@@ -91,7 +91,7 @@ task :reload_bls_series_only => :environment do
   mgr = SeriesReloadManager.new(bls_series, 'bls')
   Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bls series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_bls_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_bea_series_only => :environment do
@@ -101,7 +101,15 @@ task :reload_bea_series_only => :environment do
   mgr = SeriesReloadManager.new(bea_series, 'bea')
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_bea_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+end
+
+task :reload_vap_hi_daily_series_only => :environment do
+  t = Time.now
+  Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
+  vap_hi_dailies = Series.search_box('^vap ~ns$ @hi .d')
+  Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_vap_hi_daily_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :update_public_data_points => :environment do
