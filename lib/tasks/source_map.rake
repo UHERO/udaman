@@ -104,6 +104,16 @@ task :reload_bea_series_only => :environment do
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
+task :reload_vap_hi_daily_series_only => :environment do
+  t = Time.now
+  Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
+  vap_hi_dailies = Series.search_box('^vap ~ns$ @hi .d')
+  mgr = SeriesReloadManager.new(vap_hi_dailies, 'vap_hi_d')
+  Rails.logger.info { "Task reload_vap_hi_daily_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+end
+
 task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task START' }
   DataPoint.update_public_all_universes
