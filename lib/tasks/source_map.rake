@@ -111,7 +111,7 @@ task :reload_vap_hi_daily_series_only => :environment do
   mgr = SeriesReloadManager.new(vap_hi_dailies, 'vap_hi_d')
   Rails.logger.info { "Task reload_vap_hi_daily_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['bea series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
+  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['vap_hi_d series dependency check and load', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :update_public_data_points => :environment do
