@@ -145,8 +145,8 @@ end
 
 task :export_kauai_dashboard => :environment do
   Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
-  cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
-  url = %q{https://api.uhero.hawaii.edu/v1/package/export?id=%d\&nocache}
+  ##cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
+  ##url = %q{https://api.uhero.hawaii.edu/v1/package/export?id=%d\&nocache}
 
   udaman_exports = {
     'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
@@ -171,23 +171,16 @@ task :export_kauai_dashboard => :environment do
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
     Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
-    response = %x{#{cmd + url % xport.id}}  ## API call
-    json = JSON.parse response
-    names = []
-    titles = []
-    series_array = json['data']
-    ### Extract individual series metadata and data points in this udaman export
-    series_array.each do |series|
-      name = series['name']
-      names.push name
-      titles.push series['title']
-      levels = series['seriesObservations']['transformationResults'][0]
-      data[name] = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
-    end
-    ### Find all unique dates across all series in this udaman export
-    all_dates = []
-    data.each {|_,series_data| all_dates |= series_data.keys }
-    all_dates.sort!
+    ##response = %x{#{cmd + url % xport.id}}  ## API call
+    ##json = JSON.parse response
+    xport_series = xport.series.order('export_series.list_order')
+    names = xport_series.pluck(:name)
+    titles = xport_series.pluck(:dataPortalName)
+    data = xport.series_data
+    ### Find all unique dates across all series in this udaman export.
+    ### There can be widely varying ranges, and file output needs to cover all
+    all_dates = xport.data_dates
+
     ### Create the file using series names for dashboard-internal use
     CSV.open(udaman_exports[export_name][0], 'wb') do |csv|
       csv << ['date'] + names
@@ -205,8 +198,3 @@ task :export_kauai_dashboard => :environment do
   end
   Rails.logger.info { "export_kauai_dashboard: End at #{Time.now}" }
 end
-
-private
-  def get_all_dates(series_data)
-    dates_array = []
-  end
