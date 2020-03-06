@@ -106,7 +106,7 @@ end
 
 task :reload_vap_hi_daily_series_only => :environment do
   t = Time.now
-  Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
+  Rails.logger.info { 'reload_vap_hi_daily_series_only: start' }
   vap_hi_dailies = Series.search_box('^vap ~ns$ @hi .d')
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_vap_hi_daily_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
@@ -154,7 +154,7 @@ end
 task :export_kauai_dashboard => :environment do
   Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
   udaman_exports = {
-    'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
+    'Kauai Dashboard Major Indicators Data - A' => %w{major_a.csv major_a_export.csv},
     'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
     'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
     'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
