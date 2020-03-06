@@ -145,9 +145,6 @@ end
 
 task :export_kauai_dashboard => :environment do
   Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
-  ##cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
-  ##url = %q{https://api.uhero.hawaii.edu/v1/package/export?id=%d\&nocache}
-
   udaman_exports = {
     'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
     'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
@@ -166,7 +163,6 @@ task :export_kauai_dashboard => :environment do
     'Kauai Dashboard Budget Data - Q' => %w{county_rev_q.csv},
     'Kauai Dashboard Budget Data - M' => %w{county_rev_m.csv}
   }
-  data = {}
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
@@ -175,21 +171,24 @@ task :export_kauai_dashboard => :environment do
     ##json = JSON.parse response
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
-    titles = xport_series.pluck(:dataPortalName)
     data = xport.series_data
     ### Find all unique dates across all series in this udaman export.
     ### There can be widely varying ranges, and file output needs to cover all
     all_dates = xport.data_dates
 
     ### Create the file using series names for dashboard-internal use
-    CSV.open(udaman_exports[export_name][0], 'wb') do |csv|
+    filename = File.join('public', udaman_exports[export_name][0])
+    CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
         csv << [date] + names.map {|name| data[name][date] }
       end
     end
-    ### Create the file using series titles for end-user download
-    CSV.open(udaman_exports[export_name][1], 'wb') do |csv|
+    ### Create the file using series titles for end-user download (if filename is provided)
+    next unless udaman_exports[export_name][1]
+    titles = xport_series.pluck(:dataPortalName)
+    filename = File.join('public', udaman_exports[export_name][1])
+    CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + titles
       all_dates.each do |date|
         csv << [date] + names.map {|name| data[name][date] }
