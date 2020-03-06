@@ -72,7 +72,7 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bls_series_only
 end
 
-every :weekday, :at => '3:30 pm' do
+every :weekday, :at => '3:35 pm' do
   rake :reload_vap_hi_daily_series_only
 end
 
@@ -92,10 +92,6 @@ end
 
 every 1.day, :at => "#{hour.to_i+6}:00 am" do
   rake :update_public_data_points
-end
-
-every 1.day, :at => "#{hour.to_i+7}:00 am" do
-  rake :categories_backup
 end
 
 every :saturday, :at => '9am' do

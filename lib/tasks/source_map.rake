@@ -107,7 +107,7 @@ end
 task :reload_vap_hi_daily_series_only => :environment do
   t = Time.now
   Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
-  vap_hi_dailies = Series.search_box('^vap ~ns$ @hi .d')
+  vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_vap_hi_daily_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
