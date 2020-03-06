@@ -203,11 +203,6 @@ class DataPoint < ApplicationRecord
       Rails.logger.error { "update_public_data_points: encountered an ERROR: #{e.message}" }
       return false
     end
-    if series.nil?
-      CSV.open('public/rake_time.csv', 'a') do |csv|
-        csv << ['update_public_data_points', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s]
-      end
-    end
     true
   end
 

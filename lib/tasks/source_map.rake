@@ -110,12 +110,13 @@ task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task DONE' }
 end
 
+API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
+
 task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Start at #{Time.now}" }
   start_time = Time.now.to_i
-  token = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
   url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
-  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % token
+  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % API_TOKEN
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   uh_cats.each do |cat|
@@ -140,4 +141,57 @@ task :encachitize_rest_api => :environment do
   end
   duration = (Time.now.to_i - start_time) / 60
   Rails.logger.info { "Encachitize: End at #{Time.now} (took #{duration} mins)" }
+end
+
+task :export_kauai_dashboard => :environment do
+  Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
+  udaman_exports = {
+    'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
+    'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
+    'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
+    'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
+    'Kauai Dashboard Jobs Seasonally Adjusted Data - A' => %w{jobs_a.csv jobs_a_export.csv},
+    'Kauai Dashboard Jobs Seasonally Adjusted Data - Q' => %w{jobs_q.csv jobs_q_export.csv},
+    'Kauai Dashboard Jobs Seasonally Adjusted Data - M' => %w{jobs_m.csv jobs_m_export.csv},
+    'Kauai Dashboard Income Data - A' => %w{income_a.csv income_a_export.csv},
+    'Kauai Dashboard Income Data - Q' => %w{income_q.csv},
+    'Kauai Dashboard Income Data - M' => %w{income_m.csv},
+    'Kauai Dashboard Construction Data - A' => %w{const_a.csv	const_a_export.csv},
+    'Kauai Dashboard Construction Data - Q' => %w{const_q.csv const_q_export.csv},
+    'Kauai Dashboard Construction Data - M' => %w{const_m.csv},
+    'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv},
+    'Kauai Dashboard Budget Data - Q' => %w{county_rev_q.csv},
+    'Kauai Dashboard Budget Data - M' => %w{county_rev_m.csv}
+  }
+
+  udaman_exports.keys.each do |export_name|
+    xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
+    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
+    xport_series = xport.series.order('export_series.list_order')
+    names = xport_series.pluck(:name)
+    data = xport.series_data
+    ### Find all unique dates across all series in this udaman export.
+    ### There can be widely varying ranges, and file output needs to cover all
+    all_dates = xport.data_dates
+
+    ### Create the file using series names for dashboard-internal use
+    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'data', udaman_exports[export_name][0])
+    CSV.open(filename, 'wb') do |csv|
+      csv << ['date'] + names
+      all_dates.each do |date|
+        csv << [date] + names.map {|name| data[name][date] }
+      end
+    end
+    ### Create the file using series titles for end-user download (if filename is provided)
+    next unless udaman_exports[export_name][1]
+    titles = xport_series.pluck(:dataPortalName)
+    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data', udaman_exports[export_name][1])
+    CSV.open(filename, 'wb') do |csv|
+      csv << ['date'] + titles
+      all_dates.each do |date|
+        csv << [date] + names.map {|name| data[name][date] }
+      end
+    end
+  end
+  Rails.logger.info { "export_kauai_dashboard: End at #{Time.now}" }
 end
