@@ -170,23 +170,30 @@ task :export_kauai_dashboard => :environment do
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
+    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
     response = %x{#{cmd + url % xport.id}}  ## API call
     json = JSON.parse response
     names = []
-    titles = {}
+    titles = []
     series_array = json['data']
     series_array.each do |series|
       name = series['name']
       names.push name
-      titles[name] = series['title']
+      titles.push series['title']
       levels = series['seriesObservations']['transformationResults'][0]
       data[name] = levels['dates'].map {|date| [date, levels['values'].shift ] }.to_h
     end
     all_dates = get_all_dates(data)
-    CSV.generate do |csv|
+    CSV.open(udaman_exports[export_name][0], 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
-        csv << [date] + names.map {|series_name| data[series_name][date] }
+        csv << [date] + names.map {|name| data[name][date] }
+      end
+    end
+    CSV.open(udaman_exports[export_name][1], 'wb') do |csv|
+      csv << ['date'] + titles
+      all_dates.each do |date|
+        csv << [date] + names.map {|name| data[name][date] }
       end
     end
   end
