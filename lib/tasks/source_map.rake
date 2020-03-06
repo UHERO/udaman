@@ -167,8 +167,6 @@ task :export_kauai_dashboard => :environment do
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
     Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
-    ##response = %x{#{cmd + url % xport.id}}  ## API call
-    ##json = JSON.parse response
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
     data = xport.series_data
@@ -177,7 +175,7 @@ task :export_kauai_dashboard => :environment do
     all_dates = xport.data_dates
 
     ### Create the file using series names for dashboard-internal use
-    filename = File.join('public', udaman_exports[export_name][0])
+    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', udaman_exports[export_name][0])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
@@ -187,7 +185,7 @@ task :export_kauai_dashboard => :environment do
     ### Create the file using series titles for end-user download (if filename is provided)
     next unless udaman_exports[export_name][1]
     titles = xport_series.pluck(:dataPortalName)
-    filename = File.join('public', udaman_exports[export_name][1])
+    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', udaman_exports[export_name][1])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + titles
       all_dates.each do |date|
