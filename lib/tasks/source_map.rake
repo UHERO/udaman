@@ -154,14 +154,9 @@ task :export_kauai_dashboard => :environment do
     'Kauai Dashboard Jobs Seasonally Adjusted Data - Q' => %w{jobs_q.csv jobs_q_export.csv},
     'Kauai Dashboard Jobs Seasonally Adjusted Data - M' => %w{jobs_m.csv jobs_m_export.csv},
     'Kauai Dashboard Income Data - A' => %w{income_a.csv income_a_export.csv},
-    'Kauai Dashboard Income Data - Q' => %w{income_q.csv},
-    'Kauai Dashboard Income Data - M' => %w{income_m.csv},
     'Kauai Dashboard Construction Data - A' => %w{const_a.csv	const_a_export.csv},
     'Kauai Dashboard Construction Data - Q' => %w{const_q.csv const_q_export.csv},
-    'Kauai Dashboard Construction Data - M' => %w{const_m.csv},
-    'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv},
-    'Kauai Dashboard Budget Data - Q' => %w{county_rev_q.csv},
-    'Kauai Dashboard Budget Data - M' => %w{county_rev_m.csv}
+    'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv}
   }
 
   udaman_exports.keys.each do |export_name|
@@ -182,8 +177,7 @@ task :export_kauai_dashboard => :environment do
         csv << [date] + names.map {|name| data[name][date] }
       end
     end
-    ### Create the file using series titles for end-user download (if filename is provided)
-    next unless udaman_exports[export_name][1]
+    ### Create the file using series titles for end-user download
     titles = xport_series.pluck(:dataPortalName)
     filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data', udaman_exports[export_name][1])
     CSV.open(filename, 'wb') do |csv|
