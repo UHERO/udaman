@@ -98,6 +98,10 @@ every :saturday, :at => '9am' do
   rake :mark_pseudo_history
 end
 
+every :saturday, :at => '1:00 pm' do
+  rake :export_kauai_dashboard
+end
+
 #bring down pv file daily
 every 1.day, :at => '9:15 am' do
   runner %q|Download.get('PV_HON@hawaii.gov').download|
