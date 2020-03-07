@@ -72,7 +72,7 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bls_series_only
 end
 
-every :weekday, :at => '3:30 pm' do
+every :weekday, :at => '4:00 pm' do
   rake :reload_vap_hi_daily_series_only
 end
 
