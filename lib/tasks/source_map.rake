@@ -155,6 +155,8 @@ task :export_kauai_dashboard => :environment do
   Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
   udaman_exports = {
     'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
+    'Kauai Dashboard Major Indicators Data - Q'	=> %w{major_q.csv},
+    'Kauai Dashboard Major Indicators Data - M'	=> %w{major_m.csv},
     'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
     'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
     'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
@@ -186,6 +188,7 @@ task :export_kauai_dashboard => :environment do
       end
     end
     ### Create the file using series titles for end-user download
+    next unless udaman_exports[export_name][1]
     titles = xport_series.pluck(:dataPortalName)
     filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data', udaman_exports[export_name][1])
     CSV.open(filename, 'wb') do |csv|
