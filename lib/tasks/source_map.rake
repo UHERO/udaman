@@ -184,7 +184,7 @@ task :export_kauai_dashboard => :environment do
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
-        csv << [date] + names.map {|name| '%.02f' % data[name][date] }
+        csv << [date] + names.map {|name| '%.02f' % data[name][date] rescue nil }
       end
     end
     ### Create the file using series titles for end-user download
@@ -194,7 +194,7 @@ task :export_kauai_dashboard => :environment do
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + titles
       all_dates.each do |date|
-        csv << [date] + names.map {|name| '%.02f' % data[name][date] }
+        csv << [date] + names.map {|name| '%.02f' % data[name][date] rescue nil }
       end
     end
   end
