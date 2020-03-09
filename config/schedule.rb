@@ -94,12 +94,12 @@ every 1.day, :at => "#{hour.to_i+6}:00 am" do
   rake :update_public_data_points
 end
 
-every 1.day, :at => "#{hour.to_i+7}:00 am" do
-  rake :categories_backup
-end
-
 every :saturday, :at => '9am' do
   rake :mark_pseudo_history
+end
+
+every :saturday, :at => '1:00 pm' do
+  rake :export_kauai_dashboard
 end
 
 #bring down pv file daily

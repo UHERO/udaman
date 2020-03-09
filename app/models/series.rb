@@ -1387,6 +1387,7 @@ private
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
+    Rails.logger.info { "DESTROY series #{self}: start" }
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
       self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
@@ -1397,6 +1398,7 @@ private
     if scratch == 90909
       xseries.destroy!
     end
+    Rails.logger.info { "DESTROY series #{self}: done" }
   end
 
   def destroy_forced
