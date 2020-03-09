@@ -75,41 +75,33 @@ task :build_rebuild => :environment do
 end
 
 task :reload_hiwi_series_only => :environment do
-  t = Time.now
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
   mgr = SeriesReloadManager.new(hiwi_series, 'hiwi')
   Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_hiwi_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_bls_series_only => :environment do
-  t = Time.now
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
   mgr = SeriesReloadManager.new(bls_series, 'bls')
   Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_bls_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_bea_series_only => :environment do
-  t = Time.now
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
   mgr = SeriesReloadManager.new(bea_series, 'bea')
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_bea_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :reload_vap_hi_daily_series_only => :environment do
-  t = Time.now
   Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
   vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['task reload_vap_hi_daily_series_only', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
 task :update_public_data_points => :environment do
@@ -155,8 +147,8 @@ task :export_kauai_dashboard => :environment do
   Rails.logger.info { "export_kauai_dashboard: Start at #{Time.now}" }
   udaman_exports = {
     'Kauai Dashboard Major Indicators Data - A'	=> %w{major_a.csv major_a_export.csv},
-    'Kauai Dashboard Major Indicators Data - Q'	=> %w{major_q.csv},
-    'Kauai Dashboard Major Indicators Data - M'	=> %w{major_m.csv},
+    'Kauai Dashboard Major Indicators Data - Q'	=> %w{major_q.csv},  ## no download file name here
+    'Kauai Dashboard Major Indicators Data - M'	=> %w{major_m.csv},  ## no download file name here
     'Kauai Dashboard Visitor Data - A' => %w{vis_a.csv vis_a_export.csv},
     'Kauai Dashboard Visitor Data - Q' => %w{vis_q.csv vis_q_export.csv},
     'Kauai Dashboard Visitor Data - M' => %w{vis_m.csv vis_m_export.csv},
@@ -179,7 +171,7 @@ task :export_kauai_dashboard => :environment do
     ### There can be widely varying ranges, and file output needs to cover all
     all_dates = xport.data_dates
 
-    ### Create the file using series names for dashboard-internal use
+    ### Create the file that uses series names for dashboard-internal use
     filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'data', udaman_exports[export_name][0])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + names
@@ -187,7 +179,7 @@ task :export_kauai_dashboard => :environment do
         csv << [date] + names.map {|name| '%.02f' % data[name][date] rescue nil }
       end
     end
-    ### Create the file using series titles for end-user download
+    ### Create the file that uses series titles for end-user download
     next unless udaman_exports[export_name][1]
     titles = xport_series.pluck(:dataPortalName)
     filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data', udaman_exports[export_name][1])
