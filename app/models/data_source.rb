@@ -218,7 +218,10 @@ class DataSource < ApplicationRecord
             last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
             last_eval_options_used: nil)
       end
-      Rails.cache.clear if clear_cache
+      if clear_cache
+        Rails.cache.clear          ## clear file cache on local (prod) Rails
+        ResetWorker.perform_async  ## clear file cache on the worker Rails
+      end
     end
 
     def mark_as_pseudo_history
