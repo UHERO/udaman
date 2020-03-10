@@ -221,6 +221,7 @@ class DataSource < ApplicationRecord
       if clear_cache
         Rails.cache.clear          ## clear file cache on local (prod) Rails
         ResetWorker.perform_async  ## clear file cache on the worker Rails
+        Rails.logger.warn { 'Rails file cache CLEARED' }
       end
     end
 
@@ -245,13 +246,13 @@ class DataSource < ApplicationRecord
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
     end
-    
+
+    ## This method appears to be vestigial - confirm and delete later
     def DataSource.delete_related_sources_except(ids)
       ds_main = DataSource.find_by(id: ids[0])
       s = ds_main.series
       s.data_sources_by_last_run.each {|ds| ds.delete if ids.index(ds.id).nil?}
     end
-        
         
     def current?
       self.series.current_data_points.each { |dp| return true if dp.data_source_id == self.id }
