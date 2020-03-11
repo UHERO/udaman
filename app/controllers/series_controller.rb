@@ -1,5 +1,6 @@
 class SeriesController < ApplicationController
   include Authorization
+  include Validators
 
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
@@ -240,7 +241,11 @@ class SeriesController < ApplicationController
   def transform
     eval_string = params[:eval].gsub(/([+*\/()-])/, ' \1 ').strip  ## puts spaces around operators and parens
     eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? "'#{e}'.ts" : e }.join(' ')
-    @series = Kernel::eval eval_statement
+    @series = (Kernel::eval eval_statement) rescue nil
+    unless @series
+     redirect_to action: :index
+     return
+    end
 
     @chg = @series.annualized_percentage_change
     @desc = ""
