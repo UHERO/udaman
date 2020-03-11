@@ -89,15 +89,15 @@ class DvwUpload < ApplicationRecord
       delete_universe_dvw
       mylogger :info, 'DONE deleting the universe'
 
-      load_meta_csv('Group')
+      load_meta_csv('group')
       mylogger :debug, 'DONE load groups'
-      load_meta_csv('Market')
+      load_meta_csv('market')
       mylogger :debug, 'DONE load markets'
-      load_meta_csv('Destination')
+      load_meta_csv('destination')
       mylogger :debug, 'DONE load destinations'
-      load_meta_csv('Category')
+      load_meta_csv('category')
       mylogger :debug, 'DONE load categories'
-      load_meta_csv('Indicator')
+      load_meta_csv('indicator')
       mylogger :debug, 'DONE load indicators'
 
       load_series_csv
@@ -137,7 +137,7 @@ class DvwUpload < ApplicationRecord
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "File #{csv_path} not found" unless File.exists? csv_path
-    table = dimension.pluralize.downcase
+    table = dimension.pluralize
 
     datae = []
     parent_set = []
@@ -210,7 +210,7 @@ class DvwUpload < ApplicationRecord
   def load_series_csv
     mylogger :info, 'starting load_series_csv'
     csv_dir_path = path(filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, 'Data.csv')
+    csv_path = File.join(csv_dir_path, 'data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     dp_data_set = []
@@ -288,6 +288,9 @@ private
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
       raise "Could not transform xlsx to csv (#{id}:#{$?})"
     end
+
+    Dir.glob(File.join(csv_path, '*.csv')).each {|f| File.rename(f, f.downcase) } ## force csv filenames to lower case
+
     if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
       raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
     end

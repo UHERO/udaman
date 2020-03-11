@@ -237,12 +237,10 @@ class SeriesController < ApplicationController
     end
   end
 
-  # obsolete/vestigial code?
   def transform
-    eval_statement = convert_to_udaman_notation(params[:eval])
-    puts eval_statement
-    puts params[:eval]
-    @series = eval(eval_statement)
+    eval_string = params[:eval].gsub(/([+*\/()-])/, ' \1 ').strip  ## puts spaces around operators and parens
+    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? "'#{e}'.ts" : e }.join(' ')
+    @series = Kernel::eval eval_statement
 
     @chg = @series.annualized_percentage_change
     @desc = ""
@@ -344,12 +342,6 @@ private
     @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
     @all_details = SourceDetail.where(universe: series.universe)
     @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
-  end
-
-  # obsolete/vestigial code?
-  def convert_to_udaman_notation(eval_string)
-    operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
-    (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
   end
 
   def json_from_heroku_tsd(series_name, tsd_file)
