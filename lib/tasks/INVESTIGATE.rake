@@ -202,7 +202,7 @@ task :clean_data_sources => :environment do
 end
 #Maybe should move circular diffs in here
 
-
+### This task is probably long obsolete. Make sure then delete.
 task :find_outliers => :environment do
   errors = []
   outlier_series = []
