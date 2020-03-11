@@ -1,4 +1,7 @@
 class SourceDetailsController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_source_detail, only: [:show, :edit, :update, :destroy]
 
   # GET /source_details

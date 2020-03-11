@@ -1,11 +1,10 @@
-<div id="summary_area">
-	<h1>Data Series</h1>
-	<h2>Total: <%= @all_series.count %></h2>
-	<div id="navigation">
-		<%= raw navigation_by_frequency %>
-		<%= raw navigation_by_letter %>
-	</div>
-  <% if current_user.internal_user? %>
+<% if current_user.internal_user? %>
+
+  <div id="summary_area">
+ 	<h1>Data Series</h1>
+  <% if @all_series && @all_series.count > 0 %>
+      <h2>Total: <%= @all_series.count %></h2>
+  <% end %>
       <br />
     <div>
       <%= link_to 'Create UHERO Series', controller: :series, action: :new, u: 'UHERO' %> |
@@ -22,15 +21,20 @@
       <br />
       <%= link_to 'Series with stale source', controller: :series, action: :stale %>
       <br />
-      <%= link_to 'BEA Series without an API source', controller: :series, action: :old_bea_download %>
+      <%= link_to 'BEA Series to be cleaned up', controller: :series, action: :old_bea_download %>
     </div>
-  <% end %>
 </div>
 
 <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
 
-<% unless @all_series.empty? %>
+<% if @search_string %>
+    <h3>Search: <a href="#" style="text-decoration:none;"
+                   onClick="setSeriesSearch('<%= sanitize @search_string %>');"><%= sanitize @search_string %></a></h3>
+<% end %>
+<% if @all_series && @all_series.empty? %>
+  No results.
+<% elsif @all_series %>
   <table class="list_table">
     <thead>
     <tr>
@@ -63,3 +67,5 @@
   <p>
 <% end %>
 </div>
+
+<% end %>

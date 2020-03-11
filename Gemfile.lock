@@ -168,7 +168,7 @@ GEM
     net-ssh (4.0.1)
     netrc (0.11.0)
     nio4r (2.4.0)
-    nokogiri (1.10.4)
+    nokogiri (1.10.8)
       mini_portile2 (~> 2.4.0)
     ntlm-http (0.1.1)
     numerizer (0.1.1)
@@ -179,7 +179,7 @@ GEM
       rack
       rake (>= 0.8.1)
     public_suffix (3.1.1)
-    rack (2.0.7)
+    rack (2.0.8)
     rack-protection (2.0.4)
       rack
     rack-test (1.1.0)
@@ -355,7 +355,7 @@ DEPENDENCIES
   mechanize (>= 2.7.5)
   mysql2 (~> 0.5)
   net-sftp
-  nokogiri (~> 1.10, >= 1.10.4)
+  nokogiri (~> 1.10)
   passenger (~> 6.0.0)
   rack-protection (~> 2.0.1)
   rails (~> 5.2, >= 5.2.3)
