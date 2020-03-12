@@ -32,6 +32,7 @@ class IntegerPatternProcessor
                                              :cached_files => cached_files}) if p[0] == 'header_range'
 =end
     p = @pattern.split(':')
+    header_opts = { header_in: p[1], search_main: p[2].to_i, header_name: p[3], handle: handle, sheet: sheet }
     case p[0]
       when 'increment' then pos_by_increment(p[1].to_i, p[2].to_i, index)
       when 'repeat'    then pos_by_repeating_numbers(p[1].to_i, p[2].to_i, index)
