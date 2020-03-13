@@ -239,14 +239,14 @@ module SeriesArithmetic
     return all_nil unless frequency == 'day'
     new_series_data = {}
     mtd_sum = 0
-    mtd_month = nil
+    track_month = nil
     data.sort.each do |date, value|
-      if date.month == mtd_month
-        mtd_sum += value
-      else
-        mtd_sum = value
-        mtd_month = date.month
+      if date.month != track_month
+        raise "mtd_sum: month does not start on the 1st (date=#{date})" unless date.day == 1
+        track_month = date.month
+        mtd_sum = 0
       end
+      mtd_sum += value
       new_series_data[date] = mtd_sum
     end
     new_transformation("Month-To-Date sum of #{self}", new_series_data)
