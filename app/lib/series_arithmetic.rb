@@ -242,10 +242,11 @@ module SeriesArithmetic
     track_month = nil
     data.sort.each do |date, value|
       if date.month != track_month
-        raise "mtd_sum: month does not start on the 1st (date=#{date})" unless date.day == 1
+        raise "mtd_sum: month does not start on the 1st (#{date.year}/#{date.month})" unless date.day == 1
         track_month = date.month
         mtd_sum = 0
       end
+      ##### should we be checking each day transition to see if there are missing days?
       mtd_sum += value
       new_series_data[date] = mtd_sum
     end
@@ -262,10 +263,6 @@ module SeriesArithmetic
   end
 
   def mtd
-    mtd_sum.yoy
-  end
-
-  def mtd_foo
     mtd_avg.yoy
   end
 
