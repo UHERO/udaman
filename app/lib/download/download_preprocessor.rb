@@ -56,9 +56,9 @@ class DownloadPreprocessor
     header_in = options[:header_in] || 'col'
     match_type = options[:match_type] ? options[:match_type].parameterize.underscore.to_sym : :hiwi
     search_main = options[:search_main] || 1
-    cached_files = DownloadsCache.new
+    cache = DownloadsCache.new
 
-    spreadsheet = options[:sheet] ? cached_files.xls(options[:handle], options[:sheet]) : cached_files.csv(options[:handle])
+    spreadsheet = options[:sheet] ? cache.xls(options[:handle], options[:sheet]) : cache.csv(options[:handle])
     
     search_start = options[:search_start] || 1
     search_end = options[:search_end] || compute_search_end(spreadsheet, options[:sheet], header_in)

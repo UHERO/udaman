@@ -32,28 +32,16 @@ class IntegerPatternProcessor
                                              :cached_files => cached_files}) if p[0] == 'header_range'
 =end
     p = @pattern.split(':')
-    header_opts = { header_in: p[1], search_main: p[2].to_i, header_name: p[3], handle: handle, sheet: sheet }
+    common_opts = { header_in: p[1], search_main: p[2].to_i, header_name: p[3], handle: handle, sheet: sheet }
     case p[0]
       when 'increment' then increment(p[1].to_i, p[2].to_i, index)
       when 'repeat'    then repeat_numbers(p[1].to_i, p[2].to_i, index)
       when 'block'     then repeat_number_x_times(p[1].to_i, p[2].to_i, p[3].to_i, index)
       when 'repeat_with_step' then repeat_numbers_with_step(p[1].to_i, p[2].to_i, p[3].to_i, index)
-      when 'header' then DownloadPreprocessor.find_header(:header_name => p[3],
-                                                           :header_in => p[1],
-                                                           :search_main => p[2].to_i,
-                                                           :match_type => p[4],
-                                                           :handle => handle,
-                                                           :sheet => sheet,
-                                                           :cached_files => cached_files)
-      when 'header_range' then DownloadPreprocessor.find_header(:header_name => p[3],
-                                                                 :header_in => p[1],
-                                                                 :search_main => p[2].to_i,
-                                                                 :match_type => p[6],
-                                                                 :search_start => p[4].to_i,
-                                                                 :search_end => p[5].to_i,
-                                                                 :handle => handle,
-                                                                 :sheet => sheet,
-                                                                 :cached_files => cached_files)
+      when 'header' then DownloadPreprocessor.find_header(common_opts.merge(match_type: p[4]))
+      when 'header_range' then DownloadPreprocessor.find_header(
+          common_opts.merge(search_start: p[4].to_i, search_end: p[5].to_i, match_type: p[6])
+      )
       else raise('????')
     end
   end
