@@ -249,7 +249,7 @@ module SeriesArithmetic
       end
       new_series_data[date] = mtd_sum
     end
-    new_transformation("Month To Date sum of #{self}", new_series_data)
+    new_transformation("Month-To-Date sum of #{self}", new_series_data)
   end
 
   def mtd_avg
@@ -258,7 +258,7 @@ module SeriesArithmetic
     mtd_sum.data.sort.each do |date, value|
       avg_series[date] = value / date.day
     end
-    new_transformation("Month To Date average of #{self}", avg_series)
+    new_transformation("Month-To-Date average of #{self}", avg_series)
   end
 
   def mtd
