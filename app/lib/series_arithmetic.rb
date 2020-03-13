@@ -262,9 +262,13 @@ module SeriesArithmetic
   end
 
   def mtd
+    mtd_sum.yoy
+  end
+
+  def mtd_foo
     mtd_avg.yoy
   end
-  
+
   def ytd_sum
     return all_nil unless %w(day week).index(frequency).nil?
     new_series_data = {}
