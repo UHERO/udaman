@@ -241,34 +241,24 @@ module SeriesArithmetic
     mtd_sum = 0
     mtd_month = nil
     data.sort.each do |date, value|
-      month = date.month
-      if month == mtd_month
+      if date.month == mtd_month
         mtd_sum += value
       else
         mtd_sum = value
-        mtd_month = month
+        mtd_month = date.month
       end
       new_series_data[date] = mtd_sum
     end
-    new_transformation("Month to Date sum of #{self}", new_series_data)
+    new_transformation("Month To Date sum of #{self}", new_series_data)
   end
 
   def mtd_avg
     return all_nil unless frequency == 'day'
-    new_series_data = {}
-    mtd_sum = 0
-    mtd_month = nil
-    data.sort.each do |date, value|
-      month = date.month
-      if month == mtd_month
-        mtd_sum += value
-      else
-        mtd_sum = value
-        mtd_month = month
-      end
-      new_series_data[date] = mtd_sum
+    avg_series = {}
+    mtd_sum.data.sort.each do |date, value|
+      avg_series[date] = value / date.day
     end
-    new_transformation("Month to Date average of #{self}", new_series_data)
+    new_transformation("Month To Date average of #{self}", avg_series)
   end
 
   def mtd
