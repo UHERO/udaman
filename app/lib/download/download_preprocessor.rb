@@ -61,7 +61,7 @@ class DownloadPreprocessor
     spreadsheet = options[:sheet] ? cached_files.xls(options[:handle], options[:sheet]) : cached_files.csv(options[:handle])
     
     search_start = options[:search_start] || 1
-    search_end = compute_search_end(spreadsheet, options, header_in)
+    search_end = options[:search_end] || compute_search_end(spreadsheet, options[:sheet], header_in)
 
     (search_start..search_end).each {|elem| return elem if match?(elem, spreadsheet, match_type, header_in, search_main, options)}
     #temporary hack to get this to work
@@ -69,18 +69,22 @@ class DownloadPreprocessor
     raise "Could not find header: '#{options[:header_name]}'" #return nil
   end
   
-  def DownloadPreprocessor.compute_search_end(spreadsheet, options, header_in)
-    return options[:search_end] unless options[:search_end].nil?
-
-    #might not actually need this logic with the new way this is being cached...
-    if options[:sheet].nil?
-      return spreadsheet.length if header_in == 'col'        #search the column return a row number
-      return spreadsheet[0].length if header_in == 'row'     #search the row and return a column number
+  def DownloadPreprocessor.compute_search_end(spreadsheet, is_sheet, header_in)
+    case header_in
+      when 'col' then is_sheet ? spreadsheet.last_row : spreadsheet.length
+      when 'row' then is_sheet ? spreadsheet.last_column : spreadsheet[0].length
+      else raise "compute_search_end: bad header_in = #{header_in}"
+    end
+=begin
+    if is_sheet
+      return spreadsheet.last_row if header_in == 'col'
+      return spreadsheet.last_column if header_in == 'row'
     else
-      return spreadsheet.last_row if header_in == 'col'      #search the column return a row number
-      return spreadsheet.last_column if header_in == 'row'   #search the row and return a column number
+      return spreadsheet.length if header_in == 'col'
+      return spreadsheet[0].length if header_in == 'row'
     end
     raise 'Could not calculate the end of the search range'
+=end
   end
   
   def DownloadPreprocessor.match?(elem, spreadsheet, match_type, header_in, search_main, options)
