@@ -61,13 +61,13 @@ class DownloadPreprocessor
     spreadsheet = options[:sheet] ? cache.xls(options[:handle], options[:sheet]) : cache.csv(options[:handle])
     
     search_start = options[:search_start] || 1
-    search_end = options[:search_end] || compute_search_end(spreadsheet, options[:sheet], header_in)
+    search_end = options[:search_end] || compute_search_end(spreadsheet, header_in, options[:sheet])
 
     (search_start..search_end).each {|elem| return elem if match?(elem, spreadsheet, match_type, header_in, search_main, options)}
     raise "Could not find header: '#{options[:header_name]}'" #return nil
   end
   
-  def DownloadPreprocessor.compute_search_end(spreadsheet, is_sheet, header_in)
+  def DownloadPreprocessor.compute_search_end(spreadsheet, header_in, is_sheet)
     case header_in
       when 'col' then is_sheet ? spreadsheet.last_row : spreadsheet.length
       when 'row' then is_sheet ? spreadsheet.last_column : spreadsheet[0].length
