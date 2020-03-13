@@ -38,7 +38,7 @@ class IntegerPatternProcessor
       when 'repeat'    then repeat_numbers(p[1].to_i, p[2].to_i, index)
       when 'block'     then repeat_number_x_times(p[1].to_i, p[2].to_i, p[3].to_i, index)
       when 'repeat_with_step' then repeat_numbers_with_step(p[1].to_i, p[2].to_i, p[3].to_i, index)
-      when 'header' then DownloadPreprocessor.find_header(common_opts.merge(match_type: p[4]))
+      when 'header'       then DownloadPreprocessor.find_header( common_opts.merge(match_type: p[4]) )
       when 'header_range' then DownloadPreprocessor.find_header(
           common_opts.merge(search_start: p[4].to_i, search_end: p[5].to_i, match_type: p[6])
       )
@@ -58,7 +58,7 @@ private
   end
 
   def repeat_number_x_times(start, step, repeat, index)
-    start + (index / repeat).truncate * step
+    start + (index / repeat).to_i * step
   end
 
   def repeat_numbers_with_step(first, last, step, index)
