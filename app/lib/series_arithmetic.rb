@@ -235,7 +235,6 @@ module SeriesArithmetic
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
   
-  #should unify these a bit
   def mtd_sum
     return all_nil unless frequency == 'day'
     new_series_data = {}
@@ -251,11 +250,29 @@ module SeriesArithmetic
       end
       new_series_data[date] = mtd_sum
     end
-    new_transformation("Month to Date sum of #{name}", new_series_data)
+    new_transformation("Month to Date sum of #{self}", new_series_data)
   end
-  
+
+  def mtd_avg
+    return all_nil unless frequency == 'day'
+    new_series_data = {}
+    mtd_sum = 0
+    mtd_month = nil
+    data.sort.each do |date, value|
+      month = date.month
+      if month == mtd_month
+        mtd_sum += value
+      else
+        mtd_sum = value
+        mtd_month = month
+      end
+      new_series_data[date] = mtd_sum
+    end
+    new_transformation("Month to Date average of #{self}", new_series_data)
+  end
+
   def mtd
-    mtd_sum.yoy
+    mtd_avg.yoy
   end
   
   def ytd_sum
