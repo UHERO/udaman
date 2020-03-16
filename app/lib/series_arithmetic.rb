@@ -92,7 +92,7 @@ module SeriesArithmetic
     #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
   end
   
-  def rebase(year=nil)
+  def rebase(year = nil)
     unless year.nil?
       year = Date.parse(year).year
     end
@@ -139,7 +139,7 @@ module SeriesArithmetic
     end
   end
 
-  def absolute_change(id=nil)
+  def absolute_change(id = nil)
     return faster_change(id) unless id.nil?
     new_series_data = {}
     last = nil
@@ -186,17 +186,17 @@ module SeriesArithmetic
     new_transformation("All nil for dates in #{name}", new_series_data)
   end
   
-  def yoy(id=nil)
+  def yoy(id = nil)
     annualized_percentage_change id
   end
   
-  def annualized_percentage_change(id=nil)
+  def annualized_percentage_change(id = nil)
     day_based_yoy id
   end
   
   #just going to leave out the 29th on leap years for now
   def day_based_yoy(id)
-    return all_nil unless ['week'].index(frequency).nil?
+    return all_nil if frequency == 'week'
     return faster_yoy id unless id.nil?
 
     new_series_data = {}
@@ -284,11 +284,11 @@ module SeriesArithmetic
     new_transformation("Year to Date sum of #{name}", new_series_data)
   end
   
-  def ytd(id=nil)
+  def ytd(id = nil)
     ytd_percentage_change id
   end
   
-  def ytd_percentage_change(id=nil)
+  def ytd_percentage_change(id = nil)
     return all_nil unless %w(day week).index(frequency).nil?
     return faster_ytd(id) unless id.nil?
     new_series_data = {}
@@ -340,7 +340,7 @@ module SeriesArithmetic
     annual_diff
   end
   
-  def scaled_yoy_diff(id=nil)
+  def scaled_yoy_diff(id = nil)
     return faster_scaled_yoy_diff(id) unless id.nil?
     new_series_data = {}
     last = {}
