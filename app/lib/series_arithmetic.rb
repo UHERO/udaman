@@ -207,7 +207,7 @@ module SeriesArithmetic
         new_series_data[date] = pc
       end
     end
-    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
+    new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end
 
   def faster_yoy(id)
@@ -289,22 +289,9 @@ module SeriesArithmetic
   end
   
   def ytd_percentage_change(id = nil)
-    return all_nil unless %w(day week).index(frequency).nil?
-    return faster_ytd(id) unless id.nil?
-    new_series_data = {}
-    ytd_sum = 0
-    ytd_year = nil
-    data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
-      end
-      new_series_data[date] = ytd_sum
-    end
-    new_transformation("Year-To-Date percentage change of #{self}", new_series_data).annualized_percentage_change
+    return all_nil if frequency == 'week' || frequency == 'day'
+    return faster_ytd(id) if id
+    new_transformation("Year-To-Date percentage change of #{self}", ytd_sum.data).annualized_percentage_change
   end
 
   def faster_ytd(id)
