@@ -239,15 +239,17 @@ module SeriesArithmetic
     return all_nil unless frequency == 'day'
     new_series_data = {}
     mtd_sum = 0
+    last_day = 0
     track_month = nil
     data.sort.each do |date, value|
       if date.month != track_month
-        raise "mtd_sum: month does not start on the 1st (#{date.year}/#{date.month})" unless date.day == 1
         track_month = date.month
         mtd_sum = 0
+        last_day = 0
       end
-      ##### should we be checking each day transition to see if there are missing days?
+      raise "mtd_sum: gap in daily data preceding #{date}" if (date.day - last_day) > 1
       mtd_sum += value
+      last_day = date.day
       new_series_data[date] = mtd_sum
     end
     new_transformation("Month-To-Date sum of #{self}", new_series_data)
