@@ -259,7 +259,7 @@ module SeriesArithmetic
     return all_nil unless frequency == 'day'
     avg_series = {}
     mtd_sum.data.sort.each do |date, value|
-      avg_series[date] = value / date.day
+      avg_series[date] = value / date.day.to_f
     end
     new_transformation("Month-To-Date average of #{self}", avg_series)
   end
@@ -269,21 +269,19 @@ module SeriesArithmetic
   end
 
   def ytd_sum
-    return all_nil unless %w(day week).index(frequency).nil?
+    return all_nil if frequency == 'week' || frequency == 'day'
     new_series_data = {}
     ytd_sum = 0
-    ytd_year = nil
+    track_year = nil
     data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
+      if date.year != track_year
+        track_year = date.year
+        ytd_sum = 0
       end
+      ytd_sum += value
       new_series_data[date] = ytd_sum
     end
-    new_transformation("Year to Date sum of #{name}", new_series_data)
+    new_transformation("Year-To-Date sum of #{self}", new_series_data)
   end
   
   def ytd(id = nil)
@@ -306,7 +304,7 @@ module SeriesArithmetic
       end
       new_series_data[date] = ytd_sum
     end
-    new_transformation("Year to Date Percentage Change of #{name}", new_series_data).annualized_percentage_change
+    new_transformation("Year-To-Date percentage change of #{self}", new_series_data).annualized_percentage_change
   end
 
   def faster_ytd(id)
