@@ -12,6 +12,7 @@ class SeriesReloadWorker
   end
 
   def perform(batch_id, series_id, depth, clear_first = false)
+    return if cancelled?
     @batch = batch_id
     @series = series_id
     @depth = depth
@@ -52,6 +53,14 @@ class SeriesReloadWorker
     ensure
       Rails.logger.level = old_level if old_level
     end
+  end
+
+  def cancelled?
+    Sidekiq.redis {|c| c.exists("cancelled-#{jid}") }
+  end
+
+  def self.cancel!(jid)
+    Sidekiq.redis {|c| c.setex("cancelled-#{jid}", 86400, 1) }
   end
 
 private
