@@ -36,10 +36,11 @@ class DvwUpload < ApplicationRecord
     self.update series_status: :processing
   end
 
-  def make_active_settings
+  def make_active_settings(total_loaded)
+    success_msg = "#{total_loaded} data points loaded"
     self.transaction do
       DvwUpload.update_all active: false
-      self.update active: true, last_error: nil, last_error_at: nil
+      self.update active: true, last_error: success_msg, last_error_at: nil
     end
   end
 
@@ -100,14 +101,14 @@ class DvwUpload < ApplicationRecord
       load_meta_csv('indicator')
       mylogger :debug, 'DONE load indicators'
 
-      load_series_csv
+      total = load_series_csv
       mylogger :debug, 'DONE load series'
       load_data_postproc
       mylogger :debug, 'DONE postproc'
     ensure
       DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
     end
-    make_active_settings
+    make_active_settings(total)
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
     true
@@ -250,6 +251,7 @@ class DvwUpload < ApplicationRecord
       db_execute_set dp_query, dps
     end
     mylogger :info, 'done load_series_csv'
+    dp_data_set.count
   end
 
   def load_data_postproc
