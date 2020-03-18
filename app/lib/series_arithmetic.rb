@@ -270,15 +270,20 @@ module SeriesArithmetic
 
   def ytd_sum
     return all_nil if frequency == 'week' || frequency == 'day'
+    dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
     new_series_data = {}
     ytd_sum = 0
+    prev_month = 0
     track_year = nil
     data.sort.each do |date, value|
       if date.year != track_year
         track_year = date.year
         ytd_sum = 0
+        prev_month = 0
       end
+      raise "ytd_sum: gap in data preceding #{date}" if (date.month - prev_month) > dp_month_diff
       ytd_sum += value
+      prev_month = date.month
       new_series_data[date] = ytd_sum
     end
     new_transformation("Year-To-Date sum of #{self}", new_series_data)
