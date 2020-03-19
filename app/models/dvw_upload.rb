@@ -36,11 +36,10 @@ class DvwUpload < ApplicationRecord
     self.update series_status: :processing
   end
 
-  def make_active_settings(total_loaded)
-    success_msg = "#{total_loaded} data points loaded"
+  def make_active_settings
     self.transaction do
       DvwUpload.update_all active: false
-      self.update active: true, last_error: success_msg, last_error_at: nil
+      self.update active: true, last_error: nil, last_error_at: nil
     end
   end
 
@@ -101,17 +100,17 @@ class DvwUpload < ApplicationRecord
       load_meta_csv('indicator')
       mylogger :debug, 'DONE load indicators'
 
-      total = load_series_csv
+      total_loaded = load_series_csv
       mylogger :debug, 'DONE load series'
       load_data_postproc
       mylogger :debug, 'DONE postproc'
     ensure
       DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
     end
-    make_active_settings(total)
+    make_active_settings
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
-    true
+    total_loaded
   end
 
   def delete_universe_dvw
@@ -268,8 +267,9 @@ class DvwUpload < ApplicationRecord
   def worker_tasks(do_csv_proc = false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
-    full_load && mylogger(:info, "loaded and active")
-    self.update(series_status: :ok, last_error: nil, last_error_at: nil)
+    total_loaded = full_load
+    mylogger :info, "loaded and active"
+    self.update(series_status: :ok, last_error: "#{total_loaded} data points loaded", last_error_at: nil)
   end
 
 private
