@@ -58,11 +58,9 @@
               end %>
           </span>
         </td>
-        <% if current_user.dev_user? && dvw_upload.last_error %>
           <td>
             <span style="color:red;"><%= "#{dvw_upload.last_error} (#{dvw_upload.last_error_at})" %></span>
           </td>
-        <% end %>
       </tr>
     <% end %>
   </tbody>
