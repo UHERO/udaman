@@ -12,10 +12,13 @@ class SeriesReloadWorker
   end
 
   def perform(batch_id, series_id, depth, clear_first = false)
-    return if cancelled?
     @batch = batch_id
     @series = series_id
     @depth = depth
+    if cancelled?
+      mylogger :warn, 'reload CANCELLED'
+      return
+    end
     log = nil
     old_level = nil
     begin
