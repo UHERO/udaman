@@ -237,7 +237,7 @@ module SeriesArithmetic
   
   def mtd_sum
     return all_nil unless frequency == 'day'
-    new_series_data = {}
+    sum_series = {}
     mtd_sum = 0
     last_day = 0
     track_month = nil
@@ -247,12 +247,12 @@ module SeriesArithmetic
         mtd_sum = 0
         last_day = 0
       end
-      raise "mtd_sum: gap in daily data preceding #{date}" if (date.day - last_day) > 1
+      raise "mtd_sum: gap in daily data preceding #{date}" if (date.day - last_day) > 1 && !sum_series.empty?
       mtd_sum += value
       last_day = date.day
-      new_series_data[date] = mtd_sum
+      sum_series[date] = mtd_sum
     end
-    new_transformation("Month-To-Date sum of #{self}", new_series_data)
+    new_transformation("Month-To-Date sum of #{self}", sum_series)
   end
 
   def mtd_avg
