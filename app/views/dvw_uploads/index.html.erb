@@ -59,7 +59,8 @@
           </span>
         </td>
           <td>
-            <span style="color:red;"><%= "#{dvw_upload.last_error} (#{dvw_upload.last_error_at})" %></span>
+            <% color = dvw_upload.last_error_at ? 'red' : 'green' %>
+            <span style="color:<%= color %>;"><%= "#{dvw_upload.last_error} (#{dvw_upload.last_error_at})" %></span>
           </td>
       </tr>
     <% end %>
