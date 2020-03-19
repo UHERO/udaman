@@ -267,9 +267,9 @@ class DvwUpload < ApplicationRecord
   def worker_tasks(do_csv_proc = false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
-    total_loaded = full_load
+    total = full_load
     mylogger :info, "loaded and active"
-    self.update(series_status: :ok, last_error: "#{total_loaded} data points loaded", last_error_at: nil)
+    self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
 private
