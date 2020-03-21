@@ -60,7 +60,8 @@
         </td>
           <td>
             <% color = dvw_upload.last_error_at ? 'red' : 'green' %>
-            <span style="color:<%= color %>;"><%= "#{dvw_upload.last_error} (#{dvw_upload.last_error_at})" %></span>
+            <% err_at = ' (%s)' % dvw_upload.last_error_at if dvw_upload.last_error_at %>
+            <span style="color:<%= color %>;"><%= dvw_upload.last_error %><%= err_at %></span>
           </td>
       </tr>
     <% end %>
