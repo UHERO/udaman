@@ -304,11 +304,13 @@ class DataSource < ApplicationRecord
 
   def set_dependencies(dont_save = false)
     self.dependencies = []
-    self.description.split(' ').each do |word|
-      if valid_series_name(word)
-        self.dependencies.push(word)
+    if description
+      description.split(' ').each do |word|
+        if valid_series_name(word)
+          self.dependencies.push(word)
+        end
       end
-    end unless self.description.nil?
+    end
     self.dependencies.uniq!
     self.save unless dont_save
   end
