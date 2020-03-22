@@ -100,7 +100,7 @@ class DvwUpload < ApplicationRecord
       load_meta_csv('indicator')
       mylogger :debug, 'DONE load indicators'
 
-      load_series_csv
+      total_loaded = load_series_csv
       mylogger :debug, 'DONE load series'
       load_data_postproc
       mylogger :debug, 'DONE postproc'
@@ -110,7 +110,7 @@ class DvwUpload < ApplicationRecord
     make_active_settings
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
-    true
+    total_loaded
   end
 
   def delete_universe_dvw
@@ -250,6 +250,7 @@ class DvwUpload < ApplicationRecord
       db_execute_set dp_query, dps
     end
     mylogger :info, 'done load_series_csv'
+    dp_data_set.count
   end
 
   def load_data_postproc
@@ -266,8 +267,9 @@ class DvwUpload < ApplicationRecord
   def worker_tasks(do_csv_proc = false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
-    full_load && mylogger(:info, "loaded and active")
-    self.update(series_status: :ok, last_error: nil, last_error_at: nil)
+    total = full_load
+    mylogger :info, "loaded and active"
+    self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
 private
