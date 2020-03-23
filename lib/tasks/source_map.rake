@@ -51,8 +51,8 @@ end
 
 ## The famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
-  full_set = Series.get_all_uhero - Series.search_box('#tour_ocup%y')
-  mgr = SeriesReloadManager.new(full_set, 'full')
+  full_set_ids = (Series.get_all_uhero - Series.search_box('#tour_ocup%y')).map(&:id)
+  mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full')
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
 end
