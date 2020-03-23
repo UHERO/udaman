@@ -23,17 +23,18 @@ class DownloadPreprocessor
   end  
 
   def DownloadPreprocessor.match(value, header, no_okina = false)
-    
     return false if value.class != String
     value = value.split('(')[0] unless value == ''
-    return value.strip.downcase.to_ascii.no_okina == header.strip.downcase if no_okina
-    return value.strip.downcase.to_ascii == header.strip.downcase
+    val_string = value.strip.downcase.to_ascii
+    val_string = val_string.no_okina if no_okina
+    val_string == header.strip.downcase
   end
   
   def DownloadPreprocessor.match_prefix(value, header, no_okina = false)
     return false if value.class != String
-    return value.strip.downcase.to_ascii.no_okina.index(header.strip.downcase) == 0 if no_okina
-    return value.strip.downcase.to_ascii.index(header.strip.downcase) == 0
+    val_string = value.strip.downcase.to_ascii
+    val_string = val_string.no_okina if no_okina
+    val_string.index(header.strip.downcase) == 0
   end
     
   def DownloadPreprocessor.match_sub(value, header, no_okina = false)
@@ -41,8 +42,6 @@ class DownloadPreprocessor
     val_string = value.strip.downcase.to_ascii
     val_string = val_string.no_okina if no_okina
     val_string.include? header.strip.downcase
-    ##return value.strip.downcase.to_ascii.no_okina.index(header.strip.downcase) != nil if no_okina
-    ##return value.strip.downcase.to_ascii.index(header.strip.downcase) != nil
   end
   
   def DownloadPreprocessor.match_trim_elipsis(value, header)    
@@ -51,8 +50,8 @@ class DownloadPreprocessor
   end  
   
   def DownloadPreprocessor.find_header(options)
-    raise 'Find header needs a header_name' if options[:header_name].nil?
-    raise 'Find header needs a handle' if options[:handle].nil?
+    raise 'Find header needs a header_name' if options[:header_name].blank?
+    raise 'Find header needs a handle' if options[:handle].blank?
     header_in = options[:header_in] || 'col'
     match_type = options[:match_type] ? options[:match_type].parameterize.underscore.to_sym : :hiwi
     search_main = options[:search_main] || 1
