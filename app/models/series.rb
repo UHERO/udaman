@@ -1277,7 +1277,7 @@ class Series < ApplicationRecord
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
-  # recursive incrementer of dependency_depth
+  ## probably vestigial - make sure, then delete later
   def increment_dependency_depth
     self.dependency_depth += 1
     dependencies = []
@@ -1363,6 +1363,7 @@ class Series < ApplicationRecord
 private
 
   def last_rites
+    Rails.logger.info { "DESTROY series #{self}: start" }
     if is_primary? && !aliases.empty?
       message = "ERROR: Cannot destroy primary series #{self} with aliases. Delete aliases first."
       Rails.logger.error { message }
@@ -1387,7 +1388,6 @@ private
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
-    Rails.logger.info { "DESTROY series #{self}: start" }
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
       self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
