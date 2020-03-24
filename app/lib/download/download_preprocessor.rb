@@ -43,6 +43,27 @@ class DownloadPreprocessor
 
 private
 
+  def match?(elem, spreadsheet, match_type, header_in, search_main, options)
+    row = header_in == 'col' ? elem : search_main
+    col = header_in == 'col' ? search_main : elem
+    cell_value = options[:sheet] ? spreadsheet.cell(row, col).to_s : spreadsheet[row - 1][col - 1].to_s
+
+    options[:header_name].split('[or]').each do |header|
+      cell_matched = case match_type
+        when :hiwi            then match(cell_value, header)
+        when :prefix          then match_prefix(cell_value, header)
+        when :trim_elipsis    then match_trim_elipsis(cell_value,header)
+        when :no_okina        then match(cell_value, header, true)
+        when :prefix_no_okina then match_prefix(cell_value, header, true)
+        when :sub             then match_sub(cell_value, header)
+        when :sub_no_okina    then match_sub(cell_value, header, true)
+        else false
+      end
+      return true if cell_matched
+    end
+    false
+  end
+
   def match(value, header, no_okina = false)
     return false if value.class != String
     value = value.split('(')[0] unless value == ''
@@ -68,25 +89,6 @@ private
   def match_trim_elipsis(value, header)
     return false if value.class != String
     value.strip.downcase == header.strip.downcase
-  end
-
-  def match?(elem, spreadsheet, match_type, header_in, search_main, options)
-    row = header_in == 'col' ? elem : search_main
-    col = header_in == 'col' ? search_main : elem
-
-    cell_value = options[:sheet] ? spreadsheet.cell(row, col).to_s : spreadsheet[row - 1][col - 1].to_s
-    result = false
-    options[:header_name].split('[or]').each do |header|
-      result = match(cell_value, header) if match_type == :hiwi
-      result = match_prefix(cell_value, header) if match_type == :prefix
-      result = match_trim_elipsis(cell_value,header) if match_type == :trim_elipsis
-      result = match(cell_value, header, true) if match_type == :no_okina
-      result = match_prefix(cell_value, header, true) if match_type == :prefix_no_okina
-      result = match_sub(cell_value, header) if match_type == :sub
-      result = match_sub(cell_value, header, true) if match_type == :sub_no_okina
-      return true if result
-    end
-    return false
   end
 
   def compute_search_end(spreadsheet, header_in, is_sheet)
