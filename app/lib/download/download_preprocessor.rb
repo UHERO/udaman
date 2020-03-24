@@ -2,7 +2,8 @@ require 'roo'
 require 'csv'
 
 class DownloadPreprocessor
-  
+
+  ### obsolete and can be removed?
   def DownloadPreprocessor.xls(desc, handle, sheet, cached_files=nil)
     return desc unless desc.class == String
     p = desc.split ':'
@@ -13,6 +14,7 @@ class DownloadPreprocessor
     return res
   end
 
+  ### obsolete and can be removed?
   def DownloadPreprocessor.csv(desc, handle, cached_files=nil)
     return desc unless desc.class == String
     p = desc.split ':'
@@ -22,33 +24,6 @@ class DownloadPreprocessor
     return desc
   end  
 
-  def DownloadPreprocessor.match(value, header, no_okina = false)
-    return false if value.class != String
-    value = value.split('(')[0] unless value == ''
-    val_string = value.strip.downcase.to_ascii
-    val_string = val_string.no_okina if no_okina
-    val_string == header.strip.downcase
-  end
-  
-  def DownloadPreprocessor.match_prefix(value, header, no_okina = false)
-    return false if value.class != String
-    val_string = value.strip.downcase.to_ascii
-    val_string = val_string.no_okina if no_okina
-    val_string.index(header.strip.downcase) == 0
-  end
-    
-  def DownloadPreprocessor.match_sub(value, header, no_okina = false)
-    return false if value.class != String
-    val_string = value.strip.downcase.to_ascii
-    val_string = val_string.no_okina if no_okina
-    val_string.include? header.strip.downcase
-  end
-  
-  def DownloadPreprocessor.match_trim_elipsis(value, header)    
-    return false if value.class != String
-    value.strip.downcase == header.strip.downcase
-  end  
-  
   def DownloadPreprocessor.find_header(options)
     raise 'Find header needs a header_name' if options[:header_name].blank?
     raise 'Find header needs a handle' if options[:handle].blank?
@@ -66,10 +41,39 @@ class DownloadPreprocessor
     raise "Could not find header: '#{options[:header_name]}'" #return nil
   end
 
-  def DownloadPreprocessor.match?(elem, spreadsheet, match_type, header_in, search_main, options)
+private
+
+  def match(value, header, no_okina = false)
+    return false if value.class != String
+    value = value.split('(')[0] unless value == ''
+    val_string = value.strip.downcase.to_ascii
+    val_string = val_string.no_okina if no_okina
+    val_string == header.strip.downcase
+  end
+
+  def match_prefix(value, header, no_okina = false)
+    return false if value.class != String
+    val_string = value.strip.downcase.to_ascii
+    val_string = val_string.no_okina if no_okina
+    val_string.index(header.strip.downcase) == 0
+  end
+
+  def match_sub(value, header, no_okina = false)
+    return false if value.class != String
+    val_string = value.strip.downcase.to_ascii
+    val_string = val_string.no_okina if no_okina
+    val_string.include? header.strip.downcase
+  end
+
+  def match_trim_elipsis(value, header)
+    return false if value.class != String
+    value.strip.downcase == header.strip.downcase
+  end
+
+  def match?(elem, spreadsheet, match_type, header_in, search_main, options)
     row = header_in == 'col' ? elem : search_main
     col = header_in == 'col' ? search_main : elem
-    
+
     cell_value = options[:sheet] ? spreadsheet.cell(row, col).to_s : spreadsheet[row - 1][col - 1].to_s
     result = false
     options[:header_name].split('[or]').each do |header|
@@ -83,9 +87,7 @@ class DownloadPreprocessor
       return true if result
     end
     return false
-  end  
-
-private
+  end
 
   def compute_search_end(spreadsheet, header_in, is_sheet)
     case header_in

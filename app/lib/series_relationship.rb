@@ -82,6 +82,7 @@ module SeriesRelationship
   end
 
   ## the immediate (first order) dependents
+  # #### why does this match against description rather than dependencies!?!?
   def Series.who_depends_on(name, universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
