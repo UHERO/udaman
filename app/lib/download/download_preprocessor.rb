@@ -51,10 +51,10 @@ private
     options[:header_name].split('[or]').each do |header|
       cell_matched = case match_type
         when :hiwi            then match(cell_value, header)
-        when :prefix          then match_prefix(cell_value, header)
-        when :trim_elipsis    then match_trim_elipsis(cell_value,header)
         when :no_okina        then match(cell_value, header, true)
+        when :prefix          then match_prefix(cell_value, header)
         when :prefix_no_okina then match_prefix(cell_value, header, true)
+        when :trim_elipsis    then match_trim_elipsis(cell_value,header)
         when :sub             then match_sub(cell_value, header)
         when :sub_no_okina    then match_sub(cell_value, header, true)
         else false
