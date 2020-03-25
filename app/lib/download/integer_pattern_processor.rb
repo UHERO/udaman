@@ -54,7 +54,7 @@ private
 
   def repeat_numbers(first, last, index)
     range = last - first + 1
-    (index % range) + first
+    first + (index % range)
   end
 
   def repeat_number_x_times(start, step, repeat, index)
