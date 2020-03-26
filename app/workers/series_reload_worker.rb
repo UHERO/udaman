@@ -63,6 +63,7 @@ class SeriesReloadWorker
   end
 
   def self.cancel!(jid)
+    mylogger :warn, "trying to cancel Sidekiq job #{jid}"
     Sidekiq.redis {|c| c.setex("cancelled-#{jid}", 86400, 1) }
   end
 
