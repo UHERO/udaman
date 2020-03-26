@@ -50,13 +50,13 @@ private
 
     options[:header_name].split('[or]').each do |header|
       cell_matched = case match_type
-        when :hiwi            then match(cell_value, header)
-        when :no_okina        then match(cell_value, header, true)
-        when :prefix          then match_prefix(cell_value, header)
-        when :prefix_no_okina then match_prefix(cell_value, header, true)
-        when :trim_elipsis    then match_trim_elipsis(cell_value,header)
-        when :sub             then match_sub(cell_value, header)
-        when :sub_no_okina    then match_sub(cell_value, header, true)
+        when :hiwi            then match_by_type(:equal, cell_value, header)
+        when :no_okina        then match_by_type(:equal, cell_value, header, true)
+        when :prefix          then match_by_type(:prefix, cell_value, header)
+        when :prefix_no_okina then match_by_type(:prefix, cell_value, header, true)
+        when :sub             then match_by_type(:substring, cell_value, header)
+        when :sub_no_okina    then match_by_type(:substring, cell_value, header, true)
+        when :trim_elipsis    then match_trim_elipsis(cell_value, header)
         else false
       end
       return true if cell_matched
@@ -64,26 +64,17 @@ private
     false
   end
 
-  def match(value, header, no_okina = false)
+  def match_by_type(type, value, header, no_okina = false)
     return false if value.class != String
-    value = value.split('(')[0] unless value == ''
+    value = value.split('(')[0] if type === :equal && value != ''
     val_string = value.strip.downcase.to_ascii
     val_string = val_string.no_okina if no_okina
-    val_string == header.strip.downcase
-  end
-
-  def match_prefix(value, header, no_okina = false)
-    return false if value.class != String
-    val_string = value.strip.downcase.to_ascii
-    val_string = val_string.no_okina if no_okina
-    val_string.index(header.strip.downcase) == 0
-  end
-
-  def match_sub(value, header, no_okina = false)
-    return false if value.class != String
-    val_string = value.strip.downcase.to_ascii
-    val_string = val_string.no_okina if no_okina
-    val_string.include? header.strip.downcase
+    case type
+      when :equal     then val_string == header.strip.downcase
+      when :prefix    then val_string.index(header.strip.downcase) == 0
+      when :substring then val_string.include? header.strip.downcase
+      else raise("match_by_type: unknown match type #{type}")
+    end
   end
 
   def match_trim_elipsis(value, header)
