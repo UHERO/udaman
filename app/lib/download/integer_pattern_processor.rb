@@ -35,7 +35,7 @@ class IntegerPatternProcessor
     common_opts = { header_in: p[1], search_main: p[2].to_i, header_name: p[3], handle: handle, sheet: sheet }
     case p[0]
       when 'increment' then increment(p[1].to_i, p[2].to_i, index)
-      when 'repeat'    then repeat_numbers(p[1].to_i, p[2].to_i, index)
+      when 'repeat'    then repeat_range(p[1].to_i, p[2].to_i, index)
       when 'block'     then repeat_number_x_times(p[1].to_i, p[2].to_i, p[3].to_i, index)
       when 'repeat_with_step' then repeat_numbers_with_step(p[1].to_i, p[2].to_i, p[3].to_i, index)
       when 'header'       then DownloadPreprocessor.find_header( common_opts.merge(match_type: p[4]) )
@@ -52,7 +52,7 @@ private
     start + (step * index)
   end
 
-  def repeat_numbers(first, last, index)
+  def repeat_range(first, last, index)
     range = last - first + 1
     first + (index % range)
   end
