@@ -31,16 +31,16 @@ class IntegerPatternProcessor
                                              :sheet => sheet,
                                              :cached_files => cached_files}) if p[0] == 'header_range'
 =end
-    p = @pattern.split(':')
-    common_opts = { header_in: p[1], search_main: p[2].to_i, header_name: p[3], handle: handle, sheet: sheet }
+    p = @pattern.split(':').map {|w| Integer(w) rescue w }  ## change integer strings to Integer type
+    common_opts = { header_in: p[1], search_main: p[2], header_name: p[3], handle: handle, sheet: sheet }
     case p[0]
-      when 'increment' then increment(index, p[1].to_i, p[2].to_i)
-      when 'repeat'    then repeat_range(index, p[1].to_i, p[2].to_i)
-      when 'block'     then repeat_number_x_times(index, p[1].to_i, p[2].to_i, p[3].to_i)
-      when 'repeat_with_step' then repeat_numbers_with_step(p[1].to_i, p[2].to_i, p[3].to_i, index)
+      when 'increment' then increment(index, p[1], p[2])
+      when 'repeat'    then repeat_range(index, p[1], p[2], p[3])
+      when 'block'     then repeat_x_times(index, p[1], p[2], p[3])
+      when 'repeat_with_step' then repeat_range(index, p[1], p[2], p[3])
       when 'header'       then DownloadPreprocessor.find_header( common_opts.merge(match_type: p[4]) )
       when 'header_range' then DownloadPreprocessor.find_header(
-          common_opts.merge(search_start: p[4].to_i, search_end: p[5].to_i, match_type: p[6])
+          common_opts.merge(search_start: p[4], search_end: p[5], match_type: p[6])
       )
       else raise('IntegerPatternProcessor::compute ????')
     end
@@ -52,17 +52,14 @@ private
     start + (step * index)
   end
 
-  def repeat_range(index, first, last)
-    range = last - first + 1
-    first + (index % range)
+  def repeat_range(index, first, last, step)
+    step ||= 1
+    range = (last - first) / step + 1
+    first + (index % range) * step
   end
 
-  def repeat_number_x_times(index, start, step, repeat)
+  def repeat_x_times(index, start, step, repeat)
     start + (index / repeat).to_i * step
   end
 
-  def repeat_numbers_with_step(first, last, step, index)
-    range = (last - first) / step + 1
-    (index % range) * step + first
-  end
 end
