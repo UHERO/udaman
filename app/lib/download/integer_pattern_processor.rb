@@ -34,30 +34,30 @@ class IntegerPatternProcessor
     p = @pattern.split(':')
     common_opts = { header_in: p[1], search_main: p[2].to_i, header_name: p[3], handle: handle, sheet: sheet }
     case p[0]
-      when 'increment' then increment(p[1].to_i, p[2].to_i, index)
-      when 'repeat'    then repeat_range(p[1].to_i, p[2].to_i, index)
-      when 'block'     then repeat_number_x_times(p[1].to_i, p[2].to_i, p[3].to_i, index)
+      when 'increment' then increment(index, p[1].to_i, p[2].to_i)
+      when 'repeat'    then repeat_range(index, p[1].to_i, p[2].to_i)
+      when 'block'     then repeat_number_x_times(index, p[1].to_i, p[2].to_i, p[3].to_i)
       when 'repeat_with_step' then repeat_numbers_with_step(p[1].to_i, p[2].to_i, p[3].to_i, index)
       when 'header'       then DownloadPreprocessor.find_header( common_opts.merge(match_type: p[4]) )
       when 'header_range' then DownloadPreprocessor.find_header(
           common_opts.merge(search_start: p[4].to_i, search_end: p[5].to_i, match_type: p[6])
       )
-      else raise('????')
+      else raise('IntegerPatternProcessor::compute ????')
     end
   end
 
 private
 
-  def increment(start, step, index)
+  def increment(index, start, step)
     start + (step * index)
   end
 
-  def repeat_range(first, last, index)
+  def repeat_range(index, first, last)
     range = last - first + 1
     first + (index % range)
   end
 
-  def repeat_number_x_times(start, step, repeat, index)
+  def repeat_number_x_times(index, start, step, repeat)
     start + (index / repeat).to_i * step
   end
 
