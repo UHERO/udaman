@@ -5,7 +5,7 @@ class IntegerPatternProcessor
   end
 
   def compute(index, cached_files = nil, handle = nil, sheet = nil)
-    Integer(@pattern)  ## if it's an integer value, just return that, else... complication below
+    Integer(@pattern)  ## if it's an integer literal, just return that, else... complication below
   rescue
     p = @pattern.split(':').map {|w| Integer(w) rescue w }  ## change integer strings to Integer type
     header_opts = { header_in: p[1], search_main: p[2], header_name: p[3], handle: handle, sheet: sheet }
@@ -29,11 +29,11 @@ private
   def range(index, first, last, step)
     step ||= 1
     range = (last - first) / step + 1
-    first + (index % range) * step
+    first + step * (index % range)
   end
 
   def repeat(index, start, step, repeat)
-    start + (index / repeat).to_i * step
+    start + step * (index / repeat).to_i
   end
 
   def find_header(opts)
@@ -54,8 +54,13 @@ private
   end
 
   def match?(loc, spreadsheet, opts)
-    row = opts[:header_in] == 'col' ? loc : opts[:search_main]
-    col = opts[:header_in] == 'row' ? loc : opts[:search_main]
+    #row = opts[:header_in] == 'col' ? loc : opts[:search_main]
+    #col = opts[:header_in] == 'row' ? loc : opts[:search_main]
+    if opts[:header_in] == 'col'
+      (row, col) = [loc, opts[:search_main]]
+    else ## == 'row'
+      (row, col) = [opts[:search_main], loc]
+    end
     cell_value = opts[:sheet] ? spreadsheet.cell(row, col).to_s : spreadsheet[row - 1][col - 1].to_s
 
     opts[:header_name].split('[or]').each do |header|
