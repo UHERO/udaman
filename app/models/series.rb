@@ -1120,7 +1120,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string)
+  def Series.search_box(input_string, limit = 500)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1180,7 +1180,7 @@ class Series < ApplicationRecord
     conditions.push %q{series.universe = ?}
     bindvars.push univ
     ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
-    all.distinct.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
+    all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
