@@ -37,7 +37,7 @@ class DownloadProcessor
       data.merge!(data_point) unless skip
       Rails.logger.debug { (skip ? "----- SKIPPED " : "+++++ MERGED ") + "DATA POINT :::: #{data_point.to_s}" }
       index += 1
-    end until data_point.class == String or (!@options[:end_date].nil? and data_point.keys[0] == @options[:end_date])
+    end until data_point.class == String || (@options[:end_date] && data_point.keys[0] == @options[:end_date])
     @cached_files.update_last_used
     data
   end

@@ -1120,7 +1120,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string)
+  def Series.search_box(input_string, limit = 500)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1180,7 +1180,7 @@ class Series < ApplicationRecord
     conditions.push %q{series.universe = ?}
     bindvars.push univ
     ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
-    all.distinct.where(conditions.join(' and '), *bindvars).limit(500).sort_by(&:name)
+    all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
   def Series.web_search(search_string, universe, num_results = 10)
@@ -1277,7 +1277,7 @@ class Series < ApplicationRecord
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
-  # recursive incrementer of dependency_depth
+  ## probably vestigial - make sure, then delete later
   def increment_dependency_depth
     self.dependency_depth += 1
     dependencies = []
@@ -1302,7 +1302,7 @@ class Series < ApplicationRecord
     next_set = series_id_list
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
-      qmarks = next_set.count.times.map{ '?' }.join(',')
+      qmarks = (['?'] * next_set.count).join(',')
       ## So wackt that find_by_sql works this way :( But if it's "fixed" in Rails 6, remove this comment :)
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
@@ -1363,6 +1363,7 @@ class Series < ApplicationRecord
 private
 
   def last_rites
+    Rails.logger.info { "DESTROY series #{self}: start" }
     if is_primary? && !aliases.empty?
       message = "ERROR: Cannot destroy primary series #{self} with aliases. Delete aliases first."
       Rails.logger.error { message }
@@ -1387,7 +1388,6 @@ private
       Rails.logger.error { message }
       raise SeriesDestroyException, message
     end
-    Rails.logger.info { "DESTROY series #{self}: start" }
     if is_primary?
       xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
       self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
