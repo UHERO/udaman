@@ -1095,12 +1095,12 @@ class Series < ApplicationRecord
     end
   end
 
-  def reload_sources(series_worker = false, clear_first = false)
+  def reload_sources(nightly_worker = false, clear_first = false)
     series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
+        success = ds.reload_source(clear_first) unless nightly_worker && !ds.reload_nightly
         unless success
           raise 'error in reload_source method, should be logged above'
         end
