@@ -10,10 +10,9 @@ class IntegerPatternProcessor
     p = @pattern.split(':').map {|w| Integer(w) rescue w }  ## change integer strings to Integer type
     header_opts = { header_in: p[1], search_main: p[2], header_name: p[3], handle: handle, sheet: sheet }
     case p[0]
-      when 'increment' then increment(index, p[1], p[2])
-      when 'repeat'    then range(index, p[1], p[2], p[3])
-      when 'block'     then repeat(index, p[1], p[2], p[3])
-      when 'repeat_with_step' then range(index, p[1], p[2], p[3])
+      when 'increment'    then increment(index, p[1], p[2])
+      when 'repeat'       then range(index, p[1], p[2], p[3])
+      when 'block'        then repeat(index, p[1], p[2], p[3])
       when 'header'       then find_header( header_opts.merge(match_type: p[4]) )
       when 'header_range' then find_header( header_opts.merge(match_type: p[6], search_start: p[4], search_end: p[5]) )
       else raise('IntegerPatternProcessor::compute ????')
@@ -40,7 +39,7 @@ private
     raise 'Find header needs a header_name' if opts[:header_name].blank?
     raise 'Find header needs a handle' if opts[:handle].blank?
     opts[:header_in] ||= 'col'
-    opts[:match_type] = opts[:match_type] ? opts[:match_type].parameterize.underscore.to_sym : :hiwi
+    opts[:match_type] = opts[:match_type].parameterize.underscore.to_sym rescue :hiwi
     opts[:search_main] ||= 1
     cache = DownloadsCache.new
 

@@ -57,7 +57,7 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%y').pluck(:id)
   full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
-  mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full')
+  mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
 end
