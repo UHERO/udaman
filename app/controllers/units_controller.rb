@@ -1,4 +1,7 @@
 class UnitsController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_unit, only: [:show, :edit, :update, :destroy]
 
   # GET /units

@@ -73,11 +73,13 @@ Series.load_from_eia('ELEC.GEN.ALL-HI-99.A')
   Honolulu County: 15003
   Kauai County: 15007
 </pre>
-<p>Year may be "all" or a single year, and cluster is the Cluster ID (list of <a target="_balnk" rel="noopener" href="http://clustermapping.us/data/meta/clusters">Cluster IDs</a>)</p>
+<p>Year may be "all", a single year, or a range separated by a colon, and cluster is the Cluster ID (list of <a target="_balnk" rel="noopener" href="http://clustermapping.us/data/meta/clusters">Cluster IDs</a>)</p>
 <p>
   Example <strong>eval</strong>
 </p>
 
 <pre>
 Series.load_from_clustermapping('lq_tf', ["state", "15", "all", "13"])
+Series.load_from_clustermapping('lq_tf', ["state", "15", "2000", "13"])
+Series.load_from_clustermapping('lq_tf', ["state", "15", "1998:2016", "13"])
 </pre>

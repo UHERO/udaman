@@ -1,4 +1,4 @@
-<h1>DVW File Uploads</h1>
+<h1>DBEDT Visitor Warehouse Uploads</h1>
 
 <table>
   <thead>
@@ -27,10 +27,11 @@
         <td></td>
         <td><%= f.file_field :filename %></td>
         <td><div class="actions"><%= f.submit 'Upload file', id: 'upload-files-button' %></div></td>
-        <% end %>
+        <td></td>
+        <td>** After upload finishes, reload page to see status message.</td>
+      <% end %>
       </tr>
    <% controls_display = now_processing?(DvwUpload) ? 'none' : 'inline'
-
       @dvw_uploads.each do |dvw_upload|
         timestamp = dvw_upload.upload_at.strftime('%Y-%m-%d %H:%M:%S') %>
       <tr>
@@ -58,15 +59,12 @@
               end %>
           </span>
         </td>
-        <% if current_user.dev_user? && dvw_upload.last_error %>
           <td>
-            <span style="color:red;"><%= "#{dvw_upload.last_error} (#{dvw_upload.last_error_at})" %></span>
+            <% color = dvw_upload.last_error_at ? 'red' : 'green' %>
+            <span style="color:<%= color %>;"><%= dvw_upload.last_error %></span>
           </td>
-        <% end %>
       </tr>
     <% end %>
   </tbody>
 </table>
 * Upload and initial processing may take some time. Please be patient. You may reload the page while it is working.<br/>
-** Please note that even after uploading and processing, because of caching, new data may take <strong>up
-   to 10 more minutes</strong> to be reflected on the web.

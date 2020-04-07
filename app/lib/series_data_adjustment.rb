@@ -38,7 +38,7 @@ module SeriesDataAdjustment
   end
 
   def get_last_incomplete_january
-    last_date = (self.data.reject {|_, val| val.nil?}).keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
     #BT 2013-02-13 Changing the code to just always give the most recent january. regardless of whether the year is complete or not. Not sure if this will screw
     #up other things, but seems like it should work in more cases
@@ -48,25 +48,19 @@ module SeriesDataAdjustment
   end
   
   def get_last_complete_december
-    last_date = self.data.keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
-    if last_date.month == 12
-      return last_date
-    end
-    Date.new(last_date.year - 1, 12)
+    last_date.month == 12 ? last_date : Date.new(last_date.year - 1, 12)
   end
   
   def get_last_complete_4th_quarter
-    last_date = self.data.keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
-    if last_date.month == 10
-      return last_date
-    end
-    Date.new(last_date.year - 1, 10)
+    last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
   
   def get_last_incomplete_year
-    last_date = self.data.reject{|_, val| val.nil? }.keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
     if (last_date.month == 12 and frequency == 'month') or (last_date.month == 10 and frequency == 'quarter')
       return new_transformation('No Data since no incomplete year', {})

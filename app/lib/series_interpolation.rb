@@ -46,23 +46,30 @@ module SeriesInterpolation
 
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
   ## with the mean of surrounding monthly values.
-  def fill_alternate_missing_months(start_date_range = nil, end_date_range = nil)
+  def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil)
     raise InterpolationException unless frequency == 'month'
-    cur_data = data
-    start_date = start_date_range ? Date.strptime(start_date_range) : cur_data.sort[0][0]
-    end_date = end_date_range ? Date.strptime(end_date_range) : cur_data.sort[-1][0]
+    semi = find_sibling_for_freq('S')
+    start_date = range_start_date ? Date.strptime(range_start_date) : data.sort[0][0]
+    end_date = range_end_date ? Date.strptime(range_end_date) : data.sort[-1][0]
     new_dp = {}
     date = start_date + 1.month
     while date < end_date do
       prevm = date - 1.month
       nextm = date + 1.month
-      unless cur_data[prevm]  && cur_data[nextm]
+      unless data[prevm] && data[nextm]
         raise InterpolationException, 'data not strictly alternating months'
       end
-      new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2
-      date += 2.months ## track the missing data points
+      new_dp[date] = (data[prevm] + data[nextm]) / 2.0
+      if semi && date.month % 6 == 0
+        semi_date = date - 5.months
+        semi_val = semi.at(semi_date)
+        if semi_val
+          redistribute_semi(semi_val, semi_date, new_dp)
+        end
+      end
+      date += 2.months ## track only the missing data points
     end
-    new_transformation("Interpolation of alternate missing months from #{name}", new_dp)
+    new_transformation("Interpolation of alternate missing months from #{self}", new_dp)
   end
 
   def fill_interpolate_to(target_frequency)
@@ -300,5 +307,23 @@ module SeriesInterpolation
     end
     
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
+  end
+
+private
+  ## Find interpolated values in the 6-month range starting at start_month, and redistribute the difference between
+  ## the semiannual value and the average of all the monthlies in that range across (only) the interpolated months.
+  ## Note! This code assumes that the even (calendar) numbered months are interpolated and odd numbered ones have real data.
+  def redistribute_semi(semi_annual_val, start_month, new_data)
+    six_month = []
+    (0..5).each do |offset|
+      date = start_month + offset.months
+      value = new_data[date] || data[date]
+      return if value.nil?  ## bail if even a single monthly value is missing
+      six_month.push(value)
+    end
+    diff = (semi_annual_val - six_month.average) * 2.0  ## must be float multiplication
+    new_data[start_month + 1.months] += diff
+    new_data[start_month + 3.months] += diff
+    new_data[start_month + 5.months] += diff
   end
 end

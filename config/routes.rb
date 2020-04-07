@@ -43,7 +43,7 @@ Rails.application.routes.draw do
   devise_for :users
 
   require 'sidekiq/web'
-  authenticate :user do
+  authenticate :user, ->(user) { user.admin_user? } do
     mount Sidekiq::Web => '/sidekiq'
   end
 
@@ -131,6 +131,7 @@ Rails.application.routes.draw do
   get 'listseries/:name' => 'listseries#get'
   
   get 'autocomplete' => 'series#autocomplete_search'
+  get 'series/search' => 'series#new_search'
 
   post 'downloads/test_url' => 'downloads#test_url'
   post 'downloads/test_save_path' => 'downloads#test_save_path'
@@ -145,4 +146,6 @@ Rails.application.routes.draw do
   # This is a legacy wild controller route that's not recommended for RESTful applications.
   # Note: This route will make all actions in every controller accessible via GET requests.
   match ':controller(/:action(/:id(.:format)))', via: :all
+
+  get '*path' => redirect('/')  ## redirect all unknown routes to /
 end

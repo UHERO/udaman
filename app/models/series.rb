@@ -16,14 +16,14 @@ class Series < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
+  before_destroy :last_rites, prepend: true
+  after_destroy :post_mortem, prepend: true
 
   belongs_to :xseries, inverse_of: :series
   accepts_nested_attributes_for :xseries
-  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' should be tried against the contained Xseries
+  delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' are tried against the contained Xseries
 
-  has_many :data_points, through: :xseries
   has_many :data_sources, inverse_of: :series, dependent: :destroy
-  has_many :data_source_actions, -> { order 'created_at DESC' }, dependent: :delete_all
 
   has_and_belongs_to_many :data_lists
 
@@ -54,31 +54,31 @@ class Series < ApplicationRecord
   end
 
   def first_observation
-    data.keys.sort[0] rescue nil
+    data.reject {|_,val| val.nil? }.keys.sort[0] rescue nil
   end
 
   def last_observation
-    data.keys.sort[-1] rescue nil
+    data.reject {|_,val| val.nil? }.keys.sort[-1] rescue nil
   end
 
   def Series.get_all_uhero
-    Series.get_all_universe 'UHERO'
+    Series.get_all_universe('UHERO')
   end
 
   def Series.get_all_universe(universe)
-    Series.joins(:xseries).where('series.universe like ?', '%' + universe + '%')
+    Series.joins(:xseries).where(universe: universe)
   end
 
   def Series.all_names
     Series.get_all_uhero.pluck(:name)
   end
 
-  def Series.get(name)
-    Series.parse_name(name) && Series.where(name: name).first
+  def Series.get(name, universe = 'UHERO')
+    Series.parse_name(name) && Series.where(universe: universe, name: name).first
   end
 
-  def Series.get_or_new(series_name)
-    Series.get(series_name) || Series.create_new(name: series_name)
+  def Series.get_or_new(series_name, universe = 'UHERO')
+    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name)
   end
 
   def Series.bulk_create(definitions)
@@ -110,12 +110,14 @@ class Series < ApplicationRecord
     properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
+    xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
     s = nil
     begin
       self.transaction do
-        x = Xseries.create!(properties.select{|k,_| xseries_attrs.include? k.to_s })
-        s = Series.create!(properties.select{|k,_| series_attrs.include? k.to_s }.merge(xseries_id: x.id))
+        x = Xseries.create!(xseries_props)
+        s = Series.create!(series_props.merge(xseries_id: x.id))
         x.update(primary_series_id: s.id)
       end
     rescue => e
@@ -130,7 +132,7 @@ class Series < ApplicationRecord
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
       with_transaction_returning_status do
@@ -151,7 +153,7 @@ class Series < ApplicationRecord
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
       with_transaction_returning_status do
@@ -216,7 +218,7 @@ class Series < ApplicationRecord
     xseries.primary_series
   end
 
-  def get_aliases
+  def aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
@@ -333,15 +335,16 @@ class Series < ApplicationRecord
     return ''
   end
   
-  #There are duplicates of these in other file... non series version 
   def Series.frequency_from_code(code)
-    return :year if code == 'A' || code =='a'
-    return :quarter if code == 'Q' || code =='q'
-    return :month if code == 'M' || code == 'm'
-    return :semi if code == 'S' || code == 's'
-    return :week if code == 'W' || code == 'w'
-    return :day if code == 'D' || code == 'd'
-    return nil
+    case code && code.upcase
+      when 'A' then :year
+      when 'Q' then :quarter
+      when 'M' then :month
+      when 'S' then :semi
+      when 'W' then :week
+      when 'D' then :day
+      else nil
+    end
   end
 
   def Series.frequency_from_name(name)
@@ -500,7 +503,7 @@ class Series < ApplicationRecord
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def update_data_hash_DELETEME
     data_hash = {}
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       data_hash[dp.date.to_s] = dp.value if dp.current
     end
     self.save
@@ -544,8 +547,10 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     hash = {}
-    data_points.each do |dp|
-      hash[dp.date] = dp[column] if dp.current
+    if xseries
+      xseries.data_points.each do |dp|
+        hash[dp.date] = dp[column] if dp.current
+      end
     end
     hash
   end
@@ -554,7 +559,7 @@ class Series < ApplicationRecord
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    data_points.each do |dp|
+    xseries.data_points.each do |dp|
       data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
     end
     data_hash
@@ -603,8 +608,7 @@ class Series < ApplicationRecord
     #return self if update_spreadsheet.load_error?
 
     unless update_spreadsheet.class == UpdateCSV
-      default_sheet = update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load
+      update_spreadsheet.default_sheet = sheet_to_load || update_spreadsheet.sheets.first
     end
     raise SeriesReloadException, 'update not formatted' unless update_spreadsheet.update_formatted?
     #return self unless update_spreadsheet.update_formatted?
@@ -612,55 +616,63 @@ class Series < ApplicationRecord
     self.frequency = update_spreadsheet.frequency
     new_transformation(spreadsheet_path, update_spreadsheet.series(self.name))
   end
-    
-  
-  def load_sa_from(spreadsheet_path, sheet_to_load = nil)
+
+  def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    #raise SeriesReloadException if update_spreadsheet.load_error?
-    if update_spreadsheet.load_error?
+
+    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
+      ##raise SeriesReloadException
       return self
+    end
+    unless update_spreadsheet.class == UpdateCSV
+      update_spreadsheet.default_sheet = sheet_to_load
     end
 
-    ns_name = self.name.sub('@', 'NS@')
-#    default_sheet = update_spreadsheet.sheets.first unless update_spreadsheet.class == UpdateCSV
-    update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load unless update_spreadsheet.class == UpdateCSV
-    #raise SeriesReloadException unless update_spreadsheet.update_formatted?
-    unless update_spreadsheet.update_formatted?
-      return self
-    end
-    
-    self.frequency = update_spreadsheet.frequency 
+    self.frequency = update_spreadsheet.frequency
+    ns_name = self.name.sub('@','NS@')
     new_transformation(spreadsheet_path, update_spreadsheet.series(ns_name))
   end
-    
   
-  def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = nil)
+  def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
     spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
-    #raise SeriesReloadException if update_spreadsheet.load_error?
-    if update_spreadsheet.load_error?
+    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
+      ##raise SeriesReloadException
       return self
     end
-
-    ns_name = self.name.sub('@', 'NS@')
     unless update_spreadsheet.class == UpdateCSV
       # default_sheet = update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load.nil? ? 'sadata' : sheet_to_load
+      update_spreadsheet.default_sheet = sheet_to_load
     end
-    #raise SeriesReloadException unless update_spreadsheet.update_formatted?
-    unless update_spreadsheet.update_formatted?
-      return self
-    end
-    
-    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_name))
+
+    ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
+    demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_series.name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
-    mean_corrected_demetra_series = demetra_series / demetra_series.annual_sum * ns_name.ts.annual_sum
-    new_transformation("mean corrected against #{ns_name} and loaded from #{spreadsheet_path}", mean_corrected_demetra_series.data)
+    mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
+    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
-  
+
+  ## This is for code testing purposes
+  def generate_random(start_date, end_date, low_range, high_range)
+    freq = self.frequency
+    incr = 1
+    if freq == 'quarter'
+      freq = 'month'
+      incr = 3
+    end
+    series_data = {}
+    iter = Date.parse(start_date)
+    upto = Date.parse(end_date)
+    while iter <= upto do
+      series_data[iter] = low_range + rand(high_range - low_range)
+      iter += incr.send(freq)
+    end
+    new_transformation("generated randomly for testing", series_data)
+  end
+
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
@@ -719,6 +731,16 @@ class Series < ApplicationRecord
       name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
+  end
+
+  def Series.load_from_estatjp(code, filters)
+    ### Note: Code is written to collect _only_ monthly data!
+    series_data = DataHtmlParser.new.get_estatjp_series(code, filters)
+    name = "loaded series: #{code} from ESTATJP API"
+    if series_data.empty?
+      name = "No data collected from ESTATJP API for #{code} freq=M - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, 'M')
   end
 
   def Series.load_from_clustermapping(dataset, parameters)
@@ -807,7 +829,7 @@ class Series < ApplicationRecord
   end
 
   def new_data?
-    data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
+    xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
   #used to use app.get trick
@@ -875,7 +897,7 @@ class Series < ApplicationRecord
     
     data_sources.each { |ds| source_array.push ds.id }  
     source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
-    data_points.each do |dp|  
+    xseries.data_points.each do |dp|
       data_hash[dp.date] ||= []
       data_hash[dp.date].push("#{'H' unless dp.history.nil?}#{'|' unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10, ' '))
     end
@@ -921,12 +943,21 @@ class Series < ApplicationRecord
   end
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
+    ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
-       files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
 
+    Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
+    ## Hostname alias "macmini" is defined in /etc/hosts - change there if necessary
+    if system("rsync -r --del uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/BnkLists/ #{in_path}")
+      Rails.logger.info { "run_tsd_exports: synced #{in_path} from Mac mini to local disk" }
+    else
+      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from Mac mini to local disk - using existing files" }
+    end
+
+    files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
     files.each do |filename|
-      Rails.logger.debug { ">>>> tsd_exports: processing input file #{filename}" }
+      Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
       f = open File.join(in_path, filename)
       list = f.read.split(/\s+/).reject {|x| x.blank? }
       f.close
@@ -935,9 +966,23 @@ class Series < ApplicationRecord
       frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
-      Rails.logger.debug { ">>>> tsd_exports: exporting series to #{output_file}" }
+      Rails.logger.info { "run_tsd_exports: exporting series to #{output_file}" }
       Series.write_data_list_tsd(list, output_file)
     end
+
+    mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
+    if system("rsync -r #{out_path}/ #{mini_location}")  ## final slash needed on source dir name
+      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to Mac mini" }
+    else
+      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
+    end
+    prod_location = 'uhero@udaman.uhero.hawaii.edu:' + out_path
+    if system("rsync -r #{out_path}/ #{prod_location}")  ## this copy might not be needed. If not, 86 it later.
+      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to production" }
+    else
+      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} to production" }
+    end
+    Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
   def get_tsd_series_data(tsd_file)
@@ -954,7 +999,7 @@ class Series < ApplicationRecord
   
   def tsd_string
     data_string = ''
-    lm = data_points.order(:updated_at).last.updated_at
+    lm = xseries.data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
     as_description = as.nil? ? '' : as.description
@@ -1030,10 +1075,8 @@ class Series < ApplicationRecord
     Series.where(name: all_names)
   end
 
-  #currently runs in 3 hrs (for all series..if concurrent series could go first, that might be nice)
-  #could do everything with no dependencies first and do all of those in concurrent fashion...
-  #to find errors, or broken series, maybe update the ds with number of data points loaded on last run?
-  
+  ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
+  ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
     series_list.each do |s_name|
       next unless already_run[s_name].nil?
@@ -1052,16 +1095,16 @@ class Series < ApplicationRecord
     end
   end
 
-  def reload_sources(series_worker = false, clear_first = false)
+  def reload_sources(nightly_worker = false, clear_first = false)
     series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless series_worker && !ds.reload_nightly
+        success = ds.reload_source(clear_first) unless nightly_worker && !ds.reload_nightly
         unless success
           raise 'error in reload_source method, should be logged above'
         end
-      rescue Exception => e
+      rescue => e
         series_success = false
         Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series <#{self.name}> (#{self.id})" }
       end
@@ -1077,9 +1120,72 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  
+  def Series.search_box(input_string, limit = 500)
+    all = Series.joins(:xseries)
+    univ = 'UHERO'
+    conditions = []
+    bindvars = []
+    input_string.split.each do |term|
+      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub! method)
+      tane = term[1..]
+      case term
+        when /^\//
+          univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+        when /^[=]/
+          conditions.push %q{series.name = ?}
+          bindvars.push tane
+        when /^\^/
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
+        when /^[~]/  ## tilde
+          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          bindvars.push tane
+        when /^[@]/
+          all = all.joins(:geography)
+          conditions.push %q{geographies.handle = ?}
+          bindvars.push tane
+        when /^[.]/
+          freqs = tane.split(//)  ## split to individual characters
+          qmarks = (['?'] * freqs.count).join(',')
+          conditions.push %Q{xseries.frequency in (#{qmarks})}
+          bindvars.concat freqs.map {|f| Series.frequency_from_code(f) }
+        when /^[#]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.eval regexp ?}
+          bindvars.push tane
+        when /^[!]/
+          all = all.joins(:data_sources)
+          conditions.push %q{data_sources.last_error regexp ?}
+          bindvars.push tane
+        when /^[&]/
+          conditions.push case tane
+                            when 'pub' then %q{restricted = false}
+                            when 'r'   then %q{restricted = true}
+                            when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
+                            when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                            else nil
+                          end
+        when /^\d+$/
+          conditions.push %q{series.id = ?}
+          bindvars.push term
+        when /^[-]/  ## minus
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
+          bindvars.push tane
+        else
+          ## a "naked" word
+          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) regexp ?}
+          bindvars.push term
+      end
+    end
+    conditions.push %q{series.universe = ?}
+    bindvars.push univ
+    ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
+    all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
+  end
+
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
+    Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
     regex = /"([^"]*)"/
     search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     u = search_parts.select {|s| s =~ /^\// }.shift
@@ -1117,13 +1223,13 @@ class Series < ApplicationRecord
     Rails.logger.info { "Assign_dependency_depth: start at #{Time.now}" }
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
-          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe LIKE 'UHERO%'
+          SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources WHERE universe LIKE 'UHERO%'
+          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
     SQL
-    ActiveRecord::Base.connection.execute(<<~SQL)   ### Only needed because #braindead MySQL :(
+    ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE t2_series LIKE t_series
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
@@ -1171,7 +1277,7 @@ class Series < ApplicationRecord
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
-  # recursive incrementer of dependency_depth
+  ## probably vestigial - make sure, then delete later
   def increment_dependency_depth
     self.dependency_depth += 1
     dependencies = []
@@ -1184,10 +1290,10 @@ class Series < ApplicationRecord
   end
 
   def reload_with_dependencies
-    Series.reload_with_dependencies([self.id])
+    Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, clear_first = false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', clear_first = false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
@@ -1196,7 +1302,7 @@ class Series < ApplicationRecord
     next_set = series_id_list
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
-      qmarks = next_set.count.times.map{ '?' }.join(',')
+      qmarks = (['?'] * next_set.count).join(',')
       ## So wackt that find_by_sql works this way :( But if it's "fixed" in Rails 6, remove this comment :)
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
@@ -1209,7 +1315,7 @@ class Series < ApplicationRecord
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    mgr = SeriesReloadManager.new(Series.where id: result_set)
+    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix)
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
     mgr.batch_reload(clear_first)
   end
@@ -1218,12 +1324,10 @@ class Series < ApplicationRecord
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
       dl.data_sources.each do |ds|
-        if ds.series.data_sources.select{|x| x.eval =~ /load_from_(bea|bls|fred)/ }.empty?
-          series.push ds.series
-        end
+        series.push ds.series
       end
     end
-    series.sort{|x,y| x.name <=> y.name }
+    series.sort_by(&:name)
   end
 
   def Series.stale_since(past_day)
@@ -1247,7 +1351,60 @@ class Series < ApplicationRecord
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
+  def force_destroy!
+    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
+    self.destroy!
+  end
+
+  def debug_reload?
+    scratch == 50505  ## a flag to permit change of loglevel when debugging on sidekiq, etc.
+  end
+
 private
+
+  def last_rites
+    Rails.logger.info { "DESTROY series #{self}: start" }
+    if is_primary? && !aliases.empty?
+      message = "ERROR: Cannot destroy primary series #{self} with aliases. Delete aliases first."
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
+      ## Although Rails 5 documentation states that callbacks such as this one should be aborted using throw(:abort),
+      ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
+      ## as a result I've decided to use raise instead. It seems to work just as well.
+    end
+    if !who_depends_on_me.empty? && !destroy_forced
+      message = "ERROR: Cannot destroy series #{self} with dependent series. Delete dependencies first."
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
+    end
+    begin
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
+          delete from public_data_points where series_id = ?
+      MYSQL
+      stmt.execute(id)
+      stmt.close
+    rescue
+      message = "ERROR: Unable to delete public data points before destruction of series #{self}"
+      Rails.logger.error { message }
+      raise SeriesDestroyException, message
+    end
+    if is_primary?
+      xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
+      self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
+    end
+  end
+
+  def post_mortem
+    if scratch == 90909
+      xseries.destroy!
+    end
+    Rails.logger.info { "DESTROY series #{self}: done" }
+  end
+
+  def destroy_forced
+    scratch == 44444
+  end
+
   def Series.display_options(options)
     options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
   end
