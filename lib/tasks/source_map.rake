@@ -173,7 +173,7 @@ task :export_kauai_dashboard => :environment do
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
-    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
+    Rails.logger.info { "export_kauai_dashboard: Processing #{export_name}" }
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
     data = xport.series_data
