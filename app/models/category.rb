@@ -60,6 +60,10 @@ class Category < ApplicationRecord
     end
   end
 
+  def unique_id_string
+    ancestors.map(&:name).push(self.name).join('+')
+  end
+
   def Category.get_all(except = nil)
     if except
       Category.where("universe = 'UHERO' AND id != ?", except).order(:name)

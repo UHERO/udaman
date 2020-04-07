@@ -87,20 +87,20 @@ class DvwUpload < ApplicationRecord
 
     begin
       delete_universe_dvw
-      mylogger :info, 'DONE deleting universe'
+      mylogger :info, 'DONE deleting the universe'
 
-      load_meta_csv('Group')
+      load_meta_csv('group')
       mylogger :debug, 'DONE load groups'
-      load_meta_csv('Market')
+      load_meta_csv('market')
       mylogger :debug, 'DONE load markets'
-      load_meta_csv('Destination')
+      load_meta_csv('destination')
       mylogger :debug, 'DONE load destinations'
-      load_meta_csv('Category')
+      load_meta_csv('category')
       mylogger :debug, 'DONE load categories'
-      load_meta_csv('Indicator')
+      load_meta_csv('indicator')
       mylogger :debug, 'DONE load indicators'
 
-      load_series_csv
+      total_loaded = load_series_csv
       mylogger :debug, 'DONE load series'
       load_data_postproc
       mylogger :debug, 'DONE postproc'
@@ -110,22 +110,26 @@ class DvwUpload < ApplicationRecord
     make_active_settings
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
-    true
+    total_loaded
   end
 
   def delete_universe_dvw
-    db_execute 'delete from data_points'
-    mylogger :debug, 'DONE deleting data points'
-    db_execute 'delete from indicators'
-    mylogger :debug, 'DONE deleting indicators'
-    db_execute 'delete from categories'
-    mylogger :debug, 'DONE deleting categories'
-    db_execute 'delete from destinations'
-    mylogger :debug, 'DONE deleting destinations'
-    db_execute 'delete from markets'
-    mylogger :debug, 'DONE deleting markets'
-    db_execute 'delete from groups'
-    mylogger :debug, 'DONE deleting groups'
+    db_execute 'set foreign_key_checks = 0;'
+    db_execute 'truncate table data_points'
+    mylogger :debug, 'DONE truncating data points'
+    db_execute 'truncate table data_toc'
+    mylogger :debug, 'DONE truncating data_toc'
+    db_execute 'truncate table indicators'
+    mylogger :debug, 'DONE truncating indicators'
+    db_execute 'truncate table categories'
+    mylogger :debug, 'DONE truncating categories'
+    db_execute 'truncate table destinations'
+    mylogger :debug, 'DONE truncating destinations'
+    db_execute 'truncate table markets'
+    mylogger :debug, 'DONE truncating markets'
+    db_execute 'truncate table groups'
+    mylogger :debug, 'DONE truncating groups'
+    db_execute 'set foreign_key_checks = 1;'
   end
 
   def load_meta_csv(dimension)
@@ -133,7 +137,7 @@ class DvwUpload < ApplicationRecord
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "File #{csv_path} not found" unless File.exists? csv_path
-    table = dimension.pluralize.downcase
+    table = dimension.pluralize
 
     datae = []
     parent_set = []
@@ -163,14 +167,14 @@ class DvwUpload < ApplicationRecord
         parent_set.push [row['parent'], row['handle']]
       end
 
+      raise "Module not specified for ID #{row['id']}" unless row['module']
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
-        level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
+        level = row["l_#{mod.downcase}"] || row['level'] || next   ## finally just skip this entry if level is not specified
         order = row["o_#{mod.downcase}"] || incr_order(ordering[mod], level)
 
         row_values = []
         columns.each do |col|
-          raise "Quote character in #{row['handle']} row, #{col} column" if row[col] =~ /['"]/
           row_values.push case col
                           when 'module' then mod
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
@@ -206,7 +210,7 @@ class DvwUpload < ApplicationRecord
   def load_series_csv
     mylogger :info, 'starting load_series_csv'
     csv_dir_path = path(filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, 'Data.csv')
+    csv_path = File.join(csv_dir_path, 'data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     dp_data_set = []
@@ -246,17 +250,26 @@ class DvwUpload < ApplicationRecord
       db_execute_set dp_query, dps
     end
     mylogger :info, 'done load_series_csv'
+    dp_data_set.count
   end
 
   def load_data_postproc
-    ## Nothing to do at this time
+    ## generate the data table of contents
+    db_execute <<~MYSQL
+      insert into data_toc (module, group_id, market_id, destination_id, category_id, indicator_id, frequency, `count`)
+      select distinct module, group_id, market_id, destination_id, category_id, indicator_id, frequency, count(*)
+      from data_points
+      group by 1, 2, 3, 4, 5, 6, 7;
+    MYSQL
+    mylogger :debug, 'DONE generate data toc'
   end
 
   def worker_tasks(do_csv_proc = false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
-    full_load && mylogger(:info, "loaded and active")
-    self.update(series_status: :ok, last_error: nil, last_error_at: nil)
+    total = full_load
+    mylogger :info, "loaded and active"
+    self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
 private
@@ -266,19 +279,22 @@ private
     other_worker = ENV['OTHER_WORKER']
 
     unless File.exists?(xls_path)
-      Rails.logger.warn { "#{@logprefix}: xls file #{xls_path} does not exist" }
+      mylogger :warn, "xls file #{xls_path} does not exist"
       if other_worker.blank?
-        raise "#{@logprefix}: Could not find xlsx file ((#{xls_path}) #{upload.id}) and no $OTHER_WORKER defined"
+        raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
       end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{upload.absolute_path}")
-        raise "#{@logprefix}: Could not get xlsx file ((#{xls_path}) #{upload.id}) from $OTHER_WORKER: #{other_worker}"
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{absolute_path}")
+        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
       end
     end
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
-      raise "#{@logprefix}: Could not transform xlsx to csv (#{upload.id})"
+      raise "Could not transform xlsx to csv (#{id}:#{$?})"
     end
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + upload.absolute_path}")
-      raise "#{@logprefix}: Could not copy #{csv_path} for #{upload.id} to $OTHER_WORKER: #{other_worker}"
+
+    Dir.glob(File.join(csv_path, '*.csv')).each {|f| File.rename(f, f.downcase) } ## force csv filenames to lower case
+
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
+      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
     end
   end
 
@@ -328,6 +344,8 @@ private
     delete_series_file
   end
 
+  ### This doesn't really do what it seems to be intended for, right? Check back into it later...
+  ###
   def delete_data_and_data_sources
     db_execute <<~MYSQL
       DELETE FROM data_points

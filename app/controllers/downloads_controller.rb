@@ -9,8 +9,9 @@ class DownloadsController < ApplicationController
     @domain_hash = {}
     @output_files.each do |dl|
       if dl.url
-        @domain_hash[dl.url.split('/')[2]] ||= []
-        @domain_hash[dl.url.split('/')[2]].push dl.handle
+        domain_name = dl.url.split('/')[2]
+        @domain_hash[domain_name] ||= []  ## initialize empty array here if not already existing
+        @domain_hash[domain_name].push(dl.handle)
       end
     end
   end
@@ -19,8 +20,15 @@ class DownloadsController < ApplicationController
     @output_file = Download.new
   end
 
+  def show
+  end
+
+  def edit
+  end
+
   def create
     myparams = download_params
+    myparams[:freeze_file] = nil unless myparams[:freeze_file] == '1'  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
     @output_file = Download.new myparams
     if @output_file.save
@@ -33,6 +41,7 @@ class DownloadsController < ApplicationController
   
   def update
     myparams = download_params
+    myparams[:freeze_file] = nil unless myparams[:freeze_file] == '1'  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
     respond_to do |format|
       if @output_file.update! myparams
@@ -83,7 +92,7 @@ class DownloadsController < ApplicationController
 
   private
   def download_params
-    params.require(:download).permit(:handle, :url, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
+    params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
   end
 
   def set_download

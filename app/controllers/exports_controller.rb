@@ -1,4 +1,7 @@
 class ExportsController < ApplicationController
+  include Authorization
+
+  before_action :check_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
                                     :add_series, :remove_series, :move_series_up, :move_series_down]
 

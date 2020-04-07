@@ -1,6 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
   include Validators
+  include DataSourceHooks
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -8,7 +9,7 @@ class DataSource < ApplicationRecord
   has_many :data_points, dependent: :delete_all
   has_many :data_source_downloads, dependent: :delete_all
   has_many :downloads, -> {distinct}, through: :data_source_downloads
-  has_many :data_source_actions
+  has_many :data_source_actions, dependent: :delete_all
 
   composed_of   :last_run,
                 :class_name => 'Time',
@@ -141,14 +142,21 @@ class DataSource < ApplicationRecord
       true
     end
 
+    ## Other definitions for my series, not including me
+    def colleagues
+      series.data_sources.reject {|d| d.id == self.id }
+    end
+
     def setup
       self.set_dependencies
       self.set_color
     end
 
     def reload_source(clear_first = false)
-      Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
+      Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
+      update_props = { last_run: t, last_run_at: t, last_error: nil, last_error_at: nil, runtime: nil }
+
       eval_stmt = self['eval'].dup
       begin
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
@@ -163,27 +171,23 @@ class DataSource < ApplicationRecord
         if clear_first
           delete_data_points
         end
+        s = self.send(presave_hook, s) if presave_hook
+
         base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
         if !base_year.nil? && base_year != self.series.base_year
           self.series.update!(:base_year => base_year.to_i)
         end
         self.series.update_data(s.data, self)
-        self.update!(:description => s.name,
-                    :last_run => t,
-                    :last_run_at => t,
-                    :runtime => (Time.now - t),
-                    :last_error => nil,
-                    :last_error_at => nil)
+        update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
-        self.update!(:last_run => t,
-                    :last_run_at => t,
-                    :runtime => nil,
-                    :last_error => e.message[0..254],
-                    :last_error_at => t)
-        Rails.logger.error { "Reload definition #{id} for series <#{self.series.name}> [#{description}]: Error: #{e.message}" }
+        Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
+        update_props.merge!(last_error: e.message[0..253], last_error_at: t)
         return false
+      ensure
+        self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will end up saved below
+        self.update!(update_props)
       end
-      Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series.name}> [#{description}]" }
+      Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series}> [#{description}]" }
       true
     end
 
@@ -214,7 +218,11 @@ class DataSource < ApplicationRecord
             last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
             last_eval_options_used: nil)
       end
-      Rails.cache.clear if clear_cache
+      if clear_cache
+        Rails.cache.clear          ## clear file cache on local (prod) Rails
+        ResetWorker.perform_async  ## clear file cache on the worker Rails
+        Rails.logger.warn { 'Rails file cache CLEARED' }
+      end
     end
 
     def mark_as_pseudo_history
@@ -238,13 +246,13 @@ class DataSource < ApplicationRecord
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
     end
-    
+
+    ## This method appears to be vestigial - confirm and delete later
     def DataSource.delete_related_sources_except(ids)
       ds_main = DataSource.find_by(id: ids[0])
       s = ds_main.series
       s.data_sources_by_last_run.each {|ds| ds.delete if ids.index(ds.id).nil?}
     end
-        
         
     def current?
       self.series.current_data_points.each { |dp| return true if dp.data_source_id == self.id }
@@ -296,12 +304,14 @@ class DataSource < ApplicationRecord
 
   def set_dependencies(dont_save = false)
     self.dependencies = []
-    self.description.split(' ').each do |word|
-      if valid_series_name(word)
-        self.dependencies.push(word)
+    unless description.blank?
+      description.split(' ').each do |word|
+        if valid_series_name(word)
+          self.dependencies.push(word)
+        end
       end
-    end unless self.description.nil?
-    self.dependencies.uniq!
+      self.dependencies.uniq!
+    end
     self.save unless dont_save
   end
 

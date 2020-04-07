@@ -1,5 +1,6 @@
 class SeriesController < ApplicationController
   include Authorization
+  include Validators
 
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
@@ -82,34 +83,39 @@ class SeriesController < ApplicationController
       return
     end
     if current_user.dbedt?
-      redirect_to :controller => :dbedt_uploads, :action => :index
       return
     end
     unless current_user.internal_user?
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    frequency = params[:freq]
-    prefix = params[:prefix]
-    all = params.has_key?(:all)
-
-    @all_series =
-      case
-        when prefix then    Series.get_all_uhero.where('name LIKE ?', "#{prefix}%").order(:name)
-        when frequency then Series.get_all_uhero.where('frequency = ?', frequency).order(:name)
-        when all then       Series.get_all_uhero.order(:name)
-        else []
-      end
+    @all_series = nil ## this is the clue that we're on an initial page-load and not listing search results
   end
 
-  def show
+  def new_search
+    @search_string = params[:search_string]
+    @all_series = Series.search_box(@search_string)
+    if @all_series.count == 1
+      @series = @all_series.first
+      show(true)  ## call controller prep without render
+      render :show
+      return
+    end
+    render :index
+  end
+
+  def show(no_render = false)
     @as = AremosSeries.get @series.name
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
-    @dsas = @series.data_source_actions
-    
+    @dsas = []
+    @series.data_sources.each do |ds|
+      @dsas.concat ds.data_source_actions
+    end
+    return if no_render
+
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb
@@ -190,8 +196,8 @@ class SeriesController < ApplicationController
   end
 
   def destroy
-    @series.destroy
-    redirect_to :action => 'index'
+    @series.destroy!
+    redirect_to action: :index
   end
   
   def search
@@ -232,12 +238,14 @@ class SeriesController < ApplicationController
     end
   end
 
-  # obsolete/vestigial code?
   def transform
-    eval_statement = convert_to_udaman_notation(params[:eval])
-    puts eval_statement
-    puts params[:eval]
-    @series = eval(eval_statement)
+    eval_string = params[:eval].gsub(/([+*\/()-])/, ' \1 ').strip  ## puts spaces around operators and parens
+    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? "'#{e}'.ts" : e }.join(' ')
+    @series = (Kernel::eval eval_statement) rescue nil
+    unless @series
+     redirect_to action: :index
+     return
+    end
 
     @chg = @series.annualized_percentage_change
     @desc = ""
@@ -339,12 +347,6 @@ private
     @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
     @all_details = SourceDetail.where(universe: series.universe)
     @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
-  end
-
-  # obsolete/vestigial code?
-  def convert_to_udaman_notation(eval_string)
-    operator_fix = eval_string.gsub('(','( ').gsub(')', ' )').gsub('*',' * ').gsub('/',' / ').gsub('-',' - ').gsub('+',' + ')
-    (operator_fix.split(' ').map {|e| (e.index('@').nil? or !e.index('.ts').nil? ) ? e : "\"#{e}\".ts" }).join(' ')
   end
 
   def json_from_heroku_tsd(series_name, tsd_file)

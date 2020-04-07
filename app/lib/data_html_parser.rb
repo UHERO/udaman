@@ -99,6 +99,7 @@ class DataHtmlParser
   end
 
   def get_clustermapping_series(dataset, parameters)
+    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
     Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
@@ -114,6 +115,11 @@ class DataHtmlParser
       end
     end
     new_data
+  end
+
+  def expand_date_range(date_range)
+    split_dates = date_range.split(":")
+    (split_dates[0]..split_dates[1]).to_a.join(',')
   end
 
   def get_eia_series(parameter)

@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'rails', '~> 5.2', '>= 5.2.3'
+gem 'rails', '~> 5.2', '>= 5.2.4.2'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -11,7 +11,7 @@ gem 'capistrano-rails'
 gem 'capistrano-bundler', '~> 1.0'
 gem 'capistrano', '~> 3.0'
 gem 'highline', '~> 1.6.0'
-gem 'mysql2', '~> 0.5'
+gem 'mysql2', '~> 0.5', '>= 0.5.3'
 gem 'composite_primary_keys', '~> 11.0'
 gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
@@ -44,7 +44,7 @@ gem 'jquery-ui-rails', '~> 6.0.1'
 gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
-gem 'nokogiri', '~> 1.10', '>= 1.10.4'
+gem 'nokogiri', '~> 1.10'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'

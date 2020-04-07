@@ -90,6 +90,10 @@ class Download < ApplicationRecord
 
   def download
     Rails.logger.debug { '... Entered method Download.download' }
+    if self.freeze_file
+      Rails.logger.info { "Download handle #{handle} temporarily frozen - not downloading" }
+      return nil
+    end
     if post_parameters.blank?
       Rails.logger.debug { "... Calling RestClient to get #{url.strip}" }
       resp = RestClient.get URI.encode(url.strip)

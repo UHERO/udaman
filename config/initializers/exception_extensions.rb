@@ -19,6 +19,9 @@ end
 class SeriesReloadException < StandardError
 end
 
+class SeriesDestroyException < StandardError
+end
+
 class DownloadException < StandardError
 end
 

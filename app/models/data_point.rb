@@ -32,7 +32,7 @@ class DataPoint < ApplicationRecord
   end
 
   def trying_to_replace_with_nil?(value)
-     value.nil? and !self.value.nil?
+     value.nil? && !self.value.nil?
   end
   
   def create_new_dp(upd_value, upd_source)
@@ -202,11 +202,6 @@ class DataPoint < ApplicationRecord
     rescue => e
       Rails.logger.error { "update_public_data_points: encountered an ERROR: #{e.message}" }
       return false
-    end
-    if series.nil?
-      CSV.open('public/rake_time.csv', 'a') do |csv|
-        csv << ['update_public_data_points', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s]
-      end
     end
     true
   end

@@ -15,13 +15,14 @@
 							:controller => 'data_sources',
 							:action => 'clear',
 							:id => ds.id} unless myeval.blank?
-					%>&nbsp;|&nbsp;<%= 
-						link_to 'delete', {
-							:controller => 'data_sources',
-							:action => 'delete', 
-							:id => ds.id },
-							data: { :confirm => "Delete definition #{ds.id}: Are you sure??" }
-					%><br/>
+					%>&nbsp;
+          <% if current_user.admin_user? %>
+            |&nbsp;<%= link_to 'delete', {
+                :controller => 'data_sources',
+                :action => 'delete',
+                :id => ds.id },
+                data: { :confirm => "Delete definition #{ds.id}: Are you sure??" } %>
+          <% end %><br/>
           <% if myeval =~ /load_from_download/ %>
              <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
           <% end %>
@@ -39,8 +40,10 @@
   		</td>
 		<td>
 			<h3><%= ds.id %><% if ds.reload_nightly %> <i class="fas fa-clock" aria-hidden="true"></i><% end %></h3>
-			<%= raw linked_version(ds.description) %>
-			<br /> 
+      <% if ds.presave_hook %>
+        <strong>Presave hook:</strong> <%= ds.presave_hook %><br/>
+      <% end %>
+			<%= raw linked_version(ds.description) %><br/>
 			<%= raw myeval %>
 		</td>
 	</tr>      
