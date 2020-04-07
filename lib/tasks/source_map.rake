@@ -112,6 +112,12 @@ task :reload_vap_hi_daily_series_only => :environment do
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
 end
 
+task :reload_tour_ocup_series_only => :environment do
+  Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
+  tour_ocup = Series.search_box('#tour_ocup%Y')
+  Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup')
+end
+
 task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task START' }
   DataPoint.update_public_all_universes
@@ -173,7 +179,7 @@ task :export_kauai_dashboard => :environment do
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
-    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
+    Rails.logger.info { "export_kauai_dashboard: Processing #{export_name}" }
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
     data = xport.series_data

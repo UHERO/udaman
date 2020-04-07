@@ -207,7 +207,7 @@ module SeriesArithmetic
         new_series_data[date] = pc
       end
     end
-    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
+    new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end
 
   def faster_yoy(id)
@@ -259,7 +259,7 @@ module SeriesArithmetic
     return all_nil unless frequency == 'day'
     avg_series = {}
     mtd_sum.data.sort.each do |date, value|
-      avg_series[date] = value / date.day
+      avg_series[date] = value / date.day.to_f
     end
     new_transformation("Month-To-Date average of #{self}", avg_series)
   end
@@ -269,21 +269,24 @@ module SeriesArithmetic
   end
 
   def ytd_sum
-    return all_nil unless %w(day week).index(frequency).nil?
-    new_series_data = {}
+    return all_nil if frequency == 'week' || frequency == 'day'
+    dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
+    sum_series = {}
     ytd_sum = 0
-    ytd_year = nil
+    prev_month = 0
+    track_year = nil
     data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
+      if date.year != track_year
+        track_year = date.year
+        ytd_sum = 0
+        prev_month = 0
       end
-      new_series_data[date] = ytd_sum
+      raise "ytd_sum: gap in data preceding #{date}" if (date.month - prev_month) > dp_month_diff && !sum_series.empty?
+      ytd_sum += value
+      prev_month = date.month
+      sum_series[date] = ytd_sum
     end
-    new_transformation("Year to Date sum of #{name}", new_series_data)
+    new_transformation("Year-To-Date sum of #{self}", sum_series)
   end
   
   def ytd(id = nil)
@@ -291,22 +294,9 @@ module SeriesArithmetic
   end
   
   def ytd_percentage_change(id = nil)
-    return all_nil unless %w(day week).index(frequency).nil?
-    return faster_ytd(id) unless id.nil?
-    new_series_data = {}
-    ytd_sum = 0
-    ytd_year = nil
-    data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
-      end
-      new_series_data[date] = ytd_sum
-    end
-    new_transformation("Year to Date Percentage Change of #{name}", new_series_data).annualized_percentage_change
+    return all_nil if frequency == 'week' || frequency == 'day'
+    return faster_ytd(id) if id
+    new_transformation("Year-To-Date percentage change of #{self}", ytd_sum.data).annualized_percentage_change
   end
 
   def faster_ytd(id)
