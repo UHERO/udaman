@@ -112,6 +112,12 @@ task :reload_vap_hi_daily_series_only => :environment do
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
 end
 
+task :reload_tour_ocup_series_only => :environment do
+  Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
+  tour_ocup = Series.search_box('#tour_ocup%Y')
+  Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup')
+end
+
 task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task START' }
   DataPoint.update_public_all_universes
