@@ -51,7 +51,15 @@ end
 
 ## The famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
-  SeriesReloadManager.new.batch_reload
+  full_set_ids = Series.get_all_uhero.pluck(:id)
+  full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
+  full_set_ids -= Series.search_box('#load_from_bea').pluck(:id)
+  full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
+  full_set_ids -= Series.search_box('#tour_ocup%y').pluck(:id)
+  full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
+  mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', true)
+  Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
 end
 
 task :reload_stales_only => :environment do
@@ -102,6 +110,12 @@ task :reload_vap_hi_daily_series_only => :environment do
   Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
   vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
+end
+
+task :reload_tour_ocup_series_only => :environment do
+  Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
+  tour_ocup = Series.search_box('#tour_ocup%Y')
+  Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup')
 end
 
 task :update_public_data_points => :environment do
@@ -165,7 +179,7 @@ task :export_kauai_dashboard => :environment do
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
-    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
+    Rails.logger.info { "export_kauai_dashboard: Processing #{export_name}" }
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
     data = xport.series_data

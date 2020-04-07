@@ -27,10 +27,11 @@
         <td></td>
         <td><%= f.file_field :filename %></td>
         <td><div class="actions"><%= f.submit 'Upload file', id: 'upload-files-button' %></div></td>
-        <% end %>
+        <td></td>
+        <td>** After upload finishes, reload page to see status message.</td>
+      <% end %>
       </tr>
    <% controls_display = now_processing?(DvwUpload) ? 'none' : 'inline'
-
       @dvw_uploads.each do |dvw_upload|
         timestamp = dvw_upload.upload_at.strftime('%Y-%m-%d %H:%M:%S') %>
       <tr>
@@ -58,11 +59,10 @@
               end %>
           </span>
         </td>
-        <% if current_user.dev_user? && dvw_upload.last_error %>
           <td>
-            <span style="color:red;"><%= "#{dvw_upload.last_error} (#{dvw_upload.last_error_at})" %></span>
+            <% color = dvw_upload.last_error_at ? 'red' : 'green' %>
+            <span style="color:<%= color %>;"><%= dvw_upload.last_error %></span>
           </td>
-        <% end %>
       </tr>
     <% end %>
   </tbody>
