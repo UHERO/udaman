@@ -51,8 +51,13 @@ end
 
 ## The famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
-  full_set = Series.get_all_uhero - Series.search_box('#tour_ocup%y')
-  mgr = SeriesReloadManager.new(full_set, 'full')
+  full_set_ids = Series.get_all_uhero.pluck(:id)
+  full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
+  full_set_ids -= Series.search_box('#load_from_bea').pluck(:id)
+  full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
+  full_set_ids -= Series.search_box('#tour_ocup%y').pluck(:id)
+  full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
+  mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
 end
@@ -168,7 +173,7 @@ task :export_kauai_dashboard => :environment do
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
-    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
+    Rails.logger.info { "export_kauai_dashboard: Processing #{export_name}" }
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
     data = xport.series_data

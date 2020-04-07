@@ -2,13 +2,10 @@ class SeriesReloadManager
   require 'sidekiq'
   require 'sidekiq-status'
 
-  def initialize(series_list = nil, suffix = nil)
-    if series_list.nil?
-      series_list = Series.get_all_uhero
-      suffix ||= 'full'
-    end
+  def initialize(series_list, suffix, nightly = false)
     @batch = create_batch_id(series_list.count, suffix)
     @series_list = series_list
+    @nightly = nightly
   end
 
   def batch_reload(clear_first = false, group_size = nil, cycle_time = nil)
@@ -27,7 +24,7 @@ class SeriesReloadManager
           unless log.save
             raise "Cannot save worker log record to database: batch=#{@batch} series_id=#{series_id}"
           end
-          jid = SeriesReloadWorker.perform_async(@batch, series_id, depth, clear_first)
+          jid = SeriesReloadWorker.perform_async(@batch, series_id, depth, @nightly, clear_first)
           log.update_attributes job_id: jid
         end
         loop do
@@ -61,7 +58,7 @@ private
     outstanding.each do |log|
       status = Sidekiq::Status::status(log.job_id)
       next if status == :working || status == :queued
-      log.update_attributes(status: status[0..253] || 'expired')
+      log.update_attributes(status: status.blank? ? 'expired/nil' : status[0..253])
       updated += 1
     end
     updated == outstanding.count
