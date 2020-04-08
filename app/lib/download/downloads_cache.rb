@@ -77,7 +77,7 @@ class DownloadsCache
                 if @handle.blank?  ## in case of 'manual' files
                   raise "path #{@path} does not exist"
                 else
-                  raise "bad spreadsheet for download handle #{@handle}: likely a web 404"
+                  raise "bad spreadsheet for handle #{@handle}: likely a web 404"
                 end
               end
             end
