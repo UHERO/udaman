@@ -171,13 +171,15 @@ class DataHtmlParser
   end
   
   def bls_text
-    #puts @doc.css('pre').text
-    @doc.css('pre').text
+    @doc.css('pre').text   ## This 'pre' has to be lower case for some strange reason
   end
   
   def get_data
     @data_hash ||= {}
-    data_lines = bls_text.split("\n")
+    resp = bls_text
+    raise "BLS API: #{resp.strip}" if resp =~ /error/i
+
+    data_lines = resp.split("\n")
     data_lines.each do |dl|
       next unless dl.index(@code) == 0
       cols = dl.split(',')
