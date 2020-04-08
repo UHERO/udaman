@@ -33,8 +33,8 @@ class DataHtmlParser
         :years_option =>'all_years'
     }
     @doc = self.download
-    frequency ||= self.data.keys[0]
-    self.data[frequency]
+    frequency ||= data.keys[0]
+    data[frequency]
   end
 
   def get_bea_series(dataset, filters)
@@ -183,8 +183,9 @@ class DataHtmlParser
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
+      next if cols[3].blank?
       @data_hash[freq] ||= {}
-      @data_hash[freq][date] = cols[3].to_f unless date.nil?
+      @data_hash[freq][date] = cols[3].to_f
     end
     @data_hash
   end
@@ -220,7 +221,7 @@ class DataHtmlParser
     when /^Q(4|04)\b/
       Date.new(year_string.to_i, 10)
     else
-      'Error: invalid date %s-%s' % [year_string, other_string]
+      raise 'DataHtmlParser::get_date: invalid params "%s-%s"' % [year_string, other_string]
     end
   end
 
