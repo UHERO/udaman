@@ -33,7 +33,7 @@ class DataHtmlParser
         :years_option =>'all_years'
     }
     @doc = self.download
-    frequency = self.data.keys[0] if frequency.nil?
+    frequency ||= self.data.keys[0]
     self.data[frequency]
   end
 
@@ -179,7 +179,7 @@ class DataHtmlParser
     @data_hash ||= {}
     data_lines = bls_text.split("\n")
     data_lines.each do |dl|
-      next unless (dl.index @code) == 0
+      next unless dl.index(@code) == 0
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
@@ -198,22 +198,6 @@ class DataHtmlParser
     return 'M' if other_string[0] == 'M'
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
-  end
-
-  def estatjp_convert_date(datecode)
-    year = datecode[0..3]
-    m1 = datecode[-4..-3].to_i
-    m2 = datecode[-2..-1].to_i
-    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
-    '%s-%02d-01' % [year, m2]
-  end
-
-  def estatjp_filter_match(filters, dp)
-    filters.keys.each do |key|
-      dp_key = '@' + key.to_s
-      return false if dp[dp_key] != filters[key].to_s
-    end
-    true
   end
 
   def get_date(year_string, other_string)
@@ -236,10 +220,26 @@ class DataHtmlParser
     when /^Q(4|04)\b/
       Date.new(year_string.to_i, 10)
     else
-     'Error: invalid date %s-%s' % [year_string, other_string]
+      'Error: invalid date %s-%s' % [year_string, other_string]
     end
   end
-  
+
+  def estatjp_convert_date(datecode)
+    year = datecode[0..3]
+    m1 = datecode[-4..-3].to_i
+    m2 = datecode[-2..-1].to_i
+    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
+    '%s-%02d-01' % [year, m2]
+  end
+
+  def estatjp_filter_match(filters, dp)
+    filters.keys.each do |key|
+      dp_key = '@' + key.to_s
+      return false if dp[dp_key] != filters[key].to_s
+    end
+    true
+  end
+
   def download
     require 'uri'
     require 'net/http'
