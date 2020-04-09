@@ -349,13 +349,20 @@
       <tr><td>
         <h2>Current load errors</h2>
       </td></tr>
-      <% @err_summary.each do |entry| %>
-        <tr><td><%= entry[1] %></td><td><%= entry[0] %></td></tr>
-      <% end %>
+      <table>
+        <th>Count</th><th>Error message</th>
+        <% @err_summary.each do |entry| %>
+          <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
+        <% end %>
+      </table>
 		</table>
 
 		<h2>Series Mismatches with Aremos</h2>
-		<svg id="matching_diffs"></svg>
+    <% if Rails.env == 'development' %>
+        This is not displayed in Development environment
+    <% else %>
+        <svg id="matching_diffs"></svg>
+    <% end %>
 	</div>
 
 <script>

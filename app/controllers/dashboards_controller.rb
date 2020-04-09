@@ -39,10 +39,6 @@ class DashboardsController < ApplicationController
   
   def investigate_visual
     @diff_data = []
-    if Rails.env == 'development'
-      @to_investigate = []
-      return
-    end
     @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
     @err_summary = DataSource.load_error_summary
   end

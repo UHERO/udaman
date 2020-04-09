@@ -34,7 +34,8 @@ class XlsFileProcessor
         return 'END' if $1 == 'handle' && @handle_processor.date_sensitive?
         return 'END' if $1 == 'path' && @path_processor.date_sensitive?
       end
-      return {} if e.message =~ /^could not find header/ and ['Condo only'].include? e.message.split(': ')[1][1..-2]
+      ### I don't know what the following line does, but I hate it :(
+      return {} if e.message =~ /^cannot find header/i && ['Condo only'].include?(e.message.split(': ')[1][1..-2])
       raise e
     rescue IOError => e
       Rails.logger.error e.message
