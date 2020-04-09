@@ -315,7 +315,7 @@ class DataSource < ApplicationRecord
     self.save unless dont_save
   end
 
-  def load_error_summary
+  def DataSource.load_error_summary
     DataSource.connection.execute(<<~MYSQL).to_a
       select last_error, count(*) from data_sources
       where universe = 'UHERO'
