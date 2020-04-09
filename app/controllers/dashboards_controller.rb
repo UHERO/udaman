@@ -39,11 +39,8 @@ class DashboardsController < ApplicationController
   
   def investigate_visual
     @diff_data = []
-    if Rails.env == 'development'
-      @to_investigate = []
-      return
-    end
     @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
+    @err_summary = DataSource.load_error_summary
   end
 
   def update_public_dp
@@ -62,9 +59,6 @@ class DashboardsController < ApplicationController
     client = HTTPClient.new
     resp = client.get('http://s9n196.soc.hawaii.edu:3000/system_summary.csv')
     open('public/udamacmini_system_summary.csv', 'wb') { |file| file.write resp.content }
-  end
-  
-  def rake_report
   end
 
   def mapping

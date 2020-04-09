@@ -33,7 +33,11 @@ class DataHtmlParser
         :years_option =>'all_years'
     }
     @doc = self.download
-    frequency ||= data.keys[0]
+    avail_freqs = data.keys
+    frequency ||= avail_freqs[0]
+    if avail_freqs.count > 0 && !avail_freqs.include?(frequency)
+      raise "BLS API: #{code} has no data at frequency #{frequency}, only #{avail_freqs.join(', ')}"
+    end
     data[frequency]
   end
 
