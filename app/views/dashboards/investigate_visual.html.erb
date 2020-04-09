@@ -326,12 +326,7 @@
 				<td>
 		<h2>New Data Points and Updated Series</h2>
 		<svg id="new_data_points"></svg>
-    <div id="sidekiq_failures">
-      <br/><br/><br/>
-      <%= link_to 'Series that failed nightly loading', controller: :series, action: :nightly_missed %><br/>
-      <%= link_to 'Series that fully nightly loaded', controller: :series, action: :nightly_loaded %>
-    </div>
-		</td>
+ 		</td>
 		<td>
 			<h2>Downloads / Raw Data</h2>
 			<svg id="download_results"></svg>
@@ -351,8 +346,14 @@
 
 		</td>
 		</tr>
-
+      <tr><td>
+        <h2>Current load errors</h2>
+      </td></tr>
+      <% @snaxxlers.each do |entry| %>
+        <tr><td><%= entry[0] %></td><td><%= entry[1] %></td></tr>
+      <% end %>
 		</table>
+
 		<h2>Series Mismatches with Aremos</h2>
 		<svg id="matching_diffs"></svg>
 	</div>

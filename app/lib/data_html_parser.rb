@@ -36,7 +36,7 @@ class DataHtmlParser
     avail_freqs = data.keys
     frequency ||= avail_freqs[0]
     if avail_freqs.count > 0 && !avail_freqs.include?(frequency)
-      raise "BLS API: #{code} contains no data at frequency #{frequency}, only #{avail_freqs.join(', ')}"
+      raise "BLS API: #{code} has no data at frequency #{frequency}, only #{avail_freqs.join(', ')}"
     end
     data[frequency]
   end

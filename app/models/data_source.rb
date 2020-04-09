@@ -315,6 +315,10 @@ class DataSource < ApplicationRecord
     self.save unless dont_save
   end
 
+  def error_summary
+
+  end
+
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
   # to be called from the Rails command line, by a developer doing mass updates to the database.
   #
