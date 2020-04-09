@@ -58,12 +58,6 @@ class DashboardsController < ApplicationController
     render :json => { message: 'Export TSD in Queue' }
   end
 
-  def udamacmini_comparison
-    client = HTTPClient.new
-    resp = client.get('http://s9n196.soc.hawaii.edu:3000/system_summary.csv')
-    open('public/udamacmini_system_summary.csv', 'wb') { |file| file.write resp.content }
-  end
-  
   def rake_report
   end
 
