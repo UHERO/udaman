@@ -339,22 +339,20 @@
       <p id="message_area"></p>
 		</td>
 		</tr>
-      <tr>
-		<td colspan=2>
-			<h2>Update Spreadsheets</h2>
-			<svg id="update_spreadsheets"></svg>
-
-		</td>
-		</tr>
-      <tr><td>
-        <h2>Current load errors</h2>
-      </td></tr>
+      <tr><td><h2>Current load errors</h2></td></tr>
       <table>
         <th>Count</th><th>Error message</th>
         <% @err_summary.each do |entry| %>
           <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
         <% end %>
       </table>
+    <tr>
+		<td colspan=2>
+			<h2>Update Spreadsheets</h2>
+			<svg id="update_spreadsheets"></svg>
+
+		</td>
+		</tr>
 		</table>
 
 		<h2>Series Mismatches with Aremos</h2>
