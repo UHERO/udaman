@@ -92,7 +92,7 @@ module SeriesArithmetic
     #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
   end
   
-  def rebase(year=nil)
+  def rebase(year = nil)
     unless year.nil?
       year = Date.parse(year).year
     end
@@ -139,7 +139,7 @@ module SeriesArithmetic
     end
   end
 
-  def absolute_change(id=nil)
+  def absolute_change(id = nil)
     return faster_change(id) unless id.nil?
     new_series_data = {}
     last = nil
@@ -186,17 +186,17 @@ module SeriesArithmetic
     new_transformation("All nil for dates in #{name}", new_series_data)
   end
   
-  def yoy(id=nil)
+  def yoy(id = nil)
     annualized_percentage_change id
   end
   
-  def annualized_percentage_change(id=nil)
+  def annualized_percentage_change(id = nil)
     day_based_yoy id
   end
   
   #just going to leave out the 29th on leap years for now
   def day_based_yoy(id)
-    return all_nil unless ['week'].index(frequency).nil?
+    return all_nil if frequency == 'week'
     return faster_yoy id unless id.nil?
 
     new_series_data = {}
@@ -207,7 +207,7 @@ module SeriesArithmetic
         new_series_data[date] = pc
       end
     end
-    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
+    new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end
 
   def faster_yoy(id)
@@ -235,68 +235,68 @@ module SeriesArithmetic
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
   
-  #should unify these a bit
   def mtd_sum
     return all_nil unless frequency == 'day'
-    new_series_data = {}
+    sum_series = {}
     mtd_sum = 0
-    mtd_month = nil
+    last_day = 0
+    track_month = nil
     data.sort.each do |date, value|
-      month = date.month
-      if month == mtd_month
-        mtd_sum += value
-      else
-        mtd_sum = value
-        mtd_month = month
+      if date.month != track_month
+        track_month = date.month
+        mtd_sum = 0
+        last_day = 0
       end
-      new_series_data[date] = mtd_sum
+      raise "mtd_sum: gap in daily data preceding #{date}" if (date.day - last_day) > 1 && !sum_series.empty?
+      mtd_sum += value
+      last_day = date.day
+      sum_series[date] = mtd_sum
     end
-    new_transformation("Month to Date sum of #{name}", new_series_data)
+    new_transformation("Month-To-Date sum of #{self}", sum_series)
   end
-  
+
+  def mtd_avg
+    return all_nil unless frequency == 'day'
+    avg_series = {}
+    mtd_sum.data.sort.each do |date, value|
+      avg_series[date] = value / date.day.to_f
+    end
+    new_transformation("Month-To-Date average of #{self}", avg_series)
+  end
+
   def mtd
-    mtd_sum.yoy
+    mtd_avg.yoy
   end
-  
+
   def ytd_sum
-    return all_nil unless %w(day week).index(frequency).nil?
-    new_series_data = {}
+    return all_nil if frequency == 'week' || frequency == 'day'
+    dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
+    sum_series = {}
     ytd_sum = 0
-    ytd_year = nil
+    prev_month = 0
+    track_year = nil
     data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
+      if date.year != track_year
+        track_year = date.year
+        ytd_sum = 0
+        prev_month = 0
       end
-      new_series_data[date] = ytd_sum
+      raise "ytd_sum: gap in data preceding #{date}" if (date.month - prev_month) > dp_month_diff && !sum_series.empty?
+      ytd_sum += value
+      prev_month = date.month
+      sum_series[date] = ytd_sum
     end
-    new_transformation("Year to Date sum of #{name}", new_series_data)
+    new_transformation("Year-To-Date sum of #{self}", sum_series)
   end
   
-  def ytd(id=nil)
+  def ytd(id = nil)
     ytd_percentage_change id
   end
   
-  def ytd_percentage_change(id=nil)
-    return all_nil unless %w(day week).index(frequency).nil?
-    return faster_ytd(id) unless id.nil?
-    new_series_data = {}
-    ytd_sum = 0
-    ytd_year = nil
-    data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
-      end
-      new_series_data[date] = ytd_sum
-    end
-    new_transformation("Year to Date Percentage Change of #{name}", new_series_data).annualized_percentage_change
+  def ytd_percentage_change(id = nil)
+    return all_nil if frequency == 'week' || frequency == 'day'
+    return faster_ytd(id) if id
+    new_transformation("Year-To-Date percentage change of #{self}", ytd_sum.data).annualized_percentage_change
   end
 
   def faster_ytd(id)
@@ -332,7 +332,7 @@ module SeriesArithmetic
     annual_diff
   end
   
-  def scaled_yoy_diff(id=nil)
+  def scaled_yoy_diff(id = nil)
     return faster_scaled_yoy_diff(id) unless id.nil?
     new_series_data = {}
     last = {}

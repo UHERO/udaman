@@ -51,7 +51,15 @@ end
 
 ## The famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
-  SeriesReloadManager.new.batch_reload
+  full_set_ids = Series.get_all_uhero.pluck(:id)
+  full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
+  full_set_ids -= Series.search_box('#load_from_bea').pluck(:id)
+  full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
+  full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
+  full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
+  mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', true)
+  Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+  mgr.batch_reload
 end
 
 task :reload_stales_only => :environment do
@@ -102,6 +110,12 @@ task :reload_vap_hi_daily_series_only => :environment do
   Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
   vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
   Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
+end
+
+task :reload_tour_ocup_series_only => :environment do
+  Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
+  tour_ocup = Series.search_box('#tour_ocup%Y')
+  Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup')
 end
 
 task :update_public_data_points => :environment do
@@ -160,10 +174,12 @@ task :export_kauai_dashboard => :environment do
     'Kauai Dashboard Construction Data - Q' => %w{const_q.csv const_q_export.csv},
     'Kauai Dashboard Budget Data - A' => %w{county_rev_a.csv county_rev_a_export.csv}
   }
+  data_path =   File.join(ENV['DATA_PATH'], 'kauai_dash', 'data')
+  export_path = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data')
 
   udaman_exports.keys.each do |export_name|
     xport = Export.find_by(name: export_name) || raise("Cannot find Export with name #{export_name}")
-    Rails.logger.debug { "export_kauai_dashboard: Processing #{export_name}" }
+    Rails.logger.info { "export_kauai_dashboard: Processing #{export_name}" }
     xport_series = xport.series.order('export_series.list_order')
     names = xport_series.pluck(:name)
     data = xport.series_data
@@ -172,7 +188,7 @@ task :export_kauai_dashboard => :environment do
     all_dates = xport.data_dates
 
     ### Create the file that uses series names for dashboard-internal use
-    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'data', udaman_exports[export_name][0])
+    filename = File.join(data_path, udaman_exports[export_name][0])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + names
       all_dates.each do |date|
@@ -182,7 +198,7 @@ task :export_kauai_dashboard => :environment do
     ### Create the file that uses series titles for end-user download
     next unless udaman_exports[export_name][1]
     titles = xport_series.pluck(:dataPortalName)
-    filename = File.join(ENV['DATA_PATH'], 'kauai_dash', 'export_data', udaman_exports[export_name][1])
+    filename = File.join(export_path, udaman_exports[export_name][1])
     CSV.open(filename, 'wb') do |csv|
       csv << ['date'] + titles
       all_dates.each do |date|
@@ -190,5 +206,11 @@ task :export_kauai_dashboard => :environment do
       end
     end
   end
+
+  ## Create necessary empty files
+  %w{const_m.csv county_rev_m.csv county_rev_q.csv income_m.csv income_q.csv}.each do |empty_file|
+    %x{cat /dev/null > #{File.join(data_path, empty_file)} }
+  end
+
   Rails.logger.info { "export_kauai_dashboard: End at #{Time.now}" }
 end

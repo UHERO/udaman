@@ -11,10 +11,14 @@ class SeriesReloadWorker
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
   end
 
-  def perform(batch_id, series_id, depth, clear_first = false)
+  def perform(batch_id, series_id, depth, nightly, clear_first)
     @batch = batch_id
     @series = series_id
     @depth = depth
+    if cancelled?
+      mylogger :warn, 'reload CANCELLED'
+      return
+    end
     log = nil
     old_level = nil
     begin
@@ -31,7 +35,7 @@ class SeriesReloadWorker
         end
         @series = "<#{series.name}> (#{series_id})"
         mylogger :info, 'reload started'
-        success = series.reload_sources(true, clear_first)  ####       <<===== here's where the work happens
+        success = series.reload_sources(nightly, clear_first)  ####       <<===== here's where the work happens
       else
         mylogger :warn, 'no such series found'
         success = false
@@ -52,6 +56,15 @@ class SeriesReloadWorker
     ensure
       Rails.logger.level = old_level if old_level
     end
+  end
+
+  def cancelled?
+    Sidekiq.redis {|c| c.exists("cancelled-#{jid}") }
+  end
+
+  def self.cancel!(jid)
+    Rails.logger.warn { "trying to cancel Sidekiq job #{jid}" }
+    Sidekiq.redis {|c| c.setex("cancelled-#{jid}", 86400, 1) }
   end
 
 private

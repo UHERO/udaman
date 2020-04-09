@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025756) do
+ActiveRecord::Schema.define(version: 220170413025758) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -280,9 +280,10 @@ ActiveRecord::Schema.define(version: 220170413025756) do
   create_table "geographies", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.string "fips"
+    t.string "handle"
     t.string "display_name"
     t.string "display_name_short"
-    t.string "handle"
+    t.integer "list_order"
     t.string "geotype"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -341,14 +342,12 @@ ActiveRecord::Schema.define(version: 220170413025756) do
   end
 
   create_table "public_data_points", primary_key: ["series_id", "date"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe_ob", limit: 8, default: "UHERO", null: false
     t.integer "series_id", null: false
     t.date "date", null: false
     t.float "value", limit: 53
     t.boolean "pseudo_history", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["universe_ob"], name: "index_public_data_points_on_universe_ob"
   end
 
   create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
@@ -374,6 +373,7 @@ ActiveRecord::Schema.define(version: 220170413025756) do
     t.index ["source_detail_id"], name: "fk_rails_36c9ba7209"
     t.index ["source_id"], name: "fk_rails_6f2f66e327"
     t.index ["unit_id"], name: "fk_rails_1961e72b74"
+    t.index ["universe", "name"], name: "index_series_on_universe_and_name", unique: true
     t.index ["universe", "xseries_id"], name: "index_series_on_universe_and_xseries_id", unique: true
     t.index ["universe"], name: "index_series_on_universe"
     t.index ["xseries_id"], name: "fk_rails_b3202f6d25"
