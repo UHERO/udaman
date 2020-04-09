@@ -174,10 +174,6 @@ class DataHtmlParser
     @url
   end
 
-  def save_content(save_path)
-    open(save_path, 'wb') { |file| file.write @content }
-  end
-  
   def bls_text
     @doc.css('pre').text   ## This 'pre' has to be lower case for some strange reason
   end
@@ -190,10 +186,10 @@ class DataHtmlParser
     data_lines = resp.split("\n")
     data_lines.each do |dl|
       next unless dl.index(@code) == 0
+      next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
-      next if cols[3].blank?
       data_hash[freq] ||= {}
       data_hash[freq][date] = cols[3].to_f
     end
