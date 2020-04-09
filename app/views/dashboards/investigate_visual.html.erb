@@ -349,8 +349,8 @@
       <tr><td>
         <h2>Current load errors</h2>
       </td></tr>
-      <% @snaxxlers.each do |entry| %>
-        <tr><td><%= entry[0] %></td><td><%= entry[1] %></td></tr>
+      <% @err_summary.each do |entry| %>
+        <tr><td><%= entry[1] %></td><td><%= entry[0] %></td></tr>
       <% end %>
 		</table>
 

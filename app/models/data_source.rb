@@ -315,8 +315,15 @@ class DataSource < ApplicationRecord
     self.save unless dont_save
   end
 
-  def error_summary
-
+  def load_error_summary
+    DataSource.connection.execute(<<~MYSQL).to_a
+      select last_error, count(*) from data_sources
+      where universe = 'UHERO'
+      and last_error is not null
+      and reload_nightly
+      group by last_error
+      order by 2 desc, 1
+    MYSQL
   end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended

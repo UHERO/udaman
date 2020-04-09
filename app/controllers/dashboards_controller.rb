@@ -44,7 +44,7 @@ class DashboardsController < ApplicationController
       return
     end
     @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
-    @snaxxlers = DataSource.error_summary
+    @err_summary = DataSource.load_error_summary
   end
 
   def update_public_dp
