@@ -169,7 +169,11 @@ class DataHtmlParser
   def content
     @content
   end
-  
+
+  def url
+    @url
+  end
+
   def save_content(save_path)
     open(save_path, 'wb') { |file| file.write @content }
   end
@@ -179,7 +183,7 @@ class DataHtmlParser
   end
   
   def get_data
-    @data_hash ||= {}
+    data_hash ||= {}
     resp = bls_text
     raise "BLS API: #{resp.strip}" if resp =~ /error/i
 
@@ -190,10 +194,10 @@ class DataHtmlParser
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
       next if cols[3].blank?
-      @data_hash[freq] ||= {}
-      @data_hash[freq][date] = cols[3].to_f
+      data_hash[freq] ||= {}
+      data_hash[freq][date] = cols[3].to_f
     end
-    @data_hash
+    data_hash
   end
   
   def data
