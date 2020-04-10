@@ -2,8 +2,8 @@
 	<% series.data_sources_sort_for_display.each do |ds| %>
   	<% myeval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
   	<tr style="background-color:#<%= ds.color%>" >
-  		<td>
-      <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>&nbsp;
+  		<td width="160px">
+      <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>
       <span style="color:gray"><%= ds.last_run ? ds.last_run.strftime("%H:%M") : '-' %></span>&nbsp;(<%= ds.priority %>)<br />
  					<%= 
 						link_to 'load', {
@@ -15,8 +15,7 @@
 							:controller => 'data_sources',
 							:action => 'clear',
 							:id => ds.id} unless myeval.blank?
-					%>&nbsp;
-          <% if current_user.admin_user? %>
+					%><% if current_user.admin_user? %>
             |&nbsp;<%= link_to 'delete', {
                 :controller => 'data_sources',
                 :action => 'delete',
@@ -38,7 +37,7 @@
 			<%= raw linked_version(ds.description) %><br/>
 			<%= raw myeval %>
       <% if ds.last_error %>
-           <p><span style='color:red;'>Error <%= ds.last_error_at.strftime('%m/%d/%y %H:%M') %></span><%= ds.last_error %></p>
+           <br/><br/><span style='color:red;font-weight:bold;'><%= ds.last_error %> (<%= ds.last_error_at.strftime('%m/%d/%y %H:%M') %>)</span>
       <% end %>
 		</td>
 	</tr>      
