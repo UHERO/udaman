@@ -186,7 +186,7 @@ class DataHtmlParser
     data_lines = resp.split("\n")
     data_lines.each do |dl|
       next unless dl.index(@code) == 0
-      next if cols[3].blank?
+     ## this should be uncommented sometime... next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
