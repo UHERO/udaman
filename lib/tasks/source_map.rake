@@ -70,8 +70,10 @@ task :reload_stales_only => :environment do
   end
 end
 
+##task :purge_old_logs => :environment do
 task :purge_old_reload_logs => :environment do
   SeriesReloadLog.purge_old_logs
+  DsdLogEntry.purge_old_logs
 end
 
 task :build_rebuild => :environment do
