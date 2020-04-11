@@ -32,29 +32,22 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 #     rake "test_case"
 # end
 
-every 1.day, :at => '11:00 am' do
+every 1.day, :at => '6:44 pm' do
   rake :reset_dependency_depth
-end
-
-every 1.day, :at => "4:00 pm" do
-  rake :update_bea_links
-end
-
-every 1.day, :at => '6:20 pm' do
-  rake :reload_stales_only
 end
 
 every 1.day, :at => '8:00 pm' do
   rake :reload_aremos
 end
 
-every 1.day, :at => '9:00 pm' do
+every 1.day, :at => '1:00 am' do
   rake :update_seats_links
   rake :update_vis_history_links
 end
 
 every 1.day, at: '7:40 pm' do
   rake :purge_old_reload_logs
+  ##rake :purge_old_logs
 end
 
 ## The famous "Nightly Reload"
@@ -97,7 +90,7 @@ every 1.day, :at => "#{hour.to_i+6}:00 am" do
   rake :update_public_data_points
 end
 
-every :saturday, :at => '9am' do
+every :saturday, :at => '9:00 am' do
   rake :mark_pseudo_history
 end
 
