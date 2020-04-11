@@ -46,8 +46,7 @@ every 1.day, :at => '1:00 am' do
 end
 
 every 1.day, at: '7:40 pm' do
-  rake :purge_old_reload_logs
-  ##rake :purge_old_logs
+  rake :purge_old_logs
 end
 
 ## The famous "Nightly Reload"
