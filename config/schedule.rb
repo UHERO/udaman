@@ -89,7 +89,7 @@ every 1.day, :at => "#{hour.to_i+6}:00 am" do
   rake :update_public_data_points
 end
 
-every :saturday, :at => '9:00 am' do
+every :saturday, :at => '5:00 pm' do
   rake :mark_pseudo_history
 end
 
