@@ -125,7 +125,7 @@ task :update_seats_links => :environment do
   CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['update_seat_links', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
 end
 
-
+#### What is this doing? Is it obsolete/vestigial? It's on a cron - take care of that.
 task :update_vis_history_links => :environment do
   t = Time.now
   handle_fragment = 'TOUR_HIST'

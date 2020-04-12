@@ -9,8 +9,9 @@ class SeriesReloadLog < ApplicationRecord
       stmt.execute(Time.now - horizon)
       stmt.close
     rescue => e
-      Rails.logger.error { "SeriesReloadLog.purge_old_logs FAILURE: #{e.message}" }
-      PackagerMailer.purge_log_notification(e.message).deliver
+      message = "SeriesReloadLog.purge_old_logs FAILURE: #{e.message}"
+      Rails.logger.error { message }
+      PackagerMailer.purge_log_notification(message).deliver
     end
   end
 end

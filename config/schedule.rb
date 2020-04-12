@@ -32,37 +32,32 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 #     rake "test_case"
 # end
 
-every 1.day, :at => '11:00 am' do
+every 1.day, :at => '6:44 pm' do
   rake :reset_dependency_depth
-end
-
-every 1.day, :at => "4:00 pm" do
-  rake :update_bea_links
-end
-
-every 1.day, :at => '6:20 pm' do
-  rake :reload_stales_only
 end
 
 every 1.day, :at => '8:00 pm' do
   rake :reload_aremos
 end
 
-every 1.day, :at => '9:00 pm' do
+every 1.day, :at => '1:00 am' do
   rake :update_seats_links
   rake :update_vis_history_links
 end
 
+every 1.day, at: '7:40 pm' do
+  rake :purge_old_logs
+end
+
 ## The famous "Nightly Reload"
-every 1.day, :at => '8:10 pm' do
+every 1.day, :at => '7:44 pm' do
   rake :batch_reload_uhero
 end
 
-every 1.day, at: '7:50 pm' do
-  rake :purge_old_reload_logs
+every 1.day, :at => '3:00 am' do
+  rake :reload_tour_ocup_series_only
 end
 
-# ------- These two are together. Need only sometimes --------
 every 1.day, :at => '5:30 am' do
   rake :update_bea_links
 end
@@ -72,7 +67,7 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bls_series_only
 end
 
-every :weekday, :at => '4:00 pm' do
+every :weekday, :at => '4:15 pm' do
   rake :reload_vap_hi_daily_series_only
 end
 
@@ -94,7 +89,7 @@ every 1.day, :at => "#{hour.to_i+6}:00 am" do
   rake :update_public_data_points
 end
 
-every :saturday, :at => '9am' do
+every :saturday, :at => '5:00 pm' do
   rake :mark_pseudo_history
 end
 
