@@ -67,7 +67,7 @@ module SeriesHelper
         parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
       end
     end
-    parts.join('')
+    parts.join
   end
 
   def text_with_linked_series(text, action = :show)

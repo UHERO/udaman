@@ -72,7 +72,7 @@ end
 
 task :purge_old_logs => :environment do
   SeriesReloadLog.purge_old_logs
-  DsdLogEntry.purge_old_logs(8.weeks)
+  DsdLogEntry.purge_old_logs(6.weeks)
 end
 
 task :build_rebuild => :environment do
@@ -86,6 +86,7 @@ end
 task :reload_hiwi_series_only => :environment do
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
+  ## Convert this to use Series.reload_with_dependencies instead
   mgr = SeriesReloadManager.new(hiwi_series, 'hiwi', true)
   Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
@@ -94,6 +95,7 @@ end
 task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
+  ## Convert this to use Series.reload_with_dependencies instead
   mgr = SeriesReloadManager.new(bls_series, 'bls', true)
   Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
@@ -102,6 +104,7 @@ end
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
+  ## Convert this to use Series.reload_with_dependencies instead
   mgr = SeriesReloadManager.new(bea_series, 'bea', true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
