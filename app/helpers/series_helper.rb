@@ -62,7 +62,7 @@ module SeriesHelper
     parts.each_with_index do |str, index|
       if valid_download_handle(str)
         download = Download.get(str)
-        parts[index] = link_to(str, { action: :show, id: download }) if download
+        parts[index] = link_to(str, { controller: :downloads, action: :show, id: download }) if download
       else
         parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
       end

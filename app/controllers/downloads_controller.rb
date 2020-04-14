@@ -96,7 +96,7 @@ class DownloadsController < ApplicationController
   end
 
   def set_download
-    @output_file = Download.find params[:id]
+    @output_file = Download.find params[:id]   ### this instance var name is outrageously stupid - CHANGE IT
   end
 
 end
