@@ -72,7 +72,7 @@ end
 
 task :purge_old_logs => :environment do
   SeriesReloadLog.purge_old_logs
-  DsdLogEntry.purge_old_logs
+  DsdLogEntry.purge_old_logs(8.weeks)
 end
 
 task :build_rebuild => :environment do
