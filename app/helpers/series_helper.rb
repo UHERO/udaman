@@ -56,19 +56,18 @@ module SeriesHelper
     html.chop
   end
   
-  def text_with_linked_download(eval_text)
-    return '' if eval_text.blank?
-    words = eval_text.split(' ')
-    words.each_with_index do |word, index|
-      if valid_download_handle(word)
-        download = Download.get(word)
-        if download
-          words[index] = link_to(word, { action: :show, id: download })
-          break  ## we're only expecting to find one
-        end
+  def text_with_linked_download(text)
+    return '' if text.blank?
+    parts = text.split(DOWNLOAD_HANDLE)
+    parts.each_with_index do |str, index|
+      if valid_download_handle(str)
+        download = Download.get(str)
+        parts[index] = link_to(str, { action: :show, id: download }) if download
+      else
+        parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
       end
     end
-    words.join('&nbsp;')
+    parts.join('')
   end
 
   def text_with_linked_series(text, action = :show)

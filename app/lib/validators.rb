@@ -11,15 +11,17 @@ module Validators
                   (\#\w+)?                    # hash-mark-introduced word
                   )}ix
 
-  ## Only matches basic, simple email addresses (although these should be the majority).
-  BASIC_EMAIL_ADDR = %r{(\w+@([a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}i
+  ## Only matches basic, simple email addresses (although these should be the majority). Returns only the whole address as $1
+  ## Download handle match includes % character for time-sensitive handles
+  BASIC_EMAIL_ADDR = %r{(\w+   @(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}ix
+  DOWNLOAD_HANDLE  = %r{([%\w]+@(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}ix
 
   def valid_url(string)
     string =~ %r{^#{BASIC_URL}$}i
   end
 
   def valid_download_handle(string)
-    string =~ %r{^#{BASIC_EMAIL_ADDR}$}i
+    string =~ %r{^#{DOWNLOAD_HANDLE}$}i
   end
 
   def valid_series_name(string)
