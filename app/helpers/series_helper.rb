@@ -56,14 +56,25 @@ module SeriesHelper
     html.chop
   end
   
-  def linked_version(description)
-    linked_version_with_action(description,'show')
+  def text_with_linked_download(eval_text)
+    return '' if eval_text.blank?
+    words = eval_text.split(' ')
+    words.each_with_index do |word, index|
+      if valid_download_handle(word)
+        download = Download.get(word)
+        if download
+          words[index] = link_to(word, { action: :show, id: download })
+          break  ## we're only expecting to find one
+        end
+      end
+    end
+    words.join('&nbsp;')
   end
-  
-  def linked_version_with_action(description, action)
-    return '' if description.blank?
+
+  def text_with_linked_series(text, action = :show)
+    return '' if text.blank?
     new_words = []
-    description.split(' ').each do |word|
+    text.split(' ').each do |word|
       new_word = word
       if valid_series_name(word)
         series = word.ts

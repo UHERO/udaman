@@ -1,6 +1,6 @@
 <table style="border-collapse:collapse;">
 	<% series.data_sources_sort_for_display.each do |ds| %>
-  	<% myeval = ds.eval.nil? ? " " : ds.eval.split(" ").join("&nbsp;") %>
+  	<% myeval = text_with_linked_download(ds.eval) %>
   	<tr style="border:none;background-color:#<%= ds.color %>;" >
   		<td style="border:none;">
       <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>
@@ -40,7 +40,7 @@
       <% if ds.presave_hook %>
            <strong>Presave hook:</strong> <%= ds.presave_hook %><br/>
       <% end %>
-			<%= raw linked_version(ds.description) %><br/>
+			<%= raw text_with_linked_series(ds.description) %><br/>
       <%= raw myeval %>
       </p>
 		</td>
