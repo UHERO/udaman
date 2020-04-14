@@ -277,14 +277,14 @@ module SeriesArithmetic
     track_year = nil
     data.sort.each do |date, value|
       if date.year != track_year
-        unless sum_series.empty? || prev_month == (frequency == 'quarter' ? 10 : 12)
-          raise "ytd_sum: gap in data preceding #{date}"
-        end
+        ##unless sum_series.empty? || prev_month == (frequency == 'quarter' ? 10 : 12)
+        ##  raise "ytd_sum: gap in data preceding #{date}"
+        ##end
         track_year = date.year
         ytd_sum = 0
         prev_month = 0
       end
-      raise "ytd_sum: gap in data preceding #{date}" if (date.month - prev_month) > dp_month_diff && !sum_series.empty?
+      ##raise "ytd_sum: gap in data preceding #{date}" if (date.month - prev_month) > dp_month_diff && !sum_series.empty?
       ytd_sum += value
       prev_month = date.month
       sum_series[date] = ytd_sum
