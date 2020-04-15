@@ -62,14 +62,6 @@ task :batch_reload_uhero => :environment do
   mgr.batch_reload
 end
 
-task :reload_stales_only => :environment do
-  stales = Series.stale_since Time.now.days_ago(2)
-  if stales.count < 100  ## I dunno... if there's more than this, there's a major issue that needs to be addressed
-    series = Series.where id: stales.map {|a| a[0] } ## a[0] is the series.id
-    SeriesReloadManager.new(series, 'stales').batch_reload
-  end
-end
-
 task :purge_old_logs => :environment do
   SeriesReloadLog.purge_old_logs
   DsdLogEntry.purge_old_logs

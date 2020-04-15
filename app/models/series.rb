@@ -1330,23 +1330,6 @@ class Series < ApplicationRecord
     series.sort_by(&:name)
   end
 
-  def Series.stale_since(past_day)
-    horizon = Time.new(past_day.year, past_day.month, past_day.day, 20, 0, 0)  ## 8pm, roughly when nightly load starts
-    Series.get_all_uhero
-          .joins(:data_sources)
-          .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
-          .order('series.name, data_sources.id')
-          .pluck('series.id, series.name, data_sources.id')
-  end
-
-  def Series.loaded_since(past_day)
-    Series.get_all_uhero
-        .joins(:data_sources)
-        .where('reload_nightly = true')
-        .order('series.name, data_sources.id')
-        .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
-  end
-
   def source_link_is_valid
     source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
