@@ -315,6 +315,20 @@ class DataSource < ApplicationRecord
     self.save unless dont_save
   end
 
+  def DataSource.load_error_summary
+    ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
+    DataSource.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
+    results = DataSource.connection.execute(<<~MYSQL)
+      select last_error, series_id, count(*) from data_sources
+      where universe = 'UHERO'
+      and last_error is not null
+      group by last_error
+      order by 3 desc, 1
+    MYSQL
+    DataSource.connection.execute('set @@SESSION.sql_mode = DEFAULT')    ## restore defaults
+    results.to_a
+  end
+
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
   # to be called from the Rails command line, by a developer doing mass updates to the database.
   #
