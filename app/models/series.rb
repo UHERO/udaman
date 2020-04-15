@@ -676,9 +676,8 @@ class Series < ApplicationRecord
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    Series.new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}",
-                               series_data,
-                               Series.frequency_from_code(options[:frequency]))
+    from = Download.get(handle).save_path rescue raise("Unknown handle #{handle}")
+    Series.new_transformation("loaded from download to #{from}", series_data, frequency_from_code(options[:frequency]))
   end
   
   def Series.load_from_file(file, options)
@@ -698,7 +697,8 @@ class Series < ApplicationRecord
   def load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
+    from = Download.get(handle).save_path rescue raise("Unknown handle #{handle}")
+    new_transformation("loaded from download to #{from}", series_data)
   end
 
   ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
@@ -786,8 +786,9 @@ class Series < ApplicationRecord
     end
     false
   end
-  
-  def handle
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def handle_DELETEME?
     self.data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return ds.eval.split('load_from_download')[1].split("\"")[1]
@@ -796,7 +797,8 @@ class Series < ApplicationRecord
     nil
   end
 
-  def original_url
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def original_url_DELETEME?
     self.data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url

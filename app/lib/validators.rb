@@ -32,4 +32,8 @@ module Validators
     end
     true
   end
+
+  def valid_data_path(string)
+    true
+  end
 end

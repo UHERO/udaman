@@ -70,18 +70,21 @@ module SeriesHelper
     parts.join
   end
 
-  def text_with_linked_series(text, action = :show)
+  def text_with_linked_things(text, action = :show)
     return '' if text.blank?
-    new_words = []
-    text.split(' ').each do |word|
-      new_word = word
+    words = text.split(' ')
+    words.each_with_index do |word, index|
       if valid_series_name(word)
         series = word.ts
-        new_word = link_to(word, { action: action, id: series }) if series
+        words[index] = link_to(word, { action: action, id: series }) if series
+        next
       end
-      new_words.push new_word
-    end
-    new_words.join(' ')
+      if valid_data_path(word)
+        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: word })
+        next
+      end
+   end
+    words.join(' ')
   end
   
   def aremos_color(diff)
