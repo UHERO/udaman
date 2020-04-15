@@ -673,13 +673,28 @@ class Series < ApplicationRecord
     new_transformation("generated randomly for testing", series_data)
   end
 
+  def load_from_download(handle, options)
+    dp = DownloadProcessor.new(handle, options)
+    series_data = dp.get_data
+    descript = "loaded from #{handle} with options:#{display_options(options)}"
+    if valid_download_handle(handle) && handle !~ /%/
+      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+      descript = "loaded from download to #{path}"
+    end
+    new_transformation(descript, series_data)
+  end
+
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    from = Download.get(handle).save_path rescue raise("Unknown handle #{handle}")
-    Series.new_transformation("loaded from download to #{from}", series_data, frequency_from_code(options[:frequency]))
+    descript = "loaded from #{handle} with options:#{display_options(options)}"
+    if valid_download_handle(handle) && handle !~ /%/
+      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+      descript = "loaded from download to #{path}"
+    end
+    Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
-  
+
   def Series.load_from_file(file, options)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
@@ -694,13 +709,6 @@ class Series < ApplicationRecord
     new_transformation("loaded from pattern id #{id}", {})
   end
   
-  def load_from_download(handle, options)
-    dp = DownloadProcessor.new(handle, options)
-    series_data = dp.get_data
-    from = Download.get(handle).save_path rescue raise("Unknown handle #{handle}")
-    new_transformation("loaded from download to #{from}", series_data)
-  end
-
   ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
