@@ -1,5 +1,6 @@
 class DownloadsController < ApplicationController
   include Authorization
+  include Validators
 
   before_action :check_authorization
   before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
@@ -76,7 +77,8 @@ class DownloadsController < ApplicationController
   end
 
   def pull_file
-
+    path = params[:path]
+    send_file path if valid_data_path(path)
   end
 
   def test_url
@@ -94,7 +96,8 @@ class DownloadsController < ApplicationController
     render :partial => 'parameter_formatting_test_results'
   end
 
-  private
+private
+
   def download_params
     params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
   end

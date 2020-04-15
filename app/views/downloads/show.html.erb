@@ -29,7 +29,7 @@ div#summary_area h2 {font-size:30px;}
 </div>
 <div id="details_area">
   <h2>File location</h2>
-  <%= @output_file.save_path %>
+  <%= link_to @output_file.save_path, { action: :pull_file, path: @output_file.save_path } %><br/>
 
   <h2>Links</h2>
   <%= link_to 'download-to-server', { action: :download, id: @output_file } %><br/>
