@@ -74,7 +74,11 @@ class DownloadsController < ApplicationController
       end
     end
   end
-  
+
+  def pull_file
+
+  end
+
   def test_url
     @test_url_status = Download.test_url(URI.encode(params[:change_to]))
     render :partial => 'download_test_results'

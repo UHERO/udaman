@@ -11,7 +11,7 @@ module Validators
                   (\#\w+)?                    # hash-mark-introduced word
                   )}ix
 
-  ## Only matches basic, simple email addresses (although these should be the majority). Returns only the whole address as $1
+  ## Only matches basic, simple email addresses (although these should be the vast majority). Returns only the whole address as $1
   ## Download handle match differs from email because it includes % character for time-sensitive handles
   BASIC_EMAIL_ADDR = %r{(\w+   @(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}ix
   DOWNLOAD_HANDLE  = %r{([%\w]+@(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}ix
@@ -34,6 +34,6 @@ module Validators
   end
 
   def valid_data_path(string)
-    true
+    string =~ /^#{ENV['DATA_PATH']}\//
   end
 end
