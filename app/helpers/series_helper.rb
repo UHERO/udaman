@@ -70,7 +70,7 @@ module SeriesHelper
     parts.join
   end
 
-  def text_with_linked_things(text, action = :show)
+  def text_with_linked_words(text, action = :show)
     return '' if text.blank?
     words = text.split(' ')
     words.each_with_index do |word, index|
