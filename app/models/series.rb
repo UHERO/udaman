@@ -614,7 +614,7 @@ class Series < ApplicationRecord
     #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency
-    new_transformation(spreadsheet_path, update_spreadsheet.series(self.name))
+    new_transformation("loaded from static file #{spreadsheet_path}", update_spreadsheet.series(self.name))
   end
 
   def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
@@ -631,7 +631,7 @@ class Series < ApplicationRecord
 
     self.frequency = update_spreadsheet.frequency
     ns_name = self.name.sub('@','NS@')
-    new_transformation(spreadsheet_path, update_spreadsheet.series(ns_name))
+    new_transformation("loaded sa from static file #{spreadsheet_path}", update_spreadsheet.series(ns_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
@@ -673,11 +673,12 @@ class Series < ApplicationRecord
     new_transformation("generated randomly for testing", series_data)
   end
 
+  ## Is this instance method even used??
   def load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     descript = "loaded from #{handle} with options #{display_options(options)}"
-    if valid_download_handle(handle, time_sensitive: false)
+    if Series.valid_download_handle(handle, time_sensitive: false)
       path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
@@ -688,7 +689,7 @@ class Series < ApplicationRecord
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     descript = "loaded from #{handle} with options #{display_options(options)}"
-    if valid_download_handle(handle, time_sensitive: false)
+    if Series.valid_download_handle(handle, time_sensitive: false)
       path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
@@ -700,9 +701,7 @@ class Series < ApplicationRecord
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    Series.new_transformation("loaded from file #{file} with options:#{display_options(options)}",
-                               series_data,
-                               Series.frequency_from_code(options[:frequency]))
+    Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
   end
   
   def load_from_pattern_id(id)

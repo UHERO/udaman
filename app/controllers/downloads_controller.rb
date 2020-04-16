@@ -77,8 +77,7 @@ class DownloadsController < ApplicationController
   end
 
   def pull_file
-    path = params[:path]
-    send_file path if valid_data_path(path)
+    send_file File.join(ENV['DATA_PATH'], params[:path])  ## only extract files under the DATA_PATH!
   end
 
   def test_url

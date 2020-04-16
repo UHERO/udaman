@@ -88,7 +88,8 @@ module SeriesHelper
         next
       end
       if valid_data_path(word)
-        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: word })
+        rel_path = data_path_relativize(word)  ## relativize path under DATA_PATH prefix
+        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
         next
       end
    end
@@ -150,4 +151,7 @@ module SeriesHelper
     "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 
+  def data_path_relativize(path)
+    path.sub(ENV['DATA_PATH'] + '/', '')
+  end
 end
