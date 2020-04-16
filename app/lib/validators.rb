@@ -20,8 +20,12 @@ module Validators
     string =~ %r{^#{BASIC_URL}$}i
   end
 
-  def valid_download_handle(string)
-    string =~ %r{^#{DOWNLOAD_HANDLE}$}i
+  def valid_download_handle(string, time_sensitive: true)
+    if time_sensitive
+      string =~ %r{^#{DOWNLOAD_HANDLE}$}i
+    else
+      string =~ %r{^#{BASIC_EMAIL_ADDR}$}i
+    end
   end
 
   def valid_series_name(string)
