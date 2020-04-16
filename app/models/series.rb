@@ -12,7 +12,7 @@ class Series < ApplicationRecord
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
-  include Validators
+  extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
@@ -676,7 +676,7 @@ class Series < ApplicationRecord
   def load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    descript = "loaded from #{handle} with options:#{display_options(options)}"
+    descript = "loaded from #{handle} with options #{display_options(options)}"
     if valid_download_handle(handle, time_sensitive: false)
       path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
@@ -687,7 +687,7 @@ class Series < ApplicationRecord
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    descript = "loaded from #{handle} with options:#{display_options(options)}"
+    descript = "loaded from #{handle} with options #{display_options(options)}"
     if valid_download_handle(handle, time_sensitive: false)
       path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
@@ -1358,7 +1358,7 @@ class Series < ApplicationRecord
   end
 
   def source_link_is_valid
-    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+    source_link.blank? || Series.valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
   def force_destroy!
