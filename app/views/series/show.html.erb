@@ -78,7 +78,7 @@ google.visualization.events.addListener(chart, 'select', function() {
   <div id="notes"><p><%= @series.investigation_notes %></p></div>
 
 	<div id="navigation">
-    <% if current_user.internal_user? %>
+    <% if current_user.admin_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
