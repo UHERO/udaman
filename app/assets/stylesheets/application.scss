@@ -144,6 +144,7 @@ table#search_results td {border:none;}
 td a:link { text-decoration: none; }
 td.linkselect a:link { display: block }
 
-/* No underlining for links in top menu */
+/* No underlining for links in menus */
 div#top-level-nav a:link { text-decoration: none; }
+div#navigation a:link { text-decoration: none; }
 div#chart-board-nav a:link { text-decoration: none; }
