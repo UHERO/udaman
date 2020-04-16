@@ -700,7 +700,7 @@ class Series < ApplicationRecord
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    Series.new_transformation("loaded from file #{file} with options:#{Series.display_options(options)}",
+    Series.new_transformation("loaded from file #{file} with options:#{display_options(options)}",
                                series_data,
                                Series.frequency_from_code(options[:frequency]))
   end
