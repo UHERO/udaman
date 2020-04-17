@@ -1053,8 +1053,9 @@ class Series < ApplicationRecord
     end
     eval_statements.each {|es| eval(es)}
   end
-  
-  def delete_with_data
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def delete_with_data_DELETEME?
     puts "deleting #{name}"
     data_sources.each do |ds|
       puts "deleting: #{ds.id}" + ds.eval 
@@ -1122,7 +1123,7 @@ class Series < ApplicationRecord
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def Series.missing_from_aremos_DELETE_ME
+  def Series.missing_from_aremos_DELETEME?
     name_buckets = {}
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
     name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}
