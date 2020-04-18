@@ -823,7 +823,8 @@ class Series < ApplicationRecord
     observations
   end
 
-  def new_data?
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_data_DELETEME?
     xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
