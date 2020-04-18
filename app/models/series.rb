@@ -300,7 +300,13 @@ class Series < ApplicationRecord
     end
     region_hash
   end
-  
+
+  def Series.region_counts
+    region_counts = Series.region_hash
+    region_counts.each {|key,value| region_counts[key] = value.count}
+    region_counts
+  end
+
   def Series.frequency_hash
     frequency_hash = {}
     all_names = Series.get_all_uhero.select('name, frequency')
@@ -316,25 +322,14 @@ class Series < ApplicationRecord
     frequency_counts.each {|key,value| frequency_counts[key] = value.count}
     frequency_counts
   end
-  
-  def Series.region_counts
-    region_counts = Series.region_hash
-    region_counts.each {|key,value| region_counts[key] = value.count}
-    region_counts
-  end
-  
-  
+
   def Series.code_from_frequency(frequency)
-    return 'A' if frequency == :year || frequency == 'year' || frequency == :annual || frequency == 'annual' || frequency == 'annually'
-    return 'Q' if frequency == :quarter || frequency == 'quarter' || frequency == 'quarterly'
-    return 'M' if frequency == :month || frequency == 'month' || frequency == 'monthly'
-    return 'S' if frequency == :semi || frequency == 'semi' || frequency == 'semi-annually'
-    return 'W' if frequency == :week || frequency == 'week' || frequency == 'weekly'
-    return 'D' if frequency == :day || frequency == 'day' || frequency == 'daily'
-    
-    return ''
+    frequency = frequency.to_s.downcase.sub(/ly$/,'')  ## handle words like annually, monthly, daily, etc
+    frequency = 'semi' if frequency =~ /^semi/  ## just in case
+    mapping = { year: 'A', annual: 'A', semi: 'S', quarter: 'Q', month: 'M', week: 'W', day: 'D', dai: 'D' }
+    mapping[frequency.to_sym].to_s
   end
-  
+
   def Series.frequency_from_code(code)
     case code && code.upcase
       when 'A' then :year
