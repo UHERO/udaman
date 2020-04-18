@@ -1,5 +1,5 @@
 <%= render :partial => 'calculate_form' %>
-<h1><%= linked_version_with_action(@series.name,'analyze').html_safe %></h1>
+<h1><%= text_with_linked_words(@series.name, :analyze).html_safe %></h1>
 <h3><%= @desc %></h3>
 
 <div id="finance" style="width:800px;">

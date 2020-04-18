@@ -12,7 +12,7 @@ div#summary_area h2 {font-size:30px;}
 <% end %>
 <div id="summary_area">
 	<% unless @output_file.dsd_log_entries.nil? %>
-	<h2 class="handle-h2">Download Log</h2>
+	<h2>Download log</h2>
 	<table class="dl-log">
 	<% current_url = "" %>
 	<% @output_file.dsd_log_entries.order(time: :desc).each do |dl| %>
@@ -28,8 +28,12 @@ div#summary_area h2 {font-size:30px;}
 	<% end %>
 </div>
 <div id="details_area">
-  <h2>File location</h2>
-  <%= @output_file.save_path %>
+  <h2>Server file location</h2>
+  <%= link_to @output_file.save_path, { action: :pull_file, path: data_path_relativize(@output_file.save_path) } %><br/>
+
+  <h2>Orig source links</h2>
+  <%= link_to 'download-to-server', { action: :download, id: @output_file } %><br/>
+  <%= link_to 'download-to-user', @output_file.url %>
 
   <% unless @output_file.notes.nil? %>
 	<h2>Notes</h2>
@@ -37,7 +41,7 @@ div#summary_area h2 {font-size:30px;}
 	<% end %>
 
   <% unless @output_file.handle.nil? or @output_file.handle == "" %>
-	<h2 class="handle-h2">Series</h2>
+	<h2>Series</h2>
 	<table>	
 	<% DataSource.where("eval LIKE '%#{@output_file.handle}%'").all.each do |ds| %>
 	<% s = ds.series %>
