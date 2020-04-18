@@ -668,18 +668,6 @@ class Series < ApplicationRecord
     new_transformation("generated randomly for testing", series_data)
   end
 
-  ## Is this instance method even used??
-  def load_from_download(handle, options)
-    dp = DownloadProcessor.new(handle, options)
-    series_data = dp.get_data
-    descript = "loaded from #{handle} with options #{display_options(options)}"
-    if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
-      descript = "loaded from download to #{path}"
-    end
-    new_transformation(descript, series_data)
-  end
-
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
