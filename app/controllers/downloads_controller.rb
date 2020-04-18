@@ -1,6 +1,5 @@
 class DownloadsController < ApplicationController
   include Authorization
-  include Validators
 
   before_action :check_authorization
   before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
