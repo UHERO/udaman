@@ -58,8 +58,6 @@ module SeriesHelper
   
   def text_with_linked_download(text)
     return '' if text.blank?
-    return text.split(' ').join('&nbsp;') unless text =~ /load_from_download/
-
     parts = text.split(DOWNLOAD_HANDLE)
     parts.each_with_index do |str, index|
       if valid_download_handle(str)
