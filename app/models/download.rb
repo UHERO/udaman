@@ -1,5 +1,6 @@
 class Download < ApplicationRecord
   include Cleaning
+  extend Validators
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_sources, -> {distinct}, through: :data_source_downloads
   has_many :dsd_log_entries
@@ -23,7 +24,11 @@ class Download < ApplicationRecord
   end
 
   def Download.get(handle)
-    Download.where(:handle => handle).first
+    case valid_download_handle(handle)
+      when 'nontime' then Download.find_by(handle: handle)
+      when 'time'    then find_all_by_pattern(handle)
+      else raise "Invalid download handle #{handle}"
+    end
   end
 
   def Download.test_url(url)
@@ -195,5 +200,11 @@ class Download < ApplicationRecord
       return 'duplicate' if dl.id != self.id && dl.save_path == self.save_path
     end
     'ok'
+  end
+
+private
+
+  def find_all_by_pattern(pattern)
+    pattern
   end
 end

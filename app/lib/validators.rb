@@ -21,11 +21,10 @@ module Validators
   end
 
   def valid_download_handle(string, time_sensitive: true)
-    if time_sensitive
-      string =~ %r{^#{DOWNLOAD_HANDLE}$}i
-    else
-      string =~ %r{^#{BASIC_EMAIL_ADDR}$}i
-    end
+    ### this is not right yet - needs a-fixin
+    return 'time' if time_sensitive && string =~ %r{^#{DOWNLOAD_HANDLE}$}i
+    return 'nontime' if string =~ %r{^#{BASIC_EMAIL_ADDR}$}i
+    false
   end
 
   def valid_series_name(string)
