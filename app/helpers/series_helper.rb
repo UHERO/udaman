@@ -115,7 +115,7 @@ module SeriesHelper
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
+    "<span style='color:red;'>unvalidatable url=#{url}</span>".html_safe
   end
 
   def sa_indicator(string)
