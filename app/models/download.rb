@@ -7,6 +7,9 @@ class Download < ApplicationRecord
 
   require 'rest-client'
 
+  validates :handle, presence: true, uniqueness: true
+  validate :handle_is_valid
+
   serialize :post_parameters, Hash
   serialize :download_log, Array
 
@@ -202,7 +205,11 @@ class Download < ApplicationRecord
     'ok'
   end
 
-private
+  def handle_is_valid
+    Download.valid_download_handle(handle) || errors.add(:handle, 'is not a valid download handle')
+  end
+
+  private
 
   def find_all_by_pattern(pattern)
     pattern

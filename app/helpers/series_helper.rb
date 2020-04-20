@@ -63,7 +63,8 @@ module SeriesHelper
       if valid_download_handle(str)
         download = Download.get(str)
         if download
-          parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
+          ##parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
+          parts[index] = link_to(str, download)  ### does this work?
           next
         end
         unless parts[index] =~ /%/
