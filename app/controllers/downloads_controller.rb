@@ -16,6 +16,14 @@ class DownloadsController < ApplicationController
     end
   end
 
+  def subset(handle)
+    wid = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
+    wid.keys.each do |op|
+      handle.gsub!(op, wid[op])
+    end
+    @output_files = Download.where('foo')
+  end
+
   def new
     @output_file = Download.new
   end
