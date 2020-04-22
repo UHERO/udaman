@@ -9,19 +9,19 @@ class DownloadsController < ApplicationController
     @domain_hash = {}
     @output_files.each do |dl|
       if dl.url
-        domain_name = dl.url.split('/')[2].split(':')[0]
+        domain_name = dl.url.split('/')[2].split(':')[0]  ## this is super hacky but basically works
         @domain_hash[domain_name] ||= []  ## initialize empty array here if not already existing
         @domain_hash[domain_name].push(dl.handle)
       end
     end
   end
 
-  def subset(handle)
-    wid = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
-    wid.keys.each do |op|
-      handle.gsub!(op, wid[op])
+  def pattern(handle_pattern)
+    regeces = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
+    regeces.keys.each do |op|
+      handle_pattern.gsub!(op, regeces[op])
     end
-    @output_files = Download.where('foo')
+    @output_files = Download.where('handle regexp ?', handle_pattern).order(handle: :desc)
   end
 
   def new
@@ -85,7 +85,7 @@ class DownloadsController < ApplicationController
 
   def pull_file
     path = params[:path]
-    path.gsub!('..', '')  ## don't let users go "up" and outside the path root restriction
+    path.gsub!('/..', '')  ## don't let users go "up" and outside the path root restriction
     send_file File.join(ENV['DATA_PATH'], path)  ## only extract files under the DATA_PATH!
   end
 
