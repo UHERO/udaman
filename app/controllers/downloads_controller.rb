@@ -9,7 +9,7 @@ class DownloadsController < ApplicationController
     @domain_hash = {}
     @output_files.each do |dl|
       if dl.url
-        domain_name = dl.url.split('/')[2]
+        domain_name = dl.url.split('/')[2].split(':')[0]
         @domain_hash[domain_name] ||= []  ## initialize empty array here if not already existing
         @domain_hash[domain_name].push(dl.handle)
       end
