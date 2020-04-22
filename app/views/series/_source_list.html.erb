@@ -25,8 +25,8 @@
           <% if myeval =~ /load_from_download/ %>
              <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
           <% end %>
-          <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %>
-        <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" unless ds.runtime.nil? %>)</span> |
+          <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %><% if ds.runtime %>
+                              <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" %>)</span><% end %> |
         <%= link_to nightly_actuator(ds.reload_nightly), {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
         <% if ds.last_error %>
           <br/><span style='color:red;'><%= text_with_linked_download(ds.last_error) %> (<%= ds.last_error_at.strftime('%m/%d/%y %H:%M') %>)</span>
