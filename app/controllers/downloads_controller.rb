@@ -6,22 +6,18 @@ class DownloadsController < ApplicationController
 
   def index
     @output_files = Download.order(:url).all
-    @domain_hash = {}
-    @output_files.each do |dl|
-      if dl.url
-        domain_name = dl.url.split('/')[2].split(':')[0]  ## this is super hacky but basically works
-        @domain_hash[domain_name] ||= []  ## initialize empty array here if not already existing
-        @domain_hash[domain_name].push(dl.handle)
-      end
-    end
+    @domain_hash = get_handles_per_domain(@output_files)
   end
 
-  def pattern(handle_pattern)
+  def by_pattern
+    handle_pattern = params[:pat]
     regeces = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
     regeces.keys.each do |op|
       handle_pattern.gsub!(op, regeces[op])
     end
     @output_files = Download.where('handle regexp ?', handle_pattern).order(handle: :desc)
+    @domain_hash = get_handles_per_domain(@output_files)
+    render action: index
   end
 
   def new
@@ -114,4 +110,14 @@ private
     @output_file = Download.find params[:id]   ### this instance var name is outrageously stupid - CHANGE IT
   end
 
+  def get_handles_per_domain(downloads)
+    hash = {}
+    downloads.each do |dl|
+      next if dl.url.nil?
+      domain = dl.url.split('/')[2].split(':')[0]  ## super hacky and awful but basically works
+      hash[domain] ||= []  ## initialize empty array here if not already existing
+      hash[domain].push(dl.handle)
+    end
+    hash
+  end
 end
