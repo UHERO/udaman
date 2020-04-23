@@ -62,7 +62,7 @@ module SeriesHelper
     parts.each_with_index do |str, index|
       case valid_download_handle(str)
         when :nontime
-          download = Download.get(str)
+          download = Download.get(str, :nontime)
           if download
             ##parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
             parts[index] = link_to(str, download)  ### does this work?
