@@ -5,7 +5,7 @@ class DownloadsController < ApplicationController
   before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
 
   def index
-    @output_files = Download.order(:url).all
+    @output_files = Download.order(:url).all   ## this instance var name is outrageously stupid - CHANGE IT
     @domain_hash = get_handles_per_domain(@output_files)
   end
 

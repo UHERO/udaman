@@ -13,17 +13,17 @@ module Validators
 
   ## Only matches basic, simple email addresses (although these should be the vast majority). Returns only the whole address as $1
   ## Download handle match differs from email because it includes % character for time-sensitive handles
-  BASIC_EMAIL_ADDR = %r{(\w+   @(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}ix
-  DOWNLOAD_HANDLE  = %r{([%\w]+@(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}ix
+  ##BASIC_EMAIL_ADDR = %r{(\w+@(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}i
+  DOWNLOAD_HANDLE  = %r{([%\w]+@(?:[a-z0-9]\.|\w[-\w]*\w\.)+[a-z]+)}i
 
   def valid_url(string)
     string =~ %r{^#{BASIC_URL}$}i
   end
 
-  def valid_download_handle(string, time_sensitive: true)
-    ### this is not right yet - needs a-fixin
-    return 'time' if time_sensitive && string =~ %r{^#{DOWNLOAD_HANDLE}$}i
-    return 'nontime' if string =~ %r{^#{BASIC_EMAIL_ADDR}$}i
+  def valid_download_handle(string, time_sensitive: nil)
+    return false unless string =~ %r{^#{DOWNLOAD_HANDLE}$}i
+    return 'nontime' if string !~ /%/ && !time_sensitive
+    return 'time'    if string =~ /%/ && (time_sensitive || time_sensitive.nil?)
     false
   end
 
