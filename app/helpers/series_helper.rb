@@ -60,19 +60,20 @@ module SeriesHelper
     return '' if text.blank?
     parts = text.split(DOWNLOAD_HANDLE)
     parts.each_with_index do |str, index|
-      if valid_download_handle(str)
-        download = Download.get(str)
-        if download
-          ##parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
-          parts[index] = link_to(str, download)  ### does this work?
-          next
-        end
-        unless parts[index] =~ /%/
-          parts[index] = '<span style="color:red;" title="Non-existent download!">%s</span>' % parts[index]
-        end
-        next
+      case valid_download_handle(str)
+        when 'nontime'
+          download = Download.get(str)
+          if download
+            ##parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
+            parts[index] = link_to(str, download)  ### does this work?
+          else
+            parts[index] = '<span style="color:red;" title="Non-existent download!">%s</span>' % parts[index]
+          end
+        when 'time'
+          parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
+        else
+          parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
       end
-      parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
     end
     parts.join
   end
