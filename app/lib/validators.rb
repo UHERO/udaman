@@ -22,8 +22,8 @@ module Validators
 
   def valid_download_handle(string, time_sensitive: nil)
     return false unless string =~ %r{^#{DOWNLOAD_HANDLE}$}i
-    return 'nontime' if string !~ /%/ && !time_sensitive
-    return 'time'    if string =~ /%/ && (time_sensitive || time_sensitive.nil?)
+    return :nontime if string !~ /%/ && !time_sensitive
+    return :time    if string =~ /%/ && (time_sensitive || time_sensitive.nil?)
     false
   end
 

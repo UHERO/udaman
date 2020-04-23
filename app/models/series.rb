@@ -679,7 +679,7 @@ class Series < ApplicationRecord
     series_data = dp.get_data
     descript = "loaded from #{handle} with options #{display_options(options)}"
     if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+      path = Download.get(handle, :nontime).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
     new_transformation(descript, series_data)
@@ -690,7 +690,7 @@ class Series < ApplicationRecord
     series_data = dp.get_data
     descript = "loaded from #{handle} into a series of files"
     if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+      path = Download.get(handle, :nontime).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))

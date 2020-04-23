@@ -61,7 +61,7 @@ module SeriesHelper
     parts = text.split(DOWNLOAD_HANDLE)
     parts.each_with_index do |str, index|
       case valid_download_handle(str)
-        when 'nontime'
+        when :nontime
           download = Download.get(str)
           if download
             ##parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
@@ -69,7 +69,7 @@ module SeriesHelper
           else
             parts[index] = '<span style="color:red;" title="Non-existent download!">%s</span>' % parts[index]
           end
-        when 'time'
+        when :time
           parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
         else
           parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...

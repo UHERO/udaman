@@ -10,12 +10,7 @@ class DownloadsController < ApplicationController
   end
 
   def by_pattern
-    handle_pattern = params[:pat]
-    regeces = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
-    regeces.keys.each do |op|
-      handle_pattern.gsub!(op, regeces[op])
-    end
-    @output_files = Download.where('handle regexp ?', handle_pattern).order(handle: :desc)
+    @output_files = Download.get(params[:pat], :time)
     @domain_hash = get_handles_per_domain(@output_files)
     render action: index
   end

@@ -26,10 +26,10 @@ class Download < ApplicationRecord
     DEFAULT_DATA_PATH
   end
 
-  def Download.get(handle)
-    case valid_download_handle(handle)
-      when 'nontime' then Download.find_by(handle: handle)
-      when 'time'    then find_all_by_pattern(handle)
+  def Download.get(handle, type = nil)
+    case type || valid_download_handle(handle)
+      when :nontime then Download.find_by(handle: handle)
+      when :time    then find_all_by_pattern(handle)
       else raise "Invalid download handle #{handle}"
     end
   end
@@ -209,9 +209,13 @@ class Download < ApplicationRecord
     Download.valid_download_handle(handle) || errors.add(:handle, 'is not a valid download handle')
   end
 
-  private
+private
 
-  def find_all_by_pattern(pattern)
-    pattern
+  def self.find_all_by_pattern(pattern)
+    regeces = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
+    regeces.keys.each do |op|
+      pattern.gsub!(op, regeces[op])
+    end
+     Download.where('handle regexp ?', pattern).order(handle: :desc)
   end
 end
