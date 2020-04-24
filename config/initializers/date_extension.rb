@@ -100,9 +100,13 @@ class Date
   def semi_d
     Date.new(self.year, self.month > 6 ? 7 : 1)
   end
-  
-  def days_in_period(frequency)
-    case frequency
+
+  def week_d   ## weeks (Sun-Sat) are aggregated to the concluding Saturday
+    saturday? ? self : next_occurring(:saturday)
+  end
+
+  def days_in_period(period)
+    case period.to_s
       when 'year'
         self.leap? ? 366 : 365
       when 'semi'
@@ -111,8 +115,10 @@ class Date
         self.quarter_d.days_in_month + (self.quarter_d >> 1).days_in_month + (self.quarter_d >> 2).days_in_month
       when 'month'
         self.days_in_month
+      when 'week'
+        7
       else
-        raise "days_in_period: unknown frequency #{frequency}"
+        raise "days_in_period: unknown period #{period}"
     end
   end
   
