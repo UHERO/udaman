@@ -1,7 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
-  include Validators
   include DataSourceHooks
+  extend Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -306,13 +306,27 @@ class DataSource < ApplicationRecord
     self.dependencies = []
     unless description.blank?
       description.split(' ').each do |word|
-        if valid_series_name(word)
+        if DataSource.valid_series_name(word)
           self.dependencies.push(word)
         end
       end
       self.dependencies.uniq!
     end
     self.save unless dont_save
+  end
+
+  def DataSource.load_error_summary
+    ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
+    DataSource.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
+    results = DataSource.connection.execute(<<~MYSQL)
+      select last_error, series_id, count(*) from data_sources
+      where universe = 'UHERO'
+      and last_error is not null
+      group by last_error
+      order by 3 desc, 1
+    MYSQL
+    DataSource.connection.execute('set @@SESSION.sql_mode = DEFAULT')    ## restore defaults
+    results.to_a
   end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended

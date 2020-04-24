@@ -49,7 +49,7 @@ private
     search_end = opts[:search_end] || compute_search_end(spreadsheet, opts)
 
     (search_start..search_end).each {|loc| return loc if match?(loc, spreadsheet, opts) }
-    raise "Cannot find header '#{opts[:header_name]}' in handle #{opts[:handle]}"
+    raise 'Cannot find header "%s" in handle %s' % [opts[:header_name], opts[:handle]]
   end
 
   def match?(loc, spreadsheet, opts)

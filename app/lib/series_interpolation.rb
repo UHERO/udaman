@@ -240,8 +240,8 @@ module SeriesInterpolation
     new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
 
-  # this method currently vestigial - fix and use, or remove?
-  def interpolate_missing_months_and_aggregate(frequency, operation)
+  # this method looks obsolete/vestigial - rename now, remove later
+  def interpolate_missing_months_and_aggregate_DELETEME(frequency, operation)
     last_val = nil
     last_date = nil
     monthly_series_data = {}

@@ -57,7 +57,7 @@ class PackagerMailer < ApplicationMailer
   def purge_log_notification(message)
     @message = message
     begin
-      mail(to: %w(djiann@hawaii.edu), subject: 'SeriesReloadLog.purge_old_logs')
+      mail(to: %w(djiann@hawaii.edu), subject: 'Udaman: Problem purging old logs')
     rescue => e
       Rails.logger.error { "PackagerMailer.purge_log_notification error: #{e.message}" }
       mail(to: %w(djiann@hawaii.edu), subject: 'PackagerMailer.purge_log_notification error', body: e.message, content_type: 'text/plain')

@@ -12,7 +12,7 @@ class Series < ApplicationRecord
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
-  include Validators
+  extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
@@ -225,7 +225,7 @@ class Series < ApplicationRecord
   def create_alias(parameters)
     universe = parameters[:universe] || raise('Universe must be specified to create alias')
     raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
-    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe.upcase == self.universe
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
@@ -614,7 +614,7 @@ class Series < ApplicationRecord
     #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency
-    new_transformation(spreadsheet_path, update_spreadsheet.series(self.name))
+    new_transformation("loaded from static file #{spreadsheet_path}", update_spreadsheet.series(self.name))
   end
 
   def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
@@ -631,7 +631,7 @@ class Series < ApplicationRecord
 
     self.frequency = update_spreadsheet.frequency
     ns_name = self.name.sub('@','NS@')
-    new_transformation(spreadsheet_path, update_spreadsheet.series(ns_name))
+    new_transformation("loaded sa from static file #{spreadsheet_path}", update_spreadsheet.series(ns_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
@@ -673,34 +673,41 @@ class Series < ApplicationRecord
     new_transformation("generated randomly for testing", series_data)
   end
 
+  ## Is this instance method even used??
+  def load_from_download(handle, options)
+    dp = DownloadProcessor.new(handle, options)
+    series_data = dp.get_data
+    descript = "loaded from #{handle} with options #{display_options(options)}"
+    if Series.valid_download_handle(handle, time_sensitive: false)
+      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+      descript = "loaded from download to #{path}"
+    end
+    new_transformation(descript, series_data)
+  end
+
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    Series.new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}",
-                               series_data,
-                               Series.frequency_from_code(options[:frequency]))
+    descript = "loaded from #{handle} with options #{display_options(options)}"
+    if Series.valid_download_handle(handle, time_sensitive: false)
+      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+      descript = "loaded from download to #{path}"
+    end
+    Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
-  
+
   def Series.load_from_file(file, options)
     file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    Series.new_transformation("loaded from file #{file} with options:#{Series.display_options(options)}",
-                               series_data,
-                               Series.frequency_from_code(options[:frequency]))
+    Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
   end
   
   def load_from_pattern_id(id)
     new_transformation("loaded from pattern id #{id}", {})
   end
   
-  def load_from_download(handle, options)
-    dp = DownloadProcessor.new(handle, options)
-    series_data = dp.get_data
-    new_transformation("loaded from download #{handle} with options:#{Series.display_options(options)}", series_data)
-  end
-
   ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
     series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
@@ -786,8 +793,9 @@ class Series < ApplicationRecord
     end
     false
   end
-  
-  def handle
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def handle_DELETEME?
     self.data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return ds.eval.split('load_from_download')[1].split("\"")[1]
@@ -796,7 +804,8 @@ class Series < ApplicationRecord
     nil
   end
 
-  def original_url
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def original_url_DELETEME?
     self.data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
@@ -1044,8 +1053,9 @@ class Series < ApplicationRecord
     end
     eval_statements.each {|es| eval(es)}
   end
-  
-  def delete_with_data
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def delete_with_data_DELETEME?
     puts "deleting #{name}"
     data_sources.each do |ds|
       puts "deleting: #{ds.id}" + ds.eval 
@@ -1113,7 +1123,7 @@ class Series < ApplicationRecord
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def Series.missing_from_aremos_DELETE_ME
+  def Series.missing_from_aremos_DELETEME?
     name_buckets = {}
     (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
     name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}
@@ -1293,7 +1303,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', clear_first = false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly = false, clear_first = false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
@@ -1315,7 +1325,7 @@ class Series < ApplicationRecord
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix)
+    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix, nightly)
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
     mgr.batch_reload(clear_first)
   end
@@ -1348,7 +1358,7 @@ class Series < ApplicationRecord
   end
 
   def source_link_is_valid
-    source_link.blank? || valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+    source_link.blank? || Series.valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
   def force_destroy!

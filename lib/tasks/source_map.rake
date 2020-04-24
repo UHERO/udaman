@@ -55,7 +55,7 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
   full_set_ids -= Series.search_box('#load_from_bea').pluck(:id)
   full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
-  full_set_ids -= Series.search_box('#tour_ocup%y').pluck(:id)
+  full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
   full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
@@ -70,8 +70,9 @@ task :reload_stales_only => :environment do
   end
 end
 
-task :purge_old_reload_logs => :environment do
+task :purge_old_logs => :environment do
   SeriesReloadLog.purge_old_logs
+  DsdLogEntry.purge_old_logs(6.weeks)
 end
 
 task :build_rebuild => :environment do
@@ -85,7 +86,8 @@ end
 task :reload_hiwi_series_only => :environment do
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.get_all_series_by_eval('hiwi.org')
-  mgr = SeriesReloadManager.new(hiwi_series, 'hiwi')
+  ## Convert this to use Series.reload_with_dependencies instead
+  mgr = SeriesReloadManager.new(hiwi_series, 'hiwi', true)
   Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
 end
@@ -93,7 +95,8 @@ end
 task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
   bls_series = Series.get_all_series_by_eval('load_from_bls')
-  mgr = SeriesReloadManager.new(bls_series, 'bls')
+  ## Convert this to use Series.reload_with_dependencies instead
+  mgr = SeriesReloadManager.new(bls_series, 'bls', true)
   Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
 end
@@ -101,7 +104,8 @@ end
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
-  mgr = SeriesReloadManager.new(bea_series, 'bea')
+  ## Convert this to use Series.reload_with_dependencies instead
+  mgr = SeriesReloadManager.new(bea_series, 'bea', true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
 end
@@ -109,13 +113,13 @@ end
 task :reload_vap_hi_daily_series_only => :environment do
   Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
   vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
-  Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid')
+  Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid', true)
 end
 
 task :reload_tour_ocup_series_only => :environment do
   Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
   tour_ocup = Series.search_box('#tour_ocup%Y')
-  Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup')
+  Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', true)
 end
 
 task :update_public_data_points => :environment do

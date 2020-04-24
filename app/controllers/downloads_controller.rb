@@ -74,7 +74,11 @@ class DownloadsController < ApplicationController
       end
     end
   end
-  
+
+  def pull_file
+    send_file File.join(ENV['DATA_PATH'], params[:path])  ## only extract files under the DATA_PATH!
+  end
+
   def test_url
     @test_url_status = Download.test_url(URI.encode(params[:change_to]))
     render :partial => 'download_test_results'
@@ -90,13 +94,14 @@ class DownloadsController < ApplicationController
     render :partial => 'parameter_formatting_test_results'
   end
 
-  private
+private
+
   def download_params
     params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
   end
 
   def set_download
-    @output_file = Download.find params[:id]
+    @output_file = Download.find params[:id]   ### this instance var name is outrageously stupid - CHANGE IT
   end
 
 end
