@@ -2,7 +2,7 @@ module SeriesAggregation
   def aggregate_data_by(frequency, operation, prune: true)
     validate_aggregation(frequency)
     
-    grouped_data = group_data_by(frequency, prune)
+    grouped_data = group_data_by(frequency, prune: prune)
     aggregated_data = {}
     grouped_data.keys.each do |date_string|
       aggregated_data[date_string] = grouped_data[date_string].send(operation)
@@ -11,11 +11,11 @@ module SeriesAggregation
   end
 
   def aggregate(frequency, operation, prune: true)
-    new_transformation("Aggregated from #{self}", aggregate_data_by(frequency, operation, prune), frequency)
+    new_transformation("Aggregated from #{self}", aggregate_data_by(frequency, operation, prune: prune), frequency)
   end
 
   def aggregate_by(frequency, operation, prune: true)
-    aggregate(frequency, operation, prune)
+    aggregate(frequency, operation, prune: prune)
   end
   
   # Only returns complete groups

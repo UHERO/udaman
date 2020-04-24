@@ -586,7 +586,7 @@ class Series < ApplicationRecord
   
   def new_transformation(name, data, frequency = nil)
     raise "Undefined dataset for new transformation '#{name}'" if data.nil?
-    frequency = frequency_from_code(frequency) || frequency || self.frequency || frequency_from_name(name)
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
     Series.new(
       :name => name,
       :xseries => Xseries.new(frequency: frequency),
