@@ -12,7 +12,6 @@ class DownloadsController < ApplicationController
   def by_pattern
     @output_files = Download.get(params[:pat], :time)
     @domain_hash = get_handles_per_domain(@output_files)
-    render action: index
   end
 
   def new
