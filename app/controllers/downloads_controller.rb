@@ -76,7 +76,7 @@ class DownloadsController < ApplicationController
 
   def pull_file
     path = params[:path]
-    path.gsub!('/..', '')  ## don't let users go "up" and outside the path root restriction
+    path.gsub!('..', '')  ## don't let users go "up" and outside the path root restriction
     send_file File.join(ENV['DATA_PATH'], path)  ## only extract files under the DATA_PATH!
   end
 
