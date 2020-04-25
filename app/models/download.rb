@@ -212,7 +212,7 @@ class Download < ApplicationRecord
 private
 
   def self.find_all_by_pattern(pattern)
-    regeces = { '%Y' => '[12]\d\d\d', '%y' => '\d\d', '%b' => '[A-Z]{3}', '%m' => '[01]\d' }
+    regeces = { '%Y' => '[12][0-9]{3}', '%y' => '[0-9]{2}', '%b' => '[A-Z]{3}', '%m' => '[01][0-9]' }
     regeces.keys.each do |op|
       pattern.gsub!(op, regeces[op])
     end
