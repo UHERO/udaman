@@ -2,7 +2,7 @@ class DownloadsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
+  before_action :set_download, only: [:show, :edit, :duplicate, :update, :destroy, :download]
 
   def index
     @output_files = Download.order(:url).all   ## this instance var name is outrageously stupid - CHANGE IT
@@ -17,6 +17,12 @@ class DownloadsController < ApplicationController
 
   def new
     @output_file = Download.new
+  end
+
+  def duplicate
+    @output_file = @output_file.dup
+    @output_file.assign_attributes(last_download_at: nil, last_change_at: nil, freeze_file: nil, notes: nil)
+    render :edit
   end
 
   def show
