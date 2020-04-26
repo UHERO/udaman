@@ -1,21 +1,11 @@
 <div id="summary_area">
 	<h2>Downloads</h2>
-	<div id="navigation"><%= link_to "Add Download", {:action => 'new' }%></div>
+	<div id="navigation"><%= link_to 'New Download', { action: :new } %></div>
 </div>
 <div id="details_area">
 	<% @domain_hash.sort.each do |domain, handle_array| %>
 		<h2><%= domain %></h2>
 		<table class="list_table">
-			<tr>
-				<th></th>
-				<th></th>
-				<th></th>
-				<!-- <th colspan="2">Last Attempt</th> -->
-				<th></th>
-				<th></th>
-				<!-- <th>Url / Path</th> -->
-
-			</tr>
 			<% handle_array.each do |handle|
           download = nil
           @output_files.each do |dsd|
