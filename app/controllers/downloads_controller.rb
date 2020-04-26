@@ -5,7 +5,7 @@ class DownloadsController < ApplicationController
   before_action :set_download, only: [:show, :edit, :duplicate, :update, :destroy, :download]
 
   def index
-    @output_files = Download.order(:url).all   ## this instance var name is outrageously stupid - CHANGE IT
+    @output_files = Download.order(:handle).all   ## this instance var name is outrageously stupid - CHANGE IT
     @domain_hash = get_handles_per_domain(@output_files)
   end
 
@@ -104,7 +104,8 @@ class DownloadsController < ApplicationController
 private
 
   def download_params
-    params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
+    params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override,
+                                     :sort1, :sort2, :post_parameters, :notes)
   end
 
   def set_download
