@@ -16,35 +16,35 @@
 				<!-- <th>Url / Path</th> -->
 
 			</tr>
-			<% handle_array.sort.each do |handle|
-      download = nil
-			@output_files.each do |dsd|
-				if dsd.handle == handle
-					download = dsd
-					break
-				end
-			end
-			#this needs to be cached in the record
-			#last_attempt = download.dsd_log_entries.order(:time).last
-			
-			filename = download.save_path.nil? ? "" : download.save_path.split("/")[-1]
+			<% handle_array.each do |handle|
+          download = nil
+          @output_files.each do |dsd|
+            if dsd.handle == handle
+              download = dsd
+              break
+            end
+          end
 			%>
 			<tr>
-					<% if download.handle.nil? %>
-					<td><strong style="color:#DDD"><%= filename %></strong></td>
-					<% else %>
-					<td><%= link_to download.handle, download %>
-                 <% if download.freeze_file %><i class="fas fa-ban redban" title="frozen"></i><% end %>
-          </td>
+					<% if download.handle %>
+              <td><%= link_to download.handle, download %>
+                     <% if download.freeze_file %><i class="fas fa-ban redban" title="frozen"></i><% end %>
+              </td>
+          <% else %>
+              <% filename = download.save_path.split('/')[-1] rescue nil %>
+              <td><strong style="color:#DDD"><%= filename %></strong></td>
 					<% end %>
-					<td><%= link_to 'edit', { action: :edit, id: download.id } %></td>
-					<td><%= link_to 'delete', download, method: :delete, data: { confirm: "Deleting #{download.handle}: Are you sure??" } %></td>
+          <% if current_user.admin_user? %>
+            <td><%= link_to 'edit', { action: :edit, id: download.id } %></td>
+            <td><%= link_to 'delete', download, method: :delete, data: { confirm: "Deleting #{download.handle}: Are you sure??" } %></td>
+            <td><%= link_to 'duplicate', { action: :duplicate, id: download.id } %></td>
+          <% end %>
           <td><%= link_to 'download-to-server', { action: :download, id: download.id }%></td>
           <td><%= link_to 'download-to-user', download.url %></td>
 			</tr>
 			<% end %>
 		</table>
 	<% end %>
-</div>
 
-<p>
+  <p>&nbsp;</p>
+</div>

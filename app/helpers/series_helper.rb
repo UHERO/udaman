@@ -64,9 +64,8 @@ module SeriesHelper
         when :nontime
           download = Download.get(str, :nontime)
           if download
-            ##parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
-            parts[index] = link_to(str, download)  ### does this work?
-          else
+            parts[index] = link_to(str, download)
+          elsif text =~ /load_from_download/  ## ugh, but... reality
             parts[index] = '<span style="color:red;" title="Non-existent download!">%s</span>' % parts[index]
           end
         when :time
