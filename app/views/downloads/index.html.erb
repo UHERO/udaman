@@ -1,6 +1,8 @@
 <div id="summary_area">
 	<h2>Downloads</h2>
-	<div id="navigation"><%= link_to 'New Download', { action: :new } %></div>
+  <% if current_user.admin_user? %>
+      <div id="navigation"><%= link_to 'New Download', { action: :new } %></div>
+  <% end %>
 </div>
 <div id="details_area">
 	<% @domain_hash.sort.each do |domain, handle_array| %>
