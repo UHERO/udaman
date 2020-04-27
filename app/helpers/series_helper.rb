@@ -132,7 +132,7 @@ module SeriesHelper
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary? && alt_univs[series.universe]
+    if current_user.admin_user? && series.is_primary? && alt_univs[series.universe]
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
