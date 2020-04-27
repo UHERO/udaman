@@ -82,7 +82,10 @@ class DownloadsController < ApplicationController
 
   def pull_file
     path = params[:path]
-    path.gsub!('..', '')  ## don't let users go "up" and outside the path root restriction
+    if path =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % path }
+      return  ## make browser blow up
+    end
     send_file File.join(ENV['DATA_PATH'], path)  ## only extract files under the DATA_PATH!
   end
 
