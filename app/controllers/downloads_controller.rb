@@ -2,22 +2,27 @@ class DownloadsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_download, only: [:show, :edit, :update, :destroy, :download]
+  before_action :set_download, only: [:show, :edit, :duplicate, :update, :destroy, :download]
 
   def index
-    @output_files = Download.order(:url).all
-    @domain_hash = {}
-    @output_files.each do |dl|
-      if dl.url
-        domain_name = dl.url.split('/')[2]
-        @domain_hash[domain_name] ||= []  ## initialize empty array here if not already existing
-        @domain_hash[domain_name].push(dl.handle)
-      end
-    end
+    @output_files = Download.order(handle: :asc).all   ## this instance var name is outrageously stupid - CHANGE IT
+    @domain_hash = get_handles_per_domain(@output_files)
+  end
+
+  def by_pattern
+    @output_files = Download.get(params[:pat], :time)
+    @domain_hash = get_handles_per_domain(@output_files)
+    render :index
   end
 
   def new
     @output_file = Download.new
+  end
+
+  def duplicate
+    @output_file = @output_file.dup
+    @output_file.assign_attributes(last_download_at: nil, last_change_at: nil, freeze_file: nil, notes: nil)
+    render :edit
   end
 
   def show
@@ -30,8 +35,8 @@ class DownloadsController < ApplicationController
     myparams = download_params
     myparams[:freeze_file] = nil unless myparams[:freeze_file] == '1'  ## convert false to null in db
     post_params = myparams.delete(:post_parameters)
-    @output_file = Download.new myparams
-    if @output_file.save
+    @output_file = Download.new(myparams)
+    if @output_file.save!
       @output_file.process_post_params(post_params)
       redirect_to :action => 'index'
     else
@@ -76,7 +81,12 @@ class DownloadsController < ApplicationController
   end
 
   def pull_file
-    send_file File.join(ENV['DATA_PATH'], params[:path])  ## only extract files under the DATA_PATH!
+    path = params[:path]
+    if path =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % path }
+      return  ## make browser blow up
+    end
+    send_file File.join(ENV['DATA_PATH'], path)  ## only extract files under the DATA_PATH!
   end
 
   def test_url
@@ -97,11 +107,22 @@ class DownloadsController < ApplicationController
 private
 
   def download_params
-    params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override, :post_parameters, :notes)
+    params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override,
+                                     :sort1, :sort2, :post_parameters, :notes)
   end
 
   def set_download
     @output_file = Download.find params[:id]   ### this instance var name is outrageously stupid - CHANGE IT
   end
 
+  def get_handles_per_domain(downloads)
+    hash = {}
+    downloads.each do |dl|
+      next if dl.url.nil?
+      domain = dl.url.split('/')[2].split(':')[0]  ## super hacky and awful but basically works
+      hash[domain] ||= []  ## initialize empty array here if not already existing
+      hash[domain].push(dl.handle)
+    end
+    hash
+  end
 end

@@ -32,7 +32,9 @@ div#summary_area h2 {font-size:30px;}
   <%= link_to @output_file.save_path, { action: :pull_file, path: data_path_relativize(@output_file.save_path) } %><br/>
 
   <h2>Orig source links</h2>
-  <%= link_to 'download-to-server', { action: :download, id: @output_file } %><br/>
+  <% if current_user.admin_user? %>
+      <%= link_to 'download-to-server', { action: :download, id: @output_file } %><br/>
+  <% end %>
   <%= link_to 'download-to-user', @output_file.url %>
 
   <% unless @output_file.notes.nil? %>
