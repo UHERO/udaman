@@ -98,7 +98,9 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% if @series.is_primary? %>
       <tr>
         <td style="font-weight:bold;">Definitions
-          <%= link_to '(add)', controller: :data_sources, action: :new, series_id: @series.id %></td>
+          <% if current_user.admin_user? %>
+              <%= link_to '(add)', controller: :data_sources, action: :new, series_id: @series.id %></td>
+          <% end %>
       </tr>
     <% end %>
     <tr><td><%= render partial: 'source_list', locals: { series: @series } %></td></tr>
