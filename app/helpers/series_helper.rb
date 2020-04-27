@@ -66,7 +66,7 @@ module SeriesHelper
           if download
             parts[index] = link_to(str, download)
           elsif text =~ /load_from_download/  ## ugh, but... reality
-            parts[index] = '<span style="color:red;" title="Non-existent download!">%s</span>' % parts[index]
+            parts[index] = '<span class="error_message" title="Non-existent download!">%s</span>' % parts[index]
           end
         when :time
           parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
@@ -115,7 +115,7 @@ module SeriesHelper
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "<span style='color:red;'>unvalidatable url=#{url}</span>".html_safe
+    "<span class='error_message'>unvalidatable url=#{url}</span>".html_safe
   end
 
   def sa_indicator(string)
