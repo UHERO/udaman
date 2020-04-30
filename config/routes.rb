@@ -54,8 +54,6 @@ Rails.application.routes.draw do
   get 'series/quarantine', to: 'series#quarantine'
   get 'series/old_bea_download', to: 'series#old_bea_download'
   get 'series/sidekiq_failed', to: 'series#sidekiq_failed'
-  get 'series/nightly_missed', to: 'series#nightly_missed'
-  get 'series/nightly_loaded', to: 'series#nightly_loaded'
 
   resources :series
 
