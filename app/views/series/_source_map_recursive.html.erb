@@ -6,13 +6,13 @@
 <% if depth <= 6 %>
 	<% components = [] %>
 	<% source.description.split(" ").each do |word| %>
-		<% components.push(word) unless word.index('@').nil? or word.split(".")[-1].length > 1 %>
+		<% components.push(word) if valid_series_name(word) %>
 	<% end %>
   
   	<% if components.length > 0 %>
     	<td><table>
     		<% components.each do |series_name| %>
-      			<% next unless seen.index(series_name).nil? %>
+      			<% next if seen.include?(series_name) %>
       			<% seen.push(series_name) %>
       			<% color = colors.shift rescue color = "FFFFFF" %>
       			<% series = series_name.ts %>

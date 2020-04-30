@@ -131,6 +131,7 @@ Rails.application.routes.draw do
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
 
+  get 'downloads/by_pattern' => 'downloads#by_pattern'
   get 'downloads/pull_file' => 'downloads#pull_file'
   post 'downloads/test_url' => 'downloads#test_url'
   post 'downloads/test_save_path' => 'downloads#test_save_path'

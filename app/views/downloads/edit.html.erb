@@ -8,13 +8,15 @@
 	
 		<div class="field">
 			<%= f.label :handle %>
-			<%= f.text_field :handle, :size => 100 %>
+			<%= f.text_field :handle, :size => 60 %>
+      Sort 1 (usu. year) <%= f.text_field :sort1, size: 8 %>
+      Sort 2 (usu. month) <%= f.text_field :sort2, size: 8 %>
 		</div>
-		
-		<div class="field">
+
+    <div class="field">
 			URL
 			<div id="url_message"></div>
-			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
+			<%= f.text_field :url, size: 120, 'data-test-url': 'url_message' %>
 		</div>
 
     <div class="field">
@@ -56,7 +58,8 @@
 		
 		<div class="actions">
 			<%= f.submit %>
-		</div>
+      <%= link_to 'Cancel', :back %>
+    </div>
 	<% end %>
 </div>
 <script>

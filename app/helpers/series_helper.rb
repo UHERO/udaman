@@ -58,22 +58,21 @@ module SeriesHelper
   
   def text_with_linked_download(text)
     return '' if text.blank?
-    return text.split(' ').join('&nbsp;') unless text =~ /load_from_download/
-
     parts = text.split(DOWNLOAD_HANDLE)
     parts.each_with_index do |str, index|
-      if valid_download_handle(str)
-        download = Download.get(str)
-        if download
-          parts[index] = link_to(str, { controller: :downloads, action: :show, id: download })
-          next
-        end
-        unless parts[index] =~ /%/
-          parts[index] = '<span style="color:red;" title="Non-existent download!">%s</span>' % parts[index]
-        end
-        next
+      case valid_download_handle(str)
+        when :nontime
+          download = Download.get(str, :nontime)
+          if download
+            parts[index] = link_to(str, download)
+          elsif text =~ /load_from_download/  ## ugh, but... reality
+            parts[index] = '<span class="error_message" title="Non-existent download!">%s</span>' % parts[index]
+          end
+        when :time
+          parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
+        else
+          parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
       end
-      parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
     end
     parts.join
   end
@@ -116,7 +115,7 @@ module SeriesHelper
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
+    "<span class='error_message'>unvalidatable url=#{url}</span>".html_safe
   end
 
   def sa_indicator(string)
@@ -133,7 +132,7 @@ module SeriesHelper
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary? && alt_univs[series.universe]
+    if current_user.admin_user? && series.is_primary? && alt_univs[series.universe]
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]

@@ -1,10 +1,14 @@
 class Download < ApplicationRecord
   include Cleaning
+  extend Validators
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_sources, -> {distinct}, through: :data_source_downloads
   has_many :dsd_log_entries
 
   require 'rest-client'
+
+  validates :handle, presence: true, uniqueness: true
+  validate :handle_is_valid
 
   serialize :post_parameters, Hash
   serialize :download_log, Array
@@ -22,8 +26,12 @@ class Download < ApplicationRecord
     DEFAULT_DATA_PATH
   end
 
-  def Download.get(handle)
-    Download.where(:handle => handle).first
+  def Download.get(handle, type = nil)
+    case type || valid_download_handle(handle)
+      when :nontime then Download.find_by(handle: handle)
+      when :time    then find_all_by_pattern(handle)
+      else raise "Invalid download handle #{handle}"
+    end
   end
 
   def Download.test_url(url)
@@ -195,5 +203,19 @@ class Download < ApplicationRecord
       return 'duplicate' if dl.id != self.id && dl.save_path == self.save_path
     end
     'ok'
+  end
+
+  def handle_is_valid
+    Download.valid_download_handle(handle) || errors.add(:handle, 'is not a valid download handle')
+  end
+
+private
+
+  def self.find_all_by_pattern(pattern)
+    regeces = { '%Y' => '[12][0-9]{3}', '%y' => '[0-9]{2}', '%b' => '[A-Z]{3}', '%m' => '[01][0-9]' }
+    regeces.keys.each do |op|
+      pattern.gsub!(op, regeces[op])
+    end
+    Download.where('handle regexp ?', pattern).order(sort1: :desc, sort2: :desc, handle: :asc)
   end
 end

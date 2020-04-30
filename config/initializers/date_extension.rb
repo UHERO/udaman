@@ -107,8 +107,10 @@ class Date
         self.quarter_d.days_in_month + (self.quarter_d >> 1).days_in_month + (self.quarter_d >> 2).days_in_month
       when 'month'
         self.days_in_month
+      when 'week'
+        7
       else
-        raise "days_in_period: unknown frequency #{frequency}"
+        raise "days_in_period: unknown period #{period}"
     end
   end
   
