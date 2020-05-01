@@ -93,18 +93,18 @@ module SeriesArithmetic
   end
   
   def rebase(date = nil)
-    year = Date.parse(date).year rescue nil
+    date &&= Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
     ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
-    a_series = find_sibling_for_freq('A') || raise("No annual series corresponding to #{self}")
-    year ||= a_series.last_observation.year
-    new_base = a_series.at(Date.new(year)).to_f
-    raise "No nonzero rebase for #{self} in year #{year}" unless new_base && new_base != 0
+    ann_series = find_sibling_for_freq('A') || raise("No annual series corresponding to #{self}")
+    date ||= ann_series.last_observation
+    new_base = ann_series.at(date).to_f
+    raise "No nonzero rebase for #{self} to #{date}" unless new_base && new_base != 0
 
     new_series_data = {}
     data.sort.each do |at_date, value|
       new_series_data[at_date] = value / new_base * 100
     end
-    new_transformation("Rebased #{self} to #{year}", new_series_data)
+    new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
   
   def percentage_change
