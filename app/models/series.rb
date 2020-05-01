@@ -302,9 +302,7 @@ class Series < ApplicationRecord
   end
 
   def Series.region_counts
-    region_counts = Series.region_hash
-    region_counts.each {|key,value| region_counts[key] = value.count}
-    region_counts
+    region_hash.map {|key, value| [key, value.count] }.to_h
   end
 
   def Series.frequency_hash
@@ -318,9 +316,7 @@ class Series < ApplicationRecord
   end
   
   def Series.frequency_counts
-    frequency_counts = Series.frequency_hash
-    frequency_counts.each {|key,value| frequency_counts[key] = value.count}
-    frequency_counts
+    frequency_hash.map {|key, value| [key, value.count] }.to_h
   end
 
   def Series.code_from_frequency(frequency)
