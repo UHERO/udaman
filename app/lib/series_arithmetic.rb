@@ -98,7 +98,7 @@ module SeriesArithmetic
     ann_series = find_sibling_for_freq('A') || raise("No annual series corresponding to #{self}")
     date ||= ann_series.last_observation
     new_base = ann_series.at(date).to_f
-    raise "No nonzero rebase for #{self} to #{date}" unless new_base && new_base != 0
+    raise "No nonzero rebase of #{self} to #{date}" unless new_base && new_base != 0
 
     new_series_data = {}
     data.sort.each do |at_date, value|
