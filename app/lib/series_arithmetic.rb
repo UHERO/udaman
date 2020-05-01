@@ -92,29 +92,21 @@ module SeriesArithmetic
     #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
   end
   
-  def rebase(year = nil)
-    unless year.nil?
-      year = Date.parse(year).year
+  def rebase(date = nil)
+    if date
+      date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
     end
+    ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
+    ann_series = find_sibling_for_freq('A') || raise("No annual series corresponding to #{self}")
+    date ||= ann_series.last_observation
+    new_base = ann_series.at(date).to_f
+    raise "No nonzero rebase of #{self} to #{date}" unless new_base && new_base != 0
+
     new_series_data = {}
-    if frequency != 'year' and frequency != :year
-      annual_series = (self.name.split('.')[0] + '.A').ts
-      if year.nil?
-        year = annual_series.data.keys.sort[-1].year
-      end
-      new_base = annual_series.at(Date.new(year)).to_f
-    else
-      if year.nil?
-        year = self.data.keys.sort[-1].year
-      end
-      new_base = self.at(Date.new(year)).to_f
+    data.sort.each do |at_date, value|
+      new_series_data[at_date] = value / new_base * 100
     end
-    if new_base && new_base != 0
-      data.sort.each do |inner_date, value|
-        new_series_data[inner_date] = value / new_base * 100
-      end
-    end
-    new_transformation("Rebased #{name} to #{year}", new_series_data)
+    new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
   
   def percentage_change

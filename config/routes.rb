@@ -49,14 +49,11 @@ Rails.application.routes.draw do
 
   get 'series/bulk', to: 'series#bulk_new'
   post 'series/bulk', to: 'series#bulk_create'
-  get 'series/stale', to: 'series#stale'
   get 'series/no_source', to: 'series#no_source'
   get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
   get 'series/quarantine', to: 'series#quarantine'
   get 'series/old_bea_download', to: 'series#old_bea_download'
   get 'series/sidekiq_failed', to: 'series#sidekiq_failed'
-  get 'series/nightly_missed', to: 'series#nightly_missed'
-  get 'series/nightly_loaded', to: 'series#nightly_loaded'
 
   resources :series
 
@@ -71,7 +68,6 @@ Rails.application.routes.draw do
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
-  get 'udamacmini_comparison' => 'dashboards#udamacmini_comparison'
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'rake_report' => 'dashboards#rake_report'
   get 'construction' => 'dashboards#construction'

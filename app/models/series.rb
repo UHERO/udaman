@@ -300,7 +300,11 @@ class Series < ApplicationRecord
     end
     region_hash
   end
-  
+
+  def Series.region_counts
+    region_hash.map {|key, value| [key, value.count] }.to_h
+  end
+
   def Series.frequency_hash
     frequency_hash = {}
     all_names = Series.get_all_uhero.select('name, frequency')
@@ -312,29 +316,16 @@ class Series < ApplicationRecord
   end
   
   def Series.frequency_counts
-    frequency_counts = Series.frequency_hash
-    frequency_counts.each {|key,value| frequency_counts[key] = value.count}
-    frequency_counts
+    frequency_hash.map {|key, value| [key, value.count] }.to_h
   end
-  
-  def Series.region_counts
-    region_counts = Series.region_hash
-    region_counts.each {|key,value| region_counts[key] = value.count}
-    region_counts
-  end
-  
-  
+
   def Series.code_from_frequency(frequency)
-    return 'A' if frequency == :year || frequency == 'year' || frequency == :annual || frequency == 'annual' || frequency == 'annually'
-    return 'Q' if frequency == :quarter || frequency == 'quarter' || frequency == 'quarterly'
-    return 'M' if frequency == :month || frequency == 'month' || frequency == 'monthly'
-    return 'S' if frequency == :semi || frequency == 'semi' || frequency == 'semi-annually'
-    return 'W' if frequency == :week || frequency == 'week' || frequency == 'weekly'
-    return 'D' if frequency == :day || frequency == 'day' || frequency == 'daily'
-    
-    return ''
+    frequency = frequency.to_s.downcase.sub(/ly$/,'')  ## handle words like annually, monthly, daily, etc
+    frequency = 'semi' if frequency =~ /^semi/  ## just in case
+    mapping = { year: 'A', annual: 'A', semi: 'S', quarter: 'Q', month: 'M', week: 'W', day: 'D', dai: 'D' }
+    mapping[frequency.to_sym].to_s
   end
-  
+
   def Series.frequency_from_code(code)
     case code && code.upcase
       when 'A' then :year
@@ -673,18 +664,6 @@ class Series < ApplicationRecord
     new_transformation("generated randomly for testing", series_data)
   end
 
-  ## Is this instance method even used??
-  def load_from_download(handle, options)
-    dp = DownloadProcessor.new(handle, options)
-    series_data = dp.get_data
-    descript = "loaded from #{handle} with options #{display_options(options)}"
-    if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle, :nontime).save_path rescue raise("Unknown download handle #{handle}")
-      descript = "loaded from download to #{path}"
-    end
-    new_transformation(descript, series_data)
-  end
-
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
@@ -837,7 +816,8 @@ class Series < ApplicationRecord
     observations
   end
 
-  def new_data?
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_data_DELETEME?
     xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
@@ -1338,23 +1318,6 @@ class Series < ApplicationRecord
       end
     end
     series.sort_by(&:name)
-  end
-
-  def Series.stale_since(past_day)
-    horizon = Time.new(past_day.year, past_day.month, past_day.day, 20, 0, 0)  ## 8pm, roughly when nightly load starts
-    Series.get_all_uhero
-          .joins(:data_sources)
-          .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
-          .order('series.name, data_sources.id')
-          .pluck('series.id, series.name, data_sources.id')
-  end
-
-  def Series.loaded_since(past_day)
-    Series.get_all_uhero
-        .joins(:data_sources)
-        .where('reload_nightly = true')
-        .order('series.name, data_sources.id')
-        .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
   end
 
   def source_link_is_valid
