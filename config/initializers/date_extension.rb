@@ -42,7 +42,7 @@ class Date
   end
 
   def quarter_d
-    Date.new(self.year, (self.month - 1) / 3 * 3 + 1)
+    Date.parse(quarter_s)
   end
   
   def semi_i
@@ -56,7 +56,7 @@ class Date
   end
 
   def semi_d
-    Date.new(self.year, self.month > 6 ? 7 : 1)
+    Date.parse(semi_s)
   end
 
   def tsd_start(f)
@@ -74,7 +74,7 @@ class Date
   end
   
   def year_s
-    return year.to_s+"-01-01"
+    year.to_s+"-01-01"
   end
 
   def year_d
@@ -82,15 +82,15 @@ class Date
   end
   
   def month_i
-    return strftime('%Y%m').to_i
+    strftime('%Y%m').to_i
   end
 
   def month_s
-    return strftime('%Y-%m-01')
+    strftime('%Y-%m-01')
   end
 
   def month_d
-    Date.new(self.year, self.month)
+    Date.parse(month_s)
   end
 
   def week_d   ## weeks (Sun-Sat) are aggregated to the concluding Saturday
