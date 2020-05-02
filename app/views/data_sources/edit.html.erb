@@ -7,23 +7,23 @@
     <% if ds.disabled %>
       <h3>This load is DISABLED.</h3> Can only be re-enabled by system administrator.
     <% end %>
-		<div class="field">
+		< class="field">
 			<%= ds.label :eval %>
-			<%= ds.text_field :eval, size: 120 %>
+      <%= ds.text_field :eval, size: 120, disabled: ds.disabled? %>
     </div>
     <div class="field">
 			<%= ds.label :priority %>
-			<%= ds.number_field :priority, size: 3 %>
+			<%= ds.number_field :priority, size: 3, disabled: ds.disabled? %>
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
-      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true } %>
+      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true, disabled: ds.disabled? } %>
     </div>
     <div class="field">
-      <%= ds.check_box :pseudo_history %> Check if this load is pseudo-history.
+      <%= ds.check_box :pseudo_history, disabled: ds.disabled? %> Check if this load is pseudo-history.
     </div>
     <div class="actions">
-			<%= ds.submit %>
+			<%= ds.submit, { disabled: ds.disabled? } %>
       <%= link_to 'Cancel', :back %>
 		</div>
 	<% end %>
