@@ -275,6 +275,10 @@ class DataSource < ApplicationRecord
       super
     end
 
+    def disable
+      self.update_attributes!(disabled: true)
+    end
+
     def toggle_reload_nightly
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
