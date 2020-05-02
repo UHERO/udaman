@@ -153,6 +153,7 @@ class DataSource < ApplicationRecord
     end
 
     def reload_source(clear_first = false)
+      return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
       update_props = { last_run: t, last_run_at: t, last_error: nil, last_error_at: nil, runtime: nil }

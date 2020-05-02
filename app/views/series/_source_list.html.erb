@@ -1,14 +1,17 @@
 <table style="border-collapse:collapse;">
 	<% series.data_sources_sort_for_display.each do |ds| %>
-    <% if ds.disabled? %>
-      <td style="border:none;background-color:lightgrey;" >
+    <% myeval = ds.eval.to_s %>
+    <% if ds.disabled?  ## I dislike having this as a separate code path, but... it's just cleaner %>
+      <tr style="border:none;background-color:lightgrey;" >
         <td style="border:none;">
           <strong><%= ds.id %></strong> <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %>
-      </td></tr>
+        </td>
+      </tr>
+      <tr style="border:none;background-color:lightgrey;" >
+      <td style="border:none;"><%= raw myeval[0..50] + '....' %></td></tr>
       <% next %>
     <% end %>
 
-  	<% myeval = ds.eval.to_s %>
   	<tr style="border:none;background-color:#<%= ds.color %>;" >
   		<td style="border:none;">
       <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>
