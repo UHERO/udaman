@@ -263,20 +263,21 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
-      t = Time.now
-      self.data_points.each do |dp|
-        dp.delete
-      end
-      Rails.logger.info { "Deleted all data points for definition #{id} in #{Time.now - t} seconds" }
+      data_points.each {|dp| dp.delete }
+      Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
-    
+
+    ## this method not really needed, eh?
     def delete
       delete_data_points
       super
     end
 
     def disable
-      self.update_attributes!(disabled: true)
+      self.transaction do
+        self.update_attributes!(disabled: true)
+        delete_data_points
+      end
     end
 
     def toggle_reload_nightly
