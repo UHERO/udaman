@@ -180,6 +180,7 @@ class Series < ApplicationRecord
   end
 
   def Series.build_name(prefix, geo, freq)
+    raise 'build_name: All parts must be non-nil strings' unless prefix && geo && freq
     name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
     Series.parse_name(name) && name
   end
