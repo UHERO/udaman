@@ -47,6 +47,7 @@ class DataSourcesController < ApplicationController
   end
 
   def edit
+    @disab = @data_source.disabled?
   end
 
   def update
