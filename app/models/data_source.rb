@@ -175,7 +175,7 @@ class DataSource < ApplicationRecord
 
         base_year = base_year_from_eval_string(eval_stmt)
         if base_year && base_year != series.base_year
-          series.update!(base_year: base_year.to_i)
+          series.update!(base_year: base_year)
         end
         series.update_data(s.data, self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
