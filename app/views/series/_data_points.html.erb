@@ -24,7 +24,7 @@
       ytd_data = @ytd_chg.data.clone unless @ytd_chg.nil? or @ytd_chg.data.nil?
       lvl_data = @lvl_chg.data.clone unless @lvl_chg.nil? or @lvl_chg.data.nil?
       bgcolor_hash = {}
-      @series.primary_series.data_sources.each {|ds| bgcolor_hash[ds.id] = ds.color }
+      @series.primary_series.enabled_data_sources.each {|ds| bgcolor_hash[ds.id] = ds.color }
 
       date_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint

@@ -9,7 +9,7 @@ task :batch_update_meta_for_aggregated => :environment do
     name_parts = s.parse_name
     best = nil
     best_freq = -1
-    s.data_sources.each do |ds|
+    s.enabled_data_sources.each do |ds|
       next unless ds.eval.gsub(/\s/,'') =~ eval_match ## match with all whitespace removed
       name = $2
       prefix = $3

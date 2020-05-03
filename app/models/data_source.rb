@@ -144,7 +144,7 @@ class DataSource < ApplicationRecord
 
     ## Other definitions for my series, not including me
     def colleagues
-      series.data_sources.reject {|d| d.id == self.id }
+      series.enabled_data_sources.reject {|d| d.id == self.id }
     end
 
     def setup
