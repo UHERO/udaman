@@ -7,7 +7,7 @@ class DownloadsController < ApplicationController
   def index
     @output_files = Download.order(handle: :asc).all   ## this instance var name is outrageously stupid - CHANGE IT
     @domain_hash = get_handles_per_domain(@output_files)
-    @orphans = Download.get_orphans  ## this will slow things down quite a bit, but this action not much used any more
+    @orphans = Download.get_orphans(@output_files)  ## this will slow things down quite a bit, but this action not much used any more
   end
 
   def by_pattern

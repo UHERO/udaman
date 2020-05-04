@@ -34,10 +34,10 @@ class Download < ApplicationRecord
     end
   end
 
-  def Download.get_orphans
+  def Download.get_orphans(dl_set)
     orphans = {}
-    Download.all.each do |dl|
-      ## PUT IN some heuristics here to skip over time-pattern ones that will never be considered orphaned
+    dl_set.each do |dl|
+      next if dl.date_sensitive?  ## these Downloads will never be considered orphaned
       next if DataSource.where('eval regexp ?', dl.handle).count > 0
       orphans[dl.id] = 'orphaned'
     end
