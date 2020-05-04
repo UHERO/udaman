@@ -108,7 +108,7 @@ private
 
   def download_params
     params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override,
-                                     :sort1, :sort2, :post_parameters, :notes)
+                                     :sort1, :sort2, :date_sensitive, :post_parameters, :notes)
   end
 
   def set_download
