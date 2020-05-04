@@ -1272,7 +1272,7 @@ class Series < ApplicationRecord
   end
 
   ## probably vestigial - make sure, then delete later
-  def increment_dependency_depth
+  def increment_dependency_depth_DELETEME
     self.dependency_depth += 1
     dependencies = []
     self.enabled_data_sources.each do |ds|
