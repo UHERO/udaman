@@ -34,6 +34,16 @@ class Download < ApplicationRecord
     end
   end
 
+  def Download.get_orphans
+    orphans = {}
+    Download.all.each do |dl|
+      ## PUT IN some heuristics here to skip over time-pattern ones that will never be considered orphaned
+      next if DataSource.where('eval regexp ?', dl.handle).count > 0
+      orphans[dl.id] = 'orphaned'
+    end
+    orphans
+  end
+
   def Download.test_url(url)
     dsd = Download.new(:url => url)
     dsd.test_url

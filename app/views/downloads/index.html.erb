@@ -19,8 +19,11 @@
 			%>
 			<tr>
 					<% if download.handle %>
-              <td><%= link_to download.handle, download %>
-                     <% if download.freeze_file %><i class="fas fa-ban redban" title="frozen"></i><% end %>
+              <td>
+                <span class="<%= @orphans[download.id] %>" title="<%= @orphans[download.id] %>">
+                  <%= link_to download.handle, download %>
+                </span>
+                <% if download.freeze_file %><i class="fas fa-ban redban" title="frozen"></i><% end %>
               </td>
           <% else %>
               <% filename = download.save_path.split('/')[-1] rescue nil %>
