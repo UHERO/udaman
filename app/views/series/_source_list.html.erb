@@ -5,11 +5,11 @@
       <tr style="border:none;background-color:lightgrey;" >
         <td style="border:none;">
           <strong><%= ds.id %></strong>
-         <% if current_user.admin_user? %>
+          <% if current_user.admin_user? %>
              <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %> |
              <%= link_to 'delete', { controller: :data_sources, action: :delete, id: ds.id },
                                   data: { :confirm => "Permanently delete disabled definition #{ds.id}: Are you sure??" } %>
-         <% end %>
+          <% end %>
         </td>
       </tr>
       <tr style="border:none;background-color:lightgrey;" >
