@@ -1114,7 +1114,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string, limit = 500)
+  def Series.search_box(input_string, limit: 500)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
