@@ -11,7 +11,7 @@ class DownloadsController < ApplicationController
   end
 
   def by_pattern
-    @output_files = Download.get(params[:pat], :time)
+    @output_files = Download.get(params[:pat], :date)
     @domain_hash = get_handles_per_domain(@output_files)
     @orphans = {}
     render :index
