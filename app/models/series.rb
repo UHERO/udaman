@@ -672,8 +672,8 @@ class Series < ApplicationRecord
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     descript = "loaded from #{handle} into a series of files"
-    if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle, :nontime).save_path rescue raise("Unknown download handle #{handle}")
+    if Series.valid_download_handle(handle, date_sensitive: false)
+      path = Download.get(handle, :nondate).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
@@ -1114,7 +1114,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string, limit: 500)
+  def Series.search_box(input_string, limit: 10000)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []

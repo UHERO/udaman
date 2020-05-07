@@ -7,11 +7,13 @@ class DownloadsController < ApplicationController
   def index
     @output_files = Download.order(handle: :asc).all   ## this instance var name is outrageously stupid - CHANGE IT
     @domain_hash = get_handles_per_domain(@output_files)
+    @orphans = Download.get_orphans(@output_files)  ## this will slow things down quite a bit, but this action not much used any more
   end
 
   def by_pattern
-    @output_files = Download.get(params[:pat], :time)
+    @output_files = Download.get(params[:pat], :date)
     @domain_hash = get_handles_per_domain(@output_files)
+    @orphans = {}
     render :index
   end
 
@@ -108,7 +110,7 @@ private
 
   def download_params
     params.require(:download).permit(:handle, :url, :freeze_file, :filename_ext, :file_to_extract, :sheet_override,
-                                     :sort1, :sort2, :post_parameters, :notes)
+                                     :sort1, :sort2, :date_sensitive, :post_parameters, :notes)
   end
 
   def set_download

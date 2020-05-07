@@ -28,10 +28,20 @@ class Download < ApplicationRecord
 
   def Download.get(handle, type = nil)
     case type || valid_download_handle(handle)
-      when :nontime then Download.find_by(handle: handle)
-      when :time    then find_all_by_pattern(handle)
+      when :nondate then Download.find_by(handle: handle)
+      when :date    then find_all_by_pattern(handle)
       else raise "Invalid download handle #{handle}"
     end
+  end
+
+  def Download.get_orphans(dl_set)
+    orphans = {}
+    dl_set.each do |dl|
+      next if dl.date_sensitive?  ## these Downloads will never be considered orphaned
+      next if DataSource.where('eval regexp ?', dl.handle).count > 0
+      orphans[dl.id] = 'orphaned'
+    end
+    orphans
   end
 
   def Download.test_url(url)
