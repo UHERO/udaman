@@ -3,22 +3,30 @@
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<%= form_for(@data_source) do |ds| %>
+  <% if @disab %>
+     <h3>DISABLED - can only be reenabled by system admin</h3>
+  <% end %>
+	<%= form_with(model: @data_source) do |ds| %>
 		<div class="field">
 			<%= ds.label :eval %>
-			<%= ds.text_field :eval, size: 120 %>
+      <%= ds.text_field :eval, size: 120, disabled: @disab %>
     </div>
     <div class="field">
 			<%= ds.label :priority %>
-			<%= ds.number_field :priority, size: 3 %>
+			<%= ds.number_field :priority, size: 3, disabled: @disab %>
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
-      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true } %>
+      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true }, disabled: @disab %>
     </div>
-		<div class="actions">
-			<%= ds.submit %>
-      <%= link_to 'Cancel', :back %>
-		</div>
+    <div class="field">
+      <%= ds.check_box :pseudo_history, disabled: true %> Check on if this load is pseudo-history. (not yet)
+    </div>
+      <div class="actions">
+        <% unless @disab %>
+          <%= ds.submit %>
+        <% end %>
+        <%= link_to 'Cancel', :back %>
+      </div>
 	<% end %>
 </div>

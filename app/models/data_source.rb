@@ -144,7 +144,7 @@ class DataSource < ApplicationRecord
 
     ## Other definitions for my series, not including me
     def colleagues
-      series.data_sources.reject {|d| d.id == self.id }
+      series.enabled_data_sources.reject {|d| d.id == self.id }
     end
 
     def setup
@@ -153,6 +153,7 @@ class DataSource < ApplicationRecord
     end
 
     def reload_source(clear_first = false)
+      return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
       update_props = { last_run: t, last_run_at: t, last_error: nil, last_error_at: nil, runtime: nil }
@@ -262,16 +263,21 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
-      t = Time.now
-      self.data_points.each do |dp|
-        dp.delete
-      end
-      Rails.logger.info { "Deleted all data points for definition #{id} in #{Time.now - t} seconds" }
+      data_points.each {|dp| dp.delete }
+      Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
-    
+
+    ## this method not really needed, eh?
     def delete
       delete_data_points
       super
+    end
+
+    def disable
+      self.transaction do
+        self.update_attributes!(disabled: true)
+        delete_data_points
+      end
     end
 
     def toggle_reload_nightly

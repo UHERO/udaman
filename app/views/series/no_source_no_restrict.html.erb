@@ -19,7 +19,7 @@
         <td><%= series.dataPortalName %></td>
         <td><%= link_to 'Show', series %></td>
         <td><%= link_to 'Edit', edit_series_path(series) %></td>
-        <td><%= series.data_sources.map { |ds| ds['eval'] }.join('<br />').html_safe %></td>
+        <td><%= series.enabled_data_sources.map { |ds| ds['eval'] }.join('<br />').html_safe %></td>
       </tr>
   <% end %>
   </tbody>
