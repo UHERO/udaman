@@ -111,7 +111,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
     @dsas = []
-    @series.data_sources.each do |ds|
+    @series.enabled_data_sources.each do |ds|
       @dsas.concat ds.data_source_actions
     end
     return if no_render

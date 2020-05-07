@@ -109,7 +109,7 @@ module SeriesHelper
   end
 
   def nightly_actuator(nightly)
-    (nightly ? 'disable' : 'enable') + ' nightly reload'
+    (nightly ? 'disable' : 'enable') + ' nightly'
   end
 
   def make_hyperlink(url, text = url)
