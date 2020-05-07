@@ -3,6 +3,9 @@
   <% if current_user.admin_user? %>
       <div id="navigation"><%= link_to 'New Download', { action: :new } %></div>
   <% end %>
+  <p>Downloads may be <span class="orphaned">orphaned</span>, meaning that there is no longer any series that depends on
+  them, and so they may be considered for deletion. If a date-sensitive handle appears as orphaned, it may only need its
+  date-sensitive checkbox turned on, rather than to be deleted.</p>
 </div>
 <div id="details_area">
 	<% @domain_hash.sort.each do |domain, handle_array| %>

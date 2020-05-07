@@ -1,3 +1,11 @@
 .orphaned {
   color: red;
 }
+
+span.orphaned a {
+  color: red;
+}
+span.orphaned a:hover {
+  color: #fff;
+  background-color: red;
+}
