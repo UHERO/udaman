@@ -61,14 +61,14 @@ module SeriesHelper
     parts = text.split(DOWNLOAD_HANDLE)
     parts.each_with_index do |str, index|
       case valid_download_handle(str)
-        when :nontime
-          download = Download.get(str, :nontime)
+        when :nondate
+          download = Download.get(str, :nondate)
           if download
             parts[index] = link_to(str, download)
           elsif text =~ /load_from_download/  ## ugh, but... reality
             parts[index] = '<span class="error_message" title="Non-existent download!">%s</span>' % parts[index]
           end
-        when :time
+        when :date
           parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
         else
           parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
@@ -109,7 +109,7 @@ module SeriesHelper
   end
 
   def nightly_actuator(nightly)
-    (nightly ? 'disable' : 'enable') + ' nightly reload'
+    (nightly ? 'disable' : 'enable') + ' nightly'
   end
 
   def make_hyperlink(url, text = url)

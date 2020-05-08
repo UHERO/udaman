@@ -8,12 +8,18 @@
 			<%= f.label :handle %>
 			<%= f.text_field :handle, :size => 100 %>
 		</div>
-		
-		<div class="field">
+
+    <div class="field">
+      <%= f.label 'Date sensitive?' %>
+      <%= f.check_box :date_sensitive %>
+      Sort 1 (usu. year) <%= f.text_field :sort1, size: 8 %>
+      Sort 2 (usu. month) <%= f.text_field :sort2, size: 8 %>
+    </div>
+
+    <div class="field">
 			<%= f.label :url %>
 			<div id="url_message"></div>
 			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
-			
 		</div>
 
       <div class="field">

@@ -27,6 +27,11 @@ class DataSourcesController < ApplicationController
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
 
+  def disable
+    @data_source.disable
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
+  end
+
   def toggle_reload_nightly
     @data_source.toggle_reload_nightly
     redirect_to controller: :series, action: :show, id: @data_source.series_id
@@ -42,6 +47,7 @@ class DataSourcesController < ApplicationController
   end
 
   def edit
+    @disab = @data_source.disabled?
   end
 
   def update
@@ -83,7 +89,7 @@ private
   end
 
   def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority, :presave_hook)
+      params.require(:data_source).permit(:series_id, :eval, :priority, :presave_hook, :pseudo_history)
   end
 
     def create_action(data_source, action)
