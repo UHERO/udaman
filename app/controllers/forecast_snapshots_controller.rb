@@ -2,10 +2,9 @@ class ForecastSnapshotsController < ApplicationController
   include Authorization
 
   before_action :check_forecast_snapshot_authorization
-  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :update, :destroy]
+  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy]
   before_action :set_tsd_files, only: [:show, :table]
 
-  # GET /forecast_snapshots
   def index
     if current_user.internal_user?
       fsnaps = ForecastSnapshot.all
@@ -15,28 +14,30 @@ class ForecastSnapshotsController < ApplicationController
     @forecast_snapshots = fsnaps.order('updated_at desc').paginate(page: params[:page], per_page: 50)
   end
 
-  # GET /forecast_snapshots/1
   def show
     @forecast_snapshot.old_forecast_tsd
   end
 
-  # GET /forecast_snapshots/1/table
   def table
     @all_dates = @forecast_snapshot.new_forecast_tsd.get_current_plus_five_dates
   end
 
-  # GET /forecast_snapshots/new
   def new
     @forecast_snapshot = ForecastSnapshot.new
   end
 
-  # GET /forecast_snapshots/1/edit
   def edit
   end
 
-  # POST /forecast_snapshots
+  def duplicate
+    @forecast_snapshot = @forecast_snapshot.dup
+    @forecast_snapshot.assign_attributes(published: nil, version: increment_version(@forecast_snapshot.version))
+    render :edit
+  end
+
   def create
     @forecast_snapshot = ForecastSnapshot.new(forecast_snapshot_params)
+    newfile = oldfile = histfile = nil
 
     if forecast_snapshot_params[:new_forecast_tsd_filename]
       newfile = forecast_snapshot_params[:new_forecast_tsd_filename]
@@ -115,5 +116,9 @@ class ForecastSnapshotsController < ApplicationController
       @tsd_files = [ @forecast_snapshot.new_forecast_tsd,
                      @forecast_snapshot.old_forecast_tsd,
                      @forecast_snapshot.history_tsd ]
+    end
+
+    def increment_version(vers)
+      vers + 1
     end
 end
