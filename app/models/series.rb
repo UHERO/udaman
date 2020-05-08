@@ -1143,7 +1143,7 @@ class Series < ApplicationRecord
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
-          bindvars.concat freqs.map {|f| Series.frequency_from_code(f) }
+          bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
