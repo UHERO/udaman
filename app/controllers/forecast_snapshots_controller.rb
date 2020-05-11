@@ -119,6 +119,11 @@ class ForecastSnapshotsController < ApplicationController
     end
 
     def increment_version(vers)
-      vers + 1
+      if vers =~ /\.(\d+)$/
+        vers.sub!(/\.\d+$/, '.%d' % $1.to_i + 1)
+      else
+        vers += '.2'
+      end
+      vers
     end
 end
