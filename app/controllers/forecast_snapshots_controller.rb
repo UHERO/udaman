@@ -32,7 +32,7 @@ class ForecastSnapshotsController < ApplicationController
   def duplicate
     @forecast_snapshot = @forecast_snapshot.dup
     @forecast_snapshot.assign_attributes(published: nil, version: increment_version(@forecast_snapshot.version))
-    render :edit
+    render :new
   end
 
   def create

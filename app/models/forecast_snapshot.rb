@@ -71,6 +71,7 @@ class ForecastSnapshot < ApplicationRecord
 ## validate file content
     begin
       self.save or raise StandardError, 'FS object save failed'
+      self.reload
       if newfile
         write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) or raise StandardError, 'TSD file disk write failed'
       end
@@ -99,7 +100,14 @@ class ForecastSnapshot < ApplicationRecord
     history_tsd_filename ? delete_file_from_disk(history_tsd_filename) : true
   end
 
+  def tsd_rel_filepath(name)
+    string = '%s_%d_%s' % [created_at.utc, id, name]
+    hash = Digest::MD5.new << string
+    File.join('tsd_files', hash.to_s + '_' + name)
+  end
+
 private
+
   def write_file_to_disk(name, content)
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
@@ -138,9 +146,4 @@ private
       delete_history_tsd_file
   end
 
-  def tsd_rel_filepath(name)
-    string = self.created_at.utc.to_s+'_'+self.id.to_s+'_'+name
-    hash = Digest::MD5.new << string
-    File.join('tsd_files', hash.to_s+'_'+name)
-  end
 end

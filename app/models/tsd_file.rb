@@ -5,10 +5,6 @@ class TsdFile < ApplicationRecord
   belongs_to :forecast_snapshot
   before_destroy :delete_from_disk
 
-  def TsdFile.path_prefix
-    'tsd_files'
-  end
-
   def path
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(self.filename))
   end
@@ -283,6 +279,7 @@ class TsdFile < ApplicationRecord
   end
 
 private
+
   def write_to_disk(content)
     begin
       File.open(path, 'wb') { |f| f.write(content) }
@@ -315,8 +312,6 @@ private
   end
 
   def tsd_rel_filepath(name)
-    string = self.forecast_snapshot.created_at.utc.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
-    hash = Digest::MD5.new << string
-    File.join(TsdFile.path_prefix, hash.to_s+'_'+name)
+    forecast_snapshot.tsd_rel_filepath(name)
   end
 end
