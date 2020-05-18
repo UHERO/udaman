@@ -31,7 +31,7 @@ class ForecastSnapshotsController < ApplicationController
 
   def duplicate
     @forecast_snapshot = @forecast_snapshot.dup
-    @forecast_snapshot.assign_attributes(published: nil, version: increment_version(@forecast_snapshot.version))
+    @forecast_snapshot.assign_attributes(published: nil, version: @forecast_snapshot.increment_version)
     render :new
   end
 
@@ -116,14 +116,5 @@ class ForecastSnapshotsController < ApplicationController
       @tsd_files = [ @forecast_snapshot.new_forecast_tsd,
                      @forecast_snapshot.old_forecast_tsd,
                      @forecast_snapshot.history_tsd ]
-    end
-
-    def increment_version(vers)
-      if vers =~ /\.(\d+)$/
-        vers.sub!(/\.\d+$/, '.%d' % $1.to_i + 1)
-      else
-        vers += '.2'
-      end
-      vers
     end
 end

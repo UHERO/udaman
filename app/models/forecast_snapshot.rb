@@ -4,6 +4,9 @@ class ForecastSnapshot < ApplicationRecord
   require 'date'
   before_destroy :delete_files_from_disk
 
+  validates :name, presence: true
+  validates :version, presence: true
+
   # Get series name from series mnemonic
   def retrieve_name(name)
     s = Series.find_by(universe: 'UHERO', name: name)
@@ -68,7 +71,6 @@ class ForecastSnapshot < ApplicationRecord
     new_tsd_content = newfile.read if newfile
     old_tsd_content = oldfile.read if oldfile
     hist_tsd_content = histfile.read if histfile
-## validate file content
     begin
       self.save or raise StandardError, 'FS object save failed'
       self.reload
@@ -86,6 +88,20 @@ class ForecastSnapshot < ApplicationRecord
       return false
     end
     true
+  end
+
+  def increment_version
+    vers_base = version.sub(/\.\d*$/, '')
+    num_verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.")
+    max = 0
+    num_verses.each do |vs|
+      if vs =~ /\.(\d+)$/
+        if $1.to_i > max
+          max = $1.to_i
+        end
+      end
+    end
+    '%s.%d' % [vers_base, max + 1]
   end
 
   def delete_new_forecast_tsd_file
