@@ -8,7 +8,7 @@
 <%= link_to 'Back', forecast_snapshots_path %>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
-<p><%= @forecast_snapshot.created_at.strftime('%m/%d/%y') %></p>
+<p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>
 
 <div id="charts_container"></div>
 
