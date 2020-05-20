@@ -68,22 +68,23 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def store_fs(newfile = nil, oldfile = nil, histfile = nil)
-    new_tsd_content = newfile.read if newfile
-    old_tsd_content = oldfile.read if oldfile
-    hist_tsd_content = histfile.read if histfile
+    new_tsd_content = newfile && newfile.read
+    old_tsd_content = oldfile && oldfile.read
+    hist_tsd_content = histfile && histfile.read
     begin
-      self.save or raise StandardError, 'FS object save failed'
-      self.reload
-      if newfile
-        write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) or raise StandardError, 'TSD file disk write failed'
+      self.save or raise StandardError, 'ForecastSnapshot object save failed'
+      ##self.reload
+      if new_tsd_content
+        write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) or raise StandardError, 'TSD newfile disk write failed'
       end
-      if oldfile
-        write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) or raise StandardError, 'TSD file disk write failed'
+      if old_tsd_content
+        write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) or raise StandardError, 'TSD oldfile disk write failed'
       end
-      if histfile
-        write_file_to_disk(history_tsd_filename, hist_tsd_content) or raise StandardError, 'TSD file disk write failed'
+      if hist_tsd_content
+        write_file_to_disk(history_tsd_filename, hist_tsd_content) or raise StandardError, 'TSD histfile disk write failed'
       end
     rescue StandardError => e
+      Rails.logger.error { "store_fs: #{e.message}" }
       self.delete if e.message =~ /disk write failed/
       return false
     end
@@ -92,7 +93,7 @@ class ForecastSnapshot < ApplicationRecord
 
   def increment_version
     vers_base = version.sub(/\.\d*$/, '')
-    num_verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.")
+    num_verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
     max = 0
     num_verses.each do |vs|
       if vs =~ /\.(\d+)$/

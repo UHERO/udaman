@@ -32,7 +32,7 @@ class ForecastSnapshotsController < ApplicationController
   def duplicate
     @forecast_snapshot = @forecast_snapshot.dup
     @forecast_snapshot.assign_attributes(published: nil, version: @forecast_snapshot.increment_version)
-    render :new
+    render :edit
   end
 
   def create
@@ -68,6 +68,7 @@ class ForecastSnapshotsController < ApplicationController
     unless @forecast_snapshot.update(forecast_snapshot_params)
       render :edit
     end
+    newfile = oldfile = histfile = nil
 
     if forecast_snapshot_params[:new_forecast_tsd_filename]
       newfile = forecast_snapshot_params[:new_forecast_tsd_filename]
