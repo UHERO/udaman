@@ -26,12 +26,12 @@ class ForecastSnapshotsController < ApplicationController
     @forecast_snapshot = ForecastSnapshot.new
   end
 
-  def edit
-  end
-
   def duplicate
     @forecast_snapshot = @forecast_snapshot.make_copy
     render :edit
+  end
+
+  def edit
   end
 
   def create
