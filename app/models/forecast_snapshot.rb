@@ -72,8 +72,7 @@ class ForecastSnapshot < ApplicationRecord
     old_tsd_content = oldfile && oldfile.read
     hist_tsd_content = histfile && histfile.read
     begin
-      self.save or raise StandardError, 'ForecastSnapshot object save failed'
-      ##self.reload
+      self.save || raise('ForecastSnapshot object save failed')
       if new_tsd_content
         write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) || raise('TSD newfile disk write failed')
       end
