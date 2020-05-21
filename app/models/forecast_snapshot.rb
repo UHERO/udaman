@@ -75,13 +75,13 @@ class ForecastSnapshot < ApplicationRecord
       self.save or raise StandardError, 'ForecastSnapshot object save failed'
       ##self.reload
       if new_tsd_content
-        write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) or raise StandardError, 'TSD newfile disk write failed'
+        write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) || raise('TSD newfile disk write failed')
       end
       if old_tsd_content
-        write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) or raise StandardError, 'TSD oldfile disk write failed'
+        write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) || raise('TSD oldfile disk write failed')
       end
       if hist_tsd_content
-        write_file_to_disk(history_tsd_filename, hist_tsd_content) or raise StandardError, 'TSD histfile disk write failed'
+        write_file_to_disk(history_tsd_filename, hist_tsd_content) || raise('TSD histfile disk write failed')
       end
     rescue StandardError => e
       Rails.logger.error { "store_fs: #{e.message}" }
@@ -96,14 +96,18 @@ class ForecastSnapshot < ApplicationRecord
     new.assign_attributes(name: name + ' Copy', published: nil, version: increment_version)
     new.save!
     begin  ### copy the files
-      new_forecast = read_file_from_disk(new_forecast_tsd_filename)
-      old_forecast = read_file_from_disk(old_forecast_tsd_filename)
-      history = read_file_from_disk(history_tsd_filename)
-      write_file_from_disk(new.new_forecast_tsd_filename, new_forecast)
-      write_file_from_disk(new.old_forecast_tsd_filename, old_forecast)
-      write_file_from_disk(new.history_tsd_filename, history)
-    rescue
+      new_forecast = read_file_from_disk(new_forecast_tsd_filename) || raise('read new_forecast')
+      old_forecast = read_file_from_disk(old_forecast_tsd_filename) || raise('read old_forecast')
+      history = read_file_from_disk(history_tsd_filename) || raise('read history')
+      new.write_file_to_disk(new_forecast_tsd_filename, new_forecast) || raise('write new_forecast')
+      new.write_file_to_disk(old_forecast_tsd_filename, old_forecast) || raise('write old_forecast')
+      new.write_file_to_disk(history_tsd_filename, history) || raise('write history')
+    rescue => e
+      (op, file) = e.message.split
+      Rails.logger.error { "Could not #{op} the #{file} file" }
+      return false
     end
+    true
   end
 
   def increment_version
