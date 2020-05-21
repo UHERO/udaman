@@ -91,22 +91,23 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def make_copy
-    new = self.dup
-    new.assign_attributes(name: name + ' Copy', published: nil, version: increment_version)
-    new.save!
+    copy = self.dup
+    copy.assign_attributes(name: name + ' Copy', version: increment_version, published: nil)
+    copy.save!
     begin  ### copy the files
-      new_forecast = read_file_from_disk(new_forecast_tsd_filename) || raise('read new_forecast')
-      old_forecast = read_file_from_disk(old_forecast_tsd_filename) || raise('read old_forecast')
-      history = read_file_from_disk(history_tsd_filename) || raise('read history')
-      new.write_file_to_disk(new_forecast_tsd_filename, new_forecast) || raise('write new_forecast')
-      new.write_file_to_disk(old_forecast_tsd_filename, old_forecast) || raise('write old_forecast')
-      new.write_file_to_disk(history_tsd_filename, history) || raise('write history')
+      new_tsd = read_file_from_disk(new_forecast_tsd_filename) || raise('read new_forecast')
+      old_tsd = read_file_from_disk(old_forecast_tsd_filename) || raise('read old_forecast')
+      hist_tsd = read_file_from_disk(history_tsd_filename)     || raise('read history')
+      copy.write_file_to_disk(new_forecast_tsd_filename, new_tsd) || raise('write new_forecast')
+      copy.write_file_to_disk(old_forecast_tsd_filename, old_tsd) || raise('write old_forecast')
+      copy.write_file_to_disk(history_tsd_filename,     hist_tsd) || raise('write history')
     rescue => e
       (op, file) = e.message.split
-      Rails.logger.error { "Could not #{op} the #{file} file" }
-      return false
+      msg = "Duplicate fail: Could not #{op} the #{file} file"
+      Rails.logger.error { msg }
+      raise msg
     end
-    true
+    copy
   end
 
   def increment_version
