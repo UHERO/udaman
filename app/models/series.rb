@@ -249,7 +249,7 @@ class Series < ApplicationRecord
     ## future/next time: the dataPortalName also needs to be copied over (with mods?)
     )
     new.save!
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       new_ds = ds.dup
       if new_ds.save!
         new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
@@ -436,6 +436,10 @@ class Series < ApplicationRecord
     end
     update_data(data, source, false)
     source
+  end
+
+  def enabled_data_sources
+    data_sources.reject {|d| d.disabled? }
   end
 
   def data_sources_sort_for_display
@@ -668,8 +672,8 @@ class Series < ApplicationRecord
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     descript = "loaded from #{handle} into a series of files"
-    if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle, :nontime).save_path rescue raise("Unknown download handle #{handle}")
+    if Series.valid_download_handle(handle, date_sensitive: false)
+      path = Download.get(handle, :nondate).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
@@ -767,7 +771,7 @@ class Series < ApplicationRecord
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def ds_like_DELETEME?(string)
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       return true unless ds.eval.index(string).nil?
     end
     false
@@ -775,7 +779,7 @@ class Series < ApplicationRecord
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def handle_DELETEME?
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return ds.eval.split('load_from_download')[1].split("\"")[1]
       end
@@ -785,7 +789,7 @@ class Series < ApplicationRecord
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def original_url_DELETEME?
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
       end
@@ -1110,7 +1114,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string, limit = 500)
+  def Series.search_box(input_string, limit: 10000)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1268,10 +1272,10 @@ class Series < ApplicationRecord
   end
 
   ## probably vestigial - make sure, then delete later
-  def increment_dependency_depth
+  def increment_dependency_depth_DELETEME
     self.dependency_depth += 1
     dependencies = []
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       dependencies += ds.dependencies
     end
     dependencies.uniq.each do |dependency|
@@ -1313,7 +1317,7 @@ class Series < ApplicationRecord
   def Series.get_old_bea_downloads
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
-      dl.data_sources.each do |ds|
+      dl.enabled_data_sources.each do |ds|
         series.push ds.series
       end
     end

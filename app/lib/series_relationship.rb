@@ -36,7 +36,7 @@ module SeriesRelationship
   #Also need to add in priority
   
   def data_sources_by_last_run
-    data_sources.reject {|d| d.disabled? }.sort_by {|d| [d.priority, d.last_run ] }
+    enabled_data_sources.sort_by {|d| [d.priority, d.last_run ] }
   end
 
   def clean_data_sources
@@ -46,15 +46,13 @@ module SeriesRelationship
       sources_in_use[dp.data_source_id] ||= 1
     end
     
-    #puts sources_in_use.count
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       if sources_in_use[ds.id].nil?
-        #puts "deleting #{self.name}: #{ds.id} : #{ds.description}"
         ds.delete
       end
     end
     
-    self.data_sources.count
+    self.enabled_data_sources.count
   end
 
   ## full recursive tree of dependents
@@ -101,7 +99,7 @@ module SeriesRelationship
 
   def who_i_depend_on(direct_only = false)
     direct_deps = []
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       direct_deps |= ds.dependencies
     end
     return direct_deps if direct_only

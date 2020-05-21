@@ -94,7 +94,7 @@ class SeriesController < ApplicationController
 
   def new_search
     @search_string = params[:search_string]
-    @all_series = Series.search_box(@search_string)
+    @all_series = Series.search_box(@search_string, limit: 500)
     if @all_series.count == 1
       @series = @all_series.first
       show(true)  ## call controller prep without render
@@ -111,7 +111,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
     @dsas = []
-    @series.data_sources.each do |ds|
+    @series.enabled_data_sources.each do |ds|
       @dsas.concat ds.data_source_actions
     end
     return if no_render

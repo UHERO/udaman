@@ -1,4 +1,6 @@
 class Date
+  include HelperUtilities
+
   def linear_path_to_previous_period(start_val, diff, source_frequency, target_frequency)
     if (source_frequency == 'year' or source_frequency == :year) and target_frequency == :quarter
       return {

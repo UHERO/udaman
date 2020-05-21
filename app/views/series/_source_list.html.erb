@@ -4,7 +4,13 @@
     <% if ds.disabled?  ## I dislike having this as a separate code path, but... it's just cleaner %>
       <tr style="border:none;background-color:lightgrey;" >
         <td style="border:none;">
-          <strong><%= ds.id %></strong> <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %>
+          <strong><%= ds.id %></strong>
+          <% if current_user.admin_user? %>
+             <%= link_to 'clear', { controller: :data_sources, action: :clear, id: ds.id } %> |
+             <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %> |
+             <%= link_to 'delete', { controller: :data_sources, action: :delete, id: ds.id },
+                                  data: { :confirm => "Permanently delete disabled definition #{ds.id}: Are you sure??" } %>
+          <% end %>
         </td>
       </tr>
       <tr style="border:none;background-color:lightgrey;" >
