@@ -105,23 +105,13 @@ class ForecastSnapshot < ApplicationRecord
       (op, file) = e.message.split
       msg = "Duplicate fail: Could not #{op} the #{file} file"
       Rails.logger.error { msg }
+      if op == 'write'
+        copy.delete_file_from_disk(new_forecast_tsd_filename) if file == 'history' || file == 'old_forecast'
+        copy.delete_file_from_disk(old_forecast_tsd_filename) if file == 'history'
+      end
       raise msg
     end
     copy
-  end
-
-  def increment_version
-    vers_base = version.sub(/\.\d*$/, '')
-    verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
-    max = 0
-    verses.each do |vs|
-      if vs =~ /\.(\d+)$/
-        if $1.to_i > max
-          max = $1.to_i
-        end
-      end
-    end
-    '%s.%d' % [vers_base, max + 1]
   end
 
   def delete_new_forecast_tsd_file
@@ -143,6 +133,20 @@ class ForecastSnapshot < ApplicationRecord
   end
 
 private
+
+  def increment_version
+    vers_base = version.sub(/\.\d*$/, '')
+    verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
+    max = 0
+    verses.each do |vs|
+      if vs =~ /\.(\d+)$/
+        if $1.to_i > max
+          max = $1.to_i
+        end
+      end
+    end
+    '%s.%d' % [vers_base, max + 1]
+  end
 
   def write_file_to_disk(name, content)
     begin
