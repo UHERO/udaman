@@ -9,7 +9,7 @@
   <% @series.each do |series| %>
       <li><a href="https://udaman.uhero.hawaii.edu/series/<%= series.id %>">https://udaman.uhero.hawaii.edu/series/<%= series.id %> : <%= series.name %></a>
         <ul>
-          <% series.data_sources.each do |ds| %>
+          <% series.enabled_data_sources.each do |ds| %>
             <% ds.dependencies.each do |dependency| %>
               <% dependency_series = Series.get(dependency) %>
               <li><a href="https://udaman.uhero.hawaii.edu/series<%= dependency_series.id %>"><%= dependency_series.id %> :<%= dependency_series.name %></li>

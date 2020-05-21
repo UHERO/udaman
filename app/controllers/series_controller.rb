@@ -94,7 +94,7 @@ class SeriesController < ApplicationController
 
   def new_search
     @search_string = params[:search_string]
-    @all_series = Series.search_box(@search_string)
+    @all_series = Series.search_box(@search_string, limit: 500)
     if @all_series.count == 1
       @series = @all_series.first
       show(true)  ## call controller prep without render
@@ -111,7 +111,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change params[:id]
     @desc = @as.nil? ? 'No Aremos Series' : @as.description
     @dsas = []
-    @series.data_sources.each do |ds|
+    @series.enabled_data_sources.each do |ds|
       @dsas.concat ds.data_source_actions
     end
     return if no_render
@@ -273,36 +273,6 @@ class SeriesController < ApplicationController
   def update_notes
     @series.update_attributes(investigation_notes: params[:note])
     render :partial => 'investigation_sort'
-  end
-
-  def stale
-    @stale_series = {}
-    stales = Series.stale_since Time.now.days_ago(2)
-    stales.each do |s_id, s_name, ds_id|
-      @stale_series[s_id] ||= { name: s_name, dsids: [] }
-      @stale_series[s_id][:dsids].push ds_id
-    end
-    @stale_series
-  end
-
-  def nightly_missed
-    @missed_series = {}
-    missed = Series.stale_since Time.now.yesterday
-    missed.each do |s_id, s_name, ds_id|
-      @missed_series[s_id] ||= { name: s_name, dsids: [] }
-      @missed_series[s_id][:dsids].push ds_id
-    end
-    @missed_series
-  end
-
-  def nightly_loaded
-    @loaded_series = {}
-    loaded = Series.loaded_since Time.now.yesterday
-    loaded.each do |s_id, s_name, ds_id|
-      @loaded_series[s_id] ||= { name: s_name, dsids: [] }
-      @loaded_series[s_id][:dsids].push ds_id
-    end
-    @loaded_series
   end
 
 private

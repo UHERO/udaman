@@ -157,7 +157,7 @@ GEM
     minitest (5.14.0)
     multipart-post (2.0.0)
     mustermann (1.0.3)
-    mysql2 (0.5.2)
+    mysql2 (0.5.3)
     net-http-digest_auth (1.4.1)
     net-http-persistent (3.1.0)
       connection_pool (~> 2.2)
@@ -353,12 +353,12 @@ DEPENDENCIES
   jquery-ui-rails (~> 6.0.1)
   listen
   mechanize (>= 2.7.5)
-  mysql2 (~> 0.5)
+  mysql2 (~> 0.5, >= 0.5.3)
   net-sftp
   nokogiri (~> 1.10)
   passenger (~> 6.0.0)
   rack-protection (~> 2.0.1)
-  rails (~> 5.2, >= 5.2.3)
+  rails (~> 5.2, >= 5.2.4.2)
   rails-assets-select2 (~> 4.0.5)!
   rake
   rest-client (~> 2.0)

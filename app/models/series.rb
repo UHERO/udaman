@@ -249,7 +249,7 @@ class Series < ApplicationRecord
     ## future/next time: the dataPortalName also needs to be copied over (with mods?)
     )
     new.save!
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       new_ds = ds.dup
       if new_ds.save!
         new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
@@ -300,7 +300,11 @@ class Series < ApplicationRecord
     end
     region_hash
   end
-  
+
+  def Series.region_counts
+    region_hash.map {|key, value| [key, value.count] }.to_h
+  end
+
   def Series.frequency_hash
     frequency_hash = {}
     all_names = Series.get_all_uhero.select('name, frequency')
@@ -312,29 +316,16 @@ class Series < ApplicationRecord
   end
   
   def Series.frequency_counts
-    frequency_counts = Series.frequency_hash
-    frequency_counts.each {|key,value| frequency_counts[key] = value.count}
-    frequency_counts
+    frequency_hash.map {|key, value| [key, value.count] }.to_h
   end
-  
-  def Series.region_counts
-    region_counts = Series.region_hash
-    region_counts.each {|key,value| region_counts[key] = value.count}
-    region_counts
-  end
-  
-  
+
   def Series.code_from_frequency(frequency)
-    return 'A' if frequency == :year || frequency == 'year' || frequency == :annual || frequency == 'annual' || frequency == 'annually'
-    return 'Q' if frequency == :quarter || frequency == 'quarter' || frequency == 'quarterly'
-    return 'M' if frequency == :month || frequency == 'month' || frequency == 'monthly'
-    return 'S' if frequency == :semi || frequency == 'semi' || frequency == 'semi-annually'
-    return 'W' if frequency == :week || frequency == 'week' || frequency == 'weekly'
-    return 'D' if frequency == :day || frequency == 'day' || frequency == 'daily'
-    
-    return ''
+    frequency = frequency.to_s.downcase.sub(/ly$/,'')  ## handle words like annually, monthly, daily, etc
+    frequency = 'semi' if frequency =~ /^semi/  ## just in case
+    mapping = { year: 'A', annual: 'A', semi: 'S', quarter: 'Q', month: 'M', week: 'W', day: 'D', dai: 'D' }
+    mapping[frequency.to_sym].to_s
   end
-  
+
   def Series.frequency_from_code(code)
     case code && code.upcase
       when 'A' then :year
@@ -447,11 +438,15 @@ class Series < ApplicationRecord
     source
   end
 
+  def enabled_data_sources
+    data_sources.reject {|d| d.disabled? }
+  end
+
   def data_sources_sort_for_display
-    ## Non-nightlies at the top, then sort by priority, then by id within priority groups.
-    data_sources.sort_by {|ds| [(ds.reload_nightly ? 1 : 0), ds.priority, ds.id] }
-    ## For some reason, sort_by does not take the reload_nightly boolean attribute as-is,
-    ## but it needs to be "reconverted" to integer - I am mystified by this.
+    ## Disabled at the top, then non-nightlies, then by priority, then by id within priority groups.
+    data_sources.sort_by {|ds| [(ds.disabled? ? 0 : 1), (ds.reload_nightly? ? 1 : 0), ds.priority, ds.id] }
+    ## For some reason, sort_by does not take the boolean attributes as-is, but they need to be "reconverted"
+    ## to integer - I am mystified by this.
   end
 
   def update_data(data, source, run_update = true)
@@ -673,24 +668,12 @@ class Series < ApplicationRecord
     new_transformation("generated randomly for testing", series_data)
   end
 
-  ## Is this instance method even used??
-  def load_from_download(handle, options)
-    dp = DownloadProcessor.new(handle, options)
-    series_data = dp.get_data
-    descript = "loaded from #{handle} with options #{display_options(options)}"
-    if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
-      descript = "loaded from download to #{path}"
-    end
-    new_transformation(descript, series_data)
-  end
-
   def Series.load_from_download(handle, options)
     dp = DownloadProcessor.new(handle, options)
     series_data = dp.get_data
-    descript = "loaded from #{handle} with options #{display_options(options)}"
-    if Series.valid_download_handle(handle, time_sensitive: false)
-      path = Download.get(handle).save_path rescue raise("Unknown download handle #{handle}")
+    descript = "loaded from #{handle} into a series of files"
+    if Series.valid_download_handle(handle, date_sensitive: false)
+      path = Download.get(handle, :nondate).save_path rescue raise("Unknown download handle #{handle}")
       descript = "loaded from download to #{path}"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
@@ -788,7 +771,7 @@ class Series < ApplicationRecord
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def ds_like_DELETEME?(string)
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       return true unless ds.eval.index(string).nil?
     end
     false
@@ -796,7 +779,7 @@ class Series < ApplicationRecord
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def handle_DELETEME?
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return ds.eval.split('load_from_download')[1].split("\"")[1]
       end
@@ -806,7 +789,7 @@ class Series < ApplicationRecord
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def original_url_DELETEME?
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       unless ds.eval.index('load_from_download').nil?
         return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
       end
@@ -837,7 +820,8 @@ class Series < ApplicationRecord
     observations
   end
 
-  def new_data?
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_data_DELETEME?
     xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
   end
   
@@ -1130,7 +1114,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string, limit = 500)
+  def Series.search_box(input_string, limit: 10000)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1288,10 +1272,10 @@ class Series < ApplicationRecord
   end
 
   ## probably vestigial - make sure, then delete later
-  def increment_dependency_depth
+  def increment_dependency_depth_DELETEME
     self.dependency_depth += 1
     dependencies = []
-    self.data_sources.each do |ds|
+    self.enabled_data_sources.each do |ds|
       dependencies += ds.dependencies
     end
     dependencies.uniq.each do |dependency|
@@ -1333,28 +1317,11 @@ class Series < ApplicationRecord
   def Series.get_old_bea_downloads
     series = []
     Download.where(%q(handle like '%@bea.gov')).each do |dl|
-      dl.data_sources.each do |ds|
+      dl.enabled_data_sources.each do |ds|
         series.push ds.series
       end
     end
     series.sort_by(&:name)
-  end
-
-  def Series.stale_since(past_day)
-    horizon = Time.new(past_day.year, past_day.month, past_day.day, 20, 0, 0)  ## 8pm, roughly when nightly load starts
-    Series.get_all_uhero
-          .joins(:data_sources)
-          .where('reload_nightly = true AND last_run_in_seconds < ?', horizon.to_i)
-          .order('series.name, data_sources.id')
-          .pluck('series.id, series.name, data_sources.id')
-  end
-
-  def Series.loaded_since(past_day)
-    Series.get_all_uhero
-        .joins(:data_sources)
-        .where('reload_nightly = true')
-        .order('series.name, data_sources.id')
-        .pluck('series.id, series.name, data_sources.id') - Series.stale_since(past_day)
   end
 
   def source_link_is_valid
