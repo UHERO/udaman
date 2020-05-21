@@ -5,7 +5,11 @@
     <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
     <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
 <% end %>
-<%= link_to 'Back', forecast_snapshots_path %>
+<% if current_user.dev_user? %>
+  <td><%= link_to 'Destroy', @forecast_snapshot, method: :delete,
+             data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %></td> |
+<% end %>
+<%= link_to 'Index', forecast_snapshots_path %>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
 <p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>

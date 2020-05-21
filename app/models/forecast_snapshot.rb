@@ -104,6 +104,7 @@ class ForecastSnapshot < ApplicationRecord
     rescue => e
       (op, file) = e.message.split
       msg = "Duplicate fail: Could not #{op} the #{file} file"
+      ##msg = e.message##"Duplicate fail: Could not #{op} the #{file} file"
       Rails.logger.error { msg }
       if op == 'write'
         copy.delete_file_from_disk(new_forecast_tsd_filename) if file == 'history' || file == 'old_forecast'
@@ -132,26 +133,10 @@ class ForecastSnapshot < ApplicationRecord
     File.join('tsd_files', hash.to_s + '_' + name)
   end
 
-private
-
-  def increment_version
-    vers_base = version.sub(/\.\d*$/, '')
-    verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
-    max = 0
-    verses.each do |vs|
-      if vs =~ /\.(\d+)$/
-        if $1.to_i > max
-          max = $1.to_i
-        end
-      end
-    end
-    '%s.%d' % [vers_base, max + 1]
-  end
-
   def write_file_to_disk(name, content)
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
-    rescue StandardError => e
+    rescue => e
       Rails.logger.error e.message
       return false
     end
@@ -161,7 +146,7 @@ private
   def read_file_from_disk(name)
     begin
       content = File.open(path(name), 'r') { |f| f.read }
-    rescue StandardError => e
+    rescue => e
       Rails.logger.error e.message
       return false
     end
@@ -171,13 +156,32 @@ private
   def delete_file_from_disk(name)
     begin
       File.delete(path(name))
-    rescue StandardError => e
+    rescue => e
       Rails.logger.error e.message
       unless e.message =~ /no such file/i
         throw(:abort)
       end
     end
     true
+  end
+
+private
+
+  def increment_version
+    #Rails.logger.debug { ">>>>>>>>>>> starting from #{version}"}
+    vers_base = version.sub(/\.\d*$/, '')
+    verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
+    max = 0
+    verses.each do |vs|
+      #Rails.logger.debug { ">>>>>>>>>>>>>>>>>>> found an #{vs}" }
+      if vs =~ /\.(\d+)$/
+        if $1.to_i > max
+          max = $1.to_i
+        end
+      end
+    end
+    #Rails.logger.debug { ">>>>>>>>>>>>>>>>>>> end: #{'%s.%d' % [vers_base, max + 1]}" }
+    '%s.%d' % [vers_base, max + 1]
   end
 
   def delete_files_from_disk
