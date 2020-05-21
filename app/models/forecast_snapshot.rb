@@ -94,6 +94,16 @@ class ForecastSnapshot < ApplicationRecord
   def make_copy
     new = self.dup
     new.assign_attributes(name: name + ' Copy', published: nil, version: increment_version)
+    new.save!
+    begin  ### copy the files
+      new_forecast = read_file_from_disk(new_forecast_tsd_filename)
+      old_forecast = read_file_from_disk(old_forecast_tsd_filename)
+      history = read_file_from_disk(history_tsd_filename)
+      write_file_from_disk(new.new_forecast_tsd_filename, new_forecast)
+      write_file_from_disk(new.old_forecast_tsd_filename, old_forecast)
+      write_file_from_disk(new.history_tsd_filename, history)
+    rescue
+    end
   end
 
   def increment_version
