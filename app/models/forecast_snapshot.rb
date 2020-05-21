@@ -91,11 +91,16 @@ class ForecastSnapshot < ApplicationRecord
     true
   end
 
+  def make_copy
+    new = self.dup
+    new.assign_attributes(name: name + ' Copy', published: nil, version: increment_version)
+  end
+
   def increment_version
     vers_base = version.sub(/\.\d*$/, '')
-    num_verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
+    verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
     max = 0
-    num_verses.each do |vs|
+    verses.each do |vs|
       if vs =~ /\.(\d+)$/
         if $1.to_i > max
           max = $1.to_i
