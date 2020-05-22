@@ -91,8 +91,9 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def make_copy
+    raise 'Please do not duplicate a snapshot that already has Copy in the name. Rename first?' if name =~ /Copy/i
     copy = self.dup
-    copy.assign_attributes(name: name + ' Copy', version: increment_version, published: nil)
+    copy.assign_attributes(name: name + ' Copy', version: increment_version, published: false)
     copy.save!
     begin  ### copy the files
       new_tsd = read_file_from_disk(new_forecast_tsd_filename) || raise('read new_forecast')

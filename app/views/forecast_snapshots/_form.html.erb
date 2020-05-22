@@ -48,6 +48,10 @@
   </div>
   <div class="actions">
     <%= f.submit 'Save forecast snapshot' %>
-    <%= link_to 'Cancel', :back %>
+    <% if @isa_dup %>
+        <%= link_to 'Cancel', @forecast_snapshot, method: :delete %>
+    <% else %>
+        <%= link_to 'Cancel', :back %>
+    <% end %>
   </div>
 <% end %>

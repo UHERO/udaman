@@ -28,6 +28,7 @@ class ForecastSnapshotsController < ApplicationController
 
   def duplicate
     @forecast_snapshot = @forecast_snapshot.make_copy
+    @isa_dup = true if current_user.admin_user?
     render :edit
   end
 
@@ -92,7 +93,7 @@ class ForecastSnapshotsController < ApplicationController
   # DELETE /forecast_snapshots/1
   def destroy
     @forecast_snapshot.destroy
-    redirect_to forecast_snapshots_url, notice: 'Forecast snapshot was successfully destroyed.'
+    redirect_to forecast_snapshots_url
   end
 
   private
