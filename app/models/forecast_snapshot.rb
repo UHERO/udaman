@@ -2,7 +2,11 @@ class ForecastSnapshot < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   require 'date'
-  before_destroy :delete_files_from_disk
+  before_destroy do
+    delete_file_from_disk(new_forecast_tsd_filename)
+    delete_file_from_disk(old_forecast_tsd_filename)
+    delete_file_from_disk(history_tsd_filename)
+  end
 
   validates :name, presence: true
   validates :version, presence: true
@@ -115,18 +119,6 @@ class ForecastSnapshot < ApplicationRecord
     copy
   end
 
-  def delete_new_forecast_tsd_file
-    new_forecast_tsd_filename ? delete_file_from_disk(new_forecast_tsd_filename) : true
-  end
-
-  def delete_old_forecast_tsd_file
-    old_forecast_tsd_filename ? delete_file_from_disk(old_forecast_tsd_filename) : true
-  end
-
-  def delete_history_tsd_file
-    history_tsd_filename ? delete_file_from_disk(history_tsd_filename) : true
-  end
-
   def tsd_rel_filepath(name)
     if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
       Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % name }
@@ -158,6 +150,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def delete_file_from_disk(name)
+    return false unless name
     begin
       File.delete(path(name))
     rescue => e
@@ -165,15 +158,28 @@ class ForecastSnapshot < ApplicationRecord
       unless e.message =~ /no such file/i
         throw(:abort)
       end
+      return false
     end
     true
+  end
+
+  def delete_new_forecast_tsd_file
+    delete_file_from_disk(new_forecast_tsd_filename) || true
+  end
+
+  def delete_old_forecast_tsd_file
+    delete_file_from_disk(old_forecast_tsd_filename) || true
+  end
+
+  def delete_history_tsd_file
+    delete_file_from_disk(history_tsd_filename) || true
   end
 
   def filename_title(type)
     tsd_rel_filepath(send(type)).split('/').pop rescue nil
   end
 
-  private
+private
 
   def increment_version
     vers_base = version.sub(/\.\d*$/, '')
@@ -187,12 +193,6 @@ class ForecastSnapshot < ApplicationRecord
       end
     end
     '%s.%d' % [vers_base, max + 1]
-  end
-
-  def delete_files_from_disk
-      delete_new_forecast_tsd_file &&
-      delete_old_forecast_tsd_file &&
-      delete_history_tsd_file
   end
 
 end
