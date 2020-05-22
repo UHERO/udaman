@@ -166,7 +166,11 @@ class ForecastSnapshot < ApplicationRecord
     true
   end
 
-private
+  def filename_title(name)
+    tsd_rel_filepath(name) rescue nil
+  end
+
+  private
 
   def increment_version
     #Rails.logger.debug { ">>>>>>>>>>> starting from #{version}"}

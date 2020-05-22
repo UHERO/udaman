@@ -26,21 +26,21 @@
     <%= f.text_area :comments %>
   </div>
   <div class="field">
-    <%= f.label :new_forecast_tsd_filename, title: @forecast_snapshot.tsd_rel_filepath(@forecast_snapshot.new_forecast_tsd_filename) %>
+    <%= f.label :new_forecast_tsd_filename, title: @forecast_snapshot.filename_title(@forecast_snapshot.new_forecast_tsd_filename) %>
     <%= f.text_field :new_forecast_tsd_filename, :disabled => true, :size => 30 %>
       Label
       <%= f.text_field :new_forecast_tsd_label, :size => 30 %>
       <%= f.file_field :new_forecast_tsd_filename %>
   </div>
   <div class="field">
-    <%= f.label :old_forecast_tsd_filename, title: @forecast_snapshot.tsd_rel_filepath(@forecast_snapshot.old_forecast_tsd_filename) %>
+    <%= f.label :old_forecast_tsd_filename, title: @forecast_snapshot.filename_title(@forecast_snapshot.old_forecast_tsd_filename) %>
     <%= f.text_field :old_forecast_tsd_filename, :disabled => true, :size => 30 %>
       Label
       <%= f.text_field :old_forecast_tsd_label, :size => 30 %>
       <%= f.file_field :old_forecast_tsd_filename %>
   </div>
   <div class="field">
-    <%= f.label :history_tsd_filename, title: @forecast_snapshot.tsd_rel_filepath(@forecast_snapshot.history_tsd_filename) %>
+    <%= f.label :history_tsd_filename, title: @forecast_snapshot.filename_title(@forecast_snapshot.history_tsd_filename) %>
     <%= f.text_field :history_tsd_filename, :disabled => true, :size => 30 %>
       Label
       <%= f.text_field :history_tsd_label, :size => 30 %>
