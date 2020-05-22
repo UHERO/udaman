@@ -26,7 +26,7 @@
     <%= f.text_area :comments %>
   </div>
   <div class="field">
-    <%= link_to 'New Forecast', { action: :pull_file, id: @forecast_snapshot, name: :new_forecast_tsd_filename },
+    <%= link_to 'New Forecast', { action: :pull_file, id: @forecast_snapshot, type: :new_forecast_tsd_filename },
                 title: @forecast_snapshot.filename_title(@forecast_snapshot.new_forecast_tsd_filename) %>
     <%= f.text_field :new_forecast_tsd_filename, :disabled => true, :size => 30 %>
       Label
@@ -34,7 +34,7 @@
       <%= f.file_field :new_forecast_tsd_filename %>
   </div>
   <div class="field">
-    <%= link_to 'Old Forecast', { action: :pull_file, id: @forecast_snapshot, name: :old_forecast_tsd_filename },
+    <%= link_to 'Old Forecast', { action: :pull_file, id: @forecast_snapshot, type: :old_forecast_tsd_filename },
                 title: @forecast_snapshot.filename_title(@forecast_snapshot.old_forecast_tsd_filename) %>
     <%= f.text_field :old_forecast_tsd_filename, :disabled => true, :size => 30 %>
       Label
@@ -42,7 +42,7 @@
       <%= f.file_field :old_forecast_tsd_filename %>
   </div>
   <div class="field">
-    <%= link_to 'History', { action: :pull_file, id: @forecast_snapshot, name: :history_tsd_filename },
+    <%= link_to 'History', { action: :pull_file, id: @forecast_snapshot, type: :history_tsd_filename },
                 title: @forecast_snapshot.filename_title(@forecast_snapshot.history_tsd_filename) %>
     <%= f.text_field :history_tsd_filename, :disabled => true, :size => 30 %>
       Label

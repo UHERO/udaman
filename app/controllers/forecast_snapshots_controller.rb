@@ -97,11 +97,11 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def pull_file
-    unless ForecastSnapshot.attribute_names.include?(params[:name])
-      Rails.logger.warn { 'WARNING! Attempt to access filesystem using parameter %s' % params[:name] }
+    unless ForecastSnapshot.attribute_names.include?(params[:type])
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem using parameter %s' % params[:type] }
       return
     end
-    filename = @forecast_snapshot.send(params[:name])
+    filename = @forecast_snapshot.send(params[:type])
     send_file File.join(ENV['DATA_PATH'], @forecast_snapshot.tsd_rel_filepath(filename))
   end
 
