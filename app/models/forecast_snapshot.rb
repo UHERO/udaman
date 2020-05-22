@@ -72,7 +72,7 @@ class ForecastSnapshot < ApplicationRecord
     old_tsd_content = oldfile && oldfile.read
     hist_tsd_content = histfile && histfile.read
     begin
-      self.save || raise('ForecastSnapshot object save failed')
+      self.save! || raise('ForecastSnapshot object save failed')
       if new_tsd_content
         write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) || raise('TSD newfile disk write failed')
       end
@@ -105,7 +105,6 @@ class ForecastSnapshot < ApplicationRecord
     rescue => e
       (op, file) = e.message.split
       msg = "Duplicate fail: Could not #{op} the #{file} file"
-      ##msg = e.message##"Duplicate fail: Could not #{op} the #{file} file"
       Rails.logger.error { msg }
       if op == 'write'
         copy.delete_file_from_disk(new_forecast_tsd_filename) if file == 'history' || file == 'old_forecast'
@@ -170,26 +169,23 @@ class ForecastSnapshot < ApplicationRecord
     true
   end
 
-  def filename_title(name)
-    tsd_rel_filepath(name) rescue nil
+  def filename_title(type)
+    tsd_rel_filepath(send(type)).split('/').pop rescue nil
   end
 
   private
 
   def increment_version
-    #Rails.logger.debug { ">>>>>>>>>>> starting from #{version}"}
     vers_base = version.sub(/\.\d*$/, '')
     verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)
     max = 0
     verses.each do |vs|
-      #Rails.logger.debug { ">>>>>>>>>>>>>>>>>>> found an #{vs}" }
       if vs =~ /\.(\d+)$/
         if $1.to_i > max
           max = $1.to_i
         end
       end
     end
-    #Rails.logger.debug { ">>>>>>>>>>>>>>>>>>> end: #{'%s.%d' % [vers_base, max + 1]}" }
     '%s.%d' % [vers_base, max + 1]
   end
 
