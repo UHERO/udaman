@@ -2,7 +2,7 @@ class ForecastSnapshotsController < ApplicationController
   include Authorization
 
   before_action :check_forecast_snapshot_authorization
-  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy]
+  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy, :pull_file]
   before_action :set_tsd_files, only: [:show, :table]
 
   def index
@@ -96,7 +96,17 @@ class ForecastSnapshotsController < ApplicationController
     redirect_to forecast_snapshots_url
   end
 
-  private
+  def pull_file
+    unless ForecastSnapshot.attribute_names.include?(params[:name])
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem using parameter %s' % params[:name] }
+      return
+    end
+    filename = @forecast_snapshot.send(params[:name])
+    send_file File.join(ENV['DATA_PATH'], @forecast_snapshot.tsd_rel_filepath(filename))
+  end
+
+private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_forecast_snapshot
       @forecast_snapshot = ForecastSnapshot.find(params[:id])

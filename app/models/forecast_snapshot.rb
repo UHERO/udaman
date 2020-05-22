@@ -129,6 +129,10 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def tsd_rel_filepath(name)
+    if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % name }
+      return
+    end
     string = '%s_%d_%s' % [created_at.utc, id, name]
     hash = Digest::MD5.new << string
     File.join('tsd_files', hash.to_s + '_' + name)

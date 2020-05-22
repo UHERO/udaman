@@ -26,11 +26,9 @@ class DataPoint < ApplicationRecord
   end
 
   def value_equal_to?(value)
-    begin
-      self.value.round(10) == value.round(10)
+    self.value.round(10) == value.round(10)
     rescue
-      raise "Error rounding value at #{date} observation. May be non-numeric"
-    end
+    raise "Error rounding value at #{date} observation. May be non-numeric"
   end
 
   def trying_to_replace_with_nil?(value)
