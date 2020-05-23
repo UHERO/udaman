@@ -11,24 +11,18 @@ class ForecastSnapshot < ApplicationRecord
   validates :name, presence: true
   validates :version, presence: true
 
-  # Get series name from series mnemonic
   def retrieve_name(name)
     s = Series.find_by(universe: 'UHERO', name: name)
     if s.nil?
-      prefix = name[/[^@]*/]
+      prefix = Series.parse_name(name)[:prefix]
       like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
       return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
     end
     s.aremos_series.description.titlecase
   end
 
-  # Get series percent from series mnemonic
   def retrieve_percent(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
-    if s.nil?
-      return ''
-    end
-    s.percent
+    Series.find_by(universe: 'UHERO', name: name).percent rescue ''
   end
 
   # Get series units

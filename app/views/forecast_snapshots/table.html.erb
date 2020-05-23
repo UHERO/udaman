@@ -19,12 +19,12 @@
         </th>
     <% end %>
   </tr>
-  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
+  <% @tsd_files[0].get_all_series.each do |s| %>
       <% precision = (s[:udaman_series].decimals || 1) rescue 1 %>
     <tr>
       <%
-        mnemonic = s[:name] + '.' + s[:frequency]
-        display_name = @forecast_snapshot.retrieve_name(mnemonic) + ' (' + mnemonic + ')'
+        fullname = Series.build_name_two(s[:name], s[:frequency])
+        display_name = @forecast_snapshot.retrieve_name(fullname) + ' (' + fullname + ')'
       %>
       <td class="header-col series-title" title="<%= display_name %>"><%= display_name %></td>
       <% @all_dates.each do |date| %>

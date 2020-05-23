@@ -29,13 +29,13 @@
   <% @tsd_files[2].get_all_series.each do |series| %>
     <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
-    <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
+    <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
+    <% @forecast_snapshot.unrestrict_series(fullname) %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
       history_start: '<%= series_start %>',
@@ -44,15 +44,15 @@
   <% end %>
 
   <% @tsd_files[1].get_all_series.each do |series| %>
-    <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
     <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
-    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
+    <% @forecast_snapshot.unrestrict_series(fullname) %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
       old_forecast_start: '<%= series_start %>',
@@ -61,15 +61,15 @@
   <% end %>
 
   <% @tsd_files[0].get_all_series.each do |series| %>
-    <% mnemonic = series[:name] + '.' + series[:frequency] %>
+    <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
     <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
-    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
+    <% @forecast_snapshot.unrestrict_series(fullname) %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
+      id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
+      title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
       units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
       new_forecast_start: '<%= series_start %>',
