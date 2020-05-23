@@ -15,11 +15,10 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def show
-    @forecast_snapshot.old_forecast_tsd
   end
 
   def table
-    @all_dates = @forecast_snapshot.new_forecast_tsd.get_current_plus_five_dates
+    @all_dates = @tsd_files[0].get_current_plus_five_dates
   end
 
   def new

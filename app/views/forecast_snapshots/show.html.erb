@@ -26,8 +26,8 @@
   var all_data = [];
 
   <% start_date = '2020-01-01' %>
-  <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
-    <% series_start = @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+  <% @tsd_files[2].get_all_series.each do |series| %>
+    <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
@@ -43,9 +43,9 @@
     });
   <% end %>
 
-  <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
+  <% @tsd_files[1].get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% series_start = @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
@@ -60,9 +60,9 @@
     });
   <% end %>
 
-  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
+  <% @tsd_files[0].get_all_series.each do |series| %>
     <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% series_start = @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% @forecast_snapshot.unrestrict_series(mnemonic) %>
     all_data.push({
