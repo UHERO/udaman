@@ -130,6 +130,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def write_file_to_disk(name, content)
+    return false unless name && content
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
     rescue => e
@@ -140,6 +141,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def read_file_from_disk(name)
+    return false unless name
     begin
       content = File.open(path(name), 'r') { |f| f.read }
     rescue => e
@@ -161,18 +163,6 @@ class ForecastSnapshot < ApplicationRecord
       return false
     end
     true
-  end
-
-  def delete_new_forecast_tsd_file
-    delete_file_from_disk(new_forecast_tsd_filename) || true
-  end
-
-  def delete_old_forecast_tsd_file
-    delete_file_from_disk(old_forecast_tsd_filename) || true
-  end
-
-  def delete_history_tsd_file
-    delete_file_from_disk(history_tsd_filename) || true
   end
 
   def filename_title(type)
