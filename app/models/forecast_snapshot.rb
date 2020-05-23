@@ -12,7 +12,7 @@ class ForecastSnapshot < ApplicationRecord
   validates :version, presence: true
 
   def retrieve_name(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
+    s = name.ts
     if s.nil?
       prefix = Series.parse_name(name)[:prefix]
       like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
@@ -22,7 +22,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def retrieve_percent(name)
-    Series.find_by(universe: 'UHERO', name: name).percent rescue ''
+    name.ts.percent rescue ''
   end
 
   # Get series units
@@ -32,13 +32,8 @@ class ForecastSnapshot < ApplicationRecord
     m.unit ? m.unit.short_label : 'Values'
   end
 
-  # Get series ID for each series
   def retrieve_series_id(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
-    if s.nil?
-      return ''
-    end
-    s.id
+    name.ts.id rescue ''
   end
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)

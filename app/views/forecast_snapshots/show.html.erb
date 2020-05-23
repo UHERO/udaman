@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<%= link_to 'Table', forecast_snapshot_path(@forecast_snapshot) + '/table' %> |
+<%= link_to 'Table', { action: :table, id: @forecast_snapshot } %> |
 <% if current_user.admin_user? %>
     <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
     <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
