@@ -72,6 +72,7 @@ class ForecastSnapshotsController < ApplicationController
 
     unless @forecast_snapshot.update!(forecast_snapshot_params)
       render :edit
+      return
     end
     newfile = oldfile = histfile = nil
 
