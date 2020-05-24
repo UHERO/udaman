@@ -10,6 +10,10 @@
                   data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %></td> |
 <% end %>
 <%= link_to 'Index', forecast_snapshots_path %>
+<%= form_tag "/forecast_snapshots/#{@forecast_snapshot.id}/table" %>
+  <%= generate_date_range_controls(@table_start, @table_end) %>
+  <%= submit_tag 'Show' %>
+</form>
 
 <h2 class="snapshot-table-title"><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
 <p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>
