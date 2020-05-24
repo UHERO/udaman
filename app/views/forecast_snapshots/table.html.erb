@@ -10,8 +10,8 @@
                   data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %></td> |
 <% end %>
 <%= link_to 'Index', forecast_snapshots_path %>
-<%= form_tag "/forecast_snapshots/#{@forecast_snapshot.id}/table" %>
-  <%= generate_date_range_controls(@table_start, @table_end) %>
+<%= form_tag "/forecast_snapshots/#{@forecast_snapshot.id}/table", method: :get %>
+  <%= raw generate_date_range_controls(@table_start, @table_end) %>
   <%= submit_tag 'Show' %>
 </form>
 
