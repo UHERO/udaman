@@ -21,11 +21,9 @@
 <table class="snapshot-table">
   <tr>
     <th class="header-col"> &nbsp; </th>
-    <% is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/} %>
+    <% is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ } %>
     <% @all_dates[@t_start..@t_end].each do |date| %>
-        <th>
-        <%= is_quarterly ? date[0, 4] + 'Q' + (date[5, 2].to_i / 3 + 1).to_s : date[0, 4] %>
-        </th>
+        <th><%= is_quarterly ? date[0, 4] + 'Q' + quarter_by_month(date[5, 2]).to_s : date[0, 4] %></th>
     <% end %>
   </tr>
   <% @tsd_files[0].get_all_series.each do |s| %>
