@@ -22,10 +22,10 @@ class ForecastSnapshotsController < ApplicationController
     future = @all_dates.index {|date| date > Date.today.to_s }
     def_start = future ? future - 2 : 0
     last_item = @all_dates.count - 1
-    snick = params[:table_start].blank? ? nil : params[:table_start].to_i
-    snack = params[:table_end].blank? ? nil : params[:table_end].to_i
-    @t_start = [snick, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
-    @t_end = [snack, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
+    user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
+    user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
+    @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
+    @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
   end
 
   def new
