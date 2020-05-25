@@ -18,12 +18,11 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def table
-    all_dates = @tsd_files[0].get_all_dates
-    future = all_dates.index {|date| date > Date.today.to_s }
+    @all_dates = @tsd_files[0].get_all_dates
+    future = @all_dates.index {|date| date > Date.today.to_s }
     def_start = future ? future - 2 : 0
-    @table_start = params[:table_start] || def_start
-    @table_end = params[:table_end] || def_start + 6
-    @all_dates = all_dates[]
+    @t_start = [params[:table_start].to_i, def_start,  0].select {|x| @all_dates[x] rescue false }[0]
+    @t_end = [params[:table_end].to_i, def_start + 6, -1].select {|x| @all_dates[x] rescue false }[0]
   end
 
   def new
