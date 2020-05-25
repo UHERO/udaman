@@ -86,7 +86,7 @@ module UpdateCore
     end
 
     ## If it's a quarter spec (YYYYQ2, etc) then convert to a date (else don't)
-    cell_data = convert_qspec_to_date(cell_data) || cell_data
+    cell_data = qspec_to_date(cell_data) || cell_data
 
     Date.parse cell_data.to_s
   end
