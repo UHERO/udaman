@@ -10,7 +10,7 @@
                   data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %></td> |
 <% end %>
 <%= link_to 'Index', forecast_snapshots_path %>
-<%= form_with model: @forecast_snapshot, url: { action: :table }, method: :post %>
+<%= form_with model: @forecast_snapshot, url: { action: :table }, method: :post, html: { style: 'display:inline;' } %>
   <%= raw generate_date_range_controls(@t_start, @t_end) %>
   <%= submit_tag 'Show' %>
 </form>
@@ -27,7 +27,7 @@
     <% end %>
   </tr>
   <% @tsd_files[0].get_all_series.each do |s| %>
-      <% precision = (s[:udaman_series].decimals || 1) rescue 1 %>
+    <% decimals = (s[:udaman_series].decimals || 1) rescue 1 %>
     <tr>
       <%
         fullname = Series.build_name_two(s[:name], s[:frequency])
@@ -35,15 +35,15 @@
       %>
       <td class="header-col series-title" title="<%= display_name %>"><%= display_name %></td>
       <% @all_dates[@t_start..@t_end].each do |date| %>
-        <td class="series-data"><%= s[:data_hash][date].nil? ? '' :
-                                        number_with_precision(s[:data_hash][date], precision: precision, separator: '.', delimiter: ',') %></td>
+        <% value = s[:data_hash][date] %>
+        <td class="series-data"><%= value.nil? ? '' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
       <% @all_dates[@t_start..@t_end].each do |date| %>
-          <td class="change-data"><%= s[:yoy_hash][date].nil? ? '' :
-                                          number_with_precision(s[:yoy_hash][date], precision: precision, separator: '.', delimiter: ',') %></td>
+          <% value = s[:yoy_hash][date] %>
+          <td class="change-data"><%= value.nil? ? '' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
   <% end %>
