@@ -6,6 +6,11 @@ module HelperUtilities
     (qnum - 1) * 3 + 1
   end
 
+  ## Put in month number, get out quarter number
+  def quarter_by_month(mon)
+    (mon.to_i - 1) / 3 + 1
+  end
+
   def qspec_to_date(qstr)
     ## Quarter spec like YYYYQ1, YYYY-Q1, YYYY/Q1, YYYY-Q01, "YYYY Q1", "YYYY Q01", etc
     return nil unless qstr =~ /([12]\d\d\d)[-.\/ ]*Q0?([1234])/i
@@ -17,10 +22,5 @@ module HelperUtilities
       date = Date.parse(date) rescue raise("date_to_qspec: parameter #{date} not a proper date string")
     end
     '%sQ%d' % [date.year, quarter_by_month(date.mon)]
-  end
-
-  ## Put in month number, get out quarter number
-  def quarter_by_month(mon)
-    (mon.to_i - 1) / 3 + 1
   end
 end
