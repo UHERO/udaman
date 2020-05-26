@@ -35,15 +35,13 @@
       %>
       <td class="header-col series-title" title="<%= display_name %>"><%= display_name %></td>
       <% @all_dates[@t_start..@t_end].each do |date| %>
-        <% value = s[:data_hash][date] %>
-        <td class="series-data"><%= value.nil? ? '' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
+        <td class="series-data"><%= number_with_precision(s[:data_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
       <% @all_dates[@t_start..@t_end].each do |date| %>
-          <% value = s[:yoy_hash][date] %>
-          <td class="change-data"><%= value.nil? ? '' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
+          <td class="change-data"><%= number_with_precision(s[:yoy_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
   <% end %>
