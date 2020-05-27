@@ -5,8 +5,6 @@
 <% if current_user.admin_user? %>
     | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
     | <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %>
-<% end %>
-<% if current_user.admin_user? %>
     | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
              data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
 <% end %>
