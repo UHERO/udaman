@@ -15,6 +15,10 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def show
+    respond_to do |format|
+      format.csv { render layout: false }
+      format.html # show.html.erb
+    end
   end
 
   def table
