@@ -38,9 +38,9 @@ class ForecastSnapshot < ApplicationRecord
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
   def unrestrict_series(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
-    if !s.nil? && s.restricted
-      s.update_attributes({:restricted => false})
+    s = name.ts
+    if s && s.restricted
+      s.update_attributes(restricted: false)
     end
   end
 

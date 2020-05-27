@@ -50,3 +50,10 @@
 <div class="table-note">
   <p>Note: <%= @forecast_snapshot[:comments].to_s %></p>
 </div>
+<script language="JavaScript">
+<% if @range_user_chosen %>
+  storeFSrange(<%= @forecast_snapshot.id %>, @t_start, @t_end);
+<% else %>
+  replayFSrange(<%= @forecast_snapshot.id %>);
+<% end %>
+</script>
