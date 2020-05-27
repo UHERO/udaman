@@ -2,29 +2,27 @@ class ForecastSnapshot < ApplicationRecord
   include Cleaning
   require 'digest/md5'
   require 'date'
-  before_destroy :delete_files_from_disk
+  before_destroy do
+    delete_file_from_disk(new_forecast_tsd_filename)
+    delete_file_from_disk(old_forecast_tsd_filename)
+    delete_file_from_disk(history_tsd_filename)
+  end
 
   validates :name, presence: true
   validates :version, presence: true
 
-  # Get series name from series mnemonic
   def retrieve_name(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
+    s = name.ts
     if s.nil?
-      prefix = name[/[^@]*/]
+      prefix = Series.parse_name(name)[:prefix]
       like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
       return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
     end
     s.aremos_series.description.titlecase
   end
 
-  # Get series percent from series mnemonic
   def retrieve_percent(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
-    if s.nil?
-      return ''
-    end
-    s.percent
+    name.ts.percent rescue ''
   end
 
   # Get series units
@@ -34,20 +32,15 @@ class ForecastSnapshot < ApplicationRecord
     m.unit ? m.unit.short_label : 'Values'
   end
 
-  # Get series ID for each series
   def retrieve_series_id(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
-    if s.nil?
-      return ''
-    end
-    s.id
+    name.ts.id rescue ''
   end
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
   def unrestrict_series(name)
-    s = Series.find_by(universe: 'UHERO', name: name)
-    if !s.nil? && s.restricted
-      s.update_attributes({:restricted => false})
+    s = name.ts
+    if s && s.restricted
+      s.update_attributes(restricted: false)
     end
   end
 
@@ -115,18 +108,6 @@ class ForecastSnapshot < ApplicationRecord
     copy
   end
 
-  def delete_new_forecast_tsd_file
-    new_forecast_tsd_filename ? delete_file_from_disk(new_forecast_tsd_filename) : true
-  end
-
-  def delete_old_forecast_tsd_file
-    old_forecast_tsd_filename ? delete_file_from_disk(old_forecast_tsd_filename) : true
-  end
-
-  def delete_history_tsd_file
-    history_tsd_filename ? delete_file_from_disk(history_tsd_filename) : true
-  end
-
   def tsd_rel_filepath(name)
     if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
       Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % name }
@@ -138,6 +119,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def write_file_to_disk(name, content)
+    return false unless name && content
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
     rescue => e
@@ -148,6 +130,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def read_file_from_disk(name)
+    return false unless name
     begin
       content = File.open(path(name), 'r') { |f| f.read }
     rescue => e
@@ -158,6 +141,7 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   def delete_file_from_disk(name)
+    return false unless name
     begin
       File.delete(path(name))
     rescue => e
@@ -165,6 +149,7 @@ class ForecastSnapshot < ApplicationRecord
       unless e.message =~ /no such file/i
         throw(:abort)
       end
+      return false
     end
     true
   end
@@ -173,7 +158,7 @@ class ForecastSnapshot < ApplicationRecord
     tsd_rel_filepath(send(type)).split('/').pop rescue nil
   end
 
-  private
+private
 
   def increment_version
     vers_base = version.sub(/\.\d*$/, '')
@@ -187,12 +172,6 @@ class ForecastSnapshot < ApplicationRecord
       end
     end
     '%s.%d' % [vers_base, max + 1]
-  end
-
-  def delete_files_from_disk
-      delete_new_forecast_tsd_file &&
-      delete_old_forecast_tsd_file &&
-      delete_history_tsd_file
   end
 
 end

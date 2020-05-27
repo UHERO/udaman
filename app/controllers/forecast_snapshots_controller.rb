@@ -15,11 +15,17 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def show
-    @forecast_snapshot.old_forecast_tsd
   end
 
   def table
-    @all_dates = @forecast_snapshot.new_forecast_tsd.get_current_plus_five_dates
+    @all_dates = @tsd_files[0].get_all_dates
+    future = @all_dates.index {|date| date > Date.today.to_s }
+    def_start = future ? future - 2 : 0
+    last_item = @all_dates.count - 1
+    user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
+    user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
+    @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
+    @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
   end
 
   def new
@@ -59,14 +65,20 @@ class ForecastSnapshotsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /forecast_snapshots/1
   def update
-    @forecast_snapshot.delete_new_forecast_tsd_file if forecast_snapshot_params[:new_forecast_tsd_filename]
-    @forecast_snapshot.delete_old_forecast_tsd_file if forecast_snapshot_params[:old_forecast_tsd_filename]
-    @forecast_snapshot.delete_history_tsd_file if forecast_snapshot_params[:history_tsd_filename]
+    if forecast_snapshot_params[:new_forecast_tsd_filename]
+      @forecast_snapshot.delete_file_from_disk(new_forecast_tsd_filename)
+    end
+    if forecast_snapshot_params[:old_forecast_tsd_filename]
+      @forecast_snapshot.delete_file_from_disk(old_forecast_tsd_filename)
+    end
+    if forecast_snapshot_params[:history_tsd_filename]
+      @forecast_snapshot.delete_file_from_disk(history_tsd_filename)
+    end
 
-    unless @forecast_snapshot.update(forecast_snapshot_params)
+    unless @forecast_snapshot.update!(forecast_snapshot_params)
       render :edit
+      return
     end
     newfile = oldfile = histfile = nil
 
@@ -90,7 +102,6 @@ class ForecastSnapshotsController < ApplicationController
     end
   end
 
-  # DELETE /forecast_snapshots/1
   def destroy
     @forecast_snapshot.destroy
     redirect_to forecast_snapshots_url

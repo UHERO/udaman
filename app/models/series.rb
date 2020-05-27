@@ -180,8 +180,16 @@ class Series < ApplicationRecord
   end
 
   def Series.build_name(prefix, geo, freq)
+    unless prefix && geo && freq
+      raise 'Null members not allowed in series name! (got %s + %s + %s)' % [prefix, geo, freq]
+    end
     name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
     Series.parse_name(name) && name
+  end
+
+  def Series.build_name_two(prefixgeo, freq)
+    (prefix, geo) = prefixgeo.split('@')
+    Series.build_name(prefix, geo, freq)
   end
 
   ## Build a new name starting from mine, and replacing whatever parts are passed in

@@ -32,11 +32,11 @@ class TsdFile < ApplicationRecord
   end
 
   def get_next_series
-    raise  "You're not at the right position in the file" unless @last_line_type == :name_line
+    raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge!(get_second_line_attributes)
-    series_hash[:udaman_series] = Series.find_by(universe: 'UHERO', name: series_hash[:name] + '.' + series_hash[:frequency])
+    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency])
@@ -295,7 +295,6 @@ private
       content = File.open(path, 'r') { |f| f.read }
     rescue StandardError => e
       Rails.logger.error e.message
-      puts ">>>>>>> dEBUF path=#{path}"
       return false
     end 
     content
