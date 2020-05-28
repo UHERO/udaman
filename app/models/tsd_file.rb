@@ -69,14 +69,22 @@ class TsdFile < ApplicationRecord
   end
 
   def get_all_dates
+    @all_dates ||= _get_all_dates
+  end
+
+  def _get_all_dates
     dates = []
     get_all_series.each do |s|
-      dates += s[:data_hash].keys
+      dates |= s[:data_hash].keys
     end
-    dates.sort.uniq
+    dates.sort
   end
 
   def get_all_series
+    @all_series ||= _get_all_series
+  end
+
+  def _get_all_series
     series = []
     read_tsd_block do |tsd|
       begin

@@ -13,13 +13,14 @@ module ForecastSnapshotsHelper
       newfoo = @tsd_files[0].get_all_series
       oldfoo = @tsd_files[1].get_all_series
       histfoo = @tsd_files[2].get_all_series
-      names = [] ## list of all series names
-      series_data = newfoo + oldfoo + histfoo
-      dates_array = @what.data_dates
+      names = newfoo.map {|s| s[:udaman_series].name }.sort
+      all_dates = newfoo.get_all_dates | oldfoo.get_all_dates | histfoo.get_all_dates
+      #series_data = newfoo + oldfoo + histfoo
       csv << ['date'] + names
-      dates_array.each do |date|
-        csv << [date] + names.map {|series_name| series_data[series_name][date]}
+      all_dates.each do |date|
+        csv << [date] + names.map {|series_name| series_data[series_name][date] rescue nil }
       end
     end
   end
+
 end
