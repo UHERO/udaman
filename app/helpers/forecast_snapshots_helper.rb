@@ -10,14 +10,17 @@ module ForecastSnapshotsHelper
 
   def forecast_snapshot_csv_gen
     CSV.generate do |csv|
-      histfoo = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (h)'; h[:data] = nil } }  ## save mem by nulling unneeded stuff
+      histfoo = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (h)'; h[:data] = nil } } ## save mem by 86ing unneeded bits
       oldfoo  = @tsd_files[1].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (o)'; h[:data] = nil } }
       newfoo  = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (n)'; h[:data] = nil } }
       all = (newfoo + oldfoo + histfoo).map {|h| [h[:name], h] }.to_h
-      names = all.keys.sort.uniq
-      all_dates = all.map {}.sort
+      names = all.keys.sort
+      all_dates = []
+      all.each do |_, v|
+        all_dates |= v[:data_hash].keys
+      end
       csv << ['Date'] + names
-      all_dates.each do |date|
+      all_dates.sort.each do |date|
         csv << [date] + names.map {|name| all[name][:data_hash][date] rescue nil }
       end
     end
