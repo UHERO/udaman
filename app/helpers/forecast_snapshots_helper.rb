@@ -10,18 +10,15 @@ module ForecastSnapshotsHelper
 
   def forecast_snapshot_csv_gen
     CSV.generate do |csv|
-      newfoo  = @tsd_files[0].get_all_series
-      oldfoo  = @tsd_files[1].get_all_series
-      histfoo = @tsd_files[2].get_all_series
-      names = (newfoo + oldfoo + histfoo).map {|s| s[:udaman_series].name }.sort.uniq
-      all_dates = newfoo.get_all_dates | oldfoo.get_all_dates | histfoo.get_all_dates
-      data = {}
-      csv << ['Date'] + names.map {|name| [name + ' (n)', name + ' (o)', name + ' (h)'] }.flatten
+      histfoo = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (h)'; h[:data] = nil } }  ## save mem by nulling unneeded stuff
+      oldfoo  = @tsd_files[1].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (o)'; h[:data] = nil } }
+      newfoo  = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (n)'; h[:data] = nil } }
+      all = (newfoo + oldfoo + histfoo).map {|h| [h[:name], h] }.to_h
+      names = all.keys.sort.uniq
+      all_dates = all.map {}.sort
+      csv << ['Date'] + names
       all_dates.each do |date|
-        #newval = data[:new][name][date] rescue nil
-        #oldval = data[:old][name][date] rescue nil
-        #histval = data[:hist][name][date] rescue nil
-        csv << [date] + names.map {|name| [newval, oldval, histval] }.flatten
+        csv << [date] + names.map {|name| all[name][:data_hash][date] rescue nil }
       end
     end
   end
