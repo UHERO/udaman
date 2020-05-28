@@ -10,15 +10,18 @@ module ForecastSnapshotsHelper
 
   def forecast_snapshot_csv_gen
     CSV.generate do |csv|
-      newfoo = @tsd_files[0].get_all_series
-      oldfoo = @tsd_files[1].get_all_series
+      newfoo  = @tsd_files[0].get_all_series
+      oldfoo  = @tsd_files[1].get_all_series
       histfoo = @tsd_files[2].get_all_series
-      names = newfoo.map {|s| s[:udaman_series].name }.sort
+      names = (newfoo + oldfoo + histfoo).map {|s| s[:udaman_series].name }.sort.uniq
       all_dates = newfoo.get_all_dates | oldfoo.get_all_dates | histfoo.get_all_dates
-      #series_data = newfoo + oldfoo + histfoo
-      csv << ['date'] + names
+      data = {}
+      csv << ['Date'] + names.map {|name| [name + ' (n)', name + ' (o)', name + ' (h)'] }.flatten
       all_dates.each do |date|
-        csv << [date] + names.map {|series_name| series_data[series_name][date] rescue nil }
+        #newval = data[:new][name][date] rescue nil
+        #oldval = data[:old][name][date] rescue nil
+        #histval = data[:hist][name][date] rescue nil
+        csv << [date] + names.map {|name| [newval, oldval, histval] }.flatten
       end
     end
   end
