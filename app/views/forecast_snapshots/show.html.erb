@@ -36,7 +36,7 @@
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(Series.parse_name(fullname)[:prefix]) %>',
+      units: '<%= @forecast_snapshot.retrieve_units(fullname) %>',
       history_start: '<%= series_start %>',
       history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
@@ -53,7 +53,7 @@
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(Series.parse_name(fullname)[:prefix]) %>',
+      units: '<%= @forecast_snapshot.retrieve_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
@@ -70,7 +70,7 @@
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(Series.parse_name(fullname)[:prefix]) %>',
+      units: '<%= @forecast_snapshot.retrieve_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });

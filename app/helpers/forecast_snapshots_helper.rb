@@ -10,7 +10,7 @@ module ForecastSnapshotsHelper
 
   def data_portal_link(name)
     series = name.ts or return 'No series found'
-    '<a href="https://data.uhero.hawaii.edu/#/series?id=%d">%s</a>' % [series.id, series.name]
+    '<a href="https://data.uhero.hawaii.edu/#/series?id=%d" title="Data portal">%s</a>' % [series.id, series.name]
   end
 
   def forecast_snapshot_csv_gen

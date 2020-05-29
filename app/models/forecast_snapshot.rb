@@ -25,9 +25,9 @@ class ForecastSnapshot < ApplicationRecord
     name.ts.percent rescue ''
   end
 
-  # Get series units
-  def retrieve_units(prefix)
-    m = Measurement.find_by(universe: 'UHERO', prefix: prefix.chomp('NS'))
+  def retrieve_units(name)
+    prefix = Series.parse_name(name)[:prefix].chomp('NS')
+    m = Measurement.find_by(universe: 'UHERO', prefix: prefix)
     return 'Values' if m.nil?
     m.unit ? m.unit.short_label : 'Values'
   end
