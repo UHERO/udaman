@@ -38,6 +38,7 @@
           <%= link_to 'Table', forecast_snapshot_path(fs) + '/table' %>
         </td>
         <% if current_user.admin_user? %>
+           <td><%= link_to 'CSV', { action: :show, format: :csv, id: fs } %></td>
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
            <td><%= link_to 'Dup', { action: :duplicate, id: fs } %></td>
            <td><%= link_to 'Destroy', fs, method: :delete, data: { confirm: "Destroy #{fs.name}, version #{fs.version}: Are you sure??" } %></td>

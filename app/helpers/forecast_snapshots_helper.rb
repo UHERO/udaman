@@ -9,19 +9,24 @@ module ForecastSnapshotsHelper
   end
 
   def forecast_snapshot_csv_gen
-    CSV.generate do |csv|
-      histfoo = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (h)'; h[:data] = nil } } ## save mem by 86ing unneeded bits
-      oldfoo  = @tsd_files[1].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (o)'; h[:data] = nil } }
-      newfoo  = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (n)'; h[:data] = nil } }
-      all = (newfoo + oldfoo + histfoo).map {|h| [h[:name], h] }.to_h
-      names = all.keys.sort
-      all_dates = []
+    CSV.generate do |csv|                                                                    ## save memory by 86ing unneeded bits
+      newstuff = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (new)'; h[:data] = h[:yoy_hash] = nil } }
+      oldstuff = @tsd_files[1].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (old)'; h[:data] = h[:yoy_hash] = nil } }
+      hisstuff = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (his)'; h[:data] = h[:yoy_hash] = nil } }
+      all = (newstuff + oldstuff + hisstuff).map {|h| [h[:name], h] }.to_h
+      names = all.keys.sort do |a, b|
+        (a0, a1) = a.split
+        (b0, b1) = b.split
+        fc = { '(new)' => 0, '(old)' => 1, '(his)' => 2 }
+        (a0 <=> b0) == 0 ? fc[a1] <=> fc[b1] : a0 <=> b0
+      end
+      dates = []
       all.each do |_, v|
-        all_dates |= v[:data_hash].keys
+        dates |= v[:data_hash].keys
       end
       csv << ['Date'] + names
-      all_dates.sort.each do |date|
-        csv << [date] + names.map {|name| all[name][:data_hash][date] rescue nil }
+      dates.sort.each do |date|
+        csv << [date] + names.map {|name| '%0.3f' % all[name][:data_hash][date] rescue nil }
       end
     end
   end
