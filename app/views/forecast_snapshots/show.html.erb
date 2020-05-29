@@ -1,9 +1,9 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Index', forecast_snapshots_path %> |
-<%= link_to 'Table', { action: :table, id: @forecast_snapshot } %>
+<%= link_to 'Table', { action: :table, id: @forecast_snapshot } %> |
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
 <% if current_user.admin_user? %>
-    | <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
     | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
     | <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %>
     | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
@@ -26,16 +26,16 @@
 
   <% start_date = '2020-01-01' %>
   <% @tsd_files[2].get_all_series.each do |series| %>
-    <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
     <% @forecast_snapshot.unrestrict_series(fullname) %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
+      frequency: '<%= series[:frequency] %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
-      frequency: '<%= series[:frequency] %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
       units: '<%= @forecast_snapshot.retrieve_units(fullname) %>',
       history_start: '<%= series_start %>',
       history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
@@ -44,15 +44,15 @@
 
   <% @tsd_files[1].get_all_series.each do |series| %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% @forecast_snapshot.unrestrict_series(fullname) %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
+      frequency: '<%= series[:frequency] %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
-      frequency: '<%= series[:frequency] %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
       units: '<%= @forecast_snapshot.retrieve_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
@@ -61,15 +61,15 @@
 
   <% @tsd_files[0].get_all_series.each do |series| %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+    <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% @forecast_snapshot.unrestrict_series(fullname) %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
+      frequency: '<%= series[:frequency] %>',
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
-      frequency: '<%= series[:frequency] %>',
+      percent: '<%= @forecast_snapshot.retrieve_percent(fullname) %>',
       units: '<%= @forecast_snapshot.retrieve_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],

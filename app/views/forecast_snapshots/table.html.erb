@@ -2,15 +2,15 @@
 
 <%= link_to 'Index', forecast_snapshots_path %> |
 <%= link_to 'Charts', forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
 <% if current_user.admin_user? %>
-  <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
   <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
   <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
   <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
                   data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %> |
 <% end %>
 <%= form_with model: @forecast_snapshot, url: { action: :table }, method: :post, html: { style: 'display:inline;' } %>
-  <%= raw generate_date_range_controls(@t_start, @t_end) %>
+  <%= generate_date_range_controls(@t_start, @t_end).html_safe %>
   <%= submit_tag 'Show' %>
 </form>
 

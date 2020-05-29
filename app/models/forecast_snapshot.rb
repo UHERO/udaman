@@ -18,7 +18,7 @@ class ForecastSnapshot < ApplicationRecord
       like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
       return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
     end
-    s.aremos_series.description.titlecase
+    s.aremos_series.description.titlecase rescue 'NO_NAME_FOUND'
   end
 
   def retrieve_percent(name)
