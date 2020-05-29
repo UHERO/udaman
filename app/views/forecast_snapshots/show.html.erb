@@ -242,7 +242,7 @@
           alignTicks: false
         },
         title: {
-          text: chart_num + '. ' + '<a href="http://data.uhero.hawaii.edu/#/series?id=' + chart_data[i].id + '" target="_blank">' + chart_data[i].title + ' (' + chart_data[i].series + ')' + '</a>',
+          text: chart_num + '. ' + chart_data[i].title + ' (' + '<a href="https://data.uhero.hawaii.edu/#/series?id=' + chart_data[i].id + '">' + chart_data[i].series + '</a>' + ')',
           align: 'left',
           useHTML: true,
           style: {

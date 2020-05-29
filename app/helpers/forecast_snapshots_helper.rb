@@ -8,6 +8,11 @@ module ForecastSnapshotsHelper
     select_tag('table_end',   options_for_select(end_menu_list, table_end))
   end
 
+  def data_portal_link(name)
+    series = name.ts or return 'No series found'
+    '<a href="https://data.uhero.hawaii.edu/#/series?id=%d">%s</a>' % [series.id, series.name]
+  end
+
   def forecast_snapshot_csv_gen
     CSV.generate do |csv|                                                                    ## save memory by 86ing unneeded bits
       newstuff = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (new)'; h[:data] = h[:yoy_hash] = nil } }
@@ -30,5 +35,4 @@ module ForecastSnapshotsHelper
       end
     end
   end
-
 end
