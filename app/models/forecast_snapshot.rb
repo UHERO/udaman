@@ -11,25 +11,24 @@ class ForecastSnapshot < ApplicationRecord
   validates :name, presence: true
   validates :version, presence: true
 
-  def retrieve_name(name)
-    s = name.ts
-    if s.nil?
-      prefix = Series.parse_name(name)[:prefix]
-      like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
-      return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
+  def retrieve_name(series)
+    if series
+      a_series = series.aremos_series
+      return a_series.description.to_s.titlecase if a_series
     end
-    s.aremos_series.description.titlecase rescue 'NO_NAME_FOUND'
+    prefix = Series.parse_name(name)[:prefix]
+    like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
+    like_series ? like_series.dataPortalName : 'NO NAME FOUND'
   end
 
   def retrieve_percent(name)
     name.ts.percent rescue ''
   end
 
-  def retrieve_units(name)
+  def get_units(name)
     prefix = Series.parse_name(name)[:prefix].chomp('NS')
     m = Measurement.find_by(universe: 'UHERO', prefix: prefix)
-    return 'Values' if m.nil?
-    m.unit ? m.unit.short_label : 'Values'
+    (m && m.unit) ? m.unit.short_label : 'Values'
   end
 
   def retrieve_series_id(name)
@@ -37,10 +36,9 @@ class ForecastSnapshot < ApplicationRecord
   end
 
   # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
-  def unrestrict_series(name)
-    s = name.ts
-    if s && s.restricted
-      s.update_attributes(restricted: false)
+  def unrestrict_series(series)
+    if series && series.restricted
+      series.update_attributes(restricted: false)
     end
   end
 
