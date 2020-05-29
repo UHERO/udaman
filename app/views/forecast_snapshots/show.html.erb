@@ -3,10 +3,9 @@
 <%= link_to 'Index', forecast_snapshots_path %> |
 <%= link_to 'Table', { action: :table, id: @forecast_snapshot } %>
 <% if current_user.admin_user? %>
+    | <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
     | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
     | <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %>
-<% end %>
-<% if current_user.dev_user? %>
     | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
              data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
 <% end %>
@@ -37,7 +36,7 @@
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      units: '<%= @forecast_snapshot.retrieve_units(Series.parse_name(fullname)[:prefix]) %>',
       history_start: '<%= series_start %>',
       history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
@@ -54,7 +53,7 @@
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      units: '<%= @forecast_snapshot.retrieve_units(Series.parse_name(fullname)[:prefix]) %>',
       old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
@@ -71,7 +70,7 @@
       id: '<%= @forecast_snapshot.retrieve_series_id(fullname) %>',
       title: '<%= @forecast_snapshot.retrieve_name(fullname) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      units: '<%= @forecast_snapshot.retrieve_units(Series.parse_name(fullname)[:prefix]) %>',
       new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
