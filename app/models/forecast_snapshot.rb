@@ -14,8 +14,8 @@ class ForecastSnapshot < ApplicationRecord
   def retrieve_name(series)
     if series.class == Series
       a_series = series.aremos_series
-      return a_series.description.to_s.titlecase if a_series
-      return series.dataPortalName if series.dataPortalName
+      return a_series.description.to_s.titlecase if a_series  ## give precedence to Aremos descriptors (a bit more detailed)
+      return series.dataPortalName if series.dataPortalName  ## if Aremos strings are deemed too long, move this line to top of if block
       series = series.name  ## from here down, process as name string
     end
     prefix = Series.parse_name(series)[:prefix]

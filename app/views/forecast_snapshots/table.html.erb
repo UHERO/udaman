@@ -30,7 +30,8 @@
     <tr>
       <%
         fullname = Series.build_name_two(s[:name], s[:frequency])
-        display_name = '%s (%s)' % [@forecast_snapshot.retrieve_name(fullname), data_portal_link(fullname)]
+        the_series = s[:udaman_series] || fullname
+        display_name = '%s (%s)' % [@forecast_snapshot.retrieve_name(the_series), data_portal_link(the_series)]
       %>
       <td class="header-col series-title"><%= display_name.html_safe %></td>
       <% @all_dates[@t_start..@t_end].each do |date| %>

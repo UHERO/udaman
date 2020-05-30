@@ -8,8 +8,10 @@ module ForecastSnapshotsHelper
     select_tag('table_end',   options_for_select(end_menu_list, table_end))
   end
 
-  def data_portal_link(name)
-    series = name.ts or return "Not an existing series name: #{name}"
+  def data_portal_link(series)
+    unless series.class == Series
+      series = series.ts or return "Not an existing series name: #{series}"
+    end
     '<a href="https://data.uhero.hawaii.edu/#/series?id=%d" title="Data portal">%s</a>' % [series.id, series.name]
   end
 
