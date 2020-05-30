@@ -12,11 +12,12 @@ class ForecastSnapshot < ApplicationRecord
   validates :version, presence: true
 
   def retrieve_name(series)
-    if series
+    if series.class == Series
       a_series = series.aremos_series
       return a_series.description.to_s.titlecase if a_series
+      series = series.name
     end
-    prefix = Series.parse_name(name)[:prefix]
+    prefix = Series.parse_name(series)[:prefix]
     like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
     like_series ? like_series.dataPortalName : 'NO NAME FOUND'
   end
