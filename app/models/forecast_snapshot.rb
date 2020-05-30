@@ -15,7 +15,8 @@ class ForecastSnapshot < ApplicationRecord
     if series.class == Series
       a_series = series.aremos_series
       return a_series.description.to_s.titlecase if a_series
-      series = series.name
+      return series.dataPortalName if series.dataPortalName
+      series = series.name  ## from here down, process as name string
     end
     prefix = Series.parse_name(series)[:prefix]
     like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
