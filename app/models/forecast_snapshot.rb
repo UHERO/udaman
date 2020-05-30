@@ -36,13 +36,6 @@ class ForecastSnapshot < ApplicationRecord
     name.ts.id rescue ''
   end
 
-  # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
-  def unrestrict_series(series)
-    if series && series.restricted
-      series.update_attributes(restricted: false)
-    end
-  end
-
   def path(filename)
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(filename))
   end

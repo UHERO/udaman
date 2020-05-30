@@ -30,7 +30,6 @@
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
     <% u_s = series[:udaman_series] %>
-    <% @forecast_snapshot.unrestrict_series(u_s) %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
@@ -48,7 +47,6 @@
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
     <% u_s = series[:udaman_series] %>
-    <% @forecast_snapshot.unrestrict_series(u_s) %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
@@ -66,7 +64,6 @@
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
     <% u_s = series[:udaman_series] %>
-    <% @forecast_snapshot.unrestrict_series(u_s) %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
