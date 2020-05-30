@@ -2,15 +2,15 @@
 
 <%= link_to 'Index', forecast_snapshots_path %> |
 <%= link_to 'Charts', forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
 <% if current_user.admin_user? %>
-  <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
   <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
   <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
   <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
                   data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %> |
 <% end %>
 <%= form_with model: @forecast_snapshot, url: { action: :table }, method: :post, html: { style: 'display:inline;' } %>
-  <%= raw generate_date_range_controls(@t_start, @t_end) %>
+  <%= generate_date_range_controls(@t_start, @t_end).html_safe %>
   <%= submit_tag 'Show' %>
 </form>
 
@@ -30,9 +30,10 @@
     <tr>
       <%
         fullname = Series.build_name_two(s[:name], s[:frequency])
-        display_name = @forecast_snapshot.retrieve_name(fullname) + ' (' + fullname + ')'
+        the_series = s[:udaman_series] || fullname
+        display_name = '%s (%s)' % [@forecast_snapshot.retrieve_name(the_series), data_portal_link(the_series)]
       %>
-      <td class="header-col series-title" title="<%= display_name %>"><%= display_name %></td>
+      <td class="header-col series-title"><%= display_name.html_safe %></td>
       <% @all_dates[@t_start..@t_end].each do |date| %>
         <td class="series-data"><%= number_with_precision(s[:data_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>

@@ -11,37 +11,30 @@ class ForecastSnapshot < ApplicationRecord
   validates :name, presence: true
   validates :version, presence: true
 
-  def retrieve_name(name)
-    s = name.ts
-    if s.nil?
-      prefix = Series.parse_name(name)[:prefix]
-      like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
-      return like_series ? like_series.dataPortalName : 'NO_NAME_FOUND'
+  def retrieve_name(series)
+    if series.class == Series
+      a_series = series.aremos_series
+      return a_series.description.to_s.titlecase if a_series  ## give precedence to Aremos descriptors (a bit more detailed)
+      return series.dataPortalName if series.dataPortalName  ## if Aremos strings are deemed too long, move this line to top of if block
+      series = series.name  ## from here down, process as name string
     end
-    s.aremos_series.description.titlecase
+    prefix = Series.parse_name(series)[:prefix]
+    like_series = Series.find_by("universe = 'UHERO' and name LIKE '#{prefix}@%'")
+    like_series ? like_series.dataPortalName : 'NO NAME FOUND'
   end
 
   def retrieve_percent(name)
     name.ts.percent rescue ''
   end
 
-  # Get series units
-  def retrieve_units(prefix)
-    m = Measurement.find_by(universe: 'UHERO', prefix: prefix.chomp('NS'))
-    return 'Values' if m.nil?
-    m.unit ? m.unit.short_label : 'Values'
+  def get_units(name)
+    prefix = Series.parse_name(name)[:prefix].chomp('NS')
+    m = Measurement.find_by(universe: 'UHERO', prefix: prefix)
+    (m && m.unit) ? m.unit.short_label : 'Values'
   end
 
   def retrieve_series_id(name)
     name.ts.id rescue ''
-  end
-
-  # Check if series is restricted, if yes, set restricted to false (allows series to be visible in Data Portal)
-  def unrestrict_series(name)
-    s = name.ts
-    if s && s.restricted
-      s.update_attributes(restricted: false)
-    end
   end
 
   def path(filename)

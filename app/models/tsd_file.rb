@@ -113,7 +113,7 @@ class TsdFile < ApplicationRecord
     parse_daily_data(data, start_date_string) if frequency == 'D'
   end
 
-  def parse_date(aremos_date_string, frequency, a_date_type, daily_switches)
+  def parse_date(aremos_date_string, frequency, daily_switches)
     if frequency == 'W'
       listed_date = Date.parse(aremos_date_string)
       date = listed_date+daily_switches.index('1')
