@@ -487,12 +487,12 @@ class Series < ApplicationRecord
     true
   end
 
-  def add_to_quarantine(run_update = true)
+  def add_to_quarantine(run_update: true)
     self.update! quarantined: true
     DataPoint.update_public_data_points(universe, self) if run_update
   end
 
-  def remove_from_quarantine(run_update = true)
+  def remove_from_quarantine(run_update: true)
     raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
     self.update! quarantined: false
     DataPoint.update_public_data_points(universe, self) if run_update
