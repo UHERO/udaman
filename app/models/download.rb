@@ -226,6 +226,6 @@ private
     regeces.keys.each do |op|
       pattern.gsub!(op, regeces[op])
     end
-    Download.where('handle regexp ?', pattern).order(sort1: :desc, sort2: :desc, handle: :asc)
+    Download.where('handle regexp ?', pattern).order(sort1: :desc, sort2: :desc, handle: :desc)
   end
 end

@@ -10,6 +10,8 @@ Rails.application.routes.draw do
       get 'table'
     end
   end
+  post 'forecast_snapshots/:id/table', to: 'forecast_snapshots#table'
+
   resources :exports
   resources :measurements do
     member do

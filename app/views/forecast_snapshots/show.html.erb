@@ -1,13 +1,17 @@
 <p id="notice"><%= notice %></p>
 
-<%= link_to 'Table', forecast_snapshot_path(@forecast_snapshot) + '/table' %> |
-<% if current_user.internal_user? %>
-    <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'Index', forecast_snapshots_path %> |
+<%= link_to 'Table', { action: :table, id: @forecast_snapshot } %> |
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
+<% if current_user.admin_user? %>
+    | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
+    | <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %>
+    | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
+             data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
 <% end %>
-<%= link_to 'Back', forecast_snapshots_path %>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
-<p><%= @forecast_snapshot.created_at.strftime('%m/%d/%y') %></p>
+<p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>
 
 <div id="charts_container"></div>
 
@@ -21,52 +25,52 @@
   var all_data = [];
 
   <% start_date = '2020-01-01' %>
-  <% @forecast_snapshot.history_tsd.get_all_series.each do |series| %>
-    <% series_start = @forecast_snapshot.history_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+  <% @tsd_files[2].get_all_series.each do |series| %>
+    <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
-    <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
+    <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      id: '<%= u_s.id %>',
+      title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
+      percent: '<%= u_s.percent %>',
+      units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
       history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
   <% end %>
 
-  <% @forecast_snapshot.old_forecast_tsd.get_all_series.each do |series| %>
-    <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% series_start = @forecast_snapshot.old_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+  <% @tsd_files[1].get_all_series.each do |series| %>
+    <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
-    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
+    <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      id: '<%= u_s.id %>',
+      title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
+      percent: '<%= u_s.percent %>',
+      units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
   <% end %>
 
-  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |series| %>
-    <% mnemonic = series[:name] + '.' + series[:frequency] %>
-    <% series_start = @forecast_snapshot.new_forecast_tsd.parse_date(series[:start], series[:frequency], :start, series[:daily_switches]) %>
+  <% @tsd_files[0].get_all_series.each do |series| %>
+    <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
-    <% @forecast_snapshot.unrestrict_series(mnemonic) %>
+    <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
-      percent: '<%= @forecast_snapshot.retrieve_percent(mnemonic) %>',
-      id: '<%= @forecast_snapshot.retrieve_series_id(mnemonic) %>',
-      title: '<%= @forecast_snapshot.retrieve_name(mnemonic) %>',
       frequency: '<%= series[:frequency] %>',
-      units: '<%= @forecast_snapshot.retrieve_units(series[:name][/[^@]*/]) %>',
+      id: '<%= u_s.id %>',
+      title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
+      percent: '<%= u_s.percent %>',
+      units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
     });
@@ -238,7 +242,7 @@
           alignTicks: false
         },
         title: {
-          text: chart_num + '. ' + '<a href="http://data.uhero.hawaii.edu/#/series?id=' + chart_data[i].id + '" target="_blank">' + chart_data[i].title + ' (' + chart_data[i].series + ')' + '</a>',
+          text: chart_num + '. ' + chart_data[i].title + ' (' + '<a href="https://data.uhero.hawaii.edu/#/series?id=' + chart_data[i].id + '">' + chart_data[i].series + '</a>' + ')',
           align: 'left',
           useHTML: true,
           style: {

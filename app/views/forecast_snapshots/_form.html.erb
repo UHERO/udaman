@@ -26,21 +26,24 @@
     <%= f.text_area :comments %>
   </div>
   <div class="field">
-    <%= f.label :new_forecast_tsd_filename %>
+    <%= link_to 'New Forecast', { action: :pull_file, id: @forecast_snapshot, type: :new_forecast_tsd_filename },
+                title: @forecast_snapshot.filename_title(:new_forecast_tsd_filename) %>
     <%= f.text_field :new_forecast_tsd_filename, :disabled => true, :size => 30 %>
       Label
       <%= f.text_field :new_forecast_tsd_label, :size => 30 %>
       <%= f.file_field :new_forecast_tsd_filename %>
   </div>
   <div class="field">
-    <%= f.label :old_forecast_tsd_filename %>
+    <%= link_to 'Old Forecast', { action: :pull_file, id: @forecast_snapshot, type: :old_forecast_tsd_filename },
+                title: @forecast_snapshot.filename_title(:old_forecast_tsd_filename) %>
     <%= f.text_field :old_forecast_tsd_filename, :disabled => true, :size => 30 %>
       Label
       <%= f.text_field :old_forecast_tsd_label, :size => 30 %>
       <%= f.file_field :old_forecast_tsd_filename %>
   </div>
   <div class="field">
-    <%= f.label :history_tsd_filename %>
+    <%= link_to 'History', { action: :pull_file, id: @forecast_snapshot, type: :history_tsd_filename },
+                title: @forecast_snapshot.filename_title(:history_tsd_filename) %>
     <%= f.text_field :history_tsd_filename, :disabled => true, :size => 30 %>
       Label
       <%= f.text_field :history_tsd_label, :size => 30 %>
@@ -48,6 +51,10 @@
   </div>
   <div class="actions">
     <%= f.submit 'Save forecast snapshot' %>
+    <% if @isa_dup %>
+        <%= link_to 'Cancel', @forecast_snapshot, method: :delete %>
+    <% else %>
+        <%= link_to 'Cancel', :back %>
+    <% end %>
   </div>
 <% end %>
-

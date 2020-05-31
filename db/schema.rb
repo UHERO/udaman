@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025760) do
+ActiveRecord::Schema.define(version: 220170413025761) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -264,7 +264,6 @@ ActiveRecord::Schema.define(version: 220170413025760) do
   create_table "forecast_snapshots", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "name"
     t.string "version"
-    t.text "comments"
     t.boolean "published"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -274,6 +273,8 @@ ActiveRecord::Schema.define(version: 220170413025760) do
     t.string "old_forecast_tsd_label"
     t.string "history_tsd_filename"
     t.string "history_tsd_label"
+    t.text "comments"
+    t.index ["name", "version"], name: "index_forecast_snapshots_on_name_and_version", unique: true
   end
 
   create_table "geo_trees", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
