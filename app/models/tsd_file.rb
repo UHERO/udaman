@@ -5,10 +5,6 @@ class TsdFile < ApplicationRecord
   belongs_to :forecast_snapshot
   before_destroy :delete_from_disk
 
-  def TsdFile.path_prefix
-    'tsd_files'
-  end
-
   def path
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(self.filename))
   end
@@ -36,11 +32,11 @@ class TsdFile < ApplicationRecord
   end
 
   def get_next_series
-    raise  "You're not at the right position in the file" unless @last_line_type == :name_line
+    raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge!(get_second_line_attributes)
-    series_hash[:udaman_series] = Series.find_by(universe: 'UHERO', name: series_hash[:name] + '.' + series_hash[:frequency])
+    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency])
@@ -73,14 +69,22 @@ class TsdFile < ApplicationRecord
   end
 
   def get_all_dates
+    @all_dates ||= _get_all_dates
+  end
+
+  def _get_all_dates
     dates = []
     get_all_series.each do |s|
-      dates += s[:data_hash].keys
+      dates |= s[:data_hash].keys
     end
-    dates.sort.uniq
+    dates.sort
   end
 
   def get_all_series
+    @all_series ||= _get_all_series
+  end
+
+  def _get_all_series
     series = []
     read_tsd_block do |tsd|
       begin
@@ -109,7 +113,7 @@ class TsdFile < ApplicationRecord
     parse_daily_data(data, start_date_string) if frequency == 'D'
   end
 
-  def parse_date(aremos_date_string, frequency, a_date_type, daily_switches)
+  def parse_date(aremos_date_string, frequency, daily_switches)
     if frequency == 'W'
       listed_date = Date.parse(aremos_date_string)
       date = listed_date+daily_switches.index('1')
@@ -283,6 +287,7 @@ class TsdFile < ApplicationRecord
   end
 
 private
+
   def write_to_disk(content)
     begin
       File.open(path, 'wb') { |f| f.write(content) }
@@ -298,7 +303,6 @@ private
       content = File.open(path, 'r') { |f| f.read }
     rescue StandardError => e
       Rails.logger.error e.message
-      puts ">>>>>>> dEBUF path=#{path}"
       return false
     end 
     content
@@ -315,8 +319,6 @@ private
   end
 
   def tsd_rel_filepath(name)
-    string = self.forecast_snapshot.created_at.utc.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
-    hash = Digest::MD5.new << string
-    File.join(TsdFile.path_prefix, hash.to_s+'_'+name)
+    forecast_snapshot.tsd_rel_filepath(name)
   end
 end

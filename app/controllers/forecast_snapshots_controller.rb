@@ -2,10 +2,9 @@ class ForecastSnapshotsController < ApplicationController
   include Authorization
 
   before_action :check_forecast_snapshot_authorization
-  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :update, :destroy]
+  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy, :pull_file]
   before_action :set_tsd_files, only: [:show, :table]
 
-  # GET /forecast_snapshots
   def index
     if current_user.internal_user?
       fsnaps = ForecastSnapshot.all
@@ -15,28 +14,40 @@ class ForecastSnapshotsController < ApplicationController
     @forecast_snapshots = fsnaps.order('updated_at desc').paginate(page: params[:page], per_page: 50)
   end
 
-  # GET /forecast_snapshots/1
   def show
-    @forecast_snapshot.old_forecast_tsd
+    respond_to do |format|
+      format.csv { render layout: false }
+      format.html # show.html.erb
+    end
   end
 
-  # GET /forecast_snapshots/1/table
   def table
-    @all_dates = @forecast_snapshot.new_forecast_tsd.get_current_plus_five_dates
+    @all_dates = @tsd_files[0].get_all_dates
+    future = @all_dates.index {|date| date > Date.today.to_s }
+    def_start = future ? future - 2 : 0
+    last_item = @all_dates.count - 1
+    user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
+    user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
+    @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
+    @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
   end
 
-  # GET /forecast_snapshots/new
   def new
     @forecast_snapshot = ForecastSnapshot.new
   end
 
-  # GET /forecast_snapshots/1/edit
+  def duplicate
+    @forecast_snapshot = @forecast_snapshot.make_copy
+    @isa_dup = true if current_user.admin_user?
+    render :edit
+  end
+
   def edit
   end
 
-  # POST /forecast_snapshots
   def create
     @forecast_snapshot = ForecastSnapshot.new(forecast_snapshot_params)
+    newfile = oldfile = histfile = nil
 
     if forecast_snapshot_params[:new_forecast_tsd_filename]
       newfile = forecast_snapshot_params[:new_forecast_tsd_filename]
@@ -58,15 +69,22 @@ class ForecastSnapshotsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /forecast_snapshots/1
   def update
-    @forecast_snapshot.delete_new_forecast_tsd_file if forecast_snapshot_params[:new_forecast_tsd_filename]
-    @forecast_snapshot.delete_old_forecast_tsd_file if forecast_snapshot_params[:old_forecast_tsd_filename]
-    @forecast_snapshot.delete_history_tsd_file if forecast_snapshot_params[:history_tsd_filename]
-
-    unless @forecast_snapshot.update(forecast_snapshot_params)
-      render :edit
+    if forecast_snapshot_params[:new_forecast_tsd_filename]
+      @forecast_snapshot.delete_file_from_disk(new_forecast_tsd_filename)
     end
+    if forecast_snapshot_params[:old_forecast_tsd_filename]
+      @forecast_snapshot.delete_file_from_disk(old_forecast_tsd_filename)
+    end
+    if forecast_snapshot_params[:history_tsd_filename]
+      @forecast_snapshot.delete_file_from_disk(history_tsd_filename)
+    end
+
+    unless @forecast_snapshot.update!(forecast_snapshot_params)
+      render :edit
+      return
+    end
+    newfile = oldfile = histfile = nil
 
     if forecast_snapshot_params[:new_forecast_tsd_filename]
       newfile = forecast_snapshot_params[:new_forecast_tsd_filename]
@@ -88,13 +106,22 @@ class ForecastSnapshotsController < ApplicationController
     end
   end
 
-  # DELETE /forecast_snapshots/1
   def destroy
     @forecast_snapshot.destroy
-    redirect_to forecast_snapshots_url, notice: 'Forecast snapshot was successfully destroyed.'
+    redirect_to forecast_snapshots_url
   end
 
-  private
+  def pull_file
+    unless ForecastSnapshot.attribute_names.include?(params[:type])
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem using parameter %s' % params[:type] }
+      return
+    end
+    filename = @forecast_snapshot.send(params[:type])
+    send_file File.join(ENV['DATA_PATH'], @forecast_snapshot.tsd_rel_filepath(filename))
+  end
+
+private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_forecast_snapshot
       @forecast_snapshot = ForecastSnapshot.find(params[:id])
