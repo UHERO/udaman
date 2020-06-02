@@ -83,15 +83,15 @@ class NtaUpload < ApplicationRecord
   end
 
   def full_load
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} BEGIN full load #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} BEGIN full load #{Time.now}" }
     load_cats_csv
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load cats #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} DONE load cats #{Time.now}" }
     load_series_csv
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load series #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} DONE load series #{Time.now}" }
     load_data_postproc
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} DONE load postproc #{Time.now}" }
     make_active_settings
-    Rails.logger.info { "NtaLoadWorker id=#{self.id} loaded as active #{Time.now}" }
+    Rails.logger.info { "NtaLoadWorker id=#{id} loaded as active #{Time.now}" }
   end
 
   def load_cats_csv
@@ -216,10 +216,9 @@ class NtaUpload < ApplicationRecord
       indicator_name = cat.meta.sub(/^NTA_/,'')
       indicator_title = cat.name
 
-      CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+      CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
         row_data = {}
-        ## convert row data to a hash keyed on column header. force all blank/empty to nil.
-        row.to_a.each do |header, data|
+        row_pairs.to_a.each do |header, data|  ## convert row data to a hash keyed on column header. force blank/empty to nil.
           next if header.blank?
           row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
         end
@@ -289,7 +288,7 @@ class NtaUpload < ApplicationRecord
                     .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                     .join(',')
-        self.connection.execute <<~MYSQL
+        NtaUpload.connection.execute <<~MYSQL
           REPLACE INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
         MYSQL
       end
@@ -337,6 +336,9 @@ class NtaUpload < ApplicationRecord
 
   def NtaUpload.delete_universe_nta
     ActiveRecord::Base.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 0;
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'NTA' ;
@@ -383,6 +385,9 @@ class NtaUpload < ApplicationRecord
     SQL
     ActiveRecord::Base.connection.execute <<~SQL
       delete from data_lists where universe = 'NTA' ;
+    SQL
+    ActiveRecord::Base.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 1;
     SQL
   end
 
