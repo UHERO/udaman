@@ -160,7 +160,7 @@ class NtaUpload < ApplicationRecord
         measurement.update data_portal_name: long_name
       end
       if data_list.measurements.where(id: measurement.id).empty?
-        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
+        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 12)
         Rails.logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
@@ -501,9 +501,9 @@ class NtaUpload < ApplicationRecord
       select distinct dl.id, m.id, 'indent0',
           case m.data_portal_name
             when 'Region' then 0
-            when 'Income Group' then 6
-            /* All Countries is assigned list_order 11 above in Ruby code. Change there if necessary */
-            else 12
+            when 'Income Group' then 7
+            /* All Countries is assigned list_order 12 above in Ruby code. Change there if necessary */
+            else 13
           end
       from data_lists dl
         join measurements m
@@ -518,15 +518,16 @@ class NtaUpload < ApplicationRecord
       select distinct dl.id, m.id, 'indent1',
           case m.data_portal_name
               when 'African Countries' then 1
-              when 'American Countries' then 2
-              when 'Asian Countries' then 3
-              when 'European Countries' then 4
-              when 'Oceania Countries' then 5
-              when 'Low Income Countries' then 7
-              when 'Lower Middle Income Countries' then 8
-              when 'Upper Middle Income Countries' then 9
-              when 'High Income Countries' then 10
-            else 12
+              when 'Asian Countries' then 2
+              when 'European Countries' then 3
+              when 'Latin American and the Caribbean countries' then 4
+              when 'North American Countries' then 5
+              when 'Oceania Countries' then 6
+              when 'Low Income Countries' then 8
+              when 'Lower Middle Income Countries' then 9
+              when 'Upper Middle Income Countries' then 10
+              when 'High Income Countries' then 11
+            else 13
           end
       from data_lists dl
         join measurements m
