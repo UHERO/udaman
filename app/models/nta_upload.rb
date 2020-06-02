@@ -219,7 +219,10 @@ class NtaUpload < ApplicationRecord
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
         row_data = {}
         ## convert row data to a hash keyed on column header. force all blank/empty to nil.
-        row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
+        row.to_a.each do |header, data|
+          next if header.blank?
+          row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
+        end
 
         group = row_data['group'].downcase
         next unless ['region','income group','country'].include? group
