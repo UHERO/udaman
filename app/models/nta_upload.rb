@@ -335,58 +335,58 @@ class NtaUpload < ApplicationRecord
   end
 
   def NtaUpload.delete_universe_nta
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 0;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from data_sources where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from series where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete x
       from xseries x join series s on s.xseries_id = x.id
       where s.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from measurements where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from units where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from sources where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from geographies where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from categories where universe = 'NTA' and ancestry is not null ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from data_lists where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 1;
     SQL
   end
