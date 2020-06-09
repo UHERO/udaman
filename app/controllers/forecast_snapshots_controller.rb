@@ -71,13 +71,13 @@ class ForecastSnapshotsController < ApplicationController
 
   def update
     if forecast_snapshot_params[:new_forecast_tsd_filename]
-      @forecast_snapshot.delete_file_from_disk(new_forecast_tsd_filename)
+      @forecast_snapshot.delete_file_from_disk(@forecast_snapshot.new_forecast_tsd_filename)
     end
     if forecast_snapshot_params[:old_forecast_tsd_filename]
-      @forecast_snapshot.delete_file_from_disk(old_forecast_tsd_filename)
+      @forecast_snapshot.delete_file_from_disk(@forecast_snapshot.old_forecast_tsd_filename)
     end
     if forecast_snapshot_params[:history_tsd_filename]
-      @forecast_snapshot.delete_file_from_disk(history_tsd_filename)
+      @forecast_snapshot.delete_file_from_disk(@forecast_snapshot.history_tsd_filename)
     end
 
     unless @forecast_snapshot.update!(forecast_snapshot_params)

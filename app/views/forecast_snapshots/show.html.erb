@@ -29,7 +29,7 @@
     <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] %>
+    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
@@ -46,7 +46,7 @@
     <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] %>
+    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
@@ -63,7 +63,7 @@
     <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] %>
+    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
