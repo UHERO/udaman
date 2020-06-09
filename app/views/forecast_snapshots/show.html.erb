@@ -29,13 +29,13 @@
     <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
-      id: '<%= u_s.id %>',
+      id: '<%= u_s.id rescue '' %>',
       title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
-      percent: '<%= u_s.percent %>',
+      percent: '<%= u_s.percent rescue '' %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
       history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
@@ -46,13 +46,13 @@
     <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
-      id: '<%= u_s.id %>',
+      id: '<%= u_s.id rescue '' %>',
       title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
-      percent: '<%= u_s.percent %>',
+      percent: '<%= u_s.percent rescue '' %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
@@ -63,13 +63,13 @@
     <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
-      id: '<%= u_s.id %>',
+      id: '<%= u_s.id rescue '' %>',
       title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
-      percent: '<%= u_s.percent %>',
+      percent: '<%= u_s.percent rescue '' %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
