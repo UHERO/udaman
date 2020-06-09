@@ -23,18 +23,10 @@ class ForecastSnapshot < ApplicationRecord
     like_series ? like_series.dataPortalName : 'NO NAME FOUND'
   end
 
-  def retrieve_percent(name)
-    name.ts.percent rescue ''
-  end
-
   def get_units(name)
     prefix = Series.parse_name(name)[:prefix].chomp('NS')
     m = Measurement.find_by(universe: 'UHERO', prefix: prefix)
     (m && m.unit) ? m.unit.short_label : 'Values'
-  end
-
-  def retrieve_series_id(name)
-    name.ts.id rescue ''
   end
 
   def path(filename)
