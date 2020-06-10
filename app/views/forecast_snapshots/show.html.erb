@@ -29,7 +29,7 @@
   var all_data = [];
 
   <% start_date = '2020-01-01' %>
-  <% @tsd_files[2].get_all_series.each do |series| %>
+  <% @tsd_files[2].get_all_series(nils: true).each do |series| %>
     <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
@@ -42,11 +42,11 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
-      history: [<% series[:data_hash].values.each do |e| %> <%= (e.to_s == ' 1.000000E+0015' || e.to_s == '               ' ? 'null' : e.to_s) + ", " %><% end %>],
-          });
+      history: [<% series[:data_hash].values.each do |e| %><%= e.to_s + ", " %><% end %>],
+    });
   <% end %>
 
-  <% @tsd_files[1].get_all_series.each do |series| %>
+  <% @tsd_files[1].get_all_series(nils: true).each do |series| %>
     <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
@@ -59,11 +59,11 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
-      old_forecast: [<% series[:data_hash].values.each do |e| %> <%= (e.to_s == ' 1.000000E+0015' || e.to_s == '               ' ? 'null' : e.to_s) + ", " %><% end %>],
+      old_forecast: [<% series[:data_hash].values.each do |e| %><%= e.to_s + ", " %><% end %>],
     });
   <% end %>
 
-  <% @tsd_files[0].get_all_series.each do |series| %>
+  <% @tsd_files[0].get_all_series(nils: true).each do |series| %>
     <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
     <% start_date = series_start if start_date > series_start %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
@@ -76,7 +76,7 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
-      new_forecast: [<% series[:data_hash].values.each do |e| %> <%= (e.to_s == ' 1.000000E+0015' || e.to_s == '               ' ? 'null' : e.to_s) + ", " %><% end %>],
+      new_forecast: [<% series[:data_hash].values.each do |e| %><%= e.to_s + ", " %><% end %>],
     });
   <% end %>
 
