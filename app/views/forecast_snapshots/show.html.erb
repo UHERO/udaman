@@ -42,10 +42,7 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
-      history: [<% series[:data_hash].each do |d, v| %>
-                  <% next if d < @t_start || d > @t_end %>
-                  <%= (v == ' 1.000000E+0015' || v == '               ') ? 'null' : v.to_f %>
-                <% end %>],
+      history: [<% series[:data_hash].values.each do |e| %> <%= (e.to_s == ' 1.000000E+0015' || e.to_s == '               ' ? 'null' : e.to_s) + ", " %><% end %>],
           });
   <% end %>
 
@@ -62,10 +59,7 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
-      old_forecast: [<% series[:data_hash].each do |d, v| %>
-                       <% next if d < @t_start || d > @t_end %>
-                       <%= (v == ' 1.000000E+0015' || v == '               ') ? 'null' : v.to_f %>
-                     <% end %>],
+      old_forecast: [<% series[:data_hash].values.each do |e| %> <%= (e.to_s == ' 1.000000E+0015' || e.to_s == '               ' ? 'null' : e.to_s) + ", " %><% end %>],
     });
   <% end %>
 
@@ -82,10 +76,7 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
-      new_forecast: [<% series[:data_hash].each do |d, v| %>
-                       <% next if d < @t_start || d > @t_end %>
-                       <%= (v == ' 1.000000E+0015' || v == '               ') ? 'null' : v.to_f %>
-                     <% end %>],
+      new_forecast: [<% series[:data_hash].values.each do |e| %> <%= (e.to_s == ' 1.000000E+0015' || e.to_s == '               ' ? 'null' : e.to_s) + ", " %><% end %>],
     });
   <% end %>
 
