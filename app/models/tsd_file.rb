@@ -287,7 +287,7 @@ class TsdFile < ApplicationRecord
     result = {}
     data.sort.each do |date, value|
       last_year_date = (Date.strptime(date, '%Y-%m-%d') - 1.year).strftime('%Y-%m-%d')
-      result[date] = value && (value - data[last_year_date]) / data[last_year_date] * 100 if data[last_year_date]
+      result[date] = (value - data[last_year_date]) / data[last_year_date] * 100 if value && data[last_year_date]
     end
     result
   end

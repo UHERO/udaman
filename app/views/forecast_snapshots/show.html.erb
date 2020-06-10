@@ -116,7 +116,7 @@
 
   // Consolidate objects belonging to the same series
   var chart_data = [];
-  var start_date = "<%= start_date %>";
+  var start_date = "<%= @all_dates[@t_start] || start_date %>";
   all_data.forEach(function(value) {
     var exist = chart_data.filter(function(e, i) {
       return e.series === value.series;
