@@ -68,13 +68,13 @@ class TsdFile < ApplicationRecord
     dates.slice(future - 2, 6)
   end
 
-  def get_all_dates
-    @all_dates ||= _get_all_dates
+  def get_all_dates(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+    @all_dates ||= _get_all_dates(nils: nils)
   end
 
-  def _get_all_dates
+  def _get_all_dates(nils: false)
     dates = []
-    get_all_series.each do |s|
+    get_all_series(nils: nils).each do |s|
       dates |= s[:data_hash].keys
     end
     dates.sort
@@ -287,7 +287,7 @@ class TsdFile < ApplicationRecord
     result = {}
     data.sort.each do |date, value|
       last_year_date = (Date.strptime(date, '%Y-%m-%d') - 1.year).strftime('%Y-%m-%d')
-      result[date] = (value-data[last_year_date])/data[last_year_date]*100 unless data[last_year_date].nil?
+      result[date] = value && (value - data[last_year_date]) / data[last_year_date] * 100 if data[last_year_date]
     end
     result
   end

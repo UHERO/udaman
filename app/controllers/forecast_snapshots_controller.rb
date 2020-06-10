@@ -133,7 +133,7 @@ private
     end
 
     def range_prep
-      @all_dates = (@tsd_files[0].get_all_dates | @tsd_files[1].get_all_dates | @tsd_files[2].get_all_dates).sort
+      @all_dates = (@tsd_files[0].get_all_dates(nils: true) | @tsd_files[1].get_all_dates(nils: true) | @tsd_files[2].get_all_dates(nils: true)).sort
       future = @all_dates.index {|date| date > Date.today.to_s }
       def_start = future ? future - 2 : 0
       last_item = @all_dates.count - 1
