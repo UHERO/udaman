@@ -9,6 +9,10 @@
     | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
              data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
 <% end %>
+<%= form_with model: @forecast_snapshot, url: { action: :show }, method: :post, html: { style: 'display:inline;' } %>
+<%= generate_date_range_controls(@t_start, @t_end).html_safe %>
+<%= submit_tag 'Show' %>
+</form>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
 <p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>

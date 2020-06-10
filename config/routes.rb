@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     end
   end
   post 'forecast_snapshots/:id/table', to: 'forecast_snapshots#table'
+  post 'forecast_snapshots/:id', to: 'forecast_snapshots#show'
 
   resources :exports
   resources :measurements do

@@ -15,6 +15,7 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def show
+    range_prep
     respond_to do |format|
       format.csv { render layout: false }
       format.html # show.html.erb
@@ -22,14 +23,7 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def table
-    @all_dates = @tsd_files[0].get_all_dates
-    future = @all_dates.index {|date| date > Date.today.to_s }
-    def_start = future ? future - 2 : 0
-    last_item = @all_dates.count - 1
-    user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
-    user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
-    @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
-    @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
+    range_prep
   end
 
   def new
@@ -136,6 +130,17 @@ private
                                                 :old_forecast_tsd_label,
                                                 :history_tsd_filename,
                                                 :history_tsd_label)
+    end
+
+    def range_prep
+      @all_dates = (@tsd_files[0].get_all_dates | @tsd_files[1].get_all_dates | @tsd_files[2].get_all_dates).sort
+      future = @all_dates.index {|date| date > Date.today.to_s }
+      def_start = future ? future - 2 : 0
+      last_item = @all_dates.count - 1
+      user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
+      user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
+      @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
+      @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
     end
 
     def set_tsd_files
