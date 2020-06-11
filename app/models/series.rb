@@ -1123,6 +1123,7 @@ class Series < ApplicationRecord
   end
   
   def Series.search_box(input_string, limit: 10000)
+    Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{input_string}" }
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1181,7 +1182,6 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 

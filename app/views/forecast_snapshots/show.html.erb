@@ -1,7 +1,7 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Index', forecast_snapshots_path %> |
-<%= link_to 'Table', { action: :table, id: @forecast_snapshot } %> |
+<%= link_to 'Table', { action: :table, id: @forecast_snapshot, table_start: @t_start, table_end: @t_end } %> |
 <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
 <% if current_user.admin_user? %>
     | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
@@ -9,6 +9,10 @@
     | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
              data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
 <% end %>
+<%= form_with model: @forecast_snapshot, url: { action: :show }, method: :post, html: { style: 'display:inline;' } %>
+<%= generate_date_range_controls(@t_start, @t_end).html_safe %>
+<%= submit_tag 'Show' %>
+</form>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
 <p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>
@@ -25,54 +29,66 @@
   var all_data = [];
 
   <% start_date = '2020-01-01' %>
-  <% @tsd_files[2].get_all_series.each do |series| %>
+  <% @tsd_files[2].get_all_series(nils: true).each do |series| %>
     <% series_start = @tsd_files[2].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
-    <% start_date = series_start if start_date > series_start %>
+    <% start_date = series_start if series_start < start_date %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
-      id: '<%= u_s.id %>',
+      id: '<%= u_s.id rescue nil %>',
       title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
-      percent: '<%= u_s.percent %>',
+      percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
-      history: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+      history: [<% series[:data_hash].keys.sort.each do |d| %>
+          <% next if d < @all_dates[@t_start] || d > @all_dates[@t_end] %>
+          <% value = series[:data_hash][d] %>
+          <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
+          <% end %>],
     });
   <% end %>
 
-  <% @tsd_files[1].get_all_series.each do |series| %>
+  <% @tsd_files[1].get_all_series(nils: true).each do |series| %>
     <% series_start = @tsd_files[1].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
-    <% start_date = series_start if start_date > series_start %>
+    <% start_date = series_start if series_start < start_date %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
-      id: '<%= u_s.id %>',
+      id: '<%= u_s.id rescue nil %>',
       title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
-      percent: '<%= u_s.percent %>',
+      percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
-      old_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+      old_forecast: [<% series[:data_hash].keys.sort.each do |d| %>
+            <% next if d < @all_dates[@t_start] || d > @all_dates[@t_end] %>
+            <% value = series[:data_hash][d] %>
+            <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
+            <% end %>],
     });
   <% end %>
 
-  <% @tsd_files[0].get_all_series.each do |series| %>
+  <% @tsd_files[0].get_all_series(nils: true).each do |series| %>
     <% series_start = @tsd_files[0].parse_date(series[:start], series[:frequency], series[:daily_switches]) %>
-    <% start_date = series_start if start_date > series_start %>
+    <% start_date = series_start if series_start < start_date %>
     <% fullname = Series.build_name_two(series[:name], series[:frequency]) %>
-    <% u_s = series[:udaman_series] || raise("Cannot find series #{fullname} in udaman") %>
+    <% u_s = series[:udaman_series] %>
     all_data.push({
       series: '<%= series[:name] %>',
       frequency: '<%= series[:frequency] %>',
-      id: '<%= u_s.id %>',
+      id: '<%= u_s.id rescue nil %>',
       title: '<%= @forecast_snapshot.retrieve_name(u_s || fullname) %>',
-      percent: '<%= u_s.percent %>',
+      percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
-      new_forecast: [<% series[:data].each do |e| %> <% if e == ' 1.000000E+0015'  %> <%= 'null' %>, <% elsif e == '               ' %><%= 'null' %>, <% else %><%= e.to_f %>, <% end %><% end %>],
+      new_forecast: [<% series[:data_hash].keys.sort.each do |d| %>
+            <% next if d < @all_dates[@t_start] || d > @all_dates[@t_end] %>
+            <% value = series[:data_hash][d] %>
+            <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
+            <% end %>],
     });
   <% end %>
 
@@ -100,7 +116,7 @@
 
   // Consolidate objects belonging to the same series
   var chart_data = [];
-  var start_date = "<%= start_date %>";
+  var start_date = "<%= @all_dates[@t_start] || start_date %>";
   all_data.forEach(function(value) {
     var exist = chart_data.filter(function(e, i) {
       return e.series === value.series;
