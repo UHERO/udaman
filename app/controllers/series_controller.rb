@@ -94,6 +94,7 @@ class SeriesController < ApplicationController
 
   def new_search
     @search_string = params[:search_string]
+    Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
     @all_series = Series.search_box(@search_string, limit: 500)
     if @all_series.count == 1
       @series = @all_series.first

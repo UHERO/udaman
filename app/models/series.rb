@@ -1123,7 +1123,6 @@ class Series < ApplicationRecord
   end
   
   def Series.search_box(input_string, limit: 10000)
-    Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{input_string}" }
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
