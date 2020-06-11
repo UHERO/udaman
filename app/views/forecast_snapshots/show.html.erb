@@ -1,7 +1,7 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Index', forecast_snapshots_path %> |
-<%= link_to 'Table', { action: :table, id: @forecast_snapshot } %> |
+<%= link_to 'Table', { action: :table, id: @forecast_snapshot, table_start: @t_start, table_end: @t_end } %> |
 <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
 <% if current_user.admin_user? %>
     | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
