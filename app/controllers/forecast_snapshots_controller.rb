@@ -133,16 +133,18 @@ private
     end
 
     def range_prep
-      @all_dates = @tsd_files[0].get_all_dates(nils: true)
+      max_horizon = Date.new(Date.today.year + 30, 12, 1).to_s
+      @all_dates =  @tsd_files[0].get_all_dates(nils: true)
       @all_dates |= @tsd_files[1].get_all_dates(nils: true)
-      @all_dates = (@all_dates | @tsd_files[2].get_all_dates(nils: true)).sort
+      @all_dates |= @tsd_files[2].get_all_dates(nils: true)
+      @all_dates = @all_dates.reject {|d| d > max_horizon }.sort
       @is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ }
-      def_from = "%d-01-01" % Date.today.year - 10
-      def_to   = "%d-%s-01" % [Date.today.year + 5, @is_quarterly ? '10' : '01']
-      user_from = params[:sample_from].blank? ? nil : params[:sample_from]
-      user_to   = params[:sample_to].blank? ? nil : params[:sample_to]
-      @sampl_fr = [user_from, def_from].select {|x| @all_dates.include? x }[0]
-      @sampl_to = [user_to, def_to].select {|x| @all_dates.include? x }[0]
+      default_from = "%d-01-01" % Date.today.year - 10
+      default_to   = "%d-%s-01" % [Date.today.year + 5, @is_quarterly ? '10' : '01']
+      user_from = params[:sample_from]
+      user_to   = params[:sample_to]
+      @sampl_fr = [user_from, default_from].select {|x| @all_dates.include?(x) }[0] || @all_dates[0]
+      @sampl_to = [user_to, default_to].select {|x| @all_dates.include?(x) }[0] || @all_dates[-1]
     end
 
     def set_tsd_files
