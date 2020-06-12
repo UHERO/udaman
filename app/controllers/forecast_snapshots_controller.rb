@@ -133,14 +133,16 @@ private
     end
 
     def range_prep
-      @all_dates = (@tsd_files[0].get_all_dates(nils: true) | @tsd_files[1].get_all_dates(nils: true) | @tsd_files[2].get_all_dates(nils: true)).sort
-      future = @all_dates.index {|date| date > Date.today.to_s }
-      def_start = future ? future - 2 : 0
-      last_item = @all_dates.count - 1
-      user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
-      user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
-      @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
-      @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
+      @all_dates = @tsd_files[0].get_all_dates(nils: true)
+      @all_dates |= @tsd_files[1].get_all_dates(nils: true)
+      @all_dates = (@all_dates | @tsd_files[2].get_all_dates(nils: true)).sort
+      @is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ }
+      def_start = "%d-01-01" % Date.today.year - 10
+      def_end   = "%d-%s-01" % [Date.today.year + 5, @is_quarterly ? '10' : '01']
+      from = params[:sample_from].blank? ? nil : params[:sample_from]
+      to   = params[:sample_to].blank? ? nil : params[:sample_to]
+      @t_start = [from, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
+      @t_end = [to, def_end, last_item].select {|x| @all_dates[x] rescue false }[0]
     end
 
     def set_tsd_files
