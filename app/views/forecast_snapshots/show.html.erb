@@ -2,12 +2,13 @@
 
 <%= link_to 'Index', forecast_snapshots_path %> |
 <%= link_to 'Table', { action: :table, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
-<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
+<%= link_to 'Permalink', { action: :show, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <% if current_user.admin_user? %>
-    | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
-    | <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %>
-    | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
-             data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
+    <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+    <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
+    <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
+             data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %> |
 <% end %>
 <%= form_with model: @forecast_snapshot, url: { action: :show }, method: :post, html: { style: 'display:inline;' } %>
   <%= generate_date_range_controls(@sampl_fr, @sampl_to).html_safe %>

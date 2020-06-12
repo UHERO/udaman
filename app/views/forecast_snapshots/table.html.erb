@@ -3,6 +3,7 @@
 <%= link_to 'Index', forecast_snapshots_path %> |
 <%= link_to 'Charts', { action: :show, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
+<%= link_to 'Permalink', { action: :table, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <% if current_user.admin_user? %>
   <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
   <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |

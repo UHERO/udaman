@@ -15,7 +15,7 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def show
-    range_prep
+    var_setup
     respond_to do |format|
       format.csv { render layout: false }
       format.html # show.html.erb
@@ -23,7 +23,7 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def table
-    range_prep
+    var_setup
   end
 
   def new
@@ -132,7 +132,7 @@ private
                                                 :history_tsd_label)
     end
 
-    def range_prep
+    def var_setup
       max_horizon = Date.new(Date.today.year + 30, 12).to_s
       @all_dates =  @tsd_files[0].get_all_dates(nils: true)
       @all_dates |= @tsd_files[1].get_all_dates(nils: true)
