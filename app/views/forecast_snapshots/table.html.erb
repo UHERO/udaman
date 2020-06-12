@@ -1,7 +1,7 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Index', forecast_snapshots_path %> |
-<%= link_to 'Charts', { action: :show, id: @forecast_snapshot, sampl_from: @sampl_fr, sample_to: @sampl_to } %> |
+<%= link_to 'Charts', { action: :show, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
 <% if current_user.admin_user? %>
   <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
@@ -20,7 +20,8 @@
 <table class="snapshot-table">
   <tr>
     <th class="header-col"> &nbsp; </th>
-    <% @all_dates[@sampl_fr..@sampl_to].each do |date| %>
+    <% @all_dates.each do |date| %>
+        <% next if date < @sampl_fr || date > @sampl_to %>
         <th><%= @is_quarterly ? date_to_qspec(date) : date[0..3] %></th>
     <% end %>
   </tr>
@@ -33,13 +34,15 @@
         display_name = '%s (%s)' % [@forecast_snapshot.retrieve_name(the_series), data_portal_link(the_series)]
       %>
       <td class="header-col series-title"><%= display_name.html_safe %></td>
-      <% @all_dates[@sampl_fr..@sampl_to].each do |date| %>
+      <% @all_dates.each do |date| %>
+        <% next if date < @sampl_fr || date > @sampl_to %>
         <td class="series-data"><%= number_with_precision(s[:data_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
-      <% @all_dates[@sampl_fr..@sampl_to].each do |date| %>
+      <% @all_dates.each do |date| %>
+          <% next if date < @sampl_fr || date > @sampl_to %>
           <td class="change-data"><%= number_with_precision(s[:yoy_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>

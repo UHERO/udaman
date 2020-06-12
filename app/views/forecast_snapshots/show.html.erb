@@ -43,7 +43,7 @@
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
       history: [<% series[:data_hash].sort.each do |date, value| %>
-          <% next if date < @all_dates[@sampl_fr] || date > @all_dates[@sampl_to] %>
+          <% next if date < @sampl_fr || date > @sampl_to %>
           <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
           <% end %>],
     });
@@ -63,7 +63,7 @@
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
       old_forecast: [<% series[:data_hash].sort.each do |date, value| %>
-            <% next if date < @all_dates[@sampl_fr] || date > @all_dates[@sampl_to] %>
+            <% next if date < @sampl_fr || date > @sampl_to %>
             <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
             <% end %>],
     });
@@ -83,7 +83,7 @@
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
       new_forecast: [<% series[:data_hash].sort.each do |date, value| %>
-            <% next if date < @all_dates[@sampl_fr] || date > @all_dates[@sampl_to] %>
+            <% next if date < @sampl_fr || date > @sampl_to %>
             <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
             <% end %>],
     });
@@ -113,7 +113,7 @@
 
   // Consolidate objects belonging to the same series
   var chart_data = [];
-  var start_date = "<%= @all_dates[@sampl_fr] || start_date %>";
+  var start_date = "<%= @sampl_fr || start_date %>";
   all_data.forEach(function(value) {
     var exist = chart_data.filter(function(e, i) {
       return e.series === value.series;
