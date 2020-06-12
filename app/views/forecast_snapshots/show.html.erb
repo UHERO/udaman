@@ -1,17 +1,18 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Index', forecast_snapshots_path %> |
-<%= link_to 'Table', { action: :table, id: @forecast_snapshot, table_start: @t_start, table_end: @t_end } %> |
-<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %>
+<%= link_to 'Table', { action: :table, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
+<%= link_to 'Permalink', { action: :show, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <% if current_user.admin_user? %>
-    | <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %>
-    | <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %>
-    | <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
-             data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %>
+    <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+    <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
+    <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
+             data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %> |
 <% end %>
 <%= form_with model: @forecast_snapshot, url: { action: :show }, method: :post, html: { style: 'display:inline;' } %>
-<%= generate_date_range_controls(@t_start, @t_end).html_safe %>
-<%= submit_tag 'Show' %>
+  <%= generate_date_range_controls(@sampl_fr, @sampl_to).html_safe %>
+  <%= submit_tag 'Show' %>
 </form>
 
 <h2><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
@@ -42,9 +43,8 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       history_start: '<%= series_start %>',
-      history: [<% series[:data_hash].keys.sort.each do |d| %>
-          <% next if d < @all_dates[@t_start] || d > @all_dates[@t_end] %>
-          <% value = series[:data_hash][d] %>
+      history: [<% series[:data_hash].sort.each do |date, value| %>
+          <% next if date < @sampl_fr || date > @sampl_to %>
           <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
           <% end %>],
     });
@@ -63,9 +63,8 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       old_forecast_start: '<%= series_start %>',
-      old_forecast: [<% series[:data_hash].keys.sort.each do |d| %>
-            <% next if d < @all_dates[@t_start] || d > @all_dates[@t_end] %>
-            <% value = series[:data_hash][d] %>
+      old_forecast: [<% series[:data_hash].sort.each do |date, value| %>
+            <% next if date < @sampl_fr || date > @sampl_to %>
             <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
             <% end %>],
     });
@@ -84,9 +83,8 @@
       percent: '<%= u_s.percent rescue nil %>',
       units: '<%= u_s.unit.short_label rescue @forecast_snapshot.get_units(fullname) %>',
       new_forecast_start: '<%= series_start %>',
-      new_forecast: [<% series[:data_hash].keys.sort.each do |d| %>
-            <% next if d < @all_dates[@t_start] || d > @all_dates[@t_end] %>
-            <% value = series[:data_hash][d] %>
+      new_forecast: [<% series[:data_hash].sort.each do |date, value| %>
+            <% next if date < @sampl_fr || date > @sampl_to %>
             <%= "#{value.nil? || value == 1.00E+15 ? 'null' : value}," %>
             <% end %>],
     });
@@ -116,7 +114,7 @@
 
   // Consolidate objects belonging to the same series
   var chart_data = [];
-  var start_date = "<%= @all_dates[@t_start] || start_date %>";
+  var start_date = "<%= @sampl_fr || start_date %>";
   all_data.forEach(function(value) {
     var exist = chart_data.filter(function(e, i) {
       return e.series === value.series;
