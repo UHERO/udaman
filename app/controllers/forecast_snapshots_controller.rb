@@ -137,12 +137,12 @@ private
       @all_dates |= @tsd_files[1].get_all_dates(nils: true)
       @all_dates = (@all_dates | @tsd_files[2].get_all_dates(nils: true)).sort
       @is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ }
-      def_start = "%d-01-01" % Date.today.year - 10
-      def_end   = "%d-%s-01" % [Date.today.year + 5, @is_quarterly ? '10' : '01']
-      from = params[:sample_from].blank? ? nil : params[:sample_from]
-      to   = params[:sample_to].blank? ? nil : params[:sample_to]
-      @t_start = [from, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
-      @t_end = [to, def_end, last_item].select {|x| @all_dates[x] rescue false }[0]
+      def_from = "%d-01-01" % Date.today.year - 10
+      def_to   = "%d-%s-01" % [Date.today.year + 5, @is_quarterly ? '10' : '01']
+      user_from = params[:sample_from].blank? ? nil : params[:sample_from]
+      user_to   = params[:sample_to].blank? ? nil : params[:sample_to]
+      @sampl_fr = [user_from, def_from].select {|x| @all_dates.include? x }[0]
+      @sampl_to = [user_to, def_to].select {|x| @all_dates.include? x }[0]
     end
 
     def set_tsd_files
