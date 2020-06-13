@@ -15,6 +15,7 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def show
+    var_setup
     respond_to do |format|
       format.csv { render layout: false }
       format.html # show.html.erb
@@ -22,14 +23,7 @@ class ForecastSnapshotsController < ApplicationController
   end
 
   def table
-    @all_dates = @tsd_files[0].get_all_dates
-    future = @all_dates.index {|date| date > Date.today.to_s }
-    def_start = future ? future - 2 : 0
-    last_item = @all_dates.count - 1
-    user_start = params[:table_start].blank? ? nil : params[:table_start].to_i
-    user_end = params[:table_end].blank? ? nil : params[:table_end].to_i
-    @t_start = [user_start, def_start, 0].select {|x| @all_dates[x] rescue false }[0]
-    @t_end = [user_end, def_start + 6, last_item].select {|x| @all_dates[x] rescue false }[0]
+    var_setup
   end
 
   def new
@@ -71,13 +65,13 @@ class ForecastSnapshotsController < ApplicationController
 
   def update
     if forecast_snapshot_params[:new_forecast_tsd_filename]
-      @forecast_snapshot.delete_file_from_disk(new_forecast_tsd_filename)
+      @forecast_snapshot.delete_file_from_disk(@forecast_snapshot.new_forecast_tsd_filename)
     end
     if forecast_snapshot_params[:old_forecast_tsd_filename]
-      @forecast_snapshot.delete_file_from_disk(old_forecast_tsd_filename)
+      @forecast_snapshot.delete_file_from_disk(@forecast_snapshot.old_forecast_tsd_filename)
     end
     if forecast_snapshot_params[:history_tsd_filename]
-      @forecast_snapshot.delete_file_from_disk(history_tsd_filename)
+      @forecast_snapshot.delete_file_from_disk(@forecast_snapshot.history_tsd_filename)
     end
 
     unless @forecast_snapshot.update!(forecast_snapshot_params)
@@ -136,6 +130,21 @@ private
                                                 :old_forecast_tsd_label,
                                                 :history_tsd_filename,
                                                 :history_tsd_label)
+    end
+
+    def var_setup
+      max_horizon = Date.new(Date.today.year + 30, 12).to_s
+      @all_dates =  @tsd_files[0].get_all_dates(nils: true)
+      @all_dates |= @tsd_files[1].get_all_dates(nils: true)
+      @all_dates |= @tsd_files[2].get_all_dates(nils: true)
+      @all_dates = @all_dates.reject {|d| d > max_horizon }.sort
+      @is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ }
+      default_from = Date.new(Date.today.year - 10).to_s
+      default_to   = Date.new(Date.today.year + 5, @is_quarterly ? 10 : 1).to_s
+      user_from = params[:sample_from]
+      user_to   = params[:sample_to]
+      @sampl_fr = [user_from, default_from].select {|x| @all_dates.include? x }[0] || @all_dates[0]
+      @sampl_to = [user_to, default_to].select {|x| @all_dates.include? x }[0] || @all_dates[-1]
     end
 
     def set_tsd_files

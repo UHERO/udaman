@@ -105,7 +105,7 @@ class DataHtmlParser
   def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
-    @url = "http://clustermapping.us/data/region/#{query_params}"
+    @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content
@@ -272,6 +272,7 @@ class DataHtmlParser
   def fetch(uri_str, limit = 10)
     raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
+    Rails.logger.debug { "GETTING URL #{URI(uri_str)}" }
     response = Net::HTTP.get_response(URI(uri_str))
 
     case response
@@ -279,7 +280,7 @@ class DataHtmlParser
         response
       when Net::HTTPRedirection then
         location = response['location']
-        warn "redirected to #{location}"
+        Rails.logger.warn { "redirected to #{location}" }
         fetch(location, limit - 1)
       else
         response.value

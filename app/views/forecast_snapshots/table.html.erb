@@ -1,8 +1,9 @@
 <p id="notice"><%= notice %></p>
 
 <%= link_to 'Index', forecast_snapshots_path %> |
-<%= link_to 'Charts', forecast_snapshot_path(@forecast_snapshot) %> |
+<%= link_to 'Charts', { action: :show, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
+<%= link_to 'Permalink', { action: :table, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
 <% if current_user.admin_user? %>
   <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
   <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
@@ -10,7 +11,7 @@
                   data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %> |
 <% end %>
 <%= form_with model: @forecast_snapshot, url: { action: :table }, method: :post, html: { style: 'display:inline;' } %>
-  <%= generate_date_range_controls(@t_start, @t_end).html_safe %>
+  <%= generate_date_range_controls(@sampl_fr, @sampl_to).html_safe %>
   <%= submit_tag 'Show' %>
 </form>
 
@@ -20,9 +21,9 @@
 <table class="snapshot-table">
   <tr>
     <th class="header-col"> &nbsp; </th>
-    <% is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ } %>
-    <% @all_dates[@t_start..@t_end].each do |date| %>
-        <th><%= is_quarterly ? date_to_qspec(date) : date[0..3] %></th>
+    <% @all_dates.each do |date| %>
+        <% next if date < @sampl_fr || date > @sampl_to %>
+        <th><%= @is_quarterly ? date_to_qspec(date) : date[0..3] %></th>
     <% end %>
   </tr>
   <% @tsd_files[0].get_all_series.each do |s| %>
@@ -34,13 +35,15 @@
         display_name = '%s (%s)' % [@forecast_snapshot.retrieve_name(the_series), data_portal_link(the_series)]
       %>
       <td class="header-col series-title"><%= display_name.html_safe %></td>
-      <% @all_dates[@t_start..@t_end].each do |date| %>
+      <% @all_dates.each do |date| %>
+        <% next if date < @sampl_fr || date > @sampl_to %>
         <td class="series-data"><%= number_with_precision(s[:data_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
-      <% @all_dates[@t_start..@t_end].each do |date| %>
+      <% @all_dates.each do |date| %>
+          <% next if date < @sampl_fr || date > @sampl_to %>
           <td class="change-data"><%= number_with_precision(s[:yoy_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
@@ -50,10 +53,3 @@
 <div class="table-note">
   <p>Note: <%= @forecast_snapshot[:comments].to_s %></p>
 </div>
-<script language="JavaScript">
-<% if @range_user_chosen %>
-  storeFSrange(<%= @forecast_snapshot.id %>, @t_start, @t_end);
-<% else %>
-  replayFSrange(<%= @forecast_snapshot.id %>);
-<% end %>
-</script>
