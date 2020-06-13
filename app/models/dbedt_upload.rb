@@ -7,15 +7,15 @@ class DbedtUpload < ApplicationRecord
 
   def store_upload_files(cats_file, series_file)
     now = Time.now
+    cats_file_content = cats_file && cats_file.read
+    cats_file_ext =     cats_file && cats_file.original_filename.split('.')[-1]
     if cats_file
-      cats_file_content = cats_file.read
-      cats_file_ext = cats_file.original_filename.split('.')[-1]
       self.cats_filename = DbedtUpload.make_filename(now, 'cats', cats_file_ext)
       self.cats_status = :processing
     end
+    series_file_content = series_file && series_file.read
+    series_file_ext =     series_file && series_file.original_filename.split('.')[-1]
     if series_file
-      series_file_content = series_file.read
-      series_file_ext = series_file.original_filename.split('.')[-1]
       self.series_filename = DbedtUpload.make_filename(now, 'series', series_file_ext)
       self.series_status = :processing
     end
@@ -237,7 +237,7 @@ class DbedtUpload < ApplicationRecord
     true
   end
 
-  def load_series_csv(run_active_settings = false)
+  def load_series_csv(run_active_settings: false)
     Rails.logger.info { 'starting load_series_csv' }
     unless series_filename
       Rails.logger.error { "DBEDT Upload id=#{id}: no series_filename" }
@@ -250,12 +250,13 @@ class DbedtUpload < ApplicationRecord
       return false
     end
 
-    # if data_sources exist => set their current: true
-    if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-      Rails.logger.debug { 'DBEDT data already loaded' }
-      set_this_load_dp_as_current
-      return true
-    end
+    ######################## WHY DID WE NEED THIS ?????????????????????????
+    ## if data_sources exist => set their current: true
+    #if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
+    #  Rails.logger.debug { 'DBEDT data already loaded' }
+    #  set_this_load_dp_as_current
+    #  return true
+    #end
 
     Rails.logger.debug { 'loading DBEDT data' }
     current_series = nil
@@ -269,14 +270,9 @@ class DbedtUpload < ApplicationRecord
       (geo_handle, geo_fips) = get_geo_codes(region)
       name = Series.build_name(prefix, geo_handle, row[4])
       if current_measurement.nil? || current_measurement.prefix != prefix
-        current_measurement = Measurement.find_by(universe: 'DBEDT', prefix: prefix)
-        if current_measurement.nil?
-          current_measurement = Measurement.create(
-              universe: 'DBEDT',
-              prefix: prefix,
-              data_portal_name: row[1]
-          )
-        end
+        current_measurement =
+            Measurement.find_by(universe: 'DBEDT', prefix: prefix) ||
+             Measurement.create(universe: 'DBEDT', prefix: prefix, data_portal_name: row[1])
       end
 
       if current_series.nil? || current_series.name != name
@@ -289,6 +285,7 @@ class DbedtUpload < ApplicationRecord
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
+          ## current_series.update!(........)
         else
           current_series = Series.create_new(
               universe: 'DBEDT',
@@ -307,18 +304,17 @@ class DbedtUpload < ApplicationRecord
           current_measurement.series << current_series
           Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         end
-        current_data_source = DataSource.find_by(universe: 'DBEDT', eval: "DbedtUpload.load(#{id}, #{current_series.id})")
-        if current_data_source.nil?
-          current_data_source = DataSource.create(
+        current_data_source =
+          DataSource.find_by(universe: 'DBEDT', eval: "DbedtUpload.load(%d)" % current_series.id) ||
+          DataSource.create(
               universe: 'DBEDT',
-              eval: "DbedtUpload.load(#{id}, #{current_series.id})",
-              description: "DBEDT Upload #{id} for series #{current_series.id}",
+              eval: "DbedtUpload.load(%d)" % current_series.id,
+              description: "DBEDT Upload for series %d" % current_series.id,
               series_id: current_series.id,
               reload_nightly: false,
               last_run: Time.now
           )
-        end
-        current_data_source.update last_run_in_seconds: Time.now.to_i
+        ## don't need this, eh?  ## current_data_source.update last_run_in_seconds: Time.now.to_i
       end
       data_points.push({xs_id: current_series.xseries_id,
                         ds_id: current_data_source.id,
@@ -358,16 +354,13 @@ class DbedtUpload < ApplicationRecord
 
   def DbedtUpload.load(id, series_id)
     du = DbedtUpload.find_by(id: id)
-    du.load_series_csv(true)
+    du.load_series_csv(run_active_settings: true)
   end
 
 private
-  def path_prefix
-    'dbedt_files'
-  end
 
-  def path(name=nil)
-    parts = [ENV['DATA_PATH'], path_prefix]
+  def path(name = nil)
+    parts = [ENV['DATA_PATH'], 'dbedt_files']
     parts.push(name) unless name.blank?
     File.join(parts)
   end
