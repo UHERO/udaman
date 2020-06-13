@@ -325,7 +325,7 @@ class DbedtUpload < ApplicationRecord
                         value: row[7]})
     end
     Rails.logger.info { 'load_series_csv: insert data points' }
-    if data_points.length > 0 && !current_series.nil?
+    if current_series && data_points.length > 0
       data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact
                      .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
