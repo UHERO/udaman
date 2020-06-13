@@ -117,7 +117,9 @@ class DbedtUpload < ApplicationRecord
   end
 
   def DbedtUpload.delete_universe_dbedt
-    ## Series and Xseries are NOT deleted, but updated as necessary
+    ## Series and Xseries are NOT deleted, but updated as necessary.
+    ## Geographies also not deleted, but handled in hardcoded fashion.
+    ## Categories and DataLists deletion handled in Rails code.
     DbedtUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 0;
     SQL
@@ -148,18 +150,6 @@ class DbedtUpload < ApplicationRecord
     SQL
     DbedtUpload.connection.execute <<~SQL
       delete from sources where universe = 'DBEDT' ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = 'DBEDT' ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete from geographies where universe = 'DBEDT' ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete from categories where universe = 'DBEDT' and ancestry is not null ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete from data_lists where universe = 'DBEDT'  ;
     SQL
     DbedtUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 1;
