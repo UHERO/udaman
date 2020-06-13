@@ -180,9 +180,16 @@ class Series < ApplicationRecord
   end
 
   def Series.build_name(prefix, geo, freq)
-    raise 'build_name: All parts must be non-nil strings' unless prefix && geo && freq
+    unless prefix && geo && freq
+      raise 'Null members not allowed in series name! (got %s + %s + %s)' % [prefix, geo, freq]
+    end
     name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
     Series.parse_name(name) && name
+  end
+
+  def Series.build_name_two(prefixgeo, freq)
+    (prefix, geo) = prefixgeo.split('@')
+    Series.build_name(prefix, geo, freq)
   end
 
   ## Build a new name starting from mine, and replacing whatever parts are passed in
@@ -480,12 +487,12 @@ class Series < ApplicationRecord
     true
   end
 
-  def add_to_quarantine(run_update = true)
+  def add_to_quarantine(run_update: true)
     self.update! quarantined: true
     DataPoint.update_public_data_points(universe, self) if run_update
   end
 
-  def remove_from_quarantine(run_update = true)
+  def remove_from_quarantine(run_update: true)
     raise 'Trying to remove unquarantined series from quarantine' unless quarantined?
     self.update! quarantined: false
     DataPoint.update_public_data_points(universe, self) if run_update
@@ -1174,7 +1181,6 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
-    ##Rails.logger.debug { ">>>>>>>>> search conditions: #{conditions.join(' and ')}, bindvars: #{bindvars}" }
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
@@ -1288,7 +1294,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly = false, clear_first = false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly: false, clear_first: false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
@@ -1310,9 +1316,9 @@ class Series < ApplicationRecord
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix, nightly)
+    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix, nightly: nightly)
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-    mgr.batch_reload(clear_first)
+    mgr.batch_reload(clear_first: clear_first)
   end
 
   def Series.get_old_bea_downloads

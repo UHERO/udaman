@@ -94,17 +94,18 @@ class SeriesController < ApplicationController
 
   def new_search
     @search_string = params[:search_string]
+    Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
     @all_series = Series.search_box(@search_string, limit: 500)
     if @all_series.count == 1
       @series = @all_series.first
-      show(true)  ## call controller prep without render
+      show(no_render: true)  ## call controller prep without render
       render :show
       return
     end
     render :index
   end
 
-  def show(no_render = false)
+  def show(no_render: false)
     @as = AremosSeries.get @series.name
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]

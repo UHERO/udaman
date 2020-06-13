@@ -1,40 +1,50 @@
 <p id="notice"><%= notice %></p>
 
-<%= link_to 'Charts', forecast_snapshot_path(@forecast_snapshot) %> |
-<% if current_user.internal_user? %>
+<%= link_to 'Index', forecast_snapshots_path %> |
+<%= link_to 'Charts', { action: :show, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
+<%= link_to 'CSV', { action: :show, format: :csv, id: @forecast_snapshot } %> |
+<%= link_to 'Permalink', { action: :table, id: @forecast_snapshot, sample_from: @sampl_fr, sample_to: @sampl_to } %> |
+<% if current_user.admin_user? %>
   <%= link_to 'Edit', edit_forecast_snapshot_path(@forecast_snapshot) %> |
+  <%= link_to 'Dup', { action: :duplicate, id: @forecast_snapshot }  %> |
+  <%= link_to 'Destroy', @forecast_snapshot, method: :delete,
+                  data: { confirm: "Destroy #{@forecast_snapshot.name}, version #{@forecast_snapshot.version}: Are you sure??" } %> |
 <% end %>
-<%= link_to 'Back', forecast_snapshots_path %>
+<%= form_with model: @forecast_snapshot, url: { action: :table }, method: :post, html: { style: 'display:inline;' } %>
+  <%= generate_date_range_controls(@sampl_fr, @sampl_to).html_safe %>
+  <%= submit_tag 'Show' %>
+</form>
 
 <h2 class="snapshot-table-title"><%= @forecast_snapshot.name+' ('+@forecast_snapshot.version+')' %></h2>
-<p><%= @forecast_snapshot.created_at.strftime('%m/%d/%y') %></p>
+<p>Last update: <%= @forecast_snapshot.updated_at.strftime('%m/%d/%Y') %></p>
 
 <table class="snapshot-table">
   <tr>
     <th class="header-col"> &nbsp; </th>
-    <% quarterly = @all_dates.any? {|s| (s.include? '-04-') || (s.include? '-07-') || (s.include? '-10-')} %>
     <% @all_dates.each do |date| %>
-        <th>
-        <%= quarterly ? date[0, 4] + 'Q' + (date[5, 2].to_i / 3 + 1).to_s : date[0, 4] %>
-        </th>
+        <% next if date < @sampl_fr || date > @sampl_to %>
+        <th><%= @is_quarterly ? date_to_qspec(date) : date[0..3] %></th>
     <% end %>
   </tr>
-  <% @forecast_snapshot.new_forecast_tsd.get_all_series.each do |s| %>
-      <% precision = (s[:udaman_series].decimals || 1) rescue 1 %>
+  <% @tsd_files[0].get_all_series.each do |s| %>
+    <% decimals = (s[:udaman_series].decimals || 1) rescue 1 %>
     <tr>
       <%
-        mnemonic = s[:name] + '.' + s[:frequency]
-        display_name = @forecast_snapshot.retrieve_name(mnemonic) + ' (' + mnemonic + ')'
+        fullname = Series.build_name_two(s[:name], s[:frequency])
+        the_series = s[:udaman_series] || fullname
+        display_name = '%s (%s)' % [@forecast_snapshot.retrieve_name(the_series), data_portal_link(the_series)]
       %>
-      <td class="header-col series-title" title="<%= display_name %>"><%= display_name %></td>
+      <td class="header-col series-title"><%= display_name.html_safe %></td>
       <% @all_dates.each do |date| %>
-        <td class="series-data"><%= s[:data_hash][date].nil? ? '' : number_with_precision(s[:data_hash][date], precision: precision, separator: '.', delimiter: ',') %></td>
+        <% next if date < @sampl_fr || date > @sampl_to %>
+        <td class="series-data"><%= number_with_precision(s[:data_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
       <% @all_dates.each do |date| %>
-          <td class="change-data"><%= s[:yoy_hash][date].nil? ? '' : number_with_precision(s[:yoy_hash][date], precision: precision, separator: '.', delimiter: ',') %></td>
+          <% next if date < @sampl_fr || date > @sampl_to %>
+          <td class="change-data"><%= number_with_precision(s[:yoy_hash][date], precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
   <% end %>

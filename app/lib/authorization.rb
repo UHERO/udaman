@@ -15,6 +15,9 @@ module Authorization
     if current_user.heco? && (%w(index show table).include?(params[:action]))
       return
     end
+    if current_user.admin_user? && %w(delete destroy).include?(params[:action])
+      return
+    end
     check_authorization
   end
 

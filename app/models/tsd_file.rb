@@ -5,10 +5,6 @@ class TsdFile < ApplicationRecord
   belongs_to :forecast_snapshot
   before_destroy :delete_from_disk
 
-  def TsdFile.path_prefix
-    'tsd_files'
-  end
-
   def path
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(self.filename))
   end
@@ -35,15 +31,15 @@ class TsdFile < ApplicationRecord
     close_tsd
   end
 
-  def get_next_series
-    raise  "You're not at the right position in the file" unless @last_line_type == :name_line
+  def get_next_series(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+    raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge!(get_second_line_attributes)
-    series_hash[:udaman_series] = Series.find_by(universe: 'UHERO', name: series_hash[:name] + '.' + series_hash[:frequency])
+    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
     read_next_line
     series_hash[:data] = get_data
-    series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency])
+    series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency], nils: nils)
     series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
     series_hash
   end
@@ -72,19 +68,27 @@ class TsdFile < ApplicationRecord
     dates.slice(future - 2, 6)
   end
 
-  def get_all_dates
-    dates = []
-    get_all_series.each do |s|
-      dates += s[:data_hash].keys
-    end
-    dates.sort.uniq
+  def get_all_dates(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+    @all_dates ||= _get_all_dates(nils: nils)
   end
 
-  def get_all_series
+  def _get_all_dates(nils: false)
+    dates = []
+    get_all_series(nils: nils).each do |s|
+      dates |= s[:data_hash].keys
+    end
+    dates.sort
+  end
+
+  def get_all_series(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+    @all_series ||= _get_all_series(nils: nils)
+  end
+
+  def _get_all_series(nils: false)
     series = []
     read_tsd_block do |tsd|
       begin
-        series.push(tsd.get_next_series) if @last_line_type == :name_line
+        series.push(tsd.get_next_series(nils: nils)) if @last_line_type == :name_line
       end until @last_line.nil?
     end
     series
@@ -100,16 +104,16 @@ class TsdFile < ApplicationRecord
     nil
   end
 
-  def parse_data(data, start_date_string, frequency)
-    return parse_annual_data(data, start_date_string) if frequency == 'A'
-    return parse_semi_annual_data(data, start_date_string) if frequency == 'S'
-    return parse_quarterly_data(data, start_date_string) if frequency == 'Q'
-    return parse_monthly_data(data, start_date_string) if frequency == 'M'
-    return parse_weekly_data(data, start_date_string) if frequency == 'W'
-    parse_daily_data(data, start_date_string) if frequency == 'D'
+  def parse_data(data, start_date_string, frequency, nils: false)
+    return parse_annual_data(data, start_date_string, nils: nils) if frequency == 'A'
+    return parse_semi_annual_data(data, start_date_string, nils: nils) if frequency == 'S'
+    return parse_quarterly_data(data, start_date_string, nils: nils) if frequency == 'Q'
+    return parse_monthly_data(data, start_date_string, nils: nils) if frequency == 'M'
+    return parse_weekly_data(data, start_date_string, nils: nils) if frequency == 'W'
+    parse_daily_data(data, start_date_string, nils: nils) if frequency == 'D'
   end
 
-  def parse_date(aremos_date_string, frequency, a_date_type, daily_switches)
+  def parse_date(aremos_date_string, frequency, daily_switches)
     if frequency == 'W'
       listed_date = Date.parse(aremos_date_string)
       date = listed_date+daily_switches.index('1')
@@ -188,26 +192,28 @@ class TsdFile < ApplicationRecord
     @file.close
   end
 
-  def parse_annual_data(data, start_date_string)
+  def parse_annual_data(data, start_date_string, nils: false)
     data_hash = {}
     year = start_date_string[0..3].to_i
     data.each do |datapoint|
-      return data_hash if datapoint.strip == ''
-      data_hash["#{year}-01-01"] = datapoint.to_f
+      value = Float(datapoint) rescue nil
+      break if value.nil? && !nils
+      data_hash["#{year}-01-01"] = value
       year += 1
     end
     data_hash
   end
 
 
-  def parse_semi_annual_data(data, start_date_string)
+  def parse_semi_annual_data(data, start_date_string, nils: false)
     data_hash = {}
     year = start_date_string[0..3].to_i
     semi = start_date_string[4..5].to_i
     semi_array = %w(01 07)
     data.each do |datapoint|
-      return data_hash if datapoint.strip == ''
-      data_hash["#{year}-#{semi_array[semi-1]}-01"] = datapoint.to_f
+      value = Float(datapoint) rescue nil
+      break if value.nil? && !nils
+      data_hash["#{year}-#{semi_array[semi-1]}-01"] = value
       semi += 1
       if semi > 2
         semi = 1
@@ -217,14 +223,15 @@ class TsdFile < ApplicationRecord
     data_hash
   end
 
-  def parse_quarterly_data(data, start_date_string)
+  def parse_quarterly_data(data, start_date_string, nils: false)
     data_hash = {}
     year = start_date_string[0..3].to_i
     quarter = start_date_string[4..5].to_i
     quarter_array = %w(01 04 07 10)
     data.each do |datapoint|
-      return data_hash if datapoint.strip == ''
-      data_hash["#{year}-#{quarter_array[quarter-1]}-01"] = datapoint.to_f
+      value = Float(datapoint) rescue nil
+      break if value.nil? && !nils
+      data_hash["#{year}-#{quarter_array[quarter-1]}-01"] = value
       quarter += 1
       if quarter > 4
         quarter = 1
@@ -234,14 +241,15 @@ class TsdFile < ApplicationRecord
     data_hash
   end
 
-  def parse_monthly_data(data, start_date_string)
+  def parse_monthly_data(data, start_date_string, nils: false)
     data_hash = {}
     year = start_date_string[0..3].to_i
     month = start_date_string[4..5].to_i
     data.each do |datapoint|
-      return data_hash if datapoint.strip == ''
+      value = Float(datapoint) rescue nil
+      break if value.nil? && !nils
       month_filler = month < 10 ? '0' : ''
-      data_hash["#{year}-#{month_filler}#{month}-01"] = datapoint.to_f
+      data_hash["#{year}-#{month_filler}#{month}-01"] = value
       month += 1
       if month > 12
         month = 1
@@ -251,23 +259,25 @@ class TsdFile < ApplicationRecord
     data_hash
   end
 
-  def parse_weekly_data(data, start_date_string)
+  def parse_weekly_data(data, start_date_string, nils: false)
     data_hash = {}
     date = Date.parse start_date_string
     data.each do |datapoint|
-      return data_hash if datapoint.strip == ''
-      data_hash[date.to_s] = datapoint.to_f
+      value = Float(datapoint) rescue nil
+      break if value.nil? && !nils
+      data_hash[date.to_s] = value
       date += 7
     end
     data_hash
   end
 
-  def parse_daily_data(data, start_date_string)
+  def parse_daily_data(data, start_date_string, nils: false)
     data_hash = {}
     date = Date.parse start_date_string
     data.each do |datapoint|
-      return data_hash if datapoint.strip == ''
-      data_hash[date.to_s] = datapoint.to_f
+      value = Float(datapoint) rescue nil
+      break if value.nil? && !nils
+      data_hash[date.to_s] = value
       date += 1
     end
     data_hash
@@ -277,12 +287,13 @@ class TsdFile < ApplicationRecord
     result = {}
     data.sort.each do |date, value|
       last_year_date = (Date.strptime(date, '%Y-%m-%d') - 1.year).strftime('%Y-%m-%d')
-      result[date] = (value-data[last_year_date])/data[last_year_date]*100 unless data[last_year_date].nil?
+      result[date] = (value - data[last_year_date]) / data[last_year_date] * 100 if value && data[last_year_date]
     end
     result
   end
 
 private
+
   def write_to_disk(content)
     begin
       File.open(path, 'wb') { |f| f.write(content) }
@@ -298,7 +309,6 @@ private
       content = File.open(path, 'r') { |f| f.read }
     rescue StandardError => e
       Rails.logger.error e.message
-      puts ">>>>>>> dEBUF path=#{path}"
       return false
     end 
     content
@@ -315,8 +325,6 @@ private
   end
 
   def tsd_rel_filepath(name)
-    string = self.forecast_snapshot.created_at.utc.to_s+'_'+self.forecast_snapshot_id.to_s+'_'+name
-    hash = Digest::MD5.new << string
-    File.join(TsdFile.path_prefix, hash.to_s+'_'+name)
+    forecast_snapshot.tsd_rel_filepath(name)
   end
 end

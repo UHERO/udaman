@@ -26,9 +26,9 @@ class DataPoint < ApplicationRecord
   end
 
   def value_equal_to?(value)
-    #used to round to 3 digits but not doing that anymore. May need to revert
-    #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
-    self.value.round(10) == value.round(10)
+      self.value.round(10) == value.round(10)
+    rescue
+      raise "Error rounding value at #{date} observation. May be non-numeric"
   end
 
   def trying_to_replace_with_nil?(value)

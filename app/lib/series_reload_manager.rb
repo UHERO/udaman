@@ -2,13 +2,13 @@ class SeriesReloadManager
   require 'sidekiq'
   require 'sidekiq-status'
 
-  def initialize(series_list, suffix, nightly = false)
+  def initialize(series_list, suffix, nightly: false)
     @batch = create_batch_id(series_list.count, suffix)
     @series_list = series_list
     @nightly = nightly
   end
 
-  def batch_reload(clear_first = false, group_size = nil, cycle_time = nil)
+  def batch_reload(clear_first: false, group_size: nil, cycle_time: nil)
     group_size ||= 25  ## number of jobs sent at one time to sidekiq
     cycle_time ||= 15  ## how long to wait between checking if jobs are done
     series_count = @series_list.count
