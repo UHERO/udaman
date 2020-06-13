@@ -119,7 +119,7 @@ class DbedtUpload < ApplicationRecord
   def DbedtUpload.delete_universe_dbedt
     ## Series and Xseries are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
-    ## Categories and DataLists deletion handled in Rails code.
+    ## Categories and DataLists deleted in Rails code.
     DbedtUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 0;
     SQL
@@ -285,7 +285,14 @@ class DbedtUpload < ApplicationRecord
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
-          ## current_series.update!(........)
+          current_series.update!(
+              description: row[1],
+              dataPortalName: row[1],
+              unit_id: unit && unit.id,
+              source_id: source && source.id,
+              decimals: row[10],
+          )
+          current_data_source = current_series.data_sources.first
         else
           current_series = Series.create_new(
               universe: 'DBEDT',
@@ -299,21 +306,19 @@ class DbedtUpload < ApplicationRecord
               decimals: row[10],
               units: 1
           )
+          current_data_source = DataSource.create(
+              universe: 'DBEDT',
+              eval: 'DbedtUpload.load(%d)' % current_series.id,
+              description: 'Dummy loader for %s' % current_series.name,
+              series_id: current_series.id,
+              reload_nightly: false,
+              last_run: Time.now
+          )
         end
         if current_measurement.series.where(id: current_series.id).empty?
           current_measurement.series << current_series
           Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         end
-        current_data_source =
-          DataSource.find_by(universe: 'DBEDT', eval: "DbedtUpload.load(%d)" % current_series.id) ||
-          DataSource.create(
-              universe: 'DBEDT',
-              eval: "DbedtUpload.load(%d)" % current_series.id,
-              description: "DBEDT Upload for series %d" % current_series.id,
-              series_id: current_series.id,
-              reload_nightly: false,
-              last_run: Time.now
-          )
         ## don't need this, eh?  ## current_data_source.update last_run_in_seconds: Time.now.to_i
       end
       data_points.push({xs_id: current_series.xseries_id,
@@ -352,9 +357,8 @@ class DbedtUpload < ApplicationRecord
     MYSQL
   end
 
-  def DbedtUpload.load(id, series_id)
-    du = DbedtUpload.find_by(id: id)
-    du.load_series_csv(run_active_settings: true)
+  def DbedtUpload.load(series_id)
+    raise "Don't load individual series that way (#{series_id})"
   end
 
 private

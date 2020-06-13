@@ -41,8 +41,6 @@
           <%=
             if dbedt_upload.active
               "<i class='load-status fas fa-dot-circle' id='dbedt-#{dbedt_upload.id}' aria-hidden='true'></i>".html_safe
-            elsif dbedt_upload.cats_status == 'ok' && dbedt_upload.series_status == 'ok'
-              link_to('<i class="load-status fas fa-circle" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => dbedt_upload}, title: 'Make active')
             elsif dbedt_upload.cats_status != 'fail' && dbedt_upload.series_status != 'fail'
               '<span class="waiting"><i class="load-status fas fa-dot-circle" aria-hidden="true"></i></span>'.html_safe
             end
