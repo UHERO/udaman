@@ -1,5 +1,6 @@
 class DbedtUpload < ApplicationRecord
   require 'date'
+  include HelperUtilities
   before_destroy :delete_files_from_disk
   before_destroy :delete_data_and_data_sources
 
@@ -429,10 +430,9 @@ private
 
   def get_date(year, qm)
     if qm =~ /^M(\d+)/i
-      "#{year}-%02d-01" % $1.to_i
+      '%s-%02d-01' % [year, $1.to_i]
     elsif qm =~ /^Q(\d+)/i
-      quarter_month = '%02d' % (($1.to_i - 1) * 3 + 1)
-      "#{year}-#{quarter_month}-01"
+      qspec_to_date("#{year}#{qm}")
     elsif qm.nil? || qm.empty? || qm =~ /A/i
       "#{year}-01-01"
     else
