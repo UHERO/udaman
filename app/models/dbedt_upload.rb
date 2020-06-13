@@ -116,6 +116,63 @@ class DbedtUpload < ApplicationRecord
     true
   end
 
+  def DbedtUpload.delete_universe_dbedt
+    DbedtUpload.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 0;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete p
+      from public_data_points p join series s on s.id = p.series_id
+      where s.universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete d
+      from data_points d join series s on s.xseries_id = d.xseries_id
+      where s.universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from data_sources where universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from series where universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete x
+      from xseries x join series s on s.xseries_id = x.id
+      where s.universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from measurements where universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from units where universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from sources where universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from geographies where universe = 'DBEDT' ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from categories where universe = 'DBEDT' and ancestry is not null ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+      delete from data_lists where universe = 'DBEDT'  ;
+    SQL
+    DbedtUpload.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 1;
+    SQL
+  end
+
   def load_csv(which)
     if which == 'cats'
       return load_cats_csv
