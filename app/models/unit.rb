@@ -13,10 +13,10 @@ class Unit < ApplicationRecord
      Unit.create(universe: universe, short_label: label, long_label: label)
   end
 
-  private
+private
   def unlink_referring_objects
-    Series.where(:unit_id => self.id).update_all(:unit_id => nil)
-    Measurement.where(:unit_id => self.id).update_all(:unit_id => nil)
+    Series.where(unit_id: self.id).update_all(unit_id: nil)
+    Measurement.where(unit_id: self.id).update_all(unit_id: nil)
   end
 
 end
