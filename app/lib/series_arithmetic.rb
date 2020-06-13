@@ -92,29 +92,21 @@ module SeriesArithmetic
     #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
   end
   
-  def rebase(year = nil)
-    unless year.nil?
-      year = Date.parse(year).year
+  def rebase(date = nil)
+    if date
+      date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
     end
+    ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
+    ann_series = find_sibling_for_freq('A') || raise("No annual series corresponding to #{self}")
+    date ||= ann_series.last_observation
+    new_base = ann_series.at(date).to_f
+    raise "No nonzero rebase of #{self} to #{date}" unless new_base && new_base != 0
+
     new_series_data = {}
-    if frequency != 'year' and frequency != :year
-      annual_series = (self.name.split('.')[0] + '.A').ts
-      if year.nil?
-        year = annual_series.data.keys.sort[-1].year
-      end
-      new_base = annual_series.at(Date.new(year)).to_f
-    else
-      if year.nil?
-        year = self.data.keys.sort[-1].year
-      end
-      new_base = self.at(Date.new(year)).to_f
+    data.sort.each do |at_date, value|
+      new_series_data[at_date] = value / new_base * 100
     end
-    if new_base && new_base != 0
-      data.sort.each do |inner_date, value|
-        new_series_data[inner_date] = value / new_base * 100
-      end
-    end
-    new_transformation("Rebased #{name} to #{year}", new_series_data)
+    new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
   
   def percentage_change
@@ -207,7 +199,7 @@ module SeriesArithmetic
         new_series_data[date] = pc
       end
     end
-    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
+    new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end
 
   def faster_yoy(id)
@@ -259,7 +251,7 @@ module SeriesArithmetic
     return all_nil unless frequency == 'day'
     avg_series = {}
     mtd_sum.data.sort.each do |date, value|
-      avg_series[date] = value / date.day
+      avg_series[date] = value / date.day.to_f
     end
     new_transformation("Month-To-Date average of #{self}", avg_series)
   end
@@ -269,21 +261,27 @@ module SeriesArithmetic
   end
 
   def ytd_sum
-    return all_nil unless %w(day week).index(frequency).nil?
-    new_series_data = {}
+    return all_nil if frequency == 'week' || frequency == 'day'
+    dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
+    sum_series = {}
     ytd_sum = 0
-    ytd_year = nil
+    prev_month = 0
+    track_year = nil
     data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
+      if date.year != track_year
+        ##unless sum_series.empty? || prev_month == (frequency == 'quarter' ? 10 : 12)
+        ##  raise "ytd_sum: gap in data preceding #{date}"
+        ##end
+        track_year = date.year
+        ytd_sum = 0
+        prev_month = 0
       end
-      new_series_data[date] = ytd_sum
+      ##raise "ytd_sum: gap in data preceding #{date}" if (date.month - prev_month) > dp_month_diff && !sum_series.empty?
+      ytd_sum += value
+      prev_month = date.month
+      sum_series[date] = ytd_sum
     end
-    new_transformation("Year to Date sum of #{name}", new_series_data)
+    new_transformation("Year-To-Date sum of #{self}", sum_series)
   end
   
   def ytd(id = nil)
@@ -291,22 +289,9 @@ module SeriesArithmetic
   end
   
   def ytd_percentage_change(id = nil)
-    return all_nil unless %w(day week).index(frequency).nil?
-    return faster_ytd(id) unless id.nil?
-    new_series_data = {}
-    ytd_sum = 0
-    ytd_year = nil
-    data.sort.each do |date, value|
-      year = date.year
-      if year == ytd_year
-        ytd_sum += value
-      else
-        ytd_sum = value
-        ytd_year = year
-      end
-      new_series_data[date] = ytd_sum
-    end
-    new_transformation("Year to Date Percentage Change of #{name}", new_series_data).annualized_percentage_change
+    return all_nil if frequency == 'week' || frequency == 'day'
+    return faster_ytd(id) if id
+    new_transformation("Year-To-Date percentage change of #{self}", ytd_sum.data).annualized_percentage_change
   end
 
   def faster_ytd(id)

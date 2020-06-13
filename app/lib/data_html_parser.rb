@@ -34,8 +34,12 @@ class DataHtmlParser
         :years_option =>'all_years'
     }
     @doc = self.download
-    frequency = self.data.keys[0] if frequency.nil?
-    self.data[frequency]
+    avail_freqs = data.keys
+    frequency ||= avail_freqs[0]
+    if avail_freqs.count > 0 && !avail_freqs.include?(frequency)
+      raise "BLS API: #{code} has no data at frequency #{frequency}, only #{avail_freqs.join(', ')}"
+    end
+    data[frequency]
   end
 
   def get_bea_series(dataset, filters)
@@ -102,7 +106,7 @@ class DataHtmlParser
   def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
-    @url = "http://clustermapping.us/data/region/#{query_params}"
+    @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content
@@ -166,28 +170,31 @@ class DataHtmlParser
   def content
     @content
   end
-  
-  def save_content(save_path)
-    open(save_path, 'wb') { |file| file.write @content }
+
+  def url
+    @url
   end
-  
+
   def bls_text
-    #puts @doc.css('pre').text
-    @doc.css('pre').text
+    @doc.css('pre').text   ## This 'pre' has to be lower case for some strange reason
   end
   
   def get_data
-    @data_hash ||= {}
-    data_lines = bls_text.split("\n")
+    data_hash ||= {}
+    resp = bls_text
+    raise "BLS API: #{resp.strip}" if resp =~ /error/i
+
+    data_lines = resp.split("\n")
     data_lines.each do |dl|
-      next unless (dl.index @code) == 0
+      next unless dl.index(@code) == 0
+     ## this should be uncommented sometime... next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
-      @data_hash[freq] ||= {}
-      @data_hash[freq][date] = cols[3].to_f unless date.nil?
+      data_hash[freq] ||= {}
+      data_hash[freq][date] = cols[3].to_f
     end
-    @data_hash
+    data_hash
   end
   
   def data
@@ -199,6 +206,19 @@ class DataHtmlParser
     return 'M' if other_string[0] == 'M'
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
+  end
+
+  def get_date(year_string, other_string)
+    month = case other_string
+              when /^M(0[1-9]|1[0-2])\b/ then $1.to_i
+              when /^(0[1-9]|1[0-2])\b/  then $1.to_i
+              when /^(M13|S0?1)\b/       then 1
+              when /^S0?2\b/             then 7
+              when /^Q0?([1-4])\b/       then first_month_of_quarter($1)
+              when ''                    then 1
+              else raise('Error: invalid date %s-%s' % [year_string, other_string])
+            end
+    Date.new(year_string.to_i, month)
   end
 
   def estatjp_convert_date(datecode)
@@ -217,19 +237,6 @@ class DataHtmlParser
     true
   end
 
-  def get_date(year_string, other_string)
-    month = case other_string
-              when /^M(0[1-9]|1[0-2])\b/ then $1.to_i
-              when /^(0[1-9]|1[0-2])\b/  then $1.to_i
-              when /^(M13|S0?1)\b/       then 1
-              when /^S0?2\b/             then 7
-              when /^Q0?([1-4])\b/       then first_month_of_quarter($1)
-              when ''                    then 1
-              else raise('Error: invalid date %s-%s' % [year_string, other_string])
-            end
-    Date.new(year_string.to_i, month)
-  end
-  
   def download
     require 'uri'
     require 'net/http'
@@ -255,6 +262,7 @@ class DataHtmlParser
   def fetch(uri_str, limit = 10)
     raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
+    Rails.logger.debug { "GETTING URL #{URI(uri_str)}" }
     response = Net::HTTP.get_response(URI(uri_str))
 
     case response
@@ -262,7 +270,7 @@ class DataHtmlParser
         response
       when Net::HTTPRedirection then
         location = response['location']
-        warn "redirected to #{location}"
+        Rails.logger.warn { "redirected to #{location}" }
         fetch(location, limit - 1)
       else
         response.value

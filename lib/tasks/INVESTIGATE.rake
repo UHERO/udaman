@@ -138,8 +138,8 @@ task :clean_obvious_missing_data_issues do
   # aremos_diff number indicates missing values. 10000... is how AREMOS encodes
   # data_source == 1 is a weak criteria. Just noticed it was less likely to bring in series we didn't want to mess with... Should probably be something else
   Series.where('aremos_diff > 10000000000').each do |s| 
-    if s.data_sources.count == 1
-      s.data_sources[0].reload_source(true)
+    if s.enabled_data_sources.count == 1
+      s.enabled_data_sources[0].reload_source(true)
       puts s.name
     end
   end

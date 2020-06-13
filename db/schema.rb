@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025758) do
+ActiveRecord::Schema.define(version: 220170413025761) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -159,20 +159,22 @@ ActiveRecord::Schema.define(version: 220170413025758) do
   create_table "data_sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.integer "series_id"
+    t.integer "priority", default: 100
     t.text "description"
     t.text "eval"
     t.text "dependencies"
     t.string "color"
-    t.float "runtime"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.boolean "reload_nightly", default: true
+    t.boolean "pseudo_history", default: false, null: false
+    t.boolean "disabled", default: false, null: false
     t.string "presave_hook"
+    t.float "runtime"
     t.datetime "last_run_at"
     t.decimal "last_run_in_seconds", precision: 17, scale: 3
     t.string "last_error"
     t.datetime "last_error_at"
-    t.integer "priority", default: 100
     t.index ["dependencies"], name: "index_data_sources_on_dependencies", type: :fulltext
     t.index ["description"], name: "index_data_sources_on_description", type: :fulltext
     t.index ["eval"], name: "index_data_sources_on_eval", type: :fulltext
@@ -193,6 +195,8 @@ ActiveRecord::Schema.define(version: 220170413025758) do
 
   create_table "downloads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "handle"
+    t.integer "sort1"
+    t.integer "sort2"
     t.string "url"
     t.string "filename_ext", limit: 4
     t.text "post_parameters"
@@ -200,10 +204,12 @@ ActiveRecord::Schema.define(version: 220170413025758) do
     t.datetime "updated_at"
     t.datetime "last_download_at"
     t.datetime "last_change_at"
+    t.boolean "date_sensitive", default: false, null: false
     t.boolean "freeze_file"
     t.string "file_to_extract"
     t.string "sheet_override"
     t.text "notes"
+    t.index ["handle"], name: "index_downloads_on_handle", unique: true
   end
 
   create_table "dsd_log_entries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
@@ -258,7 +264,6 @@ ActiveRecord::Schema.define(version: 220170413025758) do
   create_table "forecast_snapshots", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "name"
     t.string "version"
-    t.text "comments"
     t.boolean "published"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -268,6 +273,8 @@ ActiveRecord::Schema.define(version: 220170413025758) do
     t.string "old_forecast_tsd_label"
     t.string "history_tsd_filename"
     t.string "history_tsd_label"
+    t.text "comments"
+    t.index ["name", "version"], name: "index_forecast_snapshots_on_name_and_version", unique: true
   end
 
   create_table "geo_trees", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|

@@ -15,7 +15,7 @@ class IntegerPatternProcessor
       when 'block'        then repeat(index, p[1], p[2], p[3])
       when 'header'       then find_header( header_opts.merge(match_type: p[4]) )
       when 'header_range' then find_header( header_opts.merge(match_type: p[6], search_start: p[4], search_end: p[5]) )
-      else raise('IntegerPatternProcessor::compute ????')
+      else raise("IntegerPatternProcessor::compute: bad command word = #{p[0]}")
     end
   end
 
@@ -49,12 +49,10 @@ private
     search_end = opts[:search_end] || compute_search_end(spreadsheet, opts)
 
     (search_start..search_end).each {|loc| return loc if match?(loc, spreadsheet, opts) }
-    raise "Could not find header: '#{opts[:header_name]}'"
+    raise 'Cannot find header "%s" in handle %s' % [opts[:header_name], opts[:handle]]
   end
 
   def match?(loc, spreadsheet, opts)
-    #row = opts[:header_in] == 'col' ? loc : opts[:search_main]
-    #col = opts[:header_in] == 'row' ? loc : opts[:search_main]
     if opts[:header_in] == 'col'
       (row, col) = [loc, opts[:search_main]]
     else ## == 'row'

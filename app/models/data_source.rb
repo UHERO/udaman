@@ -1,7 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
-  include Validators
   include DataSourceHooks
+  extend Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -144,7 +144,7 @@ class DataSource < ApplicationRecord
 
     ## Other definitions for my series, not including me
     def colleagues
-      series.data_sources.reject {|d| d.id == self.id }
+      series.enabled_data_sources.reject {|d| d.id == self.id }
     end
 
     def setup
@@ -153,6 +153,7 @@ class DataSource < ApplicationRecord
     end
 
     def reload_source(clear_first = false)
+      return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
       update_props = { last_run: t, last_run_at: t, last_error: nil, last_error_at: nil, runtime: nil }
@@ -262,16 +263,21 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
-      t = Time.now
-      self.data_points.each do |dp|
-        dp.delete
-      end
-      Rails.logger.info { "Deleted all data points for definition #{id} in #{Time.now - t} seconds" }
+      data_points.each {|dp| dp.delete }
+      Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
-    
+
+    ## this method not really needed, eh?
     def delete
       delete_data_points
       super
+    end
+
+    def disable
+      self.transaction do
+        self.update_attributes!(disabled: true)
+        delete_data_points
+      end
     end
 
     def toggle_reload_nightly
@@ -306,13 +312,27 @@ class DataSource < ApplicationRecord
     self.dependencies = []
     unless description.blank?
       description.split(' ').each do |word|
-        if valid_series_name(word)
+        if DataSource.valid_series_name(word)
           self.dependencies.push(word)
         end
       end
       self.dependencies.uniq!
     end
     self.save unless dont_save
+  end
+
+  def DataSource.load_error_summary
+    ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
+    DataSource.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
+    results = DataSource.connection.execute(<<~MYSQL)
+      select last_error, series_id, count(*) from data_sources
+      where universe = 'UHERO'
+      and last_error is not null
+      group by last_error
+      order by 3 desc, 1
+    MYSQL
+    DataSource.connection.execute('set @@SESSION.sql_mode = DEFAULT')    ## restore defaults
+    results.to_a
   end
 
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended

@@ -56,22 +56,43 @@ module SeriesHelper
     html.chop
   end
   
-  def linked_version(description)
-    linked_version_with_action(description,'show')
+  def text_with_linked_download(text)
+    return '' if text.blank?
+    parts = text.split(DOWNLOAD_HANDLE)
+    parts.each_with_index do |str, index|
+      case valid_download_handle(str)
+        when :nondate
+          download = Download.get(str, :nondate)
+          if download
+            parts[index] = link_to(str, download)
+          elsif text =~ /load_from_download/  ## ugh, but... reality
+            parts[index] = '<span class="error_message" title="Non-existent download!">%s</span>' % parts[index]
+          end
+        when :date
+          parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
+        else
+          parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
+      end
+    end
+    parts.join
   end
-  
-  def linked_version_with_action(description, action)
-    return '' if description.blank?
-    new_words = []
-    description.split(' ').each do |word|
-      new_word = word
+
+  def text_with_linked_words(text, action = :show)
+    return '' if text.blank?
+    words = text.split(' ')
+    words.each_with_index do |word, index|
       if valid_series_name(word)
         series = word.ts
-        new_word = link_to(word, { action: action, id: series }) if series
+        words[index] = link_to(word, { action: action, id: series }) if series
+        next
       end
-      new_words.push new_word
-    end
-    new_words.join(' ')
+      if valid_data_path(word)
+        rel_path = data_path_relativize(word)  ## relativize path under DATA_PATH prefix
+        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
+        next
+      end
+   end
+    words.join(' ')
   end
   
   def aremos_color(diff)
@@ -88,13 +109,13 @@ module SeriesHelper
   end
 
   def nightly_actuator(nightly)
-    (nightly ? 'disable' : 'enable') + ' nightly reload'
+    (nightly ? 'disable' : 'enable') + ' nightly'
   end
 
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
+    "<span class='error_message'>unvalidatable url=#{url}</span>".html_safe
   end
 
   def sa_indicator(string)
@@ -111,7 +132,7 @@ module SeriesHelper
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary? && alt_univs[series.universe]
+    if current_user.admin_user? && series.is_primary? && alt_univs[series.universe]
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
@@ -129,4 +150,7 @@ module SeriesHelper
     "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 
+  def data_path_relativize(path)
+    path.sub(ENV['DATA_PATH'] + '/', '')
+  end
 end

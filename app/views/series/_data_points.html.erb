@@ -23,8 +23,10 @@
       chg_data = @chg.data.clone unless @chg.nil? or @chg.data.nil?
       ytd_data = @ytd_chg.data.clone unless @ytd_chg.nil? or @ytd_chg.data.nil?
       lvl_data = @lvl_chg.data.clone unless @lvl_chg.nil? or @lvl_chg.data.nil?
-      bgcolor_hash = {}
-      @series.primary_series.data_sources.each {|ds| bgcolor_hash[ds.id] = ds.color }
+      bgcolors = {}
+      ## Note that disabled loaders' data points will normally have been deleted already, but just in case there are some,
+      ## we should show them with the correct background color.
+      @series.primary_series.data_sources.each {|ds| bgcolors[ds.id] = ds.disabled? ? 'lightgray' : '#%s' % ds.color }
 
       date_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
@@ -39,7 +41,7 @@
             diff = @series.a_diff(a_value, cdp_val.round(3))
             a_color = diff == 0 ? "#999999" : aremos_color(diff)
           end
-          bgcolor = bgcolor_hash[cdp.data_source_id] rescue "FFF"
+          bgcolor = bgcolors[cdp.data_source_id] rescue '#FFF'  ## this rescue code will never be called, right?
 %>
       <tr>
         <td><%= link_to cdp.date, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: cdp.date %></td>
@@ -48,11 +50,9 @@
         <td style="text-align:right;"><span class="per-chg"><%= chg_value %><%= "%" if chg_value != "-" %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= ytd_chg_value %><%= "%" if ytd_chg_value != "-" %></span></td>
         <td>
-				  <span class='current-datapoint'>
-          <div class='datapoint current-datapoint' style='background-color:#<%= bgcolor %>'>
+          <div class='datapoint current-datapoint' style='background-color:<%= bgcolor %>'>
             <%= "%.3f" % cdp_val %><sup><%= dp_superscript(cdp) %></sup>
           </div>
-          </span>
         </td>
       </tr>
 <%
