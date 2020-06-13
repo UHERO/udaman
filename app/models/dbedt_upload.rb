@@ -117,7 +117,7 @@ class DbedtUpload < ApplicationRecord
   end
 
   def DbedtUpload.delete_universe_dbedt
-    ## Series and Xseries are NOT deleted, but updated as necessary.
+    ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
     ## Categories and DataLists deleted in Rails code.
     DbedtUpload.connection.execute <<~SQL
@@ -138,9 +138,6 @@ class DbedtUpload < ApplicationRecord
     SQL
     DbedtUpload.connection.execute <<~SQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete from data_sources where universe = 'DBEDT' ;
     SQL
     DbedtUpload.connection.execute <<~SQL
       delete from measurements where universe = 'DBEDT' ;
