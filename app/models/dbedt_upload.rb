@@ -117,6 +117,7 @@ class DbedtUpload < ApplicationRecord
   end
 
   def DbedtUpload.delete_universe_dbedt
+    ## Series and Xseries are NOT deleted, but updated as necessary
     DbedtUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 0;
     SQL
@@ -138,14 +139,6 @@ class DbedtUpload < ApplicationRecord
     SQL
     DbedtUpload.connection.execute <<~SQL
       delete from data_sources where universe = 'DBEDT' ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete from series where universe = 'DBEDT' ;
-    SQL
-    DbedtUpload.connection.execute <<~SQL
-      delete x
-      from xseries x join series s on s.xseries_id = x.id
-      where s.universe = 'DBEDT' ;
     SQL
     DbedtUpload.connection.execute <<~SQL
       delete from measurements where universe = 'DBEDT' ;
@@ -297,15 +290,16 @@ class DbedtUpload < ApplicationRecord
       end
 
       if current_series.nil? || current_series.name != name
-        current_series = Series.find_by(universe: 'DBEDT', name: name)
-        if current_series.nil?
-          source_str = row[9] && row[9].to_ascii.strip
-          source = (source_str.blank? || source_str.downcase == 'none') ? nil : Source.get_or_new(source_str, nil, 'DBEDT')
-          geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
-                                              { fips: geo_fips, display_name: region, display_name_short: region}).id
-          unit_str = row[8] && row[8].to_ascii.strip
-          unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
+        source_str = row[9] && row[9].to_ascii.strip
+        source = (source_str.blank? || source_str.downcase == 'none') ? nil : Source.get_or_new(source_str, nil, 'DBEDT')
+        geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
+                                            { fips: geo_fips, display_name: region, display_name_short: region}).id
+        unit_str = row[8] && row[8].to_ascii.strip
+        unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
 
+        current_series = Series.find_by(universe: 'DBEDT', name: name)
+        if current_series
+        else
           current_series = Series.create_new(
               universe: 'DBEDT',
               name: name,
