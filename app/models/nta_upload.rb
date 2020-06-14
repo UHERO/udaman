@@ -358,12 +358,12 @@ class NtaUpload < ApplicationRecord
       delete from data_sources where universe = 'NTA' ;
     SQL
     NtaUpload.connection.execute <<~SQL
-      delete from series where universe = 'NTA' ;
-    SQL
-    NtaUpload.connection.execute <<~SQL
       delete x
       from xseries x join series s on s.xseries_id = x.id
       where s.universe = 'NTA' ;
+    SQL
+    NtaUpload.connection.execute <<~SQL
+      delete from series where universe = 'NTA' ;
     SQL
     NtaUpload.connection.execute <<~SQL
       delete from measurements where universe = 'NTA' ;
