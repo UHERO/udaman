@@ -24,6 +24,11 @@ class DbedtUpload < ApplicationRecord
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
+
+      Rails.logger.info { "DbedtUpload id=#{id} Start deleting universe DBEDT" }
+      DbedtUpload.delete_universe_dbedt
+      Rails.logger.info { "DbedtUpload id=#{id} DONE deleting universe DBEDT" }
+
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
         XlsCsvWorker.perform_async(id, 'cats')
@@ -124,28 +129,35 @@ class DbedtUpload < ApplicationRecord
     DbedtUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 0;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
     DbedtUpload.connection.execute <<~SQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: data_points' }
     DbedtUpload.connection.execute <<~SQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: measurement_series' }
     DbedtUpload.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: data_list_measurements' }
     DbedtUpload.connection.execute <<~SQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: measurements' }
     DbedtUpload.connection.execute <<~SQL
       delete from measurements where universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: units' }
     DbedtUpload.connection.execute <<~SQL
       delete from units where universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: sources' }
     DbedtUpload.connection.execute <<~SQL
       delete from sources where universe = 'DBEDT' ;
     SQL
@@ -155,10 +167,7 @@ class DbedtUpload < ApplicationRecord
   end
 
   def load_csv(which)
-    if which == 'cats'
-      return load_cats_csv
-    end
-    load_series_csv
+    which == 'cats' ? load_cats_csv : load_series_csv
   end
 
   def load_cats_csv
