@@ -184,6 +184,7 @@ class DbedtUpload < ApplicationRecord
       parent_indicator_id = row[4]
       parent_label = "DBEDT_#{parent_indicator_id}"
       if row[2].blank?
+        break if indicator_id.blank?  ## end of file
         category = Category.find_by(universe: 'DBEDT', meta: "DBEDT_#{indicator_id}")
         if category.nil?
           ancestry = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')

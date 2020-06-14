@@ -35,7 +35,7 @@ class XlsCsvWorker
       if which == 'cats'
         Rails.logger.info { "DbedtUpload id=#{dbu_id} Start deleting universe DBEDT" }
         DbedtUpload.delete_universe_dbedt
-        Rails.logger.info { "DbedtUpload id=#{dbu_id} DONE deleting universe DBEDT, Start load series" }
+        Rails.logger.info { "DbedtUpload id=#{dbu_id} DONE deleting universe DBEDT" }
       end
       Rails.logger.debug { "#{which}: before load_csv" }
       dbu.load_csv(which)
