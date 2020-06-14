@@ -55,11 +55,11 @@ class DbedtUpload < ApplicationRecord
   end
 
   def make_active_settings
-    unless DataPoint.update_public_data_points 'DBEDT'
-      Rails.logger.debug { 'FAILED to update public_data_points' }
+    unless DataPoint.update_public_data_points('DBEDT')
+      Rails.logger.warn { 'FAILED to update public_data_points' }
       return false
     end
-    Rails.logger.debug { 'DONE DataPoint.update_public_data_points' }
+    Rails.logger.info { 'DONE DataPoint.update_public_data_points' }
     self.transaction do
       DbedtUpload.update_all active: false
       self.update active: true, last_error: nil, last_error_at: nil
@@ -354,7 +354,6 @@ class DbedtUpload < ApplicationRecord
         MYSQL
       end
     end
-    set_this_load_dp_as_current
     success = run_active_settings ? make_active_settings : true
     Rails.logger.info { 'done load_series_csv' }
     success
