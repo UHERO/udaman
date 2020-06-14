@@ -24,6 +24,10 @@ class DbedtUpload < ApplicationRecord
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
+      Rails.logger.debug { "DbedtUpload id=#{id} Start deleting universe DBEDT" }
+      delete_universe_dbedt
+      Rails.logger.debug { "DbedtUpload id=#{id} DONE deleting universe DBEDT, Start load series" }
+
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
         XlsCsvWorker.perform_async(id, 'cats')
@@ -280,6 +284,7 @@ class DbedtUpload < ApplicationRecord
                                             { fips: geo_fips, display_name: region, display_name_short: region}).id
         unit_str = row[8] && row[8].to_ascii.strip
         unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
+        raise "No decimals specified for series #{name}" if row[10].blank?
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
@@ -356,7 +361,7 @@ class DbedtUpload < ApplicationRecord
   end
 
   def DbedtUpload.load(series_id)
-    raise "Don't load individual series that way (#{series_id})"
+    raise "You cannot load individual series that way (#{series_id})"
   end
 
 private
@@ -432,7 +437,7 @@ private
     if qm =~ /^M(\d+)/i
       '%s-%02d-01' % [year, $1.to_i]
     elsif qm =~ /^Q(\d+)/i
-      qspec_to_date("#{year}#{qm}")
+      qspec_to_date("#{year}#{qm}") || raise("Bad QM value: |#{qm}|")
     elsif qm.nil? || qm.empty? || qm =~ /A/i
       "#{year}-01-01"
     else

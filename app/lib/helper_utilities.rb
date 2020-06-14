@@ -18,7 +18,6 @@ module HelperUtilities
   ## get out date form, e.g. qspec_to_date("2012Q2") => "2012-04-01"
   def qspec_to_date(qstr)
     return nil unless qstr =~ /([12]\d\d\d)[-.\/ ]*Q0?([1234])/i
-    raise "qspec_to_date: Invalid quarter number in qspec #{qstr}" unless [1,2,3,4].include? $2
     '%s-%02d-01' % [$1, first_month_of_quarter($2)]
   end
 
