@@ -292,7 +292,16 @@ class DbedtUpload < ApplicationRecord
               source_id: source && source.id,
               decimals: row[10],
           )
-          current_data_source = current_series.data_sources.first
+          current_data_source =
+              DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
+              DataSource.create(
+                  universe: 'DBEDT',
+                  eval: 'DbedtUpload.load(%d)' % current_series.id,
+                  description: 'Dummy loader for %s' % current_series.name,
+                  series_id: current_series.id,
+                  reload_nightly: false,
+                  last_run: Time.now
+              )
         else
           current_series = Series.create_new(
               universe: 'DBEDT',
