@@ -324,10 +324,8 @@ class DbedtUpload < ApplicationRecord
               last_run: Time.now
           )
         end
-        if current_measurement.series.where(id: current_series.id).empty?
-          current_measurement.series << current_series
-          Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
-        end
+        current_measurement.series << current_series
+        ##Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         ## don't need this, eh?  ## current_data_source.update last_run_in_seconds: Time.now.to_i
       end
       data_points.push({xs_id: current_series.xseries_id,
@@ -340,7 +338,7 @@ class DbedtUpload < ApplicationRecord
       data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact
                      .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
-                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
+                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                      .join(',')
         DbedtUpload.connection.execute <<~MYSQL
           INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
@@ -353,6 +351,7 @@ class DbedtUpload < ApplicationRecord
     success
   end
 
+=begin
   def set_this_load_dp_as_current
     Rails.logger.info { 'load_series_csv: set all DBEDT data points to current = false' }
     DbedtUpload.connection.execute <<~MYSQL
@@ -362,10 +361,10 @@ class DbedtUpload < ApplicationRecord
     Rails.logger.info { 'load_series_csv: set all DBEDT data points for id to current = true' }
     DbedtUpload.connection.execute <<~MYSQL % [id]
       update data_points dp join data_sources ds on ds.id = dp.data_source_id
-      set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d,%%)'
+      set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d)'
     MYSQL
   end
-
+=end
   def DbedtUpload.load(series_id)
     raise "You cannot load individual series that way (#{series_id})"
   end
