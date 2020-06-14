@@ -24,10 +24,6 @@ class DbedtUpload < ApplicationRecord
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
-      Rails.logger.debug { "DbedtUpload id=#{id} Start deleting universe DBEDT" }
-      delete_universe_dbedt
-      Rails.logger.debug { "DbedtUpload id=#{id} DONE deleting universe DBEDT, Start load series" }
-
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
         XlsCsvWorker.perform_async(id, 'cats')
