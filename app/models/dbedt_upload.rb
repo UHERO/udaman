@@ -258,14 +258,6 @@ class DbedtUpload < ApplicationRecord
       return false
     end
 
-    ######################## WHY DID WE NEED THIS ?????????????????????????
-    ## if data_sources exist => set their current: true
-    #if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-    #  Rails.logger.debug { 'DBEDT data already loaded' }
-    #  set_this_load_dp_as_current
-    #  return true
-    #end
-
     Rails.logger.debug { 'loading DBEDT data' }
     current_series = nil
     current_data_source = nil
@@ -301,7 +293,7 @@ class DbedtUpload < ApplicationRecord
               source_id: source && source.id,
               decimals: row[10],
           )
-          current_data_source =
+          current_data_source =  ## wrap the following as a DataSource.get_or_new_dbedt() method, similar to Geos
               DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
               DataSource.create(
                   universe: 'DBEDT',
