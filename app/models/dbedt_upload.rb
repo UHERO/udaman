@@ -359,20 +359,6 @@ class DbedtUpload < ApplicationRecord
     success
   end
 
-=begin
-  def set_this_load_dp_as_current
-    Rails.logger.info { 'load_series_csv: set all DBEDT data points to current = false' }
-    DbedtUpload.connection.execute <<~MYSQL
-      update data_points dp join data_sources ds on ds.id = dp.data_source_id
-      set dp.current = false where ds.eval LIKE 'DbedtUpload.load(%)'
-    MYSQL
-    Rails.logger.info { 'load_series_csv: set all DBEDT data points for id to current = true' }
-    DbedtUpload.connection.execute <<~MYSQL % [id]
-      update data_points dp join data_sources ds on ds.id = dp.data_source_id
-      set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d)'
-    MYSQL
-  end
-=end
   def DbedtUpload.load(series_id)
     raise "You cannot load individual series that way (#{series_id})"
   end
