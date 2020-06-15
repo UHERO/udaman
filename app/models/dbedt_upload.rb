@@ -24,6 +24,11 @@ class DbedtUpload < ApplicationRecord
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DBEDT upload object save failed'
+
+      Rails.logger.info { "DbedtUpload id=#{id} Start deleting universe DBEDT" }
+      DbedtUpload.delete_universe_dbedt
+      Rails.logger.info { "DbedtUpload id=#{id} DONE deleting universe DBEDT" }
+
       if cats_file
         write_file_to_disk(cats_filename, cats_file_content) or raise StandardError, 'DBEDT upload disk write failed'
         XlsCsvWorker.perform_async(id, 'cats')
@@ -50,11 +55,11 @@ class DbedtUpload < ApplicationRecord
   end
 
   def make_active_settings
-    unless DataPoint.update_public_data_points 'DBEDT'
-      Rails.logger.debug { 'FAILED to update public_data_points' }
+    unless DataPoint.update_public_data_points('DBEDT')
+      Rails.logger.warn { 'FAILED to update public_data_points' }
       return false
     end
-    Rails.logger.debug { 'DONE DataPoint.update_public_data_points' }
+    Rails.logger.info { 'DONE DataPoint.update_public_data_points' }
     self.transaction do
       DbedtUpload.update_all active: false
       self.update active: true, last_error: nil, last_error_at: nil
@@ -124,28 +129,35 @@ class DbedtUpload < ApplicationRecord
     DbedtUpload.connection.execute <<~SQL
         SET FOREIGN_KEY_CHECKS = 0;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
     DbedtUpload.connection.execute <<~SQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: data_points' }
     DbedtUpload.connection.execute <<~SQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: measurement_series' }
     DbedtUpload.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: data_list_measurements' }
     DbedtUpload.connection.execute <<~SQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: measurements' }
     DbedtUpload.connection.execute <<~SQL
       delete from measurements where universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: units' }
     DbedtUpload.connection.execute <<~SQL
       delete from units where universe = 'DBEDT' ;
     SQL
+    Rails.logger.info { 'delete_universe_dbedt: sources' }
     DbedtUpload.connection.execute <<~SQL
       delete from sources where universe = 'DBEDT' ;
     SQL
@@ -155,10 +167,7 @@ class DbedtUpload < ApplicationRecord
   end
 
   def load_csv(which)
-    if which == 'cats'
-      return load_cats_csv
-    end
-    load_series_csv
+    which == 'cats' ? load_cats_csv : load_series_csv
   end
 
   def load_cats_csv
@@ -249,14 +258,6 @@ class DbedtUpload < ApplicationRecord
       return false
     end
 
-    ######################## WHY DID WE NEED THIS ?????????????????????????
-    ## if data_sources exist => set their current: true
-    #if DataSource.where("eval LIKE 'DbedtUpload.load(#{id},%)'").count > 0
-    #  Rails.logger.debug { 'DBEDT data already loaded' }
-    #  set_this_load_dp_as_current
-    #  return true
-    #end
-
     Rails.logger.debug { 'loading DBEDT data' }
     current_series = nil
     current_data_source = nil
@@ -292,7 +293,16 @@ class DbedtUpload < ApplicationRecord
               source_id: source && source.id,
               decimals: row[10],
           )
-          current_data_source = current_series.data_sources.first
+          current_data_source =  ## wrap the following as a DataSource.get_or_new_dbedt() method, similar to Geos
+              DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
+              DataSource.create(
+                  universe: 'DBEDT',
+                  eval: 'DbedtUpload.load(%d)' % current_series.id,
+                  description: 'Dummy loader for %s' % current_series.name,
+                  series_id: current_series.id,
+                  reload_nightly: false,
+                  last_run: Time.now
+              )
         else
           current_series = Series.create_new(
               universe: 'DBEDT',
@@ -315,10 +325,8 @@ class DbedtUpload < ApplicationRecord
               last_run: Time.now
           )
         end
-        if current_measurement.series.where(id: current_series.id).empty?
-          current_measurement.series << current_series
-          Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
-        end
+        current_measurement.series << current_series
+        ##Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
         ## don't need this, eh?  ## current_data_source.update last_run_in_seconds: Time.now.to_i
       end
       data_points.push({xs_id: current_series.xseries_id,
@@ -331,30 +339,16 @@ class DbedtUpload < ApplicationRecord
       data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact
                      .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
-                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, false, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
+                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                      .join(',')
         DbedtUpload.connection.execute <<~MYSQL
           INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
         MYSQL
       end
     end
-    set_this_load_dp_as_current
     success = run_active_settings ? make_active_settings : true
     Rails.logger.info { 'done load_series_csv' }
     success
-  end
-
-  def set_this_load_dp_as_current
-    Rails.logger.info { 'load_series_csv: set all DBEDT data points to current = false' }
-    DbedtUpload.connection.execute <<~MYSQL
-      update data_points dp join data_sources ds on ds.id = dp.data_source_id
-      set dp.current = false where ds.eval LIKE 'DbedtUpload.load(%)'
-    MYSQL
-    Rails.logger.info { 'load_series_csv: set all DBEDT data points for id to current = true' }
-    DbedtUpload.connection.execute <<~MYSQL % [id]
-      update data_points dp join data_sources ds on ds.id = dp.data_source_id
-      set dp.current = true where ds.eval LIKE 'DbedtUpload.load(%d,%%)'
-    MYSQL
   end
 
   def DbedtUpload.load(series_id)

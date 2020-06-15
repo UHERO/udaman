@@ -32,11 +32,6 @@ class XlsCsvWorker
       if other_worker && !system("rsync -t #{csv_path} #{other_worker + ':' + dbu.absolute_path}")
         raise "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{other_worker} (#{$?})"
       end
-      if which == 'cats'
-        Rails.logger.info { "DbedtUpload id=#{dbu_id} Start deleting universe DBEDT" }
-        DbedtUpload.delete_universe_dbedt
-        Rails.logger.info { "DbedtUpload id=#{dbu_id} DONE deleting universe DBEDT" }
-      end
       Rails.logger.debug { "#{which}: before load_csv" }
       dbu.load_csv(which)
       dbu.reload ## to get updated other_proc_status
