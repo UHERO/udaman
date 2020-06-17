@@ -107,7 +107,7 @@ class DataHtmlParser
     query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
-    @doc = self.download(verify: false)
+    @doc = self.download(verifyssl: false)
     response = JSON.parse self.content
     raise  'Clustermapping API: unknown failure' unless response
     new_data = {}
@@ -247,7 +247,7 @@ class DataHtmlParser
     true
   end
 
-  def download(verify: true)
+  def download(verifyssl: true)
     require 'uri'
     require 'net/http'
     require 'timeout'
@@ -256,7 +256,7 @@ class DataHtmlParser
 
     http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = url.scheme == 'https'
-    unless verify
+    unless verifyssl
       Rails.logger.warn { "Not verifying SSL certs for #{url}" }
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
