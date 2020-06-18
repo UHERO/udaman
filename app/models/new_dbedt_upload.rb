@@ -11,14 +11,14 @@ class NewDbedtUpload < ApplicationRecord
     return false unless series_file
     series_file_content = series_file.read
     series_file_ext = series_file.original_filename.split('.')[-1]
-    self.filename = DvwUpload.make_filename(now, 'series', series_file_ext)
+    self.filename = NewDbedtUpload.make_filename(now, 'series', series_file_ext)
     self.set_status('series', :processing)
 
     self.upload_at = Time.now
     begin
       self.save or raise StandardError, 'DVW upload object save failed'
       write_file_to_disk(filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
-      DvwWorker.perform_async(id, do_csv_proc: true)
+      DbedtWorker.perform_async(id, do_csv_proc: true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
       return false
@@ -31,14 +31,14 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def make_active
-    DvwUpload.update_all active: false
-    DvwWorker.perform_async(self.id)
+    NewDbedtUpload.update_all active: false
+    DbedtWorker.perform_async(self.id)
     self.update series_status: :processing
   end
 
   def make_active_settings
     self.transaction do
-      DvwUpload.update_all active: false
+      NewDbedtUpload.update_all active: false
       self.update active: true, last_error: nil, last_error_at: nil
     end
   end
@@ -82,54 +82,51 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def full_load
-    mylogger :info, 'BEGIN full load'
-    DvwUpload.establish_connection :dbedt_visitor
-
-    begin
-      delete_universe_dvw
-      mylogger :info, 'DONE deleting the universe'
-
-      load_meta_csv('group')
-      mylogger :debug, 'DONE load groups'
-      load_meta_csv('market')
-      mylogger :debug, 'DONE load markets'
-      load_meta_csv('destination')
-      mylogger :debug, 'DONE load destinations'
-      load_meta_csv('category')
-      mylogger :debug, 'DONE load categories'
-      load_meta_csv('indicator')
-      mylogger :debug, 'DONE load indicators'
-
-      total_loaded = load_series_csv
-      mylogger :debug, 'DONE load series'
-      load_data_postproc
-      mylogger :debug, 'DONE postproc'
-    ensure
-      DvwUpload.establish_connection Rails.env.to_sym  ## go back to Rails' normal db
-    end
-    make_active_settings
-    mylogger :debug, 'DONE make active'
-    mylogger :info, 'DONE full load'
-    total_loaded
+    # return number of rows loaded
   end
 
-  def delete_universe_dvw
-    db_execute 'set foreign_key_checks = 0;'
-    db_execute 'truncate table data_points'
-    mylogger :debug, 'DONE truncating data points'
-    db_execute 'truncate table data_toc'
-    mylogger :debug, 'DONE truncating data_toc'
-    db_execute 'truncate table indicators'
-    mylogger :debug, 'DONE truncating indicators'
-    db_execute 'truncate table categories'
-    mylogger :debug, 'DONE truncating categories'
-    db_execute 'truncate table destinations'
-    mylogger :debug, 'DONE truncating destinations'
-    db_execute 'truncate table markets'
-    mylogger :debug, 'DONE truncating markets'
-    db_execute 'truncate table groups'
-    mylogger :debug, 'DONE truncating groups'
-    db_execute 'set foreign_key_checks = 1;'
+  def NewDbedtUpload.delete_universe_dbedt
+    ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
+    ## Geographies also not deleted, but handled in hardcoded fashion.
+    ## Categories and DataLists deleted in Rails code.
+    NewDbedtUpload.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 0;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete p
+      from public_data_points p join series s on s.id = p.series_id
+      where s.universe = 'DBEDT' ;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: data_points' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete d
+      from data_points d join series s on s.xseries_id = d.xseries_id
+      where s.universe = 'DBEDT' ;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: measurement_series' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: data_list_measurements' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: measurements' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete from measurements where universe = 'DBEDT' ;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: units' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete from units where universe = 'DBEDT' ;
+    SQL
+    Rails.logger.info { 'delete_universe_dbedt: sources' }
+    NewDbedtUpload.connection.execute <<~SQL
+      delete from sources where universe = 'DBEDT' ;
+    SQL
+    NewDbedtUpload.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 1;
+    SQL
   end
 
   def load_meta_csv(dimension)
