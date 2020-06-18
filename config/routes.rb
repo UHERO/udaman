@@ -125,10 +125,6 @@ Rails.application.routes.draw do
   
   get 'mapping' => 'dashboards#mapping'
 
-  get 'listseries/search' => 'listseries#search'
-  get 'listseries/re' =>'listseries#redir'
-  get 'listseries/:name' => 'listseries#get'
-  
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
 
