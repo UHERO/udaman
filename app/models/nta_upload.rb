@@ -325,8 +325,7 @@ class NtaUpload < ApplicationRecord
   end
 
   def NtaUpload.load(id, series_id)
-    du = NtaUpload.find(id) || raise("No NtaUpload found with id=#{id}")
-    du.full_load
+    raise "You cannot load individual series that way (#{series_id})"
   end
 
   def NtaUpload.average(id, group)
