@@ -9,12 +9,12 @@ class DbedtWorker
     @logprefix = self.class
   end
 
-  def perform(dbu_id, do_csv_proc: false)
-    mylogger :info, "Entering perform async: id=#{dbu_id}"
+  def perform(id, do_csv_proc: false)
+    mylogger :info, "Entering perform async: id=#{id}"
     upload = nil
     begin
-      upload = NewDbedtUpload.find(dbu_id) || raise("No NewDbedtUpload found with id=#{dbu_id}")
-      upload.worker_tasks(do_csv_proc)
+      upload = NewDbedtUpload.find(id) || raise("No #{self.class} found with id=#{id}")
+      upload.worker_tasks(do_csv_proc: do_csv_proc)
     rescue => error
       mylogger :error, error.message
       mylogger :error, error.backtrace

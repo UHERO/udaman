@@ -5,8 +5,8 @@ class NewDbedtUploadsController < ApplicationController
   before_action :set_dvw_upload, only: [:show, :status, :active_status, :make_active, :destroy]
 
   def index
-    @new_dvw_upload = DvwUpload.new
-    @dvw_uploads = DvwUpload.all.order(upload_at: :desc)
+    @new_dvw_upload = NewDbedtUpload.new
+    @dvw_uploads = NewDbedtUpload.all.order(upload_at: :desc)
   end
 
   def show
@@ -17,26 +17,26 @@ class NewDbedtUploadsController < ApplicationController
   end
 
   def create
-    @dvw_upload = DvwUpload.new(dvw_upload_params)
+    @dbedt_upload = NewDbedtUpload.new(dbedt_upload_params)
 
-    unless @dvw_upload.store_upload_files(dvw_upload_params[:filename])
+    unless @dbedt_upload.store_upload_files(dbedt_upload_params[:filename])
       redirect_to action: :index
       return
     end
-    redirect_to({ action: :index }, notice: 'DVW upload was successfully stored.')
+    redirect_to({ action: :index }, notice: 'DBEDT upload was successfully stored.')
   end
 
   def make_active
-    @dvw_upload.make_active
+    @dbedt_upload.make_active
     redirect_to action: :index
   end
 
   def active_status
-    render plain: @dvw_upload.active, status: 200, content_type: 'text/plain'
+    render plain: @dbedt_upload.active, status: 200, content_type: 'text/plain'
   end
 
   def status
-    render plain: @dvw_upload.get_status(params[:which]), status: 200, content_type: 'text/plain'
+    render plain: @dbedt_upload.get_status(params[:which]), status: 200, content_type: 'text/plain'
   end
 
   def update
@@ -50,12 +50,12 @@ class NewDbedtUploadsController < ApplicationController
 private
 
     # Use callbacks to share common setup or constraints between actions.
-    def set_dvw_upload
-      @dvw_upload = DvwUpload.find params[:id]
+    def set_dbedt_upload
+      @dbedt_upload = NewDbedtUpload.find params[:id]
     end
 
     # Only allow a trusted parameter "white list" through.
-    def dvw_upload_params
-      params.require(:dvw_upload).permit(:filetype, :filename)
+    def dbedt_upload_params
+      params.require(:new_dbedt_upload).permit(:filetype, :filename)
     end
 end

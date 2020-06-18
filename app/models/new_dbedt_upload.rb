@@ -16,8 +16,8 @@ class NewDbedtUpload < ApplicationRecord
 
     self.upload_at = Time.now
     begin
-      self.save or raise StandardError, 'DVW upload object save failed'
-      write_file_to_disk(filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
+      self.save or raise 'DVW upload object save failed'
+      write_file_to_disk(filename, series_file_content) or raise 'DVW upload disk write failed'
       DbedtWorker.perform_async(id, do_csv_proc: true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
@@ -53,9 +53,9 @@ class NewDbedtUpload < ApplicationRecord
 
   def set_status(which, status)
     if which == 'cats'
-      self.update_attributes(:cats_status => status)
+      self.update_attributes(cats_status: status)
     else
-      self.update_attributes(:series_status => status)
+      self.update_attributes(series_status: status)
     end
   end
 
@@ -251,17 +251,9 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def load_data_postproc
-    ## generate the data table of contents
-    db_execute <<~MYSQL
-      insert into data_toc (module, group_id, market_id, destination_id, category_id, indicator_id, frequency, `count`)
-      select distinct module, group_id, market_id, destination_id, category_id, indicator_id, frequency, count(*)
-      from data_points
-      group by 1, 2, 3, 4, 5, 6, 7;
-    MYSQL
-    mylogger :debug, 'DONE generate data toc'
   end
 
-  def worker_tasks(do_csv_proc = false)
+  def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
     total = full_load
@@ -270,6 +262,7 @@ class NewDbedtUpload < ApplicationRecord
   end
 
 private
+
   def csv_extract
     xls_path = absolute_path('series')
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
@@ -301,7 +294,7 @@ private
     File.join(parts)
   end
 
-  def DvwUpload.make_filename(time, type, ext)
+  def NewDbedtUpload.make_filename(time, type, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
     ext = ext.length > 4 ? '' : '.' + ext
     time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
@@ -346,17 +339,17 @@ private
   def delete_data_and_data_sources
     db_execute <<~MYSQL
       DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
+      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NewDbedtUpload.load(%)');
     MYSQL
   end
 
   def db_execute(query, values = [])
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+    stmt = NewDbedtUpload.connection.raw_connection.prepare(query)
     stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
   def db_execute_set(query, set)
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+    stmt = NewDbedtUpload.connection.raw_connection.prepare(query)
     set.each {|values| stmt.execute(*values) }
   end
 
@@ -383,6 +376,6 @@ private
   end
 
   def mylogger(level, message)
-    Rails.logger.send(level) { "#{Time.now} DvwUpload id=#{self.id}: #{message}" }
+    Rails.logger.send(level) { "#{Time.now} NewDbedtUpload id=#{self.id}: #{message}" }
   end
 end
