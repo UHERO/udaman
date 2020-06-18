@@ -4,8 +4,7 @@ class SeriesController < ApplicationController
 
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
-                                    :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
+                                    :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -210,19 +209,6 @@ class SeriesController < ApplicationController
                           .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
   end
 
-  def comparison_graph
-    @comp = @series.aremos_data_side_by_side
-  end
-
-  def outlier_graph
-    @comp = @series.ma_data_side_by_side
-    #residuals is actually whole range of values.
-    residuals = @comp.map { |_, ma_hash| ma_hash[:udaman] }
-    residuals.reject!{|a| a.nil?}
-    average = residuals.inject{ |sum, el| sum + el }.to_f / residuals.count
-    @std_dev = Math.sqrt((residuals.inject(0){ | sum, x | sum + (x - average) ** 2 }) / (residuals.count - 1))
-  end
-  
   def all_tsd_chart
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
