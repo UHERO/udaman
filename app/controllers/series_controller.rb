@@ -4,7 +4,7 @@ class SeriesController < ApplicationController
 
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
+                                    :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -243,16 +243,6 @@ class SeriesController < ApplicationController
   def analyze
   end
   
-  def blog_graph
-    @start_date = params[:start_date]
-    @end_date = params[:end_date]
-    chart_to_make = params[:create_post]
-    unless chart_to_make.nil?
-      @link = chart_to_make == 'line' ? @series.create_blog_post(nil, @start_date, @end_date) : @series.create_blog_post(chart_to_make, @start_date, @end_date)
-    end
-    @chart_made = chart_to_make
-  end
-
   def render_data_points
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
