@@ -3,12 +3,14 @@ module HelperUtilities
   ## e.g. first_month_of_quarter(3) => 7
   def first_month_of_quarter(q)
     qnum = q.to_s.gsub(/\D/,'').to_i  ## allow for caller to pass things like "Q2"
+    raise "first_month_of_quarter: Invalid quarter number in #{q}" unless [1,2,3,4].include? qnum
     (qnum - 1) * 3 + 1
   end
 
   ## Put in month number, get out quarter number
   ## e.g. quarter_by_month(11) => 4
   def quarter_by_month(mon)
+    raise "quarter_by_month: Invalid month number #{mon}" unless 0 < mon.to_i && mon.to_i < 13
     (mon.to_i - 1) / 3 + 1
   end
 

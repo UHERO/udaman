@@ -2,7 +2,6 @@ Rails.application.routes.draw do
 # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
   resources :units
   resources :feature_toggles
-  resources :user_feedbacks
   resources :source_details
   resources :tsd_files
   resources :forecast_snapshots do
@@ -72,63 +71,6 @@ Rails.application.routes.draw do
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
   get 'export_tsd' => 'dashboards#export_tsd'
-  get 'rake_report' => 'dashboards#rake_report'
-  get 'construction' => 'dashboards#construction'
-  get 'construction/years/:num_years' => 'dashboards#construction'
-  get 'construction_q' => 'dashboards#construction_quarterly'
-  get 'construction_q/years/:num_years' => 'dashboards#construction_quarterly'
-  get 'hbr_mbr' => 'dashboards#hbr_mbr'
-  get 'hbr_mbr/years/:num_years' => 'dashboards#hbr_mbr'
-  get 'permits' => 'dashboards#permits'
-  get 'permits/years/:num_years' => 'dashboards#permits'
-  get 'prudential' => 'dashboards#prudential'
-  get 'prudential/years/:num_years' => 'dashboards#prudential'
-
-  get 'employment' => 'dashboards#employment'
-  get 'employment/years/:num_years' => 'dashboards#employment'
-  get 'employment_us' => 'dashboards#employment_us'
-  get 'employment_us/years/:num_years' => 'dashboards#employment_us'
-  get 'employment_hon' => 'dashboards#employment_hon'
-  get 'employment_hon/years/:num_years' => 'dashboards#employment_hon'
-  get 'employment_mau' => 'dashboards#employment_mau'
-  get 'employment_mau/years/:num_years' => 'dashboards#employment_mau'
-  get 'employment_haw' => 'dashboards#employment_haw'
-  get 'employment_haw/years/:num_years' => 'dashboards#employment_haw'
-  get 'employment_kau' => 'dashboards#employment_kau'
-  get 'employment_kau/years/:num_years' => 'dashboards#employment_kau'
-
-  get 'income' => 'dashboards#income'
-  get 'income_r' => 'dashboards#income_r'
-
-  get 'tax_m' => 'dashboards#tax_m'
-  
-
-  get 'visitor' => 'dashboards#visitor_hi_m'
-  get 'visitor_hon' => 'dashboards#visitor_hon_m'
-  get 'visitor_mau' => 'dashboards#visitor_mau_m'
-  get 'visitor_haw' => 'dashboards#visitor_haw_m'
-  get 'visitor_kau' => 'dashboards#visitor_kau_m'
-  
-  get 'visitor_q' => 'dashboards#visitor_hi_q'
-  get 'visitor_hon_q' => 'dashboards#visitor_hon_q'
-  get 'visitor_mau_q' => 'dashboards#visitor_mau_q'
-  get 'visitor_haw_q' => 'dashboards#visitor_haw_q'
-  get 'visitor_kau_q' => 'dashboards#visitor_kau_q'
-
-  get 'visitor_a' => 'dashboards#visitor_hi_a'
-  get 'visitor_hon_a' => 'dashboards#visitor_hon_a'
-  get 'visitor_mau_a' => 'dashboards#visitor_mau_a'
-  get 'visitor_haw_a' => 'dashboards#visitor_haw_a'
-  get 'visitor_kau_a' => 'dashboards#visitor_kau_a'
-
-  get 'prudential_list_q' => 'dashboards#prudential_list_q'
-  
-  get 'mapping' => 'dashboards#mapping'
-
-  get 'listseries/search' => 'listseries#search'
-  get 'listseries/re' =>'listseries#redir'
-  get 'listseries/:name' => 'listseries#get'
-  
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
 

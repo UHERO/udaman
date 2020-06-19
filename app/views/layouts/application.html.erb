@@ -21,10 +21,9 @@
     <% if current_user.internal_user? %> |
   	<a href="/series">Data Series</a> |
   	<a href="/downloads">Downloads</a> |
-    <a href="/investigate_visual">Investigation Dashboard</a> |
-    <a href="/data_lists?u=uhero">Data Lists</a> |
-    <a href="/exports">Exports</a> |
-    <a href="/help">Help</a> |
+      <a href="/exports">Exports</a> |
+      <a href="/investigate_visual">Investigation Dashboard</a> |
+      <a href="/help">Help</a> |
       <a href="#" title="Special operators:
 ^     match start of mnemonic
 ~    (tilde) match anywhere in mnemonic
@@ -44,21 +43,21 @@
   	</div>
   </div>
   <div id="chart-board-nav">
-    <a href="http://data.uhero.hawaii.edu" target="_blank">Data Portal</a>: <a href="/categories" title="Edit Data Portal Categories">Categories</a> |
-                 <a href="/geographies?u=uhero" title="Edit Data Portal Geographies">Geographies</a> |
-                 <a href="/units?u=uhero" title="Edit Data Portal Units">Units</a> |
-                 <a href="/measurements?u=uhero" title="Edit Data Portal Measurements">Measurements</a> |
-                 <a href="/sources?u=uhero" title="Edit Data Portal Sources">Sources</a> |
-                 <a href="/source_details?u=uhero" title="Edit Data Portal Source Details">Source Details</a> |
-                 <a href="/user_feedbacks" title="View Data Portal Feedback">Feedback</a>
+    <a href="http://data.uhero.hawaii.edu" target="_blank">Data Portal</a>: <a href="/categories">Categories</a> |
+                 <a href="/geographies?u=uhero">Geographies</a> |
+                 <a href="/data_lists?u=uhero">Data Lists</a> |
+                 <a href="/measurements?u=uhero">Measurements</a> |
+                 <a href="/sources?u=uhero">Sources</a> |
+                 <a href="/source_details?u=uhero">Source Details</a> |
+                 <a href="/units?u=uhero">Units</a>
   </div>
   <div id="chart-board-nav">
-  <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a> |
-  <a href="/feature_toggles" title="Edit Feature Toggles">Feature Toggles</a>
+  <a href="/forecast_snapshots">Forecast Snapshots</a> |
+  <a href="/feature_toggles">Feature Toggles</a>
   <% end %>
   <% if current_user.dev_user? || current_user.dbedt? %>
-    | <a href="/dbedt_uploads" title="DBEDT Uploads">DBEDT Legacy Uploads</a>
-    | <a href="/dvw_uploads" title="DVW Uploads">DBEDT Visitor Uploads</a>
+    | <a href="/dbedt_uploads">DBEDT Econ D/w Uploads</a>
+    | <a href="/dvw_uploads">DBEDT Tour D/w Uploads</a>
   <% end %>
   </div>
 <!--
