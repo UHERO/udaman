@@ -2,7 +2,6 @@ Rails.application.routes.draw do
 # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
   resources :units
   resources :feature_toggles
-  resources :user_feedbacks
   resources :source_details
   resources :tsd_files
   resources :forecast_snapshots do

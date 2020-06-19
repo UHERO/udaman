@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025761) do
+ActiveRecord::Schema.define(version: 220170413025762) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -436,16 +436,6 @@ ActiveRecord::Schema.define(version: 220170413025761) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["universe", "short_label", "long_label"], name: "index_units_on_universe_and_short_label_and_long_label", unique: true
-  end
-
-  create_table "user_feedbacks", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "name"
-    t.string "email"
-    t.text "feedback"
-    t.text "notes"
-    t.boolean "resolved"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
   end
 
   create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
