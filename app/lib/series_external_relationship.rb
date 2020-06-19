@@ -126,32 +126,6 @@ module SeriesExternalRelationship
     AremosSeries.get self.name
   end
   
-  def aremos_data_side_by_side
-    comparison_hash = {}
-
-    as = self.aremos_series
-    if as.nil?
-      self.data.keys.each {|date| comparison_hash[date] = {:aremos => nil, :udaman=> self.units_at(date)} }
-      return comparison_hash
-    end
-
-    all_dates = self.data.keys | as.data.keys
-    all_dates.each { |date| comparison_hash[date] = {:aremos => as.data[date.strftime('%Y-%m-%d')], :udaman => self.units_at(date)} }
-    comparison_hash
-  end
-  
-  def ma_data_side_by_side
-    comparison_hash = {}
-    ma = self.moving_average
-    all_dates = self.data.keys | ma.data.keys
-    all_dates.each do |date_string| 
-      ma_point = ma.data[date_string].nil? ? nil : ma.data[date_string] 
-      residual = ma.data[date_string].nil? ? nil : ma.data[date_string] - self.data[date_string]
-      comparison_hash[date_string] = {:ma => ma_point, :udaman => self.data[date_string], :residual => residual } 
-    end
-    comparison_hash
-  end
-  
   def data_diff(comparison_data, digits_to_round)
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     cdp = current_data_points.to_a
