@@ -119,11 +119,6 @@ class DataPoint < ApplicationRecord
     end
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def DataPoint.delete_all_created_on_DELETEME(date)
-    DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
-  end
-
   def DataPoint.update_public_all_universes
     Rails.logger.info { 'update_public_data_points: UHERO' }
     DataPoint.update_public_data_points('UHERO')
