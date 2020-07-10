@@ -9,7 +9,7 @@ class NewDbedtUpload < ApplicationRecord
     now = Time.now
     filename_content = filename.read
     filename_ext = filename.original_filename.split('.')[-1]
-    self.update_attributes(upload_at: Time.now,
+    self.assign_attributes(upload_at: Time.now,
                            status: :processing,
                            filename: make_filename(now, filename_ext))
     begin
@@ -45,44 +45,44 @@ class NewDbedtUpload < ApplicationRecord
     ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
     ## Categories and DataLists deleted in Rails code.
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
         SET FOREIGN_KEY_CHECKS = 0;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'DBEDT' ;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: data_points' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'DBEDT' ;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: measurement_series' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: data_list_measurements' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: measurements' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete from measurements where universe = 'DBEDT' ;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: units' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete from units where universe = 'DBEDT' ;
-    SQL
+    MYSQL
     Rails.logger.info { 'delete_universe_dbedt: sources' }
-    NewDbedtUpload.connection.execute <<~SQL
+    NewDbedtUpload.connection.execute <<~MYSQL
       delete from sources where universe = 'DBEDT' ;
-    SQL
-    NewDbedtUpload.connection.execute <<~SQL
+    MYSQL
+    NewDbedtUpload.connection.execute <<~MYSQL
         SET FOREIGN_KEY_CHECKS = 1;
-    SQL
+    MYSQL
   end
 
   def load_meta_csv(dimension = nil)
@@ -217,8 +217,8 @@ class NewDbedtUpload < ApplicationRecord
     csv_extract if do_csv_proc
     mylogger :debug, 'before full_load'
     total = full_load
-    mylogger :info, 'loaded and active'
     self.update(status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
+    mylogger :info, 'loaded and active'
   end
 
 private
