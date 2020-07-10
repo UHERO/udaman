@@ -1,7 +1,6 @@
 class NewDbedtUpload < ApplicationRecord
   include HelperUtilities
   require 'date'
-  before_destroy :delete_upload_file
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -15,7 +14,7 @@ class NewDbedtUpload < ApplicationRecord
                            filename: make_filename(now, filename_ext))
     begin
       self.save or raise 'DBEDT upload object save failed'
-      write_file_to_disk(filename, filename_content) or raise 'DVW upload disk write failed'
+      write_file_to_disk(filename, filename_content) or raise 'DBEDT upload disk write failed'
       DbedtWorker.perform_async(id, do_csv_proc: true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
@@ -35,22 +34,11 @@ class NewDbedtUpload < ApplicationRecord
     path(filename)
   end
 
-  def delete_upload_file
-    xlspath = absolute_path
-    if filename && File.exists?(xlspath)
-      r = delete_file_from_disk(xlspath)
-      r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
-      return (r || throw(:abort))
-    end
-    true
-  end
-
   def full_load
     delete_universe_dbedt
     load_meta_csv
-    load_series_csv
-    load_data_postproc
-    # return number of rows loaded
+    num = load_series_csv
+    load_data_postproc(num)
   end
 
   def NewDbedtUpload.delete_universe_dbedt
@@ -220,22 +208,23 @@ class NewDbedtUpload < ApplicationRecord
     dp_data_set.count
   end
 
-  def load_data_postproc
-    ## nothing to do yet
+  def load_data_postproc(num)
+    ## nothing to do yet, except return the number of loaded data points that's passed in
+    num
   end
 
   def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
-    mylogger :debug, "before full_load"
+    mylogger :debug, 'before full_load'
     total = full_load
-    mylogger :info, "loaded and active"
+    mylogger :info, 'loaded and active'
     self.update(status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
 private
 
   def csv_extract
-    xls_path = absolute_path('series')
+    xls_path = absolute_path
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
     other_worker = ENV['OTHER_WORKER']
 

@@ -264,7 +264,7 @@ class DvwUpload < ApplicationRecord
     mylogger :debug, 'DONE generate data toc'
   end
 
-  def worker_tasks(do_csv_proc = false)
+  def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
     total = full_load

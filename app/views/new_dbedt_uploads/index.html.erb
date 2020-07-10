@@ -27,11 +27,10 @@
         <td></td>
         <td><%= f.file_field :filename %></td>
         <td><div class="actions"><%= f.submit 'Upload file', id: 'upload-files-button' %></div></td>
-        <td></td>
         <td>** After upload finishes, reload page to see status message.</td>
       <% end %>
       </tr>
-   <% controls_display = now_processing?(NewDbedtUpload) ? 'none' : 'inline'
+      <% controls_display = now_processing?(NewDbedtUpload) ? 'none' : 'inline'
       @db_uploads.each do |db_upload|
         timestamp = db_upload.upload_at.strftime('%Y-%m-%d %H:%M') %>
       <tr>
@@ -47,16 +46,9 @@
           </span>
         </td>
         <td><i class="upload-status fas <%= make_fa_processing_classes(db_upload.series_status) %>" id="dbedt-series-<%= db_upload.id %>" aria-hidden="true"></i>
-            <%= link_to 'Database file', { :action => :show, id: db_upload.id } %>
+            <%= link_to 'Database file', { action: :show, id: db_upload.id } %>
         </td>
         <td><%= timestamp %></td>
-        <td>
-          <span class="controls" style="display:<%= controls_display %>;">
-          <%= unless db_upload.active
-                link_to 'Destroy', db_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
-              end %>
-          </span>
-        </td>
           <td>
             <% color = db_upload.last_error_at ? 'red' : 'green' %>
             <span style="color:<%= color %>;"><%= db_upload.last_error %></span>

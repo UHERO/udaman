@@ -14,7 +14,7 @@ class DvwWorker
     upload = nil
     begin
       upload = DvwUpload.find(dvw_id) || raise("No DvwUpload found with id=#{dvw_id}")
-      upload.worker_tasks(do_csv_proc)
+      upload.worker_tasks(do_csv_proc: do_csv_proc)
     rescue => error
       mylogger :error, error.message
       mylogger :error, error.backtrace
