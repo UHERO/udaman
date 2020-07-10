@@ -6,18 +6,17 @@ class NewDbedtUpload < ApplicationRecord
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
-  def store_upload_files(series_file)
+  def store_upload_file(filename)
+    return false unless filename
     now = Time.now
-    return false unless series_file
-    series_file_content = series_file.read
-    series_file_ext = series_file.original_filename.split('.')[-1]
-    self.filename = NewDbedtUpload.make_filename(now, 'series', series_file_ext)
-    self.set_status('series', :processing)
-
-    self.upload_at = Time.now
+    filename_content = filename.read
+    filename_ext = filename.original_filename.split('.')[-1]
+    self.update_attributes(upload_at: Time.now,
+                           status: :processing,
+                           filename: make_filename(now, filename_ext))
     begin
-      self.save or raise 'DVW upload object save failed'
-      write_file_to_disk(filename, series_file_content) or raise 'DVW upload disk write failed'
+      self.save or raise 'DBEDT upload object save failed'
+      write_file_to_disk(filename, filename_content) or raise 'DVW upload disk write failed'
       DbedtWorker.perform_async(id, do_csv_proc: true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
@@ -33,7 +32,7 @@ class NewDbedtUpload < ApplicationRecord
   def make_active
     NewDbedtUpload.update_all active: false
     DbedtWorker.perform_async(self.id)
-    self.update series_status: :processing
+    self.update status: :processing
   end
 
   def make_active_settings
@@ -43,20 +42,8 @@ class NewDbedtUpload < ApplicationRecord
     end
   end
 
-  def set_status(which, status)
-    if which == 'cats'
-      self.update_attributes(cats_status: status)
-    else
-      self.update_attributes(series_status: status)
-    end
-  end
-
   def absolute_path
     path(filename)
-  end
-
-  def retrieve_series_file
-    read_file_from_disk(filename)
   end
 
   def delete_series_file
@@ -246,7 +233,7 @@ class NewDbedtUpload < ApplicationRecord
     mylogger :debug, "before full_load"
     total = full_load
     mylogger :info, "loaded and active"
-    self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
+    self.update(status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
 private
@@ -282,10 +269,10 @@ private
     File.join(parts)
   end
 
-  def NewDbedtUpload.make_filename(time, type, ext)
+  def make_filename(time, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
-    ext = ext.length > 4 ? '' : '.' + ext
-    time.strftime('%Y-%m-%d-%H:%M') + '_' + type + ext
+    ext = ext.length > 4 ? '' : ('.' + ext)
+    time.strftime('%Y-%m-%d-%H:%M') + '_upload' + ext
   end
 
   def write_file_to_disk(name, content)
