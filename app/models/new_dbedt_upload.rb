@@ -43,14 +43,6 @@ class NewDbedtUpload < ApplicationRecord
     end
   end
 
-  def get_status(which)
-    if which == 'cats'
-      cats_status
-    else
-      series_status
-    end
-  end
-
   def set_status(which, status)
     if which == 'cats'
       self.update_attributes(cats_status: status)
@@ -59,12 +51,8 @@ class NewDbedtUpload < ApplicationRecord
     end
   end
 
-  def absolute_path(which = nil)
-    if which == 'series'
-      path(filename)
-    else
-      path
-    end
+  def absolute_path
+    path(filename)
   end
 
   def retrieve_series_file
@@ -289,7 +277,7 @@ private
   end
 
   def path(name = nil)
-    parts = [ENV['DATA_PATH'], 'dvw_files']
+    parts = [ENV['DATA_PATH'], 'dbedt_files']
     parts.push(name) unless name.blank?
     File.join(parts)
   end
@@ -297,7 +285,7 @@ private
   def NewDbedtUpload.make_filename(time, type, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
     ext = ext.length > 4 ? '' : '.' + ext
-    time.strftime('%Y-%m-%d-%H:%M:%S') + '_' + type + ext
+    time.strftime('%Y-%m-%d-%H:%M') + '_' + type + ext
   end
 
   def write_file_to_disk(name, content)

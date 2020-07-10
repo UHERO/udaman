@@ -12,13 +12,13 @@
 
   <tbody>
       <tr>
-          <%= form_for(@new_dvw_upload) do |f| %>
-              <% if @new_dvw_upload.errors.any? %>
+          <%= form_for(@new_db_upload) do |f| %>
+              <% if @new_db_upload.errors.any? %>
                   <div id="error_explanation">
-                    <h2><%= pluralize(@new_dvw_upload.errors.count, 'error') %> prohibited this DVW upload from being saved:</h2>
+                    <h2><%= pluralize(@new_db_upload.errors.count, 'error') %> prohibited this upload from being saved:</h2>
 
                     <ul>
-                      <% @new_dvw_upload.errors.full_messages.each do |message| %>
+                      <% @new_db_upload.errors.full_messages.each do |message| %>
                           <li><%= message %></li>
                       <% end %>
                     </ul>
@@ -31,40 +31,38 @@
         <td>** After upload finishes, reload page to see status message.</td>
       <% end %>
       </tr>
-   <% controls_display = now_processing?(DvwUpload) ? 'none' : 'inline'
-      @dvw_uploads.each do |dvw_upload|
-        timestamp = dvw_upload.upload_at.strftime('%Y-%m-%d %H:%M:%S') %>
+   <% controls_display = now_processing?(NewDbedtUpload) ? 'none' : 'inline'
+      @db_uploads.each do |db_upload|
+        timestamp = db_upload.upload_at.strftime('%Y-%m-%d %H:%M') %>
       <tr>
         <td align="center">
           <span class="controls" style="display:<%= controls_display %>;">
           <%=
-            if dvw_upload.active
-              "<i class='load-status fas fa-dot-circle' id='dvw-#{dvw_upload.id}' aria-hidden='true'></i>".html_safe
-            elsif dvw_upload.series_status == 'ok'
-              link_to('<i class="load-status fas fa-circle" aria-hidden="true"></i>'.html_safe, {:action => 'make_active', :id => dvw_upload}, title: 'Make active')
-            elsif dvw_upload.series_status != 'fail'
+            if db_upload.active
+              "<i class='load-status fas fa-dot-circle' id='dbedt-#{db_upload.id}' aria-hidden='true'></i>".html_safe
+            elsif db_upload.series_status != 'fail'
               '<span class="waiting"><i class="load-status fas fa-dot-circle" aria-hidden="true"></i></span>'.html_safe
             end
           %>
           </span>
         </td>
-        <td><i class="upload-status fas <%= make_fa_processing_classes(dvw_upload.series_status) %>" id="dvw-series-<%= dvw_upload.id %>" aria-hidden="true"></i>
-            <%= link_to 'Database file', {:action => 'show', :id => dvw_upload.id, :filetype => 'series'} %>
+        <td><i class="upload-status fas <%= make_fa_processing_classes(db_upload.series_status) %>" id="dbedt-series-<%= db_upload.id %>" aria-hidden="true"></i>
+            <%= link_to 'Database file', { :action => :show, id: db_upload.id } %>
         </td>
         <td><%= timestamp %></td>
         <td>
           <span class="controls" style="display:<%= controls_display %>;">
-          <%= unless dvw_upload.active
-                  link_to 'Destroy', dvw_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
+          <%= unless db_upload.active
+                link_to 'Destroy', db_upload, method: :delete, data: { confirm: "Destroy upload at #{timestamp}: Are you sure??" }
               end %>
           </span>
         </td>
           <td>
-            <% color = dvw_upload.last_error_at ? 'red' : 'green' %>
-            <span style="color:<%= color %>;"><%= dvw_upload.last_error %></span>
+            <% color = db_upload.last_error_at ? 'red' : 'green' %>
+            <span style="color:<%= color %>;"><%= db_upload.last_error %></span>
           </td>
       </tr>
     <% end %>
   </tbody>
 </table>
-* Upload and initial processing may take some time. Please be patient. You may reload the page while it is working.<br/>
+* Upload and initial processing may take some time. Please be patient. You may reload this page while it is working.<br/>
