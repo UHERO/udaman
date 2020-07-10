@@ -1060,6 +1060,9 @@ class Series < ApplicationRecord
         when /^[~]/  ## tilde
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push tane
+        when /^[:]/
+          conditions.push %q{source_link regexp ?}
+          bindvars.push tane
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
