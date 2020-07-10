@@ -2,7 +2,7 @@ class NewDbedtUploadsController < ApplicationController
   include Authorization
 
   before_action :check_dbedt_upload_authorization
-  before_action :set_db_upload, only: [:show, :status, :active_status, :make_active, :destroy]
+  before_action :set_db_upload, only: [:show, :status, :active_status]
 
   def index
     @new_db_upload = NewDbedtUpload.new
@@ -16,19 +16,17 @@ class NewDbedtUploadsController < ApplicationController
   def new
   end
 
+  def update
+  end
+
   def create
     @db_upload = NewDbedtUpload.new(db_upload_params)
 
-    unless @db_upload.store_upload_file(db_upload_params[:filename])
+    unless @db_upload.store_upload_file(@db_upload.filename)
       redirect_to action: :index
       return
     end
     redirect_to({ action: :index }, notice: 'DBEDT Upload was successfully stored.')
-  end
-
-  def make_active
-    @db_upload.make_active
-    redirect_to action: :index
   end
 
   def active_status
@@ -37,14 +35,6 @@ class NewDbedtUploadsController < ApplicationController
 
   def status
     render plain: @db_upload.status, status: 200, content_type: 'text/plain'
-  end
-
-  def update
-  end
-
-  def destroy
-    @db_upload.destroy
-    redirect_to({ action: :index }, notice: 'DBEDT Upload was successfully destroyed.')
   end
 
 private

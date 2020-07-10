@@ -25,10 +25,6 @@ class NtaUpload < ApplicationRecord
     true
   end
 
-  def set_active(status)
-    self.update! :active => status
-  end
-
   def make_active
     NtaUpload.update_all active: false
     NtaLoadWorker.perform_async(self.id)

@@ -1,8 +1,7 @@
 class NewDbedtUpload < ApplicationRecord
   include HelperUtilities
   require 'date'
-  before_destroy :delete_files_from_disk
-  before_destroy :delete_data_and_data_sources
+  before_destroy :delete_upload_file
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -25,20 +24,10 @@ class NewDbedtUpload < ApplicationRecord
     true
   end
 
-  def set_active(status)
-    self.update! active: status
-  end
-
-  def make_active
-    NewDbedtUpload.update_all active: false
-    DbedtWorker.perform_async(self.id)
-    self.update status: :processing
-  end
-
   def make_active_settings
     self.transaction do
-      NewDbedtUpload.update_all active: false
-      self.update active: true, last_error: nil, last_error_at: nil
+      NewDbedtUpload.update_all(active: false)
+      self.update_attributes(active: true, last_error: nil, last_error_at: nil)
     end
   end
 
@@ -46,10 +35,10 @@ class NewDbedtUpload < ApplicationRecord
     path(filename)
   end
 
-  def delete_series_file
-    xlspath = absolute_path('series')
+  def delete_upload_file
+    xlspath = absolute_path
     if filename && File.exists?(xlspath)
-      r = delete_file_from_disk xlspath
+      r = delete_file_from_disk(xlspath)
       r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
       return (r || throw(:abort))
     end
@@ -57,6 +46,10 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def full_load
+    delete_universe_dbedt
+    load_meta_csv
+    load_series_csv
+    load_data_postproc
     # return number of rows loaded
   end
 
@@ -104,7 +97,7 @@ class NewDbedtUpload < ApplicationRecord
     SQL
   end
 
-  def load_meta_csv(dimension)
+  def load_meta_csv(dimension = nil)
     mylogger :info, "starting load_meta_csv for #{dimension}"
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
@@ -221,11 +214,14 @@ class NewDbedtUpload < ApplicationRecord
     dp_data_set.in_groups_of(1000, false) do |dps|
       db_execute_set dp_query, dps
     end
+    ##### if load successful...
+    make_active_settings
     mylogger :info, 'done load_series_csv'
     dp_data_set.count
   end
 
   def load_data_postproc
+    ## nothing to do yet
   end
 
   def worker_tasks(do_csv_proc: false)
@@ -303,19 +299,6 @@ private
       return false
     end
     true
-  end
-
-  def delete_files_from_disk
-    delete_series_file
-  end
-
-  ### This doesn't really do what it seems to be intended for, right? Check back into it later...
-  ###
-  def delete_data_and_data_sources
-    db_execute <<~MYSQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NewDbedtUpload.load(%)');
-    MYSQL
   end
 
   def db_execute(query, values = [])

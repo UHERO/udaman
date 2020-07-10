@@ -19,7 +19,7 @@ class DbedtWorker
       mylogger :error, error.message
       mylogger :error, error.backtrace
       if upload
-        upload.update(status: :fail, last_error: error.message[0..254], last_error_at: Time.now)
+        upload.update_attributes(status: :fail, last_error: error.message[0..254], last_error_at: Time.now)
       end
     end
   end
