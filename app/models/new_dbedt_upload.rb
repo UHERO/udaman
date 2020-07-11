@@ -23,24 +23,6 @@ class NewDbedtUpload < ApplicationRecord
     true
   end
 
-  def make_active_settings
-    self.transaction do
-      NewDbedtUpload.update_all(active: false)
-      self.update_attributes(active: true, last_error: nil, last_error_at: nil)
-    end
-  end
-
-  def absolute_path
-    path(filename)
-  end
-
-  def full_load
-    delete_universe_dbedt
-    load_meta_csv
-    num = load_series_csv
-    load_data_postproc(num)
-  end
-
   def NewDbedtUpload.delete_universe_dbedt
     ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
@@ -209,8 +191,22 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def load_data_postproc(num)
-    ## nothing to do yet, except return the number of loaded data points that's passed in
+    ## nothing to do yet, except return the number of loaded data points that is passed in
     num
+  end
+
+  def make_active_settings
+    self.transaction do
+      NewDbedtUpload.update_all(active: false)
+      self.update_attributes(active: true, last_error: nil, last_error_at: nil)
+    end
+  end
+
+  def full_load
+    delete_universe_dbedt
+    load_meta_csv
+    num = load_series_csv
+    load_data_postproc(num)
   end
 
   def worker_tasks(do_csv_proc: false)
@@ -219,6 +215,10 @@ class NewDbedtUpload < ApplicationRecord
     total = full_load
     self.update(status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
     mylogger :info, 'loaded and active'
+  end
+
+  def absolute_path
+    path(filename)
   end
 
 private
@@ -233,7 +233,7 @@ private
       if other_worker.blank?
         raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
       end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{absolute_path}")
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{xls_path}")
         raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
       end
     end
@@ -243,12 +243,16 @@ private
 
     Dir.glob(File.join(csv_path, '*.csv')).each {|f| File.rename(f, f.downcase) } ## force csv filenames to lower case
 
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + csv_path}")
       raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
     end
   end
 
   def path(name = nil)
+    if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % name }
+      return
+    end
     parts = [ENV['DATA_PATH'], 'dbedt_files']
     parts.push(name) unless name.blank?
     File.join(parts)
