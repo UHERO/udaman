@@ -1,4 +1,4 @@
-class ChangeDefaultDecimalsAgain < ActiveRecord::Migration[5.2]
+class ChangeDefaultDecimalsYetAgain < ActiveRecord::Migration[5.2]
   def self.up
     change_column_default :measurements, :decimals, 1
     change_column_default :series, :decimals, 1
