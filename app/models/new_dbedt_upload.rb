@@ -67,78 +67,75 @@ class NewDbedtUpload < ApplicationRecord
     MYSQL
   end
 
-  def load_meta_csv(dimension = nil)
-    mylogger :info, "starting load_meta_csv for #{dimension}"
+  def load_meta_csv
+    mylogger :info, 'starting load_meta_csv'
     csv_dir_path = path(filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, "#{dimension}.csv")
+    csv_path = File.join(csv_dir_path, 'indicator.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
-    table = dimension.pluralize
 
-    datae = []
-    parent_set = []
-    columns = nil
-    ordering = {}
-
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
-      unless columns
-        columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
-        columns.push('level', 'order')  ## add renamed/computed columns
-        columns.delete('parent')  ## filled in by SQL at the end
-        columns[columns.index('id')] = 'handle'    ## rename "id" column as "handle" - kinda hacky
-        columns[columns.index('data')] = 'header'  ## rename "data" column as "header"
-        columns.each {|c| raise("Illegal character in #{dimension} column header: #{c}") if c =~ /\W/ }
-        next
-      end
-
+    category = nil
+    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
         val = data.blank? ? nil : data.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
-      break if row['id'].nil?  ## in case there are blank rows appended at the end
-      row['handle'] ||= row['id']  ## rename id as necessary
-      if row['parent']
-        parent_set.push [row['parent'], row['handle']]
-      end
+      # category entry
+      indicator_id = row['ind_id']
+      break if indicator_id.blank?  ## end of file
+      parent_indicator_id = row['parent_id']
+      parent_label = "DBEDT_#{parent_indicator_id}"
 
-      raise "Module not specified for ID #{row['id']}" unless row['module']
-      row['module'].strip.split(/\s*,\s*/).each do |mod|
-        ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
-        level = row["l_#{mod.downcase}"] || row['level'] || next   ## finally just skip this entry if level is not specified
-        order = row["o_#{mod.downcase}"] || incr_order(ordering[mod], level)
-
-        row_values = []
-        columns.each do |col|
-          row_values.push case col
-                          when 'module' then mod
-                          when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
-                          when 'level' then level
-                          when 'order' then order
-                          else row[col]  ## can be nil
-                          end
+      if row['unit'].blank?
+        category = Category.find_by(universe: 'DBEDT', meta: "DBEDT_#{indicator_id}")
+        if category.nil?
+          ancestry = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
+          unless parent_indicator_id.nil?
+            parent_category = Category.find_by(universe: 'DBEDT', meta: parent_label)
+            unless parent_category.nil?
+              ancestry = parent_category.ancestry + '/' + parent_category.id.to_s
+            end
+          end
+          category = Category.create(
+              meta: "DBEDT_#{indicator_id}",
+              universe: 'DBEDT',
+              name: row['indicatorfortable'],
+              ancestry: ancestry,
+              list_order: row['order']
+          )
+          Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
         end
-        datae.push row_values
+      end
+
+      # data_list_measurements entry
+      unless row['unit'].blank?
+        data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
+        if data_list.nil?
+          data_list = DataList.create(name: parent_label, universe: 'DBEDT')
+          unless category.nil?
+            category.update data_list_id: data_list.id
+          end
+        end
+        measurement = Measurement.find_by(universe: 'DBEDT', prefix: "DBEDT_#{indicator_id}")
+        if measurement.nil?
+          measurement = Measurement.create(
+              universe: 'DBEDT',
+              prefix: "DBEDT_#{indicator_id}",
+              data_portal_name: row['indicator']
+          )
+        else
+          measurement.update data_portal_name: row['indicator']
+        end
+        if data_list.measurements.where(id: measurement.id).empty?
+          data_list.measurements << measurement
+        end
+        dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
+        dlm.update(list_order: row['order'].to_i) if dlm
+        Rails.logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
       end
     end
-
-    raise 'No column headers found' if columns.nil?
-    cols_string = columns.map {|c| '`%s`' % c }.join(',')  ## wrap names in backtix
-    qmarks = (['?'] * datae[0].count).join(',')
-    insert_query = <<~MYSQL % [table, cols_string, qmarks]
-      insert into %s (%s) values (%s);
-    MYSQL
-    mylogger :debug, "doing inserts for #{dimension}"
-    db_execute_set insert_query, datae
-
-    unless parent_set.empty?
-      parent_query = <<~MYSQL % [table, table]
-        update %s t1 join %s t2 on t1.module = t2.module set t2.parent_id = t1.id where t1.handle = ? and t2.handle = ?;
-      MYSQL
-      mylogger :debug, "doing parent updates for #{dimension}"
-      db_execute_set parent_query, parent_set
-    end
-    mylogger :info, "done load_meta_csv for #{dimension}"
+    mylogger :info, 'done load_meta_csv'
     true
   end
 
