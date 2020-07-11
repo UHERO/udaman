@@ -74,7 +74,7 @@ class NewDbedtUpload < ApplicationRecord
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     category = nil
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
@@ -93,7 +93,7 @@ class NewDbedtUpload < ApplicationRecord
           ancestry = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
           unless parent_indicator_id.nil?
             parent_category = Category.find_by(universe: 'DBEDT', meta: parent_label)
-            unless parent_category.nil?
+            if parent_category
               ancestry = parent_category.ancestry + '/' + parent_category.id.to_s
             end
           end
@@ -113,8 +113,8 @@ class NewDbedtUpload < ApplicationRecord
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
           data_list = DataList.create(name: parent_label, universe: 'DBEDT')
-          unless category.nil?
-            category.update data_list_id: data_list.id
+          if category
+            category.update(data_list_id: data_list.id)
           end
         end
         measurement = Measurement.find_by(universe: 'DBEDT', prefix: "DBEDT_#{indicator_id}")
@@ -125,13 +125,13 @@ class NewDbedtUpload < ApplicationRecord
               data_portal_name: row['indicator']
           )
         else
-          measurement.update data_portal_name: row['indicator']
+          measurement.update(data_portal_name: row['indicator'])
         end
         if data_list.measurements.where(id: measurement.id).empty?
           data_list.measurements << measurement
         end
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
-        dlm.update(list_order: row['order'].to_i) if dlm
+        dlm.update(list_order: row['order']) if dlm
         Rails.logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
       end
     end
@@ -146,42 +146,15 @@ class NewDbedtUpload < ApplicationRecord
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     dp_data_set = []
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
-        row[header.strip.downcase] = data.blank? ? nil : data.strip
+        val = data.blank? ? nil : data.strip
+        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
-      next if row['value'].nil?
-      break if row['module'].nil?  ## in case there are blank rows appended at the end
-      row['date'] = make_date(row['year'].to_i, row['qm'].to_s)
-      row_values = %w{module frequency date value
-                              group module
-                              market module
-                              destination module
-                              category module
-                              indicator module}.map{|d| row[d] }
-      dp_data_set.push row_values
     end
-
-    dp_query = <<~MYSQL
-      insert into data_points
-        (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
-      select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
-        from indicators i
-          left join `groups` g on g.handle = ? and g.module = ?
-          left join markets m on m.handle = ? and m.module = ?
-          left join destinations d on d.handle = ? and d.module = ?
-          left join categories c on c.handle = ? and c.module = ?
-       where i.handle = ?
-         and i.module = ?;
-    MYSQL
-    ## This is likely to be slow... later work on a way to make it faster?
-    ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
-    dp_data_set.in_groups_of(1000, false) do |dps|
-      db_execute_set dp_query, dps
-    end
-    ##### if load successful...
+##### if load successful...
     make_active_settings
     mylogger :info, 'done load_series_csv'
     dp_data_set.count
