@@ -102,9 +102,9 @@ class NewDbedtUpload < ApplicationRecord
             ancestry = cats_ances[parent_indicator_id]
           else
             ## This else block should (almost) never be executed
-            parent_cat = Category.find_by(universe: 'DBEDT', meta: parent_label) ||
-                raise("No parent category found for #{parent_indicator_id}")
-            ancestry = cats_ances[parent_indicator_id] = '%d/%d' % [parent_cat.ancestry, parent_cat.id]
+            #parent_cat = Category.find_by(universe: 'DBEDT', meta: parent_label) ||
+             #   raise("No parent category found for #{parent_indicator_id}")
+            #ancestry = cats_ances[parent_indicator_id] = '%d/%d' % [parent_cat.ancestry, parent_cat.id]
           end
         end
         category = Category.create(
