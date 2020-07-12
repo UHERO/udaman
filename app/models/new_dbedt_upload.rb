@@ -157,7 +157,96 @@ class NewDbedtUpload < ApplicationRecord
         row[header.strip.downcase] = Integer(val) rescue Float(val) rescue val  ## convert numeric types if possible
       end
     end
-##### if load successful...
+
+    current_series = nil
+    current_data_source = nil
+    current_measurement = nil
+    data_points = []
+    Rails.logger.info { 'load_series_csv: read lines from csv file' }
+    CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+      prefix = "DBEDT_#{row[0]}"
+      region = row[3].strip
+      (geo_handle, geo_fips) = get_geo_codes(region)
+      name = Series.build_name(prefix, geo_handle, row[4])
+      if current_measurement.nil? || current_measurement.prefix != prefix
+        current_measurement =
+            Measurement.find_by(universe: 'DBEDT', prefix: prefix) ||
+                Measurement.create(universe: 'DBEDT', prefix: prefix, data_portal_name: row[1])
+      end
+
+      if current_series.nil? || current_series.name != name
+        source_str = row[9] && row[9].to_ascii.strip
+        source = (source_str.blank? || source_str.downcase == 'none') ? nil : Source.get_or_new(source_str, nil, 'DBEDT')
+        geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
+                                            { fips: geo_fips, display_name: region, display_name_short: region}).id
+        unit_str = row[8] && row[8].to_ascii.strip
+        unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
+        raise "No decimals specified for series #{name}" if row[10].blank?
+
+        current_series = Series.find_by(universe: 'DBEDT', name: name)
+        if current_series
+          current_series.update!(
+              description: row[1],
+              dataPortalName: row[1],
+              unit_id: unit && unit.id,
+              source_id: source && source.id,
+              decimals: row[10],
+              )
+          current_data_source =  ## wrap the following as a DataSource.get_or_new_dbedt() method, similar to Geos
+              DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
+                  DataSource.create(
+                      universe: 'DBEDT',
+                      eval: 'DbedtUpload.load(%d)' % current_series.id,
+                      description: 'Dummy loader for %s' % current_series.name,
+                      series_id: current_series.id,
+                      reload_nightly: false,
+                      last_run: Time.now
+                  )
+        else
+          current_series = Series.create_new(
+              universe: 'DBEDT',
+              name: name,
+              frequency: Series.frequency_from_code(row[4]),
+              geography_id: geo_id,
+              description: row[1],
+              dataPortalName: row[1],
+              unit_id: unit && unit.id,
+              source_id: source && source.id,
+              decimals: row[10],
+              units: 1
+          )
+          current_data_source = DataSource.create(
+              universe: 'DBEDT',
+              eval: 'DbedtUpload.load(%d)' % current_series.id,
+              description: 'Dummy loader for %s' % current_series.name,
+              series_id: current_series.id,
+              reload_nightly: false,
+              last_run: Time.now
+          )
+        end
+        current_measurement.series << current_series
+        ##Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
+        ## don't need this, eh?  ## current_data_source.update last_run_in_seconds: Time.now.to_i
+      end
+      data_points.push({xs_id: current_series.xseries_id,
+                        ds_id: current_data_source.id,
+                        date: get_date(row[5], row[6]),
+                        value: row[7]})
+    end
+    Rails.logger.info { 'load_series_csv: insert data points' }
+    if current_series && data_points.length > 0
+      data_points.in_groups_of(1000, false) do |dps|
+        values = dps.compact
+                     .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
+                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
+                     .join(',')
+        DbedtUpload.connection.execute <<~MYSQL
+          INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
+        MYSQL
+      end
+    end
+  #################  success = run_active_settings ? make_active_settings : true
+    Rails.logger.info { 'done load_series_csv' }
     make_active_settings
     mylogger :info, 'done load_series_csv'
     num_points
@@ -285,6 +374,17 @@ private
       year_msg = year.blank? ? ' is empty' : "=#{year}"
       raise "Bad date params: year#{year_msg}, QM='#{mq}'"
     end
+  end
+
+  def get_geo_codes(name)
+    handles = {
+        'hawaii county' => ['HAW', 15001],
+        'honolulu county' => ['HON', 15003],
+        'kauai county' => ['KAU', 15007],
+        'maui county' => ['MAU', 15009],
+        'statewide' => ['HI', 15],
+    }
+    handles[name.downcase] || raise("Unknown DBEDT geography '#{name}'")
   end
 
   def mylogger(level, message)
