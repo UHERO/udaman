@@ -26,7 +26,9 @@ class NewDbedtUpload < ApplicationRecord
   def NewDbedtUpload.delete_universe_dbedt
     ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
-    ## Categories and DataLists deleted in Rails code.
+    Category.where('universe = "DBEDT" and ancestry is not null').delete_all
+    DataList.where(universe: 'DBEDT').destroy_all
+
     NewDbedtUpload.connection.execute <<~MYSQL
         SET FOREIGN_KEY_CHECKS = 0;
     MYSQL
@@ -75,6 +77,9 @@ class NewDbedtUpload < ApplicationRecord
 
     category = nil
     allmeta = {}
+    cats_ances = {}
+    root_cat = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
+
     CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
@@ -91,24 +96,26 @@ class NewDbedtUpload < ApplicationRecord
 
       # category entry
       if row['unit'].blank?
-        category = Category.find_by(universe: 'DBEDT', meta: "DBEDT_#{indicator_id}")
-        if category.nil?
-          ancestry = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
-          unless parent_indicator_id.nil?
-            parent_category = Category.find_by(universe: 'DBEDT', meta: parent_label)
-            if parent_category
-              ancestry = parent_category.ancestry + '/' + parent_category.id.to_s
-            end
+        ancestry = root_cat
+        if parent_indicator_id
+          if cats_ances[parent_indicator_id]
+            ancestry = cats_ances[parent_indicator_id]
+          else
+            ## This else block should (almost) never be executed
+            parent_cat = Category.find_by(universe: 'DBEDT', meta: parent_label) ||
+                raise("No parent category found for #{parent_indicator_id}")
+            ancestry = cats_ances[parent_indicator_id] = '%d/%d' % [parent_cat.ancestry, parent_cat.id]
           end
-          category = Category.create(
-              meta: "DBEDT_#{indicator_id}",
-              universe: 'DBEDT',
-              name: row['indicatorfortable'],
-              ancestry: ancestry,
-              list_order: row['order']
-          )
-          Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
         end
+        category = Category.create(
+            meta: "DBEDT_#{indicator_id}",
+            universe: 'DBEDT',
+            name: row['indicatorfortable'],
+            ancestry: ancestry,
+            list_order: row['order']
+        )
+        cats_ances[indicator_id] = '%d/%d' % [ancestry, category.id]
+        Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
       end
 
       # data_list_measurements entry
@@ -285,15 +292,6 @@ private
       year_msg = year.blank? ? ' is empty' : "=#{year}"
       raise "Bad date params: year#{year_msg}, QM='#{mq}'"
     end
-  end
-
-  def incr_order(ohash, level)
-    ## all lower levels get reset each time we increment a level
-    (level+1..).each do |n|
-      break if ohash[n].nil?
-      ohash[n] = 0
-    end
-    ohash[level] += 1
   end
 
   def mylogger(level, message)
