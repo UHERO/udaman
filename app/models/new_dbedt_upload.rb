@@ -115,31 +115,24 @@ class NewDbedtUpload < ApplicationRecord
             list_order: row['order']
         )
         cats_ances[indicator_id] = '%d/%d' % [ancestry, category.id]
-        Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta} in universe #{category.universe}" }
+        Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}" }
       end
 
       # data_list_measurements entry
       unless row['unit'].blank?
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
-          data_list = DataList.create(name: parent_label, universe: 'DBEDT')
+          data_list = DataList.create(universe: 'DBEDT', name: parent_label)
           if category
             category.update(data_list_id: data_list.id)
           end
         end
-        measurement = Measurement.find_by(universe: 'DBEDT', prefix: "DBEDT_#{indicator_id}")
-        if measurement.nil?
-          measurement = Measurement.create(
-              universe: 'DBEDT',
-              prefix: "DBEDT_#{indicator_id}",
-              data_portal_name: row['indicator']
-          )
-        else
-          measurement.update(data_portal_name: row['indicator'])
-        end
-        if data_list.measurements.where(id: measurement.id).empty?
-          data_list.measurements << measurement
-        end
+        measurement = Measurement.create(
+            universe: 'DBEDT',
+            prefix: "DBEDT_#{indicator_id}",
+            data_portal_name: row['indicator']
+        )
+        data_list.measurements << measurement
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
         dlm.update(list_order: row['order']) if dlm
         Rails.logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
