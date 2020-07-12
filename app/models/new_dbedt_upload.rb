@@ -74,6 +74,7 @@ class NewDbedtUpload < ApplicationRecord
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     category = nil
+    allmeta = {}
     CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
@@ -81,12 +82,14 @@ class NewDbedtUpload < ApplicationRecord
         val = data.blank? ? nil : data.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
-      # category entry
+
       indicator_id = row['ind_id']
       break if indicator_id.blank?  ## end of file
+      allmeta[indicator_id] = row   ## store a copy for later use by load_series_csv
       parent_indicator_id = row['parent_id']
       parent_label = "DBEDT_#{parent_indicator_id}"
 
+      # category entry
       if row['unit'].blank?
         category = Category.find_by(universe: 'DBEDT', meta: "DBEDT_#{indicator_id}")
         if category.nil?
@@ -136,33 +139,32 @@ class NewDbedtUpload < ApplicationRecord
       end
     end
     mylogger :info, 'done load_meta_csv'
-    true
+    allmeta
   end
 
-  def load_series_csv
+  def load_series_csv(metadata)
     mylogger :info, 'starting load_series_csv'
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, 'data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
-    dp_data_set = []
+    num_points = 0
     CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
         val = data.blank? ? nil : data.strip
-        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
+        row[header.strip.downcase] = Integer(val) rescue Float(val) rescue val  ## convert numeric types if possible
       end
     end
 ##### if load successful...
     make_active_settings
     mylogger :info, 'done load_series_csv'
-    dp_data_set.count
+    num_points
   end
 
   def load_data_postproc(num)
-    ## nothing to do yet, except return the number of loaded data points that is passed in
-    num
+    num  ## nothing to do (yet), except return the number of loaded data points that is passed in
   end
 
   def make_active_settings
@@ -174,16 +176,14 @@ class NewDbedtUpload < ApplicationRecord
 
   def full_load
     delete_universe_dbedt
-    load_meta_csv
-    num = load_series_csv
-    load_data_postproc(num)
+    load_data_postproc( load_series_csv( load_meta_csv ) )
   end
 
   def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
     mylogger :debug, 'before full_load'
     total = full_load
-    self.update(status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
+    self.update(status: :ok, last_error_at: nil, last_error: "#{total} data points loaded")
     mylogger :info, 'loaded and active'
   end
 
@@ -280,7 +280,7 @@ private
       if mq =~ /([MQ])(\d+)/i
         month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
       end
-      '%d-%02d-01' % [year, month]
+      Date.new(year, month).to_s
     rescue
       year_msg = year.blank? ? ' is empty' : "=#{year}"
       raise "Bad date params: year#{year_msg}, QM='#{mq}'"
