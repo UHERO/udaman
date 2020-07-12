@@ -369,7 +369,7 @@ private
       if mq =~ /([MQ])(\d+)/i
         month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
       end
-      '%d-%02d-01' % [year, month]
+      Date.new(year, month).to_s
     rescue
       year_msg = year.blank? ? ' is empty' : "=#{year}"
       raise "Bad date params: year#{year_msg}, QM='#{mq}'"
