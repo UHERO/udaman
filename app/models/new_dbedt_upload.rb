@@ -34,9 +34,9 @@ class NewDbedtUpload < ApplicationRecord
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
     NewDbedtUpload.connection.execute <<~MYSQL
-      delete p
-      from public_data_points p join series s on s.id = p.series_id
-      where s.universe = 'DBEDT' ;
+    delete p
+    from public_data_points p join series s on s.id = p.series_id
+    where s.universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: data_points' }
     NewDbedtUpload.connection.execute <<~MYSQL
@@ -118,7 +118,7 @@ class NewDbedtUpload < ApplicationRecord
         Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}" }
       end
 
-      # data_list_measurements entry
+      # data_list, measurements entry
       unless row['unit'].blank?
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
