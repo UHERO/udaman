@@ -183,70 +183,62 @@ class NewDbedtUpload < ApplicationRecord
       end
 
       if current_series.nil? || current_series.name != name
-        source = nil
-        if ind_meta['source'].downcase != 'none'
-          source = allsources[ind_meta['source']]
-          unless source
-            source = allsources[ind_meta['source']] = Source.get_or_new(ind_meta['source'], nil, 'DBEDT').id
+        source_str = ind_meta['source']
+        source_id = nil
+        if source_str.downcase != 'none'
+          source_id = allsources[source_str]
+          unless source_id
+            source_id = allsources[source_str] = Source.get_or_new(source_str, nil, 'DBEDT').id
           end
         end
-        unit = nil
-        if ind_meta['unit'].downcase != 'none'
-          unit = allunits[ind_meta['unit']]
-          unless unit
-            unit = allunits[ind_meta['unit']] = Unit.get_or_new(ind_meta['unit'], 'DBEDT').id
+        unit_str = ind_meta['unit']
+        unit_id = nil
+        if unit_str.downcase != 'none'
+          unit_id = allunits[unit_str]
+          unless unit_id
+            unit_id = allunits[unit_str] = Unit.get_or_new(unit_str, 'DBEDT').id
           end
         end
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
+        current_data_source = nil
         if current_series
           current_series.update!(
             description: ind_meta['indicatorfortable'],
             dataPortalName: ind_meta['indicatorfortable'],
-            unit_id: unit,
-            source_id: source,
+            unit_id: unit_id,
+            source_id: source_id,
             decimals: ind_meta['decimal'].to_i,
           )
-          current_data_source =
-            DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
-                DataSource.create(
-                  universe: 'DBEDT',
-                  eval: 'DbedtUpload.load(%d)' % current_series.id,
-                  description: 'Dummy loader for %s' % current_series.name,
-                  series_id: current_series.id,
-                  reload_nightly: false,
-                  last_run: Time.now
-                )
+          current_data_source = DataSource.find_by(universe: 'DBEDT', series_id: current_series.id)
         else
           current_series = Series.create_new(
             universe: 'DBEDT',
             name: name,
-            frequency: Series.frequency_from_code(row[4]),
+            frequency: Series.frequency_from_code(row['frequency']),
             geography_id: geo_id,
             description: ind_meta['indicatorfortable'],
             dataPortalName: ind_meta['indicatorfortable'],
-            unit_id: unit,
-            source_id: source,
+            unit_id: unit_id,
+            source_id: source_id,
             decimals: ind_meta['decimal'].to_i,
             units: 1
           )
-          current_data_source = DataSource.create(
+        end
+        current_data_source ||= DataSource.create(
             universe: 'DBEDT',
             eval: 'DbedtUpload.load(%d)' % current_series.id,
             description: 'Dummy loader for %s' % current_series.name,
             series_id: current_series.id,
             reload_nightly: false,
             last_run: Time.now
-          )
-        end
+        )
         current_measurement.series << current_series
-        ##Rails.logger.debug { "added series #{current_series.name} to measurement #{current_measurement.prefix}" }
-        ## don't need this, eh?  ## current_data_source.update last_run_in_seconds: Time.now.to_i
       end
-      data_points.push({xs_id: current_series.xseries_id,
-                        ds_id: current_data_source.id,
-                        date: get_date(row[5], row[6]),
-                        value: row[7]})
+      data_points.push({ xs_id: current_series.xseries_id,
+                         ds_id: current_data_source.id,
+                         date: make_date(row['year'], row['qm']),
+                         value: row['value'] })
     end
     Rails.logger.info { 'load_series_csv: insert data points' }
     if current_series && data_points.length > 0
