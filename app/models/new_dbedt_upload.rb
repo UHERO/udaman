@@ -201,42 +201,42 @@ class NewDbedtUpload < ApplicationRecord
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
           current_series.update!(
-              description: row[1],
-              dataPortalName: row[1],
-              unit_id: unit && unit.id,
-              source_id: source && source.id,
-              decimals: ind_meta['decimal'].to_i,
+            description: row[1],
+            dataPortalName: row[1],
+            unit_id: unit && unit.id,
+            source_id: source && source.id,
+            decimals: ind_meta['decimal'].to_i,
           )
-          current_data_source =  ## wrap the following as a DataSource.get_or_new_dbedt() method, similar to Geos
-              DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
-                  DataSource.create(
-                      universe: 'DBEDT',
-                      eval: 'DbedtUpload.load(%d)' % current_series.id,
-                      description: 'Dummy loader for %s' % current_series.name,
-                      series_id: current_series.id,
-                      reload_nightly: false,
-                      last_run: Time.now
-                  )
+          current_data_source =
+            DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
+                DataSource.create(
+                  universe: 'DBEDT',
+                  eval: 'DbedtUpload.load(%d)' % current_series.id,
+                  description: 'Dummy loader for %s' % current_series.name,
+                  series_id: current_series.id,
+                  reload_nightly: false,
+                  last_run: Time.now
+                )
         else
           current_series = Series.create_new(
-              universe: 'DBEDT',
-              name: name,
-              frequency: Series.frequency_from_code(row[4]),
-              geography_id: geo_id,
-              description: row[1],
-              dataPortalName: row[1],
-              unit_id: unit && unit.id,
-              source_id: source && source.id,
-              decimals: ind_meta['decimal'].to_i,
-              units: 1
+            universe: 'DBEDT',
+            name: name,
+            frequency: Series.frequency_from_code(row[4]),
+            geography_id: geo_id,
+            description: row[1],
+            dataPortalName: row[1],
+            unit_id: unit && unit.id,
+            source_id: source && source.id,
+            decimals: ind_meta['decimal'].to_i,
+            units: 1
           )
           current_data_source = DataSource.create(
-              universe: 'DBEDT',
-              eval: 'DbedtUpload.load(%d)' % current_series.id,
-              description: 'Dummy loader for %s' % current_series.name,
-              series_id: current_series.id,
-              reload_nightly: false,
-              last_run: Time.now
+            universe: 'DBEDT',
+            eval: 'DbedtUpload.load(%d)' % current_series.id,
+            description: 'Dummy loader for %s' % current_series.name,
+            series_id: current_series.id,
+            reload_nightly: false,
+            last_run: Time.now
           )
         end
         current_measurement.series << current_series
