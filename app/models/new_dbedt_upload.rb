@@ -187,24 +187,24 @@ class NewDbedtUpload < ApplicationRecord
         if ind_meta['source'].downcase != 'none'
           source = allsources[ind_meta['source']]
           unless source
-            source = allsources[ind_meta['source']] = Source.get_or_new(ind_meta['source'], nil, 'DBEDT')
+            source = allsources[ind_meta['source']] = Source.get_or_new(ind_meta['source'], nil, 'DBEDT').id
           end
         end
         unit = nil
         if ind_meta['unit'].downcase != 'none'
           unit = allunits[ind_meta['unit']]
           unless unit
-            unit = allunits[ind_meta['unit']] = Unit.get_or_new(ind_meta['unit'], 'DBEDT')
+            unit = allunits[ind_meta['unit']] = Unit.get_or_new(ind_meta['unit'], 'DBEDT').id
           end
         end
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
           current_series.update!(
-            description: row[1],
-            dataPortalName: row[1],
-            unit_id: unit && unit.id,
-            source_id: source && source.id,
+            description: ind_meta['indicatorfortable'],
+            dataPortalName: ind_meta['indicatorfortable'],
+            unit_id: unit,
+            source_id: source,
             decimals: ind_meta['decimal'].to_i,
           )
           current_data_source =
@@ -223,10 +223,10 @@ class NewDbedtUpload < ApplicationRecord
             name: name,
             frequency: Series.frequency_from_code(row[4]),
             geography_id: geo_id,
-            description: row[1],
-            dataPortalName: row[1],
-            unit_id: unit && unit.id,
-            source_id: source && source.id,
+            description: ind_meta['indicatorfortable'],
+            dataPortalName: ind_meta['indicatorfortable'],
+            unit_id: unit,
+            source_id: source,
             decimals: ind_meta['decimal'].to_i,
             units: 1
           )
