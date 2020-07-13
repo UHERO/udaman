@@ -242,13 +242,14 @@ class NewDbedtUpload < ApplicationRecord
     end
     Rails.logger.info { 'load_series_csv: insert data points' }
     if current_series && data_points.length > 0
+      ############################## refactor here for proper use of db_execute API ########################################################
       data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact
                      .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
                      .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                      .join(',')
-        DbedtUpload.connection.execute <<~MYSQL
-          INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
+        db_execute <<~MYSQL
+          INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values}; -- ---------------------------
         MYSQL
       end
     end
@@ -256,7 +257,7 @@ class NewDbedtUpload < ApplicationRecord
     Rails.logger.info { 'done load_series_csv' }
     make_active_settings
     mylogger :info, 'done load_series_csv'
-    num_points
+    data_points.count
   end
 
   def load_data_postproc(num)
