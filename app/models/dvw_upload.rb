@@ -372,7 +372,11 @@ private
     month = 1
     begin
       if mq =~ /([MQ])(\d+)/i
-        month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
+        month = case $1.upcase
+                when 'M' then $2.to_i
+                when 'Q' then first_month_of_quarter($2)
+                else raise('blah')
+                end
       end
       Date.new(year, month).to_s
     rescue

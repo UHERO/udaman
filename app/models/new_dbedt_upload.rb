@@ -251,35 +251,28 @@ class NewDbedtUpload < ApplicationRecord
         db_execute_set sql_stmt, values
       end
     end
-  #################  success = run_active_settings ? make_active_settings : true
-    Rails.logger.info { 'done load_series_csv' }
-    make_active_settings
     mylogger :info, 'done load_series_csv'
     data_points.count
   end
 
-  def load_data_postproc(num)
+  def load_postproc(num)
     num  ## nothing to do (yet), except return the number of loaded data points that is passed in
-  end
-
-  def make_active_settings
-    self.transaction do
-      NewDbedtUpload.update_all(active: false)
-      self.update_attributes(active: true, last_error: nil, last_error_at: nil)
-    end
   end
 
   def full_load
     delete_universe_dbedt
-    load_data_postproc( load_series_csv( load_meta_csv ) )
+    load_postproc( load_series_csv( load_meta_csv ) )
   end
 
   def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
-    mylogger :debug, 'before full_load'
+    mylogger :info, 'worker_tasks: before full_load'
     total = full_load
-    self.update(status: :ok, last_error_at: nil, last_error: "#{total} data points loaded")
-    mylogger :info, 'loaded and active'
+    self.transaction do
+      NewDbedtUpload.update_all(active: false)
+      self.update_attributes(status: :ok, active: true, last_error_at: nil, last_error: "#{total} data points loaded")
+    end
+    mylogger :info, 'worker_tasks: loaded and active'
   end
 
   def absolute_path
@@ -377,7 +370,11 @@ private
     month = 1
     begin
       if mq =~ /([MQ])(\d+)/i
-        month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
+        month = case $1.upcase
+                when 'M' then $2.to_i
+                when 'Q' then first_month_of_quarter($2)
+                else raise('blah')
+                end
       end
       Date.new(year, month).to_s
     rescue
