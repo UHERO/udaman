@@ -123,9 +123,7 @@ class NewDbedtUpload < ApplicationRecord
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
           data_list = DataList.create(universe: 'DBEDT', name: parent_label)
-          if category
-            category.update(data_list_id: data_list.id)
-          end
+          category.update(data_list_id: data_list.id)
         end
         measurement = Measurement.create(
             universe: 'DBEDT',
@@ -148,7 +146,13 @@ class NewDbedtUpload < ApplicationRecord
     csv_path = File.join(csv_dir_path, 'data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
+    current_series = nil
+    current_data_source = nil
+    current_measurement = nil
+    allgeos = {}
+    data_points = []
     num_points = 0
+
     CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
@@ -156,29 +160,28 @@ class NewDbedtUpload < ApplicationRecord
         val = data.blank? ? nil : data.strip
         row[header.strip.downcase] = Integer(val) rescue Float(val) rescue val  ## convert numeric types if possible
       end
-    end
 
-    current_series = nil
-    current_data_source = nil
-    current_measurement = nil
-    data_points = []
-    Rails.logger.info { 'load_series_csv: read lines from csv file' }
-    CSV.foreach(series_csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
-      prefix = "DBEDT_#{row[0]}"
-      region = row[3].strip
-      (geo_handle, geo_fips) = get_geo_codes(region)
-      name = Series.build_name(prefix, geo_handle, row[4])
+      ind_id = row['ind_id']
+      prefix = "DBEDT_#{ind_id}"
+      area = row['area_id'].to_i
+      ### Geography info hardwired in code for simplicity and convenience. Records are expected to already exist in db.
+      geo_handle = [nil, 'HI', 'HAW', 'HON', 'KAU', 'MAU'][area] || raise("Area ID = #{area} is blank or unknown")
+      geo_id = allgeos[geo_handle]
+      unless geo_id
+        allgeos[geo_handle] = Geography.get(universe: 'DBEDT', handle: geo_handle) || raise("Area handle #{geo_handle} missing")
+        geo_id = allgeos[geo_handle].id
+      end
+      name = Series.build_name(prefix, geo_handle, row['frequency'])
+
       if current_measurement.nil? || current_measurement.prefix != prefix
         current_measurement =
             Measurement.find_by(universe: 'DBEDT', prefix: prefix) ||
-                Measurement.create(universe: 'DBEDT', prefix: prefix, data_portal_name: row[1])
+                Measurement.create(universe: 'DBEDT', prefix: prefix, data_portal_name: metadata[ind_id]['indicatorfortable'])
       end
 
       if current_series.nil? || current_series.name != name
         source_str = row[9] && row[9].to_ascii.strip
         source = (source_str.blank? || source_str.downcase == 'none') ? nil : Source.get_or_new(source_str, nil, 'DBEDT')
-        geo_id = Geography.get_or_new_dbedt({ handle: geo_handle },
-                                            { fips: geo_fips, display_name: region, display_name_short: region}).id
         unit_str = row[8] && row[8].to_ascii.strip
         unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
         raise "No decimals specified for series #{name}" if row[10].blank?
@@ -374,17 +377,6 @@ private
       year_msg = year.blank? ? ' is empty' : "=#{year}"
       raise "Bad date params: year#{year_msg}, QM='#{mq}'"
     end
-  end
-
-  def get_geo_codes(name)
-    handles = {
-        'hawaii county' => ['HAW', 15001],
-        'honolulu county' => ['HON', 15003],
-        'kauai county' => ['KAU', 15007],
-        'maui county' => ['MAU', 15009],
-        'statewide' => ['HI', 15],
-    }
-    handles[name.downcase] || raise("Unknown DBEDT geography '#{name}'")
   end
 
   def mylogger(level, message)
