@@ -94,8 +94,7 @@ class NewDbedtUpload < ApplicationRecord
       parent_indicator_id = row['parent_id']
       parent_label = "DBEDT_#{parent_indicator_id}"
 
-      # category entry
-      if row['unit'].blank?
+      unless row['unit']  ## category entry
         raise "Order missing for #{indicator_id}" unless row['order']
         ancestry = root_cat
         if parent_indicator_id
@@ -119,8 +118,7 @@ class NewDbedtUpload < ApplicationRecord
         Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}" }
       end
 
-      # data_list, measurements entry
-      unless row['unit'].blank?
+      if row['unit']  ## data_list, measurements entry
         unless row['order'] && row['source'] && row['decimal']
           raise "Order, source, or decimal missing for #{indicator_id}"
         end
