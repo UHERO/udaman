@@ -158,7 +158,7 @@ class DvwUpload < ApplicationRecord
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
-        val = data.blank? ? nil : data.strip
+        val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
       break if row['id'].nil?  ## in case there are blank rows appended at the end
@@ -218,7 +218,7 @@ class DvwUpload < ApplicationRecord
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
-        row[header.strip.downcase] = data.blank? ? nil : data.strip
+        row[header.strip.downcase] = data.blank? ? nil : data.to_ascii.strip
       end
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end

@@ -84,7 +84,7 @@ class NewDbedtUpload < ApplicationRecord
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
-        val = data.blank? ? nil : data.strip
+        val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
 
@@ -96,6 +96,7 @@ class NewDbedtUpload < ApplicationRecord
 
       # category entry
       if row['unit'].blank?
+        raise "Order missing for #{indicator_id}" unless row['order']
         ancestry = root_cat
         if parent_indicator_id
           if cats_ances[parent_indicator_id]
@@ -120,6 +121,9 @@ class NewDbedtUpload < ApplicationRecord
 
       # data_list, measurements entry
       unless row['unit'].blank?
+        unless row['order'] && row['source'] && row['decimal']
+          raise "Order, source, or decimal missing for #{indicator_id}"
+        end
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
           data_list = DataList.create(universe: 'DBEDT', name: parent_label)
@@ -150,41 +154,46 @@ class NewDbedtUpload < ApplicationRecord
     current_data_source = nil
     current_measurement = nil
     allgeos = {}
+    allsources = {}
+    allunits = {}
     data_points = []
-    num_points = 0
 
     CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         next if header.blank?
-        val = data.blank? ? nil : data.strip
+        val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = Integer(val) rescue Float(val) rescue val  ## convert numeric types if possible
       end
 
-      ind_id = row['ind_id']
+      ind_id = row['ind_id'] || raise("Blank indicator ID around row #{data_points.count}")
+      ind_meta = metadata[ind_id]  ## extra metadata passed through from load_meta_csv processing
       prefix = "DBEDT_#{ind_id}"
       area = row['area_id'].to_i
       ### Geography info hardwired in code for simplicity and convenience. Records are expected to already exist in db.
-      geo_handle = [nil, 'HI', 'HAW', 'HON', 'KAU', 'MAU'][area] || raise("Area ID = #{area} is blank or unknown")
+      geo_handle = [nil, 'HI', 'HAW', 'HON', 'KAU', 'MAU'][area] || raise("Area ID=#{area} is blank/unknown around row #{data_points.count}")
       geo_id = allgeos[geo_handle]
       unless geo_id
-        allgeos[geo_handle] = Geography.get(universe: 'DBEDT', handle: geo_handle) || raise("Area handle #{geo_handle} missing")
+        allgeos[geo_handle] = Geography.get(universe: 'DBEDT', handle: geo_handle) || raise("Area handle #{geo_handle} missing from db")
         geo_id = allgeos[geo_handle].id
       end
       name = Series.build_name(prefix, geo_handle, row['frequency'])
 
       if current_measurement.nil? || current_measurement.prefix != prefix
-        current_measurement =
-            Measurement.find_by(universe: 'DBEDT', prefix: prefix) ||
-                Measurement.create(universe: 'DBEDT', prefix: prefix, data_portal_name: metadata[ind_id]['indicatorfortable'])
+        current_measurement = Measurement.find_by(universe: 'DBEDT', prefix: prefix) ||
+            Measurement.create(universe: 'DBEDT', prefix: prefix, data_portal_name: ind_meta['indicatorfortable'])
       end
 
       if current_series.nil? || current_series.name != name
-        source_str = row[9] && row[9].to_ascii.strip
-        source = (source_str.blank? || source_str.downcase == 'none') ? nil : Source.get_or_new(source_str, nil, 'DBEDT')
-        unit_str = row[8] && row[8].to_ascii.strip
+        source = nil
+        if ind_meta['source'].downcase != 'none'
+          source = allsources[ind_meta['source']]
+          unless source
+            source = allsources[ind_meta['source']] = Source.get_or_new(ind_meta['source'], nil, 'DBEDT')
+          end
+        end
+        unit_str = ind_meta['unit'] && ind_meta['unit'].to_ascii.strip
         unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
-        raise "No decimals specified for series #{name}" if row[10].blank?
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
@@ -193,8 +202,8 @@ class NewDbedtUpload < ApplicationRecord
               dataPortalName: row[1],
               unit_id: unit && unit.id,
               source_id: source && source.id,
-              decimals: row[10],
-              )
+              decimals: ind_meta['decimal'].to_i,
+          )
           current_data_source =  ## wrap the following as a DataSource.get_or_new_dbedt() method, similar to Geos
               DataSource.find_by(universe: 'DBEDT', eval: 'DbedtUpload.load(%d)' % current_series.id) ||
                   DataSource.create(
@@ -215,7 +224,7 @@ class NewDbedtUpload < ApplicationRecord
               dataPortalName: row[1],
               unit_id: unit && unit.id,
               source_id: source && source.id,
-              decimals: row[10],
+              decimals: ind_meta['decimal'].to_i,
               units: 1
           )
           current_data_source = DataSource.create(
