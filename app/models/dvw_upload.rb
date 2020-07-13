@@ -232,7 +232,7 @@ class DvwUpload < ApplicationRecord
       dp_data_set.push row_values
     end
 
-    dp_query = <<~MYSQL
+    sql_stmt = DvwUpload.connection.raw_connection.prepare(<<~MYSQL)
       insert into data_points
         (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
       select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
@@ -247,7 +247,7 @@ class DvwUpload < ApplicationRecord
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
     dp_data_set.in_groups_of(1000, false) do |dps|
-      db_execute_set dp_query, dps
+      db_execute_set sql_stmt, dps
     end
     mylogger :info, 'done load_series_csv'
     dp_data_set.count
@@ -273,6 +273,7 @@ class DvwUpload < ApplicationRecord
   end
 
 private
+
   def csv_extract
     xls_path = absolute_path('series')
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
@@ -353,13 +354,17 @@ private
     MYSQL
   end
 
-  def db_execute(query, values = [])
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+  def db_execute(stmt, values = [])
+    if stmt.class == String
+      stmt = DvwUpload.connection.raw_connection.prepare(stmt)
+    end
     stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
-  def db_execute_set(query, set)
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+  def db_execute_set(stmt, set)
+    if stmt.class == String
+      stmt = DvwUpload.connection.raw_connection.prepare(stmt)
+    end
     set.each {|values| stmt.execute(*values) }
   end
 

@@ -242,15 +242,13 @@ class NewDbedtUpload < ApplicationRecord
     end
     Rails.logger.info { 'load_series_csv: insert data points' }
     if current_series && data_points.length > 0
-      ############################## refactor here for proper use of db_execute API ########################################################
+      sql_stmt = NewDbedtUpload.connection.raw_connection.prepare(<<~MYSQL)
+        INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES (?, ?, ?, ?, true, NOW());
+      MYSQL
       data_points.in_groups_of(1000, false) do |dps|
-        values = dps.compact
-                     .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
-                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
-                     .join(',')
-        db_execute <<~MYSQL
-          INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values}; -- ---------------------------
-        MYSQL
+        values = dps.compact.uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
+                             .map {|dp| [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
+        db_execute_set sql_stmt, values
       end
     end
   #################  success = run_active_settings ? make_active_settings : true
@@ -361,13 +359,17 @@ private
     true
   end
 
-  def db_execute(query, values = [])
-    stmt = NewDbedtUpload.connection.raw_connection.prepare(query)
+  def db_execute(stmt, values = [])
+    if stmt.class == String
+      stmt = self.connection.raw_connection.prepare(stmt)
+    end
     stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
-  def db_execute_set(query, set)
-    stmt = NewDbedtUpload.connection.raw_connection.prepare(query)
+  def db_execute_set(stmt, set)
+    if stmt.class == String
+      stmt = self.connection.raw_connection.prepare(stmt)
+    end
     set.each {|values| stmt.execute(*values) }
   end
 
