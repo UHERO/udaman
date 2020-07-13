@@ -94,7 +94,7 @@ class NewDbedtUpload < ApplicationRecord
       parent_indicator_id = row['parent_id']
       parent_label = "DBEDT_#{parent_indicator_id}"
 
-      unless row['unit']  ## category entry
+      unless row['unit']  ####################### category entry
         raise "Order missing for #{indicator_id}" unless row['order']
         ancestry = root_cat
         if parent_indicator_id
@@ -118,7 +118,7 @@ class NewDbedtUpload < ApplicationRecord
         Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}" }
       end
 
-      if row['unit']  ## data_list, measurements entry
+      if row['unit']  ####################### data_list, measurements entry
         unless row['order'] && row['source'] && row['decimal']
           raise "Order, source, or decimal missing for #{indicator_id}"
         end
@@ -190,8 +190,13 @@ class NewDbedtUpload < ApplicationRecord
             source = allsources[ind_meta['source']] = Source.get_or_new(ind_meta['source'], nil, 'DBEDT')
           end
         end
-        unit_str = ind_meta['unit'] && ind_meta['unit'].to_ascii.strip
-        unit = (unit_str.blank? || unit_str.downcase == 'none') ? nil : Unit.get_or_new(unit_str, 'DBEDT')
+        unit = nil
+        if ind_meta['unit'].downcase != 'none'
+          unit = allunits[ind_meta['unit']]
+          unless unit
+            unit = allunits[ind_meta['unit']] = Unit.get_or_new(ind_meta['unit'], 'DBEDT')
+          end
+        end
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
         if current_series
