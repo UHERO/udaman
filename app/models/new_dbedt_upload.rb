@@ -23,49 +23,49 @@ class NewDbedtUpload < ApplicationRecord
     true
   end
 
-  def NewDbedtUpload.delete_universe_dbedt
+  def delete_universe_dbedt
     ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
     Category.where('universe = "DBEDT" and ancestry is not null').delete_all
     DataList.where(universe: 'DBEDT').destroy_all
 
-    NewDbedtUpload.connection.execute <<~MYSQL
-        SET FOREIGN_KEY_CHECKS = 0;
+    db_execute <<~MYSQL
+      SET FOREIGN_KEY_CHECKS = 0;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
-    NewDbedtUpload.connection.execute <<~MYSQL
-    delete p
-    from public_data_points p join series s on s.id = p.series_id
-    where s.universe = 'DBEDT' ;
+    db_execute <<~MYSQL
+      delete p
+      from public_data_points p join series s on s.id = p.series_id
+      where s.universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: data_points' }
-    NewDbedtUpload.connection.execute <<~MYSQL
+    db_execute <<~MYSQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: measurement_series' }
-    NewDbedtUpload.connection.execute <<~MYSQL
+    db_execute <<~MYSQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: data_list_measurements' }
-    NewDbedtUpload.connection.execute <<~MYSQL
+    db_execute <<~MYSQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: measurements' }
-    NewDbedtUpload.connection.execute <<~MYSQL
+    db_execute <<~MYSQL
       delete from measurements where universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: units' }
-    NewDbedtUpload.connection.execute <<~MYSQL
+    db_execute <<~MYSQL
       delete from units where universe = 'DBEDT' ;
     MYSQL
     Rails.logger.info { 'delete_universe_dbedt: sources' }
-    NewDbedtUpload.connection.execute <<~MYSQL
+    db_execute <<~MYSQL
       delete from sources where universe = 'DBEDT' ;
     MYSQL
-    NewDbedtUpload.connection.execute <<~MYSQL
-        SET FOREIGN_KEY_CHECKS = 1;
+    db_execute <<~MYSQL
+      SET FOREIGN_KEY_CHECKS = 1;
     MYSQL
   end
 
