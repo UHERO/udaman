@@ -32,35 +32,35 @@ class NewDbedtUpload < ApplicationRecord
     db_execute <<~MYSQL
       SET FOREIGN_KEY_CHECKS = 0;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: public_data_points' }
+    mylogger :info, 'delete_universe_dbedt: public_data_points'
     db_execute <<~MYSQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'DBEDT' ;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: data_points' }
+    mylogger :info, 'delete_universe_dbedt: data_points'
     db_execute <<~MYSQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'DBEDT' ;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: measurement_series' }
+    mylogger :info, 'delete_universe_dbedt: measurement_series'
     db_execute <<~MYSQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'DBEDT' ;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: data_list_measurements' }
+    mylogger :info, 'delete_universe_dbedt: data_list_measurements'
     db_execute <<~MYSQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'DBEDT' ;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: measurements' }
+    mylogger :info, 'delete_universe_dbedt: measurements'
     db_execute <<~MYSQL
       delete from measurements where universe = 'DBEDT' ;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: units' }
+    mylogger :info, 'delete_universe_dbedt: units'
     db_execute <<~MYSQL
       delete from units where universe = 'DBEDT' ;
     MYSQL
-    Rails.logger.info { 'delete_universe_dbedt: sources' }
+    mylogger :info, 'delete_universe_dbedt: sources'
     db_execute <<~MYSQL
       delete from sources where universe = 'DBEDT' ;
     MYSQL
@@ -115,7 +115,7 @@ class NewDbedtUpload < ApplicationRecord
             list_order: row['order']
         )
         cats_ances[indicator_id] = '%d/%d' % [ancestry, category.id]
-        Rails.logger.info { "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}" }
+        mylogger :info, "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}"
       end
 
       if row['unit']  ####################### data_list, measurements entry
@@ -135,7 +135,7 @@ class NewDbedtUpload < ApplicationRecord
         data_list.measurements << measurement
         dlm = DataListMeasurement.find_by(data_list_id: data_list.id, measurement_id: measurement.id)
         dlm.update(list_order: row['order']) if dlm
-        Rails.logger.debug { "added measurement #{measurement.prefix} to data_list #{data_list.name}" }
+        mylogger :debug, "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
     mylogger :info, 'done load_meta_csv'
@@ -240,7 +240,7 @@ class NewDbedtUpload < ApplicationRecord
                          date: make_date(row['year'], row['qm']),
                          value: row['value'] })
     end
-    Rails.logger.info { 'load_series_csv: insert data points' }
+    mylogger :info, 'load_series_csv: insert data points'
     if current_series && data_points.length > 0
       sql_stmt = NewDbedtUpload.connection.raw_connection.prepare(<<~MYSQL)
         INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES (?, ?, ?, ?, true, NOW());
@@ -308,7 +308,7 @@ private
 
   def path(name = nil)
     if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
-      Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % name }
+      mylogger :warn, 'WARNING! Attempt to access filesystem path %s' % name
       return
     end
     parts = [ENV['DATA_PATH'], 'dbedt_files']
@@ -326,7 +326,7 @@ private
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -336,7 +336,7 @@ private
     begin
       content = File.open(path(name), 'r') { |f| f.read }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     content
@@ -346,7 +346,7 @@ private
     begin
       File.delete(abspath)
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -373,7 +373,7 @@ private
         month = case $1.upcase
                 when 'M' then $2.to_i
                 when 'Q' then first_month_of_quarter($2)
-                else raise('blah')
+                else raise('boom')
                 end
       end
       Date.new(year, month).to_s
