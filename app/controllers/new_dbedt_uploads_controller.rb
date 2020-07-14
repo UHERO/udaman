@@ -22,7 +22,7 @@ class NewDbedtUploadsController < ApplicationController
   def create
     @db_upload = NewDbedtUpload.new(db_upload_params)
 
-    unless @db_upload.store_upload_file(@db_upload.filename)
+    unless @db_upload.store_upload_file(db_upload_params[:filename])
       redirect_to action: :index
       return
     end
@@ -44,6 +44,6 @@ private
   end
 
   def db_upload_params
-    params.require(:new_db_upload).permit(:filename)
+    params.require(:new_dbedt_upload).permit(:filename)
   end
 end

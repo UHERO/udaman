@@ -1,4 +1,4 @@
-<h1>DBEDT Tourism Data Warehouse Uploads</h1>
+<h1>DBEDT Economic Data Warehouse Uploads</h1>
 
 <table>
   <thead>
@@ -30,7 +30,7 @@
         <td>** After upload finishes, reload page to see status message.</td>
       <% end %>
       </tr>
-      <% controls_display = now_processing?(NewDbedtUpload) ? 'none' : 'inline'
+      <% controls_display = now_processing?(NewDbedtUpload, cols: [:status]) ? 'none' : 'inline'
       @db_uploads.each do |db_upload|
         timestamp = db_upload.upload_at.strftime('%Y-%m-%d %H:%M') %>
       <tr>
