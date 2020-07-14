@@ -188,7 +188,8 @@ class NewDbedtUpload < ApplicationRecord
         if source_str.downcase != 'none'
           source_id = allsources[source_str]
           unless source_id
-            source_id = allsources[source_str] = Source.get_or_new(source_str, nil, 'DBEDT').id
+            allsources[source_str] = Source.get_or_new(source_str, nil, 'DBEDT').id rescue raise("Failed to create Source #{source_str}")
+            source_id = allsources[source_str]
           end
         end
         unit_str = ind_meta['unit']
@@ -196,7 +197,8 @@ class NewDbedtUpload < ApplicationRecord
         if unit_str.downcase != 'none'
           unit_id = allunits[unit_str]
           unless unit_id
-            unit_id = allunits[unit_str] = Unit.get_or_new(unit_str, 'DBEDT').id
+            allunits[unit_str] = Unit.get_or_new(unit_str, 'DBEDT').id rescue raise("Failed to create Unit #{unit_str}")
+            unit_id = allunits[unit_str]
           end
         end
 
