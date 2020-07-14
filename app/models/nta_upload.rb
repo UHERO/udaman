@@ -1,8 +1,5 @@
 class NtaUpload < ApplicationRecord
   require 'date'
-  before_destroy :delete_files_from_disk
-  before_destroy :delete_data_and_data_sources
-
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(series_file)
@@ -66,16 +63,6 @@ class NtaUpload < ApplicationRecord
 
   def retrieve_series_file
     read_file_from_disk(series_filename)
-  end
-
-  def delete_series_file
-    xlspath = absolute_path('series')
-    if series_filename && File.exists?(xlspath)
-      r = delete_file_from_disk xlspath
-      r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
-      return (r || throw(:abort))
-    end
-    true
   end
 
   def full_load
@@ -574,18 +561,6 @@ private
       return false
     end
     true
-  end
-
-  def delete_files_from_disk
-    delete_series_file
-  end
-
-  def delete_data_and_data_sources
-    NtaUpload.connection.execute <<~SQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
-    SQL
-    DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
   end
 
 end
