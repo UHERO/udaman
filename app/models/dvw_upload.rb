@@ -2,7 +2,6 @@ class DvwUpload < ApplicationRecord
   include HelperUtilities
   require 'date'
   before_destroy :delete_files_from_disk
-  before_destroy :delete_data_and_data_sources
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -343,15 +342,6 @@ private
 
   def delete_files_from_disk
     delete_series_file
-  end
-
-  ### This doesn't really do what it seems to be intended for, right? Check back into it later...
-  ###
-  def delete_data_and_data_sources
-    db_execute <<~MYSQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
-    MYSQL
   end
 
   def db_execute(stmt, values = [])
