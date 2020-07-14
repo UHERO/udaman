@@ -315,7 +315,7 @@ private
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -325,7 +325,7 @@ private
     begin
       content = File.open(path(name), 'r') { |f| f.read }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     content
@@ -335,7 +335,7 @@ private
     begin
       File.delete(abspath)
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
