@@ -4,22 +4,21 @@ class NewDbedtUpload < ApplicationRecord
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
-  def store_upload_file(filename)
-    return false unless filename
+  def store_upload_file(file)
+    return false unless file
     now = Time.now
-    filename_content = filename.read
-    filename_ext = filename.original_filename.split('.')[-1]
-    snax = make_filename(now, filename_ext)
+    file_content = file.read
+    filename_ext = file.original_filename.split('.')[-1]
     self.assign_attributes(upload_at: now,
                            active: false,
                            status: :processing,
-                           filename: "snax")
-    mylogger :debug, "1>>>>>>>>>>>>>>>>>>>> |#{filename_ext}|#{snax}|#{snax.class}|"
-    mylogger :debug, "2>>>>>>>>>>>>>>>>>>>> ||#{self.attribute_names}||"
+                           filename: make_filename(now, filename_ext))
+    #mylogger :debug, "1>>>>>>>>>>>>>>>>>>>> |#{filename_ext}|#{snax}|#{snax.class}|"
+    #mylogger :debug, "2>>>>>>>>>>>>>>>>>>>> ||#{self.attribute_names}||"
     begin
       self.save
-      write_file_to_disk(filename, filename_content)
-      DbedtWorker.perform_async(id, do_csv_proc: true)
+      write_file_to_disk(filename, file_content)
+      DbedtWorker.perform_async(id, true)
     rescue => e
       mylogger :error, e.message
       self.delete if e.message =~ /disk write failed/
