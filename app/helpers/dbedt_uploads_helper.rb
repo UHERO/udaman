@@ -14,6 +14,6 @@ module DbedtUploadsHelper
 
   ## true if anything is currently in processing
   def now_processing?(cls, cols: [:cats_status, :series_status])
-    !cls.where(cols.map {|c| "#{c} = 'processing'" }.join(' or ')).empty?
+    cls.where(cols.map {|c| "#{c} = 'processing'" }.join(' or ')).count > 0
   end
 end
