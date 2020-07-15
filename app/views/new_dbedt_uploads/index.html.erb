@@ -38,14 +38,14 @@
           <span class="controls" style="display:<%= controls_display %>;">
           <%=
             if db_upload.active
-              "<i class='load-status fas fa-dot-circle' id='dbedt-#{db_upload.id}' aria-hidden='true'></i>".html_safe
+              "<i class='load-status fas fa-dot-circle' id='new_dbedt-#{db_upload.id}' aria-hidden='true'></i>".html_safe
             elsif db_upload.status != 'fail'
               '<span class="waiting"><i class="load-status fas fa-dot-circle" aria-hidden="true"></i></span>'.html_safe
             end
           %>
           </span>
         </td>
-        <td><i class="upload-status fas <%= make_fa_processing_classes(db_upload.status) %>" id="dbedt-series-<%= db_upload.id %>" aria-hidden="true"></i>
+        <td><i class="upload-status fas <%= make_fa_processing_classes(db_upload.status) %>" id="new_dbedt-noop-<%= db_upload.id %>" aria-hidden="true"></i>
             <%= link_to 'Database file', { action: :show, id: db_upload.id } %>
         </td>
         <td><%= timestamp %></td>

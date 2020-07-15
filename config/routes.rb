@@ -31,7 +31,7 @@ Rails.application.routes.draw do
   end
   resources :new_dbedt_uploads do
     member do
-      get 'status' => 'new_dbedt_uploads#status'
+      get 'status/:which' => 'new_dbedt_uploads#status'
       get 'active_status' => 'new_dbedt_uploads#active_status'
     end
   end
