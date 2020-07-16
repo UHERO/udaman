@@ -248,7 +248,6 @@ class NewDbedtUpload < ApplicationRecord
                          ds_id: current_data_source.id,
                          date: make_date(row['year'], row['qm']),
                          value: row['value'] })
-      break if data_points.count > 10
     end
     mylogger :info, 'load_series_csv: insert data points'
     if current_series && data_points.length > 0
