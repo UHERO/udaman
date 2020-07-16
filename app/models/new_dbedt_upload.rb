@@ -13,8 +13,6 @@ class NewDbedtUpload < ApplicationRecord
                            active: false,
                            status: :processing,
                            filename: make_filename(now, filename_ext))
-    #mylogger :debug, "1>>>>>>>>>>>>>>>>>>>> |#{filename_ext}|#{snax}|#{snax.class}|"
-    #mylogger :debug, "2>>>>>>>>>>>>>>>>>>>> ||#{self.attribute_names}||"
     begin
       self.save
       write_file_to_disk(filename, file_content)
@@ -325,7 +323,7 @@ private
   def make_filename(time, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
     ext = ext.length > 4 ? '' : ('.' + ext)
-    time.strftime('%Y-%m-%d-%H:%M') + '_upload' + ext
+    time.strftime('%Y-%m-%d-%H:%M') + '_econ_upload' + ext
   end
 
   def write_file_to_disk(name, content)

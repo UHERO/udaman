@@ -145,7 +145,7 @@ class DvwUpload < ApplicationRecord
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
-        columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
+        columns = row_pairs.to_a.reject {|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map {|x,_| x.strip.downcase }  ## leave out L_* and O_*
         columns.push('level', 'order')  ## add renamed/computed columns
         columns.delete('parent')  ## filled in by SQL at the end
         columns[columns.index('id')] = 'handle'    ## rename "id" column as "handle" - kinda hacky
@@ -158,8 +158,9 @@ class DvwUpload < ApplicationRecord
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         break if header.blank?
         val = data.blank? ? nil : data.to_ascii.strip
-        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
+        row[header.strip.downcase] = (Integer(val) rescue val)  ## convert integers to Integer type if possible
       end
+
       break if row['id'].nil?  ## in case there are blank rows appended at the end
       row['handle'] ||= row['id']  ## rename id as necessary
       if row['parent']
@@ -220,6 +221,7 @@ class DvwUpload < ApplicationRecord
         val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = (Integer(val) rescue Float(val) rescue val)  ## convert numeric types if possible. Parens are crucial!
       end
+
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end
       row['date'] = make_date(row['year'].to_i, row['qm'].to_s)
