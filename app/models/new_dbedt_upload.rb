@@ -87,12 +87,10 @@ class NewDbedtUpload < ApplicationRecord
     CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: false }) do |pairs|
       row = {}
       pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-####        mylogger(:info, ">>>>>> h=#{header}, d=#{data}") if data =~ /ship/
         break if header.blank?
         val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = (Integer(val) rescue val)  ## convert integers to Integer type if possible
       end
-      mylogger(:info, "ROW ROW ROW: #{row}") if row['indicator'] =~ /ship/
 
       indicator_id = row['ind_id']
       break if indicator_id.blank?  ## end of file
@@ -168,7 +166,6 @@ class NewDbedtUpload < ApplicationRecord
         break if header.blank?
         val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = (Integer(val) rescue Float(val) rescue val)  ## convert numeric types if possible. Parens are crucial!
-       # mylogger :info, ">>>>>> h=#{header.strip.downcase}, v=|#{val}|, sn=|#{snax}|, hv=|#{row[header.strip.downcase]}|"
       end
 
       ind_id = row['ind_id'] || raise("Blank indicator ID around row #{data_points.count}")
