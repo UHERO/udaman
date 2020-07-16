@@ -84,13 +84,15 @@ class NewDbedtUpload < ApplicationRecord
     cats_ances = {}
     root_cat = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
 
-    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
+    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: false }) do |pairs|
       row = {}
-      row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
+      pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
+####        mylogger(:info, ">>>>>> h=#{header}, d=#{data}") if data =~ /ship/
+        break if header.blank?
         val = data.blank? ? nil : data.to_ascii.strip
-        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
+        row[header.strip.downcase] = (Integer(val) rescue val)  ## convert integers to Integer type if possible
       end
+      mylogger(:info, "ROW ROW ROW: #{row}") if row['indicator'] =~ /ship/
 
       indicator_id = row['ind_id']
       break if indicator_id.blank?  ## end of file
@@ -160,12 +162,13 @@ class NewDbedtUpload < ApplicationRecord
     allunits = {}
     data_points = []
 
-    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: true }) do |row_pairs|
+    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: false }) do |pairs|
       row = {}
-      row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
+      pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
+        break if header.blank?
         val = data.blank? ? nil : data.to_ascii.strip
-        row[header.strip.downcase] = Integer(val) rescue Float(val) rescue val  ## convert numeric types if possible
+        row[header.strip.downcase] = (Integer(val) rescue Float(val) rescue val)  ## convert numeric types if possible. Parens are crucial!
+       # mylogger :info, ">>>>>> h=#{header.strip.downcase}, v=|#{val}|, sn=|#{snax}|, hv=|#{row[header.strip.downcase]}|"
       end
 
       ind_id = row['ind_id'] || raise("Blank indicator ID around row #{data_points.count}")
@@ -245,6 +248,7 @@ class NewDbedtUpload < ApplicationRecord
                          ds_id: current_data_source.id,
                          date: make_date(row['year'], row['qm']),
                          value: row['value'] })
+      break if data_points.count > 10
     end
     mylogger :info, 'load_series_csv: insert data points'
     if current_series && data_points.length > 0

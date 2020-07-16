@@ -156,7 +156,7 @@ class DvwUpload < ApplicationRecord
 
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
+        break if header.blank?
         val = data.blank? ? nil : data.to_ascii.strip
         row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
       end
@@ -216,8 +216,9 @@ class DvwUpload < ApplicationRecord
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
-        row[header.strip.downcase] = data.blank? ? nil : data.to_ascii.strip
+        break if header.blank?
+        val = data.blank? ? nil : data.to_ascii.strip
+        row[header.strip.downcase] = (Integer(val) rescue Float(val) rescue val)  ## convert numeric types if possible. Parens are crucial!
       end
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end
