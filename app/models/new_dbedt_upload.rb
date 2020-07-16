@@ -118,7 +118,7 @@ class NewDbedtUpload < ApplicationRecord
             ancestry: ancestry,
             list_order: row['order']
         )
-        cats_ances[indicator_id] = '%d/%d' % [ancestry, category.id]
+        cats_ances[indicator_id] = '%s/%d' % [ancestry, category.id]
         mylogger :info, "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}"
       end
 
@@ -129,7 +129,7 @@ class NewDbedtUpload < ApplicationRecord
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
           data_list = DataList.create(universe: 'DBEDT', name: parent_label)
-          category.update(data_list_id: data_list.id)
+          category.update(data_list_id: data_list.id) if category
         end
         measurement = Measurement.create(
             universe: 'DBEDT',
@@ -360,14 +360,14 @@ private
 
   def db_execute(stmt, values = [])
     if stmt.class == String
-      stmt = self.connection.raw_connection.prepare(stmt)
+      stmt = NewDbedtUpload.connection.raw_connection.prepare(stmt)
     end
     stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
   def db_execute_set(stmt, set)
     if stmt.class == String
-      stmt = self.connection.raw_connection.prepare(stmt)
+      stmt = NewDbedtUpload.connection.raw_connection.prepare(stmt)
     end
     set.each {|values| stmt.execute(*values) }
   end
