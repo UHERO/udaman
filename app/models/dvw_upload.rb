@@ -392,6 +392,6 @@ private
   end
 
   def mylogger(level, message)
-    Rails.logger.send(level) { "#{Time.now} DvwUpload id=#{self.id}: #{message}" }
+    Rails.logger.send(level) { "DvwUpload id=#{self.id}: #{message}" }
   end
 end

@@ -117,7 +117,7 @@ class NewDbedtUpload < ApplicationRecord
             list_order: row['order']
         )
         cats_ances[indicator_id] = '%s/%d' % [ancestry, category.id]
-        mylogger :info, "DBEDT Upload id=#{id}: created category #{category.meta}, #{category.name}"
+        mylogger :info, "created category #{category.meta}, #{category.name}"
       end
 
       if row['unit']  ####################### data_list, measurements entry
@@ -388,6 +388,6 @@ private
   end
 
   def mylogger(level, message)
-    Rails.logger.send(level) { "#{Time.now} NewDbedtUpload id=#{self.id}: #{message}" }
+    Rails.logger.send(level) { "NewDbedtUpload id=#{self.id}: #{message}" }
   end
 end
