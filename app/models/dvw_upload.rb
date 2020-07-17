@@ -302,6 +302,10 @@ private
   end
 
   def path(name = nil)
+    if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      mylogger :warn, 'WARNING! Attempt to access filesystem path %s' % name
+      return
+    end
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
     File.join(parts)
