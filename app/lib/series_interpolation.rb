@@ -207,17 +207,17 @@ module SeriesInterpolation
       unless last.nil?
         d1 = key
         d2 = last_date
-        quarter_diff = ((d1.year - d2.year) * 12 + (d1.month - d2.month))/3
+        quarter_diff = ((d1.year - d2.year) * 12 + (d1.month - d2.month)) / 3
         interval = value - last 
-        quarterly_data[last_date] = last - interval/(quarter_diff*2) 
-        quarterly_data[last_date + 3.months] = last + interval/(quarter_diff*2)
+        quarterly_data[last_date] = last - interval / (quarter_diff * 2)
+        quarterly_data[last_date + 3.months] = last + interval / (quarter_diff * 2)
       end
       last = value
       last_date = key
     end
     #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
-    quarterly_data[last_date] = last - interval/4
-    quarterly_data[last_date + 3.months] = last + interval/4
+    quarterly_data[last_date] = last - interval / 4
+    quarterly_data[last_date + 3.months] = last + interval / 4
     new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
 
