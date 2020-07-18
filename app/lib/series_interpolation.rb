@@ -1,7 +1,7 @@
 module SeriesInterpolation
   
   def interpolate_to (frequency, operation, series_to_store_name)
-    series_to_store_name.ts = interpolate frequency,operation
+    series_to_store_name.ts = interpolate(frequency, operation)
   end
   
   def extend_first_data_point_back_to(date)
@@ -25,7 +25,7 @@ module SeriesInterpolation
   
   def extend_last_date_to_match(series_name)
     new_data = {}
-    last_data_point_date = series_name.ts.last_value_date
+    last_data_point_date = series_name.ts.last_value_date rescue raise("Series #{series_name} does not exist")
     current_last_data_point = self.last_value_date
     
     last_data_point_val = data[current_last_data_point]
@@ -124,21 +124,7 @@ module SeriesInterpolation
     #last_temp_val = nil
     last_date = nil
     first_val = nil
-    # self.data.sort.each do |date, val|
-    #   if last_date.nil?
-    #     last_date = date
-    #     last_temp_val = val
-    #     next
-    #   end
-    #   if temp_series_data[last_date].nil?
-    #     temp_series_data[last_date] = last_temp_val + ((val-last_temp_val) / divisor) * ((divisor-1) / 2.to_f)
-    #   end
-    #   
-    #   temp_series_data[date] = val + ((val - temp_series_data[last_date]) / divisor ) * ((divisor - 1) / 2.to_f)
-    #   last_temp_val = temp_series_data[date]
-    #   last_date = date
-    # end
-    
+
     self.data.sort.each do |date, val|
       #first period only
       if last_date.nil?
@@ -211,11 +197,6 @@ module SeriesInterpolation
   
   #this always interpolates to quarterly
   def interpolate(frequency, operation)
-   # puts "FREQUENCY: #{frequency} - #{frequency.class}"
-   # puts "SELF.FREQUENCY: #{self.frequency} - #{self.frequency.class}"
-   # puts "OPERATION: #{operation} - #{operation.class}"
-   #also needs to be ok with frequency of annual
-    #raise InterpolationException if frequency != :quarter or self.frequency != "semi" or operation != :linear
     raise InterpolationException if data.count < 2
     last = nil
     last_date = nil
@@ -305,11 +286,11 @@ module SeriesInterpolation
       prev_val = val
       prev_date = key
     end
-    
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
   end
 
 private
+
   ## Find interpolated values in the 6-month range starting at start_month, and redistribute the difference between
   ## the semiannual value and the average of all the monthlies in that range across (only) the interpolated months.
   ## Note! This code assumes that the even (calendar) numbered months are interpolated and odd numbered ones have real data.
