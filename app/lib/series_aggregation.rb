@@ -60,7 +60,8 @@ private
     raise AggregationException.new, 'original series is not weekly' unless frequency == 'week'
     dailyseries = {}
     weekly_keys = self.data.keys.sort
-    while date = weekly_keys.shift ## beware: this is an assignment, not a comparison.
+    loop do
+      date = weekly_keys.shift || break  ## loop through weekly_keys, whilst removing each item from the array as you go
       delta = weekly_keys.empty? ? 99 : date.delta_days(weekly_keys[0])
       len = delta > 10 ? 6 : delta - 1
       week_value = data[date]
