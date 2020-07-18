@@ -203,10 +203,10 @@ module SeriesInterpolation
     data.sort.each do |this_date, this_val|
       next if this_val.nil?
       if last_val
-        quarter_diff = delta_months(this_date, last_date) / 3
+        delta_quar = delta_months(this_date, last_date) / 3
         value_diff = this_val - last_val
-        high_freq_data[last_date] = last_val - value_diff / (quarter_diff * 2)
-        high_freq_data[last_date + 3.months] = last_val + value_diff / (quarter_diff * 2)
+        high_freq_data[last_date] = last_val - value_diff / (delta_quar * 2)
+        high_freq_data[last_date + 3.months] = last_val + value_diff / (delta_quar * 2)
       end
       last_date = this_date
       last_val = this_val
