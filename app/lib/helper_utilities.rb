@@ -29,4 +29,19 @@ module HelperUtilities
     end
     '%s%sQ%d' % [date.year, delim, quarter_by_month(date.mon)]
   end
+
+  ## Calculate difference in months between dates. Days are not considered, only whole months.
+  ## Params can be passed as Date or String.
+  def delta_months(start_date, end_date)
+    unless start_date.class == Date
+      start_date = Date.parse(start_date) rescue raise("delta_months: parameter #{start_date} not a proper date string")
+    end
+    unless end_date.class == Date
+      end_date = Date.parse(end_date) rescue raise("delta_months: parameter #{end_date} not a proper date string")
+    end
+    if end_date < start_date
+      Rails.logger.warn { 'delta_months: dates are in reverse of expected order, giving negative result' }
+    end
+    (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
+  end
 end

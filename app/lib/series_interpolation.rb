@@ -194,27 +194,27 @@ module SeriesInterpolation
     new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
 
-  #this always interpolates to quarterly
+  #this ONLY interpolates from semi to quarterly
   def interpolate(frequency, operation)
     raise InterpolationException if data.count < 2
-    last_date = last_val = interval = nil
-    quarterly_data = {}
+    last_date = last_val = value_diff = nil
+    high_freq_data = {}
 
     data.sort.each do |this_date, this_val|
       next if this_val.nil?
       if last_val
-        quarter_diff = ((this_date.year - last_date.year) * 12 + (this_date.month - last_date.month)) / 3
-        interval = this_val - last_val
-        quarterly_data[last_date] = last_val - interval / (quarter_diff * 2)
-        quarterly_data[last_date + 3.months] = last_val + interval / (quarter_diff * 2)
+        quarter_diff = delta_months(this_date, last_date) / 3
+        value_diff = this_val - last_val
+        high_freq_data[last_date] = last_val - value_diff / (quarter_diff * 2)
+        high_freq_data[last_date + 3.months] = last_val + value_diff / (quarter_diff * 2)
       end
       last_date = this_date
       last_val = this_val
     end
     #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
-    quarterly_data[last_date] = last_val - interval / 4
-    quarterly_data[last_date + 3.months] = last_val + interval / 4
-    new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
+    high_freq_data[last_date] = last_val - value_diff / 4
+    high_freq_data[last_date + 3.months] = last_val + value_diff / 4
+    new_transformation("Interpolated from #{self}", high_freq_data, frequency)
   end
 
   # this method looks obsolete/vestigial - rename now, remove later
