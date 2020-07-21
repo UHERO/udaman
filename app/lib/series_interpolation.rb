@@ -197,23 +197,25 @@ module SeriesInterpolation
   #this ONLY interpolates from semi to quarterly
   def interpolate(frequency, operation)
     raise InterpolationException if data.count < 2
-    last_date = last_val = value_diff = nil
+    last_date = last_val = change = nil
     high_freq_data = {}
 
+    # growl
+    #
     data.sort.each do |this_date, this_val|
       next if this_val.nil?
       if last_val
-        delta_quar = delta_months(this_date, last_date) / 3
-        value_diff = this_val - last_val
-        high_freq_data[last_date] = last_val - value_diff / (delta_quar * 2)
-        high_freq_data[last_date + 3.months] = last_val + value_diff / (delta_quar * 2)
+        delta_quar = delta_months(last_date, this_date) / 3
+        change = this_val - last_val
+        high_freq_data[last_date] = last_val - change / (delta_quar * 2)
+        high_freq_data[last_date + 3.months] = last_val + change / (delta_quar * 2)
       end
       last_date = this_date
       last_val = this_val
     end
     #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
-    high_freq_data[last_date] = last_val - value_diff / 4
-    high_freq_data[last_date + 3.months] = last_val + value_diff / 4
+    high_freq_data[last_date] = last_val - change / 4
+    high_freq_data[last_date + 3.months] = last_val + change / 4
     new_transformation("Interpolated from #{self}", high_freq_data, frequency)
   end
 
