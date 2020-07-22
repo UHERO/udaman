@@ -195,24 +195,32 @@ module SeriesInterpolation
   end
 
   def interpolate(target_freq, method = :linear)
-    raise(InterpolationException, "Interpolate method #{method} not yet supported") unless method == :linear
-    raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > self.frequency.freqn
+    raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
+    raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
+    interp_data = {}
     last_date = last_val = increment = nil
-    how_many = freq_per_freq(target_freq, self.frequency)
-    high_freq_data = {}
+    how_many = freq_per_freq(target_freq, frequency)
+    factors = {
+      year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
+      semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
+      quarter: { month: [-1, 0, 1] }
+    }
+    f_vals = factors[frequency][target_freq] ||
+              raise(InterpolationException, "Interpolation from #{frequency} to #{target_freq} not yet supported")
 
     data.sort.each do |this_date, this_val|
       next if this_val.nil?
-      if last_val.freqn
+      if last_val
         increment = (this_val - last_val) / how_many
-        ## high_freq_data[last_date] =
+        values = f_vals.map {|f| last_val + f * increment }
+        interp_data.push
       end
       last_date = this_date
       last_val = this_val
     end
-    # high_freq_data[last_date] =
-    new_transformation("Interpolated from #{self}", high_freq_data, target_freq)
+    # interp_data[last_date] =
+    new_transformation("Interpolated from #{self}", interp_data, target_freq)
   end
 
   # this method looks obsolete/vestigial - rename now, remove later
