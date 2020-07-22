@@ -323,7 +323,7 @@ private
   def make_filename(time, ext)
     ## a VERY rough heuristic for whether we have a correct file extention
     ext = ext.length > 4 ? '' : ('.' + ext)
-    time.strftime('%Y-%m-%d-%H:%M') + '_econ_upload' + ext
+    'econ_' + time.strftime('%Y-%m-%d-%H:%M') + '_upload' + ext
   end
 
   def write_file_to_disk(name, content)

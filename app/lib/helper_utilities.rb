@@ -1,6 +1,6 @@
 module HelperUtilities
   ## Return the month number corresponding to start of quarter number passed in
-  ## e.g. first_month_of_quarter(3) => 7
+  ## e.g. first_month_of_quarter(3) => 7; first_month_of_quarter("Q1") => 1
   def first_month_of_quarter(q)
     qnum = q.to_s.gsub(/\D/,'').to_i  ## allow for caller to pass things like "Q2"
     raise "first_month_of_quarter: Invalid quarter number in #{q}" unless [1,2,3,4].include? qnum
@@ -22,7 +22,7 @@ module HelperUtilities
   end
 
   ## Put in date (either string or Date object), get out quarter spec; opt. second param is delimiter string
-  ## e.g. date_to_qspec("2018-03-01") => "2018Q1", date_to_qspec("2018-10-01", "-") => "2018-Q4"
+  ## e.g. date_to_qspec("2018-03-01") => "2018Q1"; date_to_qspec("2018-10-01", "-") => "2018-Q4"
   def date_to_qspec(date, delim = nil)
     unless date.class === Date
       date = Date.parse(date) rescue raise("date_to_qspec: parameter #{date} not a proper date string")
