@@ -44,4 +44,14 @@ module HelperUtilities
     end
     (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
   end
+
+  ## Return how many higher frequency units there are in a lower frequency unit. Nil if not defined.
+  def freq_per_freq(higher, lower)
+    per = { year: { semi: 2, quarter: 4, month: 12 },
+            semi: { quarter: 2, month: 6 },
+            quarter: { month: 3 },
+            week: { day: 7 }
+    }
+    per[lower] && per[lower][higher]
+  end
 end
