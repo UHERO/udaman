@@ -195,12 +195,13 @@ module SeriesInterpolation
   end
 
   ## Generalized (currently only linear) interpolation of a series to a higher frequency.
+  ## --------------- finish comment with source of algo
   def interpolate(target_freq, method = :linear)
     raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
     interpol_data = {}
-    last_date = last_val = nil
+    last_date = last_val = increment = nil
     how_many = freq_per_freq(target_freq, frequency)
     target_months = freq_per_freq(:month, target_freq)
     factors = {
@@ -214,22 +215,23 @@ module SeriesInterpolation
     data.sort.each do |this_date, this_val|
       next if this_val.nil?
       if last_val
-        increment = (this_val - last_val) / how_many
+        increment = (this_val - last_val) / how_many.to_f   ## to_f ensures float division not truncated
         values = f_vals.map {|f| last_val + f * increment }
         (0...how_many).each do |t|
           date = last_date + (t * target_months).send(:months)
-          interpol_data.push [date, values[t]]
+          interpol_data[date] = values[t]
         end
       end
       last_date = this_date
       last_val = this_val
     end
-    values = f_vals.map {|f| last_val + f * increment }  ####<<<<<< figure this out!
+    ### Repeat logic from inside above loop for last observation of original series
+    values = f_vals.map {|f| last_val + f * increment }
     (0...how_many).each do |t|
       date = last_date + (t * target_months).send(:months)
-      interpol_data.push [date, values[t]]
+      interpol_data[date] = values[t]
     end
-    new_transformation("Interpolated from #{self}", interpol_data, target_freq)
+    new_transformation("#{method.capitalize} interpolated from #{self}", interpol_data, target_freq)
   end
 
   # this method looks obsolete/vestigial - rename now, remove later
