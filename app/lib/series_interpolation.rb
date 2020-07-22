@@ -200,7 +200,7 @@ module SeriesInterpolation
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
     interpol_data = {}
-    last_date = last_val = increment = nil
+    last_date = last_val = values = nil
     how_many = freq_per_freq(target_freq, frequency)
     target_months = freq_per_freq(:month, target_freq)
     factors = {
@@ -224,9 +224,10 @@ module SeriesInterpolation
       last_date = this_date
       last_val = this_val
     end
-    #dates =
-    values = f_vals.map {|f| last_val + f * increment }
-    interpol_data.push
+    (0...how_many).each do |t|
+      date = last_date + (t * target_months).send(:months)
+      interpol_data.push [date, values[t]]
+    end
     new_transformation("Interpolated from #{self}", interpol_data, target_freq)
   end
 
