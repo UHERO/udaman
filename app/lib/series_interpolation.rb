@@ -219,8 +219,8 @@ module SeriesInterpolation
     new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
 
-  ## Generalized (currently only linear) interpolation of a series to a higher frequency. Implemented following the
-  ## algorithm for linear interpolation found in AREMOS command reference, with help from PF.
+  ## Generalized interpolation of a series to a higher frequency. Implemented following the algorithm for linear
+  ## interpolation found in AREMOS command reference, with help from PF. Currently only method linear is supported.
   def interpolate_new(target_freq, method = :linear)
     raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
@@ -231,7 +231,7 @@ module SeriesInterpolation
     target_months = freq_per_freq(:month, target_freq)
     all_factors = {
       year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
-      semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
+      semi: { quarter: [-0.25, 0.25], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },  #### <<<<<<< change BACK!!
       quarter: { month: [-1, 0, 1] }
     }
     factors = all_factors[frequency][target_freq] ||
