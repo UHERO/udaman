@@ -47,11 +47,14 @@ module HelperUtilities
 
   ## Return how many higher frequency units there are in a lower frequency unit. Nil if not defined.
   def freq_per_freq(higher, lower)
+    higher = higher.to_sym
+    lower = lower.to_sym
+    return 1 if lower == higher
     per = { year: { semi: 2, quarter: 4, month: 12 },
             semi: { quarter: 2, month: 6 },
             quarter: { month: 3 },
             week: { day: 7 }
     }
-    per[lower.to_sym] && per[lower.to_sym][higher.to_sym]
+    per[lower] && per[lower][higher]
   end
 end

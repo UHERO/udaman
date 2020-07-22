@@ -199,7 +199,7 @@ module SeriesInterpolation
     raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
-    interp_data = {}
+    interpol_data = {}
     last_date = last_val = increment = nil
     how_many = freq_per_freq(target_freq, frequency)
     target_months = freq_per_freq(:month, target_freq)
@@ -218,7 +218,7 @@ module SeriesInterpolation
         values = f_vals.map {|f| last_val + f * increment }
         (0...how_many).each do |t|
           date = last_date + (t * target_months).send(:months)
-          interp_data.push [date, values[t]]
+          interpol_data.push [date, values[t]]
         end
       end
       last_date = this_date
@@ -226,8 +226,8 @@ module SeriesInterpolation
     end
     #dates =
     values = f_vals.map {|f| last_val + f * increment }
-    interp_data.push
-    new_transformation("Interpolated from #{self}", interp_data, target_freq)
+    interpol_data.push
+    new_transformation("Interpolated from #{self}", interpol_data, target_freq)
   end
 
   # this method looks obsolete/vestigial - rename now, remove later
