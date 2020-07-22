@@ -194,6 +194,7 @@ module SeriesInterpolation
     new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
 
+  ## Generalized (currently only linear) interpolation of a series to a higher frequency.
   def interpolate(target_freq, method = :linear)
     raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
@@ -201,6 +202,7 @@ module SeriesInterpolation
     interp_data = {}
     last_date = last_val = increment = nil
     how_many = freq_per_freq(target_freq, frequency)
+    target_months = freq_per_freq(:month, target_freq)
     factors = {
       year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
       semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
@@ -214,12 +216,17 @@ module SeriesInterpolation
       if last_val
         increment = (this_val - last_val) / how_many
         values = f_vals.map {|f| last_val + f * increment }
-        interp_data.push
+        (0...how_many).each do |t|
+          date = last_date + (t * target_months).send(:months)
+          interp_data.push [date, values[t]]
+        end
       end
       last_date = this_date
       last_val = this_val
     end
-    # interp_data[last_date] =
+    #dates =
+    values = f_vals.map {|f| last_val + f * increment }
+    interp_data.push
     new_transformation("Interpolated from #{self}", interp_data, target_freq)
   end
 

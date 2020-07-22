@@ -52,6 +52,6 @@ module HelperUtilities
             quarter: { month: 3 },
             week: { day: 7 }
     }
-    per[lower] && per[lower][higher]
+    per[lower.to_sym] && per[lower.to_sym][higher.to_sym]
   end
 end
