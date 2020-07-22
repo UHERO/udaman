@@ -194,9 +194,34 @@ module SeriesInterpolation
     new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
 
-  ## Generalized (currently only linear) interpolation of a series to a higher frequency.
-  ## --------------- finish comment with source of algo
-  def interpolate(target_freq, method = :linear)
+  def interpolate(frequency, operation)
+    raise InterpolationException if data.count < 2
+    last = nil
+    last_date = nil
+    interval = nil
+    quarterly_data = {}
+    data.sort.each do |key, value|
+      next if value.nil?
+      unless last.nil?
+        d1 = key
+        d2 = last_date
+        quarter_diff = ((d1.year - d2.year) * 12 + (d1.month - d2.month))/3
+        interval = value - last
+        quarterly_data[last_date] = last - interval/(quarter_diff*2)
+        quarterly_data[last_date + 3.months] = last + interval/(quarter_diff*2)
+      end
+      last = value
+      last_date = key
+    end
+    #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
+    quarterly_data[last_date] = last - interval/4
+    quarterly_data[last_date + 3.months] = last + interval/4
+    new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
+  end
+
+  ## Generalized (currently only linear) interpolation of a series to a higher frequency. Implemented following the
+  ## algorithm for linear interpolation found in AREMOS command reference, with help from PF.
+  def interpolate_new(target_freq, method = :linear)
     raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
@@ -204,19 +229,19 @@ module SeriesInterpolation
     last_date = last_val = increment = nil
     how_many = freq_per_freq(target_freq, frequency)
     target_months = freq_per_freq(:month, target_freq)
-    factors = {
+    all_factors = {
       year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
       semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
       quarter: { month: [-1, 0, 1] }
     }
-    f_vals = factors[frequency][target_freq] ||
+    factors = all_factors[frequency][target_freq] ||
               raise(InterpolationException, "Interpolation from #{frequency} to #{target_freq} not yet supported")
 
     data.sort.each do |this_date, this_val|
       next if this_val.nil?
       if last_val
         increment = (this_val - last_val) / how_many.to_f   ## to_f ensures float division not truncated
-        values = f_vals.map {|f| last_val + f * increment }
+        values = factors.map {|f| last_val + f * increment }
         (0...how_many).each do |t|
           date = last_date + (t * target_months).send(:months)
           interpol_data[date] = values[t]
@@ -225,8 +250,8 @@ module SeriesInterpolation
       last_date = this_date
       last_val = this_val
     end
-    ### Repeat logic from inside above loop for last observation of original series
-    values = f_vals.map {|f| last_val + f * increment }
+    ### Repeat logic from inside above loop for final observation of original series
+    values = factors.map {|f| last_val + f * increment }
     (0...how_many).each do |t|
       date = last_date + (t * target_months).send(:months)
       interpol_data[date] = values[t]
