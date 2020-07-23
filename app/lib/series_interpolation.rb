@@ -219,9 +219,9 @@ module SeriesInterpolation
   end
 
   ## Generalized interpolation of a series to a higher frequency. Implemented following the algorithm for linear
-  ## interpolation found in AREMOS command reference, with help from PF. Currently only method linear is supported.
-  def interpolate_new(target_freq, method = :linear)
-    raise(InterpolationException, "Interpolation method #{method} not yet supported") unless method == :linear
+  ## interpolation found in AREMOS command reference, with help from PF.
+  def interpolate_new(target_freq, method = :average)
+    raise(InterpolationException, "Interpolation method #{method} not supported") unless method == :average || method == :sum
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
     interpol_data = {}
@@ -241,6 +241,7 @@ module SeriesInterpolation
       if last_val
         increment = (this_val - last_val) / how_many.to_f   ## to_f ensures float division not truncated
         values = factors.map {|f| last_val + f * increment }
+        values = values.map {|val| val / how_many.to_f } if method == :sum
         (0...how_many).each do |t|
           date = last_date + (t * target_months).send(:months)
           interpol_data[date] = values[t]
@@ -251,11 +252,12 @@ module SeriesInterpolation
     end
     ### Repeat logic from inside above loop for final observation of original series
     values = factors.map {|f| last_val + f * increment }
+    values = values.map {|val| val / how_many.to_f } if method == :sum
     (0...how_many).each do |t|
       date = last_date + (t * target_months).send(:months)
       interpol_data[date] = values[t]
     end
-    new_transformation("#{method.capitalize} interpolated from #{self}", interpol_data, target_freq)
+    new_transformation("Interpolated by #{method} method from #{self}", interpol_data, target_freq)
   end
 
   # this method looks obsolete/vestigial - rename now, remove later
@@ -340,8 +342,13 @@ private
       six_month.push(value)
     end
     diff = (semi_annual_val - six_month.average) * 2.0  ## must be float multiplication
-    new_data[start_month + 1.months] += diff
-    new_data[start_month + 3.months] += diff
-    new_data[start_month + 5.months] += diff
+    begin
+      (new_data[start_month + 1.months] += diff) rescue raise('1')
+      (new_data[start_month + 3.months] += diff) rescue raise('3')
+      (new_data[start_month + 5.months] += diff) rescue raise('5')
+    rescue => e
+      bad_date = start_month + e.message.to_i.months
+      raise "redistribute_semi: cannot redistribute because data missing at #{bad_date}"
+    end
   end
 end
