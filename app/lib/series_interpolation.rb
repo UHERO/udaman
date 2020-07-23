@@ -233,7 +233,7 @@ module SeriesInterpolation
       semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
       quarter: { month: [-1, 0, 1] }
     }
-    factors = all_factors[frequency.to_sym][target_freq.to_sym] ||
+    factors = all_factors[frequency.to_sym][target_freq] ||
               raise(InterpolationException, "Interpolation from #{frequency} to #{target_freq} not yet supported")
 
     data.sort.each do |this_date, this_val|
