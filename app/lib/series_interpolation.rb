@@ -340,8 +340,13 @@ private
       six_month.push(value)
     end
     diff = (semi_annual_val - six_month.average) * 2.0  ## must be float multiplication
-    new_data[start_month + 1.months] += diff
-    new_data[start_month + 3.months] += diff
-    new_data[start_month + 5.months] += diff
+    begin
+      (new_data[start_month + 1.months] += diff) rescue raise('1')
+      (new_data[start_month + 3.months] += diff) rescue raise('3')
+      (new_data[start_month + 5.months] += diff) rescue raise('5')
+    rescue => e
+      bad_date = start_month + e.message.to_i.months
+      raise "redistribute_semi: cannot redistribute because data missing at #{bad_date}"
+    end
   end
 end
