@@ -12,6 +12,7 @@ class Series < ApplicationRecord
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
+  include HelperUtilities
   extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
@@ -1061,7 +1062,8 @@ class Series < ApplicationRecord
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push tane
         when /^[:]/
-          conditions.push %q{source_link regexp ?}
+          all = all.joins(:source)
+          conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
           bindvars.push tane
         when /^[@]/
           all = all.joins(:geography)
