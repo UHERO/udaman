@@ -1,5 +1,4 @@
 module SeriesInterpolation
-  
   def interpolate_to (frequency, operation, series_to_store_name)
     series_to_store_name.ts = interpolate(frequency, operation)
   end
@@ -231,10 +230,10 @@ module SeriesInterpolation
     target_months = freq_per_freq(:month, target_freq)
     all_factors = {
       year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
-      semi: { quarter: [-0.25, 0.25], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },  #### <<<<<<< change BACK!!
+      semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
       quarter: { month: [-1, 0, 1] }
     }
-    factors = all_factors[frequency][target_freq] ||
+    factors = all_factors[frequency.to_sym][target_freq.to_sym] ||
               raise(InterpolationException, "Interpolation from #{frequency} to #{target_freq} not yet supported")
 
     data.sort.each do |this_date, this_val|

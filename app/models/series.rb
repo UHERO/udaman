@@ -12,6 +12,7 @@ class Series < ApplicationRecord
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
+  include HelperUtilities
   extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
