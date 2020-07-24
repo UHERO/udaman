@@ -193,6 +193,7 @@ module SeriesInterpolation
     new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
 
+  ### THIS METHOD SOON TO BE REMOVED, TO BE REPLACED WITH interpolate_new METHOD BELOW!
   def interpolate(frequency, operation)
     raise InterpolationException if data.count < 2
     last = nil
