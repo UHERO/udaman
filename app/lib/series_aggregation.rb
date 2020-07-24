@@ -39,12 +39,7 @@ module SeriesAggregation
     end
 
     if prune   ## normally (default) true
-      per = { year: { semi: 2, quarter: 4, month: 12 },
-              semi: { quarter: 2, month: 6 },
-              quarter: { month: 3 },
-              week: { day: 7 }
-      }
-      minimum_data_points = per[frequency] && per[frequency][myfreq]
+      minimum_data_points = freq_per_freq(myfreq, frequency)
       if myfreq == :day
         grouped_data.delete_if {|date, group| group.count != date.days_in_period(frequency) }
       elsif minimum_data_points
@@ -60,7 +55,8 @@ private
     raise AggregationException.new, 'original series is not weekly' unless frequency == 'week'
     dailyseries = {}
     weekly_keys = self.data.keys.sort
-    while date = weekly_keys.shift ## beware: this is an assignment, not a comparison.
+    loop do
+      date = weekly_keys.shift || break  ## loop through weekly_keys, whilst removing each item from the array as you go
       delta = weekly_keys.empty? ? 99 : date.delta_days(weekly_keys[0])
       len = delta > 10 ? 6 : delta - 1
       week_value = data[date]
@@ -71,7 +67,6 @@ private
 
   def validate_aggregation(frequency)
     raise AggregationException.new, "cannot aggregate to frequency #{frequency}" unless %w[year semi quarter month week].include?(frequency.to_s)
-    raise AggregationException.new, "unknown frequency #{self.frequency}" unless self.frequency.freqn
     raise AggregationException.new, 'can only aggregate to a lower frequency' if frequency.freqn >= self.frequency.freqn
   end
 end

@@ -43,13 +43,13 @@
              <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
           <% end %>
           <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %> |
-          <%= link_to nightly_actuator(ds.reload_nightly), {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
+          <%= link_to 'toggle nightly load', {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
           <% end %>
           <% if ds.runtime %>
               <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" %>)</span>
           <% end %>
         <% if ds.last_error %>
-          <br/><span class='error_message'><%= raw text_with_linked_download(ds.last_error) %> (<%= ds.last_error_at.strftime('%m/%d/%y %H:%M') %>)</span>
+          <br/><span class='error_message'><%= raw text_with_linked_download(ds.last_error) %></span>
         <% end %>
   		</td>
     </tr>
