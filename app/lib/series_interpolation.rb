@@ -243,7 +243,7 @@ module SeriesInterpolation
         values = factors.map {|f| last_val + f * increment }
         values = values.map {|val| val / how_many.to_f } if method == :sum
         (0...how_many).each do |t|
-          date = last_date + (t * target_months).send(:months)
+          date = last_date + (t * target_months).months
           interpol_data[date] = values[t]
         end
       end
@@ -254,7 +254,7 @@ module SeriesInterpolation
     values = factors.map {|f| last_val + f * increment }
     values = values.map {|val| val / how_many.to_f } if method == :sum
     (0...how_many).each do |t|
-      date = last_date + (t * target_months).send(:months)
+      date = last_date + (t * target_months).months
       interpol_data[date] = values[t]
     end
     new_transformation("Interpolated by #{method} method from #{self}", interpol_data, target_freq)
