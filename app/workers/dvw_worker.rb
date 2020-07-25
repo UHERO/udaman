@@ -9,7 +9,7 @@ class DvwWorker
     @logprefix = self.class
   end
 
-  def perform(dvw_id, do_csv_proc: false)
+  def perform(dvw_id, do_csv_proc = false)
     mylogger :info, "Entering perform async: id=#{dvw_id}"
     upload = nil
     begin

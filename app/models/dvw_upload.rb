@@ -17,7 +17,7 @@ class DvwUpload < ApplicationRecord
     begin
       self.save or raise StandardError, 'DVW upload object save failed'
       write_file_to_disk(filename, series_file_content) or raise StandardError, 'DVW upload disk write failed'
-      DvwWorker.perform_async(id, do_csv_proc: true)
+      DvwWorker.perform_async(id, true)
     rescue => e
       self.delete if e.message =~ /disk write failed/
       return false
