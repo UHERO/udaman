@@ -76,7 +76,7 @@ class Date
   end
   
   def year_s
-    year.to_s+"-01-01"
+    year_d.to_s
   end
 
   def year_d
@@ -88,11 +88,11 @@ class Date
   end
 
   def month_s
-    strftime('%Y-%m-01')
+    month_d.to_s
   end
 
   def month_d
-    Date.parse(month_s)
+    Date.new(self.year, self.mon)
   end
 
   def week_d   ## weeks (Sun-Sat) are aggregated to the concluding Saturday
@@ -123,6 +123,20 @@ class Date
   def delta_days(other_endpt)
     raise 'delta_days: other endpoint is not a Date' unless other_endpt.class == Date
     (self - other_endpt).to_i.abs
+  end
+
+  ################### THIS NEEDS TO BE TOTALLY REWRITTEN TO BE A DATE INSTANCE METHOD
+  def delta_months(start_date, end_date)
+    unless start_date.class == Date
+      start_date = Date.parse(start_date) rescue raise("delta_months: parameter #{start_date} not a proper date string")
+    end
+    unless end_date.class == Date
+      end_date = Date.parse(end_date) rescue raise("delta_months: parameter #{end_date} not a proper date string")
+    end
+    if end_date < start_date
+      Rails.logger.warn { 'delta_months: dates are in reverse of expected order, giving negative result' }
+    end
+    (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
   end
 
   def Date.last_7_days

@@ -594,7 +594,7 @@ class Series < ApplicationRecord
     Series.new(
       :name => name,
       :xseries => Xseries.new(frequency: frequency),
-      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [Date.parse(date.to_s), value] }]
+      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
     ).tap do |o|
       o.propagate_state_from(self)
     end
@@ -763,9 +763,11 @@ class Series < ApplicationRecord
   end
   
   def days_in_period
-    series_data = {}
-    data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
-    new_transformation('days in time periods', series_data, self.frequency)
+    new_data = {}
+    data.each do |date, _|
+      new_data[date] = date.days_in_period(frequency)
+    end
+    new_transformation("number of days in each #{frequency}", new_data, frequency)
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later

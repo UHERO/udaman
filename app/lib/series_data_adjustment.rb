@@ -20,7 +20,7 @@ module SeriesDataAdjustment
     if start_date.nil?
       return new_transformation("Trimmed #{name}", data)
     end
-    new_series_data = get_values_after_including(Date.parse(start_date.to_s), Date.parse(end_date.to_s))
+    new_series_data = get_values_after_including(start_date.to_date, end_date.to_date)
     new_transformation("Trimmed #{name} starting at #{start_date}", new_series_data)
   end
 
@@ -78,8 +78,8 @@ module SeriesDataAdjustment
   end
 
   def get_scaled_no_ph_after_inc(start_date, end_date = Time.now.to_date, round_to = 3)
-    start_date = Date.parse(start_date.to_s)
-    end_date = Date.parse(end_date.to_s)
+    start_date = start_date.to_date
+    end_date = end_date.to_date
     scaled_data_no_pseudo_history(round_to).reject do |date, value|
       date < start_date or value.nil? or date > end_date
     end
