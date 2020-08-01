@@ -276,6 +276,11 @@ class NewDbedtUpload < ApplicationRecord
       NewDbedtUpload.update_all(active: false)
       self.update_attributes(status: :ok, active: true, last_error_at: nil, last_error: "#{total} data points loaded")
     end
+    mylogger :info, 'starting DataPoint.update_public_data_points'
+    unless DataPoint.update_public_data_points('DBEDT')
+      mylogger :warn, 'FAILED to update public_data_points'
+      return false
+    end
     mylogger :info, 'worker_tasks: loaded and active'
   end
 
