@@ -179,18 +179,17 @@ class DataPoint < ApplicationRecord
       #{' and s.id = ? ' if series} ;
     SQL
     begin
-      ### Refactor the following using splat * operator
-      ActiveRecord::Base.transaction do
-        stmt = ActiveRecord::Base.connection.raw_connection.prepare(update_query)
-        series ? stmt.execute(universe, series.id) : stmt.execute(universe)
+      bind_vals = [universe]
+      bind_vals.push(series.id) if series
+      self.transaction do
+        stmt = ApplicationRecord.connection.raw_connection.prepare(update_query)
+        stmt.execute(*bind_vals)
         stmt.close
-        Rails.logger.debug { "update_public_data_points: DONE doing update" }
-        stmt = ActiveRecord::Base.connection.raw_connection.prepare(insert_query)
-        series ? stmt.execute(universe, series.id) : stmt.execute(universe)
+        stmt = ApplicationRecord.connection.raw_connection.prepare(insert_query)
+        stmt.execute(*bind_vals)
         stmt.close
-        Rails.logger.debug { "update_public_data_points: DONE doing insert" }
-        stmt = ActiveRecord::Base.connection.raw_connection.prepare(delete_query)
-        series ? stmt.execute(universe, series.id) : stmt.execute(universe)
+        stmt = ApplicationRecord.connection.raw_connection.prepare(delete_query)
+        stmt.execute(*bind_vals)
         stmt.close
         Rails.logger.debug { "update_public_data_points: DONE doing delete" }
       end
