@@ -37,7 +37,7 @@ class String
     puts "operation took #{Time.now - t}"
     result
   end
-  
+
   def unzip(want_file = nil)
     dest_dir = self.change_file_extension('')
     Zip::File.open(self) {|zip_file|
@@ -69,7 +69,7 @@ class String
   ## convert frequency string values to numeric ones that can be compared for >, <, etc
   ## returns nil for strings not included
   def freqn
-    %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase)
+    %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase) || raise("Unknown frequency #{self}")
   end
 end
 

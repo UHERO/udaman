@@ -23,7 +23,7 @@ class DbedtUploadsController < ApplicationController
   def create
     @dbedt_upload = DbedtUpload.new(dbedt_upload_params)
 
-    unless @dbedt_upload.store_upload_files(dbedt_upload_params[:cats_filename], dbedt_upload_params[:series_filename])
+    unless @dbedt_upload.store_upload_files(dbedt_upload_params[:filename])
       redirect_to(action: 'index')
       return
     end
@@ -61,6 +61,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def dbedt_upload_params
-      params.require(:dbedt_upload).permit(:filetype, :cats_filename, :series_filename)
+      params.require(:dbedt_upload).permit(:filename)
     end
 end

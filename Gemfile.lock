@@ -5,7 +5,7 @@ GEM
     actioncable (5.2.4.3)
       actionpack (= 5.2.4.3)
       nio4r (~> 2.0)
-      websocket-driver (>= 0.6.1)
+      websocket-driver (>= 0.7.3)
     actionmailer (5.2.4.3)
       actionpack (= 5.2.4.3)
       actionview (= 5.2.4.3)
@@ -179,7 +179,7 @@ GEM
       rack
       rake (>= 0.8.1)
     public_suffix (3.1.1)
-    rack (2.2.2)
+    rack (2.2.3)
     rack-protection (2.0.4)
       rack
     rack-test (1.1.0)
@@ -318,7 +318,7 @@ GEM
       regexp_parser (~> 1.2)
       selenium-webdriver (~> 3.6)
     webrobots (0.1.2)
-    websocket-driver (0.7.2)
+    websocket-driver (0.7.3)
       websocket-extensions (>= 0.1.5)
     websocket-extensions (0.1.5)
     whenever (0.9.7)

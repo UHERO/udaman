@@ -108,10 +108,6 @@ module SeriesHelper
     "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
   end
 
-  def nightly_actuator(nightly)
-    (nightly ? 'disable' : 'enable') + ' nightly'
-  end
-
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
