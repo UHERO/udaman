@@ -2,7 +2,6 @@ class DvwUpload < ApplicationRecord
   include HelperUtilities
   require 'date'
   before_destroy :delete_files_from_disk
-  before_destroy :delete_data_and_data_sources
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -146,7 +145,7 @@ class DvwUpload < ApplicationRecord
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
-        columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
+        columns = row_pairs.to_a.reject {|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map {|x,_| x.strip.downcase }  ## leave out L_* and O_*
         columns.push('level', 'order')  ## add renamed/computed columns
         columns.delete('parent')  ## filled in by SQL at the end
         columns[columns.index('id')] = 'handle'    ## rename "id" column as "handle" - kinda hacky
@@ -157,10 +156,11 @@ class DvwUpload < ApplicationRecord
 
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
-        val = data.blank? ? nil : data.strip
-        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
+        break if header.blank?
+        val = data.blank? ? nil : data.to_ascii.strip
+        row[header.strip.downcase] = (Integer(val) rescue val)  ## convert integers to Integer type if possible
       end
+
       break if row['id'].nil?  ## in case there are blank rows appended at the end
       row['handle'] ||= row['id']  ## rename id as necessary
       if row['parent']
@@ -217,9 +217,11 @@ class DvwUpload < ApplicationRecord
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
-        row[header.strip.downcase] = data.blank? ? nil : data.strip
+        break if header.blank?
+        val = data.blank? ? nil : data.to_ascii.strip
+        row[header.strip.downcase] = (Integer(val) rescue Float(val) rescue val)  ## convert numeric types if possible. Parens are crucial!
       end
+
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end
       row['date'] = make_date(row['year'].to_i, row['qm'].to_s)
@@ -232,7 +234,7 @@ class DvwUpload < ApplicationRecord
       dp_data_set.push row_values
     end
 
-    dp_query = <<~MYSQL
+    sql_stmt = DvwUpload.connection.raw_connection.prepare(<<~MYSQL)
       insert into data_points
         (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
       select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
@@ -247,7 +249,7 @@ class DvwUpload < ApplicationRecord
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
     dp_data_set.in_groups_of(1000, false) do |dps|
-      db_execute_set dp_query, dps
+      db_execute_set sql_stmt, dps
     end
     mylogger :info, 'done load_series_csv'
     dp_data_set.count
@@ -264,7 +266,7 @@ class DvwUpload < ApplicationRecord
     mylogger :debug, 'DONE generate data toc'
   end
 
-  def worker_tasks(do_csv_proc = false)
+  def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
     mylogger :debug, "before full_load"
     total = full_load
@@ -273,6 +275,7 @@ class DvwUpload < ApplicationRecord
   end
 
 private
+
   def csv_extract
     xls_path = absolute_path('series')
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
@@ -299,6 +302,10 @@ private
   end
 
   def path(name = nil)
+    if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      mylogger :warn, 'WARNING! Attempt to access filesystem path %s' % name
+      return
+    end
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
     File.join(parts)
@@ -314,7 +321,7 @@ private
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -324,7 +331,7 @@ private
     begin
       content = File.open(path(name), 'r') { |f| f.read }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     content
@@ -334,7 +341,7 @@ private
     begin
       File.delete(abspath)
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -344,22 +351,17 @@ private
     delete_series_file
   end
 
-  ### This doesn't really do what it seems to be intended for, right? Check back into it later...
-  ###
-  def delete_data_and_data_sources
-    db_execute <<~MYSQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
-    MYSQL
-  end
-
-  def db_execute(query, values = [])
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+  def db_execute(stmt, values = [])
+    if stmt.class == String
+      stmt = DvwUpload.connection.raw_connection.prepare(stmt)
+    end
     stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
-  def db_execute_set(query, set)
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+  def db_execute_set(stmt, set)
+    if stmt.class == String
+      stmt = DvwUpload.connection.raw_connection.prepare(stmt)
+    end
     set.each {|values| stmt.execute(*values) }
   end
 
@@ -367,9 +369,13 @@ private
     month = 1
     begin
       if mq =~ /([MQ])(\d+)/i
-        month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
+        month = case $1.upcase
+                when 'M' then $2.to_i
+                when 'Q' then first_month_of_quarter($2)
+                else raise('boom')
+                end
       end
-      '%d-%02d-01' % [year, month]
+      Date.new(year, month).to_s
     rescue
       year_msg = year.blank? ? ' is empty' : "=#{year}"
       raise "Bad date params: year#{year_msg}, QM='#{mq}'"
@@ -386,6 +392,6 @@ private
   end
 
   def mylogger(level, message)
-    Rails.logger.send(level) { "#{Time.now} DvwUpload id=#{self.id}: #{message}" }
+    Rails.logger.send(level) { "DvwUpload id=#{self.id}: #{message}" }
   end
 end

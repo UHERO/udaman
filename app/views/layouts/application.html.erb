@@ -38,7 +38,10 @@
 &sa   seasonally adjusted only
 &ns   non-seasonally adjusted only
 /        change universe (/db, /coh, /nta)
-=       do OLD style predictive search :P"><span style="font-size:larger;"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></span></a>
+=       do OLD style predictive search :P
+
+~ns$      Match NS series based on name (combine with other terms)
+145746  Find a series by entering its ID number"><span style="font-size:larger;"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></span></a>
   	<div id="search" style="display:inline">
   		<%= render :partial => '/layouts/series_search' %>
   	</div>
@@ -58,6 +61,7 @@
   <% end %>
   <% if current_user.dev_user? || current_user.dbedt? %>
     | <a href="/dbedt_uploads">DBEDT Econ D/w Uploads</a>
+    | <a href="/new_dbedt_uploads">DBEDT NEW D/w Uploads</a>
     | <a href="/dvw_uploads">DBEDT Tour D/w Uploads</a>
   <% end %>
   </div>
