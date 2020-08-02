@@ -1,8 +1,5 @@
 class NtaUpload < ApplicationRecord
   require 'date'
-  before_destroy :delete_files_from_disk
-  before_destroy :delete_data_and_data_sources
-
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(series_file)
@@ -23,10 +20,6 @@ class NtaUpload < ApplicationRecord
       return false
     end
     true
-  end
-
-  def set_active(status)
-    self.update! :active => status
   end
 
   def make_active
@@ -72,26 +65,16 @@ class NtaUpload < ApplicationRecord
     read_file_from_disk(series_filename)
   end
 
-  def delete_series_file
-    xlspath = absolute_path('series')
-    if series_filename && File.exists?(xlspath)
-      r = delete_file_from_disk xlspath
-      r &&= FileUtils.rm_rf xlspath.change_file_extension('')  ## the dir containing csv files -dji
-      return (r || throw(:abort))
-    end
-    true
-  end
-
   def full_load
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} BEGIN full load #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} BEGIN full load #{Time.now}" }
     load_cats_csv
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load cats #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} DONE load cats #{Time.now}" }
     load_series_csv
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load series #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} DONE load series #{Time.now}" }
     load_data_postproc
-    Rails.logger.debug { "NtaLoadWorker id=#{self.id} DONE load postproc #{Time.now}" }
+    Rails.logger.debug { "NtaLoadWorker id=#{id} DONE load postproc #{Time.now}" }
     make_active_settings
-    Rails.logger.info { "NtaLoadWorker id=#{self.id} loaded as active #{Time.now}" }
+    Rails.logger.info { "NtaLoadWorker id=#{id} loaded as active #{Time.now}" }
   end
 
   def load_cats_csv
@@ -160,7 +143,7 @@ class NtaUpload < ApplicationRecord
         measurement.update data_portal_name: long_name
       end
       if data_list.measurements.where(id: measurement.id).empty?
-        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 11)
+        DataListMeasurement.create(data_list_id: data_list.id, measurement_id: measurement.id, indent: 'indent0', list_order: 12)
         Rails.logger.debug "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
@@ -216,10 +199,12 @@ class NtaUpload < ApplicationRecord
       indicator_name = cat.meta.sub(/^NTA_/,'')
       indicator_title = cat.name
 
-      CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+      CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
         row_data = {}
-        ## convert row data to a hash keyed on column header. force all blank/empty to nil.
-        row.to_a.each {|header, data| row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip }
+        row_pairs.to_a.each do |header, data|  ## convert row data to a hash keyed on column header. force blank/empty to nil.
+          next if header.blank?
+          row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
+        end
 
         group = row_data['group'].downcase
         next unless ['region','income group','country'].include? group
@@ -286,7 +271,7 @@ class NtaUpload < ApplicationRecord
                     .uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                     .join(',')
-        self.connection.execute <<~MYSQL
+        NtaUpload.connection.execute <<~MYSQL
           REPLACE INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
         MYSQL
       end
@@ -323,8 +308,7 @@ class NtaUpload < ApplicationRecord
   end
 
   def NtaUpload.load(id, series_id)
-    du = NtaUpload.find(id) || raise("No NtaUpload found with id=#{id}")
-    du.full_load
+    raise "You cannot load individual series that way (#{series_id})"
   end
 
   def NtaUpload.average(id, group)
@@ -333,53 +317,59 @@ class NtaUpload < ApplicationRecord
   end
 
   def NtaUpload.delete_universe_nta
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 0;
+    SQL
+    NtaUpload.connection.execute <<~SQL
       delete p
       from public_data_points p join series s on s.id = p.series_id
       where s.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete d
       from data_points d join series s on s.xseries_id = d.xseries_id
       where s.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete ms from measurement_series ms join measurements m on m.id = ms.measurement_id where m.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from data_sources where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
-      delete from series where universe = 'NTA' ;
-    SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete x
       from xseries x join series s on s.xseries_id = x.id
       where s.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
+      delete from series where universe = 'NTA' ;
+    SQL
+    NtaUpload.connection.execute <<~SQL
       delete from measurements where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from units where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from sources where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete gt from geo_trees gt join geographies g on g.id = gt.parent_id where g.universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from geographies where universe = 'NTA' ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from categories where universe = 'NTA' and ancestry is not null ;
     SQL
-    ActiveRecord::Base.connection.execute <<~SQL
+    NtaUpload.connection.execute <<~SQL
       delete from data_lists where universe = 'NTA' ;
+    SQL
+    NtaUpload.connection.execute <<~SQL
+        SET FOREIGN_KEY_CHECKS = 1;
     SQL
   end
 
@@ -493,9 +483,9 @@ class NtaUpload < ApplicationRecord
       select distinct dl.id, m.id, 'indent0',
           case m.data_portal_name
             when 'Region' then 0
-            when 'Income Group' then 6
-            /* All Countries is assigned list_order 11 above in Ruby code. Change there if necessary */
-            else 12
+            when 'Income Group' then 7
+            /* All Countries is assigned list_order 12 above in Ruby code. Change there if necessary */
+            else 13
           end
       from data_lists dl
         join measurements m
@@ -510,15 +500,16 @@ class NtaUpload < ApplicationRecord
       select distinct dl.id, m.id, 'indent1',
           case m.data_portal_name
               when 'African Countries' then 1
-              when 'American Countries' then 2
-              when 'Asian Countries' then 3
-              when 'European Countries' then 4
-              when 'Oceania Countries' then 5
-              when 'Low Income Countries' then 7
-              when 'Lower Middle Income Countries' then 8
-              when 'Upper Middle Income Countries' then 9
-              when 'High Income Countries' then 10
-            else 12
+              when 'Asian Countries' then 2
+              when 'European Countries' then 3
+              when 'Latin American and the Caribbean countries' then 4
+              when 'North American Countries' then 5
+              when 'Oceania Countries' then 6
+              when 'Low Income Countries' then 8
+              when 'Lower Middle Income Countries' then 9
+              when 'Upper Middle Income Countries' then 10
+              when 'High Income Countries' then 11
+            else 13
           end
       from data_lists dl
         join measurements m
@@ -570,18 +561,6 @@ private
       return false
     end
     true
-  end
-
-  def delete_files_from_disk
-    delete_series_file
-  end
-
-  def delete_data_and_data_sources
-    NtaUpload.connection.execute <<~SQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{self.id},%)');
-    SQL
-    DataSource.where("eval LIKE 'NtaUpload.load(#{self.id},%)'").delete_all
   end
 
 end

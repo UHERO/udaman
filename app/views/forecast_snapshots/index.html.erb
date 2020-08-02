@@ -34,13 +34,11 @@
         <% end %>
         <td><%= fs.created_at.strftime("%m/%d/%y") %></td>
         <td><%= fs.updated_at.strftime("%m/%d/%y") %></td>
-        <td>
-          <%= link_to 'Table', forecast_snapshot_path(fs) + '/table' %>
-        </td>
+        <td><%= link_to 'Table', { action: :table, id: fs }  %></td>
+        <td><%= link_to 'CSV', { action: :show, format: :csv, id: fs } %></td>
         <% if current_user.admin_user? %>
            <td><%= link_to 'Edit', edit_forecast_snapshot_path(fs) %></td>
-        <% end %>
-        <% if current_user.dev_user? %>
+           <td><%= link_to 'Dup', { action: :duplicate, id: fs } %></td>
            <td><%= link_to 'Destroy', fs, method: :delete, data: { confirm: "Destroy #{fs.name}, version #{fs.version}: Are you sure??" } %></td>
         <% end %>
       </tr>

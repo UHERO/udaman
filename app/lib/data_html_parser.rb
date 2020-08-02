@@ -33,18 +33,18 @@ class DataHtmlParser
         :years_option =>'all_years'
     }
     @doc = self.download
-    frequency = self.data.keys[0] if frequency.nil?
-    self.data[frequency]
+    avail_freqs = data.keys
+    frequency ||= avail_freqs[0]
+    if avail_freqs.count > 0 && !avail_freqs.include?(frequency)
+      raise "BLS API: #{code} has no data at frequency #{frequency}, only #{avail_freqs.join(', ')}"
+    end
+    data[frequency]
   end
 
-  # working Y@HI.A query
-  # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=RegionalData&KeyCode=TPI_SI&GeoFIPS=15000&ResultFormat=JSON&
-  # NIPA Test
-  # http://www.bea.gov/api/data/?&UserID=66533E32-0B70-4EF6-B367-05662C3B7CA8&method=GetData&datasetname=NIPA&TableID=6&Frequency=A&Year=X&GeoFIPS=15001&ResultFormat=JSON&
-  def get_bea_series(dataset, parameters)
+  def get_bea_series(dataset, filters)
     api_key = ENV['API_KEY_BEA']
     raise 'No API key defined for BEA' unless api_key
-    query_pars = parameters.map{|k, v| "#{k}=#{v}"}.join('&')
+    query_pars = filters.map {|k,v| "#{k}=#{v}" }.join('&')
     @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
     @doc = self.download
@@ -60,7 +60,7 @@ class DataHtmlParser
 
     new_data = {}
     results_data.each do |data_point|
-      next unless request_match(parameters, data_point)
+      next unless request_match(filters, data_point)
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.gsub(',','').is_numeric?
@@ -70,10 +70,45 @@ class DataHtmlParser
     new_data
   end
 
+  def get_estatjp_series(code, filters)
+    #### NOTE: This routine is written to collect ONLY monthly data
+    api_key = ENV['API_KEY_ESTATJP'] || raise('No API key defined for ESTATJP')
+    api_version = '3.0'
+    query = filters.keys.map {|key| 'cd%s=%s' % [key.to_s.titlecase, filters[key]] }.join('&')
+    @url = "https://api.e-stat.go.jp/rest/#{api_version}/app/json/getStatsData?" +
+           "appId=#{api_key}&statsDataId=#{code}&#{query}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
+    Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
+    @doc = self.download
+    json = JSON.parse self.content
+    apireturn = json['GET_STATS_DATA'] || raise('ESTATJP: major unknown failure')
+    if apireturn['RESULT']['STATUS'] != 0
+      raise 'ESTATJP Error: %s' % apireturn['RESULT']['ERROR_MSG']
+    end
+    statdata = apireturn['STATISTICAL_DATA'] || raise('ESTATJP: no results included')
+#    if statdata['CLASS_INF']['CLASS_OBJ'].select{|h| h['@id'] == 'time' && h['@name'] =~ /#{frequency}/i }.empty?
+#      raise "ESTATJP: Expecting data with freq type #{frequency}, but seems we did not get it"
+#    end
+    results = statdata['DATA_INF'] && statdata['DATA_INF']['VALUE'] || raise('ESTATJP: results, but no data')
+
+    new_data = {}
+    results.each do |data_point|
+      next unless estatjp_filter_match(filters, data_point)
+      time_period = estatjp_convert_date(data_point['@time']) || next
+      value = data_point['$']  ## apparently all values are money, even when they're not ;)
+      if value && value.gsub(',','').is_numeric?
+        new_data[time_period] = value.gsub(',','').to_f
+      end
+    end
+    new_data
+  end
+
   def get_clustermapping_series(dataset, parameters)
+    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
-    Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
+    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
+    ## The url should preferably use https, but Clustermapping was having trouble with their SSL certs, and I backed
+    ## the code off to http. Should be restored to https at some time in future, after they get their "stuff" together.
     @doc = self.download
     response = JSON.parse self.content
     raise  'Clustermapping API: unknown failure' unless response
@@ -86,6 +121,11 @@ class DataHtmlParser
       end
     end
     new_data
+  end
+
+  def expand_date_range(date_range)
+    split_dates = date_range.split(":")
+    (split_dates[0]..split_dates[1]).to_a.join(',')
   end
 
   def get_eia_series(parameter)
@@ -131,28 +171,31 @@ class DataHtmlParser
   def content
     @content
   end
-  
-  def save_content(save_path)
-    open(save_path, 'wb') { |file| file.write @content }
+
+  def url
+    @url
   end
-  
+
   def bls_text
-    #puts @doc.css('pre').text
-    @doc.css('pre').text
+    @doc.css('pre').text   ## This 'pre' has to be lower case for some strange reason
   end
   
   def get_data
-    @data_hash ||= {}
-    data_lines = bls_text.split("\n")
+    data_hash ||= {}
+    resp = bls_text
+    raise "BLS API: #{resp.strip}" if resp =~ /error/i
+
+    data_lines = resp.split("\n")
     data_lines.each do |dl|
-      next unless (dl.index @code) == 0
+      next unless dl.index(@code) == 0
+     ## this should be uncommented sometime... next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
-      @data_hash[freq] ||= {}
-      @data_hash[freq][date] = cols[3].to_f unless date.nil?
+      data_hash[freq] ||= {}
+      data_hash[freq][date] = cols[3].to_f
     end
-    @data_hash
+    data_hash
   end
   
   def data
@@ -186,11 +229,27 @@ class DataHtmlParser
     when /^Q(4|04)\b/
       Date.new(year_string.to_i, 10)
     else
-     'Error: invalid date %s-%s' % [year_string, other_string]
+      raise 'DataHtmlParser::get_date: invalid params "%s-%s"' % [year_string, other_string]
     end
   end
-  
-  def download
+
+  def estatjp_convert_date(datecode)
+    year = datecode[0..3]
+    m1 = datecode[-4..-3].to_i
+    m2 = datecode[-2..-1].to_i
+    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
+    '%s-%02d-01' % [year, m2]
+  end
+
+  def estatjp_filter_match(filters, dp)
+    filters.keys.each do |key|
+      dp_key = '@' + key.to_s
+      return false if dp[dp_key] != filters[key].to_s
+    end
+    true
+  end
+
+  def download(verifyssl: true)
     require 'uri'
     require 'net/http'
     require 'timeout'
@@ -199,6 +258,10 @@ class DataHtmlParser
 
     http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = url.scheme == 'https'
+    unless verifyssl  ## can be used for temporary workaround when sites have SSL cert trouble
+      Rails.logger.warn { "Not verifying SSL certs for #{url}" }
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
     http.ssl_timeout = 60
     if @post_parameters.nil? or @post_parameters.length == 0
       @content = fetch(@url).read_body
@@ -215,6 +278,7 @@ class DataHtmlParser
   def fetch(uri_str, limit = 10)
     raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
+    Rails.logger.debug { "GETTING URL #{URI(uri_str)}" }
     response = Net::HTTP.get_response(URI(uri_str))
 
     case response
@@ -222,7 +286,7 @@ class DataHtmlParser
         response
       when Net::HTTPRedirection then
         location = response['location']
-        warn "redirected to #{location}"
+        Rails.logger.warn { "redirected to #{location}" }
         fetch(location, limit - 1)
       else
         response.value

@@ -12,7 +12,7 @@ module UpdateCore
   def headers
     @headers ||= read_headers
   end
-   # test that ordeer corresponds to col headings  
+
   def headers_with_frequency_code
     return self.headers.keys if self.headers.keys[0].split('.').count == 2
     return_array = Array.new
@@ -47,17 +47,21 @@ module UpdateCore
   end
   
   def date_frequency
-    return :year if (365..366) === date_interval
-    return :semi if (168..183) === date_interval
-    return :quarter if (84..93) === date_interval
-    return :month if (28..31) === date_interval
-    :week if date_interval == 7
+    case date_interval
+      when (365..366) then :year
+      when (168..183) then :semi
+      when (84..93) then :quarter
+      when (28..31) then :month
+      when 7 then :week
+      when 1 then :day
+      else raise("Cannot compute date_frequency for interval of #{date_interval}")
+    end
   end
   
   def metadata_header(cell_data)
-    metadata_headers =  ['LineCode','LineTitle','Industry Code','Industry','Definitions', 'UNIT', 'Year Month', 'Value']
     return false unless cell_data.class == String
-    true if metadata_headers.include?(cell_data)
+    metadata_headers = ['LineCode','LineTitle','Industry Code','Industry','Definitions', 'UNIT', 'Year Month', 'Value']
+    metadata_headers.include?(cell_data)
   end
 
   def cell_to_date(row,col)
@@ -82,7 +86,7 @@ module UpdateCore
     end
 
     ## If it's a quarter spec (YYYYQ2, etc) then convert to a date (else don't)
-    cell_data = convert_qspec_to_date(cell_data) || cell_data
+    cell_data = qspec_to_date(cell_data) || cell_data
 
     Date.parse cell_data.to_s
   end
@@ -99,7 +103,10 @@ module UpdateCore
   end
   
   def series(series_name)
-    series_name = series_name.split('.')[0] if series_name.split('.').count > headers.keys[0].split('.').count
+    series_name.upcase!
+    if series_name.split('.').count > headers.keys[0].split('.').count
+      series_name = series_name.split('.')[0]
+    end
     series_hash = Hash.new
     
     if header_location == 'columns'
@@ -148,15 +155,17 @@ module UpdateCore
 
     if self.header_location == 'columns'
       2.upto(self.last_column) do |col|
-        header_string = self.cell(1,col)
-        @headers[header_string] = col unless header_string.nil? or header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
+        cell = self.cell(1, col)
+        header_string = cell && cell.upcase
+        @headers[header_string] = col unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
     
     if self.header_location == 'rows'
       2.upto(self.last_row) do |row|
-        header_string = self.cell(row,1)
-        @headers[header_string] = row unless header_string.nil? or header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
+        cell = self.cell(row, 1)
+        header_string = cell && cell.upcase
+        @headers[header_string] = row unless header_string.nil? or header_string.is_a?(Numeric) or header_string['@'] != '@'
       end
     end
     

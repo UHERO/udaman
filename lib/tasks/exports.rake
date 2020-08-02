@@ -23,25 +23,5 @@ task :aremos_exports => :environment do
 end
 
 task :tsd_exports => :environment do
-  t = Time.now
-  Series.run_tsd_exports
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['tsd_exports', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
-end
-
-### Do we really still need this? What was the compelling reason for introducing it in the first place?
-task :categories_backup => :environment do
-  misc_dir = File.join(ENV['DATA_PATH'], 'misc')
-  new_dump = File.join(misc_dir, 'new_dump.sql')
-  latest = File.join(misc_dir, 'latest_categories.sql')
-  unless system(%Q{rm -f #{new_dump}; mysqldump -u$DB_USER -p$DB_PASSWORD -h$DB_HOST uhero_db_dev categories | sed 's/),(/),\\n\\/*INSERT*\\/(/g' > #{new_dump}})
-    Rails.logger.warn "Categories_backup task: mysqldump fail: #{$?.to_s}"
-    return
-  end
-  cats_have_changed = !system(%Q{bash -c 'diff <(grep INSERT #{latest}) <(grep INSERT #{new_dump}) > /dev/null 2>&1'})
-  if cats_have_changed
-    prev_latest = File.join(misc_dir, 'prev_latest_categories.sql')
-    File.rename(prev_latest, File.join(misc_dir, 'prev_prev_latest_categories.sql')) rescue ''
-    File.rename(latest, prev_latest) rescue ''
-    File.rename(new_dump, latest) rescue ''
-  end
+  ExportWorker.perform_async
 end

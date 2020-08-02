@@ -8,19 +8,27 @@
 	
 		<div class="field">
 			<%= f.label :handle %>
-			<%= f.text_field :handle, :size => 100 %>
-		</div>
-		
-		<div class="field">
-			<%= f.label :url %>
-			<div id="url_message"></div>
-			<%= f.text_field :url, :size => 100, 'data-test-url': 'url_message' %>
+			<%= f.text_field :handle, :size => 60 %>
 		</div>
 
-     <div class="field">
-       <%= f.label 'Save path' %>
-       <%= text_field_tag :save_path_display, @output_file.save_path, size: 120, disabled: true %>
-     </div>
+    <div class="field">
+      <%= f.label 'Date sensitive?' %>
+      <%= f.check_box :date_sensitive %>
+      Sort 1 (usu. year) <%= f.text_field :sort1, size: 8 %>
+      Sort 2 (usu. month) <%= f.text_field :sort2, size: 8 %>
+    </div>
+
+    <div class="field">
+			URL
+			<div id="url_message"></div>
+			<%= f.text_field :url, size: 120, 'data-test-url': 'url_message' %>
+		</div>
+
+    <div class="field">
+      <%= f.check_box :freeze_file %>
+      If checked, this download is temporarily frozen, i.e. the file will not be downloaded from the above URL, but an
+      <br/>existing file on the server will be maintained and continue to have series data drawn from it.
+    </div>
 
       <div class="field">
 			<%= f.label :filename_ext, 'Filename extension' %>
@@ -50,7 +58,8 @@
 		
 		<div class="actions">
 			<%= f.submit %>
-		</div>
+      <%= link_to 'Cancel', :back %>
+    </div>
 	<% end %>
 </div>
 <script>

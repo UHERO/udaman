@@ -26,15 +26,17 @@
     td {
       border-bottom: 0;
       text-align: right;
-      padding: 20px 20px 0;
+      padding: 5px 5px 0;
     }
 
     .series-title, .change {
       text-align: left;
+      white-space: nowrap;
       // padding-left: 20px;
     }
 
     .series-title, .series-data {
+      white-space: nowrap;
       // padding-top: 20px;
     }
 

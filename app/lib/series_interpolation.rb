@@ -1,7 +1,6 @@
 module SeriesInterpolation
-  
   def interpolate_to (frequency, operation, series_to_store_name)
-    series_to_store_name.ts = interpolate frequency,operation
+    series_to_store_name.ts = interpolate(frequency, operation)
   end
   
   def extend_first_data_point_back_to(date)
@@ -25,7 +24,7 @@ module SeriesInterpolation
   
   def extend_last_date_to_match(series_name)
     new_data = {}
-    last_data_point_date = series_name.ts.last_value_date
+    last_data_point_date = series_name.ts.last_value_date rescue raise("Series #{series_name} does not exist")
     current_last_data_point = self.last_value_date
     
     last_data_point_val = data[current_last_data_point]
@@ -46,23 +45,30 @@ module SeriesInterpolation
 
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
   ## with the mean of surrounding monthly values.
-  def fill_alternate_missing_months(start_date_range = nil, end_date_range = nil)
+  def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil)
     raise InterpolationException unless frequency == 'month'
-    cur_data = data
-    start_date = start_date_range ? Date.strptime(start_date_range) : cur_data.sort[0][0]
-    end_date = end_date_range ? Date.strptime(end_date_range) : cur_data.sort[-1][0]
+    semi = find_sibling_for_freq('S')
+    start_date = range_start_date ? Date.strptime(range_start_date) : data.sort[0][0]
+    end_date = range_end_date ? Date.strptime(range_end_date) : data.sort[-1][0]
     new_dp = {}
     date = start_date + 1.month
     while date < end_date do
       prevm = date - 1.month
       nextm = date + 1.month
-      unless cur_data[prevm]  && cur_data[nextm]
+      unless data[prevm] && data[nextm]
         raise InterpolationException, 'data not strictly alternating months'
       end
-      new_dp[date] = (cur_data[prevm] + cur_data[nextm]) / 2
-      date += 2.months ## track the missing data points
+      new_dp[date] = (data[prevm] + data[nextm]) / 2.0
+      if semi && date.month % 6 == 0
+        semi_date = date - 5.months
+        semi_val = semi.at(semi_date)
+        if semi_val
+          redistribute_semi(semi_val, semi_date, new_dp)
+        end
+      end
+      date += 2.months ## track only the missing data points
     end
-    new_transformation("Interpolation of alternate missing months from #{name}", new_dp)
+    new_transformation("Interpolation of alternate missing months from #{self}", new_dp)
   end
 
   def fill_interpolate_to(target_frequency)
@@ -117,21 +123,7 @@ module SeriesInterpolation
     #last_temp_val = nil
     last_date = nil
     first_val = nil
-    # self.data.sort.each do |date, val|
-    #   if last_date.nil?
-    #     last_date = date
-    #     last_temp_val = val
-    #     next
-    #   end
-    #   if temp_series_data[last_date].nil?
-    #     temp_series_data[last_date] = last_temp_val + ((val-last_temp_val) / divisor) * ((divisor-1) / 2.to_f)
-    #   end
-    #   
-    #   temp_series_data[date] = val + ((val - temp_series_data[last_date]) / divisor ) * ((divisor - 1) / 2.to_f)
-    #   last_temp_val = temp_series_data[date]
-    #   last_date = date
-    # end
-    
+
     self.data.sort.each do |date, val|
       #first period only
       if last_date.nil?
@@ -200,15 +192,9 @@ module SeriesInterpolation
     end
     new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
-  
-  
-  #this always interpolates to quarterly
+
+  ### THIS METHOD SOON TO BE REMOVED, TO BE REPLACED WITH interpolate_new METHOD BELOW!
   def interpolate(frequency, operation)
-   # puts "FREQUENCY: #{frequency} - #{frequency.class}"
-   # puts "SELF.FREQUENCY: #{self.frequency} - #{self.frequency.class}"
-   # puts "OPERATION: #{operation} - #{operation.class}"
-   #also needs to be ok with frequency of annual
-    #raise InterpolationException if frequency != :quarter or self.frequency != "semi" or operation != :linear
     raise InterpolationException if data.count < 2
     last = nil
     last_date = nil
@@ -220,8 +206,8 @@ module SeriesInterpolation
         d1 = key
         d2 = last_date
         quarter_diff = ((d1.year - d2.year) * 12 + (d1.month - d2.month))/3
-        interval = value - last 
-        quarterly_data[last_date] = last - interval/(quarter_diff*2) 
+        interval = value - last
+        quarterly_data[last_date] = last - interval/(quarter_diff*2)
         quarterly_data[last_date + 3.months] = last + interval/(quarter_diff*2)
       end
       last = value
@@ -233,8 +219,50 @@ module SeriesInterpolation
     new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
   end
 
-  # this method currently vestigial - fix and use, or remove?
-  def interpolate_missing_months_and_aggregate(frequency, operation)
+  ## Generalized interpolation of a series to a higher frequency. Implemented following the algorithm for linear
+  ## interpolation found in AREMOS command reference, with help from PF.
+  def interpolate_new(target_freq, method = :average)
+    raise(InterpolationException, "Interpolation method #{method} not supported") unless method == :average || method == :sum
+    raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
+    raise(InterpolationException, 'Insufficent data') if data.count < 2
+    interpol_data = {}
+    last_date = last_val = increment = nil
+    how_many = freq_per_freq(target_freq, frequency)
+    target_months = freq_per_freq(:month, target_freq)
+    all_factors = {
+      year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
+      semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
+      quarter: { month: [-1, 0, 1] }
+    }
+    factors = all_factors[frequency.to_sym][target_freq] ||
+              raise(InterpolationException, "Interpolation from #{frequency} to #{target_freq} not yet supported")
+
+    data.sort.each do |this_date, this_val|
+      next if this_val.nil?
+      if last_val
+        increment = (this_val - last_val) / how_many.to_f   ## to_f ensures float division not truncated
+        values = factors.map {|f| last_val + f * increment }
+        values = values.map {|val| val / how_many.to_f } if method == :sum
+        (0...how_many).each do |t|
+          date = last_date + (t * target_months).months
+          interpol_data[date] = values[t]
+        end
+      end
+      last_date = this_date
+      last_val = this_val
+    end
+    ### Repeat logic from inside above loop for final observation of original series
+    values = factors.map {|f| last_val + f * increment }
+    values = values.map {|val| val / how_many.to_f } if method == :sum
+    (0...how_many).each do |t|
+      date = last_date + (t * target_months).months
+      interpol_data[date] = values[t]
+    end
+    new_transformation("Interpolated by #{method} method from #{self}", interpol_data, target_freq)
+  end
+
+  # this method looks obsolete/vestigial - rename now, remove later
+  def interpolate_missing_months_and_aggregate_DELETEME(frequency, operation)
     last_val = nil
     last_date = nil
     monthly_series_data = {}
@@ -298,7 +326,30 @@ module SeriesInterpolation
       prev_val = val
       prev_date = key
     end
-    
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
+  end
+
+private
+
+  ## Find interpolated values in the 6-month range starting at start_month, and redistribute the difference between
+  ## the semiannual value and the average of all the monthlies in that range across (only) the interpolated months.
+  ## Note! This code assumes that the even (calendar) numbered months are interpolated and odd numbered ones have real data.
+  def redistribute_semi(semi_annual_val, start_month, new_data)
+    six_month = []
+    (0..5).each do |offset|
+      date = start_month + offset.months
+      value = new_data[date] || data[date]
+      return if value.nil?  ## bail if even a single monthly value is missing
+      six_month.push(value)
+    end
+    diff = (semi_annual_val - six_month.average) * 2.0  ## must be float multiplication
+    begin
+      (new_data[start_month + 1.months] += diff) rescue raise('1')
+      (new_data[start_month + 3.months] += diff) rescue raise('3')
+      (new_data[start_month + 5.months] += diff) rescue raise('5')
+    rescue => e
+      bad_date = start_month + e.message.to_i.months
+      raise "redistribute_semi: cannot redistribute because data missing at #{bad_date}"
+    end
   end
 end

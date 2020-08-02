@@ -2,7 +2,6 @@ class DvwUpload < ApplicationRecord
   include HelperUtilities
   require 'date'
   before_destroy :delete_files_from_disk
-  before_destroy :delete_data_and_data_sources
 
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
@@ -87,20 +86,20 @@ class DvwUpload < ApplicationRecord
 
     begin
       delete_universe_dvw
-      mylogger :info, 'DONE deleting universe'
+      mylogger :info, 'DONE deleting the universe'
 
-      load_meta_csv('Group')
+      load_meta_csv('group')
       mylogger :debug, 'DONE load groups'
-      load_meta_csv('Market')
+      load_meta_csv('market')
       mylogger :debug, 'DONE load markets'
-      load_meta_csv('Destination')
+      load_meta_csv('destination')
       mylogger :debug, 'DONE load destinations'
-      load_meta_csv('Category')
+      load_meta_csv('category')
       mylogger :debug, 'DONE load categories'
-      load_meta_csv('Indicator')
+      load_meta_csv('indicator')
       mylogger :debug, 'DONE load indicators'
 
-      load_series_csv
+      total_loaded = load_series_csv
       mylogger :debug, 'DONE load series'
       load_data_postproc
       mylogger :debug, 'DONE postproc'
@@ -110,21 +109,26 @@ class DvwUpload < ApplicationRecord
     make_active_settings
     mylogger :debug, 'DONE make active'
     mylogger :info, 'DONE full load'
+    total_loaded
   end
 
   def delete_universe_dvw
-    db_execute 'delete from data_points'
-    mylogger :debug, 'DONE deleting data points'
-    db_execute 'delete from indicators'
-    mylogger :debug, 'DONE deleting indicators'
-    db_execute 'delete from categories'
-    mylogger :debug, 'DONE deleting categories'
-    db_execute 'delete from destinations'
-    mylogger :debug, 'DONE deleting destinations'
-    db_execute 'delete from markets'
-    mylogger :debug, 'DONE deleting markets'
-    db_execute 'delete from groups'
-    mylogger :debug, 'DONE deleting groups'
+    db_execute 'set foreign_key_checks = 0;'
+    db_execute 'truncate table data_points'
+    mylogger :debug, 'DONE truncating data points'
+    db_execute 'truncate table data_toc'
+    mylogger :debug, 'DONE truncating data_toc'
+    db_execute 'truncate table indicators'
+    mylogger :debug, 'DONE truncating indicators'
+    db_execute 'truncate table categories'
+    mylogger :debug, 'DONE truncating categories'
+    db_execute 'truncate table destinations'
+    mylogger :debug, 'DONE truncating destinations'
+    db_execute 'truncate table markets'
+    mylogger :debug, 'DONE truncating markets'
+    db_execute 'truncate table groups'
+    mylogger :debug, 'DONE truncating groups'
+    db_execute 'set foreign_key_checks = 1;'
   end
 
   def load_meta_csv(dimension)
@@ -132,7 +136,7 @@ class DvwUpload < ApplicationRecord
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, "#{dimension}.csv")
     raise "File #{csv_path} not found" unless File.exists? csv_path
-    table = dimension.pluralize.downcase
+    table = dimension.pluralize
 
     datae = []
     parent_set = []
@@ -141,7 +145,7 @@ class DvwUpload < ApplicationRecord
 
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
-        columns = row_pairs.to_a.reject{|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map{|x,_| x.strip.downcase }  ## leave out L_* and O_*
+        columns = row_pairs.to_a.reject {|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map {|x,_| x.strip.downcase }  ## leave out L_* and O_*
         columns.push('level', 'order')  ## add renamed/computed columns
         columns.delete('parent')  ## filled in by SQL at the end
         columns[columns.index('id')] = 'handle'    ## rename "id" column as "handle" - kinda hacky
@@ -152,24 +156,25 @@ class DvwUpload < ApplicationRecord
 
       row = {}
       row_pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
-        val = data.blank? ? nil : data.strip
-        row[header.strip.downcase] = Integer(val) rescue val  ## convert integers to Integer type if possible
+        break if header.blank?
+        val = data.blank? ? nil : data.to_ascii.strip
+        row[header.strip.downcase] = (Integer(val) rescue val)  ## convert integers to Integer type if possible
       end
+
       break if row['id'].nil?  ## in case there are blank rows appended at the end
       row['handle'] ||= row['id']  ## rename id as necessary
       if row['parent']
         parent_set.push [row['parent'], row['handle']]
       end
 
+      raise "Module not specified for ID #{row['id']}" unless row['module']
       row['module'].strip.split(/\s*,\s*/).each do |mod|
         ordering[mod] ||= { 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 }  ## assuming 5 is well above max depth
-        level = row["l_#{mod.downcase}"] || row['level'] || raise("No level value at #{row['handle']} row")
+        level = row["l_#{mod.downcase}"] || row['level'] || next   ## finally just skip this entry if level is not specified
         order = row["o_#{mod.downcase}"] || incr_order(ordering[mod], level)
 
         row_values = []
         columns.each do |col|
-          raise "Quote character in #{row['handle']} row, #{col} column" if row[col] =~ /['"]/
           row_values.push case col
                           when 'module' then mod
                           when 'header' then (row['data'].to_s == '0' ? 1 : 0)  ## semantically inverted
@@ -205,19 +210,21 @@ class DvwUpload < ApplicationRecord
   def load_series_csv
     mylogger :info, 'starting load_series_csv'
     csv_dir_path = path(filename).change_file_extension('')
-    csv_path = File.join(csv_dir_path, 'Data.csv')
+    csv_path = File.join(csv_dir_path, 'data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     dp_data_set = []
     CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
-        next if header.blank?
-        row[header.strip.downcase] = data.blank? ? nil : data.strip
+        break if header.blank?
+        val = data.blank? ? nil : data.to_ascii.strip
+        row[header.strip.downcase] = (Integer(val) rescue Float(val) rescue val)  ## convert numeric types if possible. Parens are crucial!
       end
+
       next if row['value'].nil?
       break if row['module'].nil?  ## in case there are blank rows appended at the end
-      row['date'] = make_date(row['year'].to_i, row['mq'].to_s)
+      row['date'] = make_date(row['year'].to_i, row['qm'].to_s)
       row_values = %w{module frequency date value
                               group module
                               market module
@@ -227,7 +234,7 @@ class DvwUpload < ApplicationRecord
       dp_data_set.push row_values
     end
 
-    dp_query = <<~MYSQL
+    sql_stmt = DvwUpload.connection.raw_connection.prepare(<<~MYSQL)
       insert into data_points
         (`module`,`frequency`,`date`,`value`,`group_id`,`market_id`,`destination_id`,`category_id`,`indicator_id`)
       select ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
@@ -242,17 +249,63 @@ class DvwUpload < ApplicationRecord
     ## This is likely to be slow... later work on a way to make it faster?
     ## Maybe add dimension handle columns to the data table, insert these, then convert to int IDs in postproc?
     dp_data_set.in_groups_of(1000, false) do |dps|
-      db_execute_set dp_query, dps
+      db_execute_set sql_stmt, dps
     end
     mylogger :info, 'done load_series_csv'
+    dp_data_set.count
   end
 
   def load_data_postproc
-    ## Nothing to do at this time
+    ## generate the data table of contents
+    db_execute <<~MYSQL
+      insert into data_toc (module, group_id, market_id, destination_id, category_id, indicator_id, frequency, `count`)
+      select distinct module, group_id, market_id, destination_id, category_id, indicator_id, frequency, count(*)
+      from data_points
+      group by 1, 2, 3, 4, 5, 6, 7;
+    MYSQL
+    mylogger :debug, 'DONE generate data toc'
+  end
+
+  def worker_tasks(do_csv_proc: false)
+    csv_extract if do_csv_proc
+    mylogger :debug, "before full_load"
+    total = full_load
+    mylogger :info, "loaded and active"
+    self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
 private
+
+  def csv_extract
+    xls_path = absolute_path('series')
+    csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
+    other_worker = ENV['OTHER_WORKER']
+
+    unless File.exists?(xls_path)
+      mylogger :warn, "xls file #{xls_path} does not exist"
+      if other_worker.blank?
+        raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
+      end
+      unless system("rsync -t #{other_worker + ':' + xls_path} #{absolute_path}")
+        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
+      end
+    end
+    unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
+      raise "Could not transform xlsx to csv (#{id}:#{$?})"
+    end
+
+    Dir.glob(File.join(csv_path, '*.csv')).each {|f| File.rename(f, f.downcase) } ## force csv filenames to lower case
+
+    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + absolute_path}")
+      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
+    end
+  end
+
   def path(name = nil)
+    if name =~ /[\\]*\.[\\]*\./  ## paths that try to access Unix '..' convention for parent directory
+      mylogger :warn, 'WARNING! Attempt to access filesystem path %s' % name
+      return
+    end
     parts = [ENV['DATA_PATH'], 'dvw_files']
     parts.push(name) unless name.blank?
     File.join(parts)
@@ -268,7 +321,7 @@ private
     begin
       File.open(path(name), 'wb') { |f| f.write(content) }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -278,7 +331,7 @@ private
     begin
       content = File.open(path(name), 'r') { |f| f.read }
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     content
@@ -288,7 +341,7 @@ private
     begin
       File.delete(abspath)
     rescue StandardError => e
-      Rails.logger.error e.message
+      mylogger :error, e.message
       return false
     end
     true
@@ -298,20 +351,17 @@ private
     delete_series_file
   end
 
-  def delete_data_and_data_sources
-    db_execute <<~MYSQL
-      DELETE FROM data_points
-      WHERE data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'DvwUpload.load(#{self.id},%)');
-    MYSQL
-  end
-
-  def db_execute(query, values = [])
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+  def db_execute(stmt, values = [])
+    if stmt.class == String
+      stmt = DvwUpload.connection.raw_connection.prepare(stmt)
+    end
     stmt.execute(*values)  ## if you don't know what this * is, you can google for "ruby splat"
   end
 
-  def db_execute_set(query, set)
-    stmt = DvwUpload.connection.raw_connection.prepare(query)
+  def db_execute_set(stmt, set)
+    if stmt.class == String
+      stmt = DvwUpload.connection.raw_connection.prepare(stmt)
+    end
     set.each {|values| stmt.execute(*values) }
   end
 
@@ -319,12 +369,16 @@ private
     month = 1
     begin
       if mq =~ /([MQ])(\d+)/i
-        month = $1.upcase == 'M' ? $2.to_i : first_month_of_quarter($2)
+        month = case $1.upcase
+                when 'M' then $2.to_i
+                when 'Q' then first_month_of_quarter($2)
+                else raise('boom')
+                end
       end
-      '%d-%02d-01' % [year, month]
+      Date.new(year, month).to_s
     rescue
       year_msg = year.blank? ? ' is empty' : "=#{year}"
-      raise "Bad date params: year#{year_msg}, MQ='#{mq}'"
+      raise "Bad date params: year#{year_msg}, QM='#{mq}'"
     end
   end
 
@@ -338,6 +392,6 @@ private
   end
 
   def mylogger(level, message)
-    Rails.logger.send(level) { "#{Time.now} DvwUpload id=#{self.id}: #{message}" }
+    Rails.logger.send(level) { "DvwUpload id=#{self.id}: #{message}" }
   end
 end

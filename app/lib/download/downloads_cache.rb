@@ -77,7 +77,7 @@ class DownloadsCache
                 if @handle.blank?  ## in case of 'manual' files
                   raise "path #{@path} does not exist"
                 else
-                  raise "bad spreadsheet for download handle #{@handle}: likely a web 404"
+                  raise "bad spreadsheet for handle #{@handle}: likely a web 404"
                 end
               end
             end
@@ -98,7 +98,7 @@ class DownloadsCache
     begin
       excel.default_sheet = def_sheet
     rescue
-      raise "sheet name/spec '#{def_sheet.to_s}' not found in workbook '#{@dload.save_path_flex}' [handle: #{@handle}]"
+      raise 'no sheet matching "%s" found in file %s [handle=%s]' % [sheet, @dload.save_path_flex, @handle]
     end
     sheet_key = make_cache_key('xls', @path, sheet)
     set_files_cache(sheet_key, excel.to_matrix.to_a)
@@ -187,7 +187,7 @@ class DownloadsCache
     csv_data
   end
 
-  def make_cache_key(file_type, handle, sheet=nil)
+  def make_cache_key(file_type, handle, sheet = nil)
     parts = [file_type, handle]
     parts.push(sheet) if sheet
     parts.join('|')
@@ -199,7 +199,7 @@ class DownloadsCache
     value.nil? ? nil : Marshal.load(value)
   end
 
-  def set_files_cache(key, value, options=nil)
+  def set_files_cache(key, value, options = nil)
     Rails.logger.debug { ">>> Entered method set_files_cache, key=#{key}" }
     options ||= { expires_in: 6.hours }
     Rails.cache.write(key, Marshal.dump(value), options)

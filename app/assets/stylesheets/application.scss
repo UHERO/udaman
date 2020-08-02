@@ -33,8 +33,14 @@ pre {
 }
 
 a { color: #000; }
-a:visited { color: #666; }
+a:visited { color: #000; }  // was #666 before buttonlink considerations
 a:hover { color: #fff; background-color:#000; }
+// a.buttonlink:visited { color: #000; }  // Don't change the color of actuator-type links when they are visited
+// a.buttonlink:hover { color: #fff; background-color:#000; }
+span.error_message { color: red; }
+span.error_message a { color: red; }
+span.error_message a:visited { color: red; }
+span.error_message a:hover { color: #fff; background-color: red; }
 
 div.field, div.actions {
   margin-bottom: 10px;
@@ -142,6 +148,7 @@ table#search_results td {border:none;}
 td a:link { text-decoration: none; }
 td.linkselect a:link { display: block }
 
-/* No underlining for links in top menu */
+/* No underlining for links in menus */
 div#top-level-nav a:link { text-decoration: none; }
+div#navigation a:link { text-decoration: none; }
 div#chart-board-nav a:link { text-decoration: none; }

@@ -12,7 +12,7 @@
   <!-- javascript_include_tag 'ui/jquery-ui' %>-->
 
 </head>
-<body class="<%= 'nonprod' unless Socket.gethostname =~ /udaman|prod/ %>">
+<body class="<%= 'nonprod' unless Socket.gethostname =~ /udaman|prod|uhero1/ %>">
 <% if user_signed_in? %>
   <div id="top-level-nav">
   	<%= 
@@ -21,33 +21,49 @@
     <% if current_user.internal_user? %> |
   	<a href="/series">Data Series</a> |
   	<a href="/downloads">Downloads</a> |
-    <a href="/investigate_visual">Investigation Dashboard</a> |
-    <a href="/data_lists?u=uhero">Data Lists</a> |
-    <a href="/exports">Exports</a> |
-    <a href="/help">Help</a> |
-  	Search
-  	
+      <a href="/exports">Exports</a> |
+      <a href="/investigate_visual">Investigation Dashboard</a> |
+      <a href="/help">Help</a> |
+      <a href="#" title="Special operators:
+^     match start of mnemonic
+~    (tilde) match anywhere in mnemonic
+-     (minus) omit matching from results
+@   match geography
+.      match frequency (combine as .am .mq etc)
+#     match load statement
+!      match load error
+:      match source link url
+&pub public/unrestricted only
+&r      restricted only
+&sa   seasonally adjusted only
+&ns   non-seasonally adjusted only
+/        change universe (/db, /coh, /nta)
+=       do OLD style predictive search :P
+
+~ns$      Match NS series based on name (combine with other terms)
+145746  Find a series by entering its ID number"><span style="font-size:larger;"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></span></a>
   	<div id="search" style="display:inline">
   		<%= render :partial => '/layouts/series_search' %>
   	</div>
   </div>
   <div id="chart-board-nav">
-    <a href="http://data.uhero.hawaii.edu" target="_blank">Data Portal</a>: <a href="/categories" title="Edit Data Portal Categories">Categories</a> |
-                 <a href="/geographies?u=uhero" title="Edit Data Portal Geographies">Geographies</a> |
-                 <a href="/units?u=uhero" title="Edit Data Portal Units">Units</a> |
-                 <a href="/measurements?u=uhero" title="Edit Data Portal Measurements">Measurements</a> |
-                 <a href="/sources?u=uhero" title="Edit Data Portal Sources">Sources</a> |
-                 <a href="/source_details?u=uhero" title="Edit Data Portal Source Details">Source Details</a> |
-                 <a href="/user_feedbacks" title="View Data Portal Feedback">Feedback</a>
+    <a href="http://data.uhero.hawaii.edu" target="_blank">Data Portal</a>: <a href="/categories">Categories</a> |
+                 <a href="/geographies?u=uhero">Geographies</a> |
+                 <a href="/data_lists?u=uhero">Data Lists</a> |
+                 <a href="/measurements?u=uhero">Measurements</a> |
+                 <a href="/sources?u=uhero">Sources</a> |
+                 <a href="/source_details?u=uhero">Source Details</a> |
+                 <a href="/units?u=uhero">Units</a>
   </div>
   <div id="chart-board-nav">
-  <a href="/forecast_snapshots" title="Edit Forecast Snapshots">Forecast Snapshots</a> |
-  <a href="/feature_toggles" title="Edit Feature Toggles">Feature Toggles</a>
-  <% if current_user.dev_user? %>
-    | <a href="/dbedt_uploads" title="DBEDT Uploads">DBEDT Uploads</a>
+  <a href="/forecast_snapshots">Forecast Snapshots</a> |
+  <a href="/feature_toggles">Feature Toggles</a>
+  <% end %>
+  <% if current_user.dev_user? || current_user.dbedt? %>
+    | <a href="/new_dbedt_uploads">DBEDT Econ D/w Uploads</a>
+    | <a href="/dvw_uploads">DBEDT Tour D/w Uploads</a>
   <% end %>
   </div>
-    <% end %>
 <!--
      Link for HECO users of forecast snapshots
 -->
