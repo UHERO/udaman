@@ -278,8 +278,7 @@ class NewDbedtUpload < ApplicationRecord
     end
     mylogger :info, 'starting DataPoint.update_public_data_points'
     unless DataPoint.update_public_data_points('DBEDT')
-      mylogger :warn, 'FAILED to update public_data_points'
-      return false
+      raise 'FAILED to update public_data_points'
     end
     mylogger :info, 'worker_tasks: loaded and active'
   end
