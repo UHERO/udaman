@@ -54,11 +54,11 @@ class Date
   end
 
   def semi_s
-    '%s-%02d-01' % [self.year, self.month > 6 ? 7 : 1]
+    semi_d.to_s
   end
 
   def semi_d
-    Date.parse(semi_s)
+    Date.new(self.year, self.mon > 6 ? 7 : 1)
   end
 
   def tsd_start(f)
