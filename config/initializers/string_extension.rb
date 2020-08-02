@@ -37,7 +37,7 @@ class String
     puts "operation took #{Time.now - t}"
     result
   end
-  
+
   def unzip(want_file = nil)
     dest_dir = self.change_file_extension('')
     Zip::File.open(self) {|zip_file|
