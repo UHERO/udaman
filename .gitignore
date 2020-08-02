@@ -6,6 +6,7 @@ Passengerfile.json
 .vagrant
 db/*.sqlite3
 log/*.log
+log/*.gz
 tmp/
 config/site.yml
 script/investigate_visual.png

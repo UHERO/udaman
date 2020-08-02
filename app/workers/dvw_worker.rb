@@ -6,7 +6,6 @@ class DvwWorker
   sidekiq_options queue: :critical
 
   def initialize
-    Rails.logger.level = Logger::INFO
     @logprefix = self.class
   end
 
@@ -15,11 +14,13 @@ class DvwWorker
     upload = nil
     begin
       upload = DvwUpload.find(dvw_id) || raise("No DvwUpload found with id=#{dvw_id}")
-      upload.worker_tasks(do_csv_proc)
+      upload.worker_tasks(do_csv_proc: do_csv_proc)
     rescue => error
       mylogger :error, error.message
       mylogger :error, error.backtrace
-      upload.update(series_status: :fail, last_error: error.message[0..254], last_error_at: Time.now) if upload
+      if upload
+        upload.update(series_status: :fail, last_error: error.message[0..254], last_error_at: Time.now)
+      end
     end
   end
 

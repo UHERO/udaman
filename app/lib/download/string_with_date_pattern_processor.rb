@@ -9,8 +9,7 @@ class StringWithDatePatternProcessor
   end
   
   def date_sensitive?
-    #nil is not date sensitive
-    !@string_format.index('%').nil?
+    @string_format.include?('%')
   end
 
   def to_s

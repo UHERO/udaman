@@ -33,8 +33,12 @@ class DataHtmlParser
         :years_option =>'all_years'
     }
     @doc = self.download
-    frequency = self.data.keys[0] if frequency.nil?
-    self.data[frequency]
+    avail_freqs = data.keys
+    frequency ||= avail_freqs[0]
+    if avail_freqs.count > 0 && !avail_freqs.include?(frequency)
+      raise "BLS API: #{code} has no data at frequency #{frequency}, only #{avail_freqs.join(', ')}"
+    end
+    data[frequency]
   end
 
   def get_bea_series(dataset, filters)
@@ -99,9 +103,12 @@ class DataHtmlParser
   end
 
   def get_clustermapping_series(dataset, parameters)
+    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
     @url = "http://clustermapping.us/data/region/#{query_params}"
-    Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
+    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
+    ## The url should preferably use https, but Clustermapping was having trouble with their SSL certs, and I backed
+    ## the code off to http. Should be restored to https at some time in future, after they get their "stuff" together.
     @doc = self.download
     response = JSON.parse self.content
     raise  'Clustermapping API: unknown failure' unless response
@@ -114,6 +121,11 @@ class DataHtmlParser
       end
     end
     new_data
+  end
+
+  def expand_date_range(date_range)
+    split_dates = date_range.split(":")
+    (split_dates[0]..split_dates[1]).to_a.join(',')
   end
 
   def get_eia_series(parameter)
@@ -159,28 +171,31 @@ class DataHtmlParser
   def content
     @content
   end
-  
-  def save_content(save_path)
-    open(save_path, 'wb') { |file| file.write @content }
+
+  def url
+    @url
   end
-  
+
   def bls_text
-    #puts @doc.css('pre').text
-    @doc.css('pre').text
+    @doc.css('pre').text   ## This 'pre' has to be lower case for some strange reason
   end
   
   def get_data
-    @data_hash ||= {}
-    data_lines = bls_text.split("\n")
+    data_hash ||= {}
+    resp = bls_text
+    raise "BLS API: #{resp.strip}" if resp =~ /error/i
+
+    data_lines = resp.split("\n")
     data_lines.each do |dl|
-      next unless (dl.index @code) == 0
+      next unless dl.index(@code) == 0
+     ## this should be uncommented sometime... next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
       date = get_date(cols[1], cols[2])
-      @data_hash[freq] ||= {}
-      @data_hash[freq][date] = cols[3].to_f unless date.nil?
+      data_hash[freq] ||= {}
+      data_hash[freq][date] = cols[3].to_f
     end
-    @data_hash
+    data_hash
   end
   
   def data
@@ -192,22 +207,6 @@ class DataHtmlParser
     return 'M' if other_string[0] == 'M'
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
-  end
-
-  def estatjp_convert_date(datecode)
-    year = datecode[0..3]
-    m1 = datecode[-4..-3].to_i
-    m2 = datecode[-2..-1].to_i
-    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
-    '%s-%02d-01' % [year, m2]
-  end
-
-  def estatjp_filter_match(filters, dp)
-    filters.keys.each do |key|
-      dp_key = '@' + key.to_s
-      return false if dp[dp_key] != filters[key].to_s
-    end
-    true
   end
 
   def get_date(year_string, other_string)
@@ -230,11 +229,27 @@ class DataHtmlParser
     when /^Q(4|04)\b/
       Date.new(year_string.to_i, 10)
     else
-     'Error: invalid date %s-%s' % [year_string, other_string]
+      raise 'DataHtmlParser::get_date: invalid params "%s-%s"' % [year_string, other_string]
     end
   end
-  
-  def download
+
+  def estatjp_convert_date(datecode)
+    year = datecode[0..3]
+    m1 = datecode[-4..-3].to_i
+    m2 = datecode[-2..-1].to_i
+    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
+    '%s-%02d-01' % [year, m2]
+  end
+
+  def estatjp_filter_match(filters, dp)
+    filters.keys.each do |key|
+      dp_key = '@' + key.to_s
+      return false if dp[dp_key] != filters[key].to_s
+    end
+    true
+  end
+
+  def download(verifyssl: true)
     require 'uri'
     require 'net/http'
     require 'timeout'
@@ -243,6 +258,10 @@ class DataHtmlParser
 
     http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = url.scheme == 'https'
+    unless verifyssl  ## can be used for temporary workaround when sites have SSL cert trouble
+      Rails.logger.warn { "Not verifying SSL certs for #{url}" }
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
     http.ssl_timeout = 60
     if @post_parameters.nil? or @post_parameters.length == 0
       @content = fetch(@url).read_body
@@ -259,6 +278,7 @@ class DataHtmlParser
   def fetch(uri_str, limit = 10)
     raise ArgumentError, 'too many HTTP redirects' if limit == 0
 
+    Rails.logger.debug { "GETTING URL #{URI(uri_str)}" }
     response = Net::HTTP.get_response(URI(uri_str))
 
     case response
@@ -266,7 +286,7 @@ class DataHtmlParser
         response
       when Net::HTTPRedirection then
         location = response['location']
-        warn "redirected to #{location}"
+        Rails.logger.warn { "redirected to #{location}" }
         fetch(location, limit - 1)
       else
         response.value

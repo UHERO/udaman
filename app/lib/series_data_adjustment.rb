@@ -20,7 +20,7 @@ module SeriesDataAdjustment
     if start_date.nil?
       return new_transformation("Trimmed #{name}", data)
     end
-    new_series_data = get_values_after_including(Date.parse(start_date.to_s), Date.parse(end_date.to_s))
+    new_series_data = get_values_after_including(start_date.to_date, end_date.to_date)
     new_transformation("Trimmed #{name} starting at #{start_date}", new_series_data)
   end
 
@@ -38,7 +38,7 @@ module SeriesDataAdjustment
   end
 
   def get_last_incomplete_january
-    last_date = (self.data.reject {|_, val| val.nil?}).keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
     #BT 2013-02-13 Changing the code to just always give the most recent january. regardless of whether the year is complete or not. Not sure if this will screw
     #up other things, but seems like it should work in more cases
@@ -48,25 +48,19 @@ module SeriesDataAdjustment
   end
   
   def get_last_complete_december
-    last_date = self.data.keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
-    if last_date.month == 12
-      return last_date
-    end
-    Date.new(last_date.year - 1, 12)
+    last_date.month == 12 ? last_date : Date.new(last_date.year - 1, 12)
   end
   
   def get_last_complete_4th_quarter
-    last_date = self.data.keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
-    if last_date.month == 10
-      return last_date
-    end
-    Date.new(last_date.year - 1, 10)
+    last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
   
   def get_last_incomplete_year
-    last_date = self.data.reject{|_, val| val.nil? }.keys.sort[-1]
+    last_date = self.last_observation
     return nil if last_date.nil?
     if (last_date.month == 12 and frequency == 'month') or (last_date.month == 10 and frequency == 'quarter')
       return new_transformation('No Data since no incomplete year', {})
@@ -84,8 +78,8 @@ module SeriesDataAdjustment
   end
 
   def get_scaled_no_ph_after_inc(start_date, end_date = Time.now.to_date, round_to = 3)
-    start_date = Date.parse(start_date.to_s)
-    end_date = Date.parse(end_date.to_s)
+    start_date = start_date.to_date
+    end_date = end_date.to_date
     scaled_data_no_pseudo_history(round_to).reject do |date, value|
       date < start_date or value.nil? or date > end_date
     end

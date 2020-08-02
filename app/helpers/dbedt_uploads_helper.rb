@@ -12,21 +12,8 @@ module DbedtUploadsHelper
     end
   end
 
-### this looks like vestigial code -- commenting out now, delete later
-#  def make_fa_loading_classes(active)
-#    if active == 'loading'
-#      'fa-spinner fa-pulse loading'
-#    elsif active == 'yes'
-#      'fa-dot-circle load-yes'
-#    elsif active == 'no'
-#      'fa-circle load-no'
-#    elsif active == 'fail'
-#      'fa-times load-fail'
-#    end
-#  end
-
-  def now_processing?(cls)
-     ## true if anything is currently in processing
-    !cls.where(%q(cats_status = 'processing' or series_status = 'processing')).empty?
+  ## true if anything is currently in processing
+  def now_processing?(cls, cols: [:cats_status, :series_status])
+    cls.where(cols.map {|c| "#{c} = 'processing'" }.join(' or ')).count > 0
   end
 end

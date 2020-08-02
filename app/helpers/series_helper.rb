@@ -23,25 +23,6 @@ module SeriesHelper
     end
   end
 
-  ## Method can be deleted right after story is complete
-  def ua_1164_csv_generate
-    #require 'nokogiri'
-    CSV.generate(nil, {col_sep: "\t"}) do |csv|
-      @old_bea_series.each do |s|
-        ds = s.data_sources.reject {|d| d.eval =~ /load_from_bea/ }
-        ds.each do |d|
-          row = [s.name, d.eval]
-          if d.eval =~ /load_from_download\s*"(.+?)"/
-            if dl = Download.find_by(handle: $1)
-              row.push "https://udaman.uhero.hawaii.edu/downloads/#{dl.id}"
-            end
-          end
-          csv << row
-        end
-      end
-    end
-  end
-
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
@@ -75,22 +56,43 @@ module SeriesHelper
     html.chop
   end
   
-  def linked_version(description)
-    linked_version_with_action(description,'show')
+  def text_with_linked_download(text)
+    return '' if text.blank?
+    parts = text.split(DOWNLOAD_HANDLE)
+    parts.each_with_index do |str, index|
+      case valid_download_handle(str)
+        when :nondate
+          download = Download.get(str, :nondate)
+          if download
+            parts[index] = link_to(str, download)
+          elsif text =~ /load_from_download/  ## ugh, but... reality
+            parts[index] = '<span class="error_message" title="Non-existent download!">%s</span>' % parts[index]
+          end
+        when :date
+          parts[index] = link_to(str, { controller: :downloads, action: :by_pattern, pat: str })
+        else
+          parts[index].gsub!(/\s+/, '&nbsp;') ## the old code did this, so I guess I gotta...
+      end
+    end
+    parts.join
   end
-  
-  def linked_version_with_action(description, action)
-    return '' if description.blank?
-    new_words = []
-    description.split(' ').each do |word|
-      new_word = word
+
+  def text_with_linked_words(text, action = :show)
+    return '' if text.blank?
+    words = text.split(' ')
+    words.each_with_index do |word, index|
       if valid_series_name(word)
         series = word.ts
-        new_word = link_to(word, { action: action, id: series }) if series
+        words[index] = link_to(word, { action: action, id: series }) if series
+        next
       end
-      new_words.push new_word
-    end
-    new_words.join(' ')
+      if valid_data_path(word)
+        rel_path = data_path_relativize(word)  ## relativize path under DATA_PATH prefix
+        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
+        next
+      end
+   end
+    words.join(' ')
   end
   
   def aremos_color(diff)
@@ -105,40 +107,11 @@ module SeriesHelper
     blue = 20 if blue < 20
     "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
   end
-  
-  def navigation_by_letter
-    html = "<br />"
-    all_uhero = Series.get_all_uhero
-    "A".upto("Z") do |letter|
-      count = all_uhero.where("name LIKE :name", {name: "#{letter}%"}).count
-      if count > 0
-        html += link_to(raw("["+letter+"&nbsp;<span class='series_count'>#{count}</span>]"), {action: :index, prefix: letter})
-        html += " "
-      end
-    end
-    html
-  end
-  
-  def navigation_by_frequency
-    html = ""
-    all_uhero = Series.get_all_uhero
-    [:month, :quarter, :year].each do |frequency|
-      count = all_uhero.where('frequency = ?', frequency).count
-      html += link_to(raw(frequency.to_s + "&nbsp;<span class='series_count'>#{count}</span>"), {action: :index, freq: frequency})
-      html += "&nbsp;"
-    end
-    count = all_uhero.count
-	  html + link_to(raw("all&nbsp;<span class='series_count'>#{count}</span>") , {action: :index, all: 'true'})
-  end
-
-  def nightly_actuator(nightly)
-    (nightly ? 'disable' : 'enable') + ' nightly reload'
-  end
 
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
-    "<span style='color:red;font-weight:bold;'>unvalidatable url=#{url}</span>".html_safe
+    "<span class='error_message'>unvalidatable url=#{url}</span>".html_safe
   end
 
   def sa_indicator(string)
@@ -151,11 +124,11 @@ module SeriesHelper
     alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
-    series.get_aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|
+    series.aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if series.is_primary?
+    if current_user.admin_user? && series.is_primary? && alt_univs[series.universe]
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
@@ -173,4 +146,7 @@ module SeriesHelper
     "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 
+  def data_path_relativize(path)
+    path.sub(ENV['DATA_PATH'] + '/', '')
+  end
 end

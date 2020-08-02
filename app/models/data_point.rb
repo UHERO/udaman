@@ -26,13 +26,13 @@ class DataPoint < ApplicationRecord
   end
 
   def value_equal_to?(value)
-    #used to round to 3 digits but not doing that anymore. May need to revert
-    #equality at very last digit (somewhere like 12 or 15) is off if rounding is not used. The find seems to work in MysQL but ruby equality fails
-    self.value.round(10) == value.round(10)
+      self.value.round(10) == value.round(10)
+    rescue
+      raise "Error rounding value at #{date} observation. May be non-numeric"
   end
 
   def trying_to_replace_with_nil?(value)
-     value.nil? and !self.value.nil?
+     value.nil? && !self.value.nil?
   end
   
   def create_new_dp(upd_value, upd_source)
@@ -119,11 +119,6 @@ class DataPoint < ApplicationRecord
     end
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def DataPoint.delete_all_created_on_DELETEME(date)
-    DataPoint.where("TO_DAYS(created_at) = TO_DAYS('#{date}')").each { |dp| dp.delete }
-  end
-
   def DataPoint.update_public_all_universes
     Rails.logger.info { 'update_public_data_points: UHERO' }
     DataPoint.update_public_data_points('UHERO')
@@ -201,11 +196,6 @@ class DataPoint < ApplicationRecord
     rescue => e
       Rails.logger.error { "update_public_data_points: encountered an ERROR: #{e.message}" }
       return false
-    end
-    if series.nil?
-      CSV.open('public/rake_time.csv', 'a') do |csv|
-        csv << ['update_public_data_points', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s]
-      end
     end
     true
   end
