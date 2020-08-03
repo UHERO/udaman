@@ -1054,6 +1054,8 @@ class Series < ApplicationRecord
       case term
         when /^\//
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+        when /^[+]/
+          limit = tane.to_i
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
