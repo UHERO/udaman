@@ -121,8 +121,8 @@ class NewDbedtUpload < ApplicationRecord
       end
 
       if row['unit']  ####################### data_list, measurements entry
-        unless row['order'] && row['source'] && row['decimal']
-          raise "Order, source, or decimal missing for #{indicator_id}"
+        unless row['order'] && row['decimal']
+          raise "Order or decimal missing for #{indicator_id}"
         end
         data_list = DataList.find_by(universe: 'DBEDT', name: parent_label)
         if data_list.nil?
@@ -187,14 +187,14 @@ class NewDbedtUpload < ApplicationRecord
       if current_series.nil? || current_series.name != name
         source_str = ind_meta['source']
         source_id = nil
-        if source_str.downcase != 'none'
+        if source_str && source_str.downcase != 'none'
           source_id = allsources[source_str]
           unless source_id
             allsources[source_str] = Source.get_or_new(source_str, nil, 'DBEDT').id rescue raise("Failed to create Source #{source_str}")
             source_id = allsources[source_str]
           end
         end
-        unit_str = ind_meta['unit']
+        unit_str = ind_meta['unit'] || raise("Unit missing for #{ind_id}")
         unit_id = nil
         if unit_str.downcase != 'none'
           unit_id = allunits[unit_str]
