@@ -809,6 +809,9 @@ class Series < ApplicationRecord
   end
   
   def at(date)
+    unless date.class === Date
+      date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
+    end
     data[date]
   end
   
@@ -818,8 +821,9 @@ class Series < ApplicationRecord
     self.units ||= 1
     dd / self.units
   end
-  
-  def new_at(date)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_at_DELETEME(date)
     DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
