@@ -1226,7 +1226,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly: false, clear_first: false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
