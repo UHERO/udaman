@@ -1,0 +1,5 @@
+<h1>Editing Measurements for <%= @data_list.name %> (<%= @data_list.universe %>)</h1>
+
+<% form_with scope: :text_items do |f| %>
+  <% f.text_area :edit_box %>
+<% end %>

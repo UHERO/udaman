@@ -171,6 +171,14 @@ class DataListsController < ApplicationController
     end
   end
 
+  def edit_as_text
+    @measurements = @data_list.measurements.map(&:prefix)
+  end
+
+  def save_as_text
+
+  end
+
   def add_measurement
     unless @data_list.add_measurement(Measurement.find params[:data_list][:meas_id].to_i)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'

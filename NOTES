@@ -1,0 +1,20 @@
+Unpermitted parameters: :utf8, :authenticity_token, :series, :commit
+Unpermitted parameters: :utf8, :authenticity_token, :series, :commit
+
+
+
+
+
+UA-953a:
+Stuff is stashed - get it out!
+
+After migrating data into seriesx and other tables, remove default values from nonnull columns
+Deploy:
+    Change primary keys on [public_]data_points tables to include xseries_id when deleting series_id
+    Drop column series_id from data_points
+    Drop columns with _ob
+    Truncate xseries table and repopulate from series, also for data_points (or wait to do main mig until deploy time?)
+
+Review task :create_coh_cpi_measurements to see how things need to be rearranged
+
+Later: move demetra/factors columns to a separate table? should it be a Model? probly.
