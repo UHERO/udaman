@@ -172,11 +172,13 @@ class DataListsController < ApplicationController
   end
 
   def edit_as_text
-    @measurements = @data_list.measurements.map(&:prefix)
+    @measurement_list = @data_list.measurements.map(&:prefix).join("\n")
   end
 
   def save_as_text
-
+    box_content = params[:edit_box].split(' ')
+    @data_list.update!(list: box_content.join('::'))
+    redirect_to edit_data_list_url(@data_list)
   end
 
   def add_measurement

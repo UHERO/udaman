@@ -24,7 +24,7 @@
   </tbody>
 </table>
 <br />
-<% link_to 'Edit as text', { action: :edit_as_text, id: @data_list } %>
+<%= link_to 'Edit as text', { action: :edit_as_text, id: @data_list } %>
 <br />
 <%= form_for(@data_list, url: {action: 'add_measurement', id: @data_list.id}) do |f2| %>
   <div class="field">
