@@ -177,7 +177,7 @@ class DataListsController < ApplicationController
 
   def save_as_text
     box_content = params[:edit_box].split(' ')
-    @data_list.update!(list: box_content.join('::'))
+    @data_list.replace_measurements(box_content)
     redirect_to edit_data_list_url(@data_list)
   end
 

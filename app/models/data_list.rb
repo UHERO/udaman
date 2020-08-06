@@ -19,6 +19,28 @@ class DataList < ApplicationRecord
     true
   end
 
+  def replace_measurements(new_m_list)
+    my_measurements = measurements.includes(:data_list_measurements).dup
+    self.transaction do
+      my_measurements.each do |m|
+        ord = new_m_list.index(m.prefix)
+        if ord
+          m.data_list_measurements.first.update(list_order: ord)
+          new_m_list[ord] = '_done'
+        else
+          measurements.delete(m)
+        end
+      end
+      new_m_list.each_with_index do |new, index|
+        next if new == '_done'
+        meas = Measurement.find_by(universe: 'UHERO', prefix: new) || raise("Unknown measurement prefix #{new}")
+        measurements << meas
+        dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) || raise("Why no DLM for #{id}/#{meas.id}?")
+        dlm.update(list_order: index)
+      end
+    end
+  end
+
   def series_names
     list.split("\n").map{|e| e.strip } rescue []
   end
