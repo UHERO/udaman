@@ -25,7 +25,7 @@ class DataList < ApplicationRecord
   
   #not to be confused with startdate and enddate
   def start_date
-    "#{self.startyear}-01-01"
+    Date.new(startyear).to_s
   end
   
   def series_data
