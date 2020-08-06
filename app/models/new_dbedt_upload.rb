@@ -72,7 +72,7 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def load_meta_csv
-    mylogger :info, 'starting load_meta_csv'
+    mylogger :info, 'load_meta_csv: start'
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, 'indicator.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
@@ -140,12 +140,12 @@ class NewDbedtUpload < ApplicationRecord
         mylogger :debug, "added measurement #{measurement.prefix} to data_list #{data_list.name}"
       end
     end
-    mylogger :info, 'done load_meta_csv'
+    mylogger :info, 'load_meta_csv: done'
     allmeta
   end
 
   def load_series_csv(metadata)
-    mylogger :info, 'starting load_series_csv'
+    mylogger :info, 'load_series_csv: start'
     csv_dir_path = path(filename).change_file_extension('')
     csv_path = File.join(csv_dir_path, 'data.csv')
     raise "File #{csv_path} not found" unless File.exists? csv_path
@@ -255,7 +255,7 @@ class NewDbedtUpload < ApplicationRecord
         db_execute_set sql_stmt, values
       end
     end
-    mylogger :info, 'done load_series_csv'
+    mylogger :info, 'load_series_csv: done'
     data_points.count
   end
 
