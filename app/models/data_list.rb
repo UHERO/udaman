@@ -11,7 +11,7 @@ class DataList < ApplicationRecord
     list_order ||= last_dlm ? last_dlm.list_order.to_i + 1 : 0
     indent ||= (last_dlm && last_dlm.indent) || 'indent0'
     self.transaction do
-      self.measurements << measurement
+      measurements << measurement
       new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
         raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
       new_dlm.update_attributes(list_order: list_order, indent: indent)
@@ -35,8 +35,9 @@ class DataList < ApplicationRecord
         next if new == '_done'
         meas = Measurement.find_by(universe: 'UHERO', prefix: new) || raise("Unknown measurement prefix #{new}")
         measurements << meas
-        dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) || raise("Why no DLM for #{id}/#{meas.id}?")
-        dlm.update(list_order: index)
+        new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) ||
+            raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
+        new_dlm.update_attributes(list_order: index, indent: 'indent???????')
       end
     end
   end
