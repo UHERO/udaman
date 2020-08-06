@@ -172,7 +172,7 @@ class DataListsController < ApplicationController
   end
 
   def edit_as_text
-    @measurement_list = @data_list.measurements.map(&:prefix).join("\n")
+    @prefix_list = @data_list.data_list_measurements.order(:list_order).map {|dlm| dlm.measurement.prefix }.join("\n")
   end
 
   def save_as_text

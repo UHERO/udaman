@@ -1,9 +1,11 @@
 <h1>Editing Measurements for <%= @data_list.name %> (<%= @data_list.universe %>)</h1>
-
+<p>
 This screen should only be used for modifying UHERO universe data lists.
-
+</p>
 <%= form_with url: { action: :save_as_text, id: @data_list } do |f| %>
-  <%= text_area_tag :edit_box, @measurement_list, rows: 30, cols: 70 %>
+  <%= text_area_tag :edit_box, @prefix_list, rows: 30, cols: 70 %>
+  <p>
   <%= f.submit 'Store list' %>
   <%= link_to 'Cancel', :back %>
+  </p>
 <% end %>

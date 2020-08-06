@@ -25,7 +25,7 @@ class DataList < ApplicationRecord
       my_measurements.each do |m|
         ord = new_m_list.index(m.prefix)
         if ord
-          m.data_list_measurements.first.update(list_order: ord)
+          m.data_list_measurements.first.update_attributes(list_order: ord)
           new_m_list[ord] = '_done'
         else
           measurements.delete(m)
@@ -37,7 +37,7 @@ class DataList < ApplicationRecord
         measurements << meas
         new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) ||
             raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
-        new_dlm.update_attributes(list_order: index, indent: 'indent???????')
+        new_dlm.update_attributes(list_order: index)
       end
     end
   end
