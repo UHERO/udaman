@@ -20,7 +20,7 @@ class DataList < ApplicationRecord
   end
 
   def replace_all_measurements(new_m_list)
-    my_measurements = measurements.includes(:data_list_measurements)  ## eager load the links to measurements
+    my_measurements = measurements.includes(:data_list_measurements)  ## eager load the bridge table
                                   .dup   ## make a copy so that we can modify while looping over
                                   .sort_by {|m| m.data_list_measurements.where(data_list_id: id).first.list_order }
     self.transaction do
