@@ -56,7 +56,7 @@ class ExportsController < ApplicationController
   end
 
   def edit_as_text
-    @series_list = %{snax wax blax chickenmunk}## @data_list.data_list_measurements.order(:list_order).map {|dlm| dlm.measurement.prefix }.join("\n")
+    @series_list = @export.export_series.order(:list_order).map {|es| es.series.name }.join("\n")
   end
 
   def save_as_text
