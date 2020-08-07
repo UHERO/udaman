@@ -20,19 +20,25 @@ class DataList < ApplicationRecord
   end
 
   def replace_measurements(new_m_list)
-    my_measurements = measurements.includes(:data_list_measurements).dup
+    my_measurements = measurements.includes(:data_list_measurements)
+                                  .dup
+                                  .sort_by {|m| m.data_list_measurements.where(data_list_id: id).list_order }
     self.transaction do
-      my_measurements.each do |m|
+      my_measurements.each_with_index do |m, index|
         ord = new_m_list.index(m.prefix)
         if ord
-          m.data_list_measurements.first.update_attributes(list_order: ord)
+          Rails.logger.debug ">>>>>> EXISTING: #{m.prefix}, at #{index}, moving to #{ord}"
+          m.data_list_measurements.where(data_list_id: id).update_attributes(list_order: ord) if ord != index
           new_m_list[ord] = '_done'
         else
+          Rails.logger.debug  ">>>>>> DELETE: #{m.prefix}, at #{index}"
           measurements.delete(m)
         end
       end
+      Rails.logger.debug ">>>>>>>>>>>>>>>>>>>>>> new_m_list now = |#{new_m_list}|"
       new_m_list.each_with_index do |new, index|
         next if new == '_done'
+        Rails.logger.debug  ">>>>>> ADDDDD: #{new}, at #{index}"
         meas = Measurement.find_by(universe: 'UHERO', prefix: new) || raise("Unknown measurement prefix #{new}")
         measurements << meas
         new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) ||
