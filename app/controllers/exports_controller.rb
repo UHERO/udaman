@@ -3,15 +3,12 @@ class ExportsController < ApplicationController
 
   before_action :check_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
-                                    :add_series, :remove_series, :move_series_up, :move_series_down]
+                                    :edit_as_text, :save_as_text, :add_series, :remove_series, :move_series_up, :move_series_down]
 
-  # GET /exports
   def index
     @exports = Export.order(:name).all
   end
 
-  # GET /exports/1
-  # GET /exports/1.csv
   def show
     respond_to do |format|
       format.csv { render :layout => false }
@@ -28,16 +25,13 @@ class ExportsController < ApplicationController
     render 'table'
   end
 
-  # GET /exports/new
   def new
     @export = Export.new
   end
 
-  # GET /exports/1/edit
   def edit
   end
 
-  # POST /exports
   def create
     @export = Export.new(export_params)
 
@@ -48,7 +42,6 @@ class ExportsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /exports/1
   def update
     if @export.update(export_params)
       redirect_to @export, notice: 'Export was successfully updated.'
@@ -57,12 +50,21 @@ class ExportsController < ApplicationController
     end
   end
 
-  # DELETE /exports/1
   def destroy
     @export.destroy
     redirect_to exports_url, notice: 'Export was successfully destroyed.'
   end
-  
+
+  def edit_as_text
+    @series_list =nil## @data_list.data_list_measurements.order(:list_order).map {|dlm| dlm.measurement.prefix }.join("\n")
+  end
+
+  def save_as_text
+    box_content = params[:edit_box].split(' ')
+    @export.replace_all_series(box_content)
+    redirect_to edit_export_url(@export)
+  end
+
   def add_series
     series = Series.find_by id: params[:series_id].to_i
     if @export.series.include?(series)

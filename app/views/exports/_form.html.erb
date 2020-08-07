@@ -35,11 +35,11 @@
         </table>
         <br />
       <%= render 'add_series' %>
+              or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @export } %>
     <% end %>
 
 
   <div class="field">
-    <%= f.label :owned_by %><br />
     <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
   </div>
   <div class="actions">
