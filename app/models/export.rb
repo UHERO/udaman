@@ -24,7 +24,7 @@ class Export < ApplicationRecord
                       .sort_by {|m| m.export_series.where(export_id: id).first.list_order }
     self.transaction do
       my_series.each do |s|
-        ord = new_s_list.index(s.prefix)
+        ord = new_s_list.index(s.name)
         if ord
           s.export_series.where(export_id: id).first.update_attributes(list_order: ord)
           new_s_list[ord] = '_done'
