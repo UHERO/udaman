@@ -36,9 +36,9 @@ class Export < ApplicationRecord
         next if new == '_done'
         series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown series name #{new}")
         self.series << series
-        #new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) ||
-        #    raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
-        #new_dlm.update_attributes(list_order: index)
+        new_es = ExportSeries.find_by(export_id: id, series_id: series.id) ||
+            raise('ExportSeries creation failed')  ## 'creation failed' bec previous << operation should have created it
+        new_es.update_attributes(list_order: index)
       end
     end
   end
