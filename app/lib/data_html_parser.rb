@@ -156,11 +156,13 @@ class DataHtmlParser
     api_key = ENV['API_KEY_DVW']
     raise 'No API key defined for DVW' unless api_key
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod}?f=#{freq}&i=#{indicator}&FILTERS"
-    Rails.logger.debug { "Getting data from DVW API: #{@url}" }
+    Rails.logger.debug { 'Getting data from DVW API: ' + @url }
     @doc = self.download
     json = JSON.parse self.content
     results = json['data'] || raise('DVW API: major unknown failure - no data element')
     new_data = {}
+    results.each do |item|
+    end
     new_data
   end
 
@@ -168,7 +170,7 @@ class DataHtmlParser
     api_key = ENV['API_KEY_DVW']
     raise 'No API key defined for DVW' unless api_key
     @url = "https://api.uhero.hawaii.edu/dvw/indicators/all/#{mod}"
-    Rails.logger.debug { "Getting data from DVW API: #{@url}" }
+    Rails.logger.debug { 'Getting data from DVW API: ' + @url }
     @doc = self.download
     json = JSON.parse self.content
     results = json['data'] || raise('DVW API: major unknown failure - no data element')

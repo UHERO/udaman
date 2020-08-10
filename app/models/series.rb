@@ -762,13 +762,13 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, series_id[-1])
   end
 
-  # Series.load_from_dvw('airseat', 'VA101', mkt: %{MM201 MM})
+  # Series.load_from_dvw('airseat', 'VA101', mkt: %{MM201 MM202})
   def Series.load_from_dvw(mod, freq, indicator, filters)
-    dvw_indic = DataHtmlParser.new.get_dvw_indicators(mod)
+    dvw = DataHtmlParser.new.get_dvw_indicators(mod)  ### cache in the Rails cache, yes? Cache all dimension metadata?
     series_data = DataHtmlParser.new.get_dvw_series(mod, freq, indicator, filters)
-    name = "loaded #{dvw_indic[indicator]} data for with parameters #{filters} from DBEDT Tourism Warehouse"
+    name = "loaded #{dvw[indicator]} data with parameters #{filters} from DBEDT Tourism Warehouse"
     if series_data.empty?
-      name = "No #{dvw_indic[indicator]} data collected from DBEDT Tourism Warehouse"
+      name = "No #{dvw[indicator]} data collected from DBEDT Tourism Warehouse"
     end
     Series.new_transformation(name, series_data, freq)
   end
