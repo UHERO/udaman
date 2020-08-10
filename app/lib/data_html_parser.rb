@@ -152,7 +152,7 @@ class DataHtmlParser
     new_data
   end
 
-  def get_dvw_series(mod, freq, indicator, filters)
+  def get_dvw_series(mod, freq, indicator, filter_hash)
     api_key = ENV['API_KEY_DVW']
     raise 'No API key defined for DVW' unless api_key
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod}?f=#{freq}&i=#{indicator}&FILTERS"
@@ -177,7 +177,7 @@ class DataHtmlParser
     indic = {}
     results.each do |item|
       handle = item['handle']
-      indic[handle] = item['nameW']
+      indic[handle] = item['nameT'] || item['nameW']
     end
     indic
   end
