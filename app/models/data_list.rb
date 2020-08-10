@@ -22,12 +22,12 @@ class DataList < ApplicationRecord
   def replace_all_measurements(new_m_list)
     my_measurements = measurements.includes(:data_list_measurements)  ## eager load the bridge table
                                   .dup   ## make a copy so that we can modify while looping over
-                                  .sort_by {|m| m.data_list_measurements.where(data_list_id: id).first.list_order }
+                                  .sort_by {|m| m.data_list_measurements.find_by!(data_list_id: id).list_order }
     self.transaction do
       my_measurements.each do |m|
         ord = new_m_list.index(m.prefix)
         if ord
-          m.data_list_measurements.where(data_list_id: id).first.update_attributes(list_order: ord)
+          m.data_list_measurements.find_by!(data_list_id: id).update_attributes(list_order: ord)
           new_m_list[ord] = '_done'
         else
           measurements.delete(m)
