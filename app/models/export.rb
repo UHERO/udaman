@@ -21,12 +21,12 @@ class Export < ApplicationRecord
   def replace_all_series(new_s_list)
     my_series = series.includes(:export_series)  ## eager load the bridge table
                       .dup   ## make a copy so that we can modify while looping over
-                      .sort_by {|m| m.export_series.where(export_id: id).first.list_order }
+                      .sort_by {|s| s.export_series.find_by!(export_id: id).list_order }
     self.transaction do
       my_series.each do |s|
         ord = new_s_list.index(s.name)
         if ord
-          s.export_series.where(export_id: id).first.update_attributes(list_order: ord)
+          s.export_series.find_by!(export_id: id).update_attributes(list_order: ord)
           new_s_list[ord] = '_done'
         else
           series.delete(s)
