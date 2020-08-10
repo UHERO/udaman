@@ -763,14 +763,14 @@ class Series < ApplicationRecord
   end
 
   # Series.load_from_dvw('airseat', 'VA101', mkt: %{MM201 MM})
-  def Series.load_from_dvw(mod, frequency, indicator, filters)
-    indic = DataHtmlParser.new.get_dvw_indicators(mod)
-    series_data = DataHtmlParser.new.get_dvw_series(mod, indicator, filters)
-    name = "loaded #{mod} data for with parameters #{parameters} from DBEDT Tourism Warehouse"
+  def Series.load_from_dvw(mod, freq, indicator, filters)
+    dvw_indic = DataHtmlParser.new.get_dvw_indicators(mod)
+    series_data = DataHtmlParser.new.get_dvw_series(mod, freq, indicator, filters)
+    name = "loaded #{dvw_indic[indicator]} data for with parameters #{filters} from DBEDT Tourism Warehouse"
     if series_data.empty?
-      name = "No data collected from DBEDT Tourism Warehouse for "
+      name = "No #{dvw_indic[indicator]} data collected from DBEDT Tourism Warehouse"
     end
-    Series.new_transformation(name, series_data, frequency)
+    Series.new_transformation(name, series_data, freq)
   end
 
   def days_in_period
