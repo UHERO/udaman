@@ -700,12 +700,13 @@ class Series < ApplicationRecord
     new_transformation("loaded from pattern id #{id}", {})
   end
   
-  ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
-    series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from BEA API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_bea_series(dataset, parameters)
+    link = "<a href='#{dhp.url}'>API URL</a>".html_safe
+    name = "loaded dataset with parameters shown from #{link}"
     if series_data.empty?
-      name = "No data collected from BEA API for #{dataset} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
@@ -724,42 +725,49 @@ class Series < ApplicationRecord
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
-    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    name = "loaded series: #{code} from FRED API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_fred_series(code, frequency, aggregation_method)
+    link = "<a href='#{dhp.url}'>API URL</a>".html_safe
+    name = "loaded dataset with parameters shown from #{link}"
     if series_data.empty?
-      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
 
   def Series.load_from_estatjp(code, filters)
     ### Note: Code is written to collect _only_ monthly data!
-    series_data = DataHtmlParser.new.get_estatjp_series(code, filters)
-    name = "loaded series: #{code} from ESTATJP API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_estatjp_series(code, filters)
+    link = "<a href='#{dhp.url}'>API URL</a>".html_safe
+    name = "loaded dataset with parameters shown from #{link}"
     if series_data.empty?
-      name = "No data collected from ESTATJP API for #{code} freq=M - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, 'M')
   end
 
   def Series.load_from_clustermapping(dataset, parameters)
-    series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_clustermapping_series(dataset, parameters)
+    link = "<a href='#{dhp.url}'>API URL</a>".html_safe
+    name = "loaded dataset with parameters shown from #{link}"
     if series_data.empty?
-      name = "No data collected from Clustermapping API for #{dataset}"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, 'A')
   end
 
   def Series.load_from_eia(parameter)
-    # Series ID in the EIA API is case sensitive
-    series_id = parameter.upcase
-    series_data = DataHtmlParser.new.get_eia_series(series_id)
-    name = "loaded series with parameters #{series_id} from U.S. EIA API"
+    parameter.upcase!  # Series ID in the EIA API is case sensitive
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_eia_series(parameter)
+    link = "<a href='#{dhp.url}'>API URL</a>".html_safe
+    name = "loaded dataset with parameters shown from #{link}"
     if series_data.empty?
-      name = "No data collected from U.S. EIA API for #{series_id}"
+      name = "No data collected from #{link} - possibly redacted"
     end
-    Series.new_transformation(name, series_data, series_id[-1])
+    Series.new_transformation(name, series_data, parameter[-1])
   end
   
   def days_in_period
