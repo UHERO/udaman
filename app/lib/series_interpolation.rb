@@ -193,35 +193,9 @@ module SeriesInterpolation
     new_transformation("Interpolated with Census method from #{self.name}", quarterly_data, frequency)
   end
 
-  ### THIS METHOD SOON TO BE REMOVED, TO BE REPLACED WITH interpolate_new METHOD BELOW!
-  def interpolate(frequency, operation)
-    raise InterpolationException if data.count < 2
-    last = nil
-    last_date = nil
-    interval = nil
-    quarterly_data = {}
-    data.sort.each do |key, value|
-      next if value.nil?
-      unless last.nil?
-        d1 = key
-        d2 = last_date
-        quarter_diff = ((d1.year - d2.year) * 12 + (d1.month - d2.month))/3
-        interval = value - last
-        quarterly_data[last_date] = last - interval/(quarter_diff*2)
-        quarterly_data[last_date + 3.months] = last + interval/(quarter_diff*2)
-      end
-      last = value
-      last_date = key
-    end
-    #not sure why this one is needed... but using the default 4 for here instead of 2*quarter_diff
-    quarterly_data[last_date] = last - interval/4
-    quarterly_data[last_date + 3.months] = last + interval/4
-    new_transformation("Interpolated from #{self.name}", quarterly_data, frequency)
-  end
-
   ## Generalized interpolation of a series to a higher frequency. Implemented following the algorithm for linear
   ## interpolation found in AREMOS command reference, with help from PF.
-  def interpolate_new(target_freq, method = :average)
+  def interpolate(target_freq, method = :average)
     raise(InterpolationException, "Interpolation method #{method} not supported") unless method == :average || method == :sum
     raise(InterpolationException, 'Can only interpolate to a higher frequency') unless target_freq.freqn > frequency.freqn
     raise(InterpolationException, 'Insufficent data') if data.count < 2
