@@ -659,7 +659,7 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
 
-  ## This is for code testing purposes
+  ## This is for code testing purposes - generate random series data within the ranges specified
   def generate_random(start_date, end_date, low_range, high_range)
     freq = self.frequency
     incr = 1
@@ -696,14 +696,10 @@ class Series < ApplicationRecord
     Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
   end
   
-  def load_from_pattern_id(id)
-    new_transformation("loaded from pattern id #{id}", {})
-  end
-  
   def Series.load_from_bea(frequency, dataset, parameters)
     dhp = DataHtmlParser.new
     series_data = dhp.get_bea_series(dataset, parameters)
-    link = "<a href='#{dhp.url}'>API URL</a>"
+    link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set with parameters shown from #{link}"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
@@ -727,7 +723,7 @@ class Series < ApplicationRecord
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
     dhp = DataHtmlParser.new
     series_data = dhp.get_fred_series(code, frequency, aggregation_method)
-    link = "<a href='#{dhp.url}'>API URL</a>"
+    link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set with parameters shown from #{link}"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
@@ -739,7 +735,7 @@ class Series < ApplicationRecord
     ### Note: Code is written to collect _only_ monthly data!
     dhp = DataHtmlParser.new
     series_data = dhp.get_estatjp_series(code, filters)
-    link = "<a href='#{dhp.url}'>API URL</a>"
+    link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set with parameters shown from #{link}"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
@@ -750,7 +746,7 @@ class Series < ApplicationRecord
   def Series.load_from_clustermapping(dataset, parameters)
     dhp = DataHtmlParser.new
     series_data = dhp.get_clustermapping_series(dataset, parameters)
-    link = "<a href='#{dhp.url}'>API URL</a>"
+    link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set with parameters shown from #{link}"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
@@ -762,7 +758,7 @@ class Series < ApplicationRecord
     parameter.upcase!  # Series ID in the EIA API is case sensitive
     dhp = DataHtmlParser.new
     series_data = dhp.get_eia_series(parameter)
-    link = "<a href='#{dhp.url}'>API URL</a>"
+    link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set with parameters shown from #{link}"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
