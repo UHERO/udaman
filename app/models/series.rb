@@ -700,7 +700,7 @@ class Series < ApplicationRecord
     dhp = DataHtmlParser.new
     series_data = dhp.get_bea_series(dataset, parameters)
     link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set with parameters shown from #{link}"
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
@@ -724,7 +724,7 @@ class Series < ApplicationRecord
     dhp = DataHtmlParser.new
     series_data = dhp.get_fred_series(code, frequency, aggregation_method)
     link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set with parameters shown from #{link}"
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
@@ -736,7 +736,7 @@ class Series < ApplicationRecord
     dhp = DataHtmlParser.new
     series_data = dhp.get_estatjp_series(code, filters)
     link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set with parameters shown from #{link}"
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
@@ -747,7 +747,7 @@ class Series < ApplicationRecord
     dhp = DataHtmlParser.new
     series_data = dhp.get_clustermapping_series(dataset, parameters)
     link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set with parameters shown from #{link}"
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
@@ -759,13 +759,24 @@ class Series < ApplicationRecord
     dhp = DataHtmlParser.new
     series_data = dhp.get_eia_series(parameter)
     link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set with parameters shown from #{link}"
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, parameter[-1])
   end
-  
+
+  def Series.load_from_dvw(mod, freq, indicator, dimensions)
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_dvw_series(mod, freq, indicator, dimensions)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, freq)
+  end
+
   def days_in_period
     new_data = {}
     data.each do |date, _|
@@ -1110,7 +1121,7 @@ class Series < ApplicationRecord
         when /^\d+$/
           conditions.push %q{series.id = ?}
           bindvars.push term
-        when /^[-]/  ## minus
+        when /^[-]/  ## minus, only for naked words
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else
