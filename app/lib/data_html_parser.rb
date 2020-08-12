@@ -166,7 +166,7 @@ class DataHtmlParser
     new_data
   end
 
-  ## maybe no longer needed
+  ## maybe no longer needed? If not used, delete later
   def get_dvw_indicators(mod)
     api_key = ENV['API_KEY_DVW']
     raise 'No API key defined for DVW' unless api_key
