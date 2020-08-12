@@ -152,20 +152,25 @@ class DataHtmlParser
     new_data
   end
 
-  def get_dvw_series(mod, freq, indicator, filter_hash)
+  def get_dvw_series(mod, freq, indicator, dimension_hash)
     api_key = ENV['API_KEY_DVW']
     raise 'No API key defined for DVW' unless api_key
-    @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod}?f=#{freq}&i=#{indicator}&FILTERS"
+    dims = dimension_hash.map {|k, v| "%s=%s" % [k.to_s[0].downcase, v] }.join('&')
+    @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
     Rails.logger.debug { 'Getting data from DVW API: ' + @url }
     @doc = self.download
     json = JSON.parse self.content
-    results = json['data'] || raise('DVW API: major unknown failure - no data element')
+    results = json['data'] || raise('DVW API: failure - no data returned')
+    dates = results['series'][0]['dates'] rescue raise('DVW API: failure - no series data found')
+    values = results['series'][0]['values']
     new_data = {}
-    results.each do |item|
+    dates.each_with_index do |date, index|
+      new_data[date] = values[index]
     end
     new_data
   end
 
+  ## maybe no longer needed
   def get_dvw_indicators(mod)
     api_key = ENV['API_KEY_DVW']
     raise 'No API key defined for DVW' unless api_key

@@ -766,10 +766,10 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, parameter[-1])
   end
 
-  # Series.load_from_dvw('airseat', 'VA101', mkt: %{MM201 MM202})
-  def Series.load_from_dvw(mod, freq, indicator, filters)
+  # Series.load_from_dvw('airseat', 'Q', 'VA101', mkt: 'MM201', dest: 'DA10')
+  def Series.load_from_dvw(mod, freq, indicator, dimensions)
     dhp = DataHtmlParser.new
-    series_data = dhp.get_dvw_series(mod, freq, indicator, filters)
+    series_data = dhp.get_dvw_series(mod, freq, indicator, dimensions)
     link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
