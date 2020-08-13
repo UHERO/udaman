@@ -345,6 +345,10 @@ task :ua_1165 => :environment do
   end
 end
 
+## JIRA UA-1344
+task :ua_1179a => :environment do
+end
+
 ## JIRA UA-1179, first pass, reassigning DBEDT series with UHERO units to DBEDT units
 task :ua_1179a => :environment do
   uh2db = {
