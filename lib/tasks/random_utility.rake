@@ -349,16 +349,18 @@ end
 task :ua_1344 => :environment do
   qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
   qes.each do |s|
-    Rails.logger.info { "WORKING ON: #{s}"}
+    puts "WORKING ON: #{s}"
     s.enabled_data_sources.each do |ds|
-      Rails.logger.info { "   DISABLING: #{ds.eval}"}
+      puts "   DISABLING: #{ds.eval}"
       ds.disable
     end
     s.data_sources.create(
-        eval: '"%s".tsn.load_from("/data/rparsed/QCEW_select.csv") / 1000' % s.name,
+        eval: '"%s".tsn.load_from("/Users/uhero/Documents/data/rparsed/QCEW_select.csv") / 1000' % s.name,
         priority: 100
     )
-    Rails.logger.info { "   CREATED NEW LOADER"}
+    puts"   CREATED NEW LOADER"
+    s.reload_sources
+    puts "   LOADED THE NEW ONE"
   end
 end
 
