@@ -346,7 +346,20 @@ task :ua_1165 => :environment do
 end
 
 ## JIRA UA-1344
-task :ua_1179a => :environment do
+task :ua_1344 => :environment do
+  qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
+  qes.each do |s|
+    Rails.logger.info { "WORKING ON: #{s}"}
+    s.enabled_data_sources.each do |ds|
+      Rails.logger.info { "   DISABLING: #{ds.eval}"}
+      ds.disable
+    end
+    s.data_sources.create(
+        eval: '"%s".tsn.load_from("/data/rparsed/QCEW_select.csv") / 1000' % s.name,
+        priority: 100
+    )
+    Rails.logger.info { "   CREATED NEW LOADER"}
+  end
 end
 
 ## JIRA UA-1179, first pass, reassigning DBEDT series with UHERO units to DBEDT units
