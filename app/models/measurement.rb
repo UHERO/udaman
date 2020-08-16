@@ -35,7 +35,7 @@ class Measurement < ApplicationRecord
       new_s_list.each do |new|
         next if new == '_done'
         series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown series name #{new}")
-        self.series << series
+        (self.series << series) rescue raise("Series #{new} duplicated?")
       end
     end
   end

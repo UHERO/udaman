@@ -79,7 +79,7 @@ class MeasurementsController < ApplicationController
   end
 
   def edit_as_text
-    @series_list = @measurement.measurement_series.map {|ms| ms.series.name }.sort.join("\n")
+    @series_list = @measurement.series.map(&:name).sort.join("\n")
   end
 
   def save_as_text

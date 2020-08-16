@@ -36,7 +36,7 @@ class DataList < ApplicationRecord
       new_m_list.each_with_index do |new, index|
         next if new == '_done'
         meas = Measurement.find_by(universe: 'UHERO', prefix: new) || raise("Unknown measurement prefix #{new}")
-        measurements << meas
+        (measurements << meas) rescue raise("Measurement #{new} duplicated?")
         new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) ||
             raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
         new_dlm.update_attributes(list_order: index)

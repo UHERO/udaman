@@ -35,7 +35,7 @@ class Export < ApplicationRecord
       new_s_list.each_with_index do |new, index|
         next if new == '_done'
         series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown series name #{new}")
-        self.series << series
+        (self.series << series) rescue raise("Series #{new} duplicated?")
         new_es = ExportSeries.find_by(export_id: id, series_id: series.id) ||
             raise('ExportSeries creation failed')  ## 'creation failed' bec previous << operation should have created it
         new_es.update_attributes(list_order: index)
