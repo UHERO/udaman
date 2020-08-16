@@ -2,7 +2,7 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :duplicate, :propagate]
+  before_action :set_measurement, only: [:show, :edit, :update, :edit_as_text, :save_as_text, :add_series, :remove_series, :duplicate, :propagate]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
