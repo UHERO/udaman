@@ -189,7 +189,7 @@ module SeriesArithmetic
   #just going to leave out the 29th on leap years for now
   def day_based_yoy(id)
     return all_nil if frequency == 'week'
-    return faster_yoy id unless id.nil?
+    return faster_yoy(id) if id
 
     new_series_data = {}
     data.sort.each do |date, value|

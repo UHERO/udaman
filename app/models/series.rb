@@ -824,6 +824,9 @@ class Series < ApplicationRecord
   end
   
   def at(date)
+    unless date.class === Date
+      date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
+    end
     data[date]
   end
   
@@ -833,8 +836,9 @@ class Series < ApplicationRecord
     self.units ||= 1
     dd / self.units
   end
-  
-  def new_at(date)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_at_DELETEME(date)
     DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
@@ -1069,6 +1073,8 @@ class Series < ApplicationRecord
       case term
         when /^\//
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+        when /^[+]/
+          limit = tane.to_i
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
@@ -1079,9 +1085,14 @@ class Series < ApplicationRecord
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push tane
         when /^[:]/
-          all = all.joins(:source)
-          conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
-          bindvars.push tane
+          if term =~ /^::/
+            all = all.joins(:source)
+            conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
+            bindvars.push tane[1..]
+          else
+            conditions.push %q{source_link regexp ?}
+            bindvars.push tane
+          end
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
@@ -1234,7 +1245,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly: false, clear_first: false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end
