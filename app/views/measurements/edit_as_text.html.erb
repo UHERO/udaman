@@ -1,5 +1,6 @@
 <h1>Editing Series for <%= @measurement.prefix %></h1>
-<p>Separate items with any kind of whitespace (no commas, please)</p>
+<p>This screen should only be used for modifying UHERO universe measurements.<br/>
+  Separate items with any kind of whitespace (no commas, please)</p>
 <%= form_with url: { action: :save_as_text, id: @measurement } do |f| %>
   <%= text_area_tag :edit_box, @series_list, rows: 40, cols: 30 %>
   <p>
