@@ -319,6 +319,7 @@ class DataSource < ApplicationRecord
       select last_error, series_id, count(*) from data_sources
       where universe = 'UHERO'
       and last_error is not null
+      and not disabled
       group by last_error
       order by 3 desc, 1
     MYSQL
