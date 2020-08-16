@@ -17,7 +17,8 @@
     </tbody>
   </table>
 <% end %>
-<p><%= render 'add_series', { universe: @measurement.universe } %></p>
+<p><%= render 'add_series', { universe: @measurement.universe } %>
+       or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @measurement } %></p>
 <p>
 <%= link_to 'Show', @measurement %> |
 <%= link_to 'Index', measurements_path(u: @measurement.universe) %> |

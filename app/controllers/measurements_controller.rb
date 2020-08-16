@@ -78,6 +78,16 @@ class MeasurementsController < ApplicationController
     end
   end
 
+  def edit_as_text
+    @series_list = @measurement.measurement_series.map {|ms| ms.series.name }.sort.join("\n")
+  end
+
+  def save_as_text
+    box_content = params[:edit_box].split(' ')
+    @measurement.replace_all_series(box_content)
+    redirect_to edit_measurement_url(@measurement)
+  end
+
   def add_series
     series = Series.find(params[:series_id])
     unless series.universe == @measurement.universe
@@ -122,7 +132,8 @@ class MeasurementsController < ApplicationController
     redirect_to(@measurement, notice: 'Field(s) ' + fields_to_update.join(', ') + ' propagated successfully.')
   end
 
-  private
+private
+
     def set_resource_values(univ)
       @all_units = Unit.where(universe: univ)
       @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?
