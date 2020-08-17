@@ -179,15 +179,11 @@ module SeriesArithmetic
   end
   
   def yoy(id = nil)
-    annualized_percentage_change id
-  end
-  
-  def annualized_percentage_change(id = nil)
-    day_based_yoy id
+    annualized_percentage_change(id)
   end
   
   #just going to leave out the 29th on leap years for now
-  def day_based_yoy(id)
+  def annualized_percentage_change(id = nil)
     return all_nil if frequency == 'week'
     return faster_yoy(id) if id
 
@@ -195,9 +191,9 @@ module SeriesArithmetic
     data.sort.each do |date, value|
       prev_value = data[date - 1.year]
       pc = compute_percentage_change(value, prev_value)
-      unless pc.nil?
-        new_series_data[date] = pc
-      end
+      next if pc.nil?
+      ### insert PF proposed logic here
+      new_series_data[date] = pc
     end
     new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end
