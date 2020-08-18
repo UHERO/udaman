@@ -824,7 +824,7 @@ class Series < ApplicationRecord
   end
   
   def at(date)
-    unless date.class === Date
+    unless date.class == Date
       date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
     end
     data[date]
