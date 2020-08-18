@@ -21,11 +21,9 @@ class SeriesReloadManager
         mylogger :debug, "processing group at depth #{depth} => #{group}"
         group.each do |series_id|
           log = SeriesReloadLog.new(batch_id: @batch, series_id: series_id, depth: depth)
-          unless log.save
-            raise "Cannot save worker log record to database: batch=#{@batch} series_id=#{series_id}"
-          end
+          log.save || raise("Cannot save worker log record to database: batch=#{@batch} series_id=#{series_id}")
           jid = SeriesReloadWorker.perform_async(@batch, series_id, depth, @nightly, clear_first)
-          log.update_attributes job_id: jid
+          log.update_attributes(job_id: jid)
         end
         loop do
           sleep cycle_time.seconds
@@ -43,6 +41,7 @@ class SeriesReloadManager
   end
 
 private
+
   def create_batch_id(list_length, suffix = nil)
     require 'digest/md5'
     datetime = Time.now.strftime('%Y%m%d%H%M') + Time.now.zone
