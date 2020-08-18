@@ -192,7 +192,6 @@ module SeriesArithmetic
       prev_value = data[date - 1.year]
       pc = compute_percentage_change(value, prev_value)
       next if pc.nil?
-      ### insert PF proposed logic here
       new_series_data[date] = pc
     end
     new_transformation("Annualized Percentage Change of #{self}", new_series_data)
