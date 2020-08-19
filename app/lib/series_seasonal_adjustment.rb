@@ -20,6 +20,8 @@ module SeriesSeasonalAdjustment
 
   def apply_ns_growth_rate_sa
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
+    #snips = ns_series.annualized_percentage_change
+    #snaps = ns_series.annual_absolute_change + self.shift_forward_years(1)
     adjusted_series = (ns_series.annualized_percentage_change / 100 + 1) * self.shift_forward_years(1)
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series.data)
   end

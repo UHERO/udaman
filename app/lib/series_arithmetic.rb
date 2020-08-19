@@ -132,14 +132,23 @@ module SeriesArithmetic
   end
 
   def absolute_change(id = nil)
-    return faster_change(id) unless id.nil?
+    return faster_change(id) if id
     new_series_data = {}
     last = nil
     data.sort.each do |date, value|
       new_series_data[date] = value - last unless last.nil?
       last = value
     end
-    new_transformation("Absolute Change of #{name}", new_series_data)
+    new_transformation("Absolute change of #{self}", new_series_data)
+  end
+
+  def annual_absolute_change
+    new_series = data.sort.map do |date, value|
+      next if value.nil?
+      prev = data[date - 1.year] || next
+      [date, value - prev]
+    end
+    new_transformation("Annual absolute change of #{self}", new_series.to_h)
   end
 
   def faster_change(id)
@@ -181,7 +190,7 @@ module SeriesArithmetic
   def yoy(id = nil)
     annualized_percentage_change(id)
   end
-  
+
   #just going to leave out the 29th on leap years for now
   def annualized_percentage_change(id = nil)
     return all_nil if frequency == 'week'
