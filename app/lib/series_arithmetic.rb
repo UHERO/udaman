@@ -143,12 +143,13 @@ module SeriesArithmetic
   end
 
   def annual_absolute_change
-    new_series = data.sort.map do |date, value|
+    new_series = {}
+    data.sort.each do |date, value|
       next if value.nil?
       prev = data[date - 1.year] || next
-      [date, value - prev]
+      new_series[date] = value - prev
     end
-    new_transformation("Annual absolute change of #{self}", new_series.to_h)
+    new_transformation("Annual absolute change of #{self}", new_series)
   end
 
   def faster_change(id)
