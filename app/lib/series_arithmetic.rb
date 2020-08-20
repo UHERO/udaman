@@ -124,7 +124,7 @@ module SeriesArithmetic
 
   def compute_percentage_change(value, last)
     case
-      when last.nil? then nil
+      when last.nil? || value.nil? then nil
       when last == 0 && value != 0 then nil
       when last == 0 && value == 0 then 0
       else (value - last) / last * 100
@@ -200,8 +200,7 @@ module SeriesArithmetic
     new_series_data = {}
     data.sort.each do |date, value|
       prev_value = data[date - 1.year]
-      pc = compute_percentage_change(value, prev_value)
-      next if pc.nil?
+      pc = compute_percentage_change(value, prev_value) || next
       new_series_data[date] = pc
     end
     new_transformation("Annualized Percentage Change of #{self}", new_series_data)
