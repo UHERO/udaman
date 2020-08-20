@@ -8,9 +8,9 @@ class SeriesReloadManager
     @nightly = nightly
   end
 
-  def batch_reload(clear_first: false, group_size: nil, cycle_time: nil)
-    group_size ||= 25  ## number of jobs sent at one time to sidekiq
-    cycle_time ||= 15  ## how long to wait between checking if jobs are done
+  def batch_reload(clear_first: false, group_size: 25, cycle_time: 15)
+    ## group_size is the number of jobs sent at one time to sidekiq
+    ## cycle_time is how long to wait (sec) between checking if jobs are done
     series_count = @series_list.count
     mylogger :info, "starting batch reload of #{series_count} series"
     depth = @series_list.maximum(:dependency_depth)
