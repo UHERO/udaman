@@ -122,12 +122,12 @@ module SeriesArithmetic
     new_transformation("Percentage Change of #{name}", new_series_data)
   end
 
-  def compute_percentage_change(value, last)
+  def compute_percentage_change(current, last)
     case
-      when last.nil? || value.nil? then nil
-      when last == 0 && value != 0 then nil
-      when last == 0 && value == 0 then 0
-      else (value - last) / last * 100
+      when last.nil? || current.nil? then nil
+      when last == 0 && current != 0 then nil
+      when last == 0 && current == 0 then 0
+      else (current - last) / last * 100
     end
   end
 
@@ -199,8 +199,7 @@ module SeriesArithmetic
 
     new_series_data = {}
     data.sort.each do |date, value|
-      prev_value = data[date - 1.year]
-      pc = compute_percentage_change(value, prev_value) || next
+      pc = compute_percentage_change(value, data[date - 1.year]) || next
       new_series_data[date] = pc
     end
     new_transformation("Annualized Percentage Change of #{self}", new_series_data)
