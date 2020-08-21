@@ -13,24 +13,25 @@ module SeriesSeasonalAdjustment
     #still valuable to run as the current series because it sets the seasonal factors
     new_transformation("Applied #{factor_application} Seasonal Adjustment against #{ns_series}", adjusted_data)
   end
-  
+
+  ### still need this?
   def apply_growth_rate_incompl_year
     apply_ns_growth_rate_sa.no_trim_future.get_last_incomplete_year
   end
 
   def apply_ns_growth_rate_sa
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
-    #adjusted_series = (ns_series.annualized_percentage_change / 100 + 1) * self.shift_forward_years(1)
-    shifted = self.shift_forward_years(1)
+    shifted_series = self.shift_forward_years(1)
     adjusted_series = {}
-    ##### WARNING: this algorithm still in dev and not sure of its correctness yet!!
+
     ns_series.data.sort.each do |date, value|
-      prev = ns_series.at(date - 1.year) || doooooooooooooo_somethingggggggg ## next?
+      prev = ns_series.at(date - 1.year) || next
+      sdp = shifted_series.at(date) || next
       apc = compute_percentage_change(value, prev)
       if prev == 0 || apc > 100
-        adjusted_series[date] = value - prev + shifted.at(date)
+        adjusted_series[date] = value - prev + sdp
       else
-        adjusted_series[date] = (1 + apc / 100) * shifted.at(date)
+        adjusted_series[date] = (1 + apc / 100) * sdp
       end
     end
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series)
