@@ -21,17 +21,17 @@ module SeriesSeasonalAdjustment
 
   def apply_ns_growth_rate_sa
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
-    shifted_series = self.shift_forward_years(1)
+    shifted_self = self.shift_forward_years(1)
     adjusted_series = {}
 
     ns_series.data.sort.each do |date, value|
       prev = ns_series.at(date - 1.year) || next
-      sdp = shifted_series.at(date) || next
+      sval = shifted_self.at(date) || next
       apc = compute_percentage_change(value, prev)
       if prev == 0 || apc > 100
-        adjusted_series[date] = value - prev + sdp
+        adjusted_series[date] = value - prev + sval
       else
-        adjusted_series[date] = (1 + apc / 100) * sdp
+        adjusted_series[date] = (1 + apc / 100) * sval
       end
     end
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series)
