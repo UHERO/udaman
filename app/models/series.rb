@@ -589,7 +589,7 @@ class Series < ApplicationRecord
   end
   
   def new_transformation(name, data, frequency = nil)
-    raise "Undefined dataset for new transformation '#{name}'" if data.nil?
+    raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
     Series.new(
       :name => name,
@@ -668,8 +668,8 @@ class Series < ApplicationRecord
       incr = 3
     end
     series_data = {}
-    iter = Date.parse(start_date)
-    upto = Date.parse(end_date)
+    iter = start_date.to_date
+    upto = end_date.to_date
     while iter <= upto do
       series_data[iter] = low_range + rand(high_range - low_range)
       iter += incr.send(freq)
@@ -824,7 +824,7 @@ class Series < ApplicationRecord
   end
   
   def at(date)
-    unless date.class === Date
+    unless date.class == Date
       date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
     end
     data[date]

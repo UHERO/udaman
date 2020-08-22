@@ -122,24 +122,34 @@ module SeriesArithmetic
     new_transformation("Percentage Change of #{name}", new_series_data)
   end
 
-  def compute_percentage_change(value, last)
+  def compute_percentage_change(current, last)
     case
-      when last.nil? then nil
-      when last == 0 && value != 0 then nil
-      when last == 0 && value == 0 then 0
-      else (value - last) / last * 100
+      when last.nil? || current.nil? then nil
+      when last == 0 && current != 0 then nil
+      when last == 0 && current == 0 then 0
+      else (current - last) / last * 100
     end
   end
 
   def absolute_change(id = nil)
-    return faster_change(id) unless id.nil?
+    return faster_change(id) if id
     new_series_data = {}
     last = nil
     data.sort.each do |date, value|
       new_series_data[date] = value - last unless last.nil?
       last = value
     end
-    new_transformation("Absolute Change of #{name}", new_series_data)
+    new_transformation("Absolute change of #{self}", new_series_data)
+  end
+
+  def annual_absolute_change
+    new_series = {}
+    data.sort.each do |date, value|
+      next if value.nil?
+      prev = data[date - 1.year] || next
+      new_series[date] = value - prev
+    end
+    new_transformation("Annual absolute change of #{self}", new_series)
   end
 
   def faster_change(id)
@@ -179,25 +189,18 @@ module SeriesArithmetic
   end
   
   def yoy(id = nil)
-    annualized_percentage_change id
+    annualized_percentage_change(id)
   end
-  
-  def annualized_percentage_change(id = nil)
-    day_based_yoy id
-  end
-  
+
   #just going to leave out the 29th on leap years for now
-  def day_based_yoy(id)
+  def annualized_percentage_change(id = nil)
     return all_nil if frequency == 'week'
     return faster_yoy(id) if id
 
     new_series_data = {}
     data.sort.each do |date, value|
-      prev_value = data[date - 1.year]
-      pc = compute_percentage_change(value, prev_value)
-      unless pc.nil?
-        new_series_data[date] = pc
-      end
+      pc = compute_percentage_change(value, data[date - 1.year]) || next
+      new_series_data[date] = pc
     end
     new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end
