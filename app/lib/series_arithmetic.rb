@@ -19,11 +19,12 @@ module SeriesArithmetic
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_series_data = Hash.new
-    self.data.keys.each do |date|
-      new_series_data[date] = self.at(date).nil? ? nil : self.at(date).send(operator,constant)
-    end
-    new_transformation("#{self.name} #{operator} #{constant}", new_series_data)
+#    new_series_data = {}
+#    self.data.keys.each do |date|
+#      new_series_data[date] = self.at(date).nil? ? nil : self.at(date).send(operator,constant)
+#    end
+    new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
+    new_transformation("#{self} #{operator} #{constant}", new_data)
   end    
   
   def zero_add(other_series)
