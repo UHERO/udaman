@@ -7,37 +7,36 @@ module SeriesArithmetic
     new_transformation("Rounded #{name}", new_series_data)
   end
   
-  def perform_arithmetic_operation(operator,other_series)
-    validate_arithmetic(other_series)
-    longest_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = Hash.new
-    longest_series.data.keys.each do |date|
-      new_series_data[date] = (self.at(date).nil? or other_series.at(date).nil?) ? nil : self.at(date).send(operator,other_series.at(date))
-      new_series_data[date] = nil if !new_series_data[date].nil? and (new_series_data[date].nan? or new_series_data[date].infinite?)
+  def perform_arithmetic_operation(operator, op_series)
+    validate_arithmetic(op_series)
+    new_data = {}
+    longer_series = self.data.length > op_series.data.length ? self : op_series
+    longer_series.data.each do |date, value|
+      op_val = op_series.at(date)
+      computed = value && op_val && value.send(operator, op_val)
+      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
     end
-    new_transformation("#{self.name} #{operator} #{other_series.name}",new_series_data)
+    new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
 
   def perform_const_arithmetic_op(operator, constant)
-#    new_series_data = {}
-#    self.data.keys.each do |date|
-#      new_series_data[date] = self.at(date).nil? ? nil : self.at(date).send(operator,constant)
-#    end
     new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end    
   
   def zero_add(other_series)
     validate_arithmetic(other_series)
-    longest_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = Hash.new
-    longest_series.data.keys.each do |date|
+    longer_series = self.data.length > other_series.data.length ? self : other_series
+    new_series_data = {}
+    longer_series.data.keys.each do |date|
       elem1 = elem2 = 0
       elem1 = self.at(date) unless self.at(date).nil?
       elem2 = other_series.at(date) unless other_series.at(date).nil?
       new_series_data[date] = elem1 + elem2
     end
-    new_transformation("#{self.name} zero_add #{other_series.name}",new_series_data)
+   ##  Whole loop can be replaced with one line below, yes?
+   ##  new_series_data = longer_series.data.map {|date, value| value.to_f + other_series.at(date).to_f }
+    new_transformation("#{self} zero_add #{other_series}",new_series_data)
   end
   
   def +(other_series)
