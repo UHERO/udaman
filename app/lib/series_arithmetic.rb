@@ -21,7 +21,7 @@ module SeriesArithmetic
 
   def perform_const_arithmetic_op(operator, constant)
     new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
-    new_transformation("#{self} #{operator} #{constant}", new_data)
+    new_transformation("#{self} #{operator} #{constant}", new_data.to_h)
   end    
   
   def zero_add(other_series)
@@ -35,7 +35,7 @@ module SeriesArithmetic
       new_series_data[date] = elem1 + elem2
     end
    ##  Whole loop can be replaced with one line below, yes?
-   ##  new_series_data = longer_series.data.map {|date, value| value.to_f + other_series.at(date).to_f }
+   ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }.to_h
     new_transformation("#{self} zero_add #{other_series}", new_series_data)
   end
   
