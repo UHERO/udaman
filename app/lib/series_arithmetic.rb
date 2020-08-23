@@ -1,10 +1,6 @@
 module SeriesArithmetic
   def round
-    new_series_data = {}
-    data.each do |date, value|
-      new_series_data[date] = value.round.to_f
-    end
-    new_transformation("Rounded #{name}", new_series_data)
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round.to_f] })
   end
   
   def perform_arithmetic_operation(operator, op_series)
@@ -21,7 +17,7 @@ module SeriesArithmetic
 
   def perform_const_arithmetic_op(operator, constant)
     new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
-    new_transformation("#{self} #{operator} #{constant}", new_data.to_h)
+    new_transformation("#{self} #{operator} #{constant}", new_data)
   end    
   
   def zero_add(other_series)
@@ -34,8 +30,8 @@ module SeriesArithmetic
       elem2 = other_series.at(date) unless other_series.at(date).nil?
       new_series_data[date] = elem1 + elem2
     end
-   ##  Whole loop can be replaced with one line below, yes?
-   ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }.to_h
+   ##  Whole loop can be replaced with one line below, yes? Maybe no... if both series have nil, shouldn't output be nil??
+   ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }
     new_transformation("#{self} zero_add #{other_series}", new_series_data)
   end
   
@@ -181,11 +177,7 @@ module SeriesArithmetic
   end
 
   def all_nil
-    new_series_data = {}
-    data.each do |date, _|
-      new_series_data[date] = nil
-    end
-    new_transformation("All nil for dates in #{name}", new_series_data)
+    new_transformation("All nil for dates in #{self}", data.map {|date, _| [date, nil] })
   end
   
   def yoy(id = nil)
@@ -198,7 +190,7 @@ module SeriesArithmetic
     return faster_yoy(id) if id
 
     new_series_data = {}
-    data.sort.each do |date, value|
+    data.each do |date, value|
       pc = compute_percentage_change(value, data[date - 1.year]) || next
       new_series_data[date] = pc
     end
