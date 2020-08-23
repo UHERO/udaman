@@ -675,7 +675,11 @@ class Series < ApplicationRecord
       iter += incr.send(freq)
     end
     specific_points.each do |date, value|
-      series_data[date.to_date] = value
+      if value.class == Hash && value.empty?
+        series_data.delete(date.to_date)
+      else
+        series_data[date.to_date] = value
+      end
     end
     new_transformation("generated randomly for testing", series_data)
   end
