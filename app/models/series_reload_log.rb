@@ -3,9 +3,9 @@ class SeriesReloadLog < ApplicationRecord
 
   def SeriesReloadLog.purge_old_logs(horizon = 2.weeks)
     begin
-      stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~SQL)
+      stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
         delete from series_reload_logs where created_at < ?
-      SQL
+      MYSQL
       stmt.execute(Time.now - horizon)
       stmt.close
     rescue => e

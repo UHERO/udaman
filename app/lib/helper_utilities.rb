@@ -24,7 +24,7 @@ module HelperUtilities
   ## Put in date (either string or Date object), get out quarter spec; opt. second param is delimiter string
   ## e.g. date_to_qspec("2018-03-01") => "2018Q1"; date_to_qspec("2018-10-01", "-") => "2018-Q4"
   def date_to_qspec(date, delim = nil)
-    unless date.class === Date
+    unless date.class == Date
       date = Date.parse(date) rescue raise("date_to_qspec: parameter #{date} not a proper date string")
     end
     '%s%sQ%d' % [date.year, delim, quarter_by_month(date.mon)]

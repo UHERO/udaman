@@ -589,7 +589,7 @@ class Series < ApplicationRecord
   end
   
   def new_transformation(name, data, frequency = nil)
-    raise "Undefined dataset for new transformation '#{name}'" if data.nil?
+    raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
     Series.new(
       :name => name,
@@ -659,7 +659,7 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
 
-  ## This is for code testing purposes
+  ## This is for code testing purposes - generate random series data within the ranges specified
   def generate_random(start_date, end_date, low_range, high_range)
     freq = self.frequency
     incr = 1
@@ -668,8 +668,8 @@ class Series < ApplicationRecord
       incr = 3
     end
     series_data = {}
-    iter = Date.parse(start_date)
-    upto = Date.parse(end_date)
+    iter = start_date.to_date
+    upto = end_date.to_date
     while iter <= upto do
       series_data[iter] = low_range + rand(high_range - low_range)
       iter += incr.send(freq)
@@ -696,16 +696,13 @@ class Series < ApplicationRecord
     Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
   end
   
-  def load_from_pattern_id(id)
-    new_transformation("loaded from pattern id #{id}", {})
-  end
-  
-  ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
-    series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from BEA API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_bea_series(dataset, parameters)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from BEA API for #{dataset} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
@@ -724,44 +721,62 @@ class Series < ApplicationRecord
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
-    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    name = "loaded series: #{code} from FRED API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_fred_series(code, frequency, aggregation_method)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
 
   def Series.load_from_estatjp(code, filters)
     ### Note: Code is written to collect _only_ monthly data!
-    series_data = DataHtmlParser.new.get_estatjp_series(code, filters)
-    name = "loaded series: #{code} from ESTATJP API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_estatjp_series(code, filters)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from ESTATJP API for #{code} freq=M - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, 'M')
   end
 
   def Series.load_from_clustermapping(dataset, parameters)
-    series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_clustermapping_series(dataset, parameters)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from Clustermapping API for #{dataset}"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, 'A')
   end
 
   def Series.load_from_eia(parameter)
-    # Series ID in the EIA API is case sensitive
-    series_id = parameter.upcase
-    series_data = DataHtmlParser.new.get_eia_series(series_id)
-    name = "loaded series with parameters #{series_id} from U.S. EIA API"
+    parameter.upcase!  # Series ID in the EIA API is case sensitive
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_eia_series(parameter)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from U.S. EIA API for #{series_id}"
+      name = "No data collected from #{link} - possibly redacted"
     end
-    Series.new_transformation(name, series_data, series_id[-1])
+    Series.new_transformation(name, series_data, parameter[-1])
   end
-  
+
+  def Series.load_from_dvw(mod, freq, indicator, dimensions)
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_dvw_series(mod, freq, indicator, dimensions)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, freq)
+  end
+
   def days_in_period
     new_data = {}
     data.each do |date, _|
@@ -809,6 +824,9 @@ class Series < ApplicationRecord
   end
   
   def at(date)
+    unless date.class == Date
+      date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
+    end
     data[date]
   end
   
@@ -818,8 +836,9 @@ class Series < ApplicationRecord
     self.units ||= 1
     dd / self.units
   end
-  
-  def new_at(date)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_at_DELETEME(date)
     DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
@@ -1054,6 +1073,8 @@ class Series < ApplicationRecord
       case term
         when /^\//
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+        when /^[+]/
+          limit = tane.to_i
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
@@ -1064,9 +1085,14 @@ class Series < ApplicationRecord
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push tane
         when /^[:]/
-          all = all.joins(:source)
-          conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
-          bindvars.push tane
+          if term =~ /^::/
+            all = all.joins(:source)
+            conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
+            bindvars.push tane[1..]
+          else
+            conditions.push %q{source_link regexp ?}
+            bindvars.push tane
+          end
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
@@ -1095,7 +1121,7 @@ class Series < ApplicationRecord
         when /^\d+$/
           conditions.push %q{series.id = ?}
           bindvars.push term
-        when /^[-]/  ## minus
+        when /^[-]/  ## minus, only for naked words
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else
@@ -1219,7 +1245,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly: false, clear_first: false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end

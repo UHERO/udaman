@@ -11,12 +11,37 @@ class DataList < ApplicationRecord
     list_order ||= last_dlm ? last_dlm.list_order.to_i + 1 : 0
     indent ||= (last_dlm && last_dlm.indent) || 'indent0'
     self.transaction do
-      self.measurements << measurement
+      measurements << measurement
       new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: measurement.id) ||
         raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
       new_dlm.update_attributes(list_order: list_order, indent: indent)
     end
     true
+  end
+
+  def replace_all_measurements(new_m_list)
+    my_measurements = measurements.includes(:data_list_measurements)  ## eager load the bridge table
+                                  .dup   ## make a copy so that we can modify while looping over
+                                  .sort_by {|m| m.data_list_measurements.find_by!(data_list_id: id).list_order }
+    self.transaction do
+      my_measurements.each do |m|
+        ord = new_m_list.index(m.prefix)
+        if ord
+          m.data_list_measurements.find_by!(data_list_id: id).update_attributes(list_order: ord)
+          new_m_list[ord] = '_done'
+        else
+          measurements.delete(m)
+        end
+      end
+      new_m_list.each_with_index do |new, index|
+        next if new == '_done'
+        meas = Measurement.find_by(universe: 'UHERO', prefix: new) || raise("Unknown measurement prefix #{new}")
+        (measurements << meas) rescue raise("Measurement #{new} duplicated?")
+        new_dlm = DataListMeasurement.find_by(data_list_id: id, measurement_id: meas.id) ||
+            raise('DataListMeasurement creation failed')  ## 'creation failed' bec previous << operation should have created it
+        new_dlm.update_attributes(list_order: index)
+      end
+    end
   end
 
   def series_names
@@ -25,7 +50,7 @@ class DataList < ApplicationRecord
   
   #not to be confused with startdate and enddate
   def start_date
-    "#{self.startyear}-01-01"
+    Date.new(startyear).to_s
   end
   
   def series_data

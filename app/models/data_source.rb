@@ -94,15 +94,6 @@ class DataSource < ApplicationRecord
       series_names.uniq
     end
     
-    def DataSource.all_pattern_series_names
-      series_names = []
-      DataSource.where("eval LIKE '%load_from_pattern_id%' OR eval LIKE '%load_from_bls%' OR eval LIKE '%load_standard_text%'").all.each do |ds| 
-        series_names.push ds.series.name
-        #puts "#{ds.series.name} - #{ds.eval}"
-      end
-      series_names.uniq
-    end
-    
     def DataSource.pattern_only_series_names
       DataSource.all_pattern_series_names - DataSource.all_load_from_file_series_names
     end
@@ -326,6 +317,7 @@ class DataSource < ApplicationRecord
       select last_error, series_id, count(*) from data_sources
       where universe = 'UHERO'
       and last_error is not null
+      and not disabled
       group by last_error
       order by 3 desc, 1
     MYSQL

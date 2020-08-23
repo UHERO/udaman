@@ -30,6 +30,7 @@
     <span class="actions"><%= f2.submit 'Add measurement' %></span>
     <br/>or <%= link_to 'Create a new measurement for this data list',
                         {controller: :measurements, action: :new, universe: @data_list.universe, data_list_id: @data_list.id } %>
+         or <%= link_to 'Edit all measurements as text', { action: :edit_as_text, id: @data_list } %>
   </div>
 <% end %>
 <p>
