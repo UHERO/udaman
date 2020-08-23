@@ -660,7 +660,7 @@ class Series < ApplicationRecord
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified
-  def generate_random(start_date, end_date, low_range, high_range)
+  def generate_random(start_date, end_date, low_range, high_range, specific_points = {})
     freq = self.frequency
     incr = 1
     if freq == 'quarter'
@@ -673,6 +673,9 @@ class Series < ApplicationRecord
     while iter <= upto do
       series_data[iter] = low_range + rand(high_range - low_range)
       iter += incr.send(freq)
+    end
+    specific_points.each do |date, value|
+      series_data[date.to_date] = value
     end
     new_transformation("generated randomly for testing", series_data)
   end
