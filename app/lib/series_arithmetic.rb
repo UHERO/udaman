@@ -36,7 +36,7 @@ module SeriesArithmetic
     end
    ##  Whole loop can be replaced with one line below, yes?
    ##  new_series_data = longer_series.data.map {|date, value| value.to_f + other_series.at(date).to_f }
-    new_transformation("#{self} zero_add #{other_series}",new_series_data)
+    new_transformation("#{self} zero_add #{other_series}", new_series_data)
   end
   
   def +(other_series)
