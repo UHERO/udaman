@@ -88,7 +88,7 @@ class Series < ApplicationRecord
   end
 
   def rename(newname)
-    raise("Cannot rename because series #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
     props = { name: newname }
     parts = Series.parse_name(newname)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
@@ -97,9 +97,9 @@ class Series < ApplicationRecord
     self.update!(props)
   end
 
-  def duplicate(newname, newattrs = {})
-    raise("Cannot duplicate because series #{newname} already exists in #{universe}") if Series.get(newname, universe)
-    raise("Cannot pass :universe as a new attribute") if newattrs[:universe]
+  def duplicate(newname, new_attrs = {})
+    raise("Cannot duplicate because #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    raise("Cannot pass :universe as a new attribute") if new_attrs[:universe]
     s_attrs = attributes
     s_attrs['name'] = newname
     ## Get rid of properties that should not be duplicated. Some things will be handled properly by create_new()
@@ -109,7 +109,7 @@ class Series < ApplicationRecord
     x_attrs = xseries.attributes
     x_attrs.delete('primary_series_id')
     x_attrs.delete('frequency')
-    Series.create_new(s_attrs.merge(x_attrs).merge(newattrs))  #### cool?
+    Series.create_new(s_attrs.merge(x_attrs).merge(new_attrs))
   end
 
   def Series.create_new(properties)
