@@ -591,10 +591,9 @@ class Series < ApplicationRecord
   def new_transformation(name, data, frequency = nil)
     raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
-    Series.new(
-      :name => name,
-      :xseries => Xseries.new(frequency: frequency),
-      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
+    Series.new(name: name,
+               xseries: Xseries.new(frequency: frequency),
+               data: Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
     ).tap do |o|
       o.propagate_state_from(self)
     end
@@ -675,11 +674,7 @@ class Series < ApplicationRecord
       iter += incr.send(freq)
     end
     specific_points.each do |date, value|
-      if value.class == Hash && value.empty?
-        series_data.delete(date.to_date)
-      else
-        series_data[date.to_date] = value
-      end
+      series_data[date.to_date] = value
     end
     new_transformation("generated randomly for testing", series_data)
   end
