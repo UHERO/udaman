@@ -88,7 +88,7 @@ class Series < ApplicationRecord
   end
 
   def duplicate(newname, newattrs)
-    Series.get(newname, universe) && raise("Cannot duplicate into #{newname} because series already exists in #{universe}")
+    Series.get(newname, universe) && raise("Cannot create duplicate because series #{newname} already exists in #{universe}")
     s_attrs = attributes
     s_attrs[:name] = newname
     s_attrs.delete(:xseries_id)
@@ -114,7 +114,7 @@ class Series < ApplicationRecord
     end
 
     if properties[:geography_id]
-      geo = Geography.find properties[:geography_id]
+      geo = Geography.find(properties[:geography_id]) rescue raise("No Geography with id=#{properties[:geography_id]} found")
     else
       uni = properties[:universe] || 'UHERO'
       geo = Geography.find_by(universe: uni, handle: name_parts[:geo]) || raise("No #{uni} Geography found, handle=#{name_parts[:geo]}")
