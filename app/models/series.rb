@@ -87,6 +87,19 @@ class Series < ApplicationRecord
     return true
   end
 
+  def duplicate(newname, newattrs)
+    Series.get(newname, universe) && raise("Cannot duplicate into #{newname} because series already exists in #{universe}")
+    s_attrs = attributes
+    s_attrs[:name] = newname
+    s_attrs.delete(:xseries_id)
+    s_attrs.delete(:geography_id)
+    s_attrs.delete(:dependency_depth)
+    x_attrs = xseries.attributes
+    x_attrs.delete(:primary_series_id)
+    x_attrs.delete(:frequency)
+    Series.create_new(s_attrs.merge(x_attrs).merge(newattrs))  #### cool?
+  end
+
   def Series.create_new(properties)
     ## :xseries_attributes and :name_parts only present when called from SeriesController#create
     xs_attrs = properties.delete(:xseries_attributes)
@@ -110,7 +123,7 @@ class Series < ApplicationRecord
     properties[:geography_id] ||= geo.id
     properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
 
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
