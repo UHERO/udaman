@@ -87,8 +87,19 @@ class Series < ApplicationRecord
     return true
   end
 
+  def rename(newname)
+    raise("Cannot rename because series #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    props = { name: newname }
+    parts = Series.parse_name(newname)
+    geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
+    props[:geography_id] = geo.id
+    props[:frequency] = Series.frequency_from_code(parts[:freq])
+    self.update!(props)
+  end
+
   def duplicate(newname, newattrs = {})
-    Series.get(newname, universe) && raise("Cannot duplicate because series #{newname} already exists in #{universe}")
+    raise("Cannot duplicate because series #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    raise("Cannot pass :universe as a new attribute") if newattrs[:universe]
     s_attrs = attributes
     s_attrs['name'] = newname
     ## Get rid of properties that should not be duplicated. Some things will be handled properly by create_new()
@@ -122,7 +133,7 @@ class Series < ApplicationRecord
     end
     properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] ||= geo.id
-    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
+    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq])
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
@@ -136,7 +147,7 @@ class Series < ApplicationRecord
         x.update(primary_series_id: s.id)
       end
     rescue => e
-      raise "Model object creation failed for name #{properties[:name]}: #{e.message}"
+      raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
     end
     s
   end
@@ -352,9 +363,9 @@ class Series < ApplicationRecord
   def Series.frequency_from_code(code)
     case code && code.upcase
       when 'A' then :year
+      when 'S' then :semi
       when 'Q' then :quarter
       when 'M' then :month
-      when 'S' then :semi
       when 'W' then :week
       when 'D' then :day
       else nil
