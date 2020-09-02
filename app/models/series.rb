@@ -87,16 +87,17 @@ class Series < ApplicationRecord
     return true
   end
 
-  def duplicate(newname, newattrs)
-    Series.get(newname, universe) && raise("Cannot create duplicate because series #{newname} already exists in #{universe}")
+  def duplicate(newname, newattrs = {})
+    Series.get(newname, universe) && raise("Cannot duplicate because series #{newname} already exists in #{universe}")
     s_attrs = attributes
-    s_attrs[:name] = newname
-    s_attrs.delete(:xseries_id)
-    s_attrs.delete(:geography_id)
-    s_attrs.delete(:dependency_depth)
+    s_attrs['name'] = newname
+    ## Get rid of properties that should not be duplicated. Some things will be handled properly by create_new()
+    s_attrs.delete('xseries_id')
+    s_attrs.delete('geography_id')
+    s_attrs.delete('dependency_depth')
     x_attrs = xseries.attributes
-    x_attrs.delete(:primary_series_id)
-    x_attrs.delete(:frequency)
+    x_attrs.delete('primary_series_id')
+    x_attrs.delete('frequency')
     Series.create_new(s_attrs.merge(x_attrs).merge(newattrs))  #### cool?
   end
 
