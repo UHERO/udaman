@@ -345,6 +345,18 @@ task :ua_1165 => :environment do
   end
 end
 
+## JIRA UA-1350
+task :ua_1350 => :environment do
+  all = Series.search_box('^E ~_B$ -NS .Q')
+  all.each do |s|
+
+  end
+  all = Series.search_box('^E ~_B$ -NS .QA')
+  all.each do |s|
+
+  end
+end
+
 ## JIRA UA-1344
 task :ua_1344 => :environment do
   qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
