@@ -5,35 +5,30 @@
 
 ## JIRA UA-1350
 task :ua_1350 => :environment do
-  all = Series.search_box('^E ~_B$ -NS .Q')
-  all.each do |q|
-    puts "---- 1 Doing #{q}"
-    q_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''))
-    m_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
-    q_nonb = q_nonb_name.ts
-    m_name = q.build_name(freq: 'M')
-    q.duplicate(m_name,
-                source_id: 3,  ## UHERO Calculation
-                dataPortalName: q_nonb && q_nonb.dataPortalName,
-                description: q_nonb && q_nonb.dataPortalName + ', benchmarked',
-                seasonal_adjustment: '???'
-    ### others?
-    )
-    m_name.ts_eval = %Q|#{m_nonb_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
-    puts "------ Created series #{m_name}"
-  end
-
   all = Series.search_box('^E ~_B$ -NS .QA')
   all.each do |qa|
-    puts "---- 2 Doing #{qa}"
-    qa_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
-    qa_nonb = qa_nonb_name.ts
+    puts "---- 1 Doing #{qa}"
+    q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
+    m_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
+    q_nonb = q_nonb_name.ts
     m_name = qa.build_name(freq: 'M')
+    if qa.frequency == 'quarter'   ## only create a new .M series based on .Q series metadata
+      qa.duplicate(m_name,
+                   source_id: 3,  ## UHERO Calculation
+                   dataPortalName: q_nonb && q_nonb.dataPortalName,
+                   description: q_nonb && q_nonb.dataPortalName + ', benchmarked',
+                   seasonal_adjustment: '???'
+           ### others?
+      )
+      m_name.ts_eval = %Q|#{m_nonb_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      puts "------ Created series #{m_name}"
+    end
+    ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
     qa.name.ts_eval = %Q|#{m_name}.ts.aggregate(:#{qa.frequency}, :average)|
     qa.update!(source_id: 3,  ## UHERO Calculation
-               dataPortalName: qa_nonb && qa_nonb.dataPortalName,
-               description: qa_nonb && qa_nonb.dataPortalName + ', benchmarked')
+               dataPortalName: q_nonb && q_nonb.dataPortalName,
+               description: q_nonb && q_nonb.dataPortalName + ', benchmarked')
   end
 end
 
@@ -488,3 +483,8 @@ task :ua_1179a => :environment do
   end
   puts "========================================================= end: changed #{i} records"
 end
+
+=begin
+    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
+    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+=end
