@@ -89,12 +89,11 @@ class Series < ApplicationRecord
 
   def rename(newname)
     raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
-    props = { name: newname.upcase }
     parts = Series.parse_name(newname)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
-    props[:geography_id] = geo.id
-    props[:frequency] = Series.frequency_from_code(parts[:freq])
-    self.update!(props)
+    self.update!(name: newname.upcase,
+                 geography_id: geo.id,
+                 frequency: Series.frequency_from_code(parts[:freq]))
   end
 
   def duplicate(newname, new_attrs = {})
