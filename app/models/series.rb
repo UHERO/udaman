@@ -87,6 +87,30 @@ class Series < ApplicationRecord
     return true
   end
 
+  def rename(newname)
+    raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    parts = Series.parse_name(newname)
+    geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
+    self.update!(name: newname.upcase,
+                 geography_id: geo.id,
+                 frequency: Series.frequency_from_code(parts[:freq]))
+  end
+
+  def duplicate(newname, new_attrs = {})
+    raise("Cannot duplicate because #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    raise("Cannot pass :universe as a new attribute") if new_attrs[:universe]
+    s_attrs = attributes.symbolize_keys   ## attr hash keys need to be symbols for create_new(). Also more Rubyish
+    s_attrs[:name] = newname.upcase
+    ## Get rid of properties that should not be duplicated. Some things will be handled properly by create_new()
+    s_attrs.delete(:xseries_id)
+    s_attrs.delete(:geography_id)
+    s_attrs.delete(:dependency_depth)
+    x_attrs = xseries.attributes.symbolize_keys
+    x_attrs.delete(:primary_series_id)
+    x_attrs.delete(:frequency)
+    Series.create_new(s_attrs.merge(x_attrs).merge(new_attrs))
+  end
+
   def Series.create_new(properties)
     ## :xseries_attributes and :name_parts only present when called from SeriesController#create
     xs_attrs = properties.delete(:xseries_attributes)
@@ -101,16 +125,16 @@ class Series < ApplicationRecord
     end
 
     if properties[:geography_id]
-      geo = Geography.find properties[:geography_id]
+      geo = Geography.find(properties[:geography_id]) rescue raise("No Geography with id=#{properties[:geography_id]} found")
     else
       uni = properties[:universe] || 'UHERO'
       geo = Geography.find_by(universe: uni, handle: name_parts[:geo]) || raise("No #{uni} Geography found, handle=#{name_parts[:geo]}")
     end
     properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] ||= geo.id
-    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
+    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq])
 
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
@@ -122,7 +146,7 @@ class Series < ApplicationRecord
         x.update(primary_series_id: s.id)
       end
     rescue => e
-      raise "Model object creation failed for name #{properties[:name]}: #{e.message}"
+      raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
     end
     s
   end
@@ -338,9 +362,9 @@ class Series < ApplicationRecord
   def Series.frequency_from_code(code)
     case code && code.upcase
       when 'A' then :year
+      when 'S' then :semi
       when 'Q' then :quarter
       when 'M' then :month
-      when 'S' then :semi
       when 'W' then :week
       when 'D' then :day
       else nil
