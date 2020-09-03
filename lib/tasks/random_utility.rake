@@ -1,3 +1,69 @@
+=begin
+    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
+    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+=end
+
+## JIRA UA-1350
+task :ua_1350 => :environment do
+  all = Series.search_box('^E ~_B$ -NS .Q')
+  all.each do |q|
+    puts "---- 1 Doing #{q}"
+    q_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''))
+    m_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
+    q_nonb = q_nonb_name.ts
+    m_name = q.build_name(freq: 'M')
+    q.duplicate(m_name,
+                source_id: 3,  ## UHERO Calculation
+                dataPortalName: q_nonb && q_nonb.dataPortalName,
+                description: q_nonb && q_nonb.dataPortalName + ', benchmarked',
+                seasonal_adjustment: '???'
+    ### others?
+    )
+    m_name.ts_eval = %Q|#{m_nonb_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+    puts "------ Created series #{m_name}"
+  end
+
+  all = Series.search_box('^E ~_B$ -NS .QA')
+  all.each do |qa|
+    puts "---- 2 Doing #{qa}"
+    qa_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
+    qa_nonb = qa_nonb_name.ts
+    m_name = qa.build_name(freq: 'M')
+    qa.enabled_data_sources.each {|ds| ds.disable }
+    qa.name.ts_eval = %Q|#{m_name}.ts.aggregate(:#{qa.frequency}, :average)|
+    qa.update!(source_id: 3,  ## UHERO Calculation
+               dataPortalName: qa_nonb && qa_nonb.dataPortalName,
+               description: qa_nonb && qa_nonb.dataPortalName + ', benchmarked')
+  end
+end
+
+## JIRA UA-1344
+task :ua_1344 => :environment do
+  qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
+  qes.each do |s|
+    puts "WORKING ON: #{s} (#{s.id})"
+    disabled_one = false
+    s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
+      puts "   DISABLING: #{ds.eval}"
+      ds.disable
+      disabled_one = true
+    end
+    if disabled_one
+      s.data_sources.create(
+          eval: '"%s".tsn.load_from("/Users/uhero/Documents/data/rparsed/QCEW_select.csv") / 1000' % s.name,
+          priority: 100,
+          color: 'CCFFFF'
+      )
+      puts"   CREATED NEW LOADER"
+      s.reload_sources
+      puts "   LOADED THE NEW ONE"
+    end
+    if s.data.empty?
+      puts ">>>>>>>>>>>>>>>> EMPTY!! #{s.id}"
+    end
+  end
+end
+
 ## JIRA: UA-989
 task :batch_update_meta_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and scratch <> 1111}).uniq
@@ -342,58 +408,6 @@ task :ua_1165 => :environment do
     new_eval = d.eval.sub('RegionalIncome','Regional').sub(opts[:TableName], new[idx])
     puts "replacing | #{d.eval} | with | #{new_eval} |"
     d.update!(eval: new_eval)
-  end
-end
-
-## JIRA UA-1350
-task :ua_1350 => :environment do
-  all = Series.search_box('^E ~_B$ -NS .Q')
-  all.each do |q|
-    q_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''))
-    m_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
-    q_nonb = q_nonb_name.ts
-    m_name = q.build_name(freq: 'M')
-    q.duplicate(m_name,
-                source_id: 3,  ## UHERO Calculation
-                dataPortalName: q_nonb && q_nonb.dataPortalName,
-                description: q_nonb && q_nonb.dataPortalName + ', benchmarked',
-                seasonal_adjustment: '???'
-         ### others?
-    )
-    m_name.ts_eval = %Q|#{m_nonb_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
-    puts "---- Created series #{m_name}"
-  end
-
-  all = Series.search_box('^E ~_B$ -NS .QA')
-  all.each do |s|
-
-  end
-end
-
-## JIRA UA-1344
-task :ua_1344 => :environment do
-  qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
-  qes.each do |s|
-    puts "WORKING ON: #{s} (#{s.id})"
-    disabled_one = false
-    s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
-      puts "   DISABLING: #{ds.eval}"
-      ds.disable
-      disabled_one = true
-    end
-    if disabled_one
-      s.data_sources.create(
-          eval: '"%s".tsn.load_from("/Users/uhero/Documents/data/rparsed/QCEW_select.csv") / 1000' % s.name,
-          priority: 100,
-          color: 'CCFFFF'
-      )
-      puts"   CREATED NEW LOADER"
-      s.reload_sources
-      puts "   LOADED THE NEW ONE"
-    end
-    if s.data.empty?
-      puts ">>>>>>>>>>>>>>>> EMPTY!! #{s.id}"
-    end
   end
 end
 
