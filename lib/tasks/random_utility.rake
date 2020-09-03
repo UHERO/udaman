@@ -349,15 +349,19 @@ end
 task :ua_1350 => :environment do
   all = Series.search_box('^E ~_B$ -NS .Q')
   all.each do |q|
-    q_nonbench_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''))
-    q_nonbench = q_nonbench_name.ts
+    q_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''))
+    m_nonb_name = q.build_name(prefix: q.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
+    q_nonb = q_nonb_name.ts
     m_name = q.build_name(freq: 'M')
     q.duplicate(m_name,
                 source_id: 3,  ## UHERO Calculation
-                dataPortalName: q_nonbench && q_nonbench.dataPortalName,
-                description: q_nonbench && q_nonbench.dataPortalName + ', benchmarked')
-    m_name.ts_eval = %Q|#{q_nonbench_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
-    Rails.logger.info { "Created series #{m_name}" }
+                dataPortalName: q_nonb && q_nonb.dataPortalName,
+                description: q_nonb && q_nonb.dataPortalName + ', benchmarked',
+                seasonal_adjustment: '???'
+         ### others?
+    )
+    m_name.ts_eval = %Q|#{m_nonb_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+    puts "---- Created series #{m_name}"
   end
 
   all = Series.search_box('^E ~_B$ -NS .QA')
