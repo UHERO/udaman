@@ -100,15 +100,15 @@ class Series < ApplicationRecord
   def duplicate(newname, new_attrs = {})
     raise("Cannot duplicate because #{newname} already exists in #{universe}") if Series.get(newname, universe)
     raise("Cannot pass :universe as a new attribute") if new_attrs[:universe]
-    s_attrs = attributes
-    s_attrs['name'] = newname.upcase
+    s_attrs = attributes.symbolize_keys   ## attr hash keys need to be symbols for create_new(). Also more Rubyish
+    s_attrs[:name] = newname.upcase
     ## Get rid of properties that should not be duplicated. Some things will be handled properly by create_new()
-    s_attrs.delete('xseries_id')
-    s_attrs.delete('geography_id')
-    s_attrs.delete('dependency_depth')
-    x_attrs = xseries.attributes
-    x_attrs.delete('primary_series_id')
-    x_attrs.delete('frequency')
+    s_attrs.delete(:xseries_id)
+    s_attrs.delete(:geography_id)
+    s_attrs.delete(:dependency_depth)
+    x_attrs = xseries.attributes.symbolize_keys
+    x_attrs.delete(:primary_series_id)
+    x_attrs.delete(:frequency)
     Series.create_new(s_attrs.merge(x_attrs).merge(new_attrs))
   end
 
