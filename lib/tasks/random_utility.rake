@@ -32,11 +32,12 @@ task :ua_1350 => :environment do
             m_series.build_name(prefix: 'E_GVSL_B')
         ]
       elsif qa.parse_name[:prefix] == 'E_SV_B'
-        eval_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % [
+        eval_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % [
             m_series.build_name(prefix: 'E_NF_B'),
             m_series.build_name(prefix: 'ECT_B'),
             m_series.build_name(prefix: 'EMN_B'),
-            m_series.build_name(prefix: 'E_TTU_B'),
+            m_series.build_name(prefix: 'E_TU_B'),
+            m_series.build_name(prefix: 'E_TRADE_B'),
             m_series.build_name(prefix: 'E_FIR_B'),
             m_series.build_name(prefix: 'EGV_B')
         ]
