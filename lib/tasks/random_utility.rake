@@ -7,33 +7,46 @@
 task :ua_1350 => :environment do
   all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
   all.each do |qa|
-    puts "---- 1 Doing #{qa}"
+    puts "**** 1 Doing #{qa}"
     q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
     m_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
     q_nonb = q_nonb_name.ts
     m_name = qa.build_name(freq: 'M')
     if qa.frequency == 'quarter'   ## create a new .M series only based on .Q series metadata
-      qa.duplicate(m_name,
+      m_series = qa.duplicate(m_name,
                    source_id: 3,  ## UHERO Calculation
                    dataPortalName: q_nonb && q_nonb.dataPortalName,
                    description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
                    seasonal_adjustment: 'seasonally_adjusted',
                    seasonally_adjusted: true
       )
-      begin
-        m_name.ts_eval = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
-      rescue => e
-        puts ">>>>>>>>>>>>>>>>>>>>>> error: #{e.message}"
+      eval_stmt = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      if qa.geography.handle == 'NBI'
+        eval_stmt = %q|"%s".ts - "%s".ts| % [
+            m_series.build_name(geo: 'HI'),
+            m_series.build_name(geo: 'HON')
+        ]
+      elsif qa.parse_name[:prefix] == 'EGV_B'
+        eval_stmt = %q|"%s".ts + "%s".ts| % [
+            m_series.build_name(prefix: 'EGVFD_B'),
+            m_series.build_name(prefix: 'E_GVSL_B')
+        ]
+      elsif qa.parse_name[:prefix] == 'E_SV_B'
+        eval_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % [
+            m_series.build_name(prefix: 'E_NF_B'),
+            m_series.build_name(prefix: 'ECT_B'),
+            m_series.build_name(prefix: 'EMN_B'),
+            m_series.build_name(prefix: 'E_TTU_B'),
+            m_series.build_name(prefix: 'E_FIR_B'),
+            m_series.build_name(prefix: 'EGV_B')
+        ]
       end
+      m_series.data_sources.create(eval: eval_stmt, color: 'CCFFFF')
       puts "-------- Created series #{m_name}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
-    begin
-      qa.name.ts_eval = %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|
-    rescue => e
-      puts ">>>>>>>>>>>>>>>>>>>>>> error: #{e.message}"
-    end
+    qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, color: 'CCFFFF')
     qa.update!(source_id: 3,  ## UHERO Calculation
                dataPortalName: q_nonb && q_nonb.dataPortalName,
                description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
