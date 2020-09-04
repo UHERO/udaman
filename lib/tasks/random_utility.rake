@@ -42,7 +42,7 @@ task :ua_1350 => :environment do
         ]
       end
       m_series.data_sources.create(eval: eval_stmt, color: 'CCFFFF')
-      puts "-------- Created series #{m_name}"
+      puts "-------- Created series #{m_name}: #{eval_stmt}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
