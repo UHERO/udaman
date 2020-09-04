@@ -26,12 +26,11 @@ task :ua_1350 => :environment do
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
     qa.name.ts_eval = %Q|#{m_name}.ts.aggregate(:#{qa.frequency}, :average)|
-
-    sa_fields = { seasonal_adjustment: qa.frequency == 'year' ? 'not_applicable' : 'seasonally_adjusted',
-                  seasonally_adjusted: qa.frequency == 'year' ?  false           : true }
-    qa.update!({ source_id: 3,  ## UHERO Calculation
-                 dataPortalName: q_nonb && q_nonb.dataPortalName,
-                 description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked' }.merge(sa_fields))
+    qa.update!(source_id: 3,  ## UHERO Calculation
+               dataPortalName: q_nonb && q_nonb.dataPortalName,
+               description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
+               seasonal_adjustment: qa.frequency == 'year' ? 'not_applicable' : 'seasonally_adjusted',
+               seasonally_adjusted: qa.frequency == 'year' ?  false           : true )
   end
 end
 
