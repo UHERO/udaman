@@ -5,7 +5,7 @@
 
 ## JIRA UA-1350
 task :ua_1350 => :environment do
-  all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')
+  all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
   all.each do |qa|
     puts "---- 1 Doing #{qa}"
     q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
@@ -20,12 +20,12 @@ task :ua_1350 => :environment do
                    seasonal_adjustment: 'seasonally_adjusted',
                    seasonally_adjusted: true
       )
-      m_name.ts_eval = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      m_name.ts_eval = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")| rescue nil
       puts "-------- Created series #{m_name}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
-    qa.name.ts_eval = %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|
+    qa.name.ts_eval = %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)| rescue nil
     qa.update!(source_id: 3,  ## UHERO Calculation
                dataPortalName: q_nonb && q_nonb.dataPortalName,
                description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
