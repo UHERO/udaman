@@ -20,12 +20,20 @@ task :ua_1350 => :environment do
                    seasonal_adjustment: 'seasonally_adjusted',
                    seasonally_adjusted: true
       )
-      m_name.ts_eval = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")| rescue nil
+      begin
+        m_name.ts_eval = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      rescue => e
+        puts ">>>>>>>>>>>>>>>>>>>>>> error: #{e.message}"
+      end
       puts "-------- Created series #{m_name}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
-    qa.name.ts_eval = %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)| rescue nil
+    begin
+      qa.name.ts_eval = %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|
+    rescue => e
+      puts ">>>>>>>>>>>>>>>>>>>>>> error: #{e.message}"
+    end
     qa.update!(source_id: 3,  ## UHERO Calculation
                dataPortalName: q_nonb && q_nonb.dataPortalName,
                description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
