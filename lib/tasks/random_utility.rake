@@ -5,7 +5,7 @@
 
 ## JIRA UA-1350
 task :ua_1350 => :environment do
-  all = Series.search_box('^E ~_B$ -NS .QA')
+  all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')
   all.each do |qa|
     puts "---- 1 Doing #{qa}"
     q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
