@@ -12,23 +12,26 @@ task :ua_1350 => :environment do
     m_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
     q_nonb = q_nonb_name.ts
     m_name = qa.build_name(freq: 'M')
-    if qa.frequency == 'quarter'   ## only create a new .M series based on .Q series metadata
+    if qa.frequency == 'quarter'   ## create a new .M series only based on .Q series metadata
       qa.duplicate(m_name,
                    source_id: 3,  ## UHERO Calculation
                    dataPortalName: q_nonb && q_nonb.dataPortalName,
-                   description: q_nonb && q_nonb.dataPortalName + ', benchmarked',
-                   seasonal_adjustment: '???'
-           ### others?
+                   description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
+                   seasonal_adjustment: 'seasonally_adjusted',
+                   seasonally_adjusted: true
       )
       m_name.ts_eval = %Q|#{m_nonb_name}.tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
-      puts "------ Created series #{m_name}"
+      puts "-------- Created series #{m_name}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
     qa.name.ts_eval = %Q|#{m_name}.ts.aggregate(:#{qa.frequency}, :average)|
-    qa.update!(source_id: 3,  ## UHERO Calculation
-               dataPortalName: q_nonb && q_nonb.dataPortalName,
-               description: q_nonb && q_nonb.dataPortalName + ', benchmarked')
+
+    sa_fields = { seasonal_adjustment: qa.frequency == 'year' ? 'not_applicable' : 'seasonally_adjusted',
+                  seasonally_adjusted: qa.frequency == 'year' ?  false           : true }
+    qa.update!({ source_id: 3,  ## UHERO Calculation
+                 dataPortalName: q_nonb && q_nonb.dataPortalName,
+                 description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked' }.merge(sa_fields))
   end
 end
 
