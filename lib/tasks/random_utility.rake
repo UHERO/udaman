@@ -43,13 +43,13 @@ task :ua_1350 => :environment do
         load_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % deps
       end
       loader = m_series.data_sources.create(eval: load_stmt, description: deps.join(' '), color: 'CCFFFF')
-      loader.set_dependencies
+      loader.setup
       puts "-------- Created series #{m_name}: #{load_stmt}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
     loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name, color: 'CCFFFF')
-    loader.set_dependencies
+    loader.setup
     qa.update!(source_id: 3,  ## UHERO Calculation
                dataPortalName: q_nonb && q_nonb.dataPortalName,
                description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
