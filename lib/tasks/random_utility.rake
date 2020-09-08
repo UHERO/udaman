@@ -20,19 +20,18 @@ task :ua_1350 => :environment do
                    seasonal_adjustment: 'seasonally_adjusted',
                    seasonally_adjusted: true
       )
-      eval_stmt = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      load_stmt = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      deps = [m_nonb_name]
       if qa.geography.handle == 'NBI'
-        eval_stmt = %q|"%s".ts - "%s".ts| % [
-            m_series.build_name(geo: 'HI'),
-            m_series.build_name(geo: 'HON')
-        ]
+        deps = [ m_series.build_name(geo: 'HI'),
+                 m_series.build_name(geo: 'HON') ]
+        load_stmt = %q|"%s".ts - "%s".ts| % deps
       elsif qa.parse_name[:prefix] == 'EGV_B'
-        eval_stmt = %q|"%s".ts + "%s".ts| % [
-            m_series.build_name(prefix: 'EGVFD_B'),
-            m_series.build_name(prefix: 'E_GVSL_B')
-        ]
+        deps = [ m_series.build_name(prefix: 'EGVFD_B'),
+                 m_series.build_name(prefix: 'E_GVSL_B') ]
+        load_stmt = %q|"%s".ts + "%s".ts| % deps
       elsif qa.parse_name[:prefix] == 'E_SV_B'
-        eval_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % [
+        deps = [
             m_series.build_name(prefix: 'E_NF_B'),
             m_series.build_name(prefix: 'ECT_B'),
             m_series.build_name(prefix: 'EMN_B'),
@@ -41,13 +40,16 @@ task :ua_1350 => :environment do
             m_series.build_name(prefix: 'E_FIR_B'),
             m_series.build_name(prefix: 'EGV_B')
         ]
+        load_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % deps
       end
-      m_series.data_sources.create(eval: eval_stmt, color: 'CCFFFF')
-      puts "-------- Created series #{m_name}: #{eval_stmt}"
+      loader = m_series.data_sources.create(eval: load_stmt, description: deps.join(' '))
+      loader.setup
+      puts "-------- Created series #{m_name}: #{load_stmt}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
     qa.enabled_data_sources.each {|ds| ds.disable }
-    qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, color: 'CCFFFF')
+    loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name)
+    loader.setup
     qa.update!(source_id: 3,  ## UHERO Calculation
                dataPortalName: q_nonb && q_nonb.dataPortalName,
                description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
