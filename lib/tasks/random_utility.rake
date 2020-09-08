@@ -1,3 +1,90 @@
+=begin
+    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
+    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+=end
+
+## JIRA UA-1350
+task :ua_1350 => :environment do
+  all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
+  all.each do |qa|
+    puts "**** 1 Doing #{qa}"
+    q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
+    m_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
+    q_nonb = q_nonb_name.ts
+    m_name = qa.build_name(freq: 'M')
+    if qa.frequency == 'quarter'   ## create a new .M series only based on .Q series metadata
+      m_series = qa.duplicate(m_name,
+                   source_id: 3,  ## UHERO Calculation
+                   dataPortalName: q_nonb && q_nonb.dataPortalName,
+                   description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
+                   seasonal_adjustment: 'seasonally_adjusted',
+                   seasonally_adjusted: true
+      )
+      load_stmt = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      deps = [m_nonb_name]
+      if qa.geography.handle == 'NBI'
+        deps = [ m_series.build_name(geo: 'HI'),
+                 m_series.build_name(geo: 'HON') ]
+        load_stmt = %q|"%s".ts - "%s".ts| % deps
+      elsif qa.parse_name[:prefix] == 'EGV_B'
+        deps = [ m_series.build_name(prefix: 'EGVFD_B'),
+                 m_series.build_name(prefix: 'E_GVSL_B') ]
+        load_stmt = %q|"%s".ts + "%s".ts| % deps
+      elsif qa.parse_name[:prefix] == 'E_SV_B'
+        deps = [
+            m_series.build_name(prefix: 'E_NF_B'),
+            m_series.build_name(prefix: 'ECT_B'),
+            m_series.build_name(prefix: 'EMN_B'),
+            m_series.build_name(prefix: 'E_TU_B'),
+            m_series.build_name(prefix: 'E_TRADE_B'),
+            m_series.build_name(prefix: 'E_FIR_B'),
+            m_series.build_name(prefix: 'EGV_B')
+        ]
+        load_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % deps
+      end
+      loader = m_series.data_sources.create(eval: load_stmt, description: deps.join(' '))
+      loader.setup
+      puts "-------- Created series #{m_name}: #{load_stmt}"
+    end
+    ## Change all .Q/.A series to aggregate off the new .M series
+    qa.enabled_data_sources.each {|ds| ds.disable }
+    loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name)
+    loader.setup
+    qa.update!(source_id: 3,  ## UHERO Calculation
+               dataPortalName: q_nonb && q_nonb.dataPortalName,
+               description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
+               seasonal_adjustment: qa.frequency == 'year' ? 'not_applicable' : 'seasonally_adjusted',
+               seasonally_adjusted: qa.frequency == 'year' ?  false           : true )
+  end
+end
+
+## JIRA UA-1344
+task :ua_1344 => :environment do
+  qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
+  qes.each do |s|
+    puts "WORKING ON: #{s} (#{s.id})"
+    disabled_one = false
+    s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
+      puts "   DISABLING: #{ds.eval}"
+      ds.disable
+      disabled_one = true
+    end
+    if disabled_one
+      s.data_sources.create(
+          eval: '"%s".tsn.load_from("/Users/uhero/Documents/data/rparsed/QCEW_select.csv") / 1000' % s.name,
+          priority: 100,
+          color: 'CCFFFF'
+      )
+      puts"   CREATED NEW LOADER"
+      s.reload_sources
+      puts "   LOADED THE NEW ONE"
+    end
+    if s.data.empty?
+      puts ">>>>>>>>>>>>>>>> EMPTY!! #{s.id}"
+    end
+  end
+end
+
 ## JIRA: UA-989
 task :batch_update_meta_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and scratch <> 1111}).uniq
@@ -345,33 +432,6 @@ task :ua_1165 => :environment do
   end
 end
 
-## JIRA UA-1344
-task :ua_1344 => :environment do
-  qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
-  qes.each do |s|
-    puts "WORKING ON: #{s} (#{s.id})"
-    disabled_one = false
-    s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
-      puts "   DISABLING: #{ds.eval}"
-      ds.disable
-      disabled_one = true
-    end
-    if disabled_one
-      s.data_sources.create(
-          eval: '"%s".tsn.load_from("/Users/uhero/Documents/data/rparsed/QCEW_select.csv") / 1000' % s.name,
-          priority: 100,
-          color: 'CCFFFF'
-      )
-      puts"   CREATED NEW LOADER"
-      s.reload_sources
-      puts "   LOADED THE NEW ONE"
-    end
-    if s.data.empty?
-      puts ">>>>>>>>>>>>>>>> EMPTY!! #{s.id}"
-    end
-  end
-end
-
 ## JIRA UA-1179, first pass, reassigning DBEDT series with UHERO units to DBEDT units
 task :ua_1179a => :environment do
   uh2db = {
@@ -449,3 +509,8 @@ task :ua_1179a => :environment do
   end
   puts "========================================================= end: changed #{i} records"
 end
+
+=begin
+    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
+    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+=end
