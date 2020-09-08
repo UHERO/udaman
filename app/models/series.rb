@@ -83,8 +83,10 @@ class Series < ApplicationRecord
   end
 
   def Series.bulk_create(definitions)
-    definitions.each { |definition| Kernel::eval definition }
-    return true
+    Series.transaction do
+      definitions.each {|defn| Kernel::eval defn }
+    end
+    true
   end
 
   def Series.create_new(properties)
