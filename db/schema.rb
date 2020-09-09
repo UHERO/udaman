@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025762) do
+ActiveRecord::Schema.define(version: 220170413025765) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -315,7 +315,7 @@ ActiveRecord::Schema.define(version: 220170413025762) do
     t.integer "unit_id"
     t.boolean "percent"
     t.boolean "real"
-    t.integer "decimals", default: 2, null: false
+    t.integer "decimals", default: 1, null: false
     t.boolean "restricted", default: false, null: false
     t.boolean "seasonally_adjusted"
     t.string "seasonal_adjustment", limit: 23
@@ -329,6 +329,15 @@ ActiveRecord::Schema.define(version: 220170413025762) do
     t.index ["source_id"], name: "fk_rails_e96addabdb"
     t.index ["unit_id"], name: "fk_rails_c5bad45aff"
     t.index ["universe"], name: "index_measurements_on_universe"
+  end
+
+  create_table "new_dbedt_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    t.datetime "upload_at"
+    t.boolean "active"
+    t.string "status", limit: 10
+    t.string "filename"
+    t.datetime "last_error_at"
+    t.string "last_error"
   end
 
   create_table "nta_uploads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
@@ -369,7 +378,7 @@ ActiveRecord::Schema.define(version: 220170413025762) do
     t.integer "dependency_depth"
     t.integer "unit_id"
     t.integer "geography_id"
-    t.integer "decimals", default: 2, null: false
+    t.integer "decimals", default: 1, null: false
     t.integer "source_id"
     t.string "source_link"
     t.integer "source_detail_id"
