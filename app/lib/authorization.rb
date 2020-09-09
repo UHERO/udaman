@@ -12,7 +12,7 @@ module Authorization
   end
 
   def check_forecast_snapshot_authorization
-    if current_user.heco? && (%w(index show table).include?(params[:action]))
+    if current_user.fsonly? && (%w(index show table).include?(params[:action]))
       return
     end
     if current_user.admin_user? && %w(delete destroy).include?(params[:action])

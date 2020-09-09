@@ -77,8 +77,8 @@ class SeriesController < ApplicationController
   end
 
   def index
-    if current_user.heco?
-      redirect_to :controller => :forecast_snapshots, :action => :index
+    if current_user.fsonly?
+      redirect_to controller: :forecast_snapshots, action: :index
       return
     end
     if current_user.dbedt?
