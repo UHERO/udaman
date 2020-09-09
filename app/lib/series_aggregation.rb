@@ -49,6 +49,11 @@ module SeriesAggregation
     grouped_data
   end
 
+  def normalize_weekly(method = :sum)
+    raise 'Only run normalize against weekly series' if frequency != 'week'
+    aggregate(:week, method)
+  end
+
 private
 
   ### Assumes that weekly observations fall at the _beginning_ of the week they represent, whatever weekday that might be

@@ -3,7 +3,7 @@ class User < ApplicationRecord
   has_many :data_source_actions
   enum role: {
       external: 'external',
-      heco: 'heco',
+      fsonly: 'fsonly',
       internal: 'internal',
       admin: 'admin',
       dev: 'dev'

@@ -374,7 +374,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_name(name)
-    Series.frequency_from_code(Series.parse_name(name)[:freq])
+    Series.frequency_from_code(Series.parse_name(name)[:freq]).to_s
   end
 
   def frequency_from_name
@@ -437,6 +437,9 @@ class Series < ApplicationRecord
   def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
+    unless series.frequency == Series.frequency_from_name(series_name)
+      raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
+    end
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
     series_to_set.save_source(desc, eval_statement, series.data, priority)
