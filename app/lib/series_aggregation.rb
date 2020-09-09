@@ -49,7 +49,12 @@ module SeriesAggregation
     grouped_data
   end
 
-private
+  def normalize_weekly
+    raise 'Only run normalize against weekly series' if frequency != 'week'
+    aggregate(:week, :sum)
+  end
+
+  private
 
   def fill_weeks
     raise AggregationException.new, 'original series is not weekly' unless frequency == 'week'
