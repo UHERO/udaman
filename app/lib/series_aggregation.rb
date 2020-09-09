@@ -54,7 +54,7 @@ module SeriesAggregation
     aggregate(:week, method)
   end
 
-  private
+private
 
   def fill_weeks
     raise AggregationException.new, 'original series is not weekly' unless frequency == 'week'
