@@ -49,9 +49,9 @@ module SeriesAggregation
     grouped_data
   end
 
-  def normalize_weekly
+  def normalize_weekly(method = :sum)
     raise 'Only run normalize against weekly series' if frequency != 'week'
-    aggregate(:week, :sum)
+    aggregate(:week, method)
   end
 
   private
