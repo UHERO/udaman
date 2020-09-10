@@ -88,7 +88,7 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    @all_series = nil ## this is the clue that we're on an initial page-load and not listing search results
+    @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
   end
 
   def new_search
