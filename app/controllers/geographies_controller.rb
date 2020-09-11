@@ -7,7 +7,7 @@ class GeographiesController < ApplicationController
   # GET /geographies
   def index
     @universe = params[:u].upcase rescue 'UHERO'
-    @geographies = Geography.where(universe: @universe).order(:display_name).all
+    @geographies = Geography.where(universe: @universe).order('COALESCE(list_order, 999), handle')
   end
 
   # GET /geographies/1
