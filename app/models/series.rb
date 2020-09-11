@@ -687,7 +687,9 @@ class Series < ApplicationRecord
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified
-  def generate_random(start_date, end_date, low_range, high_range)
+  def generate_random(start_date = nil, end_date = nil, low_range = 0.0, high_range = 100.0)
+    start_date ||= (Date.today - 5.years).send(frequency.to_s + '_d')
+    end_date ||= Date.today.send(frequency.to_s + '_d')
     freq = self.frequency
     incr = 1
     if freq == 'quarter'
