@@ -21,7 +21,7 @@ class Measurement < ApplicationRecord
 
   def replace_all_series(new_s_list)
     my_series = series.includes(:measurement_series)  ## eager load the bridge table
-                    .dup   ## make a copy so that we can modify while looping over
+                      .dup   ## make a copy so that we can modify while looping over
 
     self.transaction do
       my_series.each do |s|
@@ -37,6 +37,25 @@ class Measurement < ApplicationRecord
         series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown series name #{new}")
         (self.series << series) rescue raise("Series #{new} duplicated?")
       end
+    end
+  end
+
+  def duplicate(universe, name_transform = nil, create_properties: false)
+    new_m = self.dup
+    new_m.universe = universe
+    new_m.name = name_transform ? name_transform.call(name) : name
+    ## handle unit
+    if create_properties
+      puts "foo"
+    end
+    ## handle source
+    if create_properties
+      puts "bar"
+    end
+    new_m.save!
+    series.each do |s|
+      al = s.create_alias(universe: universe)
+      (new_m.series << al) rescue raise("Series #{new} duplicated?")
     end
   end
 

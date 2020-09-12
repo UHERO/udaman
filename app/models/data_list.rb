@@ -44,6 +44,13 @@ class DataList < ApplicationRecord
     end
   end
 
+  def duplicate(universe, name_transform = nil, properties = {})
+    new_dl = self.dup
+    new_name = name_transform ? name_transform.call(name) : name
+    new_dl.assign_attributes(properties.merge(universe: universe, name: new_name))
+    new_dl.save!
+  end
+
   def series_names
     list.split("\n").map{|e| e.strip } rescue []
   end
