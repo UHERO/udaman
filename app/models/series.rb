@@ -255,14 +255,16 @@ class Series < ApplicationRecord
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
   end
 
-  def create_alias(parameters)
-    universe = parameters[:universe] || raise('Universe must be specified to create alias')
+  def create_alias(properties)
+    universe = properties[:universe] || raise('Universe must be specified to create alias')
+    new_name = properties[:name] || self.name
     raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
-    raise "Cannot duplicate #{self} into same universe #{universe}" if universe.upcase == self.universe
+    raise "Cannot alias #{self} into same universe #{universe}" if universe.upcase == self.universe
+    raise("Cannot alias because #{new_name} already exists in #{universe}") if Series.get(new_name, universe)
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
-    new.assign_attributes(parameters.merge(geography_id: new_geo.id))
+    new.assign_attributes(properties.merge(geography_id: new_geo.id))
     new.save!
     new.xseries.update!(primary_series_id: self.id)  ## just for insurance
     new
