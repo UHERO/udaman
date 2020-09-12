@@ -256,11 +256,11 @@ class Series < ApplicationRecord
   end
 
   def create_alias(properties)
-    universe = properties[:universe] || raise('Universe must be specified to create alias')
-    new_name = properties[:name] || self.name
     raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
-    raise "Cannot alias #{self} into same universe #{universe}" if universe.upcase == self.universe
-    raise("Cannot alias because #{new_name} already exists in #{universe}") if Series.get(new_name, universe)
+    universe = properties[:universe].upcase rescue raise('Universe must be specified to create alias')
+    raise "Cannot alias #{self} into same universe #{universe}" if universe == self.universe
+    name = properties[:name] || self.name
+    raise "Cannot alias because #{name} already exists in #{universe}" if Series.get(name, universe)
     new_geo = Geography.find_by(universe: universe, handle: geography.handle)
     raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
     new = self.dup
