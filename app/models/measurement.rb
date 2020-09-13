@@ -40,7 +40,7 @@ class Measurement < ApplicationRecord
     end
   end
 
-  def duplicate(universe, name_transform = nil, properties = {})
+  def duplicate(universe, name_trans_f = nil, properties = {})
     new_m = self.dup
     ## handle unit
     if create_properties
@@ -50,7 +50,8 @@ class Measurement < ApplicationRecord
     if create_properties
       #puts "bar"
     end
-    new_name = name_transform ? name_transform.call(name) : name
+    universe.upcase!
+    new_name = name_trans_f ? name_trans_f.call(name) : name
     new_m.assign_attributes(properties.merge(universe: universe, name: new_name))
     new_m.save!
     series.each do |s|

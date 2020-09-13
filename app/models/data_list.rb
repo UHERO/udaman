@@ -44,9 +44,9 @@ class DataList < ApplicationRecord
     end
   end
 
-  def duplicate(universe, name_transform = nil, properties = {})
+  def duplicate(universe, name_trans_f = nil, properties = {})
     new_dl = self.dup
-    new_name = name_transform ? name_transform.call(name) : name
+    new_name = name_trans_f ? name_trans_f.call(name) : name
     new_dl.assign_attributes(properties.merge(universe: universe, name: new_name))
     new_dl.save!
   end
