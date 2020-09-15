@@ -49,6 +49,9 @@ class DataList < ApplicationRecord
     new_name = name_trans_f ? name_trans_f.call(name) : name
     new_dl.assign_attributes(properties.merge(universe: universe, name: new_name))
     new_dl.save!
+    measurements.each do |m|
+      m.duplicate(universe)
+    end
   end
 
   def series_names
