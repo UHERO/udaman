@@ -268,9 +268,14 @@ class DvwUpload < ApplicationRecord
 
   def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
-    mylogger :debug, "before full_load"
+
+    mylogger :info, 'worker_tasks: before full_load'
     total = full_load
-    mylogger :info, "loaded and active"
+
+    unless system('ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /dvw/"')
+      mylogger :error, 'worker_tasks: could not clear API cache'
+    end
+    mylogger :info, 'worker_tasks: loaded and active'
     self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
   end
 
