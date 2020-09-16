@@ -270,14 +270,20 @@ class NewDbedtUpload < ApplicationRecord
 
   def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
+
     mylogger :info, 'worker_tasks: before full_load'
     total = full_load
     self.transaction do
       NewDbedtUpload.update_all(active: false)
       self.update_attributes(status: :ok, active: true, last_error_at: nil, last_error: "#{total} data points loaded")
     end
+
     mylogger :info, 'starting DataPoint.update_public_data_points'
     DataPoint.update_public_data_points('DBEDT') || raise('FAILED to update public data points')
+
+    unless system('clear_cache')
+      mylogger :error, 'worker_tasks: could not clear cache'
+    end
     mylogger :info, 'worker_tasks: loaded and active'
   end
 
