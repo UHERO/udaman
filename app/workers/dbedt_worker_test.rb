@@ -14,12 +14,12 @@ class DbedtWorkerTest
     output = %x{ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
     if $?.success?
       if output.blank?
-        mylogger :info, 'worker_tasks: API cache clear SUCCESS but nothing cleared'
+        mylogger :info, 'worker_tasks: API cache clear SUCCESS, but nothing cleared'
       else
         mylogger :info, "worker_tasks: API cache clear SUCCESS: #{output} entries cleared"
       end
     else
-      mylogger :info, "worker_tasks: API cache clear FAIL: #{$?}"
+      mylogger :warn, "worker_tasks: API cache clear FAIL: #{$?}"
     end
     mylogger :info, "ENDING perform test"
   end
