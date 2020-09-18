@@ -42,14 +42,6 @@ class Measurement < ApplicationRecord
 
   def duplicate(universe, name_trans_f = nil, properties = {})
     new_m = self.dup
-    ## handle unit
-    if create_properties
-      #puts "foo"
-    end
-    ## handle source
-    if create_properties
-      #puts "bar"
-    end
     universe.upcase!
     new_name = name_trans_f ? name_trans_f.call(name) : name
     new_m.assign_attributes(properties.merge(universe: universe, name: new_name))
