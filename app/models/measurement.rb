@@ -49,8 +49,8 @@ class Measurement < ApplicationRecord
     raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
     include_series = properties.delete(:deep_copy)
     new_m = self.dup
-    new_name = name_trans_f ? name_trans_f.call(name) : name
-    new_m.assign_attributes(properties.merge(universe: universe, name: new_name))
+    new_name = name_trans_f ? name_trans_f.call(prefix) : prefix
+    new_m.assign_attributes(properties.merge(universe: universe, prefix: new_name))
     new_m.save!
     if include_series
       series.each do |s|
