@@ -14,7 +14,12 @@ task :ua_1367 => :environment do
   prefixes.each do |p|
     puts ">>> Doing #{p}"
     m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
-    m.duplicate('CCOM', nil, deep_copy: true)
+    begin
+      m.duplicate('CCOM', nil, deep_copy: true)
+    rescue => e
+      puts "ERROR for #{p} ==================== #{e.message}"
+      next
+    end
   end
 end
 

@@ -44,6 +44,9 @@ class Measurement < ApplicationRecord
     end
   end
 
+  ## This method exists primarily for copying/aliasing data portal structures into a new universe
+  ## from an existing one (cf task :ua_1367). It is not exposed to the udaman UI.
+  ## It does not presently handle detailed property-setting for the contained Series.
   def duplicate(universe, name_trans_f = nil, properties = {})
     universe.upcase!
     raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
