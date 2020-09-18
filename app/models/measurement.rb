@@ -15,13 +15,17 @@ class Measurement < ApplicationRecord
                               seasonally_adjusted: 'seasonally_adjusted',
                               not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
+  def to_s
+    '%s/%s' % [universe, prefix]
+  end
+
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"
   end
 
   def replace_all_series(new_s_list)
     my_series = series.includes(:measurement_series)  ## eager load the bridge table
-                    .dup   ## make a copy so that we can modify while looping over
+                      .dup   ## make a copy so that we can modify while looping over
 
     self.transaction do
       my_series.each do |s|
@@ -36,6 +40,31 @@ class Measurement < ApplicationRecord
         next if new == '_done'
         series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown series name #{new}")
         (self.series << series) rescue raise("Series #{new} duplicated?")
+      end
+    end
+  end
+
+  ## This method exists primarily for copying/aliasing data portal structures into a new universe
+  ## from an existing one (cf task :ua_1367). It is not exposed to the udaman UI.
+  ## It does not presently handle detailed property-setting for the contained Series.
+  def duplicate(universe, name_trans_f = nil, properties = {})
+    universe.upcase!
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
+    new_name = name_trans_f ? name_trans_f.call(prefix) : prefix
+    raise("Cannot duplicate because #{new_name} already exists in #{universe}") if Measurement.find_by(universe: universe, prefix: new_name)
+    include_series = properties.delete(:deep_copy)
+    new_m = self.dup
+    new_m.assign_attributes(properties.merge(universe: universe, prefix: new_name))
+    new_m.save!
+    if include_series
+      series.each do |s|
+        begin
+          ali_s = s.create_alias(universe: universe)
+        rescue => e
+          puts "ERROR for #{s} -------------- #{e.message}"
+          next
+        end
+        (new_m.series << ali_s) rescue raise("Series #{ali_s} link to Meas #{new_m} duplicated?")
       end
     end
   end
