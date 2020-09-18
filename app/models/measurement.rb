@@ -15,13 +15,17 @@ class Measurement < ApplicationRecord
                               seasonally_adjusted: 'seasonally_adjusted',
                               not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
+  def to_s
+    '%s/%s' % [universe, prefix]
+  end
+
   def prefix_and_name
     "#{prefix} -> #{data_portal_name}"
   end
 
   def replace_all_series(new_s_list)
     my_series = series.includes(:measurement_series)  ## eager load the bridge table
-                    .dup   ## make a copy so that we can modify while looping over
+                      .dup   ## make a copy so that we can modify while looping over
 
     self.transaction do
       my_series.each do |s|
@@ -41,15 +45,19 @@ class Measurement < ApplicationRecord
   end
 
   def duplicate(universe, name_trans_f = nil, properties = {})
-    new_m = self.dup
     universe.upcase!
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
+    include_series = properties.delete(:deep_copy)
+    new_m = self.dup
     new_name = name_trans_f ? name_trans_f.call(name) : name
     new_m.assign_attributes(properties.merge(universe: universe, name: new_name))
     new_m.save!
-    #series.each do |s|
-    #  al = s.create_alias(universe: universe)
-    #  (new_m.series << al) rescue raise("Series #{new} duplicated?")
-    #end
+    if include_series
+      series.each do |s|
+        new_s = s.create_alias(universe: universe)
+        (new_m.series << new_s) rescue raise("Series #{new_s} link to Meas #{new_m} duplicated?")
+      end
+    end
   end
 
 end
