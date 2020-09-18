@@ -58,7 +58,7 @@ class Measurement < ApplicationRecord
         begin
           new_s = s.create_alias(universe: universe)
         rescue => e
-          puts "ERROR -------------- #{e.message}"
+          puts "ERROR for #{s} -------------- #{e.message}"
           next
         end
         (new_m.series << new_s) rescue raise("Series #{new_s} link to Meas #{new_m} duplicated?")
