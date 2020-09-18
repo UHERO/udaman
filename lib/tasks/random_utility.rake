@@ -3,6 +3,18 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1367
+task :ua_1367 => :environment do
+  prefixes = %w{BURNPOSTS HOMEBEMPL HOMEBHOURS HOMEBOPEN BNKRUPTTL BNKRUPCH7 BNKRUPCH13 BNKRUPOTHR E_NF E_PR E_GDSPR ECT EMN
+            E_SVCPR EWT ERT E_TU EIF EFI ERE EPS EAD EMA EED EHC EAE EAF EAFAC EAFFD EOS EGV EGVFD EGVST EGVLC EAG YS_RB
+            YS YSAG YSMI YSUT YSCT YSMN YSWT YSRT YSTW YSIF YSFI YSRE YSPS YSMA YSAD YSED YSHC YSAE YSAF YSAFAC YSAFFD
+            YSOS YSGV YSGVFD YSGVML UIC UICINI WHCT WHMN WHWT WHRT WH_TTU WHIF WH_FIN WHAF WHAFAC WHAFFD}
+  prefixes.each do |p|
+    m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("Measurement #{p} not found")
+    m.duplicate(universe: 'CCOM')
+  end
+end
+
 ## JIRA UA-1350
 task :ua_1350 => :environment do
   all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
