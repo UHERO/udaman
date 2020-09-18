@@ -59,12 +59,12 @@ class Measurement < ApplicationRecord
     if include_series
       series.each do |s|
         begin
-          new_s = s.create_alias(universe: universe)
+          ali_s = s.create_alias(universe: universe)
         rescue => e
           puts "ERROR for #{s} -------------- #{e.message}"
           next
         end
-        (new_m.series << new_s) rescue raise("Series #{new_s} link to Meas #{new_m} duplicated?")
+        (new_m.series << ali_s) rescue raise("Series #{ali_s} link to Meas #{new_m} duplicated?")
       end
     end
   end
