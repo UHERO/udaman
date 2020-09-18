@@ -40,4 +40,16 @@ class Measurement < ApplicationRecord
     end
   end
 
+  def duplicate(universe, name_trans_f = nil, properties = {})
+    new_m = self.dup
+    universe.upcase!
+    new_name = name_trans_f ? name_trans_f.call(name) : name
+    new_m.assign_attributes(properties.merge(universe: universe, name: new_name))
+    new_m.save!
+    #series.each do |s|
+    #  al = s.create_alias(universe: universe)
+    #  (new_m.series << al) rescue raise("Series #{new} duplicated?")
+    #end
+  end
+
 end
