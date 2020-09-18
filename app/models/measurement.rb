@@ -54,7 +54,11 @@ class Measurement < ApplicationRecord
     new_m.save!
     if include_series
       series.each do |s|
-        new_s = s.create_alias(universe: universe)
+        begin
+          new_s = s.create_alias(universe: universe)
+        rescue => e
+          if e.message =~ /No geography/i
+        end
         (new_m.series << new_s) rescue raise("Series #{new_s} link to Meas #{new_m} duplicated?")
       end
     end
