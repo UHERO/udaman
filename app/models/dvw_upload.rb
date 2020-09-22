@@ -276,10 +276,7 @@ class DvwUpload < ApplicationRecord
 
     output = %x{ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /dvw/"}
     if $?.success?
-      mylogger :info, 'worker_tasks: API /dvw/ cache clear: SUCCESS'
-      unless output.blank?
-        mylogger :info, "worker_tasks: API /dvw/ cache clear: #{output.strip} entries cleared"
-      end
+      mylogger :info, "worker_tasks: API /dvw/ cache clear: SUCCESS, #{output.to_i} entries cleared"
     else
       mylogger :warn, "worker_tasks: API /dvw/ cache clear FAIL: #{$?}"
     end

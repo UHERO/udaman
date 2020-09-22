@@ -277,16 +277,17 @@ class NewDbedtUpload < ApplicationRecord
       NewDbedtUpload.update_all(active: false)
       self.update_attributes(status: :ok, active: true, last_error_at: nil, last_error: "#{total} data points loaded")
     end
+    mylogger :info, 'worker_tasks: loaded and active'
 
-    mylogger :info, 'starting DataPoint.update_public_data_points'
+    mylogger :info, 'worker_tasks: starting DataPoint.update_public_data_points'
     DataPoint.update_public_data_points('DBEDT') || raise('FAILED to update public data points')
 
-    #if system('ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"')
-    #  mylogger :error, 'worker_tasks: API cache for /v1/ successfully cleared on uhero2'
-    #else
-    #  mylogger :error, 'worker_tasks: could not clear API cache'
-    #end
-    mylogger :info, 'worker_tasks: loaded and active'
+    output = %x{ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
+    if $?.success?
+      mylogger :info, "worker_tasks: API /v1/ cache clear: SUCCESS, #{output.to_i} entries cleared"
+    else
+      mylogger :warn, "worker_tasks: API /v1/ cache clear FAIL: #{$?}"
+    end
   end
 
   def absolute_path
