@@ -271,14 +271,18 @@ class DvwUpload < ApplicationRecord
 
     mylogger :info, 'worker_tasks: before full_load'
     total = full_load
-
-    #if system('ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /dvw/"')
-    #  mylogger :error, 'worker_tasks: API cache for /dvw/ successfully cleared on uhero2'
-    #else
-    #  mylogger :error, 'worker_tasks: could not clear API cache'
-    #end
-    mylogger :info, 'worker_tasks: loaded and active'
     self.update(series_status: :ok, last_error: "#{total} data points loaded", last_error_at: nil)
+    mylogger :info, 'worker_tasks: loaded and active'
+
+    output = %x{ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /dvw/"}
+    if $?.success?
+      mylogger :info, 'worker_tasks: API /dvw/ cache clear: SUCCESS'
+      unless output.blank?
+        mylogger :info, "worker_tasks: API /dvw/ cache clear: #{output.strip} entries cleared"
+      end
+    else
+      mylogger :warn, "worker_tasks: API /dvw/ cache clear FAIL: #{$?}"
+    end
   end
 
 private
