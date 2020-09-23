@@ -3,6 +3,30 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1367
+task :ua_1367 => :environment do
+  prefixes = %w{
+    BURNPOSTS HOMEBEMPL HOMEBHOURS HOMEBOPEN BNKRUPTTL BNKRUPCH7 BNKRUPCH13 BNKRUPOTHR E_NF E_PR E_GDSPR ECT EMN
+    E_SVCPR EWT ERT E_TU EIF EFI ERE EPS EAD EMA EED EHC EAE EAF EAFAC EAFFD EOS EGV EGVFD EGVST EGVLC EAG YS_RB
+    YS YSAG YSMI YSUT YSCT YSMN YSWT YSRT YSTW YSIF YSFI YSRE YSPS YSMA YSAD YSED YSHC YSAE YSAF YSAFAC YSAFFD
+    YSOS YSGV YSGVFD YSGVML UIC UICINI WHCT WHMN WHWT WHRT WH_TTU WHIF WH_FIN WHAF WHAFAC WHAFFD
+    KNRSD KNRSDSGF KNRSDMLT KP_RB KPPRV_RB KPPRVRSD_RB KPPRVCOM_RB KPPRVADD_RB KPGOV_RB KP KPPRV KPPRVRSD KPPRVCOM KPPRVADD KPGOV
+    TGRRT TRFU OCUP% PRM RMRV TRMS CONSENT UHEP COVCASES NEWCOVCASES VAP_EP
+    GOOGLERETA GOOGLEGROC GOOGLEPARK GOOGLETRAN GOOGLEWORK GOOGLERESI
+    DESCMOB COVIDSRCH TRAFFIC MEIDAL WOMPMER WOMPREV
+  }
+  prefixes.each do |p|
+    puts ">>> Doing #{p}"
+    m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
+    begin
+      m.duplicate('CCOM', nil, deep_copy: true)
+    rescue => e
+      puts "ERROR for #{p} ==================== #{e.message}"
+      next
+    end
+  end
+end
+
 ## JIRA UA-1350
 task :ua_1350 => :environment do
   all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
