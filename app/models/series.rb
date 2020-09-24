@@ -79,7 +79,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(series_name, universe = 'UHERO')
-    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name)
+    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name.upcase)
   end
 
   def Series.bulk_create(definitions)

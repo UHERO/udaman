@@ -5,11 +5,11 @@
 
 ## JIRA UA-1342
 task :ua_1342 => :environment do
-  all = Series.search_box('#apply_ns_growth_rate_sa')
+  all = Series.search_box('#apply_ns_growth_rate_sa #sadata')
   all.each do |s|
     dss = s.enabled_data_sources
     if dss.count > 2
-      puts ">>>>>>> #{s}: more than 2"
+      puts ">>>>>>> more than 2: #{s}"
       next
     end
     gr = dss[0].eval =~ /apply_ns_growth_rate/ ? 0 : 1
