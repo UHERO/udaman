@@ -7,9 +7,13 @@
 task :ua_1342 => :environment do
   all = Series.search_box('#apply_ns_growth_rate_sa')
   all.each do |s|
-    s.enabled_data_sources.each do |ds|
-
+    dss = s.enabled_data_sources
+    if dss.count > 2
+      puts ">>>>>>> #{s}: more than 2"
+      next
     end
+    gr = dss[0].eval =~ /apply_ns_growth_rate/ ? 0 : 1
+    ngr = (gr + 1) % 2
   end
 end
 
