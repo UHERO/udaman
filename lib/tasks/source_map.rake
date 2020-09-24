@@ -129,7 +129,7 @@ task :encachitize_rest_api => :environment do
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
-      %w{A Q M}.each do |freq|
+      %w{A S Q M W D}.each do |freq|
         full_url = url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
         %x{#{cmd + full_url}}
@@ -140,13 +140,25 @@ task :encachitize_rest_api => :environment do
   coh_cats = Category.where(%q{universe = 'COH' and not (hidden or masked) and data_list_id is not null})
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
-      %w{A Q M}.each do |freq|
+      %w{A S Q M W D}.each do |freq|
         full_url = url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
         %x{#{cmd + full_url}}
       end
     end
   end
+
+  ccom_cats = Category.where(%q{universe = 'CCOM' and not (hidden or masked) and data_list_id is not null})
+  ccom_cats.each do |cat|
+    %w{HI HAW HON KAU MAU}.each do |geo|
+      %w{A S Q M W D}.each do |freq|
+        full_url = url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
+        %x{#{cmd + full_url}}
+      end
+    end
+  end
+
   duration = (Time.now.to_i - start_time) / 60
   Rails.logger.info { "Encachitize: End at #{Time.now} (took #{duration} mins)" }
 end
