@@ -3,6 +3,16 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1342
+task :ua_1342 => :environment do
+  all = Series.search_box('#apply_ns_growth_rate_sa')
+  all.each do |s|
+    s.enabled_data_sources.each do |ds|
+
+    end
+  end
+end
+
 ## JIRA UA-1367
 task :ua_1367 => :environment do
   prefixes = %w{
