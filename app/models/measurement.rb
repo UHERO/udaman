@@ -44,9 +44,22 @@ class Measurement < ApplicationRecord
     end
   end
 
-  ## This method exists primarily for copying/aliasing data portal structures into a new universe
-  ## from an existing one (cf task :ua_1367). It is not exposed to the udaman UI.
-  ## It does not presently handle detailed property-setting for the contained Series.
+  ## These methods exist primarily for copying/aliasing data portal structures into a new universe
+  ## from an existing one (cf task :ua_1367). They are not exposed to the udaman UI.
+  ## They do not presently handle detailed property-setting for the contained Series.
+  def Measurement.deep_copy_to_universe(prefix_list, universe, name_trans_f = nil, properties = {})
+    prefix_list.each do |p|
+      puts ">>> Doing #{p}"
+      begin
+        m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
+        m.duplicate(universe, name_trans_f, properties.merge(deep_copy: true))
+      rescue => e
+        puts "ERROR for #{p} ==================== #{e.message}"
+        next
+      end
+    end
+  end
+
   def duplicate(universe, name_trans_f = nil, properties = {})
     universe.upcase!
     raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
@@ -65,19 +78,6 @@ class Measurement < ApplicationRecord
           next
         end
         (new_m.series << ali_s) rescue raise("Series #{ali_s} link to Meas #{new_m} duplicated?")
-      end
-    end
-  end
-
-  def Measurement.deep_copy_to_universe(prefix_list, universe, name_trans_f = nil, properties = {})
-    prefix_list.each do |p|
-      puts ">>> Doing #{p}"
-      m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
-      begin
-        m.duplicate(universe, name_trans_f, properties.merge(deep_copy: true))
-      rescue => e
-        puts "ERROR for #{p} ==================== #{e.message}"
-        next
       end
     end
   end
