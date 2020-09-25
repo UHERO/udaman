@@ -9,13 +9,13 @@ task :ua_1342 => :environment do
   all.each do |s|
     dss = s.enabled_data_sources
     if dss.count > 2
-      puts "#{s} >>>> more than 2"
+      puts "#{s} >>>> more than 2, id #{s.id}"
       next
     end
     gr = dss[0].eval =~ /apply_ns_growth_rate/ ? 0 : 1
     ngr = (gr + 1) % 2
     unless dss[ngr].eval =~ /county_share|load_mean_corrected/
-      puts "#{s} >>>> unexpected full year load"
+      puts "#{s} >>>> unexpected full year load, id #{s.id}"
       next
     end
     dss[ngr].update!(priority: 90, presave_hook: 'update_full_years_top_priority')
