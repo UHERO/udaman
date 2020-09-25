@@ -29,16 +29,7 @@ task :ua_1367 => :environment do
     GOOGLERETA GOOGLEGROC GOOGLEPARK GOOGLETRAN GOOGLEWORK GOOGLERESI
     DESCMOB COVIDSRCH TRAFFIC MEIDAL WOMPMER WOMPREV
   }
-  prefixes.each do |p|
-    puts ">>> Doing #{p}"
-    m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
-    begin
-      m.duplicate('CCOM', nil, deep_copy: true)
-    rescue => e
-      puts "ERROR for #{p} ==================== #{e.message}"
-      next
-    end
-  end
+  Measurement.deep_copy_to_universe(prefixes, 'CCOM')
 end
 
 ## JIRA UA-1350

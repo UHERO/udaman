@@ -69,4 +69,17 @@ class Measurement < ApplicationRecord
     end
   end
 
+  def Measurement.deep_copy_to_universe(prefix_list, universe, name_trans_f = nil, properties = {})
+    prefix_list.each do |p|
+      puts ">>> Doing #{p}"
+      m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
+      begin
+        m.duplicate(universe, name_trans_f, properties.merge(deep_copy: true))
+      rescue => e
+        puts "ERROR for #{p} ==================== #{e.message}"
+        next
+      end
+    end
+  end
+
 end
