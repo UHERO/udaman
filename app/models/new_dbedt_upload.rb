@@ -270,15 +270,24 @@ class NewDbedtUpload < ApplicationRecord
 
   def worker_tasks(do_csv_proc: false)
     csv_extract if do_csv_proc
+
     mylogger :info, 'worker_tasks: before full_load'
     total = full_load
     self.transaction do
       NewDbedtUpload.update_all(active: false)
       self.update_attributes(status: :ok, active: true, last_error_at: nil, last_error: "#{total} data points loaded")
     end
-    mylogger :info, 'starting DataPoint.update_public_data_points'
-    DataPoint.update_public_data_points('DBEDT') || raise('FAILED to update public data points')
     mylogger :info, 'worker_tasks: loaded and active'
+
+    mylogger :info, 'worker_tasks: starting DataPoint.update_public_data_points'
+    DataPoint.update_public_data_points('DBEDT') || raise('FAILED to update public data points')
+
+    output = %x{ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
+    if $?.success?
+      mylogger :info, "worker_tasks: API /v1/ cache clear: SUCCESS, #{output.to_i} entries cleared"
+    else
+      mylogger :warn, "worker_tasks: API /v1/ cache clear FAIL: #{$?}"
+    end
   end
 
   def absolute_path

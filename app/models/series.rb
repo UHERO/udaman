@@ -79,7 +79,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(series_name, universe = 'UHERO')
-    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name)
+    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name.upcase)
   end
 
   def Series.bulk_create(definitions)
@@ -96,6 +96,21 @@ class Series < ApplicationRecord
     self.update!(name: newname.upcase,
                  geography_id: geo.id,
                  frequency: Series.frequency_from_code(parts[:freq]))
+  end
+
+  def create_alias(properties)
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
+    universe = properties[:universe].upcase rescue raise('Universe must be specified to create alias')
+    raise "Cannot alias #{self} into same universe #{universe}" if universe == self.universe
+    name = properties[:name] || self.name
+    raise "Cannot alias because #{name} already exists in #{universe}" if Series.get(name, universe)
+    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
+    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
+    new = self.dup
+    new.assign_attributes(properties.merge(geography_id: new_geo.id))
+    new.save!
+    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    new
   end
 
   def duplicate(newname, new_attrs = {})
@@ -255,21 +270,6 @@ class Series < ApplicationRecord
 
   def aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
-  end
-
-  def create_alias(properties)
-    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
-    universe = properties[:universe].upcase rescue raise('Universe must be specified to create alias')
-    raise "Cannot alias #{self} into same universe #{universe}" if universe == self.universe
-    name = properties[:name] || self.name
-    raise "Cannot alias because #{name} already exists in #{universe}" if Series.get(name, universe)
-    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
-    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
-    new = self.dup
-    new.assign_attributes(properties.merge(geography_id: new_geo.id))
-    new.save!
-    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
-    new
   end
 
   ## Duplicate series for a different geography.
