@@ -127,6 +127,7 @@ task :encachitize_rest_api => :environment do
   cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % API_TOKEN
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
+  Rails.logger.info { "Encachitize: Doing UHERO, #{uh_cats.count} cats" }
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A S Q M W D}.each do |freq|
@@ -138,6 +139,7 @@ task :encachitize_rest_api => :environment do
   end
 
   coh_cats = Category.where(%q{universe = 'COH' and not (hidden or masked) and data_list_id is not null})
+  Rails.logger.info { "Encachitize: Doing COH, #{coh_cats.count} cats" }
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
       %w{A S Q M W D}.each do |freq|
@@ -149,6 +151,7 @@ task :encachitize_rest_api => :environment do
   end
 
   ccom_cats = Category.where(%q{universe = 'CCOM' and not (hidden or masked) and data_list_id is not null})
+  Rails.logger.info { "Encachitize: Doing CCOM, #{ccom_cats.count} cats" }
   ccom_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A S Q M W D}.each do |freq|
