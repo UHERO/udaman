@@ -14,7 +14,7 @@ task :ua_1342 => :environment do
     end
     gr = dss[0].eval =~ /apply_ns_growth_rate/ ? 0 : 1
     ngr = (gr + 1) % 2
-    unless dss[ngr].eval =~ /county_share|load_mean_corrected/
+    unless dss[ngr].eval =~ /county_share|share_using|load_mean_corrected|load_sa_from/
       puts "#{s} >>>> unexpected full year load, id #{s.id}"
       next
     end
