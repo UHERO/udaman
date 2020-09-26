@@ -7,7 +7,8 @@ module SeriesArithmetic
     validate_arithmetic(op_series)
     new_data = {}
     longer_series = self.data.length > op_series.data.length ? self : op_series
-    longer_series.data.each do |date, value|
+    longer_series.data.keys.each do |date|
+      value = self.at(date)
       op_val = op_series.at(date)
       computed = value && op_val && value.send(operator, op_val)
       new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
