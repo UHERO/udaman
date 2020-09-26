@@ -31,8 +31,10 @@ module SeriesArithmetic
       elem2 = other_series.at(date) unless other_series.at(date).nil?
       new_series_data[date] = elem1 + elem2
     end
-   ##  Whole loop can be replaced with one line below, yes? Maybe no... if both series have nil, shouldn't output be nil??
+   ##  Whole loop can be replaced with one line below, yes?
+   #### NO! longer_series and other_series can be the same, leading to a bug - rethink
    ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }
+   #  If both series have nil, shouldn't output be nil?? Is it possible for both to have nil?
     new_transformation("#{self} zero_add #{other_series}", new_series_data)
   end
   
