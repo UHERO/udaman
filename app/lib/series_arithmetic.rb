@@ -8,9 +8,9 @@ module SeriesArithmetic
     new_data = {}
     longer_series = self.data.length > op_series.data.length ? self : op_series
     longer_series.data.keys.each do |date|
-      value = self.at(date)
+      my_val = self.at(date)
       op_val = op_series.at(date)
-      computed = value && op_val && value.send(operator, op_val)
+      computed = my_val && op_val && my_val.send(operator, op_val)
       new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
     end
     new_transformation("#{self} #{operator} #{op_series}", new_data)
