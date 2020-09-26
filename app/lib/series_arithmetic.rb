@@ -1,6 +1,6 @@
 module SeriesArithmetic
-  def round
-    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round.to_f] })
+  def round(prec = 0)
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
   end
   
   def perform_arithmetic_operation(operator, op_series)
