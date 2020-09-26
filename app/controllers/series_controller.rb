@@ -4,7 +4,7 @@ class SeriesController < ApplicationController
 
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
+                                    :reload_all, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -169,6 +169,10 @@ class SeriesController < ApplicationController
   def empty_quarantine
     Series.empty_quarantine
     redirect_to action: :quarantine
+  end
+
+  def reload_all
+    @series.reload_sources
   end
 
   def json_with_change
