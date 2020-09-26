@@ -173,6 +173,7 @@ class SeriesController < ApplicationController
 
   def reload_all
     @series.reload_sources
+    redirect_to action: :show
   end
 
   def json_with_change

@@ -193,7 +193,7 @@ class DataPoint < ApplicationRecord
         stmt = ApplicationRecord.connection.raw_connection.prepare(delete_query)
         stmt.execute(*bind_vals)
         stmt.close
-        Rails.logger.debug { "update_public_data_points: DONE doing delete" }
+        Rails.logger.debug { 'update_public_data_points: DONE all three operations' }
       end
     rescue => e
       Rails.logger.error { "update_public_data_points: encountered an ERROR: #{e.message}" }
