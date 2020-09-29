@@ -38,7 +38,7 @@
                 :id => ds.id },
                 data: { :confirm => "Delete definition #{ds.id}: Are you sure??" } %>
            | <%= link_to 'disable', { controller: :data_sources, action: :disable, id: ds.id },
-                     data: { confirm: "Disable definition #{ds.id}: Can only be undone by system admin. Are you sure??" } %> |
+                     data: { confirm: "Disable definition #{ds.id}: Can only be restored by system admin. Are you sure??" } %> |
           <% if myeval =~ /load_from_download/ %>
              <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
           <% end %>

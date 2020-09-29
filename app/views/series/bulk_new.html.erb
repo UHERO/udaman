@@ -7,8 +7,12 @@
       This would create the series VSOM2NS@HAW.M with the definition contained within %Q||
     </p>
     <p>
-      If a series has already been created, this will add the definition.
-      The last definition assigned will be given implicit priority above previous definitions.
+      If a series has already been created, this will add the new definition.
+      The last definition assigned will be assigned higher priority than existing definitions.
+    </p>
+    <p>
+      If any ts_eval statement causes a fatal error, all creations in the set are canceled.
+      Only when there are no errors, will all new series (and/or definitions) be stored.
     </p>
   <div class="field">
     <%= text_area_tag 'bulk_defs[definitions]', nil, rows: 20, cols: 100 %>

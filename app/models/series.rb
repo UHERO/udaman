@@ -83,8 +83,10 @@ class Series < ApplicationRecord
   end
 
   def Series.bulk_create(definitions)
-    definitions.each { |definition| Kernel::eval definition }
-    return true
+    Series.transaction do
+      definitions.each {|defn| Kernel::eval defn }
+    end
+    true
   end
 
   def rename(newname)
@@ -620,10 +622,9 @@ class Series < ApplicationRecord
   def new_transformation(name, data, frequency = nil)
     raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
-    Series.new(
-      :name => name,
-      :xseries => Xseries.new(frequency: frequency),
-      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
+    Series.new(name: name,
+               xseries: Xseries.new(frequency: frequency),
+               data: Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
     ).tap do |o|
       o.propagate_state_from(self)
     end
@@ -689,7 +690,7 @@ class Series < ApplicationRecord
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified
-  def Series.generate_random(freq, start_date = nil, end_date = nil, low_range = 0.0, high_range = 100.0)
+  def Series.generate_random(freq, start_date = nil, end_date = nil, low_range = 0.0, high_range = 100.0, specific_points = {})
     start_date ||= (Date.today - 5.years).send("#{freq}_d")   ## find the *_d methods in date_extension.rb
     end_date ||= Date.today.send("#{freq}_d")
     incr = 1
@@ -703,6 +704,9 @@ class Series < ApplicationRecord
     while iter <= upto do
       series_data[iter] = low_range + rand(high_range - low_range)
       iter += incr.send(freq)
+    end
+    specific_points.each do |date, value|
+      series_data[date.to_date] = value
     end
     Series.new_transformation("randomly generated test data", series_data, freq)
   end
@@ -1131,7 +1135,7 @@ class Series < ApplicationRecord
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
-          bindvars.concat freqs.map {|f| Series.frequency_from_code(f) }
+          bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
