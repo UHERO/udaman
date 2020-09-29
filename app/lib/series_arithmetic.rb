@@ -21,21 +21,17 @@ module SeriesArithmetic
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end    
   
-  def zero_add(other_series)
-    validate_arithmetic(other_series)
-    longer_series = self.data.length > other_series.data.length ? self : other_series
+  def zero_add(op_series)
+    validate_arithmetic(op_series)
+    longer_series = self.data.length > op_series.data.length ? self : op_series
     new_series_data = {}
     longer_series.data.keys.each do |date|
-      elem1 = elem2 = 0
-      elem1 = self.at(date) unless self.at(date).nil?
-      elem2 = other_series.at(date) unless other_series.at(date).nil?
-      new_series_data[date] = elem1 + elem2
+      my_val = self.at(date) || 0
+      op_val = op_series.at(date) || 0
+      ## If both series have nil, shouldn't output be nil?? Is it possible for both to have nil?
+      new_series_data[date] = my_val + op_val
     end
-   ##  Whole loop can be replaced with one line below, yes?
-   #### NO! longer_series and other_series can be the same, leading to a bug - rethink
-   ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }
-   #  If both series have nil, shouldn't output be nil?? Is it possible for both to have nil?
-    new_transformation("#{self} zero_add #{other_series}", new_series_data)
+    new_transformation("#{self} zero_add #{op_series}", new_series_data)
   end
   
   def +(other_series)
