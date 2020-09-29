@@ -3,6 +3,27 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1342
+task :ua_1342 => :environment do
+  all = Series.search_box('#apply_ns_growth_rate_sa')
+  all.each do |s|
+    dss = s.enabled_data_sources
+    if dss.count > 2
+      puts "#{s} >>>> more than 2, id #{s.id}"
+      next
+    end
+    gr = dss[0].eval =~ /apply_ns_growth_rate/ ? 0 : 1
+    ngr = (gr + 1) % 2
+    unless dss[ngr].eval =~ /county_share|share_using|load_mean_corrected|load_sa_from/
+      puts "#{s} >>>> unexpected full year load, id #{s.id}"
+      next
+    end
+    dss[ngr].update!(priority: 90, presave_hook: 'update_full_years_top_priority')
+    dss[gr].update!(priority: 100, presave_hook: nil)
+    puts "#{s} --------- DONE"
+  end
+end
+
 ## JIRA UA-1367
 task :ua_1367 => :environment do
   prefixes = %w{
@@ -15,16 +36,7 @@ task :ua_1367 => :environment do
     GOOGLERETA GOOGLEGROC GOOGLEPARK GOOGLETRAN GOOGLEWORK GOOGLERESI
     DESCMOB COVIDSRCH TRAFFIC MEIDAL WOMPMER WOMPREV
   }
-  prefixes.each do |p|
-    puts ">>> Doing #{p}"
-    m = Measurement.find_by(universe: 'UHERO', prefix: p) || raise("UHERO measurement #{p} not found")
-    begin
-      m.duplicate('CCOM', nil, deep_copy: true)
-    rescue => e
-      puts "ERROR for #{p} ==================== #{e.message}"
-      next
-    end
-  end
+  Measurement.deep_copy_to_universe(prefixes, 'CCOM')
 end
 
 ## JIRA UA-1350

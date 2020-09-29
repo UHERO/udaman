@@ -1,42 +1,41 @@
 module SeriesArithmetic
-  def round
-    new_series_data = {}
-    data.each do |date, value|
-      new_series_data[date] = value.round.to_f
-    end
-    new_transformation("Rounded #{name}", new_series_data)
+  def round(prec = 0)
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
   end
   
-  def perform_arithmetic_operation(operator,other_series)
-    validate_arithmetic(other_series)
-    longest_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = Hash.new
-    longest_series.data.keys.each do |date|
-      new_series_data[date] = (self.at(date).nil? or other_series.at(date).nil?) ? nil : self.at(date).send(operator,other_series.at(date))
-      new_series_data[date] = nil if !new_series_data[date].nil? and (new_series_data[date].nan? or new_series_data[date].infinite?)
+  def perform_arithmetic_operation(operator, op_series)
+    validate_arithmetic(op_series)
+    new_data = {}
+    longer_series = self.data.length > op_series.data.length ? self : op_series
+    longer_series.data.keys.each do |date|
+      my_val = self.at(date)
+      op_val = op_series.at(date)
+      computed = my_val && op_val && my_val.send(operator, op_val)
+      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
     end
-    new_transformation("#{self.name} #{operator} #{other_series.name}",new_series_data)
+    new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_series_data = Hash.new
-    self.data.keys.each do |date|
-      new_series_data[date] = self.at(date).nil? ? nil : self.at(date).send(operator,constant)
-    end
-    new_transformation("#{self.name} #{operator} #{constant}", new_series_data)
+    new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
+    new_transformation("#{self} #{operator} #{constant}", new_data)
   end    
   
   def zero_add(other_series)
     validate_arithmetic(other_series)
-    longest_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = Hash.new
-    longest_series.data.keys.each do |date|
+    longer_series = self.data.length > other_series.data.length ? self : other_series
+    new_series_data = {}
+    longer_series.data.keys.each do |date|
       elem1 = elem2 = 0
       elem1 = self.at(date) unless self.at(date).nil?
       elem2 = other_series.at(date) unless other_series.at(date).nil?
       new_series_data[date] = elem1 + elem2
     end
-    new_transformation("#{self.name} zero_add #{other_series.name}",new_series_data)
+   ##  Whole loop can be replaced with one line below, yes?
+   #### NO! longer_series and other_series can be the same, leading to a bug - rethink
+   ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }
+   #  If both series have nil, shouldn't output be nil?? Is it possible for both to have nil?
+    new_transformation("#{self} zero_add #{other_series}", new_series_data)
   end
   
   def +(other_series)
@@ -181,11 +180,7 @@ module SeriesArithmetic
   end
 
   def all_nil
-    new_series_data = {}
-    data.each do |date, _|
-      new_series_data[date] = nil
-    end
-    new_transformation("All nil for dates in #{name}", new_series_data)
+    new_transformation("All nil for dates in #{self}", data.map {|date, _| [date, nil] })
   end
   
   def yoy(id = nil)
@@ -198,7 +193,7 @@ module SeriesArithmetic
     return faster_yoy(id) if id
 
     new_series_data = {}
-    data.sort.each do |date, value|
+    data.each do |date, value|
       pc = compute_percentage_change(value, data[date - 1.year]) || next
       new_series_data[date] = pc
     end
