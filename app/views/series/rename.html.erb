@@ -1,0 +1,11 @@
+<h1>Rename series <%= @series.name %> (<%= @series.universe %>)</h1>
+
+<p>Please act with caution.</p>
+
+<%= form_with url: { action: :rename, id: @series } do |f| %>
+  <%= text_field_tag :new_name, @series.name, size: 30 %>
+  <p>
+    <%= f.submit 'Rename' %>
+    <%= link_to 'Cancel', :back %>
+  </p>
+<% end %>
