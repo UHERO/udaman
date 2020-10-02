@@ -82,6 +82,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<div id="navigation">
     <% if current_user.admin_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
+		  <%= link_to 'Rename', action: :rename, id: @series %> |
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
 		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %>

@@ -24,7 +24,8 @@ class SeriesController < ApplicationController
   end
 
   def save_rename
-    @series.rename(params[:rename].strip)
+    @series.rename(params[:new_name].strip)
+    redirect_to action: :show
   end
 
   def create
