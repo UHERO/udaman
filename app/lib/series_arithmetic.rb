@@ -26,10 +26,9 @@ module SeriesArithmetic
     longer_series = self.data.length > op_series.data.length ? self : op_series
     new_series_data = {}
     longer_series.data.keys.each do |date|
-      my_val = self.at(date) || 0
-      op_val = op_series.at(date) || 0
-      ## If both series have nil, shouldn't output be nil?? Is it possible for both to have nil?
-      new_series_data[date] = my_val + op_val
+      ## to_f() will convert a nil to 0.0. But if both series have nil, shouldn't output be nil??
+      ## Is it possible for both to have nil?
+      new_series_data[date] = self.at(date).to_f + op_series.at(date).to_f
     end
     new_transformation("#{self} zero_add #{op_series}", new_series_data)
   end
