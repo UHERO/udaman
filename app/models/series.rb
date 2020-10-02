@@ -437,8 +437,12 @@ class Series < ApplicationRecord
   end
 
   def Series.eval(series_name, eval_statement, priority = 100)
-    new_series = Kernel::eval eval_statement
-    Series.store series_name, new_series, new_series.name, eval_statement, priority
+    begin
+      new_series = Kernel::eval eval_statement
+    rescue => e
+      raise "Series.eval for #{series_name} failed: #{e.message}"
+    end
+    Series.store(series_name, new_series, new_series.name, eval_statement, priority)
   end
 
   def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100)
