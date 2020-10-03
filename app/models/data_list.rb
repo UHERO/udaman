@@ -114,7 +114,7 @@ class DataList < ApplicationRecord
         values.push(sa)
       end
       where_cond = [filters.join(' and '), values].flatten
-      series = m.series.joins(:xseries, :geography).where(where_cond)
+      series = m.series.joins(:xseries, :geography).where(where_cond).order(name: :desc)
 
       series.each do |s|
         all_changes = {}

@@ -19,18 +19,15 @@ module SeriesArithmetic
   def perform_const_arithmetic_op(operator, constant)
     new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
     new_transformation("#{self} #{operator} #{constant}", new_data)
-  end    
+  end
   
   def zero_add(op_series)
     validate_arithmetic(op_series)
     longer_series = self.data.length > op_series.data.length ? self : op_series
-    new_series_data = {}
-    longer_series.data.keys.each do |date|
-      ## to_f() will convert a nil to 0.0. But if both series have nil, shouldn't output be nil??
-      ## Is it possible for both to have nil?
-      new_series_data[date] = self.at(date).to_f + op_series.at(date).to_f
-    end
-    new_transformation("#{self} zero_add #{op_series}", new_series_data)
+    new_data = longer_series.data.map {|date, _| [date, self.at(date).to_f + op_series.at(date).to_f] }
+    ## to_f() will convert a nil to 0.0. But if both series have nil, shouldn't output be nil??
+    ## Is it possible for both to have nil?
+    new_transformation("#{self} zero_add #{op_series}", new_data)
   end
   
   def +(other_series)
