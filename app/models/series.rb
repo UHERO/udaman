@@ -585,31 +585,27 @@ class Series < ApplicationRecord
   end
 
   def extract_from_datapoints(column)
-    hash = {}
-    if xseries
-      xseries.data_points.each do |dp|
-        hash[dp.date] = dp[column] if dp.current
-      end
-    end
-    hash
+    return {} unless xseries
+    current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
   end
   
-  def scaled_data_no_pseudo_history(round_to = 3)
+  def scaled_data_no_pseudo_history(prec = 3)
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    xseries.data_points.each do |dp|
-      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
+    current_data_points.each do |dp|
+      next if dp.pseudo_history?
+      data_hash[dp.date] = (dp.value / self.units).round(prec)
     end
     data_hash
   end
   
-  def scaled_data(round_to = 3)
+  def scaled_data(prec = 3)
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     sql = <<~SQL
-      SELECT round(value/#{self.units}, #{round_to}) AS value, date
+      SELECT round(value/#{self.units}, #{prec}) AS value, date
       FROM data_points WHERE xseries_id = #{self.xseries.id} AND current = 1;
     SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
