@@ -69,22 +69,24 @@ module SeriesDataAdjustment
     trim(start_date, nil)
   end
   
-  def get_values_after(start_date, end_date = data.keys.sort[-1])
+  def get_values_after(start_date, end_date = self.last_observation)
     data.reject {|date, value| date <= start_date or value.nil? or date > end_date}
   end
   
-  def get_values_after_including(start_date, end_date = data.keys.sort[-1])
+  def get_values_after_including(start_date, end_date = self.last_observation)
     data.reject {|date, value| date < start_date or value.nil? or date > end_date}
   end
 
-  def get_scaled_no_ph_after_inc(start_date, end_date = Time.now.to_date, round_to = 3)
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def get_scaled_no_ph_after_inc_DELETEME(start_date, end_date = Time.now.to_date, round_to = 3)
     start_date = start_date.to_date
     end_date = end_date.to_date
     scaled_data_no_pseudo_history(round_to).reject do |date, value|
       date < start_date or value.nil? or date > end_date
     end
   end
-  
+
+  ## Obsolete? Track it down.
   def compressed_date_range_data(compressed_dates = Date.compressed_date_range)
     compressed_date_range_data = {}
     compressed_dates.each { |date| compressed_date_range_data[date] = data[date] }
