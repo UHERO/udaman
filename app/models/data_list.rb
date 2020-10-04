@@ -106,7 +106,7 @@ class DataList < ApplicationRecord
 
   def get_all_series_data_with_changes(freq, geo, sa)
     series_data = {}
-    self.measurements.each do |m|
+    self.measurements.order(:list_order).each do |m|
       filters = ['xseries.frequency = ?', 'geographies.handle = ?']
       values = [Series.frequency_from_code(freq), geo]
       unless sa == 'all'
@@ -114,7 +114,7 @@ class DataList < ApplicationRecord
         values.push(sa)
       end
       where_cond = [filters.join(' and '), values].flatten
-      series = m.series.joins(:xseries, :geography).where(where_cond)
+      series = m.series.joins(:xseries, :geography).where(where_cond).order(name: :desc)
 
       series.each do |s|
         all_changes = {}
@@ -125,8 +125,7 @@ class DataList < ApplicationRecord
         data.keys.sort.each do |date|
           all_changes[date] = {:value => data[date], :yoy => yoy[date], :ytd => ytd[date], :yoy_diff => yoy_diff[date]}
         end
-        as = AremosSeries.get(s.name.upcase)
-        desc = as.nil? ? '' : as.description
+        desc = AremosSeries.get(s.name.upcase).description rescue ''
         series_data[s.name] = {:data => all_changes, :id => s.id, :desc => desc}
       end
     end
@@ -136,9 +135,8 @@ class DataList < ApplicationRecord
   def get_tsd_series_data_with_changes(tsd_file)
     series_data = {}
     series_names.each do |s| 
-      as = AremosSeries.get(s.upcase)
-      desc = as.nil? ? '' : as.description
-      
+      desc = AremosSeries.get(s.upcase).description rescue ''
+
       url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{s.split('.')[0].gsub('%','%25')}/json")
       res = Net::HTTP.new(url.host, url.port).request_get(url.path)
       tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
