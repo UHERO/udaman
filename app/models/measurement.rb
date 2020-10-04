@@ -61,7 +61,8 @@ class Measurement < ApplicationRecord
   end
 
   def duplicate(universe, name_trans_f = nil, properties = {})
-    raise "Cannot duplicate #{self} into same universe #{universe}" if universe.upcase! == self.universe
+    universe.upcase!
+    raise "Cannot duplicate #{self} into same universe #{universe}" if universe == self.universe
     new_name = name_trans_f ? name_trans_f.call(prefix) : prefix
     raise("Cannot duplicate because #{new_name} already exists in #{universe}") if Measurement.find_by(universe: universe, prefix: new_name)
     include_series = properties.delete(:deep_copy)

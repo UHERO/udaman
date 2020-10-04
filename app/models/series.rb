@@ -90,7 +90,8 @@ class Series < ApplicationRecord
   end
 
   def rename(newname)
-    parts = Series.parse_name(newname.upcase!)
+    newname.upcase!
+    parts = Series.parse_name(newname)
     geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
     raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
