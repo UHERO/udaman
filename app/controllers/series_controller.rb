@@ -26,9 +26,11 @@ class SeriesController < ApplicationController
 
   def save_rename
     new_name = params[:new_name].strip
-    @series.rename(new_name)
-    if params[:rename_aliases] == 'yes'
-      @series.aliases.each {|a| a.rename(new_name) }
+    if new_name != @series.name
+      @series.rename(new_name)
+      if params[:rename_aliases] == 'yes'
+        @series.aliases.each {|a| a.rename(new_name) }
+      end
     end
     redirect_to action: :show
   end
