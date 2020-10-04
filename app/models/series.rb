@@ -96,6 +96,7 @@ class Series < ApplicationRecord
     self.update!(name: newname.upcase,
                  geography_id: geo.id,
                  frequency: Series.frequency_from_code(parts[:freq]))
+    data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
   end
 
   def create_alias(properties)
