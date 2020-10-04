@@ -91,6 +91,7 @@ class Series < ApplicationRecord
 
   def rename(newname)
     newname.upcase!
+    return false if name == newname
     parts = Series.parse_name(newname)
     geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
     raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
@@ -99,6 +100,7 @@ class Series < ApplicationRecord
     if geo_freq_change
       data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
     end
+    true
   end
 
   def create_alias(properties)
@@ -379,7 +381,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_name(name)
-    Series.parse_name(name)[:freq_long].to_s
+    Series.parse_name(name)[:freq_long]
   end
 
   def frequency_from_name
