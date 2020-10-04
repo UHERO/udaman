@@ -90,13 +90,16 @@ class Series < ApplicationRecord
   end
 
   def rename(newname)
-    parts = Series.parse_name(newname)
+    parts = Series.parse_name(newname.upcase!)
+    geo_freq_change = geography.handle != parts[:geo] || frequency != frequency_from_code(parts[:freq])
     raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
-    self.update!(name: newname.upcase,
+    self.update!(name: newname,
                  geography_id: geo.id,
-                 frequency: Series.frequency_from_code(parts[:freq]))
-    data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+                 frequency: frequency_from_code(parts[:freq]))
+    if geo_freq_change
+      data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+    end
   end
 
   def create_alias(properties)
