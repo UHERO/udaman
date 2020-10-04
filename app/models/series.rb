@@ -435,8 +435,17 @@ class Series < ApplicationRecord
     end
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
-  
-  def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
+
+  def Series.eval(series_name, eval_statement, priority = 100)
+    begin
+      new_series = Kernel::eval eval_statement
+    rescue => e
+      raise "Series.eval for #{series_name} failed: #{e.message}"
+    end
+    Series.store(series_name, new_series, new_series.name, eval_statement, priority)
+  end
+
+  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
@@ -445,11 +454,6 @@ class Series < ApplicationRecord
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
     series_to_set.save_source(desc, eval_statement, series.data, priority)
-  end
-
-  def Series.eval(series_name, eval_statement, priority=100)
-    new_series = Kernel::eval eval_statement
-    Series.store series_name, new_series, new_series.name, eval_statement, priority
   end
 
   def save_source(source_desc, eval_statement, data, priority = 100)
