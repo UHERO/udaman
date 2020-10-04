@@ -90,12 +90,17 @@ class Series < ApplicationRecord
   end
 
   def rename(newname)
-    raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    newname.upcase!
+    return false if name == newname
     parts = Series.parse_name(newname)
+    geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
+    raise "Cannot rename because #{newname} already exists in #{universe}" if Series.get(newname, universe)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
-    self.update!(name: newname.upcase,
-                 geography_id: geo.id,
-                 frequency: Series.frequency_from_code(parts[:freq]))
+    self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
+    if geo_freq_change
+      data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+    end
+    true
   end
 
   def create_alias(properties)
@@ -212,7 +217,7 @@ class Series < ApplicationRecord
 
   def Series.parse_name(string)
     if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase }
+      return { prefix: $1, geo: $2, freq: $3.upcase, freq_long: frequency_from_code($3).to_s }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
   end
@@ -376,7 +381,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_name(name)
-    Series.frequency_from_code(Series.parse_name(name)[:freq]).to_s
+    Series.parse_name(name)[:freq_long]
   end
 
   def frequency_from_name
