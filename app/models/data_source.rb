@@ -252,6 +252,7 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
+      ## it would be best to rewrite this as a direct SQL query - will be much faster
       data_points.each {|dp| dp.delete }
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end

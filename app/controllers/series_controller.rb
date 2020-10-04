@@ -4,7 +4,7 @@ class SeriesController < ApplicationController
 
   before_action :check_authorization, except: [:index]
   before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :reload_all, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
+                                    :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -18,6 +18,20 @@ class SeriesController < ApplicationController
   def edit
     @add2meas = params[:add_to_meas].to_i
     set_attrib_resource_values(@series)
+  end
+
+  def rename
+    @has_aliases = !@series.aliases.empty?
+  end
+
+  def save_rename
+    new_name = params[:new_name].strip
+    if @series.rename(new_name)
+      if params[:rename_aliases] == 'yes'
+        @series.aliases.each {|a| a.rename(new_name) }
+      end
+    end
+    redirect_to action: :show
   end
 
   def create
