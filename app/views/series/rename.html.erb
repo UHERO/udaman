@@ -1,7 +1,7 @@
 <h1>Rename series <%= @series.name %> (<%= @series.universe %>)</h1>
 
-<p>You <i>may</i> change to a name with different geography and/or frequency. Remember to reconfigure load statements<br/>
-  as appropriate to the new name. Proceed with caution!</p>
+<p>You <i>may</i> change to a name with different geography and/or frequency (if you do this, all data points will be<br/>
+  cleared). Remember to reconfigure load statements as appropriate to the new name. <strong>Proceed with caution!</strong></p>
 
 <%= form_with url: { action: :save_rename, id: @series } do |f| %>
   New name <%= text_field_tag :new_name, @series.name, size: 30 %>
