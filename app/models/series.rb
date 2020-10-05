@@ -599,9 +599,8 @@ class Series < ApplicationRecord
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    current_data_points.each do |dp|
-      next if dp.pseudo_history?
-      data_hash[dp.date] = (dp.value / self.units).round(prec)
+    xseries.data_points.each do |dp|
+      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
     end
     data_hash
   end
