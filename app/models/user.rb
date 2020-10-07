@@ -1,6 +1,9 @@
 class User < ApplicationRecord
   include Cleaning
   has_many :data_source_actions
+  has_many :user_series, dependent: :delete_all
+  has_many :series, through: :user_series
+
   enum role: {
       external: 'external',
       fsonly: 'fsonly',
