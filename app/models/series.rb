@@ -595,7 +595,7 @@ class Series < ApplicationRecord
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def scaled_data_no_pseudo_history_DELETEME(prec = 3)
+  def scaled_data_no_pseudo_history_DELETEME(round_to = 3)
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
