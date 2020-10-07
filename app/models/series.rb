@@ -38,7 +38,7 @@ class Series < ApplicationRecord
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
   has_many :user_series, dependent: :delete_all
-  has_many :users, through: :user_series
+  has_many :users, -> {distinct}, through: :user_series
 
   enum seasonal_adjustment: { not_applicable: 'not_applicable',
                               seasonally_adjusted: 'seasonally_adjusted',
