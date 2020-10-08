@@ -3,8 +3,10 @@ class SeriesController < ApplicationController
   include Validators
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
+  before_action :set_series,
+        only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
+               :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart,
+               :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -92,6 +94,7 @@ class SeriesController < ApplicationController
 
   def clipboard
     @all_series = current_user.series.all
+    @clip_controls = true
     render :index
   end
 
@@ -101,7 +104,7 @@ class SeriesController < ApplicationController
   end
 
   def add_to_clip
-    current_user.series << Series.search_box(@search_string, limit: 500)
+    current_user.series << Series.search_box(params[:search], limit: 500)
     redirect_to action: :clipboard
   end
 
