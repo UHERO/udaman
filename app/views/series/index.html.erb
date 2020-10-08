@@ -1,6 +1,6 @@
 <% if current_user.internal_user? %>
 
-  <div id="summary_area">
+<div id="summary_area">
  	<h1>Data Series</h1>
   <% if @all_series && @all_series.count > 0 %>
       <h2>Total: <%= @all_series.count %></h2>
@@ -22,8 +22,16 @@
       <%= link_to 'BEA Series to be cleaned up', controller: :series, action: :old_bea_download %>
     </div>
 </div>
-
-<div id="details_area">
+<% if @clip_controls %>
+  <br />
+  <div id="summary_area">
+    <%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %>
+    <%= form_with url: { action: :clipfoo } do |f| %>
+      <%= f.submit 'Go' %>
+    <%= end %>
+  </div>
+<% end %>
+  <div id="details_area">
 		<%= render :partial => 'calculate_form' %>
 
 <% if @search_string %>

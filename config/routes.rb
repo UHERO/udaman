@@ -73,7 +73,8 @@ Rails.application.routes.draw do
     end
   end
 
-  get 'clip' => 'dashboards#clipboard'
+  get 'clip' => 'series#clipboard'
+  get 'clip' => 'series#clipboard'
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'

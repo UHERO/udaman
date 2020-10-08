@@ -90,6 +90,16 @@ class SeriesController < ApplicationController
     end
   end
 
+  def clipboard
+    @all_series = current_user.series.all
+    render :index
+  end
+
+  def clear_clip
+    current_user.series.delete_all
+    redirect_to action: :index
+  end
+
   def index
     if current_user.fsonly?
       redirect_to controller: :forecast_snapshots, action: :index
