@@ -3,6 +3,10 @@ class DashboardsController < ApplicationController
 
   before_action :check_authorization
 
+  def clipboard
+
+  end
+
   def investigate
     @maybe_ok = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) < 1.0 AND ABS(aremos_diff) > 0.0').order('aremos_diff DESC')
     @wrong = Series.get_all_uhero.where('aremos_missing = 0 AND ABS(aremos_diff) >= 1.0').order('aremos_diff DESC')
