@@ -25,7 +25,7 @@
 <br />
 <div id="summary_area">
   <% if @search_string %>
-    <%= link_to 'Add results to clipboard', { action: :add_to_clip } %><br />
+    <%= link_to 'Add results to clipboard', { action: :add_to_clip, search: @search_string } %><br />
   <% elsif @clip_controls %>
       <%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %><br />
       <%= form_with url: { action: :do_clip_action } do |f| %>

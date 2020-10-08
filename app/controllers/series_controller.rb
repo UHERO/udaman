@@ -101,7 +101,7 @@ class SeriesController < ApplicationController
   end
 
   def add_to_clip
-#    current_user.series.delete_all
+    current_user.series << Series.search_box(@search_string, limit: 500)
     redirect_to action: :clipboard
   end
 
