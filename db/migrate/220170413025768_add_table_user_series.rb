@@ -1,6 +1,6 @@
 class AddTableUserSeries < ActiveRecord::Migration[5.2]
   def self.up
-    create_table :user_series do |t|
+    create_table :user_series, id: false do |t|
       t.belongs_to :user, index: true
       t.belongs_to :series, index: true
     end
