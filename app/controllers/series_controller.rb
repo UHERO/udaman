@@ -100,6 +100,15 @@ class SeriesController < ApplicationController
     redirect_to action: :index
   end
 
+  def add_to_clip
+#    current_user.series.delete_all
+    redirect_to action: :clipboard
+  end
+
+  def do_clip_action
+
+  end
+
   def index
     if current_user.fsonly?
       redirect_to controller: :forecast_snapshots, action: :index
