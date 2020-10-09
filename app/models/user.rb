@@ -39,10 +39,6 @@ class User < ApplicationRecord
     universe == 'UHERO' && dev?
   end
 
-  def get_series
-    series
-  end
-
   def add_series(series_to_add)
     series << series_to_add
   end

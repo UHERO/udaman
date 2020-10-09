@@ -93,8 +93,7 @@ class SeriesController < ApplicationController
   end
 
   def clipboard
-    @all_series = current_user.get_series
-    @clip_controls = true
+    @all_series = current_user.series
     render :clipboard
   end
 
