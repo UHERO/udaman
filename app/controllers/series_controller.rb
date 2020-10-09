@@ -93,18 +93,26 @@ class SeriesController < ApplicationController
   end
 
   def clipboard
-    @all_series = current_user.series.all
+    @all_series = current_user.get_series
     @clip_controls = true
     render :index
   end
 
   def clear_clip
-    current_user.series.delete_all
+    if params[:id]
+      current_user.clear_series(Series.find(params[:id].to_i))
+    else
+      current_user.clear_series
+    end
     redirect_to action: :index
   end
 
-  def add_to_clip
-    current_user.series << Series.search_box(params[:search], limit: 500)
+  def add_clip
+    if params[:id]
+      current_user.add_series Series.find(params[:id].to_i)
+    elsif params[:search]
+      current_user.add_series Series.search_box(params[:search], limit: 500)
+    end
     redirect_to action: :clipboard
   end
 

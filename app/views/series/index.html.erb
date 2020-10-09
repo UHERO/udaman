@@ -21,17 +21,17 @@
       <br />
       <%= link_to 'BEA Series to be cleaned up', controller: :series, action: :old_bea_download %>
     </div>
-</div>
-<br />
-<div id="summary_area">
-  <% if @search_string %>
-    <%= link_to 'Add results to clipboard', { action: :add_to_clip, search: @search_string } %><br />
-  <% elsif @clip_controls %>
-      <%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %><br />
-      <%= form_with url: { action: :do_clip_action } do |f| %>
+  <br />
+  <div>
+    <% if @search_string && @all_series && !@all_series.empty? %>
+      <%= link_to 'Add results to clipboard', { action: :add_clip, search: @search_string } %><br />
+    <% elsif @clip_controls %>
+      <p><%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %></p>
+      <p><%= form_with url: { action: :do_clip_action } do |f| %>
         <%= f.submit 'Go' %>
-      <%= end %>
-  <% end %>
+        <% end %></p>
+    <% end %>
+  </div>
 </div>
   <div id="details_area">
 		<%= render :partial => 'calculate_form' %>

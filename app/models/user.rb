@@ -38,4 +38,20 @@ class User < ApplicationRecord
   def dev_user?
     universe == 'UHERO' && dev?
   end
+
+  def get_series
+    series
+  end
+
+  def add_series(series_to_add)
+    series << series_to_add
+  end
+
+  def clear_series(series_to_remove = nil)
+    if series
+      series.delete(series_to_remove)
+    else
+      series.delete_all
+    end
+  end
 end
