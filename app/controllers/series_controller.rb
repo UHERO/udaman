@@ -88,7 +88,7 @@ class SeriesController < ApplicationController
   # POST /series/bulk
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
-      redirect_to '/series'
+      redirect_to action: :index
     end
   end
 
@@ -144,15 +144,12 @@ class SeriesController < ApplicationController
   end
 
   def show(no_render: false)
-    @as = AremosSeries.get @series.name
+    @desc = AremosSeries.get(@series.name).description rescue 'No Aremos Series'
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
-    @desc = @as.nil? ? 'No Aremos Series' : @as.description
-    @dsas = []
-    @series.enabled_data_sources.each do |ds|
-      @dsas.concat ds.data_source_actions
-    end
+    @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
+    @clipboarded = current_user.clipboard_contains?(@series)
     return if no_render
 
     respond_to do |format|
