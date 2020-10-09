@@ -61,7 +61,9 @@ Rails.application.routes.draw do
   get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
   get 'series/quarantine', to: 'series#quarantine'
   get 'series/old_bea_download', to: 'series#old_bea_download'
-  get 'series/add_to_clip', to: 'series#add_to_clip'
+
+  get 'clip' => 'series#clipboard'
+  get 'series/add_clip', to: 'series#add_clip'
   get 'series/clear_clip', to: 'series#clear_clip'
   get 'series/do_clip_action', to: 'series#do_clip_action'
 
@@ -75,7 +77,6 @@ Rails.application.routes.draw do
     end
   end
 
-  get 'clip' => 'series#clipboard'
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
