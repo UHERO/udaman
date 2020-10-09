@@ -48,10 +48,6 @@ class User < ApplicationRecord
   end
 
   def clear_series(series_to_remove = nil)
-    if series
-      series.delete(series_to_remove)
-    else
-      series.delete_all
-    end
+    series_to_remove ? series.delete(series_to_remove) : series.delete_all
   end
 end
