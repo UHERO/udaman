@@ -182,10 +182,6 @@ class SeriesController < ApplicationController
     end
   end
 
-  def sidekiq_failed
-    @series = Series.joins(:sidekiq_failures).order(:name)
-  end
-
   def add_to_quarantine
     if @series
       @series.add_to_quarantine
