@@ -13,7 +13,7 @@ Current<br/>
     data_source = dp.data_source
     bgcolor = data_source.color || 'FFF'
 %>
-    <div class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
-      <%= '%.3f' % dp_val %><sup><%= dp_superscript(dp) %></sup>
-    </div>
+    <span class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
+      <%= '%.3f' % dp_val %><
+    </span>
 <% end %>

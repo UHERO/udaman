@@ -1,11 +1,12 @@
-<table style="width:800px;">
+<table>
 	<tr>
 		<th style="width:80px;">Date</th>
 		<th style="width:80px;">AREMOS</th>
 		<th style="width:20px;">LVL</th>
-		<th style="width:45px; text-align:right; padding:0 2px 0 0;">YOY</th>
-		<th style="width:45px; text-align:right; padding:0 2px 0 0;">YTD</th>
+		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YOY</th>
+		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YTD</th>
 		<th>Values</th>
+    <th>Age</th>
 	</tr>
 <%
   ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
@@ -20,9 +21,9 @@
 
     def display_data_points(date_hash, as)
       units = @series.units
-      chg_data = @chg.data.clone unless @chg.nil? or @chg.data.nil?
-      ytd_data = @ytd_chg.data.clone unless @ytd_chg.nil? or @ytd_chg.data.nil?
-      lvl_data = @lvl_chg.data.clone unless @lvl_chg.nil? or @lvl_chg.data.nil?
+      chg_data = @chg.data.clone rescue {}
+      ytd_data = @ytd_chg.data.clone rescue {}
+      lvl_data = @lvl_chg.data.clone rescue {}
       bgcolors = {}
       ## Note that disabled loaders' data points will normally have been deleted already, but just in case there are some,
       ## we should show them with the correct background color.
@@ -33,13 +34,15 @@
           cdp = element
           date_string = cdp.date.to_s
           cdp_val = cdp.value / units
-          a_value = (as.nil? or as[cdp.date].nil?) ? "-" : as[cdp.date].round(3)
-          chg_value = (chg_data.nil? or chg_data[cdp.date].nil?) ? "-" : chg_data[cdp.date].round(1) rescue "-"
-          ytd_chg_value = (ytd_data.nil? or ytd_data[cdp.date].nil?) ? "-" : ytd_data[cdp.date].round(1) rescue "-"
-          lvl_chg_value = (lvl_data.nil? or lvl_data[cdp.date].nil?) ? "-" : lvl_data[cdp.date].round(3) rescue "-"
+          a_value = as[cdp.date].round(3) rescue '-'
+          chg_value = (chg_data[cdp.date].round(1).to_s + '%') rescue '-'
+          chg_align = chg_value == '-' ? 'center' : 'right'
+          ytd_chg_value = (ytd_data[cdp.date].round(1).to_s + '%') rescue '-'
+          ytd_align = ytd_chg_value == '-' ? 'center' : 'right'
+          lvl_chg_value = lvl_data[cdp.date].round(3) rescue '-'
           unless a_value.nil? or a_value.class == String
             diff = @series.a_diff(a_value, cdp_val.round(3))
-            a_color = diff == 0 ? "#999999" : aremos_color(diff)
+            a_color = diff == 0 ? '#999999' : aremos_color(diff)
           end
           bgcolor = bgcolors[cdp.data_source_id] rescue '#FFF'  ## this rescue code will never be called, right?
 %>
@@ -47,13 +50,10 @@
         <td><%= link_to cdp.date, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: cdp.date %></td>
         <td><span style='color:<%= a_color %>'><%= a_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
-        <td style="text-align:right;"><span class="per-chg"><%= chg_value %><%= "%" if chg_value != "-" %></span></td>
-        <td style="text-align:right;"><span class="per-chg"><%= ytd_chg_value %><%= "%" if ytd_chg_value != "-" %></span></td>
-        <td>
-          <div class='datapoint current-datapoint' style='background-color:<%= bgcolor %>'>
-            <%= "%.3f" % cdp_val %><sup><%= dp_superscript(cdp) %></sup>
-          </div>
-        </td>
+        <td style="text-align:<%= chg_align %>;"><span class="per-chg"><%= chg_value %></span></td>
+        <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
+        <td><span class='datapoint current-datapoint' style='background-color:<%= bgcolor %>'><%= '%.3f' % cdp_val %></span></td>
+        <td>MM</td>
       </tr>
 <%
         else
@@ -80,5 +80,6 @@
 		<th>YOY</th>
 		<th>YTD</th>
 		<th>Values</th>
+    <th>Age</th>
 	</tr>
 </table>
