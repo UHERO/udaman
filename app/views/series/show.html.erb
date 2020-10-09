@@ -86,11 +86,11 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
 		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> |
+    <% if current_user.dev_user? %>
+      <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
+    <% end %>
 		<%= link_to 'Add to clipboard', action: :add_clip, id: @series %> |
 		<%= link_to 'Remove from clipboard', action: :clear_clip, id: @series %>
-    <% if current_user.dev_user? %>
-      | <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %>
-    <% end %>
   </div>
 </div>
 

@@ -95,15 +95,11 @@ class SeriesController < ApplicationController
   def clipboard
     @all_series = current_user.get_series
     @clip_controls = true
-    render :index
+    render :clipboard
   end
 
   def clear_clip
-    if params[:id]
-      current_user.clear_series(Series.find(params[:id].to_i))
-    else
-      current_user.clear_series
-    end
+    current_user.clear_series(params[:id] ? Series.find(params[:id].to_i) : nil)
     redirect_to action: :index
   end
 
