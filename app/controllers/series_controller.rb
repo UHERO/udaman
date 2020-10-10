@@ -98,7 +98,12 @@ class SeriesController < ApplicationController
   end
 
   def clear_clip
-    current_user.clear_series(params[:id] ? Series.find(params[:id].to_i) : nil)
+    if params[:id]
+      current_user.clear_series(Series.find params[:id].to_i)
+      redirect_to action: :clipboard
+      return
+    end
+    current_user.clear_series
     redirect_to action: :index
   end
 

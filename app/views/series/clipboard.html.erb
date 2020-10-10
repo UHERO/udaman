@@ -14,11 +14,11 @@
   </div>
 </div>
 <div id="details_area">
-<% if @all_series && @all_series.empty? %>
+<% if @all_series.nil? || @all_series.empty? %>
 
   Clipboard empty.
 
-<% elsif @all_series %>
+<% else %>
 
   <%= render partial: 'list_series', locals: { all_series: @all_series } %>
 

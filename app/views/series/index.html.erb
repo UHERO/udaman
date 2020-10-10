@@ -32,11 +32,11 @@
     <h3>Search: <a href="#" style="text-decoration:none;"
                    onClick="setSeriesSearch('<%= sanitize @search_string %>');"><%= sanitize @search_string %></a></h3>
 <% end %>
-<% if @all_series && @all_series.empty? %>
+<% if @all_series.nil? || @all_series.empty? %>
 
   No results.
 
-<% elsif @all_series %>
+<% else %>
 
   <%= render partial: 'list_series', locals: { all_series: @all_series } %>
 
