@@ -44,7 +44,13 @@ class User < ApplicationRecord
   end
 
   def add_series(series_to_add)
-    series << series_to_add
+    if series_to_add.class == Series
+      series << series_to_add
+      return
+    end
+    series_to_add.each do |s|
+      (series << s) rescue nil  ## rescue in case of duplicate add
+    end
   end
 
   def clear_series(series_to_remove = nil)
