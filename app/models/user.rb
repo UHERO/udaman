@@ -45,11 +45,11 @@ class User < ApplicationRecord
 
   def add_series(series_to_add)
     if series_to_add.class == Series
-      series << series_to_add
+      series.push(series_to_add)
       return
     end
     series_to_add.each do |s|
-      (series << s) rescue nil  ## rescue in case of duplicate add
+      series.push(s) rescue nil  ## rescue in case of duplicate add
     end
   end
 
