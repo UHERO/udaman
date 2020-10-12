@@ -56,4 +56,19 @@ class User < ApplicationRecord
   def clear_series(series_to_remove = nil)
     series_to_remove ? series.delete(series_to_remove) : series.delete_all
   end
+
+  def do_clip_action(action)
+    case action
+    when 'restrict'
+      series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
+    when 'unrestrict'
+      series.each {|s| s.update!(restricted: false) }
+    when 'destroy'
+      self.transaction do
+        series.each {|s| s.destroy! }
+      end
+    else
+      Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
+    end
+  end
 end

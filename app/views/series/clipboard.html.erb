@@ -9,7 +9,7 @@
   <div>
     <p><%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %></p>
     <p><%= form_with url: { action: :do_clip_action } do |f| %>
-        <select id="clip_actions" name="clip_actions">
+        <select id="clip_action" name="clip_action">
           <option value=""></option>
           <option value="export">Create export</option>
           <option value="csv">Download metadata csv</option>

@@ -93,7 +93,7 @@ class SeriesController < ApplicationController
   end
 
   def clipboard
-    @all_series = current_user.series
+    @all_series = current_user.series.sort_by(&:name)
     render :clipboard
   end
 
@@ -117,7 +117,8 @@ class SeriesController < ApplicationController
   end
 
   def do_clip_action
-
+    current_user.do_clip_action params[:clip_action]
+    redirect_to action: :clipboard
   end
 
   def index
