@@ -3,7 +3,8 @@ class ExportsController < ApplicationController
 
   before_action :check_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
-                                    :edit_as_text, :save_as_text, :add_series, :remove_series, :move_series_up, :move_series_down]
+                                    :edit_as_text, :save_as_text, :import_clip,
+                                    :add_series, :remove_series, :move_series_up, :move_series_down]
 
   def index
     @exports = Export.order(:name).all
@@ -63,6 +64,17 @@ class ExportsController < ApplicationController
     box_content = params[:edit_box].split(' ')
     @export.replace_all_series(box_content)
     redirect_to edit_export_url(@export)
+  end
+
+  def import_clip
+    order = @export.export_series.maximum(:list_order) || 0
+    current_user.series.sort_by(&:name).each do |s|
+      @export.series.push(s) rescue nil   ## rescue to cover cases where the series is already included
+    end
+    @export.export_series.where(list_order: nil).each do |es|
+      es.update_attributes(list_order: order += 1)
+    end
+    redirect_to action: :edit_as_text, id: @export
   end
 
   def add_series

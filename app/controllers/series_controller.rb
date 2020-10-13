@@ -94,6 +94,7 @@ class SeriesController < ApplicationController
 
   def clipboard
     @all_series = current_user.series.sort_by(&:name)
+    @clip_empty = @all_series.nil? || @all_series.empty?
     render :clipboard
   end
 
@@ -118,12 +119,15 @@ class SeriesController < ApplicationController
 
   def do_clip_action
     if params[:clip_action] == 'csv'
-      @all_series = current_user.series.sort_by(&:name)
-      render :groupmeta, format: :csv, layout: false
+      redirect_to action: :groupmeta, format: :csv, layout: false
       return
     end
     current_user.do_clip_action params[:clip_action]
     redirect_to action: :clipboard
+  end
+
+  def groupmeta
+    @all_series = current_user.series.sort_by(&:name)
   end
 
   def index
