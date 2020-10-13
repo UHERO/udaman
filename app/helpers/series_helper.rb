@@ -24,13 +24,15 @@ module SeriesHelper
   end
 
   def series_meta_csv_gen(series_set)
-    columns = %w{id name dataPortalName description source.description unit.short_label unit.long_label investigation_notes}
+    columns = %w{id name dataPortalName geography.display_name_short frequency description
+                 units unit.short_label unit.long_label source.description source_link source_detail.description
+                 decimals seasonal_adjustment restricted quarantined investigation_notes}
     CSV.generate do |csv|
       csv << columns
       series_set.each do |s|
         csv << columns.map do |col|
           (attr, subattr) = col.split('.')
-          s.send(attr).send(subattr || 'to_s')
+          s.send(attr).send(subattr || 'to_s') rescue nil
         end
       end
     end
