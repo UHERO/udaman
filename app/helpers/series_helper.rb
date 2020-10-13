@@ -23,6 +23,16 @@ module SeriesHelper
     end
   end
 
+  def series_meta_csv_gen(series_set)
+    columns = %w{id name dataPortalName}
+    CSV.generate do |csv|
+      csv << columns
+      series_set.each do |s|
+        csv.push columns.map {|c| s[c] }
+      end
+    end
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []

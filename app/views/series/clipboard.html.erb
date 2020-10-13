@@ -11,11 +11,11 @@
     <p><%= form_with url: { action: :do_clip_action } do |f| %>
         <select id="clip_action" name="clip_action">
           <option value=""></option>
-          <option value="export">Create export</option>
-          <option value="csv">Download metadata csv</option>
+          <option value="export" disabled="true">Create export</option>
+          <option value="csv" disabled="true">Download metadata csv</option>
           <% if current_user.admin_user? %>
-            <option value="meas">Create measurement</option>
-            <option value="setmeta">Set metadata</option>
+            <option value="meas" disabled="true">Create measurement</option>
+            <option value="setmeta" disabled="true">Set metadata</option>
             <option value="restrict">Restrict series</option>
             <option value="unrestrict">Unrestrict series</option>
           <% end %>

@@ -64,9 +64,7 @@ class User < ApplicationRecord
     when 'unrestrict'
       series.each {|s| s.update!(restricted: false) }
     when 'destroy'
-      self.transaction do
-        series.each {|s| s.destroy! }
-      end
+      series.each {|s| s.destroy! }
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
     end
