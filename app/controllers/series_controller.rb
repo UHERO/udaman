@@ -117,6 +117,11 @@ class SeriesController < ApplicationController
   end
 
   def do_clip_action
+    if params[:clip_action] == 'csv'
+      @all_series = current_user.series.sort_by(&:name)
+      render :groupmeta, format: :csv, layout: false
+      return
+    end
     current_user.do_clip_action params[:clip_action]
     redirect_to action: :clipboard
   end

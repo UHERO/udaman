@@ -65,7 +65,7 @@ Rails.application.routes.draw do
   get 'clip' => 'series#clipboard'
   get 'series/add_clip', to: 'series#add_clip'
   get 'series/clear_clip', to: 'series#clear_clip'
-  get 'series/do_clip_action', to: 'series#do_clip_action'
+  post 'series/do_clip_action', to: 'series#do_clip_action'
 
   resources :series
 

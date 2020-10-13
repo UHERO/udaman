@@ -28,7 +28,7 @@ module SeriesHelper
     CSV.generate do |csv|
       csv << columns
       series_set.each do |s|
-        csv.push columns.map {|c| s[c] }
+        csv << columns.map {|c| s[c] }
       end
     end
   end
