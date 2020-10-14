@@ -24,9 +24,9 @@ module SeriesHelper
   end
 
   def series_meta_csv_gen(series_set)
-    columns = %w{id name dataPortalName geography.display_name_short frequency description
+    columns = %w{id name dataPortalName description geography.display_name_short frequency
                  units unit.short_label unit.long_label source.description source_link source_detail.description
-                 decimals seasonal_adjustment restricted quarantined investigation_notes}
+                 decimals seasonal_adjustment restricted.to_01 quarantined.to_01 investigation_notes}
     CSV.generate do |csv|
       csv << columns
       series_set.each do |s|
