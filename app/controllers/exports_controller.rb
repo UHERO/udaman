@@ -69,10 +69,8 @@ class ExportsController < ApplicationController
   def import_clip
     order = @export.export_series.maximum(:list_order) || 0
     current_user.series.sort_by(&:name).each do |s|
-      @export.series.push(s) rescue nil   ## rescue to cover cases where the series is already included
-    end
-    @export.export_series.where(list_order: nil).each do |es|
-      es.update_attributes(list_order: order += 1)
+      @export.series.push(s) rescue next   ## rescue to cover cases where the series is already linked
+      ExportSeries.find_by(export_id: @export.id, series_id: s.id).update(list_order: order += 1)
     end
     redirect_to action: :edit_as_text, id: @export
   end
