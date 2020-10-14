@@ -139,3 +139,16 @@ class Float
     ((self / scale).round(num) * scale).to_f
   end
 end
+
+### A clever way to convert boolean values to 0 or 1. See usage example in module SeriesHelper
+class FalseClass
+  def to_01
+    0
+  end
+end
+
+class TrueClass
+  def to_01
+    1
+  end
+end
