@@ -140,7 +140,7 @@ class Float
   end
 end
 
-### A clever way to convert boolean values to 0 or 1. See usage in module SeriesHelper
+### A clever way to convert boolean values to 0 or 1. See usage example in module SeriesHelper
 class FalseClass
   def to_01
     0
