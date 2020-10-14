@@ -1,0 +1,42 @@
+<% if current_user.internal_user? %>
+
+<div id="summary_area">
+ 	<h1 style="color:blue">Clip Board</h1>
+  <% if @all_series && @all_series.count > 0 %>
+      <h2>Total: <%= @all_series.count %></h2>
+  <% end %>
+  <br />
+  <div>
+    <% unless @clip_empty %>
+      <p><%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %></p>
+    <% end %>
+    <p><%= form_with url: { action: :do_clip_action } do |f| %>
+        <select id="clip_action" name="clip_action" <%= 'disabled' if @clip_empty %>>
+          <option value=""></option>
+          <option value="csv">Download metadata csv</option>
+          <% if current_user.admin_user? %>
+            <option value="updatemeta" disabled="true">Update metadata</option>
+            <option value="restrict">Restrict series</option>
+            <option value="unrestrict">Unrestrict series</option>
+          <% end %>
+          <% if current_user.dev_user? %>
+            <option value="destroy">Destroy series</option>
+          <% end %>
+        </select>
+      <%= f.submit 'Go' %>
+      <% end %></p>
+  </div>
+</div>
+<div id="details_area">
+<% if @clip_empty %>
+
+  <strong>Clipboard empty.</strong>
+
+<% else %>
+
+  <%= render partial: 'list_series', locals: { all_series: @all_series } %>
+
+<% end %>
+</div>
+
+<% end %>

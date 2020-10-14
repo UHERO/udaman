@@ -3,8 +3,10 @@ class SeriesController < ApplicationController
   include Validators
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart, :render_data_points, :update_notes]
+  before_action :set_series,
+        only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
+               :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart,
+               :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -86,8 +88,47 @@ class SeriesController < ApplicationController
   # POST /series/bulk
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
-      redirect_to '/series'
+      redirect_to action: :index
     end
+  end
+
+  def clipboard
+    @all_series = current_user.series.sort_by(&:name)
+    @clip_empty = @all_series.nil? || @all_series.empty?
+    render :clipboard
+  end
+
+  def clear_clip
+    if params[:id]
+      current_user.clear_series(Series.find params[:id].to_i)
+      redirect_to action: :clipboard
+      return
+    end
+    current_user.clear_series
+    redirect_to action: :index
+  end
+
+  def add_clip
+    if params[:id]
+      current_user.add_series Series.find(params[:id].to_i)
+    elsif params[:search]
+      current_user.clear_series if params[:replace] == 'true'
+      current_user.add_series Series.search_box(params[:search], limit: 500)
+    end
+    redirect_to action: :clipboard
+  end
+
+  def do_clip_action
+    if params[:clip_action] == 'csv'
+      redirect_to action: :groupmeta, format: :csv, layout: false
+      return
+    end
+    current_user.do_clip_action params[:clip_action]
+    redirect_to action: :clipboard
+  end
+
+  def groupmeta
+    @all_series = current_user.series.sort_by(&:name)
   end
 
   def index
@@ -119,15 +160,12 @@ class SeriesController < ApplicationController
   end
 
   def show(no_render: false)
-    @as = AremosSeries.get @series.name
+    @desc = AremosSeries.get(@series.name).description rescue 'No Aremos Series'
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
-    @desc = @as.nil? ? 'No Aremos Series' : @as.description
-    @dsas = []
-    @series.enabled_data_sources.each do |ds|
-      @dsas.concat ds.data_source_actions
-    end
+    @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
+    @clipboarded = current_user.clipboard_contains?(@series)
     return if no_render
 
     respond_to do |format|
@@ -158,10 +196,6 @@ class SeriesController < ApplicationController
       format.csv { render layout: false }
       format.html
     end
-  end
-
-  def sidekiq_failed
-    @series = Series.joins(:sidekiq_failures).order(:name)
   end
 
   def add_to_quarantine
