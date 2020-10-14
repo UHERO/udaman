@@ -22,6 +22,7 @@
   <div>
     <% if @search_string && @all_series && !@all_series.empty? %>
       <%= link_to 'Add results to clipboard', { action: :add_clip, search: @search_string } %><br />
+      <%= link_to 'Replace clipboard with results', { action: :add_clip, search: @search_string, replace: 'true' } %><br />
     <% end %>
   </div>
 </div>

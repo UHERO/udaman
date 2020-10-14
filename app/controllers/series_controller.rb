@@ -112,6 +112,7 @@ class SeriesController < ApplicationController
     if params[:id]
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
+      current_user.clear_series if params[:replace] == 'true'
       current_user.add_series Series.search_box(params[:search], limit: 500)
     end
     redirect_to action: :clipboard
