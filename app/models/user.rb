@@ -45,11 +45,11 @@ class User < ApplicationRecord
 
   def add_series(series_to_add)
     if series_to_add.class == Series
-      series.push(series_to_add)
+      series.push(series_to_add) rescue nil
       return
     end
     series_to_add.each do |s|
-      series.push(s) rescue nil  ## rescue in case of duplicate add
+      series.push(s) rescue next  ## rescue in case of duplicate link
     end
   end
 
@@ -64,7 +64,9 @@ class User < ApplicationRecord
     when 'unrestrict'
       series.each {|s| s.update!(restricted: false) }
     when 'destroy'
-      series.each {|s| s.destroy! }
+      failed = []
+      series.each {|s| s.destroy! rescue failed.push(s) }
+      failed.each {|s| s.destroy! }  ## second pass
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
     end
