@@ -231,9 +231,9 @@ task :ua_1376 => :environment do
     ss = Series.search_box("^#{pref}$")
     ss.each do |s|
       ns_name = s.build_name(prefix: s.parse_name[:prefix] + 'NS')
-      s.rename(ns_name)
       d = s.data_sources.first
       d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      s.rename(ns_name)
       s.update_attributes!(dataPortalName: dpn,
                            units: units,
                            unit_id: unit_id,
