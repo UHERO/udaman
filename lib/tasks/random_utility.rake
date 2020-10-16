@@ -217,24 +217,28 @@ task :ua_1376 => :environment do
   ]
   loop do
     dpn = allmeas.pop || break
-    pref = allmeas.pop || raise('doh - broken')
-    m = Measurement.create!(prefix: pref, universe: 'UHERO', data_portal_name: dpn)
+    pref = allmeas.pop || raise("doh! broken at #{dpn}")
+    puts "------------------------> #{pref}"
+    m = Measurement.create!(prefix: pref, data_portal_name: dpn, universe: 'UHERO')
     if dpn =~ /weekly/i
       units = 1
       unit_id = 20
-      m.update_attributes!(unit_id: unit_id, source_id: 2, seasonal_adjustment: 'not_seasonally_adjusted')
-    else
-      unit_id = 41
+    else ## total
       units = 1000000
-      m.update_attributes!(unit_id: unit_id, source_id: 2, seasonal_adjustment: 'not_seasonally_adjusted')
+      unit_id = 41
     end
+    m.update_attributes!(unit_id: unit_id, source_id: 2, seasonal_adjustment: 'not_seasonally_adjusted')
     ss = Series.search_box("^#{pref}$")
     ss.each do |s|
       ns_name = s.build_name(prefix: s.parse_name[:prefix] + 'NS')
       s.rename(ns_name)
       d = s.data_sources.first
-      d.update!(eval: d.eval.sub(s.name, ns_name))
-      s.update_attributes!(units: units, unit_id: unit_id, source_id: 2, seasonal_adjustment: 'not_seasonally_adjusted')
+      d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      s.update_attributes!(dataPortalName: dpn,
+                           units: units,
+                           unit_id: unit_id,
+                           source_id: 2,
+                           seasonal_adjustment: 'not_seasonally_adjusted')
       m.series << s
     end
     Measurement.deep_copy_to_universe([pref], 'CCOM')
