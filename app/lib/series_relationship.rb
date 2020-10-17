@@ -56,7 +56,7 @@ module SeriesRelationship
   end
 
   ## full recursive tree of dependents
-  ##   THIS IS NOT RELATIVIZED FOR DIFFERENT UNIVERSES, BUT PROB OK FOR JUST UHERO FOR NOW
+  ##   THIS IS NOT RELATIVIZED FOR DIFFERENT UNIVERSES, BUT PROB OK JUST UHERO FOR NOW
   def Series.all_who_depend_on(name, already_seen = [])
     return [] if already_seen.include?(name)
     already_seen.push(name)
@@ -106,7 +106,7 @@ module SeriesRelationship
 
     second_order_deps = []
     direct_deps.each do |s|
-      second_order_deps |= s.ts.who_i_depend_on ## recursion
+      second_order_deps |= s.ts.who_i_depend_on rescue Rails.logger.warn("Nonexisting dependency found: #{s}") ## recursion
     end
     direct_deps | second_order_deps
   end
