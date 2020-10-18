@@ -106,7 +106,8 @@ class DataList < ApplicationRecord
 
   def get_all_series_data_with_changes(freq, geo, sa)
     series_data = {}
-    self.measurements.order(:list_order).each do |m|
+    self.data_list_measurements.order(:list_order).each do |dlm|
+      m = dlm.measurement
       filters = ['xseries.frequency = ?', 'geographies.handle = ?']
       values = [Series.frequency_from_code(freq), geo]
       unless sa == 'all'

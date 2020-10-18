@@ -182,8 +182,11 @@ class DataListsController < ApplicationController
   end
 
   def add_clip
-    @data_list.measurements.each {|m| current_user.add_series(m.series) }
-    redirect_to edit_data_list_url(@data_list)
+    count = 0
+    @data_list.measurements.each do |m|
+      count += current_user.add_series(m.series)
+    end
+    redirect_to edit_data_list_url(@data_list), notice: "#{count} series added to clipboard"
   end
 
   def add_measurement

@@ -97,8 +97,8 @@ class MeasurementsController < ApplicationController
   end
 
   def add_clip
-    current_user.add_series @measurement.series
-    redirect_to edit_measurement_url(@measurement)
+    count = current_user.add_series(@measurement.series)
+    redirect_to edit_measurement_url(@measurement), notice: "#{count} series added to clipboard"
   end
 
   def add_series
