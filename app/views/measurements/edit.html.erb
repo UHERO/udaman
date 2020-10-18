@@ -18,7 +18,9 @@
   </table>
 <% end %>
 <p><%= render 'add_series', { universe: @measurement.universe } %>
-       or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @measurement } %></p>
+       or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @measurement } %>
+       or <%= link_to 'Import from clipboard', { action: :import_clip, id: @measurement } %>
+       or <%= link_to 'Add to clipboard', { action: :add_clip, id: @measurement } %></p>
 <p>
 <%= link_to 'Show', @measurement %> |
 <%= link_to 'Index', measurements_path(u: @measurement.universe) %> |
