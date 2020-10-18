@@ -93,7 +93,8 @@ class Series < ApplicationRecord
 
   def rename(newname)
     newname.upcase!
-    return false if name == newname
+    old_name = self.name
+    return false if old_name == newname
     parts = Series.parse_name(newname)
     geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
     raise "Cannot rename because #{newname} already exists in #{universe}" if Series.get(newname, universe)
@@ -101,6 +102,12 @@ class Series < ApplicationRecord
     self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
     if geo_freq_change
       data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+    end
+    who_depends_on_me.each do |s_name|
+      s = Series.find_by(name: s_name) || next
+      s.enabled_data_sources.each do |ds|
+
+      end
     end
     true
   end
