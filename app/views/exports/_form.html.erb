@@ -34,6 +34,7 @@
       <%= render 'add_series' %>
               or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @export } %>
               or <%= link_to 'Import from clipboard', { action: :import_clip, id: @export } %>
+              or <%= link_to 'Add all series to clipboard', { action: :add_clip, id: @export } %>
   <% end %>
 <p>
   <div class="field">
