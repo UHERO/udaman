@@ -43,6 +43,10 @@ class User < ApplicationRecord
     self.series.include?(series)
   end
 
+  def clipboard_empty?
+    series.empty?
+  end
+
   def add_series(series_to_add)
     if series_to_add.class == Series
       series.push(series_to_add) rescue return(0)
