@@ -9,7 +9,7 @@ module DataPointsHelper
     days = (Time.now.to_date - dp.created_at.to_date).to_i
     months = (days / 30.0).round
     case
-      when days < 99 then days.to_s
+      when  days < 100 then days.to_s
       when months < 10 then "#{months}M"
       else
         years = days / 365.0
