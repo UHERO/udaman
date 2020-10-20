@@ -1,0 +1,60 @@
+<h1>DBEDT Economic Data Warehouse Uploads</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Active</th>
+      <th>Database file</th>
+      <th>Uploaded at</th>
+      <th colspan="100%"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+      <tr>
+          <%= form_for(@new_db_upload) do |f| %>
+              <% if @new_db_upload.errors.any? %>
+                  <div id="error_explanation">
+                    <h2><%= pluralize(@new_db_upload.errors.count, 'error') %> prohibited this upload from being saved:</h2>
+
+                    <ul>
+                      <% @new_db_upload.errors.full_messages.each do |message| %>
+                          <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+              <% end %>
+        <td></td>
+        <td><%= f.file_field :filename %></td>
+        <td><div class="actions"><%= f.submit 'Upload file', id: 'upload-files-button' %></div></td>
+        <td>** After upload finishes, reload page to see status message.</td>
+      <% end %>
+      </tr>
+      <% controls_display = now_processing?(NewDbedtUpload, cols: [:status]) ? 'none' : 'inline'
+      @db_uploads.each do |db_upload|
+        timestamp = db_upload.upload_at.strftime('%Y-%m-%d %H:%M') %>
+      <tr>
+        <td align="center">
+          <span class="controls" style="display:<%= controls_display %>;">
+          <%=
+            if db_upload.active
+              "<i class='load-status fas fa-dot-circle' id='new_dbedt-#{db_upload.id}' aria-hidden='true'></i>".html_safe
+            elsif db_upload.status != 'fail'
+              '<span class="waiting"><i class="load-status fas fa-dot-circle" aria-hidden="true"></i></span>'.html_safe
+            end
+          %>
+          </span>
+        </td>
+        <td><i class="upload-status fas <%= make_fa_processing_classes(db_upload.status) %>" id="new_dbedt-noop-<%= db_upload.id %>" aria-hidden="true"></i>
+            <%= link_to 'Database file', { action: :show, id: db_upload.id } %>
+        </td>
+        <td><%= timestamp %></td>
+          <td>
+            <% color = db_upload.last_error_at ? 'red' : 'green' %>
+            <span style="color:<%= color %>;"><%= db_upload.last_error %></span>
+          </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+* Upload and initial processing may take some time. Please be patient. You may reload this page while it is working.<br/>

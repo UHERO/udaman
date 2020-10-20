@@ -3,9 +3,10 @@ class SeriesController < ApplicationController
   include Validators
 
   before_action :check_authorization, except: [:index]
-  before_action :set_series, only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-                                    :json_with_change, :show_forecast, :refresh_aremos, :comparison_graph, :outlier_graph,
-                                    :all_tsd_chart, :blog_graph, :render_data_points, :update_notes]
+  before_action :set_series,
+        only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
+               :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart,
+               :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -19,6 +20,20 @@ class SeriesController < ApplicationController
   def edit
     @add2meas = params[:add_to_meas].to_i
     set_attrib_resource_values(@series)
+  end
+
+  def rename
+    @has_aliases = !@series.aliases.empty?
+  end
+
+  def save_rename
+    new_name = params[:new_name].strip
+    if @series.rename(new_name)
+      if params[:rename_aliases] == 'yes'
+        @series.aliases.each {|a| a.rename(new_name) }
+      end
+    end
+    redirect_to action: :show
   end
 
   def create
@@ -73,13 +88,52 @@ class SeriesController < ApplicationController
   # POST /series/bulk
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
-      redirect_to '/series'
+      redirect_to action: :index
     end
   end
 
+  def clipboard
+    @all_series = current_user.series.sort_by(&:name)
+    @clip_empty = @all_series.nil? || @all_series.empty?
+    render :clipboard
+  end
+
+  def clear_clip
+    if params[:id]
+      current_user.clear_series(Series.find params[:id].to_i)
+      redirect_to action: :clipboard
+      return
+    end
+    current_user.clear_series
+    redirect_to action: :index
+  end
+
+  def add_clip
+    if params[:id]
+      current_user.add_series Series.find(params[:id].to_i)
+    elsif params[:search]
+      current_user.clear_series if params[:replace] == 'true'
+      current_user.add_series Series.search_box(params[:search], limit: 500)
+    end
+    redirect_to action: :clipboard
+  end
+
+  def do_clip_action
+    if params[:clip_action] == 'csv'
+      redirect_to action: :groupmeta, format: :csv, layout: false
+      return
+    end
+    current_user.do_clip_action params[:clip_action]
+    redirect_to action: :clipboard
+  end
+
+  def groupmeta
+    @all_series = current_user.series.sort_by(&:name)
+  end
+
   def index
-    if current_user.heco?
-      redirect_to :controller => :forecast_snapshots, :action => :index
+    if current_user.fsonly?
+      redirect_to controller: :forecast_snapshots, action: :index
       return
     end
     if current_user.dbedt?
@@ -89,7 +143,7 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    @all_series = nil ## this is the clue that we're on an initial page-load and not listing search results
+    @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
   end
 
   def new_search
@@ -106,15 +160,12 @@ class SeriesController < ApplicationController
   end
 
   def show(no_render: false)
-    @as = AremosSeries.get @series.name
+    @desc = AremosSeries.get(@series.name).description rescue 'No Aremos Series'
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
-    @desc = @as.nil? ? 'No Aremos Series' : @as.description
-    @dsas = []
-    @series.enabled_data_sources.each do |ds|
-      @dsas.concat ds.data_source_actions
-    end
+    @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
+    @clipboarded = current_user.clipboard_contains?(@series)
     return if no_render
 
     respond_to do |format|
@@ -147,10 +198,6 @@ class SeriesController < ApplicationController
     end
   end
 
-  def sidekiq_failed
-    @series = Series.joins(:sidekiq_failures).order(:name)
-  end
-
   def add_to_quarantine
     if @series
       @series.add_to_quarantine
@@ -170,6 +217,11 @@ class SeriesController < ApplicationController
   def empty_quarantine
     Series.empty_quarantine
     redirect_to action: :quarantine
+  end
+
+  def reload_all
+    @series.reload_sources
+    redirect_to action: :show
   end
 
   def json_with_change
@@ -210,19 +262,6 @@ class SeriesController < ApplicationController
                           .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
   end
 
-  def comparison_graph
-    @comp = @series.aremos_data_side_by_side
-  end
-
-  def outlier_graph
-    @comp = @series.ma_data_side_by_side
-    #residuals is actually whole range of values.
-    residuals = @comp.map { |_, ma_hash| ma_hash[:udaman] }
-    residuals.reject!{|a| a.nil?}
-    average = residuals.inject{ |sum, el| sum + el }.to_f / residuals.count
-    @std_dev = Math.sqrt((residuals.inject(0){ | sum, x | sum + (x - average) ** 2 }) / (residuals.count - 1))
-  end
-  
   def all_tsd_chart
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
@@ -257,16 +296,6 @@ class SeriesController < ApplicationController
   def analyze
   end
   
-  def blog_graph
-    @start_date = params[:start_date]
-    @end_date = params[:end_date]
-    chart_to_make = params[:create_post]
-    unless chart_to_make.nil?
-      @link = chart_to_make == 'line' ? @series.create_blog_post(nil, @start_date, @end_date) : @series.create_blog_post(chart_to_make, @start_date, @end_date)
-    end
-    @chart_made = chart_to_make
-  end
-
   def render_data_points
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end

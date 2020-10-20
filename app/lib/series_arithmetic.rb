@@ -1,42 +1,33 @@
 module SeriesArithmetic
-  def round
-    new_series_data = {}
-    data.each do |date, value|
-      new_series_data[date] = value.round.to_f
-    end
-    new_transformation("Rounded #{name}", new_series_data)
+  def round(prec = 0)
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
   end
   
-  def perform_arithmetic_operation(operator,other_series)
-    validate_arithmetic(other_series)
-    longest_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = Hash.new
-    longest_series.data.keys.each do |date|
-      new_series_data[date] = (self.at(date).nil? or other_series.at(date).nil?) ? nil : self.at(date).send(operator,other_series.at(date))
-      new_series_data[date] = nil if !new_series_data[date].nil? and (new_series_data[date].nan? or new_series_data[date].infinite?)
+  def perform_arithmetic_operation(operator, op_series)
+    validate_arithmetic(op_series)
+    new_data = {}
+    longer_series = self.data.length > op_series.data.length ? self : op_series
+    longer_series.data.keys.each do |date|
+      my_val = self.at(date)
+      op_val = op_series.at(date)
+      computed = my_val && op_val && my_val.send(operator, op_val)
+      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
     end
-    new_transformation("#{self.name} #{operator} #{other_series.name}",new_series_data)
+    new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_series_data = Hash.new
-    self.data.keys.each do |date|
-      new_series_data[date] = self.at(date).nil? ? nil : self.at(date).send(operator,constant)
-    end
-    new_transformation("#{self.name} #{operator} #{constant}", new_series_data)
-  end    
+    new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
+    new_transformation("#{self} #{operator} #{constant}", new_data)
+  end
   
-  def zero_add(other_series)
-    validate_arithmetic(other_series)
-    longest_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = Hash.new
-    longest_series.data.keys.each do |date|
-      elem1 = elem2 = 0
-      elem1 = self.at(date) unless self.at(date).nil?
-      elem2 = other_series.at(date) unless other_series.at(date).nil?
-      new_series_data[date] = elem1 + elem2
-    end
-    new_transformation("#{self.name} zero_add #{other_series.name}",new_series_data)
+  def zero_add(op_series)
+    validate_arithmetic(op_series)
+    longer_series = self.data.length > op_series.data.length ? self : op_series
+    new_data = longer_series.data.map {|date, _| [date, self.at(date).to_f + op_series.at(date).to_f] }
+    ## to_f() will convert a nil to 0.0. But if both series have nil, shouldn't output be nil??
+    ## Is it possible for both to have nil?
+    new_transformation("#{self} zero_add #{op_series}", new_data)
   end
   
   def +(other_series)
@@ -122,24 +113,34 @@ module SeriesArithmetic
     new_transformation("Percentage Change of #{name}", new_series_data)
   end
 
-  def compute_percentage_change(value, last)
+  def compute_percentage_change(current, last)
     case
-      when last.nil? then nil
-      when last == 0 && value != 0 then nil
-      when last == 0 && value == 0 then 0
-      else (value - last) / last * 100
+      when last.nil? || current.nil? then nil
+      when last == 0 && current != 0 then nil
+      when last == 0 && current == 0 then 0
+      else (current - last) / last * 100
     end
   end
 
   def absolute_change(id = nil)
-    return faster_change(id) unless id.nil?
+    return faster_change(id) if id
     new_series_data = {}
     last = nil
     data.sort.each do |date, value|
       new_series_data[date] = value - last unless last.nil?
       last = value
     end
-    new_transformation("Absolute Change of #{name}", new_series_data)
+    new_transformation("Absolute change of #{self}", new_series_data)
+  end
+
+  def annual_absolute_change
+    new_series = {}
+    data.sort.each do |date, value|
+      next if value.nil?
+      prev = data[date - 1.year] || next
+      new_series[date] = value - prev
+    end
+    new_transformation("Annual absolute change of #{self}", new_series)
   end
 
   def faster_change(id)
@@ -171,33 +172,22 @@ module SeriesArithmetic
   end
 
   def all_nil
-    new_series_data = {}
-    data.each do |date, _|
-      new_series_data[date] = nil
-    end
-    new_transformation("All nil for dates in #{name}", new_series_data)
+    new_transformation("All nil for dates in #{self}", data.map {|date, _| [date, nil] })
   end
   
   def yoy(id = nil)
-    annualized_percentage_change id
+    annualized_percentage_change(id)
   end
-  
-  def annualized_percentage_change(id = nil)
-    day_based_yoy id
-  end
-  
+
   #just going to leave out the 29th on leap years for now
-  def day_based_yoy(id)
+  def annualized_percentage_change(id = nil)
     return all_nil if frequency == 'week'
-    return faster_yoy id unless id.nil?
+    return faster_yoy(id) if id
 
     new_series_data = {}
-    data.sort.each do |date, value|
-      prev_value = data[date - 1.year]
-      pc = compute_percentage_change(value, prev_value)
-      unless pc.nil?
-        new_series_data[date] = pc
-      end
+    data.each do |date, value|
+      pc = compute_percentage_change(value, data[date - 1.year]) || next
+      new_series_data[date] = pc
     end
     new_transformation("Annualized Percentage Change of #{self}", new_series_data)
   end

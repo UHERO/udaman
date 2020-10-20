@@ -7,7 +7,7 @@
 	<% components = [] %>
 	<% source.description.split(" ").each do |word| %>
 		<% components.push(word) if valid_series_name(word) %>
-	<% end %>
+	<% end if source.description %>
   
   	<% if components.length > 0 %>
     	<td><table>

@@ -12,6 +12,7 @@ class Series < ApplicationRecord
   include SeriesSpecCreation
   include SeriesDataLists
   include SeriesStatistics
+  include HelperUtilities
   extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
@@ -36,6 +37,8 @@ class Series < ApplicationRecord
   has_many :exports, through: :export_series
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
+  has_many :user_series, dependent: :delete_all
+  has_many :users, -> {distinct}, through: :user_series
 
   enum seasonal_adjustment: { not_applicable: 'not_applicable',
                               seasonally_adjusted: 'seasonally_adjusted',
@@ -78,12 +81,58 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(series_name, universe = 'UHERO')
-    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name)
+    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name.upcase)
   end
 
   def Series.bulk_create(definitions)
-    definitions.each { |definition| Kernel::eval definition }
-    return true
+    Series.transaction do
+      definitions.each {|defn| Kernel::eval defn }
+    end
+    true
+  end
+
+  def rename(newname)
+    newname.upcase!
+    return false if name == newname
+    parts = Series.parse_name(newname)
+    geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
+    raise "Cannot rename because #{newname} already exists in #{universe}" if Series.get(newname, universe)
+    geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
+    self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
+    if geo_freq_change
+      data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+    end
+    true
+  end
+
+  def create_alias(properties)
+    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
+    universe = properties[:universe].upcase rescue raise('Universe must be specified to create alias')
+    raise "Cannot alias #{self} into same universe #{universe}" if universe == self.universe
+    name = properties[:name] || self.name
+    raise "Cannot alias because #{name} already exists in #{universe}" if Series.get(name, universe)
+    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
+    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
+    new = self.dup
+    new.assign_attributes(properties.merge(geography_id: new_geo.id))
+    new.save!
+    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    new
+  end
+
+  def duplicate(newname, new_attrs = {})
+    raise("Cannot duplicate because #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    raise("Cannot pass universe as a new attribute") if new_attrs[:universe]
+    s_attrs = attributes.symbolize_keys   ## attr hash keys need to be symbols for create_new(). Also more Rubyesque.
+    s_attrs[:name] = newname.upcase
+    ## Get rid of properties that should not be duplicated. Some things will be handled transparently by create_new()
+    s_attrs.delete(:xseries_id)
+    s_attrs.delete(:geography_id)
+    s_attrs.delete(:dependency_depth)
+    x_attrs = xseries.attributes.symbolize_keys
+    x_attrs.delete(:primary_series_id)
+    x_attrs.delete(:frequency)
+    Series.create_new(s_attrs.merge(x_attrs).merge(new_attrs))
   end
 
   def Series.create_new(properties)
@@ -100,16 +149,16 @@ class Series < ApplicationRecord
     end
 
     if properties[:geography_id]
-      geo = Geography.find properties[:geography_id]
+      geo = Geography.find(properties[:geography_id]) rescue raise("No Geography with id=#{properties[:geography_id]} found")
     else
       uni = properties[:universe] || 'UHERO'
       geo = Geography.find_by(universe: uni, handle: name_parts[:geo]) || raise("No #{uni} Geography found, handle=#{name_parts[:geo]}")
     end
     properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] ||= geo.id
-    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq]) || raise("Unknown freq=#{name_parts[:freq]} in series creation")
+    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq])
 
-    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps. right?
+    series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
@@ -121,7 +170,7 @@ class Series < ApplicationRecord
         x.update(primary_series_id: s.id)
       end
     rescue => e
-      raise "Model object creation failed for name #{properties[:name]}: #{e.message}"
+      raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
     end
     s
   end
@@ -170,7 +219,7 @@ class Series < ApplicationRecord
 
   def Series.parse_name(string)
     if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase }
+      return { prefix: $1, geo: $2, freq: $3.upcase, freq_long: frequency_from_code($3).to_s }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
   end
@@ -228,19 +277,6 @@ class Series < ApplicationRecord
 
   def aliases
     Series.where('xseries_id = ? and id <> ?', xseries_id, id)
-  end
-
-  def create_alias(parameters)
-    universe = parameters[:universe] || raise('Universe must be specified to create alias')
-    raise "#{self} is not a primary series, cannot be aliased" unless is_primary?
-    raise "Cannot duplicate #{self} into same universe #{universe}" if universe.upcase == self.universe
-    new_geo = Geography.find_by(universe: universe, handle: geography.handle)
-    raise "No geography #{geography.handle} exists in universe #{universe}" unless new_geo
-    new = self.dup
-    new.assign_attributes(parameters.merge(geography_id: new_geo.id))
-    new.save!
-    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
-    new
   end
 
   ## Duplicate series for a different geography.
@@ -337,9 +373,9 @@ class Series < ApplicationRecord
   def Series.frequency_from_code(code)
     case code && code.upcase
       when 'A' then :year
+      when 'S' then :semi
       when 'Q' then :quarter
       when 'M' then :month
-      when 'S' then :semi
       when 'W' then :week
       when 'D' then :day
       else nil
@@ -347,7 +383,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_name(name)
-    Series.frequency_from_code(Series.parse_name(name)[:freq])
+    Series.parse_name(name)[:freq_long]
   end
 
   def frequency_from_name
@@ -406,18 +442,25 @@ class Series < ApplicationRecord
     end
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
-  
-  def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
+
+  def Series.eval(series_name, eval_statement, priority = 100)
+    begin
+      new_series = Kernel::eval eval_statement
+    rescue => e
+      raise "Series.eval for #{series_name} failed: #{e.message}"
+    end
+    Series.store(series_name, new_series, new_series.name, eval_statement, priority)
+  end
+
+  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
+    unless series.frequency == Series.frequency_from_name(series_name)
+      raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
+    end
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
     series_to_set.save_source(desc, eval_statement, series.data, priority)
-  end
-
-  def Series.eval(series_name, eval_statement, priority=100)
-    new_series = Kernel::eval eval_statement
-    Series.store series_name, new_series, new_series.name, eval_statement, priority
   end
 
   def save_source(source_desc, eval_statement, data, priority = 100)
@@ -588,12 +631,11 @@ class Series < ApplicationRecord
   end
   
   def new_transformation(name, data, frequency = nil)
-    raise "Undefined dataset for new transformation '#{name}'" if data.nil?
+    raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
-    Series.new(
-      :name => name,
-      :xseries => Xseries.new(frequency: frequency),
-      :data => Hash[data.reject {|_, v| v.nil? }.map {|date, value| [Date.parse(date.to_s), value] }]
+    Series.new(name: name,
+               xseries: Xseries.new(frequency: frequency),
+               data: Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
     ).tap do |o|
       o.propagate_state_from(self)
     end
@@ -658,22 +700,26 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
   end
 
-  ## This is for code testing purposes
-  def generate_random(start_date, end_date, low_range, high_range)
-    freq = self.frequency
+  ## This is for code testing purposes - generate random series data within the ranges specified
+  def Series.generate_random(freq, start_date = nil, end_date = nil, low_range = 0.0, high_range = 100.0, specific_points = {})
+    start_date ||= (Date.today - 5.years).send("#{freq}_d")   ## find the *_d methods in date_extension.rb
+    end_date ||= Date.today.send("#{freq}_d")
     incr = 1
     if freq == 'quarter'
       freq = 'month'
       incr = 3
     end
     series_data = {}
-    iter = Date.parse(start_date)
-    upto = Date.parse(end_date)
+    iter = start_date.to_date
+    upto = end_date.to_date
     while iter <= upto do
       series_data[iter] = low_range + rand(high_range - low_range)
       iter += incr.send(freq)
     end
-    new_transformation("generated randomly for testing", series_data)
+    specific_points.each do |date, value|
+      series_data[date.to_date] = value
+    end
+    Series.new_transformation("randomly generated test data", series_data, freq)
   end
 
   def Series.load_from_download(handle, options)
@@ -695,16 +741,13 @@ class Series < ApplicationRecord
     Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
   end
   
-  def load_from_pattern_id(id)
-    new_transformation("loaded from pattern id #{id}", {})
-  end
-  
-  ## This class method used to have a corresponding (redundant) instance method that apparently was never used, so I offed it.
   def Series.load_from_bea(frequency, dataset, parameters)
-    series_data = DataHtmlParser.new.get_bea_series(dataset, parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from BEA API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_bea_series(dataset, parameters)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from BEA API for #{dataset} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
@@ -723,48 +766,68 @@ class Series < ApplicationRecord
   end
 
   def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
-    series_data = DataHtmlParser.new.get_fred_series(code, frequency, aggregation_method)
-    name = "loaded series: #{code} from FRED API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_fred_series(code, frequency, aggregation_method)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from FRED API for #{code} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)
   end
 
   def Series.load_from_estatjp(code, filters)
     ### Note: Code is written to collect _only_ monthly data!
-    series_data = DataHtmlParser.new.get_estatjp_series(code, filters)
-    name = "loaded series: #{code} from ESTATJP API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_estatjp_series(code, filters)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from ESTATJP API for #{code} freq=M - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, 'M')
   end
 
   def Series.load_from_clustermapping(dataset, parameters)
-    series_data = DataHtmlParser.new.get_clustermapping_series(dataset, parameters)
-    name = "loaded dataset #{dataset} with parameters #{parameters} from Clustermapping API"
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_clustermapping_series(dataset, parameters)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from Clustermapping API for #{dataset}"
+      name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, 'A')
   end
 
   def Series.load_from_eia(parameter)
-    # Series ID in the EIA API is case sensitive
-    series_id = parameter.upcase
-    series_data = DataHtmlParser.new.get_eia_series(series_id)
-    name = "loaded series with parameters #{series_id} from U.S. EIA API"
+    parameter.upcase!  # Series ID in the EIA API is case sensitive
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_eia_series(parameter)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
-      name = "No data collected from U.S. EIA API for #{series_id}"
+      name = "No data collected from #{link} - possibly redacted"
     end
-    Series.new_transformation(name, series_data, series_id[-1])
+    Series.new_transformation(name, series_data, parameter[-1])
   end
-  
+
+  def Series.load_from_dvw(mod, freq, indicator, dimensions)
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_dvw_series(mod, freq, indicator, dimensions)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, freq)
+  end
+
   def days_in_period
-    series_data = {}
-    data.each {|date, _| series_data[date] = date.to_date.days_in_period(self.frequency) }
-    new_transformation('days in time periods', series_data, self.frequency)
+    new_data = {}
+    data.each do |date, _|
+      new_data[date] = date.days_in_period(frequency)
+    end
+    new_transformation("number of days in each #{frequency}", new_data, frequency)
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -806,6 +869,9 @@ class Series < ApplicationRecord
   end
   
   def at(date)
+    unless date.class == Date
+      date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
+    end
     data[date]
   end
   
@@ -815,8 +881,9 @@ class Series < ApplicationRecord
     self.units ||= 1
     dd / self.units
   end
-  
-  def new_at(date)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def new_at_DELETEME(date)
     DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
@@ -828,88 +895,6 @@ class Series < ApplicationRecord
     observations
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def new_data_DELETEME?
-    xseries.data_points.where('created_at > FROM_DAYS(TO_DAYS(NOW()))').count > 0
-  end
-  
-  #used to use app.get trick
-  def create_blog_post(bar = nil, start_date = nil, end_date = nil)
-    return unless ((ENV.has_key? 'cms_user') and ENV.has_key? 'cms_pass')
-
-    start_date = start_date.nil? ? (Time.now.to_date << (15)).to_s : start_date.to_s
-    end_date = end_date.nil? ? Time.now.to_date.to_s : end_date.to_s
-    plot_data = self.get_values_after(start_date,end_date)
-    chart_id = self.id.to_s + '_' + Date.today.to_s
-    a_series = AremosSeries.get(self.name)
-    view = ActionView::Base.new(ActionController::Base.view_paths, {}) 
-    
-    
-    if bar == 'yoy'
-      bar_data = self.annualized_percentage_change.data
-      bar_id_label = 'yoy'
-      bar_color = '#AAAAAA'
-      bar_label = 'YOY % Change'
-      template_path = 'app/views/series/_blog_chart_line_bar'
-      post_body = '' + view.render(:file=> "#{template_path}.html.erb", :locals => {:plot_data => plot_data, :a_series => a_series, :chart_id => chart_id, :bar_id_label=>bar_id_label, :bar_label => bar_label, :bar_color => bar_color, :bar_data => bar_data })
-    elsif bar == 'ytd'
-      bar_data = self.ytd_percentage_change.data 
-      bar_id_label = 'ytd'
-      bar_color = '#AAAAAA'
-      bar_label = 'YTD % Change'
-      template_path = 'app/views/series/_blog_chart_line_bar'
-      post_body = '' + view.render(:file=> "#{template_path}.html.erb", :locals => {:plot_data => plot_data, :a_series => a_series, :chart_id => chart_id, :bar_id_label=>bar_id_label, :bar_label => bar_label, :bar_color => bar_color, :bar_data => bar_data })
-    else
-      template_path = 'app/views/series/_blog_chart_line'
-      post_body = '' + view.render(:file=> "#{template_path}.html.erb", :locals => {:plot_data => plot_data, :a_series => a_series, :chart_id => chart_id})
-    end
-
-    require 'mechanize'
-    agent = Mechanize.new
-    login_page = agent.get('http://www.uhero.hawaii.edu/admin/login')
-    
-    login_page.form_with(:action => '/admin/login') do |f|
-    	f.send('data[User][login]=', ENV['cms_user'])
-    	f.send('data[User][pass]=', ENV['cms_pass'])
-    end.click_button
-    
-    new_product_page = agent.get('http://www.uhero.hawaii.edu/admin/news/add')
-    
-    conf_page = new_product_page.form_with(:action => '/admin/news/add') do |f|
-      
-    	f.send('data[NewsPost][title]=', "#{a_series.description} (#{self.name})")
-    	f.send('data[NewsPost][content]=', post_body)
-    	#f.checkbox_with(:value => '2').check
-      
-    end.click_button
-
-    product_posts = Array.new
-    conf_page.links.each do |link|
-    	product_posts.push link.href unless link.href['admin/news/edit'].nil?
-    end
-    product_posts.sort.reverse[0]
-    
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def print_data_points_DELETEME
-    data_hash = {}
-    source_array = []
-    
-    data_sources.each { |ds| source_array.push ds.id }  
-    source_array.each_index {|index| puts "(#{index}) #{DataSource.find_by(id: source_array[index]).eval}"}
-    xseries.data_points.each do |dp|
-      data_hash[dp.date] ||= []
-      data_hash[dp.date].push("#{'H' unless dp.history.nil?}#{'|' unless dp.current} #{dp.value} (#{source_array.index(dp.data_source_id)})".rjust(10, ' '))
-    end
-  
-    data_hash.sort.each do |date, value_array|
-      puts "#{date}: #{value_array.sort.join}"
-    end
-    puts name
-  end
-  
-  
   def month_mult
     return 1 if frequency == 'month'
     return 3 if frequency == 'quarter'
@@ -1133,6 +1118,8 @@ class Series < ApplicationRecord
       case term
         when /^\//
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+        when /^[+]/
+          limit = tane.to_i
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
@@ -1142,6 +1129,15 @@ class Series < ApplicationRecord
         when /^[~]/  ## tilde
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push tane
+        when /^[:]/
+          if term =~ /^::/
+            all = all.joins(:source)
+            conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
+            bindvars.push tane[1..]
+          else
+            conditions.push %q{source_link regexp ?}
+            bindvars.push tane
+          end
         when /^[@]/
           all = all.joins(:geography)
           conditions.push %q{geographies.handle = ?}
@@ -1150,7 +1146,7 @@ class Series < ApplicationRecord
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency in (#{qmarks})}
-          bindvars.concat freqs.map {|f| Series.frequency_from_code(f) }
+          bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
           all = all.joins(:data_sources)
           conditions.push %q{data_sources.eval regexp ?}
@@ -1170,7 +1166,7 @@ class Series < ApplicationRecord
         when /^\d+$/
           conditions.push %q{series.id = ?}
           bindvars.push term
-        when /^[-]/  ## minus
+        when /^[-]/  ## minus, only for naked words
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else
@@ -1294,7 +1290,7 @@ class Series < ApplicationRecord
     Series.reload_with_dependencies([self.id], 'self')
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'withdep', nightly: false, clear_first: false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
     unless series_id_list.class == Array
       raise 'Series.reload_with_dependencies needs an array of series ids'
     end

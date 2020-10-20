@@ -48,13 +48,14 @@ class DvwUploadsController < ApplicationController
   end
 
 private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_dvw_upload
-      @dvw_upload = DvwUpload.find params[:id]
-    end
 
-    # Only allow a trusted parameter "white list" through.
-    def dvw_upload_params
-      params.require(:dvw_upload).permit(:filetype, :filename)
-    end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_dvw_upload
+    @dvw_upload = DvwUpload.find params[:id]
+  end
+
+  # Only allow a trusted parameter "white list" through.
+  def dvw_upload_params
+    params.require(:dvw_upload).permit(:filetype, :filename)
+  end
 end

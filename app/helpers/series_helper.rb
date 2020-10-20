@@ -23,6 +23,21 @@ module SeriesHelper
     end
   end
 
+  def series_meta_csv_gen(series_set)
+    columns = %w{id name dataPortalName description geography.display_name_short frequency units decimals
+                 unit.short_label unit.long_label source.description source_link source_detail.description
+                 seasonal_adjustment restricted quarantined restricted.to_01 quarantined.to_01 investigation_notes}
+    CSV.generate do |csv|
+      csv << columns
+      series_set.each do |s|
+        csv << columns.map do |col|
+          (attr, subattr) = col.split('.')
+          s.send(attr).send(subattr || 'to_s') rescue nil
+        end
+      end
+    end
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
@@ -108,10 +123,6 @@ module SeriesHelper
     "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
   end
 
-  def nightly_actuator(nightly)
-    (nightly ? 'disable' : 'enable') + ' nightly'
-  end
-
   def make_hyperlink(url, text = url)
     return url if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
@@ -125,7 +136,7 @@ module SeriesHelper
   end
 
   def make_alt_universe_links(series)
-    alt_univs = { 'UHERO' => %w{COH}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
+    alt_univs = { 'UHERO' => %w{COH CCOM}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
     series.aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|

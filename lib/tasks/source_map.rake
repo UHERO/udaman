@@ -33,10 +33,8 @@ end
 
 
 task :reset_dependency_depth => :environment do
-  t = Time.now
   DataSource.set_dependencies
   Series.assign_dependency_depth
-  Rails.logger.info { "Reset dependency depth: Done in #{Time.now - t} seconds" }
 end
 
 desc 'Switch rails logger to stdout'
@@ -96,10 +94,10 @@ end
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
   bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
-  ## Convert this to use Series.reload_with_dependencies instead
+  ## Convert this to use Series.reload_with_dependencies instead?
   mgr = SeriesReloadManager.new(bea_series, 'bea', nightly: true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-  mgr.batch_reload
+  mgr.batch_reload(group_size: 10)  ### try reduce group size to 10, bec we are blowing out req/min quota
 end
 
 task :reload_vap_hi_daily_series_only => :environment do
@@ -129,9 +127,10 @@ task :encachitize_rest_api => :environment do
   cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % API_TOKEN
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
+  Rails.logger.info { "Encachitize: Doing UHERO, #{uh_cats.count} cats" }
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
-      %w{A Q M}.each do |freq|
+      %w{A S Q M W D}.each do |freq|
         full_url = url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
         %x{#{cmd + full_url}}
@@ -140,15 +139,29 @@ task :encachitize_rest_api => :environment do
   end
 
   coh_cats = Category.where(%q{universe = 'COH' and not (hidden or masked) and data_list_id is not null})
+  Rails.logger.info { "Encachitize: Doing COH, #{coh_cats.count} cats" }
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
-      %w{A Q M}.each do |freq|
+      %w{A S Q M W D}.each do |freq|
         full_url = url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
         %x{#{cmd + full_url}}
       end
     end
   end
+
+  ccom_cats = Category.where(%q{universe = 'CCOM' and not (hidden or masked) and data_list_id is not null})
+  Rails.logger.info { "Encachitize: Doing CCOM, #{ccom_cats.count} cats" }
+  ccom_cats.each do |cat|
+    %w{HI HAW HON KAU MAU}.each do |geo|
+      %w{A S Q M W D}.each do |freq|
+        full_url = url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
+        %x{#{cmd + full_url}}
+      end
+    end
+  end
+
   duration = (Time.now.to_i - start_time) / 60
   Rails.logger.info { "Encachitize: End at #{Time.now} (took #{duration} mins)" }
 end

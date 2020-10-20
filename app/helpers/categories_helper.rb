@@ -63,18 +63,11 @@ private
   end
 
   def order_section(leaf, first, last)
-      if first && last
-        return ''
-      end
-      if first
-        return link_to('Down', "/categories/down/#{leaf.id}")
-      end
-      if last
-        return link_to('Up', "/categories/up/#{leaf.id}")
-      end
-
-      link_to('Up', "/categories/up/#{leaf.id}") << ' - ' <<
-      link_to('Down', "/categories/down/#{leaf.id}")
+      return if first && last
+      links = []
+      links.push link_to('Up', "/categories/up/#{leaf.id}") unless first
+      links.push link_to('Down', "/categories/down/#{leaf.id}") unless last
+      links.join(' - ')
   end
 
   def new_span_id(node)

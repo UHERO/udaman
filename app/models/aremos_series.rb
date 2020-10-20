@@ -168,8 +168,7 @@ class AremosSeries < ApplicationRecord
            :start => start_date,
            :data => data,
            :aremos_update_date => series_hash[:aremos_update]
-         ) 
-         puts "#{'%.2f' % (Time.now - t)} | added to db #{series_hash[:name]}.#{series_hash[:frequency]}"
+         )
       elsif s.aremos_update_date != series_hash[:aremos_update]
         
         #the problem with this check is that if there are multiple updates in a day, only one will be read, so entire database needs to be cleared
@@ -187,19 +186,7 @@ class AremosSeries < ApplicationRecord
           :aremos_update_date => series_hash[:aremos_update],
           :updated_at => Time.now
         )
-        puts "#{'%.2f' % (Time.now - t)} | wrote in db #{series_hash[:name]}.#{series_hash[:frequency]}"
-      else
-        puts "#{'%.2f' % (Time.now - t)} | skipped #{(series_hash[:name] + '.' + series_hash[:frequency]).ljust(20, ' ')} | A_Update : #{series_hash[:aremos_update]} | Modified : #{ActiveSupport::TimeZone['Hawaii'].at(s.updated_at)}"
       end
-      
-
-      
-      
-      #puts "skipped #{series_hash[:name]}.#{series_hash[:frequency]}" if s.nil? and s.aremos_update_date == series_hash[:aremos_update]
-            
-      #"#{series_hash[:name]}.#{series_hash[:frequency]}".ts.aremos_match
-      #%Q|('#{series_hash[:name]}.#{series_hash[:frequency]}', '#{series_hash[:frequency]}', '#{series_hash[:description]}', '#{start_date}', NULL, '#{YAML.dump(data).gsub(/'/, "\\\\'")}' , NULL, '#{series_hash[:aremos_update]}', '#{Time.now}', '#{Time.now}')|
-      
     end
 
     def AremosSeries.read_series(line)

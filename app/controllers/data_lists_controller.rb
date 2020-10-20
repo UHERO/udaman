@@ -171,6 +171,24 @@ class DataListsController < ApplicationController
     end
   end
 
+  def edit_as_text
+    @prefix_list = @data_list.data_list_measurements.order(:list_order).map {|dlm| dlm.measurement.prefix }.join("\n")
+  end
+
+  def save_as_text
+    box_content = params[:edit_box].split(' ')
+    @data_list.replace_all_measurements(box_content)
+    redirect_to edit_data_list_url(@data_list)
+  end
+
+  def add_clip
+    count = 0
+    @data_list.measurements.each do |m|
+      count += current_user.add_series(m.series)
+    end
+    redirect_to edit_data_list_url(@data_list), notice: "#{count} series added to clipboard"
+  end
+
   def add_measurement
     unless @data_list.add_measurement(Measurement.find params[:data_list][:meas_id].to_i)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'

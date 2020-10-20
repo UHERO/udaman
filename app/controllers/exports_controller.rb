@@ -3,15 +3,13 @@ class ExportsController < ApplicationController
 
   before_action :check_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
+                                    :edit_as_text, :save_as_text, :import_clip, :add_clip,
                                     :add_series, :remove_series, :move_series_up, :move_series_down]
 
-  # GET /exports
   def index
     @exports = Export.order(:name).all
   end
 
-  # GET /exports/1
-  # GET /exports/1.csv
   def show
     respond_to do |format|
       format.csv { render :layout => false }
@@ -28,16 +26,13 @@ class ExportsController < ApplicationController
     render 'table'
   end
 
-  # GET /exports/new
   def new
     @export = Export.new
   end
 
-  # GET /exports/1/edit
   def edit
   end
 
-  # POST /exports
   def create
     @export = Export.new(export_params)
 
@@ -48,7 +43,6 @@ class ExportsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /exports/1
   def update
     if @export.update(export_params)
       redirect_to @export, notice: 'Export was successfully updated.'
@@ -57,12 +51,35 @@ class ExportsController < ApplicationController
     end
   end
 
-  # DELETE /exports/1
   def destroy
     @export.destroy
     redirect_to exports_url, notice: 'Export was successfully destroyed.'
   end
-  
+
+  def edit_as_text
+    @series_list = @export.export_series.order(:list_order).map {|es| es.series.name }.join("\n")
+  end
+
+  def save_as_text
+    box_content = params[:edit_box].split(' ')
+    @export.replace_all_series(box_content)
+    redirect_to edit_export_url(@export)
+  end
+
+  def import_clip
+    order = @export.export_series.maximum(:list_order) || 0
+    current_user.series.sort_by(&:name).each do |s|
+      @export.series.push(s) rescue next   ## rescue to cover cases where the series is already linked
+      ExportSeries.find_by(export_id: @export.id, series_id: s.id).update(list_order: order += 1)
+    end
+    redirect_to action: :edit_as_text, id: @export
+  end
+
+  def add_clip
+    count = current_user.add_series(@export.series)
+    redirect_to edit_export_url(@export), notice: "#{count} series added to clipboard"
+  end
+
   def add_series
     series = Series.find_by id: params[:series_id].to_i
     if @export.series.include?(series)

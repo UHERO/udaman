@@ -1,6 +1,6 @@
 <% if current_user.internal_user? %>
 
-  <div id="summary_area">
+<div id="summary_area">
  	<h1>Data Series</h1>
   <% if @all_series && @all_series.count > 0 %>
       <h2>Total: <%= @all_series.count %></h2>
@@ -13,56 +13,34 @@
     </div>
     <div>
       <br />
-      <%= link_to 'Series with no Source', controller: :series, action: 'no_source' %>
-      <br />
-      <%= link_to 'Unrestricted series with no Source', controller: :series, action: 'no_source_no_restrict' %>
-      <br />
-      <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %>
-      <br />
+      <%= link_to 'Series with no Source', controller: :series, action: 'no_source' %><br />
+      <%= link_to 'Unrestricted series with no Source', controller: :series, action: 'no_source_no_restrict' %><br />
+      <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %><br />
       <%= link_to 'BEA Series to be cleaned up', controller: :series, action: :old_bea_download %>
     </div>
+  <br />
+  <div>
+    <% if @search_string && @all_series && !@all_series.empty? %>
+      <%= link_to 'Add results to clipboard', { action: :add_clip, search: @search_string } %><br />
+      <%= link_to 'Replace clipboard with results', { action: :add_clip, search: @search_string, replace: 'true' } %><br />
+    <% end %>
+  </div>
 </div>
-
 <div id="details_area">
-		<%= render :partial => 'calculate_form' %>
+<%= render partial: 'calculate_form' %>
 
 <% if @search_string %>
     <h3>Search: <a href="#" style="text-decoration:none;"
                    onClick="setSeriesSearch('<%= sanitize @search_string %>');"><%= sanitize @search_string %></a></h3>
 <% end %>
-<% if @all_series && @all_series.empty? %>
-  No results.
-<% elsif @all_series %>
-  <table class="list_table">
-    <thead>
-    <tr>
-      <th>Name</th>
-      <th>SA</th>
-      <th>Portal Name</th>
-      <th>Units</th>
-      <th>First</th>
-      <th>Last</th>
-      <th>Source</th>
-    </tr>
-    </thead>
+<% if @all_series.nil? || @all_series.empty? %>
 
-    <tbody>
-    <% row = -1 %>
-    <% @all_series.each do |series| %>
-      <% row += 1 %>
-      <tr class="row<%= row % 2 %>">
-        <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fas fa-ban redban" title="restricted"></i><% end %></td>
-        <td><%= sa_indicator(series.seasonal_adjustment) %></td>
-        <td><%= series.dataPortalName %></td>
-        <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
-        <td><%= DataPoint.where(xseries_id: series.xseries_id).minimum(:date) %></td>
-        <td><%= DataPoint.where(xseries_id: series.xseries_id).maximum(:date) %></td>
-        <td><%= series.source && series.source.description %></td>
-      </tr>
-    <% end %>
-    </tbody>
-  </table>
-  <p>
+  No results.
+
+<% else %>
+
+  <%= render partial: 'list_series', locals: { all_series: @all_series } %>
+
 <% end %>
 </div>
 

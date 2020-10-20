@@ -37,7 +37,7 @@ class String
     puts "operation took #{Time.now - t}"
     result
   end
-  
+
   def unzip(want_file = nil)
     dest_dir = self.change_file_extension('')
     Zip::File.open(self) {|zip_file|
@@ -69,7 +69,7 @@ class String
   ## convert frequency string values to numeric ones that can be compared for >, <, etc
   ## returns nil for strings not included
   def freqn
-    %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase)
+    %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase) || raise("Unknown frequency #{self}")
   end
 end
 
@@ -137,5 +137,18 @@ class Float
     return self if self == 0
     scale = 10**((Math.log10(self.abs)+1).floor)
     ((self / scale).round(num) * scale).to_f
+  end
+end
+
+### A clever way to convert boolean values to 0 or 1. See usage example in module SeriesHelper
+class FalseClass
+  def to_01
+    0
+  end
+end
+
+class TrueClass
+  def to_01
+    1
   end
 end

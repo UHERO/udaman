@@ -94,15 +94,6 @@ class DataSource < ApplicationRecord
       series_names.uniq
     end
     
-    def DataSource.all_pattern_series_names
-      series_names = []
-      DataSource.where("eval LIKE '%load_from_pattern_id%' OR eval LIKE '%load_from_bls%' OR eval LIKE '%load_standard_text%'").all.each do |ds| 
-        series_names.push ds.series.name
-        #puts "#{ds.series.name} - #{ds.eval}"
-      end
-      series_names.uniq
-    end
-    
     def DataSource.pattern_only_series_names
       DataSource.all_pattern_series_names - DataSource.all_load_from_file_series_names
     end
@@ -174,11 +165,11 @@ class DataSource < ApplicationRecord
         end
         s = self.send(presave_hook, s) if presave_hook
 
-        base_year = base_year_from_eval_string(eval_stmt, self.dependencies)
-        if !base_year.nil? && base_year != self.series.base_year
-          self.series.update!(:base_year => base_year.to_i)
+        base_year = base_year_from_eval_string(eval_stmt)
+        if base_year && base_year != series.base_year
+          series.update!(base_year: base_year)
         end
-        self.series.update_data(s.data, self)
+        series.update_data(s.data, self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
         Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
@@ -192,21 +183,19 @@ class DataSource < ApplicationRecord
       true
     end
 
-    def base_year_from_eval_string(eval_string, dependencies)
+    def base_year_from_eval_string(eval_string)
       if eval_string =~ /rebase/
         base_year = eval_string[/rebase\("(\d*)/, 1]
-        unless base_year.nil?
-          return base_year.to_i
-        end
-        base_series = (eval_string[/"([^"]*)"\.ts\.rebase/, 1][0..-2] + 'A').ts
-        if base_series.nil?
-          return nil
-        end
-        return base_series.data.keys.sort[-1].year
+        return base_year.to_i if base_year
+
+        series_name = eval_string[/"([^"]+)"\.ts\.rebase/, 1]
+        sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
+        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
+        return base_series && base_series.last_observation.year
       end
-      dependencies.each do |s|
-        ds = s.ts
-        if !ds.nil? && !ds.base_year.nil? && ds.base_year > 0
+      dependencies.each do |series_name|
+        ds = series_name.ts || next
+        if ds.base_year && ds.base_year > 0
           return ds.base_year
         end
       end
@@ -263,6 +252,7 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
+      ## it would be best to rewrite this as a direct SQL query - will be much faster
       data_points.each {|dp| dp.delete }
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
@@ -328,6 +318,7 @@ class DataSource < ApplicationRecord
       select last_error, series_id, count(*) from data_sources
       where universe = 'UHERO'
       and last_error is not null
+      and not disabled
       group by last_error
       order by 3 desc, 1
     MYSQL

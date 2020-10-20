@@ -5,14 +5,14 @@ module Authorization
   EDIT_ACTIONS = %w(edit inline_update update up down new bulk_new create bulk_create)
 
   def check_data_list_authorization
-    if current_user.internal_user? && (%w(index new create create_copy).include?(params[:action]) || owns_data_list?(params[:id]))
+    if current_user.internal_user? && (%w(index new create duplicate save_as_text).include?(params[:action]) || owns_data_list?(params[:id]))
       return
     end
     check_authorization
   end
 
   def check_forecast_snapshot_authorization
-    if current_user.heco? && (%w(index show table).include?(params[:action]))
+    if current_user.fsonly? && (%w(index show table).include?(params[:action]))
       return
     end
     if current_user.admin_user? && %w(delete destroy).include?(params[:action])
@@ -45,7 +45,9 @@ module Authorization
   end
 
 private
+
   def owns_data_list?(data_list_id)
-    DataList.find_by(id: data_list_id).owned_by == current_user.id
+    dlist = DataList.find(data_list_id) rescue raise("Cannot find Data List with id=#{data_list_id}")
+    dlist.owned_by == current_user.id
   end
 end

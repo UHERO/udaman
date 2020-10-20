@@ -37,8 +37,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 
 <div id="summary_area">
 	<h3><%= @series.name %></h3>
-	<h3><%= @desc %></h3> <!-- Aremos description -->
-  <h3><%= @series.description %></h3>
+	<h3><%= @series.dataPortalName %></h3>
 
   <table>
     <tr><td>Universe</td><td><%= universe_label(@series) %></td></tr>
@@ -48,7 +47,8 @@ google.visualization.events.addListener(chart, 'select', function() {
          <%= link_to(measurement.prefix, measurement) %>
       <% end %>
     </td></tr>
-    <tr><td>Data Portal Name</td><td><%= @series.dataPortalName %></td></tr>
+    <tr><td>Description</td><td><%= @series.description %></td></tr>
+    <tr><td>Aremos Desc.</td><td><%= @desc %></td></tr>
     <tr><td>Units</td><td><%= @series.unit.to_s if @series.unit %></td></tr>
     <tr><td>Geography</td><td><%= @series.geography ? @series.geography.display_name : '<span style="color:red;">Not linked</span>'.html_safe %></td></tr>
     <tr><td>Decimals</td><td><%= @series.decimals.to_s %></td></tr>
@@ -82,15 +82,17 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<div id="navigation">
     <% if current_user.admin_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
+		  <!-- %= link_to 'Rename', action: :rename, id: @series % --> Rename |
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
-		<%= link_to 'Comparison Chart', :action => 'comparison_graph', :id => @series %> | 
-		<%= link_to 'Blog Chart', :action => 'blog_graph', :id => @series %> | 
-		<%= link_to 'Outlier Chart', :action => 'outlier_graph', :id => @series %> |
-		<a href="/listseries/<%=@series.name.chop.chop%>">TSDs</a> |
-		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %>
+		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> |
     <% if current_user.dev_user? %>
-      | <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %>
+      <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
+    <% end %>
+    <% if @clipboarded %>
+      <%= link_to 'Remove from clipboard', action: :clear_clip, id: @series %>
+    <% else %>
+      <%= link_to 'Add to clipboard', action: :add_clip, id: @series %>
     <% end %>
   </div>
 </div>
@@ -99,11 +101,13 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<table>
     <% if @series.is_primary? %>
       <tr>
-        <td style="font-weight:bold;">Definitions
+        <td style="font-weight:bold;">Definitions (
           <% if current_user.admin_user? %>
-              <%= link_to '(add)', controller: :data_sources, action: :new, series_id: @series.id %></td>
+              <%= link_to 'add', controller: :data_sources, action: :new, series_id: @series %> |
+              <%= link_to 'reload all', controller: :series, action: :reload_all, id: @series %>
           <% end %>
-      </tr>
+          )
+        </td></tr>
     <% end %>
     <tr><td><%= render partial: 'source_list', locals: { series: @series } %></td></tr>
 	</table>

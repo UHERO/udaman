@@ -4,7 +4,7 @@ require 'redis'
 
 class XlsCsvWorker
   include Sidekiq::Worker
-  sidekiq_options queue: 'critical'
+  sidekiq_options queue: :critical
 
   def perform(dbu_id, which)
     Rails.logger.info { "ENTER XlsCsvWorker.perform async: id=#{dbu_id}, which=#{which}" }

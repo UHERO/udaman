@@ -1,3 +1,368 @@
+=begin
+    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
+    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+=end
+
+## JIRA UA-1376
+task :ua_1376 => :environment do
+  allmeas = [
+      "QW","Total Wages: All Industries",
+      "QWAG","Total Wages: Agriculture",
+      "QWMI","Total Wages: Mining",
+      "QWUT","Total Wages: Utilities",
+      "QWCON","Total Wages: Construction",
+      "QWWT","Total Wages: Wholesale Trade",
+      "QWIF","Total Wages: Information",
+      "QWFI","Total Wages: Finance & Insurance",
+      "QWRE","Total Wages: Real Estate & Rental",
+      "QWPS","Total Wages: Prof., Scient., & Tech Svc. Jobs",
+      "QWAD","Total Wages: Admin & Waste Services",
+      "QWHC","Total Wages: Educational Services",
+      "QWAE","Total Wages: Arts, Entertain. & Recreation",
+      "QWAF","Total Wages: Accommodation & Food Svc. Jobs",
+      "QWOS","Total Wages: Other Services",
+      "QWUC","Total Wages: Unclassified",
+      "QWMA","Total Wages: Management of Companies",
+      "QWED","Total Wages: Educational Services",
+      "QWW","Weekly Wages: All Industries",
+      "QWWAG","Weekly Wages: Agriculture",
+      "QWWMI","Weekly Wages: Mining",
+      "QWWUT","Weekly Wages: Utilities",
+      "QWWCON","Weekly Wages: Construction",
+      "QWWWT","Weekly Wages: Wholesale Trade",
+      "QWWIF","Weekly Wages: Information",
+      "QWWFI","Weekly Wages: Finance & Insurance",
+      "QWWRE","Weekly Wages: Real Estate & Rental",
+      "QWWPS","Weekly Wages: Prof., Scient., & Tech Svc. Jobs",
+      "QWWAD","Weekly Wages: Admin & Waste Services",
+      "QWWHC","Weekly Wages: Educational Services",
+      "QWWAE","Weekly Wages: Arts, Entertain. & Recreation",
+      "QWWAF","Weekly Wages: Accommodation & Food Svc. Jobs",
+      "QWWOS","Weekly Wages: Other Services",
+      "QWWUC","Weekly Wages: Unclassified",
+      "QWWMA","Weekly Wages: Management of Companies",
+      "QWWED","Weekly Wages: Educational Services",
+      "QWGDSPR","Total Wages: Goods Producing",
+      "QWSVCPR","Total Wages: Service Producing",
+      "QW111","Total Wages: Crop Production",
+      "QW113","Total Wages: Forestry & Logging",
+      "QW114","Total Wages: Fishing, Hunting, & Trapping",
+      "QW212","Total Wages: Mining, Exc. Oil & Gas",
+      "QWCTBL","Total Wages: Construction of Buildings",
+      "QW237","Total Wages: Heavy & Civil Engr. Construction",
+      "QWCTSP","Total Wages: Specialty Trade Contractors",
+      "QW316","Total Wages: Leather Manufacturing",
+      "QW321","Total Wages: Wood Prod. Manufacturing",
+      "QW322","Total Wages: Paper Manufacturing",
+      "QW323","Total Wages: Printing & Rel. Support",
+      "QW324","Total Wages: Petroleum & Coal Prod. Manufacturing",
+      "QW325","Total Wages: Chem. Manufacturing",
+      "QW326","Total Wages: Plastic & Rubber Prod. Manufacturing",
+      "QW327","Total Wages: Nonmet. Mineral Prod. Manufacturing",
+      "QW331","Total Wages: Primary Metal Manufacturing",
+      "QW332","Total Wages: Fabr. Metal Prod. Manufacturing",
+      "QW333","Total Wages: Machinery Manufacturing",
+      "QW334","Total Wages: CPU & Elec. Prod. Manufacturing",
+      "QW335","Total Wages: Elec. Equip. & Appliance Manufacuring",
+      "QW336","Total Wages: Transp. Equip. Manufacturing",
+      "QW337","Total Wages: Furniture Manufacturing",
+      "QW339","Total Wages: Misc. Manufacturing",
+      "QW423","Total Wages: Wholesalers, Durable Goods",
+      "QW424","Total Wages: Wholesalers, Nondurable Goods",
+      "QW425","Total Wages: Elec. Mkts., Agents, Brokers",
+      "QW441","Total Wages: Motor Vehicle & Parts Dealers",
+      "QW442","Total Wages: Furniture Stores",
+      "QW443","Total Wages: Elec. & Appliance Stores",
+      "QW444","Total Wages: Bldg. Material & Garden Supp. Stores",
+      "QW446","Total Wages: Health & Personal Care Stores",
+      "QW447","Total Wages: Gas Stations",
+      "QW451","Total Wages: Sporting Goods, Hobby, Book, & Music Stores",
+      "QW453","Total Wages: Misc. Store Retailers",
+      "QW454","Total Wages: Nonstore Retailers",
+      "QW481","Total Wages: Air Transportation",
+      "QW483","Total Wages: Water Transportation",
+      "QW485","Total Wages: Transit & Ground Pass. Transportation",
+      "QW486","Total Wages: Pipeline Transportation",
+      "QW488","Total Wages: Supp. Act. For Transportation",
+      "QW491","Total Wages: Postal Service",
+      "QW492","Total Wages: Couriers & Messengers",
+      "QW493","Total Wages: Warehousing & Storage",
+      "QW511","Total Wages: Publishing Industries, excl. Internet",
+      "QW512","Total Wages: Motion Picture & Sound Recording",
+      "QW515","Total Wages: Broadcasting, excl. Internet",
+      "QW518","Total Wages: Data Processing & Hosting Svcs.",
+      "QW519","Total Wages: Other Information Services",
+      "QW522","Total Wages: Credit Intermediation",
+      "QW523","Total Wages: Securities, Comm. Contracts, Investments",
+      "QW524","Total Wages: Insurance Carriers",
+      "QW525","Total Wages: Funds, Trust, & Other Fin. Vehicles",
+      "QW531","Total Wages: Real Estate",
+      "QW532","Total Wages: Rental & Leasing Services",
+      "QW533","Total Wages: Lessors of Nonfin. Intangible Assets",
+      "QW541","Total Wages: Prof. & Tech. Svcs.",
+      "QW551","Total Wages: Mgmt. of Companies & Enterprises",
+      "QW561","Total Wages: Admin & Support Services",
+      "QW562","Total Wages: Waste Mgmt. & Remediation Svcs.",
+      "QW611","Total Wages: Educational Services",
+      "QW621","Total Wages: Ambulatory Health Care Svcs.",
+      "QW622","Total Wages: Hospitals",
+      "QW623","Total Wages: Nursing & Residential Care Facilities",
+      "QW624","Total Wages: Social Assistance",
+      "QW711","Total Wages: Perf. Arts & Spectator Sports",
+      "QW712","Total Wages: Museums, Hist. Sites, Zoos, & Parks",
+      "QW713","Total Wages: Amusements & Recreation",
+      "QWAFAC","Total Wages: Accommodation",
+      "QWAFFD","Total Wages: Food Svc. & Drinking Places",
+      "QW811","Total Wages: Repair & Maintenance",
+      "QW812","Total Wages: Personal & Laundry Services",
+      "QW813","Total Wages: Membership Assoc. & Organizations",
+      "QW112","Total Wages: Animal Prod. & Aquaculture",
+      "QW115","Total Wages: Agriculture & Forestry Supp.",
+      "QW211","Total Wages: Oil & Gas Extraction",
+      "QW221","Total Wages: Utilities",
+      "QW311","Total Wages: Food Manufacturing",
+      "QW445","Total Wages: Food & Beverage Stores",
+      "QWRTCL","Total Wages: Clothing & Accessories Stores",
+      "QW452","Total Wages: General Merchandise Stores",
+      "QW484","Total Wages: Truck Transportation",
+      "QW487","Total Wages: Scenic & Sightseeing Transportation",
+      "QW517","Total Wages: Telecommunications",
+      "QW315","Total Wages: Apparel Manufacturing",
+      "QWWGDSPR","Weekly Wages: Goods Producing",
+      "QWWSVCPR","Weekly Wages: Service Producing",
+      "QWW111","Weekly Wages: Crop Production",
+      "QWW113","Weekly Wages: Forestry & Logging",
+      "QWW114","Weekly Wages: Fishing, Hunting, & Trapping",
+      "QWW212","Weekly Wages: Mining, Exc. Oil & Gas",
+      "QWWCTBL","Weekly Wages: Construction of Buildings",
+      "QWW237","Weekly Wages: Heavy & Civil Engr. Construction",
+      "QWWCTSP","Weekly Wages: Specialty Trade Contractors",
+      "QWW316","Weekly Wages: Leather Manufacturing",
+      "QWW321","Weekly Wages: Wood Prod. Manufacturing",
+      "QWW322","Weekly Wages: Paper Manufacturing",
+      "QWW323","Weekly Wages: Printing & Rel. Support",
+      "QWW324","Weekly Wages: Petroleum & Coal Prod. Manufacturing",
+      "QWW325","Weekly Wages: Chem. Manufacturing",
+      "QWW326","Weekly Wages: Plastic & Rubber Prod. Manufacturing",
+      "QWW327","Weekly Wages: Nonmet. Mineral Prod. Manufacturing",
+      "QWW331","Weekly Wages: Primary Metal Manufacturing",
+      "QWW332","Weekly Wages: Fabr. Metal Prod. Manufacturing",
+      "QWW333","Weekly Wages: Machinery Manufacturing",
+      "QWW334","Weekly Wages: CPU & Elec. Prod. Manufacturing",
+      "QWW335","Weekly Wages: Elec. Equip. & Appliance Manufacuring",
+      "QWW336","Weekly Wages: Transp. Equip. Manufacturing",
+      "QWW337","Weekly Wages: Furniture Manufacturing",
+      "QWW339","Weekly Wages: Misc. Manufacturing",
+      "QWW423","Weekly Wages: Wholesalers, Durable Goods",
+      "QWW424","Weekly Wages: Wholesalers, Nondurable Goods",
+      "QWW425","Weekly Wages: Elec. Mkts., Agents, Brokers",
+      "QWW441","Weekly Wages: Motor Vehicle & Parts Dealers",
+      "QWW442","Weekly Wages: Furniture Stores",
+      "QWW443","Weekly Wages: Elec. & Appliance Stores",
+      "QWW444","Weekly Wages: Bldg. Material & Garden Supp. Stores",
+      "QWW446","Weekly Wages: Health & Personal Care Stores",
+      "QWW447","Weekly Wages: Gas Stations",
+      "QWW451","Weekly Wages: Sporting Goods, Hobby, Book, & Music Stores",
+      "QWW453","Weekly Wages: Misc. Store Retailers",
+      "QWW454","Weekly Wages: Nonstore Retailers",
+      "QWW481","Weekly Wages: Air Transportation",
+      "QWW483","Weekly Wages: Water Transportation",
+      "QWW485","Weekly Wages: Transit & Ground Pass. Transportation",
+      "QWW486","Weekly Wages: Pipeline Transportation",
+      "QWW488","Weekly Wages: Supp. Act. For Transportation",
+      "QWW491","Weekly Wages: Postal Service",
+      "QWW492","Weekly Wages: Couriers & Messengers",
+      "QWW493","Weekly Wages: Warehousing & Storage",
+      "QWW511","Weekly Wages: Publishing Industries, excl. Internet",
+      "QWW512","Weekly Wages: Motion Picture & Sound Recording",
+      "QWW515","Weekly Wages: Broadcasting, excl. Internet",
+      "QWW518","Weekly Wages: Data Processing & Hosting Svcs.",
+      "QWW519","Weekly Wages: Other Information Services",
+      "QWW522","Weekly Wages: Credit Intermediation",
+      "QWW523","Weekly Wages: Securities, Comm. Contracts, Investments",
+      "QWW524","Weekly Wages: Insurance Carriers",
+      "QWW525","Weekly Wages: Funds, Trust, & Other Fin. Vehicles",
+      "QWW531","Weekly Wages: Real Estate",
+      "QWW532","Weekly Wages: Rental & Leasing Services",
+      "QWW533","Weekly Wages: Lessors of Nonfin. Intangible Assets",
+      "QWW541","Weekly Wages: Prof. & Tech. Svcs.",
+      "QWW551","Weekly Wages: Mgmt. of Companies & Enterprises",
+      "QWW561","Weekly Wages: Admin & Support Services",
+      "QWW562","Weekly Wages: Waste Mgmt. & Remediation Svcs.",
+      "QWW611","Weekly Wages: Educational Services",
+      "QWW621","Weekly Wages: Ambulatory Health Care Svcs.",
+      "QWW622","Weekly Wages: Hospitals",
+      "QWW623","Weekly Wages: Nursing & Residential Care Facilities",
+      "QWW624","Weekly Wages: Social Assistance",
+      "QWW711","Weekly Wages: Perf. Arts & Spectator Sports",
+      "QWW712","Weekly Wages: Museums, Hist. Sites, Zoos, & Parks",
+      "QWW713","Weekly Wages: Amusements & Recreation",
+      "QWWAFAC","Weekly Wages: Accommodation",
+      "QWWAFFD","Weekly Wages: Food Svc. & Drinking Places",
+      "QWW811","Weekly Wages: Repair & Maintenance",
+      "QWW812","Weekly Wages: Personal & Laundry Services",
+      "QWW813","Weekly Wages: Membership Assoc. & Organizations",
+      "QWW112","Weekly Wages: Animal Prod. & Aquaculture",
+      "QWW115","Weekly Wages: Agriculture & Forestry Supp.",
+      "QWW211","Weekly Wages: Oil & Gas Extraction",
+      "QWW221","Weekly Wages: Utilities",
+      "QWW311","Weekly Wages: Food Manufacturing",
+      "QWW445","Weekly Wages: Food & Beverage Stores",
+      "QWWRTCL","Weekly Wages: Clothing & Accessories Stores",
+      "QWW452","Weekly Wages: General Merchandise Stores",
+      "QWW484","Weekly Wages: Truck Transportation",
+      "QWW487","Weekly Wages: Scenic & Sightseeing Transportation",
+      "QWW517","Weekly Wages: Telecommunications",
+      "QWW315","Weekly Wages: Apparel Manufacturing"
+  ]
+  loop do
+    dpn = allmeas.pop || break
+    pref = allmeas.pop || raise("doh! broken at #{dpn}")
+    puts "------------------------> #{pref}"
+    m = Measurement.create!(prefix: pref, data_portal_name: dpn, universe: 'UHERO')
+    if dpn =~ /weekly/i
+      units = 1
+      unit_id = 20
+    else ## total
+      units = 1000000
+      unit_id = 41
+    end
+    m.update_attributes!(unit_id: unit_id, source_id: 2, seasonal_adjustment: 'not_seasonally_adjusted')
+    ss = Series.search_box("^#{pref}$")
+    ss.each do |s|
+      ns_name = s.build_name(prefix: s.parse_name[:prefix] + 'NS')
+      d = s.data_sources.first
+      d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      s.rename(ns_name)
+      s.update_attributes!(dataPortalName: dpn,
+                           units: units,
+                           unit_id: unit_id,
+                           source_id: 2,
+                           seasonal_adjustment: 'not_seasonally_adjusted')
+      m.series << s
+    end
+    Measurement.deep_copy_to_universe([pref], 'CCOM')
+  end
+end
+
+## JIRA UA-1342
+task :ua_1342 => :environment do
+  all = Series.search_box('#apply_ns_growth_rate_sa')
+  all.each do |s|
+    dss = s.enabled_data_sources
+    if dss.count > 2
+      puts "#{s} >>>> more than 2, id #{s.id}"
+      next
+    end
+    gr = dss[0].eval =~ /apply_ns_growth_rate/ ? 0 : 1
+    ngr = (gr + 1) % 2
+    unless dss[ngr].eval =~ /county_share|share_using|load_mean_corrected|load_sa_from/
+      puts "#{s} >>>> unexpected full year load, id #{s.id}"
+      next
+    end
+    dss[ngr].update!(priority: 90, presave_hook: 'update_full_years_top_priority')
+    dss[gr].update!(priority: 100, presave_hook: nil)
+    puts "#{s} --------- DONE"
+  end
+end
+
+## JIRA UA-1367
+task :ua_1367 => :environment do
+  prefixes = %w{
+    BURNPOSTS HOMEBEMPL HOMEBHOURS HOMEBOPEN BNKRUPTTL BNKRUPCH7 BNKRUPCH13 BNKRUPOTHR E_NF E_PR E_GDSPR ECT EMN
+    E_SVCPR EWT ERT E_TU EIF EFI ERE EPS EAD EMA EED EHC EAE EAF EAFAC EAFFD EOS EGV EGVFD EGVST EGVLC EAG YS_RB
+    YS YSAG YSMI YSUT YSCT YSMN YSWT YSRT YSTW YSIF YSFI YSRE YSPS YSMA YSAD YSED YSHC YSAE YSAF YSAFAC YSAFFD
+    YSOS YSGV YSGVFD YSGVML UIC UICINI WHCT WHMN WHWT WHRT WH_TTU WHIF WH_FIN WHAF WHAFAC WHAFFD
+    KNRSD KNRSDSGF KNRSDMLT KP_RB KPPRV_RB KPPRVRSD_RB KPPRVCOM_RB KPPRVADD_RB KPGOV_RB KP KPPRV KPPRVRSD KPPRVCOM KPPRVADD KPGOV
+    TGRRT TRFU OCUP% PRM RMRV TRMS CONSENT UHEP COVCASES NEWCOVCASES VAP_EP
+    GOOGLERETA GOOGLEGROC GOOGLEPARK GOOGLETRAN GOOGLEWORK GOOGLERESI
+    DESCMOB COVIDSRCH TRAFFIC MEIDAL WOMPMER WOMPREV
+  }
+  Measurement.deep_copy_to_universe(prefixes, 'CCOM')
+end
+
+## JIRA UA-1350
+task :ua_1350 => :environment do
+  all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
+  all.each do |qa|
+    puts "**** 1 Doing #{qa}"
+    q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
+    m_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''), freq: 'M')
+    q_nonb = q_nonb_name.ts
+    m_name = qa.build_name(freq: 'M')
+    if qa.frequency == 'quarter'   ## create a new .M series only based on .Q series metadata
+      m_series = qa.duplicate(m_name,
+                   source_id: 3,  ## UHERO Calculation
+                   dataPortalName: q_nonb && q_nonb.dataPortalName,
+                   description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
+                   seasonal_adjustment: 'seasonally_adjusted',
+                   seasonally_adjusted: true
+      )
+      load_stmt = %Q|"#{m_nonb_name}".tsn.load_from("/Users/uhero/Documents/data/rparsed/opt_bench_m.csv")|
+      deps = [m_nonb_name]
+      if qa.geography.handle == 'NBI'
+        deps = [ m_series.build_name(geo: 'HI'),
+                 m_series.build_name(geo: 'HON') ]
+        load_stmt = %q|"%s".ts - "%s".ts| % deps
+      elsif qa.parse_name[:prefix] == 'EGV_B'
+        deps = [ m_series.build_name(prefix: 'EGVFD_B'),
+                 m_series.build_name(prefix: 'E_GVSL_B') ]
+        load_stmt = %q|"%s".ts + "%s".ts| % deps
+      elsif qa.parse_name[:prefix] == 'E_SV_B'
+        deps = [
+            m_series.build_name(prefix: 'E_NF_B'),
+            m_series.build_name(prefix: 'ECT_B'),
+            m_series.build_name(prefix: 'EMN_B'),
+            m_series.build_name(prefix: 'E_TU_B'),
+            m_series.build_name(prefix: 'E_TRADE_B'),
+            m_series.build_name(prefix: 'E_FIR_B'),
+            m_series.build_name(prefix: 'EGV_B')
+        ]
+        load_stmt = %q|"%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts - "%s".ts| % deps
+      end
+      loader = m_series.data_sources.create(eval: load_stmt, description: deps.join(' '))
+      loader.setup
+      puts "-------- Created series #{m_name}: #{load_stmt}"
+    end
+    ## Change all .Q/.A series to aggregate off the new .M series
+    qa.enabled_data_sources.each {|ds| ds.disable }
+    loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name)
+    loader.setup
+    qa.update!(source_id: 3,  ## UHERO Calculation
+               dataPortalName: q_nonb && q_nonb.dataPortalName,
+               description: q_nonb && (q_nonb.description || q_nonb.dataPortalName) + ', benchmarked',
+               seasonal_adjustment: qa.frequency == 'year' ? 'not_applicable' : 'seasonally_adjusted',
+               seasonally_adjusted: qa.frequency == 'year' ?  false           : true )
+  end
+end
+
+## JIRA UA-1344
+task :ua_1344 => :environment do
+  qes = Series.where(%q{universe = 'UHERO' and name regexp '^QE'})
+  qes.each do |s|
+    puts "WORKING ON: #{s} (#{s.id})"
+    disabled_one = false
+    s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
+      puts "   DISABLING: #{ds.eval}"
+      ds.disable
+      disabled_one = true
+    end
+    if disabled_one
+      s.data_sources.create(
+          eval: '"%s".tsn.load_from("/Users/uhero/Documents/data/rparsed/QCEW_select.csv") / 1000' % s.name,
+          priority: 100,
+          color: 'CCFFFF'
+      )
+      puts"   CREATED NEW LOADER"
+      s.reload_sources
+      puts "   LOADED THE NEW ONE"
+    end
+    if s.data.empty?
+      puts ">>>>>>>>>>>>>>>> EMPTY!! #{s.id}"
+    end
+  end
+end
+
 ## JIRA: UA-989
 task :batch_update_meta_for_aggregated => :environment do
   agg_series = Series.get_all_uhero.joins(:data_sources).where(%q{eval like '%aggregate%' and scratch <> 1111}).uniq
@@ -422,3 +787,8 @@ task :ua_1179a => :environment do
   end
   puts "========================================================= end: changed #{i} records"
 end
+
+=begin
+    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
+    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+=end

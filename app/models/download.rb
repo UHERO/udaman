@@ -106,6 +106,10 @@ class Download < ApplicationRecord
     handle ? handle.gsub('@','_') : 'NO_HANDLE_DEFINED'
   end
 
+  def enabled_data_sources
+    data_sources.reject {|d| d.disabled? }
+  end
+
   def download
     Rails.logger.debug { '... Entered method Download.download' }
     if self.freeze_file

@@ -2,8 +2,7 @@ class DataHtmlParser
   include HelperUtilities
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
-    api_key = ENV['API_KEY_FRED']
-    raise 'No API key defined for FRED' unless api_key
+    api_key = ENV['API_KEY_FRED'] || raise('No API key defined for FRED')
     @url = "http://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
     if frequency ## d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
       @url += "&frequency=#{frequency.downcase.sub(/^s$/, 'sa')}"
@@ -43,11 +42,10 @@ class DataHtmlParser
   end
 
   def get_bea_series(dataset, filters)
-    api_key = ENV['API_KEY_BEA']
-    raise 'No API key defined for BEA' unless api_key
+    api_key = ENV['API_KEY_BEA'] || raise('No API key defined for BEA')
     query_pars = filters.map {|k,v| "#{k}=#{v}" }.join('&')
     @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
-    Rails.logger.debug { "Getting URL from BEA API: #{@url}" }
+    Rails.logger.debug { "Getting data from BEA API: #{@url}" }
     @doc = self.download
     response = JSON.parse self.content
     beaapi = response['BEAAPI'] || raise('BEA API: major unknown failure')
@@ -78,7 +76,7 @@ class DataHtmlParser
     query = filters.keys.map {|key| 'cd%s=%s' % [key.to_s.titlecase, filters[key]] }.join('&')
     @url = "https://api.e-stat.go.jp/rest/#{api_version}/app/json/getStatsData?" +
            "appId=#{api_key}&statsDataId=#{code}&#{query}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
-    Rails.logger.debug { "Getting URL from ESTATJP API: #{@url}" }
+    Rails.logger.debug { "Getting data from ESTATJP API: #{@url}" }
     @doc = self.download
     json = JSON.parse self.content
     apireturn = json['GET_STATS_DATA'] || raise('ESTATJP: major unknown failure')
@@ -106,8 +104,10 @@ class DataHtmlParser
   def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
-    @url = "https://clustermapping.us/data/region/#{query_params}"
-    Rails.logger.info { "Getting data from Clustermapping API: #{@url}" }
+    @url = "http://clustermapping.us/data/region/#{query_params}"
+    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
+    ## The url should preferably use https, but Clustermapping was having trouble with their SSL certs, and I backed
+    ## the code off to http. Should be restored to https at some time in future, after they get their "stuff" together.
     @doc = self.download
     response = JSON.parse self.content
     raise  'Clustermapping API: unknown failure' unless response
@@ -128,8 +128,7 @@ class DataHtmlParser
   end
 
   def get_eia_series(parameter)
-    api_key = ENV['API_KEY_EIA']
-    raise 'No API key defined for EIA' unless api_key
+    api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
     @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
@@ -149,6 +148,40 @@ class DataHtmlParser
       end
     end
     new_data
+  end
+
+  def get_dvw_series(mod, freq, indicator, dimension_hash)
+    api_key = ENV['API_KEY_DVW'] || raise('No API key defined for DVW')
+    dims = dimension_hash.map {|k, v| '%s=%s' % [k.to_s[0].downcase, v] }.join('&')
+    @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
+    Rails.logger.debug { 'Getting data from DVW API: ' + @url }
+    @doc = self.download
+    json = JSON.parse self.content
+    results = json['data'] || raise('DVW API: failure - no data returned')
+    dates = results['series'][0]['dates'] rescue raise('DVW API: failure - no series data found')
+    values = results['series'][0]['values']
+    new_data = {}
+    dates.each_with_index do |date, index|
+      new_data[date] = values[index]
+    end
+    new_data
+  end
+
+  ## maybe no longer needed? If not used, delete later
+  def get_dvw_indicators(mod)
+    api_key = ENV['API_KEY_DVW']
+    raise 'No API key defined for DVW' unless api_key
+    @url = "https://api.uhero.hawaii.edu/dvw/indicators/all/#{mod}"
+    Rails.logger.debug { 'Getting data from DVW API: ' + @url }
+    @doc = self.download
+    json = JSON.parse self.content
+    results = json['data'] || raise('DVW API: major unknown failure - no data element')
+    indic = {}
+    results.each do |item|
+      handle = item['handle']
+      indic[handle] = item['nameT'] || item['nameW']
+    end
+    indic
   end
 
   def request_match(request, data_point)
@@ -237,7 +270,7 @@ class DataHtmlParser
     true
   end
 
-  def download
+  def download(verifyssl: true)
     require 'uri'
     require 'net/http'
     require 'timeout'
@@ -246,6 +279,10 @@ class DataHtmlParser
 
     http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = url.scheme == 'https'
+    unless verifyssl  ## can be used for temporary workaround when sites have SSL cert trouble
+      Rails.logger.warn { "Not verifying SSL certs for #{url}" }
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
     http.ssl_timeout = 60
     if @post_parameters.nil? or @post_parameters.length == 0
       @content = fetch(@url).read_body

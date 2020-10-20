@@ -2,7 +2,8 @@ class MeasurementsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_measurement, only: [:show, :edit, :update, :add_series, :remove_series, :duplicate, :propagate]
+  before_action :set_measurement, only: [:show, :edit, :update, :edit_as_text, :save_as_text, :import_clip, :add_clip,
+                                         :add_series, :remove_series, :duplicate, :propagate]
 
   ALL_PROPAGATE_FIELDS = [
       ['Data portal name', :data_portal_name],
@@ -78,6 +79,28 @@ class MeasurementsController < ApplicationController
     end
   end
 
+  def edit_as_text
+    @series_list = @measurement.series.map(&:name).sort.join("\n")
+  end
+
+  def save_as_text
+    box_content = params[:edit_box].split(' ')
+    @measurement.replace_all_series(box_content)
+    redirect_to edit_measurement_url(@measurement)
+  end
+
+  def import_clip
+    current_user.series.sort_by(&:name).each do |s|
+      @measurement.series.push(s) rescue next   ## rescue to cover cases where the series is already linked
+    end
+    redirect_to action: :edit_as_text, id: @measurement
+  end
+
+  def add_clip
+    count = current_user.add_series(@measurement.series)
+    redirect_to edit_measurement_url(@measurement), notice: "#{count} series added to clipboard"
+  end
+
   def add_series
     series = Series.find(params[:series_id])
     unless series.universe == @measurement.universe
@@ -122,7 +145,8 @@ class MeasurementsController < ApplicationController
     redirect_to(@measurement, notice: 'Field(s) ' + fields_to_update.join(', ') + ' propagated successfully.')
   end
 
-  private
+private
+
     def set_resource_values(univ)
       @all_units = Unit.where(universe: univ)
       @all_units = Unit.where(universe: 'UHERO') if @all_units.empty?

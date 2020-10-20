@@ -19,9 +19,6 @@
     <% if request.path =~ /edit/ %>
         <h2>List of Series</h2>
         <table>
-          <thead>
-          <tr><th>Series</th><th></th><th></th></tr>
-          </thead>
           <tbody>
           <% @export.export_series.to_a.sort_by{|s| s.list_order}.map{|s| s.series}.each do |series| %>
               <tr>
@@ -35,14 +32,19 @@
         </table>
         <br />
       <%= render 'add_series' %>
-    <% end %>
-
-
+              or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @export } %>
+              <% unless current_user.clipboard_empty? %>
+                or <%= link_to 'Import from clipboard', { action: :import_clip, id: @export } %>
+              <% end %>
+              or <%= link_to 'Add all series to clipboard', { action: :add_clip, id: @export } %>
+  <% end %>
+<p>
   <div class="field">
-    <%= f.label :owned_by %><br />
     <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
   </div>
   <div class="actions">
     <%= f.submit %>
+    <%= link_to 'Cancel', exports_path %>
   </div>
+  </p>
 <% end %>

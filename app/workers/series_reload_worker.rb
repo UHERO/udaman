@@ -5,7 +5,7 @@ class SeriesReloadWorker
   include Sidekiq::Worker
   include Sidekiq::Status::Worker
 
-  sidekiq_options :retry => 0  ## do not retry jobs, but log failures
+  sidekiq_options queue: :default, retry: 0  ## do not retry jobs, but log failures
 
   sidekiq_retries_exhausted do |msg, e|
     Sidekiq.logger.error "Failed #{msg['class']}/#{e.class} with #{msg['args']}: #{msg['error_message']}"
