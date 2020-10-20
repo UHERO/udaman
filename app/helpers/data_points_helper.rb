@@ -13,7 +13,7 @@ module DataPointsHelper
       when months < 10 then "#{months}M"
       else
         years = days / 365.0
-        (years % 1) < 0.80 ? years.to_i : years.to_i + 1
+        years = (years % 1) < 0.80 ? years.to_i : years.to_i + 1
         "#{years}Y"
     end
   end
