@@ -6,13 +6,15 @@ module DataPointsHelper
   end
 
   def dp_age_code(dp)
-    days_old = (Time.now.to_date - dp.created_at.to_date).to_i
+    days = (Time.now.to_date - dp.created_at.to_date).to_i
+    months = (days / 30.0).round
     case
-    when days_old < 99
-      days_old.to_s
-    when (days_old / 30.0).round < 10
-      (days_old / 30.0).round.to_s + 'M'
-    else 'XY'
+      when days < 99 then days.to_s
+      when months < 10 then "#{months}M"
+      else
+        years = days / 365.0
+        (years % 1) < 0.80 ? years.to_i : years.to_i + 1
+        "#{years}Y"
     end
   end
 end
