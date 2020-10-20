@@ -61,7 +61,12 @@ Rails.application.routes.draw do
   get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
   get 'series/quarantine', to: 'series#quarantine'
   get 'series/old_bea_download', to: 'series#old_bea_download'
-  get 'series/sidekiq_failed', to: 'series#sidekiq_failed'
+
+  get 'clip' => 'series#clipboard'
+  get 'series/add_clip', to: 'series#add_clip'
+  get 'series/clear_clip', to: 'series#clear_clip'
+  get 'series/groupmeta', to: 'series#groupmeta'
+  post 'series/do_clip_action', to: 'series#do_clip_action'
 
   resources :series
 
