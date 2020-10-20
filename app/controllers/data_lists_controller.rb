@@ -181,6 +181,14 @@ class DataListsController < ApplicationController
     redirect_to edit_data_list_url(@data_list)
   end
 
+  def add_clip
+    count = 0
+    @data_list.measurements.each do |m|
+      count += current_user.add_series(m.series)
+    end
+    redirect_to edit_data_list_url(@data_list), notice: "#{count} series added to clipboard"
+  end
+
   def add_measurement
     unless @data_list.add_measurement(Measurement.find params[:data_list][:meas_id].to_i)
       redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'

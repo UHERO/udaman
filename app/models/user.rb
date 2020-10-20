@@ -43,14 +43,21 @@ class User < ApplicationRecord
     self.series.include?(series)
   end
 
+  def clipboard_empty?
+    series.empty?
+  end
+
   def add_series(series_to_add)
     if series_to_add.class == Series
-      series.push(series_to_add) rescue nil
-      return
+      series.push(series_to_add) rescue return(0)
+      return 1
     end
+    count = 0
     series_to_add.each do |s|
       series.push(s) rescue next  ## rescue in case of duplicate link
+      count += 1
     end
+    count
   end
 
   def clear_series(series_to_remove = nil)

@@ -3,7 +3,7 @@ class ExportsController < ApplicationController
 
   before_action :check_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
-                                    :edit_as_text, :save_as_text, :import_clip,
+                                    :edit_as_text, :save_as_text, :import_clip, :add_clip,
                                     :add_series, :remove_series, :move_series_up, :move_series_down]
 
   def index
@@ -73,6 +73,11 @@ class ExportsController < ApplicationController
       ExportSeries.find_by(export_id: @export.id, series_id: s.id).update(list_order: order += 1)
     end
     redirect_to action: :edit_as_text, id: @export
+  end
+
+  def add_clip
+    count = current_user.add_series(@export.series)
+    redirect_to edit_export_url(@export), notice: "#{count} series added to clipboard"
   end
 
   def add_series
