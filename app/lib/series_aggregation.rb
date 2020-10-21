@@ -26,7 +26,7 @@ module SeriesAggregation
     orig_series = self
     if myfreq == :week
       myfreq = :day
-      orig_series = fill_weeks_forward
+      orig_series = fill_weeks_backward
     end
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
 
@@ -49,25 +49,18 @@ module SeriesAggregation
     grouped_data
   end
 
-  ## This method may ultimately be not needed at all. Not currently used
-  def normalize_weekly(method = :sum)
-    raise 'Only run normalize against weekly series' if frequency != 'week'
-    aggregate(:week, method)
-  end
-
 private
 
-  ### Assumes that weekly observations fall at the _beginning_ of the week they represent, whatever weekday that might be
-  def fill_weeks_forward
+  ### Assumes that weekly observations fall at the _end_ of the week they represent, whatever weekday that might be.
+  ### It's almost always Saturday, and we should try to keep it that way.
+  def fill_weeks_backward
     raise AggregationException.new, 'original series is not weekly' if frequency != 'week'
     dailyseries = {}
-    weekly_keys = self.data.keys.sort
+    weekly_keys = data.keys.sort
     loop do
-      date = weekly_keys.shift || break  ## loop through weekly_keys, whilst removing each item from the array as you go
-      delta = weekly_keys.empty? ? 99 : date.delta_days(weekly_keys[0])
-      len = delta > 10 ? 6 : delta - 1
+      date = weekly_keys.pop || break  ## loop through weekly_keys, whilst removing each item from the array as you go
       week_value = data[date]
-      (0..len).each {|offset| dailyseries[date + offset] = week_value }
+      (0..6).each {|offset| dailyseries[date - offset] = week_value }
     end
     new_transformation("Extrapolated from weekly series #{self}", dailyseries, :day)
   end
