@@ -371,7 +371,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_code(code)
-    case code && code.upcase
+    case code && code.to_s.upcase
       when 'A' then :year
       when 'S' then :semi
       when 'Q' then :quarter
