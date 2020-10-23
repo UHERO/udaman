@@ -632,7 +632,7 @@ class Series < ApplicationRecord
   
   def new_transformation(name, data, frequency = nil)
     raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
-    frequency = frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
+    frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
     Series.new(name: name,
                xseries: Xseries.new(frequency: frequency),
                data: Hash[data.reject {|_, v| v.nil? }.map {|date, value| [date.to_date, value] }]
