@@ -1148,12 +1148,12 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
-          all = all.joins(:data_sources)
-          conditions.push %q{data_sources.eval regexp ? and not data_sources.disabled}
+          all = all.joins('data_sources as loaders1')
+          conditions.push %q{loaders1.eval regexp ? and not(loaders1.disabled)}
           bindvars.push tane
         when /^[!]/
-          all = all.joins(:data_sources)
-          conditions.push %q{data_sources.last_error regexp ? and not data_sources.disabled}
+          all = all.joins('data_sources as loaders2')
+          conditions.push %q{loaders2.last_error regexp ? and not(loaders2.disabled)}
           bindvars.push tane
         when /^[&]/
           conditions.push case tane
