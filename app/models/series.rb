@@ -1148,12 +1148,12 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
-          all = all.joins('inner join data_sources as loaders1 on loaders1.series_id = series.id')
-          conditions.push %q{loaders1.eval regexp ? and not(loaders1.disabled)}
+          all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
+          conditions.push %q{l1.eval regexp ?}
           bindvars.push tane
         when /^[!]/
-          all = all.joins('inner join data_sources as loaders2 on loaders2.series_id = series.id')
-          conditions.push %q{loaders2.last_error regexp ? and not(loaders2.disabled)}
+          all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
+          conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
         when /^[&]/
           conditions.push case tane
