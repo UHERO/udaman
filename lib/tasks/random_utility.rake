@@ -9,21 +9,15 @@ task :ua_1259 => :environment do
   ss.each do |s|
     dss = s.enabled_data_sources
     next if dss.count < 2
-    if dss.count > 2
-      puts "---- #{s} #{s.id} ::: > 2 loaders"
-      next
-    end
-    nonapi = dss[0].eval =~ /load_from_bea/ ? 1 : 0
-    thenon = dss[nonapi]
-    next if thenon.eval =~ /load_from_bea/  ### two API loads?
-    unless thenon.eval =~ /from_download/
-      puts "---- #{s} #{s.id} ::: second loader not from_download: #{thenon.eval}"
-      next
-    end
-    if thenon.last_error =~ /404/
-      thenon.disable!
-    else
-      puts "---- #{s} #{s.id} ::: nonapi loader error not 404: #{thenon.last_error}"
+    dss.each do |ds|
+      next unless ds.eval =~ /from_download/
+      if ds.last_error && ds.last_error !~ /404/
+        puts "---- #{s} #{s.id} :: #{ds.last_error}"
+        next
+      end
+      next unless ds.last_error
+      next if ds.current?
+      ds.disable!
     end
   end
 end
