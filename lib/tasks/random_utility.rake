@@ -20,6 +20,15 @@ task :ua_1259 => :environment do
       ds.disable!
     end
   end
+  ss = Series.search_box('#load_from_bls !invalid')
+  ss.each do |s|
+    dss = s.enabled_data_sources.select {|x| x.eval =~ /load_from_bls/ }
+    dss.each do |ds|
+      if ds.last_error =~ /invalid/i && !ds.current?
+        ds.disable!
+      end
+    end
+  end
 end
 
 ## JIRA UA-1376
