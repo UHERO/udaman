@@ -20,6 +20,7 @@ task :ua_1259 => :environment do
       ds.disable!
     end
   end
+
   ss = Series.search_box('#load_from_bls !invalid')
   ss.each do |s|
     dss = s.enabled_data_sources.select {|x| x.eval =~ /load_from_bls/ }
