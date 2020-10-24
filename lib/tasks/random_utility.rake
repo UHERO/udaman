@@ -8,16 +8,22 @@ task :ua_1259 => :environment do
   ss = Series.search_box('#load_from_bea')
   ss.each do |s|
     dss = s.enabled_data_sources
+    next if dss.count < 2
     if dss.count > 2
-      puts "---- #{s.id} ::: > 2 loaders"
+      puts "---- #{s} #{s.id} ::: > 2 loaders"
       next
     end
-    dss.each do |ds|
-      nonapi = ds[0].eval =~ /load_from_bea/ ? 1 : 0
-      next if dss[nonapi].eval =~ /load_from_bea/  ### two API loads?
-      if ds[nonapi].last_error =~ /404/
-        ds.disable!
-      end
+    nonapi = dss[0].eval =~ /load_from_bea/ ? 1 : 0
+    thenon = dss[nonapi]
+    next if thenon.eval =~ /load_from_bea/  ### two API loads?
+    unless thenon.eval =~ /from_download/
+      puts "---- #{s} #{s.id} ::: second loader not from_download: #{thenon.eval}"
+      next
+    end
+    if thenon.last_error =~ /404/
+      thenon.disable!
+    else
+      puts "---- #{s} #{s.id} ::: nonapi loader error not 404: #{thenon.last_error}"
     end
   end
 end
