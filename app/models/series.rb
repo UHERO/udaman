@@ -1149,11 +1149,11 @@ class Series < ApplicationRecord
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
           all = all.joins(:data_sources)
-          conditions.push %q{data_sources.eval regexp ?}
+          conditions.push %q{data_sources.eval regexp ? and not data_sources.disabled}
           bindvars.push tane
         when /^[!]/
           all = all.joins(:data_sources)
-          conditions.push %q{data_sources.last_error regexp ?}
+          conditions.push %q{data_sources.last_error regexp ? and not data_sources.disabled}
           bindvars.push tane
         when /^[&]/
           conditions.push case tane

@@ -3,6 +3,25 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1259
+task :ua_1259 => :environment do
+  ss = Series.search_box('#load_from_bea')
+  ss.each do |s|
+    dss = s.enabled_data_sources
+    if dss.count > 2
+      puts "---- #{s.id} ::: > 2 loaders"
+      next
+    end
+    dss.each do |ds|
+      nonapi = ds[0].eval =~ /load_from_bea/ ? 1 : 0
+      next if dss[nonapi].eval =~ /load_from_bea/  ### two API loads?
+      if ds[nonapi].last_error =~ /404/
+        ds.disable!
+      end
+    end
+  end
+end
+
 ## JIRA UA-1376
 task :ua_1376 => :environment do
   allmeas = [
@@ -325,7 +344,7 @@ task :ua_1350 => :environment do
       puts "-------- Created series #{m_name}: #{load_stmt}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
-    qa.enabled_data_sources.each {|ds| ds.disable }
+    qa.enabled_data_sources.each {|ds| ds.disable! }
     loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name)
     loader.setup
     qa.update!(source_id: 3,  ## UHERO Calculation
@@ -344,7 +363,7 @@ task :ua_1344 => :environment do
     disabled_one = false
     s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
       puts "   DISABLING: #{ds.eval}"
-      ds.disable
+      ds.disable!
       disabled_one = true
     end
     if disabled_one
