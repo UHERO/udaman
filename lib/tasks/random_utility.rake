@@ -25,9 +25,8 @@ task :ua_1259 => :environment do
   ss.each do |s|
     dss = s.enabled_data_sources.select {|x| x.eval =~ /load_from_bls/ }
     dss.each do |ds|
-      if ds.last_error =~ /invalid/i && !ds.current?
-        ds.disable!
-      end
+      next unless ds.last_error =~ /invalid/i && !ds.current?
+      ds.disable!
     end
   end
 end
