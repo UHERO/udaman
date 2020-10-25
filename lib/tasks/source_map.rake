@@ -47,7 +47,7 @@ task debug: [:environment, :verbose] do
   Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
 end
 
-## The famous "Nightly Reload"
+## The (in)famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
   full_set_ids = Series.get_all_uhero.pluck(:id)
   full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
