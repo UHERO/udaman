@@ -3,6 +3,34 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1259
+task :ua_1259 => :environment do
+  ss = Series.search_box('#load_from_bea')
+  ss.each do |s|
+    dss = s.enabled_data_sources
+    next if dss.count < 2
+    dss.each do |ds|
+      next unless ds.eval =~ /from_download/
+      if ds.last_error && ds.last_error !~ /404/
+        puts "---- #{s} #{s.id} :: #{ds.last_error}"
+        next
+      end
+      next unless ds.last_error
+      next if ds.current?
+      ds.disable!
+    end
+  end
+
+  ss = Series.search_box('#load_from_bls !invalid')
+  ss.each do |s|
+    dss = s.enabled_data_sources.select {|x| x.eval =~ /load_from_bls/ }
+    dss.each do |ds|
+      next unless ds.last_error =~ /invalid/i && !ds.current?
+      ds.disable!
+    end
+  end
+end
+
 ## JIRA UA-1376
 task :ua_1376 => :environment do
   allmeas = [
@@ -325,7 +353,7 @@ task :ua_1350 => :environment do
       puts "-------- Created series #{m_name}: #{load_stmt}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
-    qa.enabled_data_sources.each {|ds| ds.disable }
+    qa.enabled_data_sources.each {|ds| ds.disable! }
     loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name)
     loader.setup
     qa.update!(source_id: 3,  ## UHERO Calculation
@@ -344,7 +372,7 @@ task :ua_1344 => :environment do
     disabled_one = false
     s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
       puts "   DISABLING: #{ds.eval}"
-      ds.disable
+      ds.disable!
       disabled_one = true
     end
     if disabled_one

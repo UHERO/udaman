@@ -150,7 +150,7 @@ class DataHtmlParser
   end
 
   def get_dvw_series(mod, freq, indicator, dimension_hash)
-    api_key = ENV['API_KEY_DVW'] || raise('No API key defined for DVW')
+    ##api_key = ENV['API_KEY_DVW'] || raise('No API key defined for DVW')
     dims = dimension_hash.map {|k, v| '%s=%s' % [k.to_s[0].downcase, v] }.join('&')
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
     Rails.logger.debug { 'Getting data from DVW API: ' + @url }
