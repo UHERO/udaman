@@ -103,10 +103,11 @@ class Series < ApplicationRecord
     if geo_freq_change
       data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
     end
-    who_depends_on_me.each do |s_name|
-      s = Series.find_by(name: s_name) || next
+    who_depends_on_me.each do |series_name|
+      s = series_name.ts || next
       s.enabled_data_sources.each do |ds|
-
+        new_eval = ds.eval.gsub(old_name, newname)
+        ds.update_attributes!(eval: new_eval) if new_eval != ds.eval
       end
     end
     true

@@ -79,8 +79,10 @@ module SeriesRelationship
     Series.all_who_depend_on(self.name)
   end
 
-  ## the immediate (first order) dependents
-  # #### why does this match against description rather than dependencies!?!?
+  ## Only the immediate (first order) dependents
+  # Why does this match against description rather than dependencies? Because sometimes the dependency is implicit
+  # or hidden in the load statement code (perhaps inside a method call like apply_ns_growth_rate_sa), rather than
+  # explicitly given in the load statement itself.
   def Series.who_depends_on(name, attr = :name, universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
