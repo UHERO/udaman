@@ -95,15 +95,16 @@ class Series < ApplicationRecord
     newname.upcase!
     old_name = self.name
     return false if old_name == newname
+    dependents = who_depends_on_me  ## must be done before we change the name
     parts = Series.parse_name(newname)
     geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
     raise "Cannot rename because #{newname} already exists in #{universe}" if Series.get(newname, universe)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
     self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
     if geo_freq_change
-      data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+      data_sources.each {|ld| ld.delete_data_points }  ## clear all data points
     end
-    who_depends_on_me.each do |series_name|
+    dependents.each do |series_name|
       s = series_name.ts || next
       s.enabled_data_sources.each do |ds|
         new_eval = ds.eval.gsub(old_name, newname)
