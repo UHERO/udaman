@@ -47,31 +47,31 @@ module SeriesSharing
 
     historical = county.annual_average / county_sum.annual_average * self
     incomplete_year = county.backward_looking_moving_average.get_last_incomplete_year / county_sum.backward_looking_moving_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of #{county.name} over #{county_names.join('+')} using annual averages where available and a backward looking moving average for the current year",
+    new_transformation("Share of #{self} using ratio of #{county} over #{county_names.join('+')} using annual averages where available and a backward looking moving average for the current year",
       historical.data.series_merge(incomplete_year.data))
   end
 
   def aa_state_based_county_share_for(county_code, prefix = self.parse_name[:prefix])
     state = Series.build_name(prefix + 'NS', 'HI', 'M').ts || raise("no HI.M series found for #{prefix + 'NS'}")
-    county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state.name}")
+    county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state}")
 
     historical = county.annual_average / state.annual_average * self
     incomplete_year = Series.new #county.backward_looking_moving_average.get_last_incomplete_year / state.backward_looking_moving_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of #{county.name} over #{state.name} using annual averages, only for full years",
+    new_transformation("Share of #{self} using ratio of #{county} over #{state} using annual averages, only for full years",
         historical.data.series_merge(incomplete_year.data))
   end
 
   def mc_ma_county_share_for(county_code, prefix = self.parse_name[:prefix])
     freq = self.parse_name[:freq]
     state = Series.build_name(prefix + 'NS', 'HI', freq).ts || raise("no HI.#{freq} series found for #{prefix + 'NS'}")
-    county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state.name}")
+    county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state}")
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december
 
     historical = county.moving_average_annavg_padded(start_date,end_date) / state.moving_average_annavg_padded(start_date,end_date) * self
     mean_corrected_historical = historical / historical.annual_sum * county.annual_sum
     incomplete_year = Series.new #county.moving_average_annavg_padded.get_last_incomplete_year / state.moving_average_annavg_padded.get_last_incomplete_year * self
-    new_transformation("Share of #{self.name} using ratio of #{county.name} over #{state.name} using a mean corrected moving average, only for full years",
+    new_transformation("Share of #{self} using ratio of #{county} over #{state} using a mean corrected moving average, only for full years",
         mean_corrected_historical.data.series_merge(incomplete_year.data))
   end
 
@@ -89,20 +89,9 @@ module SeriesSharing
         mean_corrected_series.data.series_merge(incomplete_year.data))
   end
 
-  #### looks like vestigial code -- commenting out for now, delete later
-  # def mc_offset_price_share_for(county_abbrev)
-  #   prefix = self.name.split("@")[0]
-  #   self_region = self.name.split("@")[1].split(".")[0]
-  #   start_date = "#{prefix}NS@#{county_abbrev}.Q".ts.first_value_date
-  #   shared_series = "#{name}".ts.share_using("#{prefix}NS@#{county_abbrev}.Q".ts.moving_average_offset_early, "#{prefix}NS@#{self_region}.Q".ts.trim(start_date).moving_average_offset_early)
-  #   mean_corrected_series = shared_series.share_using("#{prefix}NS@#{county_abbrev}.Q".ts.annual_average, shared_series.annual_average)
-  #   new_transformation("Share of #{name} using ratio of the moving average #{prefix}NS@#{county_abbrev}.Q over the moving average of #{prefix}NS@#{self_region}.Q , mean corrected for the year",
-  #       mean_corrected_series.data)
-  # end
-  
   def share_using(ratio_top, ratio_bottom)
     new_series = ratio_top / ratio_bottom * self
-    new_transformation("Share of #{name} using ratio of #{ratio_top.name} over #{ratio_bottom.name}", new_series.data)
+    new_transformation("Share of #{self} using ratio of #{ratio_top} over #{ratio_bottom}", new_series.data)
   end
   
   def Series.add_demetra_series_and_mean_correct(add_series_1, add_series_2, mc_series, file)
