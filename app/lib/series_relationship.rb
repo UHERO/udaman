@@ -81,20 +81,20 @@ module SeriesRelationship
 
   ## the immediate (first order) dependents
   # #### why does this match against description rather than dependencies!?!?
-  def Series.who_depends_on(name, universe = 'UHERO')
+  def Series.who_depends_on(name, attr = :name, universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
       .where('data_sources.universe = ? and data_sources.description RLIKE ?', universe, name_match)
       .joins(:series)
-      .pluck(:name)
+      .pluck(attr)
       .uniq
   end
 
   ## Try to use the above class method directly, if it will save you a model object instantiation.
   ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
   ## already exists anyway)
-  def who_depends_on_me
-    Series.who_depends_on(self.name, self.universe)
+  def who_depends_on_me(attr = :name)
+    Series.who_depends_on(self.name, attr, self.universe)
   end
 
   def who_i_depend_on(direct_only = false)
