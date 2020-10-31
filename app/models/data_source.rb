@@ -138,9 +138,47 @@ class DataSource < ApplicationRecord
       series.enabled_data_sources.reject {|d| d.id == self.id }
     end
 
+    def loader_type
+      case eval
+      when /load_from_download/ then :download
+      when /load_api/ then :api
+      else :unknown
+      end
+    end
+
+    def set_color(type)
+      color = case type
+              when :download
+              when :api
+              when :calc
+              when :manual
+              when :history
+              when :pseudo_history
+              else nil
+              end
+      self.update_attributes!(color: color)
+    end
+
+    def set_dependencies_without_save
+      self.set_dependencies(true)
+    end
+
+    def set_dependencies(dont_save = false)
+      self.dependencies = []
+      unless description.blank?
+        description.split(' ').each do |word|
+          if DataSource.valid_series_name(word)
+            self.dependencies.push(word)
+          end
+        end
+        self.dependencies.uniq!
+      end
+      self.save unless dont_save
+    end
+
     def setup
-      self.set_dependencies
-      self.set_color
+      set_dependencies
+      set_color(loader_type)
     end
 
     def reload_source(clear_first = false)
@@ -274,17 +312,6 @@ class DataSource < ApplicationRecord
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
 
-    def set_color
-      color_order = %w(FFCC99 CCFFFF 99CCFF CC99FF FFFF99 CCFFCC FF99CC CCCCFF 9999FF 99FFCC)
-      #puts '#{self.id}: #{self.series_id}"
-      other_sources = self.series.data_sources_by_last_run
-      other_sources.each do |source|
-        color_order.delete source.color unless source.color.nil?
-      end
-      self.color = color_order[0]
-      self.save
-    end
-
     #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
@@ -294,31 +321,14 @@ class DataSource < ApplicationRecord
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
 
-  def set_dependencies_without_save
-    self.set_dependencies(true)
-  end
-
-  def set_dependencies(dont_save = false)
-    self.dependencies = []
-    unless description.blank?
-      description.split(' ').each do |word|
-        if DataSource.valid_series_name(word)
-          self.dependencies.push(word)
-        end
-      end
-      self.dependencies.uniq!
-    end
-    self.save unless dont_save
-  end
-
   def DataSource.load_error_summary
     ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
     DataSource.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
     results = DataSource.connection.execute(<<~MYSQL)
       select last_error, series_id, count(*) from data_sources
       where universe = 'UHERO'
-      and last_error is not null
       and not disabled
+      and last_error is not null
       group by last_error
       order by 3 desc, 1
     MYSQL
