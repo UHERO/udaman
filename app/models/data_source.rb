@@ -142,7 +142,7 @@ class DataSource < ApplicationRecord
       case eval
       when /load_from_download/ then :download
       when /load_api/ then :api
-      when /load_.*_from/ then :manual
+      when /load_.*_from/ then :manual  ## or history or phistory,so...
       when /how the hell do we match this, if not default?/ then :calc
       else :unknown
       end
