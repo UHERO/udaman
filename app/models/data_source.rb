@@ -147,16 +147,26 @@ class DataSource < ApplicationRecord
     end
 
     def set_color(type)
-      color = case type
-              when :download
-              when :api
-              when :calc
-              when :manual
-              when :history
-              when :pseudo_history
-              else nil
-              end
-      self.update_attributes!(color: color)
+      color_set = case type
+                  when :download then %w{}
+                  when :api then %w{}
+                  when :calc then %w{}
+                  when :manual then %w{}
+                  when :history then %w{}
+                  when :pseudo_history then %w{}
+                  else []
+                  end
+      my_color = color_set[0]
+      same_type = colleagues.select {|l| l.loader_type == type }
+      unless same_type.empty?
+        existing = colleagues.map {|l| [l.color, true] }.to_h
+        color_set.each do |color|
+          next if existing[color]
+          my_color = color
+          break
+        end
+      end
+      self.update_attributes!(color: my_color)
     end
 
     def set_dependencies_without_save
