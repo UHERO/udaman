@@ -17,7 +17,7 @@ class DataSource < ApplicationRecord
                 :constructor => Proc.new { |t| Time.zone.at(t || 0) },
                 :converter => Proc.new { |t| t.is_a?(Time) ? t : Time.zone.at(t/1000.0) }
 
-  before_update :set_dependencies_without_save
+  before_update :set_dependencies_without_save!
 
   ## Following regex matches Ruby hash literals using either old- or new-style syntax (or both mixed), keys that are
   ## composed only of alphanumerics and underscore, and values that are either single- or double-quoted strings, or
@@ -146,7 +146,7 @@ class DataSource < ApplicationRecord
       end
     end
 
-    def set_color(type)
+    def set_color!(type)
       color_set = case type
                   when :download then %w{}
                   when :api then %w{}
@@ -169,11 +169,11 @@ class DataSource < ApplicationRecord
       self.update_attributes!(color: my_color)
     end
 
-    def set_dependencies_without_save
-      self.set_dependencies(true)
+    def set_dependencies_without_save!
+      set_dependencies!(true)
     end
 
-    def set_dependencies(dont_save = false)
+    def set_dependencies!(dont_save = false)
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
@@ -187,8 +187,8 @@ class DataSource < ApplicationRecord
     end
 
     def setup
-      set_dependencies
-      set_color(loader_type)
+      set_dependencies!
+      set_color!(loader_type)
     end
 
     def reload_source(clear_first = false)
