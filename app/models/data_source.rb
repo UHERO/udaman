@@ -140,9 +140,9 @@ class DataSource < ApplicationRecord
 
     def loader_type
       case eval
-      when /load_from_download/ then :download
       when /load_api/ then :api
-      when /load_.*_from/ then :manual  ## or history or phistory,so...
+      when /load_from_download/ then :download
+      when /load_[a-z_]*from/ then :manual  ## or history or phistory,so...
       when /how the hell do we match this, if not default?/ then :calc
       else :unknown
       end
