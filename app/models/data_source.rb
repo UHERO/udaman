@@ -142,29 +142,30 @@ class DataSource < ApplicationRecord
       case eval
       when /load_from_download/ then :download
       when /load_api/ then :api
+      when /load_.*_from/ then :manual
+      when /how the hell do we match this, if not default?/ then :calc
       else :unknown
       end
     end
 
-    def set_color!(type)
-      color_set = case type
+    def set_color!
+      my_type = loader_type
+      color_set = case my_type
                   when :download then %w{}
                   when :api then %w{}
                   when :calc then %w{}
                   when :manual then %w{}
                   when :history then %w{}
                   when :pseudo_history then %w{}
-                  else []
+                  else %w{FFFFFF} ## white, good? nah, boring, pick something else
                   end
       my_color = color_set[0]
-      same_type = colleagues.select {|l| l.loader_type == type }
-      unless same_type.empty?
-        existing = colleagues.map {|l| [l.color, true] }.to_h
-        color_set.each do |color|
-          next if existing[color]
-          my_color = color
-          break
-        end
+      same_type = colleagues.select {|l| l.loader_type == my_type }
+      existing = same_type.map {|l| [l.color, true] }.to_h
+      color_set.each do |color|
+        next if existing[color]
+        my_color = color
+        break
       end
       self.update_attributes!(color: my_color)
     end
@@ -188,7 +189,7 @@ class DataSource < ApplicationRecord
 
     def setup
       set_dependencies!
-      set_color!(loader_type)
+      set_color!
     end
 
     def reload_source(clear_first = false)
