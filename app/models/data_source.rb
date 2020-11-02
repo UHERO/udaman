@@ -147,7 +147,7 @@ class DataSource < ApplicationRecord
       end
     end
 
-    def set_color!
+    def find_my_color
       my_type = loader_type
       color_set = case my_type
                   when :api then %w{}
@@ -166,7 +166,11 @@ class DataSource < ApplicationRecord
         my_color = color
         break
       end
-      self.update_attributes!(color: my_color)
+      my_color
+    end
+
+    def set_color!(color = find_my_color)
+      self.update_attributes!(color: color)
     end
 
     def set_dependencies_without_save!
