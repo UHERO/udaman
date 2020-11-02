@@ -133,7 +133,7 @@ class DataSource < ApplicationRecord
       true
     end
 
-    ## Other definitions for my series, not including me
+    ## Other loaders for my series, not including me
     def colleagues
       series.enabled_data_sources.reject {|d| d.id == self.id }
     end
@@ -143,21 +143,20 @@ class DataSource < ApplicationRecord
       when /load_api/ then :api
       when /load_from_download/ then :download
       when /load_[a-z_]*from/ then :manual  ## or history or phistory,so...
-      when /how the hell do we match this, if not default?/ then :calc
-      else :unknown
+      else :other  ## this includes calculations/method calls
       end
     end
 
     def set_color!
       my_type = loader_type
       color_set = case my_type
-                  when :download then %w{}
                   when :api then %w{}
-                  when :calc then %w{}
+                  when :download then %w{}
                   when :manual then %w{}
                   when :history then %w{}
                   when :pseudo_history then %w{}
-                  else %w{FFFFFF} ## white, good? nah, boring, pick something else
+                  when :other then %w{}  ## mostly calculations/method calls
+                  else %w{ffffff}  ## white, but... this is not logically possible ;=/
                   end
       my_color = color_set[0]
       same_type = colleagues.select {|l| l.loader_type == my_type }
