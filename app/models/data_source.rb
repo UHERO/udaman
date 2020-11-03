@@ -139,7 +139,7 @@ class DataSource < ApplicationRecord
     end
 
     def loader_type
-      case eval
+      case self.eval
       when /load_api/ then :api
       when /load_from_download/ then :download
       when /load_[a-z_]*from/ then :manual  ## or history or phistory,so...
@@ -156,15 +156,20 @@ class DataSource < ApplicationRecord
                   when :history then %w{}
                   when :pseudo_history then %w{}
                   when :other then %w{}  ## mostly calculations/method calls
-                  else %w{ffffff}  ## white, but... this is not logically possible ;=/
+                  else %w{ffffff}  ## white, but... this will never logically happen ;=/
                   end
       my_color = color_set[0]
       same_type = colleagues.select {|l| l.loader_type == my_type }
-      existing = same_type.map {|l| [l.color, true] }.to_h
-      color_set.each do |color|
-        next if existing[color]
-        my_color = color
-        break
+      unless same_type.empty?
+        counts = color_set.map {|c| [c, same_type.where(color: c).count] }
+        ### Cycle through the color_set as loaders of the same type are added
+        most = 9999
+        counts.each do |c, number|
+          if number < most
+            my_color = c
+            most = number
+          end
+        end
       end
       my_color
     end
