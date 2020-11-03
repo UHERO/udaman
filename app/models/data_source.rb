@@ -164,10 +164,10 @@ class DataSource < ApplicationRecord
         counts = color_set.map {|c| [c, same_type.where(color: c).count] }
         ### Cycle through the color_set as loaders of the same type are added
         most = 9999
-        counts.each do |c, number|
-          if number < most
-            my_color = c
-            most = number
+        counts.each do |color, count|
+          if count < most
+            my_color = color
+            most = count
           end
         end
       end
