@@ -6,8 +6,7 @@ module DataPointsHelper
   end
 
   def dp_display(value, series)
-    format = series.decimals > 0 ? "%.#{series.decimals}f" : '%d'
-    format % value
+    "%.#{series.decimals}f" % value
   end
 
   def dp_age_code(dp)
