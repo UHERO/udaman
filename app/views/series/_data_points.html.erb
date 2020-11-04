@@ -34,6 +34,7 @@
           cdp = element
           date_string = cdp.date.to_s
           cdp_val = cdp.value / units
+          cdp_display = dp_display(cdp_val, @series)
           a_value = as[cdp.date].round(3) rescue '-'
           chg_value = (chg_data[cdp.date].round(1).to_s + '%') rescue '-'
           chg_align = chg_value == '-' ? 'center' : 'right'
@@ -53,7 +54,7 @@
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td style="text-align:<%= chg_align %>;"><span class="per-chg"><%= chg_value %></span></td>
         <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
-        <td><span class='datapoint current-datapoint' style='color:<%= txtcolor %>;background-color:<%= bgcolor %>'><%= '%.3f' % cdp_val %></span></td>
+        <td><span class='datapoint current-datapoint' style='color:<%= txtcolor %>;background-color:<%= bgcolor %>'><%= cdp_display %></span></td>
         <td><span style="float:right;"><%= dp_age_code(cdp) %></span></td>
       </tr>
 <%

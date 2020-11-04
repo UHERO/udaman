@@ -5,6 +5,11 @@ module DataPointsHelper
     "#{days_since_creation}#{'(ph)' if dp.pseudo_history?}"  ## pseudo_history is a model attribute, not a code method
   end
 
+  def dp_display(value, series)
+    format = series.decimals > 0 ? '%.3f' : '%d'
+    format % value
+  end
+
   def dp_age_code(dp)
     days = (Time.now.to_date - dp.created_at.to_date).to_i
     months = (days / 30.0).round
