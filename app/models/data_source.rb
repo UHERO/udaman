@@ -147,17 +147,21 @@ class DataSource < ApplicationRecord
       end
     end
 
+    def type_colors(type = loader_type)
+      case type
+      when :api then %w{}
+      when :download then %w{}
+      when :manual then %w{}
+      when :history then %w{}
+      when :pseudo_history then %w{}
+      when :other then %w{}  ## mostly calculations/method calls
+      else %w{ffffff}  ## white, but... this will never logically happen ;=/
+      end
+    end
+
     def find_my_color
       my_type = loader_type
-      color_set = case my_type
-                  when :api then %w{}
-                  when :download then %w{}
-                  when :manual then %w{}
-                  when :history then %w{}
-                  when :pseudo_history then %w{}
-                  when :other then %w{}  ## mostly calculations/method calls
-                  else %w{ffffff}  ## white, but... this will never logically happen ;=/
-                  end
+      color_set = type_colors(my_type)
       my_color = color_set[0]
       same_type = colleagues.select {|l| l.loader_type == my_type }
       unless same_type.empty?
