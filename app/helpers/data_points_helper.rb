@@ -6,7 +6,7 @@ module DataPointsHelper
   end
 
   def dp_display(value, series)
-    format = series.decimals > 0 ? '%.3f' : '%d'
+    format = series.decimals > 0 ? "%.#{series.decimals}f" : '%d'
     format % value
   end
 
