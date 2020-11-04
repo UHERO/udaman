@@ -18,6 +18,7 @@ module DataPointsHelper
       else
         years = days / 365.0
         years = (years % 1) < 0.80 ? years.to_i : years.to_i + 1
+        years = 1 if years == 0
         "#{years}Y"
     end
   end
