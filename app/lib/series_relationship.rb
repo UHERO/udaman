@@ -56,7 +56,7 @@ module SeriesRelationship
   end
 
   ## full recursive tree of dependents
-  ##   THIS IS NOT RELATIVIZED FOR DIFFERENT UNIVERSES, BUT PROB OK FOR JUST UHERO FOR NOW
+  ##   THIS IS NOT RELATIVIZED FOR DIFFERENT UNIVERSES, BUT PROB OK JUST UHERO FOR NOW
   def Series.all_who_depend_on(name, already_seen = [])
     return [] if already_seen.include?(name)
     already_seen.push(name)
@@ -79,22 +79,24 @@ module SeriesRelationship
     Series.all_who_depend_on(self.name)
   end
 
-  ## the immediate (first order) dependents
-  # #### why does this match against description rather than dependencies!?!?
-  def Series.who_depends_on(name, universe = 'UHERO')
+  ## Only the immediate (first order) dependents
+  # Why does this match against description rather than dependencies? Because sometimes the dependency is implicit
+  # or hidden in the load statement code (perhaps inside a method call like apply_ns_growth_rate_sa), rather than
+  # explicitly given in the load statement itself.
+  def Series.who_depends_on(name, attr = :name, universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
       .where('data_sources.universe = ? and data_sources.description RLIKE ?', universe, name_match)
       .joins(:series)
-      .pluck(:name)
+      .pluck(attr)
       .uniq
   end
 
   ## Try to use the above class method directly, if it will save you a model object instantiation.
   ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
   ## already exists anyway)
-  def who_depends_on_me
-    Series.who_depends_on(self.name, self.universe)
+  def who_depends_on_me(attr = :name)
+    Series.who_depends_on(self.name, attr, self.universe)
   end
 
   def who_i_depend_on(direct_only = false)
@@ -106,7 +108,7 @@ module SeriesRelationship
 
     second_order_deps = []
     direct_deps.each do |s|
-      second_order_deps |= s.ts.who_i_depend_on ## recursion
+      second_order_deps |= s.ts.who_i_depend_on rescue Rails.logger.warn("Nonexisting dependency found: #{s}") ## recursion
     end
     direct_deps | second_order_deps
   end

@@ -28,7 +28,7 @@ class DataSourcesController < ApplicationController
   end
 
   def disable
-    @data_source.disable
+    @data_source.disable!
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
 

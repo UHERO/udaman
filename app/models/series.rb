@@ -93,14 +93,23 @@ class Series < ApplicationRecord
 
   def rename(newname)
     newname.upcase!
-    return false if name == newname
+    old_name = self.name
+    return false if old_name == newname
+    dependents = who_depends_on_me  ## must be done before we change the name
     parts = Series.parse_name(newname)
     geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
     raise "Cannot rename because #{newname} already exists in #{universe}" if Series.get(newname, universe)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
     self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
     if geo_freq_change
-      data_sources.each {|ld| ld.delete_data_points }  ## Clear all data points
+      data_sources.each {|ld| ld.delete_data_points }  ## clear all data points
+    end
+    dependents.each do |series_name|
+      s = series_name.ts || next
+      s.enabled_data_sources.each do |ds|
+        new_eval = ds.eval.gsub(old_name, newname)
+        ds.update_attributes!(eval: new_eval) if new_eval != ds.eval
+      end
     end
     true
   end
@@ -1148,12 +1157,12 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
-          all = all.joins(:data_sources)
-          conditions.push %q{data_sources.eval regexp ?}
+          all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
+          conditions.push %q{l1.eval regexp ?}
           bindvars.push tane
         when /^[!]/
-          all = all.joins(:data_sources)
-          conditions.push %q{data_sources.last_error regexp ?}
+          all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
+          conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
         when /^[&]/
           conditions.push case tane
