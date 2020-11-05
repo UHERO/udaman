@@ -5,8 +5,11 @@ module DataPointsHelper
     "#{days_since_creation}#{'(ph)' if dp.pseudo_history?}"  ## pseudo_history is a model attribute, not a code method
   end
 
-  def dp_display(value, series)
-    "%.#{series.decimals}f" % value
+  def dp_display(value, bgcolor, age: nil, title: nil)
+    tane = '%.3f' % value
+    tane += ' (%s)' % age if age
+    styles = 'color:%s; background-color:%s;' % [value < 0 ? 'red' : 'black', bgcolor]
+    '<span class="datapoint" title="%s" style="%s">%s</span>'.html_safe % [sanitize(title), styles, tane]
   end
 
   def dp_age_code(dp)
