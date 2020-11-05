@@ -260,7 +260,11 @@ task :ua_1376 => :environment do
     ss.each do |s|
       ns_name = s.build_name(prefix: s.parse_name[:prefix] + 'NS')
       d = s.data_sources.first
-      d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      if d
+        d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      else
+        puts "-=-=-=-=-> NO LOADER FOR #{s}"
+      end
       s.rename(ns_name)
       s.update_attributes!(dataPortalName: dpn,
                            units: units,
