@@ -133,14 +133,16 @@ task :encachitize_rest_api => :environment do
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A S Q M W D}.each do |freq|
         full_url = cat_url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: category run => #{cat.id}, #{geo}, #{freq}" }
+        Rails.logger.debug { "Encachitize: uhero category run => #{cat.id}, #{geo}, #{freq}" }
         content = %x{#{cmd + full_url}}
-        next unless freq == 'D'   ### only cache daily series packages for now
         json = JSON.parse content
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        ##Rails.logger.debug { ">>>>>>> Number of series #{json['data'].count}" }
         json['data'].each do |series|
           sid = series['id'].to_i
           full_url = pkg_url % [sid, 'uhero', cat.id]
-          Rails.logger.debug { "Encachitize: package run => #{sid}, uhero, #{cat.id}" }
+          Rails.logger.debug { "Encachitize: package run => #{sid}, uhero, cat=#{cat.id}" }
           %x{#{cmd + '--output /dev/null ' + full_url}}
         end
       end
@@ -152,9 +154,18 @@ task :encachitize_rest_api => :environment do
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        full_url = cat_url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: coh category run => #{cat.id}, #{geo}, #{freq}" }
+        content = %x{#{cmd + full_url}}
+        json = JSON.parse content
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'coh', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, coh, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end
@@ -164,7 +175,7 @@ task :encachitize_rest_api => :environment do
   ccom_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
+        full_url = cat_url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
         %x{#{cmd + full_url}}
       end
