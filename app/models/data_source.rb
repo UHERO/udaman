@@ -293,13 +293,13 @@ class DataSource < ApplicationRecord
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def delete_all_other_sources
+    def delete_all_other_sources_DELETEME
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def DataSource.delete_related_sources_except(ids)
+    def DataSource.delete_related_sources_except_DELETEME(ids)
       ds_main = DataSource.find_by(id: ids[0])
       s = ds_main.series
       s.data_sources_by_last_run.each {|ds| ds.delete if ids.index(ds.id).nil?}

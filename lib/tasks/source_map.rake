@@ -123,17 +123,28 @@ API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
 task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Start at #{Time.now}" }
   start_time = Time.now.to_i
-  url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
-  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % API_TOKEN
+  cat_url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
+  pkg_url = %q{https://api.uhero.hawaii.edu/v1/package/series?id=%d\&u=%s\&cat=%d\&nocache}
+  cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   Rails.logger.info { "Encachitize: Doing UHERO, #{uh_cats.count} cats" }
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        full_url = cat_url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: uhero category run => #{cat.id}, #{geo}, #{freq}" }
+        content = %x{#{cmd + full_url}}
+        json = JSON.parse content
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        ##Rails.logger.debug { ">>>>>>> Number of series #{json['data'].count}" }
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'uhero', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, uhero, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end
@@ -143,9 +154,18 @@ task :encachitize_rest_api => :environment do
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        full_url = cat_url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: coh category run => #{cat.id}, #{geo}, #{freq}" }
+        content = %x{#{cmd + full_url}}
+        json = JSON.parse content
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'coh', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, coh, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end
@@ -155,7 +175,7 @@ task :encachitize_rest_api => :environment do
   ccom_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
+        full_url = cat_url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
         %x{#{cmd + full_url}}
       end

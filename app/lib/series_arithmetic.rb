@@ -71,18 +71,6 @@ module SeriesArithmetic
     perform_arithmetic_operation('/',other_series)
   end
 
-  #need to figure out the best way to validate these now... For now assume the right division
-  
-  def validate_additive_arithmetic(other_series)
-    #raise SeriesArithmeticException if self.units != other_series.units
-  end
-  
-  def validate_arithmetic(other_series)
-    #puts "#{self.name}: #{self.frequency}, other - #{other_series.name}: #{other_series.frequency}"
-    #raise SeriesArithmeticException if self.frequency.to_s != other_series.frequency.to_s
-    #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
-  end
-  
   def rebase(date = nil)
     if date
       date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
@@ -384,5 +372,15 @@ module SeriesArithmetic
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
     new_transformation("Annual Average of #{name}", new_series_data)
+  end
+
+private
+
+  def validate_arithmetic(op_series)
+    raise SeriesArithmeticException, 'Frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
+  end
+
+  def validate_additive_arithmetic(op_series)
+    raise SeriesArithmeticException, 'Units incompatible' if self.units != op_series.units
   end
 end
