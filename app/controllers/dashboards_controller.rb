@@ -31,10 +31,11 @@ class DashboardsController < ApplicationController
 
   def export_tsd
     ExportWorker.perform_async
-    render :json => { message: 'Export TSD in Queue' }
+    render json: { message: 'Export TSD in queue' }
   end
 
   def restart_restapi
     %x{sudo systemctl restart rest-api.service}
+    render json: { message: 'REST API restarted' }
   end
 end
