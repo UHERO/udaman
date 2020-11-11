@@ -295,10 +295,10 @@
 	}
 	
 	//to get this to generate dynamically, remove the file from the public directory
-	d3.text('/investigate_visual.csv', 'text/csv', matching_diffs); 
-	d3.csv('/dp_added.csv', new_data_points);
-	d3.csv('/download_results.csv', download_results);
-	d3.csv('/packager_output.csv', packager_output);
+//	d3.text('/investigate_visual.csv', 'text/csv', matching_diffs);
+//	d3.csv('/dp_added.csv', new_data_points);
+//	d3.csv('/download_results.csv', download_results);
+//	d3.csv('/packager_output.csv', packager_output);
 	</script>
 	
 	<style>
@@ -331,10 +331,12 @@
 			<h2>Downloads / Raw Data</h2>
 			<svg id="download_results"></svg>
       <p><button id="export_tsd">Generate TSD Export</button></p>
-      <p><%= button_to('Restart REST API', { controller: :dashboards, action: :restart_restapi }) %></p>
+      <p><%= button_to('Restart REST API', { controller: :dashboards, action: :restart_restapi },
+                        form_class: 'rest-restart-button', remote: true) %>
+             <i id="rest-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i></p>
       <%= button_to('Update public data points', '/update_public_dp',
                        { form_class: 'button-with-indicator', remote: true }) %>
-      <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
+             <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
 
       <p id="message_area"></p>
 		</td>
