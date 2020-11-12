@@ -81,6 +81,7 @@ Rails.application.routes.draw do
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
+  post 'restart_restapi' => 'dashboards#restart_restapi'
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
