@@ -334,7 +334,7 @@
       <p><%= button_to('Restart REST API', { controller: :dashboards, action: :restart_restapi },
                         form_class: 'rest-restart-button', remote: true) %>
              <i id="rest-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i></p>
-      <%= button_to('Update public data points', '/update_public_dp',
+      <%= button_to('Update public data points', { controller: :dashboards, action: :update_public_dp },
                        { form_class: 'button-with-indicator', remote: true }) %>
              <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
 
