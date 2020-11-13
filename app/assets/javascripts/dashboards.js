@@ -8,4 +8,7 @@ $(function() {
     $(".rest-restart-button").on("ajax:success", function() {
         $("#rest-restart-indicator").show()
     });
+    $(".dvw-restart-button").on("ajax:success", function() {
+        $("#dvw-restart-indicator").show()
+    });
 });

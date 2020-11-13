@@ -41,4 +41,10 @@ class DashboardsController < ApplicationController
     %x{sudo systemctl restart rest-api.service}
     render json: { message: 'REST API restarted' }
   end
+
+  def restart_dvwapi
+    Rails.logger.info { 'Performing DVW API restart' }
+    %x{sudo systemctl restart dvw-api.service}
+    render json: { message: 'DVW API restarted' }
+  end
 end
