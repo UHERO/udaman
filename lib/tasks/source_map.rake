@@ -131,11 +131,25 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing UHERO, #{uh_cats.count} cats" }
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
+      try = 0
       %w{A S Q M W D}.each do |freq|
         full_url = cat_url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: uhero category run => #{cat.id}, #{geo}, #{freq}" }
-        content = %x{#{cmd + full_url}}
-        json = JSON.parse content
+        begin
+          content = %x{#{cmd + full_url}}
+          json = JSON.parse content
+        rescue => e
+          if try < 4  ## only try 4 times
+            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+            sleep 19
+            try += 1
+            retry
+          end
+          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
+          try = 0
+          next
+        end
         next unless freq == 'D'   ### only cache daily series packages for now
         next unless json && json['data']   ### maybe no D series in this category
         ##Rails.logger.debug { ">>>>>>> Number of series #{json['data'].count}" }
@@ -153,11 +167,25 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing COH, #{coh_cats.count} cats" }
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
+      try = 0
       %w{A S Q M W D}.each do |freq|
         full_url = cat_url % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: coh category run => #{cat.id}, #{geo}, #{freq}" }
-        content = %x{#{cmd + full_url}}
-        json = JSON.parse content
+        begin
+          content = %x{#{cmd + full_url}}
+          json = JSON.parse content
+        rescue => e
+          if try < 4  ## only try 4 times
+            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+            sleep 19
+            try += 1
+            retry
+          end
+          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
+          try = 0
+          next
+        end
         next unless freq == 'D'   ### only cache daily series packages for now
         next unless json && json['data']   ### maybe no D series in this category
         json['data'].each do |series|
@@ -174,10 +202,33 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing CCOM, #{ccom_cats.count} cats" }
   ccom_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
+      try = 0
       %w{A S Q M W D}.each do |freq|
         full_url = cat_url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        Rails.logger.debug { "Encachitize: ccom category run => #{cat.id}, #{geo}, #{freq}" }
+        begin
+          content = %x{#{cmd + full_url}}
+          json = JSON.parse content
+        rescue => e
+          if try < 4  ## only try 4 times
+            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+            sleep 19
+            try += 1
+            retry
+          end
+          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
+          try = 0
+          next
+        end
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'ccom', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, ccom, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end
