@@ -61,7 +61,12 @@ Rails.application.routes.draw do
   get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
   get 'series/quarantine', to: 'series#quarantine'
   get 'series/old_bea_download', to: 'series#old_bea_download'
-  get 'series/sidekiq_failed', to: 'series#sidekiq_failed'
+
+  get 'clip' => 'series#clipboard'
+  get 'series/add_clip', to: 'series#add_clip'
+  get 'series/clear_clip', to: 'series#clear_clip'
+  get 'series/groupmeta', to: 'series#groupmeta'
+  post 'series/do_clip_action', to: 'series#do_clip_action'
 
   resources :series
 
@@ -76,6 +81,8 @@ Rails.application.routes.draw do
   get 'investigate' => 'dashboards#investigate'
   get 'investigate_visual' => 'dashboards#investigate_visual'
   post 'update_public_dp' => 'dashboards#update_public_dp'
+  post 'restart_restapi' => 'dashboards#restart_restapi'
+  post 'restart_dvwapi' => 'dashboards#restart_dvwapi'
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'

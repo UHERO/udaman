@@ -37,6 +37,8 @@ class Series < ApplicationRecord
   has_many :exports, through: :export_series
   has_many :measurement_series, dependent: :delete_all
   has_many :measurements, through: :measurement_series
+  has_many :user_series, dependent: :delete_all
+  has_many :users, -> {distinct}, through: :user_series
 
   enum seasonal_adjustment: { not_applicable: 'not_applicable',
                               seasonally_adjusted: 'seasonally_adjusted',
@@ -90,12 +92,26 @@ class Series < ApplicationRecord
   end
 
   def rename(newname)
-    raise("Cannot rename because #{newname} already exists in #{universe}") if Series.get(newname, universe)
+    newname.upcase!
+    old_name = self.name
+    return false if old_name == newname
+    dependents = who_depends_on_me  ## must be done before we change the name
     parts = Series.parse_name(newname)
+    geo_freq_change = geography.handle != parts[:geo] || frequency != parts[:freq_long]
+    raise "Cannot rename because #{newname} already exists in #{universe}" if Series.get(newname, universe)
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
-    self.update!(name: newname.upcase,
-                 geography_id: geo.id,
-                 frequency: Series.frequency_from_code(parts[:freq]))
+    self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
+    if geo_freq_change
+      data_sources.each {|ld| ld.delete_data_points }  ## clear all data points
+    end
+    dependents.each do |series_name|
+      s = series_name.ts || next
+      s.enabled_data_sources.each do |ds|
+        new_eval = ds.eval.gsub(old_name, newname)
+        ds.update_attributes!(eval: new_eval) if new_eval != ds.eval
+      end
+    end
+    true
   end
 
   def create_alias(properties)
@@ -212,7 +228,7 @@ class Series < ApplicationRecord
 
   def Series.parse_name(string)
     if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase }
+      return { prefix: $1, geo: $2, freq: $3.upcase, freq_long: frequency_from_code($3).to_s }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
   end
@@ -364,7 +380,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_code(code)
-    case code && code.upcase
+    case code && code.to_s.upcase
       when 'A' then :year
       when 'S' then :semi
       when 'Q' then :quarter
@@ -376,7 +392,7 @@ class Series < ApplicationRecord
   end
 
   def Series.frequency_from_name(name)
-    Series.frequency_from_code(Series.parse_name(name)[:freq]).to_s
+    Series.parse_name(name)[:freq_long]
   end
 
   def frequency_from_name
@@ -435,8 +451,17 @@ class Series < ApplicationRecord
     end
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
-  
-  def Series.store(series_name, series, desc=nil, eval_statement=nil, priority=100)
+
+  def Series.eval(series_name, eval_statement, priority = 100)
+    begin
+      new_series = Kernel::eval eval_statement
+    rescue => e
+      raise "Series.eval for #{series_name} failed: #{e.message}"
+    end
+    Series.store(series_name, new_series, new_series.name, eval_statement, priority)
+  end
+
+  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
@@ -445,11 +470,6 @@ class Series < ApplicationRecord
     series_to_set = series_name.tsn
     series_to_set.frequency = series.frequency
     series_to_set.save_source(desc, eval_statement, series.data, priority)
-  end
-
-  def Series.eval(series_name, eval_statement, priority=100)
-    new_series = Kernel::eval eval_statement
-    Series.store series_name, new_series, new_series.name, eval_statement, priority
   end
 
   def save_source(source_desc, eval_statement, data, priority = 100)
@@ -581,16 +601,12 @@ class Series < ApplicationRecord
   end
 
   def extract_from_datapoints(column)
-    hash = {}
-    if xseries
-      xseries.data_points.each do |dp|
-        hash[dp.date] = dp[column] if dp.current
-      end
-    end
-    hash
+    return {} unless xseries
+    current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
   end
-  
-  def scaled_data_no_pseudo_history(round_to = 3)
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def scaled_data_no_pseudo_history_DELETEME(round_to = 3)
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
@@ -600,12 +616,12 @@ class Series < ApplicationRecord
     data_hash
   end
   
-  def scaled_data(round_to = 3)
+  def scaled_data(prec = 3)
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
     sql = <<~SQL
-      SELECT round(value/#{self.units}, #{round_to}) AS value, date
+      SELECT round(value/#{self.units}, #{prec}) AS value, date
       FROM data_points WHERE xseries_id = #{self.xseries.id} AND current = 1;
     SQL
     ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
@@ -1137,12 +1153,12 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
-          all = all.joins(:data_sources)
-          conditions.push %q{data_sources.eval regexp ?}
+          all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
+          conditions.push %q{l1.eval regexp ?}
           bindvars.push tane
         when /^[!]/
-          all = all.joins(:data_sources)
-          conditions.push %q{data_sources.last_error regexp ?}
+          all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
+          conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
         when /^[&]/
           conditions.push case tane

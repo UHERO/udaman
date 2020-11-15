@@ -232,13 +232,13 @@ class DataSource < ApplicationRecord
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def delete_all_other_sources
+    def delete_all_other_sources_DELETEME
       s = self.series
       s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def DataSource.delete_related_sources_except(ids)
+    def DataSource.delete_related_sources_except_DELETEME(ids)
       ds_main = DataSource.find_by(id: ids[0])
       s = ds_main.series
       s.data_sources_by_last_run.each {|ds| ds.delete if ids.index(ds.id).nil?}
@@ -252,6 +252,7 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
+      ## it would be best to rewrite this as a direct SQL query - will be much faster
       data_points.each {|dp| dp.delete }
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
@@ -262,9 +263,9 @@ class DataSource < ApplicationRecord
       super
     end
 
-    def disable
+    def disable!
       self.transaction do
-        self.update_attributes!(disabled: true)
+        self.update_attributes!(disabled: true, last_error: nil, last_error_at: nil)
         delete_data_points
       end
     end

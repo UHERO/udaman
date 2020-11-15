@@ -19,23 +19,15 @@ module SeriesArithmetic
   def perform_const_arithmetic_op(operator, constant)
     new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
     new_transformation("#{self} #{operator} #{constant}", new_data)
-  end    
+  end
   
-  def zero_add(other_series)
-    validate_arithmetic(other_series)
-    longer_series = self.data.length > other_series.data.length ? self : other_series
-    new_series_data = {}
-    longer_series.data.keys.each do |date|
-      elem1 = elem2 = 0
-      elem1 = self.at(date) unless self.at(date).nil?
-      elem2 = other_series.at(date) unless other_series.at(date).nil?
-      new_series_data[date] = elem1 + elem2
-    end
-   ##  Whole loop can be replaced with one line below, yes?
-   #### NO! longer_series and other_series can be the same, leading to a bug - rethink
-   ##  new_series_data = longer_series.data.map {|date, value| [date, value.to_f + other_series.at(date).to_f] }
-   #  If both series have nil, shouldn't output be nil?? Is it possible for both to have nil?
-    new_transformation("#{self} zero_add #{other_series}", new_series_data)
+  def zero_add(op_series)
+    validate_arithmetic(op_series)
+    longer_series = self.data.length > op_series.data.length ? self : op_series
+    new_data = longer_series.data.map {|date, _| [date, self.at(date).to_f + op_series.at(date).to_f] }
+    ## to_f() will convert a nil to 0.0. But if both series have nil, shouldn't output be nil??
+    ## Is it possible for both to have nil?
+    new_transformation("#{self} zero_add #{op_series}", new_data)
   end
   
   def +(other_series)
@@ -79,18 +71,6 @@ module SeriesArithmetic
     perform_arithmetic_operation('/',other_series)
   end
 
-  #need to figure out the best way to validate these now... For now assume the right division
-  
-  def validate_additive_arithmetic(other_series)
-    #raise SeriesArithmeticException if self.units != other_series.units
-  end
-  
-  def validate_arithmetic(other_series)
-    #puts "#{self.name}: #{self.frequency}, other - #{other_series.name}: #{other_series.frequency}"
-    #raise SeriesArithmeticException if self.frequency.to_s != other_series.frequency.to_s
-    #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
-  end
-  
   def rebase(date = nil)
     if date
       date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
@@ -392,5 +372,15 @@ module SeriesArithmetic
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
     new_transformation("Annual Average of #{name}", new_series_data)
+  end
+
+private
+
+  def validate_arithmetic(op_series)
+    raise SeriesArithmeticException, 'Frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
+  end
+
+  def validate_additive_arithmetic(op_series)
+    raise SeriesArithmeticException, 'Units incompatible' if self.units != op_series.units
   end
 end
