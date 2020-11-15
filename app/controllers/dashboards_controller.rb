@@ -23,6 +23,7 @@ class DashboardsController < ApplicationController
   end
 
   def update_public_dp
+    Rails.logger.info { 'Updating public data points for all universes' }
     DataPoint.update_public_all_universes
     respond_to do |format|
       format.js { head :ok }
@@ -30,7 +31,20 @@ class DashboardsController < ApplicationController
   end
 
   def export_tsd
+    Rails.logger.info { 'Performing TSD export' }
     ExportWorker.perform_async
-    render :json => { message: 'Export TSD in Queue' }
+    render json: { message: 'Export TSD in queue' }
+  end
+
+  def restart_restapi
+    Rails.logger.info { 'Performing REST API restart' }
+    %x{sudo systemctl restart rest-api.service}
+    render json: { message: 'REST API restarted' }
+  end
+
+  def restart_dvwapi
+    Rails.logger.info { 'Performing DVW API restart' }
+    %x{sudo systemctl restart dvw-api.service}
+    render json: { message: 'DVW API restarted' }
   end
 end

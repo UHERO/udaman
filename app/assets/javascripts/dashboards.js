@@ -5,4 +5,10 @@ $(function() {
     $(".button-with-indicator input").click(function(){
         $("#pdp-indicator").show().removeClass('fa-check').addClass('fa-spinner fa-spin');
     });
+    $(".rest-restart-button").on("ajax:success", function() {
+        $("#rest-restart-indicator").show()
+    });
+    $(".dvw-restart-button").on("ajax:success", function() {
+        $("#dvw-restart-indicator").show()
+    });
 });
