@@ -163,7 +163,6 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing UHERO, #{uh_cats.count} cats" }
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
-      try = 0
       %w{A S Q M W D}.each do |freq|
         pull_cat_series_from_api('uhero', cat.id, geo, freq)
       end
