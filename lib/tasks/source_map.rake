@@ -127,18 +127,18 @@ def pull_cat_series_from_api(univ, cat_id, geo, freq)
   delay = 13
   try = 0
 
-  Rails.logger.debug { "Encachitize: #{univ} category run => #{cat_id}, #{geo}, #{freq}" }
+  Rails.logger.debug { "Encachitize: #{univ} category run => id #{cat_id}, #{geo}, #{freq}" }
   full_url = cat_url % [cat_id, geo, freq]
   begin
     content = %x{#{cmd + full_url}}
     json = JSON.parse content
   rescue => e
     if try >= 4  ## only try 4 times
-      Rails.logger.error { "Encachitize: #{cat_id}, #{geo}, #{freq}: #{e.message}" }
+      Rails.logger.error { "Encachitize: cat #{cat_id}, #{geo}, #{freq}: #{e.message}" }
       puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
       return
     end
-    Rails.logger.warn { "Encachitize: retrying #{cat_id}, #{geo}, #{freq}: #{e.message}" }
+    Rails.logger.warn { "Encachitize: retrying cat #{cat_id}, #{geo}, #{freq}: #{e.message}" }
     sleep delay
     delay *= 1.375  ## linear? backoff (good enough)
     try += 1
@@ -150,7 +150,7 @@ def pull_cat_series_from_api(univ, cat_id, geo, freq)
   json['data'].each do |series|
     sid = series['id'].to_i
     full_url = pkg_url % [sid, univ, cat_id]
-    Rails.logger.debug { "Encachitize: package run => #{sid}, #{univ}, cat=#{cat_id}" }
+    Rails.logger.debug { "Encachitize: package run => series #{sid}, #{univ}, cat=#{cat_id}" }
     %x{#{cmd + '--output /dev/null ' + full_url}}
   end
 end
