@@ -285,11 +285,6 @@ class DataSource < ApplicationRecord
       self.save
     end
 
-    #### Do we really need this method? Test to find out
-    def series
-      Series.find_by id: self.series_id
-    end
-
     def get_eval_statement
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
