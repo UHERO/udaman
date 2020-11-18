@@ -23,10 +23,10 @@
       <%= ds.check_box :pseudo_history, disabled: true %> Check on if this load is pseudo-history. (not yet)
     </div>
     <div class="field">
-      <select id="color_choose" name="color_choose">
+      <select id="data_source_color" name="data_source[color]">
         <% @data_source.type_colors.each do |color| %>
             <option value="<%= color %>" <%= 'selected' if @data_source.color == color %>>
-              <span style="background-color:#<%= color %>"><%= color %></span>
+              <span style="padding:10px; background-color:#<%= color %>"><%= color %></span>
             </option>
         <% end %>
       </select>
