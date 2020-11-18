@@ -143,19 +143,20 @@ class DataSource < ApplicationRecord
       when /load_api/ then :api
       when /load_from_download/ then :download
       when /load_[a-z_]*from/ then :manual  ## or history or phistory,so...
+        ########## really need more here
       else :other  ## this includes calculations/method calls
       end
     end
 
     def type_colors(type = loader_type)
       case type
-      when :api then %w{}
-      when :download then %w{}
-      when :manual then %w{}
-      when :history then %w{}
-      when :pseudo_history then %w{}
-      when :other then %w{}  ## mostly calculations/method calls
-      else %w{ffffff}  ## white, but... this will never logically happen ;=/
+      when :api then %w{F5FE48 FDE910 FAFFA4}  ## Yellows
+      when :download then %w{6495ED 2F7BDA A9BEF2 4F69C6}  ## Blues
+      when :manual then %w{9FDD8C 74C365 D0F0C0}  ## Greens
+      when :history then %w{C4A173 B78E5C D9B99B C48040}  ## Browns
+      when :pseudo_history then %w{FFA194}  ## Mona Lisa (a salmon-y color)
+      when :other then %w{A885EF B2A1EA 9047EB}  ## Purples - mostly calculations/method calls
+      else %w{FFFFFF}  ## white, but... this will never logically happen ;=P
       end
     end
 
