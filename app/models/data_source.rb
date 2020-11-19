@@ -139,11 +139,13 @@ class DataSource < ApplicationRecord
     end
 
     def loader_type
+      return :pseudo_history if pseudo_history?
       case self.eval
       when /load_api/ then :api
       when /load_from_download/ then :download
-      when /load_[a-z_]*from/ then :manual  ## or history or phistory,so...
-        ########## really need more here
+      when /foofarfee/ then :pseudo_history
+      when /load_[a-z_]*from.*history/i then :history
+      when /load_[a-z_]*from/i then :manual
       else :other  ## this includes calculations/method calls
       end
     end
