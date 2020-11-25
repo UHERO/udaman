@@ -113,7 +113,7 @@ class SeriesController < ApplicationController
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
       current_user.clear_series if params[:replace] == 'true'
-      current_user.add_series Series.search_box(params[:search], limit: 500)
+      current_user.add_series Series.search_box(params[:search], limit: 500, user_id: current_user.id)
     end
     redirect_to action: :clipboard
   end
@@ -149,7 +149,7 @@ class SeriesController < ApplicationController
   def new_search
     @search_string = params[:search_string]
     Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
-    @all_series = Series.search_box(@search_string, limit: 500)
+    @all_series = Series.search_box(@search_string, limit: 500, user_id: current_user.id)
     if @all_series.count == 1
       @series = @all_series.first
       show(no_render: true)  ## call controller prep without render

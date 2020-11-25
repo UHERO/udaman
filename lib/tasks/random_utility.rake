@@ -3,6 +3,27 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1213
+task :ua_1213 => :environment do
+  all = Series.search_box('^pc .q #interpol')
+  all.each do |s|
+    dss = s.enabled_data_sources
+    if dss.count > 2
+      puts "#{s} >>>> more than 2, id #{s.id}"
+      next
+    end
+    interp = dss[0].eval =~ /interpolate/ ? 0 : 1
+    aggreg = (interp + 1) % 2
+    unless dss[aggreg].eval =~ /aggregate/
+      puts "#{s} >>>> no aggregate found, id #{s.id}"
+      next
+    end
+    dss[interp].update!(priority: 100)
+    dss[aggreg].update!(priority: 90)
+    puts "#{s} --------- DONE"
+  end
+end
+
 ## JIRA UA-1259
 task :ua_1259 => :environment do
   ss = Series.search_box('#load_from_bea')
