@@ -1112,7 +1112,7 @@ class Series < ApplicationRecord
     name_buckets
   end
   
-  def Series.search_box(input_string, limit: 10000)
+  def Series.search_box(input_string, limit: 10000, user_id: nil)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1162,11 +1162,15 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^[&]/
           conditions.push case tane
-                            when 'pub' then %q{restricted = false}
-                            when 'r'   then %q{restricted = true}
-                            when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
-                            when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
-                            else nil
+                          when 'pub' then %q{restricted = false}
+                          when 'r'   then %q{restricted = true}
+                          when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
+                          when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                          when 'noclip'
+                            raise 'No user identified for clipboard access' if user_id.nil?
+                            bindvars.push user_id.to_i
+                            %q{series.id not in (select series_id from user_series where user_id = ?)}
+                          else nil
                           end
         when /^\d+$/
           conditions.push %q{series.id = ?}
