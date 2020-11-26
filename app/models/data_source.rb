@@ -143,7 +143,7 @@ class DataSource < ApplicationRecord
       case self.eval
       when /load_api/ then :api
       when /load_from_download/ then :download
-      when /foofarfee/ then :pseudo_history
+      when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this asap!
       when /load_[a-z_]*from.*history/i then :history
       when /load_[a-z_]*from/i then :manual
       else :other  ## this includes calculations/method calls
@@ -152,12 +152,12 @@ class DataSource < ApplicationRecord
 
     def type_colors(type = loader_type)
       case type
-      when :api then %w{9FDD8C 74C365 D0F0C0}  ## Greens
+      when :api then %w{A885EF B2A1EA 9047EB}  ## Purples
       when :download then %w{6495ED 2F7BDA A9BEF2 4F69C6}  ## Blues
       when :manual then %w{F5FE48 FDE910 FAFFA4}  ## Yellows
       when :history then %w{C4A173 B78E5C D9B99B C48040}  ## Browns
       when :pseudo_history then %w{FFA194}  ## Mona Lisa (a salmon-y color)
-      when :other then %w{A885EF B2A1EA 9047EB}  ## Purples - mostly calculations/method calls
+      when :other then %w{9FDD8C 74C365 D0F0C0}  ## Greens - mostly calculations/method calls
       else %w{FFFFFF}  ## white, but... this will never logically happen ;=P
       end
     end
