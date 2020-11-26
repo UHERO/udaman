@@ -6,8 +6,10 @@
 ## JIRA UA-1256
 task :ua_1256 => :environment do
   DataSource.get_all_uhero.each do |ds|
-    if ds.eval =~ /load_from_(bea|bls|dvw|fred|eia|estatjp|clustermuck)/
-      ds.update!(eval: "load_api_#{$1}")
+    if ds.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
+      api = $1
+      puts ">>>> Changing #{ds.eval}"
+      ds.update!(eval: ds.eval.sub("load_from_#{api}", "load_api_#{api}"))
     end
   end
 end
