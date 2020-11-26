@@ -53,9 +53,9 @@ class DataSourcesController < ApplicationController
   def update
     if @data_source.update!(data_source_params)
       create_action @data_source, 'UPDATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     else
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource had a problem'
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     end
   end
 
