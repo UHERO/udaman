@@ -25,7 +25,8 @@
     <div class="field" style="padding:18px;">
       <% @data_source.type_colors.each do |color| %>
         <span style="padding:16px; background-color:#<%= color %>;">
-          <input type="radio" name="data_source[color]" value="<%= color %>" <%= 'checked' if @data_source.color == color %>> <%= color %>
+          <input type="radio" name="data_source[color]" id="color_<%= color %>" value="<%= color %>" <%= 'checked' if @data_source.color == color %>>
+              <label for="color_<%= color %>"><%= color %></label>
         </span>
       <% end %>
     </div>

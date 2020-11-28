@@ -3,7 +3,7 @@ module DataPointsHelper
   def dp_display(value, bgcolor, age: nil, title: nil)
     tane = '%.3f' % value
     tane += ' (%s)' % age if age
-    styles = 'color:%s; background-color:%s;' % [value < 0 ? '#E30D2B' : 'black', bgcolor]
+    styles = 'color:%s; background-color:%s;' % [value < 0 ? '#E30D2B' : '#B81104', bgcolor]
     '<span class="datapoint" title="%s" style="%s">%s</span>'.html_safe % [sanitize(title), styles, tane]
   end
 

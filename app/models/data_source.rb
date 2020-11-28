@@ -152,7 +152,7 @@ class DataSource < ApplicationRecord
 
     def type_colors(type = loader_type)
       case type
-      when :api then %w{A885EF B2A1EA 9047EB}  ## Purples
+      when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
       when :download then %w{6495ED 2F7BDA A9BEF2 4F69C6}  ## Blues
       when :manual then %w{F5FE48 FDE910 FAFFA4}  ## Yellows
       when :history then %w{C4A173 B78E5C D9B99B C48040}  ## Browns
