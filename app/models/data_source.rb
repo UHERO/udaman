@@ -156,8 +156,8 @@ class DataSource < ApplicationRecord
       when :download then %w{A9BEF2 C3DDF9 6495ED}  ## Blues
       when :manual then %w{F9FF8B FBFFBD F0E67F}  ## Yellows
       when :history then %w{CAAF8C DFC3AA B78E5C}  ## Browns
-      when :pseudo_history then %w{FEB4AA}  ## a salmon-y colo
-      when :other then %w{9FDD8C 74C365 D0F0C0}  ## Greens - mostly calculations/method calls
+      when :pseudo_history then %w{FEB4AA}  ## a salmon-y color
+      when :other then %w{9FDD8C D0F0C0 88D3B2 74C365}  ## Greens - mostly calculations/method calls
       else %w{FFFFFF}  ## white, but... this will never logically happen ;=P
       end
     end
