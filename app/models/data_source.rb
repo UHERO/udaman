@@ -153,10 +153,10 @@ class DataSource < ApplicationRecord
     def type_colors(type = loader_type)
       case type
       when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
-      when :download then %w{6495ED 2F7BDA A9BEF2 4F69C6}  ## Blues
-      when :manual then %w{F5FE48 FDE910 FAFFA4}  ## Yellows
-      when :history then %w{C4A173 B78E5C D9B99B C48040}  ## Browns
-      when :pseudo_history then %w{FFA194}  ## Mona Lisa (a salmon-y color)
+      when :download then %w{A9BEF2 C3DDF9 6495ED}  ## Blues
+      when :manual then %w{F9FF8B FBFFBD F0E67F}  ## Yellows
+      when :history then %w{CAAF8C DFC3AA B78E5C}  ## Browns
+      when :pseudo_history then %w{FEB4AA}  ## a salmon-y colo
       when :other then %w{9FDD8C 74C365 D0F0C0}  ## Greens - mostly calculations/method calls
       else %w{FFFFFF}  ## white, but... this will never logically happen ;=P
       end
