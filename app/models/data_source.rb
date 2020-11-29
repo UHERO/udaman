@@ -168,7 +168,7 @@ class DataSource < ApplicationRecord
       my_color = color_set[0]
       same_type = colleagues.select {|l| l.loader_type == my_type }
       unless same_type.empty?
-        counts = color_set.map {|c| [c, same_type.where(color: c).count] }
+        counts = color_set.map {|c| [c, same_type.select {|l| l.color == c }.count] }
         ### Cycle through the color_set as loaders of the same type are added
         most = 9999
         counts.each do |color, count|
