@@ -53,9 +53,9 @@ class DataSourcesController < ApplicationController
   def update
     if @data_source.update!(data_source_params)
       create_action @data_source, 'UPDATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource processed successfully'
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     else
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'datasource had a problem'
+      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     end
   end
 
@@ -73,7 +73,7 @@ class DataSourcesController < ApplicationController
   end
   
   def create
-    @data_source = DataSource.new data_source_params
+    @data_source = DataSource.new(data_source_params)
     if @data_source.create_from_form
       create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'Definition processed successfully'
@@ -89,7 +89,7 @@ private
   end
 
   def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority, :presave_hook, :pseudo_history)
+      params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history)
   end
 
     def create_action(data_source, action)

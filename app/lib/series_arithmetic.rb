@@ -377,10 +377,10 @@ module SeriesArithmetic
 private
 
   def validate_arithmetic(op_series)
-    raise SeriesArithmeticException, 'Frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
+    raise SeriesArithmeticException, 'Operand series frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
   end
 
   def validate_additive_arithmetic(op_series)
-    raise SeriesArithmeticException, 'Units incompatible' if self.units != op_series.units
+    raise SeriesArithmeticException, 'Operand series units incompatible' if self.units != op_series.units
   end
 end

@@ -746,7 +746,7 @@ class Series < ApplicationRecord
     Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
   end
   
-  def Series.load_from_bea(frequency, dataset, parameters)
+  def Series.load_api_bea(frequency, dataset, parameters)
     dhp = DataHtmlParser.new
     series_data = dhp.get_bea_series(dataset, parameters)
     link = '<a href="%s">API URL</a>' % dhp.url
@@ -757,11 +757,11 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
   
-  def Series.load_from_bls(code, frequency)
-    Series.new.load_from_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
+  def Series.load_api_bls(code, frequency)
+    Series.new.load_api_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
   end
   
-  def load_from_bls(code, frequency = nil)
+  def load_api_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
     name = "loaded series code: #{code} from BLS API"
     if series_data && series_data.empty?
@@ -770,7 +770,7 @@ class Series < ApplicationRecord
     new_transformation(name, series_data, frequency)
   end
 
-  def Series.load_from_fred(code, frequency = nil, aggregation_method = nil)
+  def Series.load_api_fred(code, frequency = nil, aggregation_method = nil)
     dhp = DataHtmlParser.new
     series_data = dhp.get_fred_series(code, frequency, aggregation_method)
     link = '<a href="%s">API URL</a>' % dhp.url
@@ -781,7 +781,7 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
 
-  def Series.load_from_estatjp(code, filters)
+  def Series.load_api_estatjp(code, filters)
     ### Note: Code is written to collect _only_ monthly data!
     dhp = DataHtmlParser.new
     series_data = dhp.get_estatjp_series(code, filters)
@@ -793,7 +793,7 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'M')
   end
 
-  def Series.load_from_clustermapping(dataset, parameters)
+  def Series.load_api_clustermapping(dataset, parameters)
     dhp = DataHtmlParser.new
     series_data = dhp.get_clustermapping_series(dataset, parameters)
     link = '<a href="%s">API URL</a>' % dhp.url
@@ -804,7 +804,7 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
-  def Series.load_from_eia(parameter)
+  def Series.load_api_eia(parameter)
     parameter.upcase!  # Series ID in the EIA API is case sensitive
     dhp = DataHtmlParser.new
     series_data = dhp.get_eia_series(parameter)
@@ -816,7 +816,7 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, parameter[-1])
   end
 
-  def Series.load_from_dvw(mod, freq, indicator, dimensions)
+  def Series.load_api_dvw(mod, freq, indicator, dimensions)
     dhp = DataHtmlParser.new
     series_data = dhp.get_dvw_series(mod, freq, indicator, dimensions)
     link = '<a href="%s">API URL</a>' % dhp.url

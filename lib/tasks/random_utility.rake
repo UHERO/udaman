@@ -3,6 +3,19 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1256
+task :ua_1256 => :environment do
+  DataSource.get_all_uhero.each do |ds|
+    if ds.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
+      api = $1
+      puts ">>>> Changing #{ds.eval}"
+      ds.update!(eval: ds.eval.sub("load_from_#{api}", "load_api_#{api}"))
+      ds.reload
+    end
+    ds.set_color!
+  end
+end
+
 ## JIRA UA-1213
 task :ua_1213 => :environment do
   all = Series.search_box('^pc .q #interpol')
