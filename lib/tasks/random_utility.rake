@@ -10,7 +10,9 @@ task :ua_1256 => :environment do
       api = $1
       puts ">>>> Changing #{ds.eval}"
       ds.update!(eval: ds.eval.sub("load_from_#{api}", "load_api_#{api}"))
+      ds.reload
     end
+    ds.set_color!
   end
 end
 
