@@ -20,12 +20,6 @@ class Download < ApplicationRecord
     end
   end
 
-  DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
-
-  def Download.default_data_path
-    DEFAULT_DATA_PATH
-  end
-
   def Download.get(handle, type = nil)
     case type || valid_download_handle(handle)
       when :nondate then Download.find_by(handle: handle)
