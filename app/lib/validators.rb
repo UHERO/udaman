@@ -37,6 +37,6 @@ module Validators
   end
 
   def valid_data_path(string)
-    string !~ /\.\./
+    string !~ /\.\./    ### a very sorta minimal check. would be nice to make it more airtight at some point
   end
 end
