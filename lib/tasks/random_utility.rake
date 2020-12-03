@@ -3,6 +3,15 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1211
+task :ua_1211 => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    if ld.eval =~ /".*\/data\//
+      ld.update!(eval: ld.eval.sub(/".*\/data\//, '"'))
+    end
+  end
+end
+
 ## JIRA UA-1256
 task :ua_1256 => :environment do
   DataSource.get_all_uhero.each do |ds|
@@ -419,7 +428,7 @@ task :ua_1344 => :environment do
           priority: 100,
           color: 'CCFFFF'
       )
-      puts"   CREATED NEW LOADER"
+      puts "   CREATED NEW LOADER"
       s.reload_sources
       puts "   LOADED THE NEW ONE"
     end

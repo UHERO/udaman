@@ -652,7 +652,6 @@ class Series < ApplicationRecord
   end
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
-    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise SeriesReloadException, 'load error' if update_spreadsheet.load_error?
     #return self if update_spreadsheet.load_error?
@@ -668,7 +667,6 @@ class Series < ApplicationRecord
   end
 
   def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
-    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
     if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
@@ -685,7 +683,6 @@ class Series < ApplicationRecord
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
-    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
 
     if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
@@ -739,7 +736,6 @@ class Series < ApplicationRecord
   end
 
   def Series.load_from_file(file, options)
-    file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
