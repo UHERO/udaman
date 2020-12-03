@@ -37,6 +37,6 @@ module Validators
   end
 
   def valid_data_path(string)
-    string =~ /^#{ENV['DATA_PATH']}\// && string !~ /\.\./
+    string !~ /\.\./
   end
 end

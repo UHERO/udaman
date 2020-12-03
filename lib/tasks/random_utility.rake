@@ -6,22 +6,23 @@
 ## JIRA UA-1211
 task :ua_1211 => :environment do
   DataSource.get_all_uhero.each do |ld|
-    if ld.eval =~ /".*\/data\//
-      ld.update!(eval: ld.eval.sub(/".*\/data\//, '"'))
+    abs_path = %r{"(/Users/uhero/Documents)?/data/}
+    if ld.eval =~ abs_path
+      ld.update!(eval: ld.eval.sub(abs_path, '"'))  ## get rid of path prefix, just leave the double quote
     end
   end
 end
 
 ## JIRA UA-1256
 task :ua_1256 => :environment do
-  DataSource.get_all_uhero.each do |ds|
-    if ds.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
+  DataSource.get_all_uhero.each do |ld|
+    if ld.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
       api = $1
-      puts ">>>> Changing #{ds.eval}"
-      ds.update!(eval: ds.eval.sub("load_from_#{api}", "load_api_#{api}"))
-      ds.reload
+      puts ">>>> Changing #{ld.eval}"
+      ld.update!(eval: ld.eval.sub("load_from_#{api}", "load_api_#{api}"))
+      ld.reload
     end
-    ds.set_color!
+    ld.set_color!
   end
 end
 

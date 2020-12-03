@@ -15,7 +15,7 @@ class XlsFileProcessor
     date = @date_processor.compute(index)
     handle = @handle_processor.compute(date)
     sheet = @sheet_processor.compute(date)
-    path = @path_processor.nil? ? nil : @path_processor.compute(date)
+    path = @path_processor.compute(date) rescue nil
     observation_value = nil
     skip = nil
 

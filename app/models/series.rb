@@ -663,7 +663,7 @@ class Series < ApplicationRecord
     #return self unless update_spreadsheet.update_formatted?
     
     self.frequency = update_spreadsheet.frequency
-    new_transformation("loaded from static file #{spreadsheet_path}", update_spreadsheet.series(self.name))
+    new_transformation("loaded from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.name))
   end
 
   def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
@@ -679,7 +679,7 @@ class Series < ApplicationRecord
 
     self.frequency = update_spreadsheet.frequency
     ns_name = self.name.sub('@','NS@')
-    new_transformation("loaded sa from static file #{spreadsheet_path}", update_spreadsheet.series(ns_name))
+    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(ns_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
@@ -699,7 +699,7 @@ class Series < ApplicationRecord
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
     mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
-    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
+    new_transformation("mean corrected against #{ns_series} and loaded from <#{spreadsheet_path}>", mean_corrected.data)
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified
@@ -730,7 +730,7 @@ class Series < ApplicationRecord
     descript = "loaded from #{handle} into a series of files"
     if Series.valid_download_handle(handle, date_sensitive: false)
       path = Download.get(handle, :nondate).save_path rescue raise("Unknown download handle #{handle}")
-      descript = "loaded from download to #{path}"
+      descript = "loaded from download to <#{path}>"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
@@ -739,7 +739,7 @@ class Series < ApplicationRecord
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
+    Series.new_transformation("loaded from static file <#{file}>", series_data, frequency_from_code(options[:frequency]))
   end
   
   def Series.load_api_bea(frequency, dataset, parameters)
