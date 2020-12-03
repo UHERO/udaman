@@ -730,7 +730,7 @@ class Series < ApplicationRecord
     descript = "loaded from #{handle} into a series of files"
     if Series.valid_download_handle(handle, date_sensitive: false)
       path = Download.get(handle, :nondate).save_path rescue raise("Unknown download handle #{handle}")
-      descript = "loaded from download to <#{path}>"
+      descript = "loaded from download to <#{data_path_relativize(path)}>"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
