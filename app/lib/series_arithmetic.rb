@@ -381,6 +381,7 @@ private
   end
 
   def validate_additive_arithmetic(op_series)
-    raise SeriesArithmeticException, 'Operand series units incompatible' if self.units != op_series.units
+    ## It seems we really don't need to check for units compatibility, as much as it seems like it should be necessary?
+    ##raise SeriesArithmeticException, 'Operand series units incompatible' if self.units != op_series.units
   end
 end
