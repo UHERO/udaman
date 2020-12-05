@@ -653,30 +653,24 @@ class Series < ApplicationRecord
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    raise 'Load error: File not formatted in expected way' unless update_spreadsheet.update_formatted?
 
     unless update_spreadsheet.class == UpdateCSV
       update_spreadsheet.default_sheet = sheet_to_load || update_spreadsheet.sheets.first
     end
-    raise SeriesReloadException, 'update not formatted' unless update_spreadsheet.update_formatted?
-    #return self unless update_spreadsheet.update_formatted?
-    
     self.frequency = update_spreadsheet.frequency
     new_transformation("loaded from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.name))
   end
 
   def load_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    return self unless update_spreadsheet.update_formatted?  ## is there some reason we don't raise exception for this one?
 
-    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
-      ##raise SeriesReloadException
-      return self
-    end
     unless update_spreadsheet.class == UpdateCSV
       update_spreadsheet.default_sheet = sheet
     end
-
     self.frequency = update_spreadsheet.frequency
     ns_name = self.name.sub('@','NS@')
     new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(ns_name))
@@ -684,17 +678,13 @@ class Series < ApplicationRecord
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    return self unless update_spreadsheet.update_formatted?  ## is there some reason we don't raise exception for this one?
 
-    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
-      ##raise SeriesReloadException
-      return self
-    end
     unless update_spreadsheet.class == UpdateCSV
       # default_sheet = update_spreadsheet.sheets.first
       update_spreadsheet.default_sheet = sheet
     end
-
     ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
     demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_series.name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
