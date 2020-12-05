@@ -173,9 +173,11 @@ module UpdateCore
   end
   
   def determine_header_location
-    return 'columns' if columns_have_series? 
-    return 'rows' if rows_have_series?
-    raise 'Unable to determine series header location'
+    case
+      when columns_have_series? then 'columns'
+      when rows_have_series? then 'rows'
+      else raise 'Unable to determine series header location'
+    end
   end
   
   def update_formatted?
