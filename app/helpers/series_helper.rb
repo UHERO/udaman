@@ -162,8 +162,4 @@ module SeriesHelper
   def univ_create_label(text)
     "<span class='grayedout'>[#{text}]</span>".html_safe
   end
-
-  def data_path_relativize(path)
-    path.sub(ENV['DATA_PATH'] + '/', '')
-  end
 end

@@ -76,6 +76,10 @@ class Download < ApplicationRecord
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
+  def save_path_relativized(no_ext = false)
+    save_path(no_ext).sub(ENV['DATA_PATH'] + '/', '')   ## eventually rewrite this to use Ruby File package API, like the below methods
+  end
+
   def save_path(no_ext = false)
     save_path_flex(no_ext)
   end
