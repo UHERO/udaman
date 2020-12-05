@@ -50,8 +50,8 @@ end
 ## The (in)famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
   full_set_ids = Series.get_all_uhero.pluck(:id)
-  full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
-  full_set_ids -= Series.search_box('#load_from_bea').pluck(:id)
+  full_set_ids -= Series.search_box('#load_api_bls').pluck(:id)
+  full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
   full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
@@ -84,7 +84,7 @@ end
 
 task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
-  bls_series = Series.get_all_series_by_eval('load_from_bls')
+  bls_series = Series.get_all_series_by_eval('load_api_bls')
   ## Convert this to use Series.reload_with_dependencies instead
   mgr = SeriesReloadManager.new(bls_series, 'bls', nightly: true)
   Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
@@ -93,7 +93,7 @@ end
 
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
-  bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
+  bea_series = Series.get_all_series_by_eval(%w{load_api_bea bea.gov})
   ## Convert this to use Series.reload_with_dependencies instead?
   mgr = SeriesReloadManager.new(bea_series, 'bea', nightly: true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }

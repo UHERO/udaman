@@ -91,13 +91,13 @@ class DataPoint < ApplicationRecord
   def source_type
     source_eval = self.data_source.eval
     case 
-      when source_eval.index('load_from_bls')
+      when source_eval.index('load_api_bls')
         return :download
-      when source_eval.index('load_from_bea')
+      when source_eval.index('load_api_bea')
         return :download
       when source_eval.index('load_from_download')
         return :download
-      when source_eval.index('load_from_fred')
+      when source_eval.index('load_api_fred')
         return :download
       when source_eval.index('load_from')
         return :static_file
