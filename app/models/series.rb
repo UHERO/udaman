@@ -256,14 +256,22 @@ class Series < ApplicationRecord
     Series.build_name(name[:prefix], name[:geo], name[:freq])
   end
 
+  def ns_series_name
+    self.build_name(prefix: self.parse_name[:prefix] + 'NS')
+  end
+
+  def non_ns_series_name
+    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,''))
+  end
+
   ## Find NS@ correspondent series
   def find_ns_series
-    self.build_name(prefix: self.parse_name[:prefix] + 'NS').ts
+    self.ns_series_name.ts
   end
 
   ## Find non-NS@ correspondent series
   def find_non_ns_series
-    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,'')).ts
+    self.non_ns_series_name.ts
   end
 
   ## Find "sibling" series for a different geography
@@ -672,8 +680,7 @@ class Series < ApplicationRecord
       update_spreadsheet.default_sheet = sheet
     end
     self.frequency = update_spreadsheet.frequency
-    ns_name = self.name.sub('@','NS@')
-    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(ns_name))
+    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
