@@ -77,7 +77,7 @@ class Download < ApplicationRecord
   end
 
   def save_path_relativized(no_ext = false)
-    save_path(no_ext).sub(ENV['DATA_PATH'] + '/', '')   ## eventually rewrite this to use Ruby File package API, like the below methods
+    save_path(no_ext).sub(ENV['DATA_PATH'] + '/', '')   ## eventually rewrite this to use Ruby File package API, like the below methods, too lazy now
   end
 
   def save_path(no_ext = false)

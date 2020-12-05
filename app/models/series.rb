@@ -665,7 +665,7 @@ class Series < ApplicationRecord
     new_transformation("loaded from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.name))
   end
 
-  def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
+  def load_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
 
@@ -674,7 +674,7 @@ class Series < ApplicationRecord
       return self
     end
     unless update_spreadsheet.class == UpdateCSV
-      update_spreadsheet.default_sheet = sheet_to_load
+      update_spreadsheet.default_sheet = sheet
     end
 
     self.frequency = update_spreadsheet.frequency
@@ -682,7 +682,7 @@ class Series < ApplicationRecord
     new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(ns_name))
   end
   
-  def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
+  def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
 
@@ -692,7 +692,7 @@ class Series < ApplicationRecord
     end
     unless update_spreadsheet.class == UpdateCSV
       # default_sheet = update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load
+      update_spreadsheet.default_sheet = sheet
     end
 
     ns_series = find_ns_series || raise("No NS series corresponds to #{self}")

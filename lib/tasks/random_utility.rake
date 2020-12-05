@@ -8,9 +8,14 @@ task :ua_1211 => :environment do
   DataSource.get_all_uhero.each do |ld|
     abs_path = %r{"(/Users/uhero/Documents)?/data/}
     if ld.eval =~ abs_path
-      ld.update!(eval: ld.eval.sub(abs_path, '"'))  ## get rid of path prefix, just leave the double quote
+      newval = ld.eval.sub(abs_path, '"')
+      if newval =~ /load_.*sa_from.*"sadata"/
+        newval.sub!(/\s*,\s*"sadata"\s*/, '')
+      end
+      ld.update!(eval: newval)  ## get rid of path prefix, just leave the double quote
     end
   end
+  puts "!!!!! Go in the db and edit any remaining sheet name parameters for load*sa_from methods!"
 end
 
 ## JIRA UA-1256
