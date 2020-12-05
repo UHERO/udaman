@@ -653,8 +653,7 @@ class Series < ApplicationRecord
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    raise SeriesReloadException, 'load error' if update_spreadsheet.load_error?
-    #return self if update_spreadsheet.load_error?
+    raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
 
     unless update_spreadsheet.class == UpdateCSV
       update_spreadsheet.default_sheet = sheet_to_load || update_spreadsheet.sheets.first
@@ -668,6 +667,7 @@ class Series < ApplicationRecord
 
   def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
+    raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
 
     if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
       ##raise SeriesReloadException
@@ -684,6 +684,7 @@ class Series < ApplicationRecord
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
+    raise SeriesReloadException, 'Load error: File possibly missing?' if update_spreadsheet.load_error?
 
     if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
       ##raise SeriesReloadException

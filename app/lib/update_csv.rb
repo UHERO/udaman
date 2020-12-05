@@ -16,14 +16,13 @@ class UpdateCSV
   end
   
   def last_column
-    @data[0].count
+    @data[0].count rescue raise('File appears to contain no data')
   end
   
   def last_row
-    @data.count
+    @data.count rescue raise('File appears to contain no data')
   end
-  
-  
+
   def rows_have_dates?
     true
   end
