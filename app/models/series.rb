@@ -264,12 +264,12 @@ class Series < ApplicationRecord
     self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,''))
   end
 
-  ## Find NS@ correspondent series
+  ## Find non-seasonally-adjusted correspondent series by name
   def find_ns_series
     self.ns_series_name.ts
   end
 
-  ## Find non-NS@ correspondent series
+  ## Find seasonally-adjusted correspondent series by name
   def find_non_ns_series
     self.non_ns_series_name.ts
   end
