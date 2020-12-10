@@ -1130,7 +1130,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^[:]/
           if term =~ /^::/
-            all = all.joins(:source)
+            all = all.joins('left outer join sources on sources.id = series.source_id')
             conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
             bindvars.push tane[1..]
           else
