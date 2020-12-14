@@ -129,7 +129,7 @@ class Download < ApplicationRecord
       update_times = { last_download_at: now }
       data_changed = content_changed?(resp.to_str)
       if data_changed || last_change_at.nil?
-        backup
+        ### backup  ## STOP BACKING UP ALL THE AUTO-DOWNLOADED FILES!
         update_times.merge!(last_change_at: now)
       end
       begin
