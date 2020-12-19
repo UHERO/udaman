@@ -1166,10 +1166,13 @@ class Series < ApplicationRecord
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
                           else nil
                           end
-        when /^\d+$/
-          conditions.push %q{series.id = ?}
-          bindvars.push term
-        when /^[-]/  ## minus, only for naked words
+        when /^\s*\d+\b/   ### Series ID# or comma-sep list of same
+          sids = term.gsub(/\s+/, '').split(',').map(&:to_i)
+          qmarks = (['?'] * sids.count).join(',')
+          conditions.push %Q{series.id in (#{qmarks})}
+          bindvars.concat sids
+          break  ## took care of the whole list at once, no need to continue looping
+        when /^[-]/
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else

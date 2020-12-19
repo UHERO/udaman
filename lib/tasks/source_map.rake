@@ -97,7 +97,7 @@ task :reload_bea_series_only => :environment do
   ## Convert this to use Series.reload_with_dependencies instead?
   mgr = SeriesReloadManager.new(bea_series, 'bea', nightly: true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-  mgr.batch_reload(group_size: 10)  ### try reduce group size to 10, bec we are blowing out req/min quota
+  mgr.batch_reload(group_size: 10)  ### try reduce group size to 10, bec we are blowing out BEA's req/min quota
 end
 
 task :reload_vap_hi_daily_series_only => :environment do
