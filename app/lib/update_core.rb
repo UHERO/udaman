@@ -173,17 +173,16 @@ module UpdateCore
   end
   
   def determine_header_location
-    return 'columns' if columns_have_series? 
-    'rows' if rows_have_series?
+    case
+      when columns_have_series? then 'columns'
+      when rows_have_series? then 'rows'
+      else raise 'Unable to determine series header location'
+    end
   end
   
   def update_formatted?
-    # puts "columns have series: #{columns_have_series?}"
-    # puts "rows have dates: #{rows_have_dates?}"
-    # puts "rows have series: #{rows_have_series?}"
-    # puts "columns have dates: #{columns_have_dates?}"
-    return true if columns_have_series? and rows_have_dates?
-    return true if columns_have_dates? and rows_have_series?
+    return true if columns_have_series? && rows_have_dates?
+    return true if columns_have_dates? && rows_have_series?
     false
   end
   

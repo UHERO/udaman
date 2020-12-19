@@ -3,16 +3,31 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1211
+task :ua_1211 => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    abs_path = %r{"(/Users/uhero/Documents)?/data/}
+    if ld.eval =~ abs_path
+      newval = ld.eval.sub(abs_path, '"')
+      if newval =~ /load_.*sa_from.*"sadata"/
+        newval.sub!(/\s*,\s*"sadata"\s*/, '')
+      end
+      ld.update!(eval: newval)  ## get rid of path prefix, just leave the double quote
+    end
+  end
+  puts "!!!!! Go in the db and edit any remaining sheet name parameters for load*sa_from methods!"
+end
+
 ## JIRA UA-1256
 task :ua_1256 => :environment do
-  DataSource.get_all_uhero.each do |ds|
-    if ds.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
+  DataSource.get_all_uhero.each do |ld|
+    if ld.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
       api = $1
-      puts ">>>> Changing #{ds.eval}"
-      ds.update!(eval: ds.eval.sub("load_from_#{api}", "load_api_#{api}"))
-      ds.reload
+      puts ">>>> Changing #{ld.eval}"
+      ld.update!(eval: ld.eval.sub("load_from_#{api}", "load_api_#{api}"))
+      ld.reload
     end
-    ds.set_color!
+    ld.set_color!
   end
 end
 
@@ -419,7 +434,7 @@ task :ua_1344 => :environment do
           priority: 100,
           color: 'CCFFFF'
       )
-      puts"   CREATED NEW LOADER"
+      puts "   CREATED NEW LOADER"
       s.reload_sources
       puts "   LOADED THE NEW ONE"
     end

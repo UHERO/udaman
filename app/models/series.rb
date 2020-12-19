@@ -256,14 +256,22 @@ class Series < ApplicationRecord
     Series.build_name(name[:prefix], name[:geo], name[:freq])
   end
 
-  ## Find NS@ correspondent series
-  def find_ns_series
-    self.build_name(prefix: self.parse_name[:prefix] + 'NS').ts
+  def ns_series_name
+    self.build_name(prefix: self.parse_name[:prefix] + 'NS')
   end
 
-  ## Find non-NS@ correspondent series
+  def non_ns_series_name
+    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,''))
+  end
+
+  ## Find non-seasonally-adjusted correspondent series based on name
+  def find_ns_series
+    self.ns_series_name.ts
+  end
+
+  ## Find seasonally-adjusted correspondent series based on name
   def find_non_ns_series
-    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,'')).ts
+    self.non_ns_series_name.ts
   end
 
   ## Find "sibling" series for a different geography
@@ -652,57 +660,44 @@ class Series < ApplicationRecord
   end
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
-    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    raise SeriesReloadException, 'load error' if update_spreadsheet.load_error?
-    #return self if update_spreadsheet.load_error?
+    raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    raise 'Load error: File not formatted in expected way' unless update_spreadsheet.update_formatted?
 
     unless update_spreadsheet.class == UpdateCSV
       update_spreadsheet.default_sheet = sheet_to_load || update_spreadsheet.sheets.first
     end
-    raise SeriesReloadException, 'update not formatted' unless update_spreadsheet.update_formatted?
-    #return self unless update_spreadsheet.update_formatted?
-    
     self.frequency = update_spreadsheet.frequency
-    new_transformation("loaded from static file #{spreadsheet_path}", update_spreadsheet.series(self.name))
+    new_transformation("loaded from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.name))
   end
 
-  def load_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
-    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
+  def load_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
+    raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    return self unless update_spreadsheet.update_formatted?  ## is there some reason we don't raise exception for this one?
 
-    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
-      ##raise SeriesReloadException
-      return self
-    end
     unless update_spreadsheet.class == UpdateCSV
-      update_spreadsheet.default_sheet = sheet_to_load
+      update_spreadsheet.default_sheet = sheet
     end
-
     self.frequency = update_spreadsheet.frequency
-    ns_name = self.name.sub('@','NS@')
-    new_transformation("loaded sa from static file #{spreadsheet_path}", update_spreadsheet.series(ns_name))
+    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
   end
   
-  def load_mean_corrected_sa_from(spreadsheet_path, sheet_to_load = 'sadata')
-    spreadsheet_path.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
+  def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
+    raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
+    return self unless update_spreadsheet.update_formatted?  ## is there some reason we don't raise exception for this one?
 
-    if update_spreadsheet.load_error? || !update_spreadsheet.update_formatted?
-      ##raise SeriesReloadException
-      return self
-    end
     unless update_spreadsheet.class == UpdateCSV
       # default_sheet = update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load
+      update_spreadsheet.default_sheet = sheet
     end
-
     ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
     demetra_series = new_transformation('demetra series', update_spreadsheet.series(ns_series.name))
     demetra_series.frequency = update_spreadsheet.frequency.to_s
     self.frequency = update_spreadsheet.frequency
     mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
-    new_transformation("mean corrected against #{ns_series} and loaded from #{spreadsheet_path}", mean_corrected.data)
+    new_transformation("mean corrected against #{ns_series} and loaded from <#{spreadsheet_path}>", mean_corrected.data)
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified
@@ -732,18 +727,17 @@ class Series < ApplicationRecord
     series_data = dp.get_data
     descript = "loaded from #{handle} into a series of files"
     if Series.valid_download_handle(handle, date_sensitive: false)
-      path = Download.get(handle, :nondate).save_path rescue raise("Unknown download handle #{handle}")
-      descript = "loaded from download to #{path}"
+      path = Download.get(handle, :nondate).save_path_relativized rescue raise("Unknown download handle #{handle}")
+      descript = "loaded from download to <#{path}>"
     end
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
 
   def Series.load_from_file(file, options)
-    file.gsub! ENV['DEFAULT_DATA_PATH'], ENV['DATA_PATH']
     %x(chmod 766 #{file}) unless file.include? '%'
     dp = DownloadProcessor.new('manual', options.merge(:path => file))
     series_data = dp.get_data
-    Series.new_transformation("loaded from static file #{file}", series_data, frequency_from_code(options[:frequency]))
+    Series.new_transformation("loaded from static file <#{file}>", series_data, frequency_from_code(options[:frequency]))
   end
   
   def Series.load_api_bea(frequency, dataset, parameters)
@@ -1136,7 +1130,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^[:]/
           if term =~ /^::/
-            all = all.joins(:source)
+            all = all.joins('left outer join sources on sources.id = series.source_id')
             conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
             bindvars.push tane[1..]
           else

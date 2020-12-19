@@ -58,6 +58,7 @@ class DownloadsCache
 
   def xls(handle, sheet, path = nil, date = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    path &&= File.join(ENV['DATA_PATH'], path)
     skip = setup_and_check('xls', handle, path, skip_proc)
     sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
     sheet_key = make_cache_key('xls', @path, sheet)
@@ -106,6 +107,7 @@ class DownloadsCache
 
   def csv(handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
+    path &&= File.join(ENV['DATA_PATH'], path)
     skip = setup_and_check('csv', handle, path, skip_proc)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)

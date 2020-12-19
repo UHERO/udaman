@@ -1,6 +1,8 @@
 require 'csv'
+
 class UpdateCSV 
   include UpdateCore
+
   def initialize(spreadsheet_name)
     begin
       @data = CSV.read(spreadsheet_name)
@@ -10,20 +12,19 @@ class UpdateCSV
   end
   
   def cell(row, col)
-    val = @data[row-1][col-1]
+    val = @data[row - 1][col - 1] rescue raise("No data at CSV file row position #{row}")
     val = val.gsub(',','') if val.class == String
-    Float(val) rescue @data[row-1][col-1]
+    Float(val) rescue @data[row - 1][col - 1]
   end
   
   def last_column
-    @data[0].count
+    @data[0].count rescue raise('File appears to contain no data')
   end
   
   def last_row
-    @data.count
+    @data.count rescue raise('File appears to contain no data')
   end
-  
-  
+
   def rows_have_dates?
     true
   end
