@@ -25,6 +25,7 @@ class DashboardsController < ApplicationController
   def update_public_dp
     Rails.logger.info { 'Updating public data points for all universes' }
     DataPoint.update_public_all_universes
+    Rails.logger.info { 'DONE updating public data points for all universes' }
     respond_to do |format|
       format.js { head :ok }
     end
@@ -33,7 +34,7 @@ class DashboardsController < ApplicationController
   def export_tsd
     Rails.logger.info { 'Performing TSD export' }
     ExportWorker.perform_async
-    render json: { message: 'Export TSD in queue' }
+    render json: { message: 'Export queued for worker' }
   end
 
   def restart_restapi

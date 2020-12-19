@@ -101,9 +101,11 @@ module SeriesHelper
         words[index] = link_to(word, { action: action, id: series }) if series
         next
       end
-      if valid_data_path(word)
-        rel_path = data_path_relativize(word)  ## relativize path under DATA_PATH prefix
-        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
+      if word =~ /^<(.*)>$/
+        rel_path = $1
+        if valid_data_path(rel_path)
+          words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
+        end
         next
       end
    end
@@ -159,9 +161,5 @@ module SeriesHelper
 
   def univ_create_label(text)
     "<span class='grayedout'>[#{text}]</span>".html_safe
-  end
-
-  def data_path_relativize(path)
-    path.sub(ENV['DATA_PATH'] + '/', '')
   end
 end

@@ -4,7 +4,7 @@ class UpdateSpreadsheet < Roo::Excel
   include UpdateCore
   
   def UpdateSpreadsheet.new_xls_or_csv(spreadsheet_name)
-    name = spreadsheet_name.strip
+    name = File.join(ENV['DATA_PATH'], spreadsheet_name.strip)
     name =~ /csv$/i ? UpdateCSV.new(name) : UpdateSpreadsheet.new(name)
   end
   
