@@ -1171,7 +1171,7 @@ class Series < ApplicationRecord
           qmarks = (['?'] * sids.count).join(',')
           conditions.push %Q{series.id in (#{qmarks})}
           bindvars.concat sids
-          break  ## took care of the whole list at once, no need to continue looping
+          break  ## the box SHOULD contain nothing other than number(s), so no need to continue looping
         when /^[-]/
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
