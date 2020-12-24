@@ -1166,7 +1166,7 @@ class Series < ApplicationRecord
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
                           else nil
                           end
-        when /^\s*\d+\b/   ### Series ID# or comma-sep list of same
+        when /^\s*\d+\b/   ### Series ID# or comma-separated list of same
           sids = term.gsub(/\s+/, '').split(',').map(&:to_i)
           qmarks = (['?'] * sids.count).join(',')
           conditions.push %Q{series.id in (#{qmarks})}
@@ -1183,6 +1183,7 @@ class Series < ApplicationRecord
     end
     conditions.push %q{series.universe = ?}
     bindvars.push univ
+    puts ">>>>>>>>>>>> conds=|#{conditions}| bind=|#{bindvars.join(',')}|"
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
