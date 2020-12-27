@@ -502,7 +502,7 @@ class Series < ApplicationRecord
       )
       source.setup
     end
-    update_data(data, source, false)
+    update_data(data, source)
     source
   end
 
@@ -517,7 +517,7 @@ class Series < ApplicationRecord
     ## to integer - I am mystified by this.
   end
 
-  def update_data(data, source, run_update = true)
+  def update_data(data, source)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
     #instead of calling in save_source
@@ -542,7 +542,6 @@ class Series < ApplicationRecord
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(universe, self) if run_update
     aremos_comparison #if we can take out this save, might speed things up a little
     true
   end
