@@ -1165,12 +1165,15 @@ class Series < ApplicationRecord
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
                           else nil
                           end
-        when /^\s*\d+\b/   ### Series ID# or comma-separated list of same
-          sids = term.gsub(/\s+/, '').split(',').map(&:to_i)
+        when /^\s*\d+\b/
+          ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
+          ### else in the box except a list of numbers, so we just break the loop after setting the conditions, etc.
+          sids = input_string.gsub(/\s+/, '').split(',').map(&:to_i)
           qmarks = (['?'] * sids.count).join(',')
           conditions.push %Q{series.id in (#{qmarks})}
-          bindvars.concat sids
-          break  ## the box SHOULD contain nothing other than number(s), so no need to continue looping
+          bindvars = sids
+          univ = nil  ## disable setting of the universe - not wanted for direct ID number access
+          break
         when /^[-]/
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
@@ -1180,8 +1183,10 @@ class Series < ApplicationRecord
           bindvars.push term
       end
     end
-    conditions.push %q{series.universe = ?}
-    bindvars.push univ
+    if univ
+      conditions.push %q{series.universe = ?}
+      bindvars.push univ
+    end
     puts ">>>>>>>>>>>> conds=|#{conditions}| bind=|#{bindvars.join(',')}|"
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
