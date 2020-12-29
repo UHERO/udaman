@@ -502,7 +502,7 @@ class Series < ApplicationRecord
       )
       source.setup
     end
-    update_data(data, source, false)
+    update_data(data, source)
     source
   end
 
@@ -517,7 +517,7 @@ class Series < ApplicationRecord
     ## to integer - I am mystified by this.
   end
 
-  def update_data(data, source, run_update = true)
+  def update_data(data, source)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
     #instead of calling in save_source
@@ -542,7 +542,6 @@ class Series < ApplicationRecord
         :data_source_id => source.id
       )
     end
-    DataPoint.update_public_data_points(universe, self) if run_update
     aremos_comparison #if we can take out this save, might speed things up a little
     true
   end
@@ -1112,7 +1111,6 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub! method)
       tane = term[1..]
       case term
         when /^\//
@@ -1166,10 +1164,16 @@ class Series < ApplicationRecord
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
                           else nil
                           end
-        when /^\d+$/
-          conditions.push %q{series.id = ?}
-          bindvars.push term
-        when /^[-]/  ## minus, only for naked words
+        when /^\s*\d+\b/
+          ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
+          ### else in the box except a list of numbers, so we just break the loop after setting the conditions, etc.
+          sids = input_string.gsub(/\s+/, '').split(',').map(&:to_i)
+          qmarks = (['?'] * sids.count).join(',')
+          conditions.push %Q{series.id in (#{qmarks})}
+          bindvars = sids
+          univ = nil  ## disable setting of the universe - not wanted for direct ID number access
+          break
+        when /^[-]/
           conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
           bindvars.push tane
         else
@@ -1178,8 +1182,10 @@ class Series < ApplicationRecord
           bindvars.push term
       end
     end
-    conditions.push %q{series.universe = ?}
-    bindvars.push univ
+    if univ
+      conditions.push %q{series.universe = ?}
+      bindvars.push univ
+    end
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 

@@ -6,7 +6,11 @@ class String
   def tsn
     Series.get_or_new self
   end
-  
+
+  def dbts
+    Series.get(self, 'DBEDT')
+  end
+
   def ts=(series)
     Series.store self, series
   end
