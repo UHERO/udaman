@@ -1111,7 +1111,6 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      term = term.gsub(/_/, '\_').gsub(/%/, '\%')  ## escape SQL wildcards (can't use gsub! method)
       tane = term[1..]
       case term
         when /^\//
