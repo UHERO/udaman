@@ -1186,7 +1186,6 @@ class Series < ApplicationRecord
       conditions.push %q{series.universe = ?}
       bindvars.push univ
     end
-    puts ">>>>>>>>>>>> conds=|#{conditions}| bind=|#{bindvars.join(',')}|"
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
