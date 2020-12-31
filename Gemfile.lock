@@ -153,7 +153,7 @@ GEM
     mime-types-data (3.2019.0331)
     mimemagic (0.3.5)
     mini_mime (1.0.2)
-    mini_portile2 (2.4.0)
+    mini_portile2 (2.5.0)
     minitest (5.14.2)
     multipart-post (2.0.0)
     mustermann (1.0.3)
@@ -168,8 +168,9 @@ GEM
     net-ssh (4.0.1)
     netrc (0.11.0)
     nio4r (2.5.4)
-    nokogiri (1.10.10)
-      mini_portile2 (~> 2.4.0)
+    nokogiri (1.11.0.rc4)
+      mini_portile2 (~> 2.5.0)
+      racc (~> 1.4)
     ntlm-http (0.1.1)
     numerizer (0.1.1)
     octokit (4.12.0)
@@ -179,6 +180,7 @@ GEM
       rack
       rake (>= 0.8.1)
     public_suffix (3.1.1)
+    racc (1.5.2)
     rack (2.2.3)
     rack-protection (2.0.4)
       rack
@@ -355,7 +357,7 @@ DEPENDENCIES
   mechanize (>= 2.7.5)
   mysql2 (~> 0.5, >= 0.5.3)
   net-sftp
-  nokogiri (~> 1.10)
+  nokogiri (~> 1.10, >= 1.11.0.rc4)
   passenger (~> 6.0.0)
   rack-protection (~> 2.0.1)
   rails (~> 5.2, >= 5.2.4.3)
