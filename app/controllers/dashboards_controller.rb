@@ -48,4 +48,10 @@ class DashboardsController < ApplicationController
     %x{sudo systemctl restart dvw-api.service}
     render json: { message: 'DVW API restarted' }
   end
+
+  def force_sync_files
+    Rails.logger.info { 'Performing NAS filesync' }
+    FilesyncWorker.perform_async
+    render json: { message: 'NAS filesync initiated' }
+  end
 end
