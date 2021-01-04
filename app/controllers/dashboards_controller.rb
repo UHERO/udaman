@@ -51,7 +51,7 @@ class DashboardsController < ApplicationController
 
   def force_sync_files
     Rails.logger.info { 'Performing NAS filesync' }
-    FilesyncWorker.perform_async
+    r = %x{ssh uhero@file.uhero.hawaii.edu "/home/uhero/filesync.sh"}
     render json: { message: 'NAS filesync initiated' }
   end
 end
