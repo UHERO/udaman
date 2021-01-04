@@ -930,10 +930,11 @@ class Series < ApplicationRecord
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+    ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
+    nas_path = 'udaman@uheronas:/volume1/UHEROroot/work/udamandata'
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
-    ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
-    if system("rsync -r --del udaman@uheronas:/volume1/UHEROroot/work/udamandata/BnkLists/ #{in_path}")
+    if system("rsync -r --del #{nas_path}/BnkLists/ #{in_path}")  ## final slash needed on source dir name
       Rails.logger.info { "run_tsd_exports: synced #{in_path} from NAS to local disk" }
     else
       Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from NAS to local disk - using existing files" }
@@ -954,7 +955,7 @@ class Series < ApplicationRecord
       Series.write_data_list_tsd(list, output_file)
     end
 
-    if system("rsync -r #{out_path}/ udaman@uheronas:/volume1/UHEROroot/work/udamandata/udaman_tsd")  ## final slash needed on source dir name
+    if system("rsync -r #{out_path}/ #{nas_path}/udaman_tsd")  ## final slash needed on source dir name
       Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to NAS" }
     else
       Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to NAS" }
