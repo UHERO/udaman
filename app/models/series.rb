@@ -930,13 +930,14 @@ class Series < ApplicationRecord
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+    ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
+    nas_path = 'udaman@uheronas:/volume1/UHEROroot/work/udamandata'
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
-    ## Hostname alias "macmini" is defined in /etc/hosts - change there if necessary
-    if system("rsync -r --del uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/BnkLists/ #{in_path}")
-      Rails.logger.info { "run_tsd_exports: synced #{in_path} from Mac mini to local disk" }
+    if system("rsync -r --del #{nas_path}/BnkLists/ #{in_path}")  ## final slash needed on source dir name
+      Rails.logger.info { "run_tsd_exports: synced #{in_path} from NAS to local disk" }
     else
-      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from Mac mini to local disk - using existing files" }
+      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from NAS to local disk - using existing files" }
     end
 
     files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
@@ -954,17 +955,10 @@ class Series < ApplicationRecord
       Series.write_data_list_tsd(list, output_file)
     end
 
-    mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
-    if system("rsync -r #{out_path}/ #{mini_location}")  ## final slash needed on source dir name
-      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to Mac mini" }
+    if system("rsync -r #{out_path}/ #{nas_path}/udaman_tsd")  ## final slash needed on source dir name
+      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to NAS" }
     else
-      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
-    end
-    prod_location = 'uhero@udaman.uhero.hawaii.edu:' + out_path
-    if system("rsync -r #{out_path}/ #{prod_location}")  ## this copy might not be needed. If not, 86 it later.
-      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to production" }
-    else
-      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} to production" }
+      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to NAS" }
     end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
