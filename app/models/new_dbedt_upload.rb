@@ -299,16 +299,17 @@ private
   def csv_extract
     xls_path = absolute_path
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
-    other_worker = ENV['OTHER_WORKER']
+    ## other_worker = ENV['OTHER_WORKER']
 
     unless File.exists?(xls_path)
       mylogger :warn, "xls file #{xls_path} does not exist"
-      if other_worker.blank?
-        raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
-      end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{xls_path}")
-        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
-      end
+      raise "Could not find xlsx file ((#{xls_path}) #{id})"
+      ## if other_worker.blank?
+      ##   raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
+      ## end
+      ## unless system("rsync -t #{other_worker + ':' + xls_path} #{xls_path}")
+      ##   raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
+      ## end
     end
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
       raise "Could not transform xlsx to csv (#{id}:#{$?})"
@@ -316,9 +317,9 @@ private
 
     Dir.glob(File.join(csv_path, '*.csv')).each {|f| File.rename(f, f.downcase) } ## force csv filenames to lower case
 
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + csv_path}")
-      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
-    end
+    ## if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + csv_path}")
+    ##   raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
+    ## end
   end
 
   def path(name = nil)

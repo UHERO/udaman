@@ -73,7 +73,7 @@ class User < ApplicationRecord
     when 'destroy'
       failed = []
       series.each {|s| s.destroy! rescue failed.push(s) }
-      failed.each {|s| s.destroy! }  ## second pass
+      failed.each {|s| s.destroy! rescue nil }  ## second pass
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
     end

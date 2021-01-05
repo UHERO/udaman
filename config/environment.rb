@@ -11,7 +11,7 @@ ENV['LOAD_UPDATE_SPREADSHEET_PATTERNS_TO_DB'] = 'false'
 ENV['RAILS_SERVE_STATIC_FILES'] = 'true'
 
 # Sets the default environment variables
-ENV['DEFAULT_DATA_PATH'] = '/Users/uhero/Documents/data'
-ENV['DATA_PATH'] ||= ENV['DEFAULT_DATA_PATH']
+ENV['DATA_PATH'] ||= '/data'
+
 # API_KEY_BEA, API_KEY_FRED must be provided by the outer environment if
 # those APIs are to be used.

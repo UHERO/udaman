@@ -29,7 +29,7 @@ div#summary_area h2 {font-size:30px;}
 </div>
 <div id="details_area">
   <h2>Server file location</h2>
-  <%= link_to @output_file.save_path, { action: :pull_file, path: data_path_relativize(@output_file.save_path) } %><br/>
+  <%= link_to @output_file.save_path, { action: :pull_file, path: @output_file.save_path_relativized } %><br/>
 
   <h2>Orig source links</h2>
   <% if current_user.admin_user? %>
