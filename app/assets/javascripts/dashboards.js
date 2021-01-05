@@ -12,6 +12,6 @@ $(function() {
         $("#dvw-restart-indicator").show()
     });
     $(".nas-sync-button").on("ajax:success", function() {
-        $("#nas-sync-indicator").show()
+        $("#nas-sync-indicator").removeClass('fa-spinner fa-spin').addClass('fa-check').show()
     });
 });
