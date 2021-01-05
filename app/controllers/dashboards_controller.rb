@@ -52,6 +52,7 @@ class DashboardsController < ApplicationController
   def force_sync_files
     Rails.logger.info { 'Performing NAS file sync' }
     %x{ssh uhero@file.uhero.hawaii.edu "/home/uhero/filesync.sh"}
+    puts "------------------->>>>>>>>>>>>>>>>>>> here"
     render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
   end
 end
