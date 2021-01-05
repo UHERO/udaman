@@ -11,7 +11,7 @@ $(function() {
     $(".dvw-restart-button").on("ajax:success", function() {
         $("#dvw-restart-indicator").show()
     });
-    $(".nas-restart-button").on("ajax:success", function() {
-        $("#nas-restart-indicator").show()
+    $(".nas-sync-button").on("ajax:success", function() {
+        $("#nas-sync-indicator").show()
     });
 });
