@@ -344,8 +344,9 @@
         <%= button_to('Update public data points', { controller: :dashboards, action: :update_public_dp },
                          { form_class: 'button-with-indicator', remote: true }) %>
                <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
-          <%= button_to('Sync files from NAS', { controller: :dashboards, action: :force_sync_files },
-                        { form_class: 'button-with-indicator', remote: true }) %>
+        <%= button_to('Sync files from NAS', { controller: :dashboards, action: :force_sync_files },
+                        { form_class: 'nas-restart-button', remote: true }) %>
+          <i id="nas-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
         </p>
       <% end %>
 		</td>
