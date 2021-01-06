@@ -340,10 +340,16 @@
                         form_class: 'dvw-restart-button', remote: true) %>
                <i id="dvw-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i>
         </p>
+        <p>
         <%= button_to('Update public data points', { controller: :dashboards, action: :update_public_dp },
                          { form_class: 'button-with-indicator', remote: true }) %>
                <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
-
+      <% if current_user.email =~ /djiann/ %>
+        <%= button_to('Sync files from NAS', { controller: :dashboards, action: :force_sync_files },
+                        { form_class: 'nas-sync-button', remote: true }) %>
+          <i id="nas-sync-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
+        </p>
+      <% end %>
       <% end %>
 		</td>
 		</tr>
