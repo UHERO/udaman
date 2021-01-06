@@ -40,12 +40,18 @@ class DashboardsController < ApplicationController
   def restart_restapi
     Rails.logger.info { 'Performing REST API restart' }
     %x{sudo systemctl restart rest-api.service}
-    render json: { message: 'REST API restarted' }
+    render json: { message: "REST API restart #{$?.success? ? 'done' : 'FAIL'}" }
   end
 
   def restart_dvwapi
     Rails.logger.info { 'Performing DVW API restart' }
     %x{sudo systemctl restart dvw-api.service}
-    render json: { message: 'DVW API restarted' }
+    render json: { message: "DVW API restart #{$?.success? ? 'done' : 'FAIL'}" }
+  end
+
+  def force_sync_files
+    Rails.logger.info { 'Performing NAS file sync' }
+    %x{ssh uhero@file.uhero.hawaii.edu "/home/uhero/filesync.sh"}
+    render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
   end
 end
