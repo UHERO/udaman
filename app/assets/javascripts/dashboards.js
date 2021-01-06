@@ -14,7 +14,7 @@ $(function() {
     $(".nas-sync-button").on("ajax:success", function() {
         $("#nas-sync-indicator").removeClass('fa-spinner fa-spin').addClass('fa-check').show()
     });
-    $(".nas-sync-button").onClick(function() {
-        $("#nas-sync-indicator").show()
+    $(".nas-sync-button").on("click", function() {
+        $("#nas-sync-indicator").removeClass('fa-check').addClass('fa-spinner fa-spin').show()
     });
 });
