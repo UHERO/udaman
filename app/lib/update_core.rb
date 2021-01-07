@@ -54,7 +54,7 @@ module UpdateCore
       when (28..31) then :month
       when 7 then :week
       when 1 then :day
-      else raise("Cannot compute date_frequency for interval of #{date_interval}")
+      else raise("Cannot compute frequency: date interval of #{date_interval} days")
     end
   end
   
