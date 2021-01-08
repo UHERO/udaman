@@ -13,8 +13,8 @@ class UnitsController < ApplicationController
   end
 
   def new
+    @unit = Unit.new
     @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
-    @unit = Unit.new(universe: @universe)
   end
 
   def edit
