@@ -39,11 +39,9 @@ module UpdateCore
     @dates ||= read_dates
   end
   
-  def date_interval
+  def date_interval(a = 0, b = 1)
     sorted_dates = self.dates.keys.sort
-    date1 = Date.parse sorted_dates[0].to_s
-    date2 = Date.parse sorted_dates[1].to_s
-    (date2-date1).to_i
+    (sorted_dates[b].to_date - sorted_dates[a].to_date).to_i
   end
   
   def date_frequency

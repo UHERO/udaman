@@ -4,22 +4,19 @@ class UnitsController < ApplicationController
   before_action :check_authorization
   before_action :set_unit, only: [:show, :edit, :update, :destroy]
 
-  # GET /units
   def index
     @universe = params[:u].upcase rescue 'UHERO'
     @units = Unit.where(universe: @universe).order(:short_label, :long_label).all
   end
 
-  # GET /units/1
   def show
   end
 
-  # GET /units/new
   def new
-    @unit = Unit.new
+    @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
+    @unit = Unit.new(universe: @universe)
   end
 
-  # GET /units/1/edit
   def edit
   end
 
