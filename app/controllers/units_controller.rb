@@ -59,8 +59,8 @@ class UnitsController < ApplicationController
     end
     unit_params[:short_label].strip!
     unit_params[:long_label].strip!
-    error = 'Unknown error'
 
+    error = 'Unknown error'
     begin
       updated = @unit.update(unit_params)
     rescue => e
@@ -86,6 +86,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def unit_params
-      params.require(:unit).permit(:short_label, :long_label)
+      params.require(:unit).permit(:short_label, :long_label, :universe)
     end
 end
