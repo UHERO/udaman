@@ -61,10 +61,10 @@ class UnitsController < ApplicationController
     unit_params[:long_label].strip!
 
     error = 'Unknown error'
-    unit_params.delete(:universe)  ## don't update universe
-    Rails.logger.info { "=---------------------------->>>>>> #{unit_params}" }
+    properties = unit_params.to_h
+    properties.delete(:universe)  ## don't allow update of universe
     begin
-      updated = @unit.update(unit_params.to_h.delete(:universe))
+      updated = @unit.update(properties)
     rescue => e
       if e.message =~ /duplicate entry/i
         error = 'Unit not saved: Duplicate entry'
