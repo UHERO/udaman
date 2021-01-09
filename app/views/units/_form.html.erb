@@ -20,7 +20,7 @@
     <%= f.text_field :long_label, :size => 80 %>
   </div>
   <div class="actions">
-    <%= hidden_field_tag(:universe, @universe) %>
+    <%= f.hidden_field :universe, value: @universe %>
     <%= f.submit %>
   </div>
 <% end %>
