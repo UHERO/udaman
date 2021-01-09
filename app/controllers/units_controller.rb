@@ -62,6 +62,7 @@ class UnitsController < ApplicationController
 
     error = 'Unknown error'
     unit_params.delete(:universe)  ## don't update universe
+    Rails.logger.info { "=---------------------------->>>>>> #{unit_params}" }
     begin
       updated = @unit.update(unit_params)
     rescue => e
