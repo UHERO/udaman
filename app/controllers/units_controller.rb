@@ -31,6 +31,7 @@ class UnitsController < ApplicationController
     unit_params[:long_label].strip!
     @unit = Unit.new(unit_params)
     error = 'Unknown error'
+    puts "----------->>>>>>>>>>>>>>>>>>>> par #{unit_params}, obj #{@unit} <<<< "
 
     begin
       saved = @unit.save
