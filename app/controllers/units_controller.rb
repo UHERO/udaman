@@ -64,7 +64,7 @@ class UnitsController < ApplicationController
     unit_params.delete(:universe)  ## don't update universe
     Rails.logger.info { "=---------------------------->>>>>> #{unit_params}" }
     begin
-      updated = @unit.update(unit_params.to_a.delete(:universe))
+      updated = @unit.update(unit_params.to_h.delete(:universe))
     rescue => e
       if e.message =~ /duplicate entry/i
         error = 'Unit not saved: Duplicate entry'
