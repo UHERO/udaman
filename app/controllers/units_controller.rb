@@ -61,6 +61,7 @@ class UnitsController < ApplicationController
     unit_params[:long_label].strip!
 
     error = 'Unknown error'
+    unit_params.delete(:universe)  ## don't update universe
     begin
       updated = @unit.update(unit_params)
     rescue => e
