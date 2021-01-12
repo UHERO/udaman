@@ -4,23 +4,19 @@ class SourcesController < ApplicationController
   before_action :check_authorization
   before_action :set_source, only: [:show, :edit, :update, :destroy]
 
-  # GET /sources
   def index
     @universe = params[:u].upcase rescue 'UHERO'
     @sources = Source.where(universe: @universe).order(:description).all
   end
 
-  # GET /sources/1
   def show
   end
 
-  # GET /sources/new
   def new
     @source = Source.new
     @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
   end
 
-  # GET /sources/1/edit
   def edit
   end
 
