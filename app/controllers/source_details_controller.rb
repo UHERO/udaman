@@ -17,6 +17,7 @@ class SourceDetailsController < ApplicationController
   # GET /source_details/new
   def new
     @source_detail = SourceDetail.new
+    @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
   end
 
   # GET /source_details/1/edit
@@ -36,7 +37,9 @@ class SourceDetailsController < ApplicationController
 
   # PATCH/PUT /source_details/1
   def update
-    if @source_detail.update(source_detail_params)
+    properties = source_detail_params.to_h
+    properties.delete(:universe)  ## don't allow update of universe
+    if @source_detail.update(properties)
       redirect_to @source_detail, notice: 'Source detail was successfully updated.'
     else
       render :edit
@@ -51,6 +54,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def source_detail_params
-      params.require(:source_detail).permit(:description)
+      params.require(:source_detail).permit(:description, :universe)
     end
 end

@@ -16,6 +16,7 @@
     <%= f.text_area :description, rows: 3, cols: 100 %>
   </div>
   <div class="actions">
+    <%= f.hidden_field :universe, value: @universe %>
     <%= f.submit %>
   </div>
 <% end %>
