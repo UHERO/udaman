@@ -25,7 +25,7 @@ class SourceDetailsController < ApplicationController
     @source_detail = SourceDetail.new(source_detail_params)
 
     if @source_detail.save
-      redirect_to @source_detail, notice: 'Source detail was successfully created.'
+      redirect_to source_details_path(u: @source.universe), notice: 'Source detail was successfully created.'
     else
       render :new
     end
@@ -36,7 +36,7 @@ class SourceDetailsController < ApplicationController
     properties = source_detail_params.to_h
     properties.delete(:universe)  ## don't allow update of universe
     if @source_detail.update(properties)
-      redirect_to @source_detail, notice: 'Source detail was successfully updated.'
+      redirect_to source_details_path(u: @source.universe), notice: 'Source detail was successfully updated.'
     else
       render :edit
     end
