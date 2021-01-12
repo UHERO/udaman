@@ -20,6 +20,7 @@
     <%= f.text_field :link, :size => 150 %>
   </div>
   <div class="actions">
+    <%= f.hidden_field :universe, value: @universe %>
     <%= f.submit %>
   </div>
 <% end %>
