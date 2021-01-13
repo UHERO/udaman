@@ -4,7 +4,7 @@
 <%= link_to 'Unrestricted series without a source', 'series/no_source_no_restrict' %>
 
 <h1><%= @universe %> Sources</h1>
-<%= link_to 'New Source', new_source_path %>
+<%= link_to "New Source for #{@universe}", new_source_path(universe: @universe) %>
 <p></p>
 
 <table class="list_table">

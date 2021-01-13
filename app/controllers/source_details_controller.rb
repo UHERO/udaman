@@ -4,22 +4,19 @@ class SourceDetailsController < ApplicationController
   before_action :check_authorization
   before_action :set_source_detail, only: [:show, :edit, :update, :destroy]
 
-  # GET /source_details
   def index
     @universe = params[:u].upcase rescue 'UHERO'
     @source_details = SourceDetail.where(universe: @universe).order(:description).all
   end
 
-  # GET /source_details/1
   def show
   end
 
-  # GET /source_details/new
   def new
     @source_detail = SourceDetail.new
+    @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
   end
 
-  # GET /source_details/1/edit
   def edit
   end
 
@@ -28,7 +25,7 @@ class SourceDetailsController < ApplicationController
     @source_detail = SourceDetail.new(source_detail_params)
 
     if @source_detail.save
-      redirect_to @source_detail, notice: 'Source detail was successfully created.'
+      redirect_to source_details_path(u: @source_detail.universe), notice: 'Source detail was successfully created.'
     else
       render :new
     end
@@ -36,8 +33,10 @@ class SourceDetailsController < ApplicationController
 
   # PATCH/PUT /source_details/1
   def update
-    if @source_detail.update(source_detail_params)
-      redirect_to @source_detail, notice: 'Source detail was successfully updated.'
+    properties = source_detail_params.to_h
+    properties.delete(:universe)  ## don't allow update of universe
+    if @source_detail.update(properties)
+      redirect_to source_details_path(u: @source_detail.universe), notice: 'Source detail was successfully updated.'
     else
       render :edit
     end
@@ -51,6 +50,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def source_detail_params
-      params.require(:source_detail).permit(:description)
+      params.require(:source_detail).permit(:description, :universe)
     end
 end
