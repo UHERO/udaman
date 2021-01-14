@@ -11,12 +11,13 @@
 <br/>
 <br/>
 
-
-<script type="text/javascript" src="https://www.google.com/jsapi"></script>  
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
 
-google.load("visualization", "1", {packages: ["table"]});
-google.load("visualization", "1", {packages:["corechart"]});
+google.charts.load('current', {
+	'packages': ['table', 'corechart'],
+	'callback': draw_charts
+});
 
 var data;
 var chart;
@@ -35,20 +36,9 @@ series_draw_details = series_names.map(function(name, index) {
 	return {color: series_colors[index], targetAxisIndex: 0, pointSize: 0 };
 });
 
-//////////////////////////////////////////////////////////
-google.setOnLoadCallback(draw_charts);
-
-///////////////////////////////////////////////////////////
-
-$(document).ready(function() {
-	
+function draw_charts() {
 <%= exports_google_charts_list.html_safe %>
 chart = new google.visualization.LineChart(document.getElementById('chart_2012-07-06'));
-});
-
-
-function draw_charts() {
-	
 var myView = new google.visualization.DataView(data);
 var hidden = $("input:radio[value=hide]:checked").map(function(){ return series_names.indexOf(this.name) + 1 }).get();
 var left_axis = $("input:radio[value=left]:checked").map(function(){ return series_names.indexOf(this.name) + 1 }).get();
