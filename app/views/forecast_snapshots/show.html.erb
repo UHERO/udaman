@@ -149,16 +149,20 @@
     chart_data[i].start_date_chart = start_date;
     if (chart_data[i].frequency === 'A') {
       leftPadAnnual(chart_data[i]);
-      chart_data[i].new_forecast_yoy = [];
-      chart_data[i].old_forecast_yoy = [];
+      //chart_data[i].new_forecast_yoy = [];
+      //chart_data[i].old_forecast_yoy = [];
       chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 1);
       chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 1);
     } else if (chart_data[i].frequency === 'Q') {
       leftPadQuarterly(chart_data[i]);
-      chart_data[i].new_forecast_yoy = [];
-      chart_data[i].old_forecast_yoy = [];
+      //chart_data[i].new_forecast_yoy = [];
+      //chart_data[i].old_forecast_yoy = [];
       chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 4);
       chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 4);
+    } else if (chart_data[i].frequency === 'M') {
+        leftPadMonthly(chart_data[i]);
+        chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 12);
+        chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 12);
     }
   }
 
@@ -207,7 +211,6 @@
     return min;
   }
 
-  // Function to calculate YOY % change (annual)
   // Returns a yoy series from the given observations
   function yoy(observations, observationsPerYear) {
     return observations.map(function (value, index, observations) {
