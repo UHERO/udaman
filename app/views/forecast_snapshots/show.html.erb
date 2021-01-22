@@ -160,16 +160,16 @@
       chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 4);
       chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 4);
     } else if (chart_data[i].frequency === 'M') {
-        leftPadMonthly(chart_data[i]);
-        chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 12);
-        chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 12);
+      leftPadMonthly(chart_data[i]);
+      chart_data[i].new_forecast_yoy = yoy(chart_data[i].filter_new_forecast, 12);
+      chart_data[i].old_forecast_yoy = yoy(chart_data[i].filter_old_forecast, 12);
     }
   }
 
   function leftPadAnnual(series) {
       if (series.history_start > series.start_date_chart) {
          histPad = parseInt(series.history_start.split('-')[0]) - parseInt(series.start_date_chart.split('-')[0]);
-          series.filter_history = (new Array(histPad)).fill(null).concat(series.filter_history);
+         series.filter_history = (new Array(histPad)).fill(null).concat(series.filter_history);
       }
       if (series.old_forecast_start > series.start_date_chart) {
           histPad = parseInt(series.old_forecast_start.split('-')[0]) - parseInt(series.start_date_chart.split('-')[0]);
@@ -196,6 +196,25 @@
       if (series.new_forecast_start > series.start_date_chart) {
           newFcDate = series.new_forecast_start.split('-').map(function(v) { return parseInt(v); });
           newFcPad = (newFcDate[0] - startDate[0]) * 4 + (newFcDate[1] - startDate[1]) / 3;
+          series.filter_new_forecast = (new Array(newFcPad)).fill(null).concat(series.filter_new_forecast);
+      }
+  }
+
+  function leftPadMonthly(series) {
+      startDate = series.start_date_chart.split('-').map(function(v) { return parseInt(v); });
+      if (series.history_start > series.start_date_chart) {
+          histDate = series.history_start.split('-').map(function(v) { return parseInt(v); });
+          histPad = (histDate[0] - startDate[0]) * 12 + histDate[1] - startDate[1];
+          series.filter_history = (new Array(histPad)).fill(null).concat(series.filter_history);
+      }
+      if (series.old_forecast_start > series.start_date_chart) {
+          oldFcDate = series.old_forecast_start.split('-').map(function(v) { return parseInt(v); });
+          oldFcPad = (oldFcDate[0] - startDate[0]) * 12 + oldFcDate[1] - startDate[1];
+          series.filter_old_forecast = (new Array(oldFcPad)).fill(null).concat(series.filter_old_forecast);
+      }
+      if (series.new_forecast_start > series.start_date_chart) {
+          newFcDate = series.new_forecast_start.split('-').map(function(v) { return parseInt(v); });
+          newFcPad = (newFcDate[0] - startDate[0]) * 12 + newFcDate[1] - startDate[1];
           series.filter_new_forecast = (new Array(newFcPad)).fill(null).concat(series.filter_new_forecast);
       }
   }
