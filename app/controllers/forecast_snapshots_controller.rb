@@ -1,5 +1,6 @@
 class ForecastSnapshotsController < ApplicationController
   include Authorization
+  include HelperUtilities
 
   before_action :check_forecast_snapshot_authorization
   before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy, :pull_file]
