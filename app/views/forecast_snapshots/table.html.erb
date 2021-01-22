@@ -23,7 +23,7 @@
     <th class="header-col"> &nbsp; </th>
     <% @all_dates.each do |date| %>
         <% next if date < @sampl_fr || date > @sampl_to %>
-        <th><%= @is_quarterly ? date_to_qspec(date) : date[0..3] %></th>
+        <th><%= @date_disp_f.call(date) %></th>
     <% end %>
   </tr>
   <% @tsd_files[0].get_all_series.each do |s| %>
