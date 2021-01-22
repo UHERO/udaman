@@ -270,6 +270,11 @@
         intervalUnit = 'month';
         dateLabel = {month: '%b %Y'};
         frequency = 'Q'
+      } else if (chart_data[i].frequency === 'M') {
+          interval = 12;
+          intervalUnit = 'month';
+          dateLabel = {month: '%b %Y'};
+          frequency = 'M'
       }
 
       // Create a highchart for each series
@@ -335,17 +340,22 @@
           hideDelay: 50,
           formatter: function () {
             var s = '<b>' + Highcharts.dateFormat('%Y', this.x);
-            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jan') {
-              s = s + ' Q1 </b>'
-            }
-            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Apr') {
-              s = s + ' Q2 </b>'
-            }
-            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Jul') {
-              s = s + ' Q3 </b>'
-            }
-            if (frequency === 'Q' && Highcharts.dateFormat('%b', this.x) === 'Oct') {
-              s = s + ' Q4 </b>'
+            var bmon = Highcharts.dateFormat('%b', this.x);
+            if (frequency === 'Q') {
+                if (bmon === 'Jan') {
+                    s = s + ' Q1 </b>'
+                }
+                if (bmon === 'Apr') {
+                    s = s + ' Q2 </b>'
+                }
+                if (bmon === 'Jul') {
+                    s = s + ' Q3 </b>'
+                }
+                if (bmon === 'Oct') {
+                    s = s + ' Q4 </b>'
+                }
+            } else if (frequency === 'M') {
+                s = s + ' ' + bmon + ' </b>'
             }
             $.each(this.points, function (i, point) {
               s += (point.series.name === '%ch: ' || point.series.name === 'ch: ') ?
@@ -417,7 +427,7 @@
             if (+Highcharts.dateFormat('%Y', plotLineRange[i]) % 5 === 0 || plotLineRange[i] === lastHistoryDate) {
               xAxis.addPlotLine({value: plotLineRange[i], color: '#ADADAD', width: 1, dashStyle: 'LongDash'});
             }
-          } else if (frequency === 'Q') {
+          } else if (frequency === 'Q' || frequency === 'M') {
             if ((Highcharts.dateFormat('%b', plotLineRange[i]) === 'Jan' && +Highcharts.dateFormat('%Y', plotLineRange[i]) % 5 === 0) || plotLineRange[i] === lastHistoryDate) {
               xAxis.addPlotLine({value: plotLineRange[i], color: '#ADADAD', width: 1, dashStyle: 'LongDash'});
             }
