@@ -354,7 +354,8 @@
                 if (bmon === 'Oct') {
                     s = s + ' Q4 </b>'
                 }
-            } else if (frequency === 'M') {
+            }
+            if (frequency === 'M') {
                 s = s + ' ' + bmon + ' </b>'
             }
             $.each(this.points, function (i, point) {
