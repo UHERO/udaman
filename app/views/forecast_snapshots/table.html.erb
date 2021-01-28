@@ -37,14 +37,16 @@
       <td class="header-col series-title"><%= display_name.html_safe %></td>
       <% @all_dates.each do |date| %>
         <% next if date < @sampl_fr || date > @sampl_to %>
-        <td class="series-data"><%= number_with_precision(s[:data_hash][date], precision: decimals, delimiter: ',') %></td>
+        <% value = s[:data_hash][date] %>
+        <td class="series-data"><%= value == 1.00E+15 ? '-' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
     <tr>
        <td class="header-col change"> &nbsp; % Change</td>
       <% @all_dates.each do |date| %>
           <% next if date < @sampl_fr || date > @sampl_to %>
-          <td class="change-data"><%= number_with_precision(s[:yoy_hash][date], precision: decimals, delimiter: ',') %></td>
+          <% value = s[:yoy_hash][date] %>
+          <td class="change-data"><%= value.abs > 10000 ? '-' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
   <% end %>
