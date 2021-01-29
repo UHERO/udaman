@@ -18,8 +18,15 @@ class ExportsController < ApplicationController
       source = s.source.description rescue ''
       { series: s, name: s.name, first: first, last: last, source: source }
     end
-    sortby = params[:sortby] || 'last'
-    @export_series.sort! {|a, b| a[sortby.to_sym] <=> b[sortby.to_sym] }
+    sortby = (params[:sortby] || 'last').to_sym
+    if params[:dir] == 'down'
+      sortcmp_f = lambda {|a, b| b[sortby] <=> a[sortby] }
+      @nextdir = 'up'
+    else
+      sortcmp_f = lambda {|a, b| a[sortby] <=> b[sortby] }
+      @nextdir = 'down'
+    end
+    @export_series.sort! sortcmp_f
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb

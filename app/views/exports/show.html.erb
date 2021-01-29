@@ -9,13 +9,13 @@
   <table class="list_table">
     <thead>
     <tr>
-      <th><%= link_to 'Name', { action: :show, id: @export.id, sortby: 'name' } %></th>
+      <th><%= link_to 'Name', { action: :show, id: @export.id, sortby: 'name', dir: @nextdir } %></th>
       <th>SA</th>
       <th>Portal Name</th>
       <th>Units</th>
-      <th><%= link_to 'First', { action: :show, id: @export.id, sortby: 'first' } %></th>
-      <th><%= link_to 'Last', { action: :show, id: @export.id, sortby: 'last' } %></th>
-      <th><%= link_to 'Source', { action: :show, id: @export.id, sortby: 'source' } %></th>
+      <th><%= link_to 'First', { action: :show, id: @export.id, sortby: 'first', dir: @nextdir } %></th>
+      <th><%= link_to 'Last', { action: :show, id: @export.id, sortby: 'last', dir: @nextdir } %></th>
+      <th><%= link_to 'Source', { action: :show, id: @export.id, sortby: 'source', dir: @nextdir } %></th>
     </tr>
     </thead>
 
