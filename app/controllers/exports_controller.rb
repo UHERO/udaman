@@ -19,7 +19,7 @@ class ExportsController < ApplicationController
       { series: s, name: s.name, first: first, last: last, source: source }
     end
     sortby = params[:sortby] || 'last'
-    @export_series.sort! {|a, b| a[sortby] <=> b[sortby] }
+    @export_series.sort! {|a, b| a[sortby.to_sym] <=> b[sortby.to_sym] }
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb
