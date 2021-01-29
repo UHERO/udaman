@@ -11,6 +11,15 @@ class ExportsController < ApplicationController
   end
 
   def show
+    @export_series = @export.series.map do |s|
+      data_points = DataPoint.where(xseries_id: s.xseries_id)
+      first = data_points.minimum(:date)
+       last = data_points.maximum(:date)
+      source = s.source.description rescue ''
+      { series: s, name: s.name, first: first, last: last, source: source }
+    end
+    sortby = params[:sortby] || 'last'
+    @export_series.sort! {|exp_s| exp_s[sortby] }
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb

@@ -1,6 +1,6 @@
 <p id="notice"><%= notice %></p>
 
-<% if @export.series.empty? %>
+<% if @export_series.empty? %>
 
   No series linked.
 
@@ -9,28 +9,29 @@
   <table class="list_table">
     <thead>
     <tr>
-      <th>Name</th>
+      <th><%= link_to 'Name', { action: :show, id: @export.id, sortby: 'name' } %></th>
       <th>SA</th>
       <th>Portal Name</th>
       <th>Units</th>
-      <th>First</th>
-      <th>Last</th>
-      <th>Source</th>
+      <th><%= link_to 'First', { action: :show, id: @export.id, sortby: 'first' } %></th>
+      <th><%= link_to 'Last', { action: :show, id: @export.id, sortby: 'last' } %></th>
+      <th><%= link_to 'Source', { action: :show, id: @export.id, sortby: 'source' } %></th>
     </tr>
     </thead>
 
     <tbody>
     <% row = -1 %>
-    <% @export.series.each do |series| %>
+    <% @export_series.each do |exp_s| %>
+      <% series = exp_s[:series] %>
       <% row += 1 %>
       <tr class="row<%= row % 2 %>">
         <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fas fa-ban redban" title="restricted"></i><% end %></td>
         <td><%= sa_indicator(series.seasonal_adjustment) %></td>
         <td><%= series.dataPortalName %></td>
         <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
-        <td><%= DataPoint.where(xseries_id: series.xseries_id).minimum(:date) %></td>
-        <td><%= DataPoint.where(xseries_id: series.xseries_id).maximum(:date) %></td>
-        <td><%= series.source && series.source.description %></td>
+        <td><%= exp_s[:first] %></td>
+        <td><%= exp_s[:last] %></td>
+        <td><%= exp_s[:source] %></td>
       </tr>
     <% end %>
     </tbody>
