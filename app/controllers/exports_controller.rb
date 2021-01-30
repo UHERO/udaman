@@ -21,8 +21,9 @@ class ExportsController < ApplicationController
     sortby = (params[:sortby] || 'last').to_sym
     @dir = params[:dir] || 'up'
     @export_series.sort! do |a, b|
-      c = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
-      c == 0 ? a[:name] <=> b[:name] : c
+      c1 = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
+      c2 = @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
+      c1 == 0 ? c2 : c1
     end
     @sortby = sortby.to_s
     respond_to do |format|
