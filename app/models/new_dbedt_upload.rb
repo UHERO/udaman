@@ -172,7 +172,7 @@ class NewDbedtUpload < ApplicationRecord
       area = row['area_id'].to_i
       ### Geography info hardwired in code for simplicity and convenience. Records are expected to already exist in db.
       geo_handle = [nil, 'HI', 'HAW', 'HON', 'KAU', 'MAU'][area] || raise("Area ID=#{area} is blank/unknown around row #{data_points.count}")
-      geo_id = allgeos[geo_handle]
+      geo_id = allgeos[geo_handle].id rescue nil
       unless geo_id
         allgeos[geo_handle] = Geography.get(universe: 'DBEDT', handle: geo_handle) || raise("Area handle #{geo_handle} missing from db")
         geo_id = allgeos[geo_handle].id

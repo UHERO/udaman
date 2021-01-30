@@ -28,4 +28,14 @@ module ExportsHelper
     dates_array.each {|date| rs += "['"+ date.strftime('%Y-%m-%d') +"'," + sorted_names.map {|s| series_data[s][date].nil? ? 0 : series_data[s][date] }.join(', ') +"],\n"}
     rs + "]);\n"
   end
+
+  def sorthead(head)
+    return head unless @sortby.downcase == head.downcase
+    "#{head} <i class='fas fa-angle-#{@dir}' aria-hidden='true'></i>".html_safe
+  end
+
+  def sortdir(head)
+    return 'up' unless @sortby.downcase == head.downcase
+    @dir == 'up' ? 'down' : 'up'
+  end
 end
