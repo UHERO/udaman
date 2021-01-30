@@ -31,7 +31,7 @@ module ExportsHelper
 
   def sorthead(head)
     return head unless @sortby.downcase == head.downcase
-    head + (@dir == 'down' ? '^' : 'v')
+    head + (@dir == 'up' ? '^' : 'v')
   end
 
   def sortdir(head)
