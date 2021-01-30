@@ -28,4 +28,9 @@ module ExportsHelper
     dates_array.each {|date| rs += "['"+ date.strftime('%Y-%m-%d') +"'," + sorted_names.map {|s| series_data[s][date].nil? ? 0 : series_data[s][date] }.join(', ') +"],\n"}
     rs + "]);\n"
   end
+
+  def sorthead(head)
+    return head unless @sortby == head
+    head + @nextdir == 'down' ? '^' : 'v'
+  end
 end
