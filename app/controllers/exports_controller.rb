@@ -20,12 +20,10 @@ class ExportsController < ApplicationController
     end
     sortby = (params[:sortby] || 'last').to_sym
     @dir = params[:dir] || 'up'
-    if @dir == 'up'
-      sortcmp_f = lambda {|a, b| a[sortby] <=> b[sortby] }
-    else
-      sortcmp_f = lambda {|a, b| b[sortby] <=> a[sortby] }
+    @export_series.sort! do |a, b|
+      c = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
+      c == 0 ? a[:name] <=> b[:name] : c
     end
-    @export_series.sort! {|x, y| sortcmp_f.call(x, y) }
     @sortby = sortby.to_s
     respond_to do |format|
       format.csv { render :layout => false }

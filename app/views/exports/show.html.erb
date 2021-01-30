@@ -17,7 +17,7 @@
       <th>Portal Name</th>
       <th>Units</th>
       <th><%= link_to sorthead('First'), { action: :show, id: @export.id, sortby: 'first', dir: sortdir('first') } %></th>
-      <th><%= link_to sorthead('Last'), { action: :show, id: @export.id, sortby: 'last', dir: sortdir('last') } %></th>
+      <th><%= link_to sorthead('Last'),  { action: :show, id: @export.id, sortby: 'last',  dir: sortdir('last') } %></th>
       <th><%= link_to sorthead('Source'), { action: :show, id: @export.id, sortby: 'source', dir: sortdir('source') } %></th>
     </tr>
     </thead>

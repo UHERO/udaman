@@ -31,7 +31,7 @@ module ExportsHelper
 
   def sorthead(head)
     return head unless @sortby.downcase == head.downcase
-    "#{head} <i class='fas arrow-#{@dir}' aria-hidden='true'></i>".html_safe
+    "#{head} <i class='fas fa-angle-#{@dir}' aria-hidden='true'></i>".html_safe
   end
 
   def sortdir(head)
