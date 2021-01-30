@@ -19,12 +19,11 @@ class ExportsController < ApplicationController
       { series: s, name: s.name, first: first, last: last, source: source }
     end
     sortby = (params[:sortby] || 'last').to_sym
-    if params[:dir] == 'down'
-      sortcmp_f = lambda {|a, b| b[sortby] <=> a[sortby] }
-      @nextdir = 'up'
-    else
+    @dir = params[:dir] || 'up'
+    if @dir == 'up'
       sortcmp_f = lambda {|a, b| a[sortby] <=> b[sortby] }
-      @nextdir = 'down'
+    else
+      sortcmp_f = lambda {|a, b| b[sortby] <=> a[sortby] }
     end
     @export_series.sort! {|x, y| sortcmp_f.call(x, y) }
     @sortby = sortby.to_s

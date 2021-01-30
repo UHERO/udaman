@@ -33,4 +33,9 @@ module ExportsHelper
     return head unless @sortby.downcase == head.downcase
     head + (@nextdir == 'down' ? '^' : 'v')
   end
+
+  def sortdir(head)
+    return 'up' unless @sortby.downcase == head.downcase
+    @dir == 'up' ? 'down' : 'up'
+  end
 end
