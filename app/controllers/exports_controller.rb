@@ -26,7 +26,7 @@ class ExportsController < ApplicationController
       sortcmp_f = lambda {|a, b| a[@sortby] <=> b[@sortby] }
       @nextdir = 'down'
     end
-    @export_series.sort! sortcmp_f
+    @export_series.sort! {|x, y| sortcmp_f.call(x, y) }
     respond_to do |format|
       format.csv { render :layout => false }
       format.html # show.html.erb
