@@ -30,7 +30,7 @@ module ExportsHelper
   end
 
   def sorthead(head)
-    return head unless @sortby == head
-    head + @nextdir == 'down' ? '^' : 'v'
+    return head unless @sortby.downcase == head.downcase
+    head + (@nextdir == 'down' ? '^' : 'v')
   end
 end
