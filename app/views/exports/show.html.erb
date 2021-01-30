@@ -1,5 +1,8 @@
 <p id="notice"><%= notice %></p>
-
+<p>
+<%= link_to 'Edit', edit_export_path(@export) %> |
+<%= link_to 'Index', exports_path %>
+</p>
 <% if @export_series.empty? %>
 
   No series linked.
@@ -38,5 +41,3 @@
   </table>
 
 <% end %>
-<%= link_to 'Edit', edit_export_path(@export) %> |
-<%= link_to 'Index', exports_path %>
