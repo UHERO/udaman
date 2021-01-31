@@ -67,9 +67,13 @@ class User < ApplicationRecord
   def do_clip_action(action)
     case action
     when 'reload'
-      ## check that dbedt is not uploading
-      username = email.sub(/@.*/, '')
-      Series.reload_with_dependencies(series.map(&:id), username)
+      if other_loads_are_running
+        ##do something to put an message up
+      else
+        username = email.sub(/@.*/, '')
+        Series.reload_with_dependencies(series.map(&:id), username)
+        # put a message up saying job submitted
+      end
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
     when 'unrestrict'
@@ -81,5 +85,12 @@ class User < ApplicationRecord
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
     end
+  end
+
+private
+
+  def other_loads_are_running
+    return true if NewDbedtUpload.find_by(status: 'processing')
+    false
   end
 end
