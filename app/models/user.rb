@@ -66,9 +66,10 @@ class User < ApplicationRecord
 
   def do_clip_action(action)
     case action
-    when 'batchreload'
+    when 'reload'
+      ## check that dbedt is not uploading
       username = email.sub(/@.*/, '')
-      Series.reload_with_dependencies(series.pluck(:id), username)
+      Series.reload_with_dependencies(series.map(&:id), username)
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
     when 'unrestrict'
