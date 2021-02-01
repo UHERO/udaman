@@ -67,7 +67,7 @@ class User < ApplicationRecord
   def do_clip_action(action)
     case action
     when 'reload'
-      if other_loads_are_running
+      if other_jobs_are_running
         ##do something to put an message up
       else
         username = email.sub(/@.*/, '')
@@ -89,7 +89,7 @@ class User < ApplicationRecord
 
 private
 
-  def other_loads_are_running
+  def other_jobs_are_running
     return true if NewDbedtUpload.find_by(status: 'processing')
     false
   end

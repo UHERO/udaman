@@ -62,8 +62,8 @@ module SeriesDataAdjustment
   def get_last_incomplete_year
     last_date = self.last_observation
     return nil if last_date.nil?
-    if (last_date.month == 12 and frequency == 'month') or (last_date.month == 10 and frequency == 'quarter')
-      return new_transformation('No Data since no incomplete year', {})
+    if (last_date.month == 12 && frequency == 'month') || (last_date.month == 10 && frequency == 'quarter')
+      return new_transformation('No data because no incomplete year', {})
     end
     start_date = Date.new(last_date.year)
     trim(start_date, nil)
