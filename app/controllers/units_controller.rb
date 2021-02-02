@@ -4,22 +4,19 @@ class UnitsController < ApplicationController
   before_action :check_authorization
   before_action :set_unit, only: [:show, :edit, :update, :destroy]
 
-  # GET /units
   def index
     @universe = params[:u].upcase rescue 'UHERO'
     @units = Unit.where(universe: @universe).order(:short_label, :long_label).all
   end
 
-  # GET /units/1
   def show
   end
 
-  # GET /units/new
   def new
     @unit = Unit.new
+    @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
   end
 
-  # GET /units/1/edit
   def edit
   end
 
@@ -62,10 +59,12 @@ class UnitsController < ApplicationController
     end
     unit_params[:short_label].strip!
     unit_params[:long_label].strip!
-    error = 'Unknown error'
 
+    error = 'Unknown error'
+    properties = unit_params.to_h
+    properties.delete(:universe)  ## don't allow update of universe
     begin
-      updated = @unit.update(unit_params)
+      updated = @unit.update(properties)
     rescue => e
       if e.message =~ /duplicate entry/i
         error = 'Unit not saved: Duplicate entry'
@@ -89,6 +88,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def unit_params
-      params.require(:unit).permit(:short_label, :long_label)
+      params.require(:unit).permit(:short_label, :long_label, :universe)
     end
 end
