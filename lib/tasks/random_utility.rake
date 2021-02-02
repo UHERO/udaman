@@ -10,7 +10,7 @@ task :growth_rate_temp_fix => :environment do
       next unless ld.eval =~ /last_incomplete_year/
       puts "------- DOING for #{s}"
       newval = ld.eval.sub('plete_year','plete_year("2020-01-01")')
-      ld.update(eval: newval)
+      ld.update!(eval: newval)
     end
   end
 end
