@@ -3,6 +3,18 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :growth_rate_temp_fix => :environment do
+  all = Series.search_box('^v #last_incomplete_year')
+  all.each do |s|
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /last_incomplete_year/
+      puts "------- DOING for #{s}"
+      newval = ld.eval.sub('plete_year','plete_year("2020-01-01")')
+      ld.update!(eval: newval)
+    end
+  end
+end
+
 ## JIRA UA-1211
 task :ua_1211 => :environment do
   DataSource.get_all_uhero.each do |ld|
