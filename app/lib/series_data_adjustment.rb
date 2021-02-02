@@ -65,7 +65,7 @@ module SeriesDataAdjustment
     last_date = self.last_observation
     return nil if last_date.nil?
     if (frequency == 'month' && last_date.month == 12) || (frequency == 'quarter' && last_date.month == 10)
-      return new_transformation('No Data since no incomplete year', {})
+      return new_transformation('No data because no incomplete year', {})
     end
     trim(Date.new(last_date.year), nil)
   end
