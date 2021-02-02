@@ -61,13 +61,13 @@ module SeriesDataAdjustment
   end
   
   def get_last_incomplete_year(start_date = nil)
+    return trim(start_date, nil) if start_date  ## special handling for unusual cases where we want to specify cutoff
     last_date = self.last_observation
     return nil if last_date.nil?
     if (frequency == 'month' && last_date.month == 12) || (frequency == 'quarter' && last_date.month == 10)
       return new_transformation('No Data since no incomplete year', {})
     end
-    start_date ||= Date.new(last_date.year)
-    trim(start_date, nil)
+    trim(Date.new(last_date.year), nil)
   end
   
   def get_values_after(start_date, end_date = self.last_observation)
