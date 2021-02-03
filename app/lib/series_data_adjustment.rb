@@ -21,7 +21,8 @@ module SeriesDataAdjustment
       return new_transformation("Trimmed #{name}", data)
     end
     new_series_data = get_values_after_including(start_date.to_date, end_date.to_date)
-    new_transformation("Trimmed #{name} starting at #{start_date}", new_series_data)
+    new_name = start_date.to_s == '1000-01-01' ? name : "Trimmed #{name} starting at #{start_date}"
+    new_transformation(new_name, new_series_data)
   end
 
   def no_trim_past
@@ -59,16 +60,16 @@ module SeriesDataAdjustment
     last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
   
-  def get_last_incomplete_year
+  def get_last_incomplete_year(start_date = nil)
+    return trim(start_date, nil) if start_date  ## special handling for unusual cases where we want to force a specific cutoff
     last_date = self.last_observation
     return nil if last_date.nil?
-    if (last_date.month == 12 && frequency == 'month') || (last_date.month == 10 && frequency == 'quarter')
+    if (frequency == 'month' && last_date.month == 12) || (frequency == 'quarter' && last_date.month == 10)
       return new_transformation('No data because no incomplete year', {})
     end
-    start_date = Date.new(last_date.year)
-    trim(start_date, nil)
+    trim(Date.new(last_date.year), nil)
   end
-  
+
   def get_values_after(start_date, end_date = self.last_observation)
     data.reject {|date, value| date <= start_date or value.nil? or date > end_date}
   end
