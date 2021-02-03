@@ -124,7 +124,10 @@ class SeriesController < ApplicationController
       redirect_to action: :groupmeta, format: :csv, layout: false
       return
     end
-    current_user.do_clip_action params[:clip_action]
+    mesg = current_user.do_clip_action(params[:clip_action])
+    if mesg
+      ##
+    end
     redirect_to action: :clipboard
   end
 

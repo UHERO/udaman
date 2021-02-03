@@ -68,22 +68,26 @@ class User < ApplicationRecord
     case action
     when 'reload'
       if other_jobs_are_running
-        ##do something to put an message up
+        'Job not run - try again in 1 hour'
       else
         username = email.sub(/@.*/, '')
         Series.reload_with_dependencies(series.map(&:id), username)
-        # put a message up saying job submitted
+        'Job initiated'
       end
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
+      nil
     when 'unrestrict'
       series.each {|s| s.update!(restricted: false) }
+      nil
     when 'destroy'
       failed = []
       series.each {|s| s.destroy! rescue failed.push(s) }
       failed.each {|s| s.destroy! rescue nil }  ## second pass
+      nil
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
+      "Unknown action: #{action}"
     end
   end
 
