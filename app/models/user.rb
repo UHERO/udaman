@@ -71,8 +71,8 @@ class User < ApplicationRecord
         'Job not run - try again in 1 hour'
       else
         username = email.sub(/@.*/, '')
-        Series.reload_with_dependencies(series.map(&:id), username)
-        'Job initiated'
+       ## Series.reload_with_dependencies(series.map(&:id), username)
+        "Job initiated for #{username}"
       end
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
