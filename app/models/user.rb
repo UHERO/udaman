@@ -72,8 +72,15 @@ class User < ApplicationRecord
       else
         username = email.sub(/@.*/, '')
        ## Series.reload_with_dependencies(series.map(&:id), username)
+        sleep 2
         "Job initiated for #{username}"
       end
+    when 'reset'
+      series.each {|s| s.enabled_data_sources.each {|ld| ld.reset(false) } }
+      Rails.cache.clear          ## clear file cache on local (prod) Rails
+      ResetWorker.perform_async  ## clear file cache on the worker Rails
+      Rails.logger.warn { 'Rails file cache CLEARED' }
+      'Reset done'
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
       nil
