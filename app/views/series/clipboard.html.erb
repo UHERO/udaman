@@ -17,7 +17,6 @@
           <% if current_user.admin_user? %>
             <option value="reload">Batch reload series and deps</option>
             <option value="reset">Reset all downloads</option>
-            <option value="updatemeta" disabled="true">Update metadata</option>
             <option value="restrict">Restrict series</option>
             <option value="unrestrict">Unrestrict series</option>
           <% end %>
@@ -28,7 +27,7 @@
       <%= f.submit 'Go' %>
       <% end %></p>
   </div>
-  <span id="message_area"><%= @status_message %></span>
+  <span id="message_area" class="clip_action_status"><%= @status_message %></span>
 </div>
 <div id="details_area">
 <% if @clip_empty %>

@@ -68,10 +68,10 @@ class User < ApplicationRecord
     case action
     when 'reload'
       if other_jobs_are_running
-        'Job not run - try again in 1 hour'
+        'Worker busy - try again in 1 hour'
       else
         username = email.sub(/@.*/, '')
-       ## Series.reload_with_dependencies(series.map(&:id), username)
+        ## Series.reload_with_dependencies(series.map(&:id), username)
         sleep 2
         "Job initiated for #{username}"
       end
