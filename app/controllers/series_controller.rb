@@ -125,7 +125,11 @@ class SeriesController < ApplicationController
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
-    redirect_to action: :clipboard
+    if @status_message.nil?
+      redirect_to action: :clipboard
+    else
+      clipboard
+    end
   end
 
   def groupmeta
