@@ -67,13 +67,13 @@ class User < ApplicationRecord
   def do_clip_action(action)
     case action
     when 'reload'
-      if other_jobs_are_running
+      if worker_busy
         'Worker busy - try again in 1 hour'
       else
         username = email.sub(/@.*/, '')
         ## Series.reload_with_dependencies(series.map(&:id), username)
         sleep 2
-        "Job initiated for #{username}"
+        "Reload job initiated for #{username}"
       end
     when 'reset'
       series.each {|s| s.enabled_data_sources.each {|ld| ld.reset(false) } }
@@ -100,8 +100,10 @@ class User < ApplicationRecord
 
 private
 
-  def other_jobs_are_running
+  ### decide heuristically if the worker server Sidekiq is busy now
+  def worker_busy
     return true if NewDbedtUpload.find_by(status: 'processing')
+    return true if DvwUpload.find_by(series_status: 'processing')
     false
   end
 end
