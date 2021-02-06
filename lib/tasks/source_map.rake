@@ -123,6 +123,24 @@ task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task DONE' }
 end
 
+task :reload_job_daemon => :environment do
+  loop do  ## infinite
+    job = ReloadJob.where(status: nil).order(:created_at).first
+    unless job
+      sleep 60
+      next
+    end
+    job.update!(status: 'processing')
+    username = job.user.email.sub(/@.*/, '')
+    begin
+      Series.reload_with_dependencies(job.series.pluck(:id), username)
+      job.update!(status: 'done', finished_at: Time.now)
+    rescue => e
+      job.update!(status: 'fail', finished_at: Time.now, error: e.message[0..253])
+    end
+  end
+end
+
 API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
 
 task :encachitize_rest_api => :environment do

@@ -9,8 +9,8 @@ class CreateReloadJobs < ActiveRecord::Migration[5.2]
     add_column :reload_jobs, :status, %q{ENUM('processing','done','fail')}, null: true, after: :created_at
 
     create_table :reload_job_series, id: false do |t|
-      t.belongs_to :reload_job, index: true
-      t.belongs_to :series, index: true
+      t.belongs_to :reload_job
+      t.belongs_to :series
     end
     add_index :reload_job_series, [:reload_job_id, :series_id], unique: true
   end
