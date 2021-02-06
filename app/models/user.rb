@@ -93,8 +93,10 @@ class User < ApplicationRecord
       failed.each {|s| s.destroy! rescue nil }  ## second pass
       nil
     else
-      Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
-      "Unknown action: #{action}"
+      unless action.blank?
+        Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
+        "Unknown action: #{action}"
+      end
     end
   end
 
