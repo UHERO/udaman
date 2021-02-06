@@ -69,7 +69,7 @@ module SeriesDataAdjustment
     end
     trim(Date.new(last_date.year), nil)
   end
-  
+
   def get_values_after(start_date, end_date = self.last_observation)
     data.reject {|date, value| date <= start_date or value.nil? or date > end_date}
   end
