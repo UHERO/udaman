@@ -70,9 +70,9 @@ class User < ApplicationRecord
       if worker_busy
         'Worker busy - try again in 1 hour'
       else
-        rq = ReloadQueue.create(user_id: id) rescue raise('Failed to create ReloadQueue object')
-        rq.series << series
-        "Reload job #{rq.id} queued"
+        job = ReloadJob.create(user_id: id) rescue raise('Failed to create ReloadJob object')
+        job.series << series
+        "Reload job #{job.id} queued"
       end
     when 'reset'
       series.each {|s| s.enabled_data_sources.each {|ld| ld.reset(false) } }

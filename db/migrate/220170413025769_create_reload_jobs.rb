@@ -1,11 +1,22 @@
 class CreateReloadJobs < ActiveRecord::Migration[5.2]
-  def change
+  def self.up
     create_table :reload_jobs do |t|
       t.belongs_to :user
-      t.datetime :created_at
+      t.datetime :created_at, null: false
       t.datetime :finished_at
       t.string :error
     end
-    add_column :reload_queue, :status, %q{ENUM('processing','done','fail')}, after: :created_at
+    add_column :reload_jobs, :status, %q{ENUM('processing','done','fail')}, null: true, after: :created_at
+
+    create_table :reload_job_series, id: false do |t|
+      t.belongs_to :reload_job, index: true
+      t.belongs_to :series, index: true
+    end
+    add_index :reload_job_series, [:reload_job_id, :series_id], unique: true
+  end
+
+  def self.down
+    drop_table :reload_jobs if table_exists? :reload_jobs
+    drop_table :reload_job_series if table_exists? :reload_job_series
   end
 end
