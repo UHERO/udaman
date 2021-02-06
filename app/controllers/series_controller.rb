@@ -93,7 +93,7 @@ class SeriesController < ApplicationController
   end
 
   def clipboard
-    @all_series = current_user.series.sort_by(&:name)
+    @all_series = current_user.series.reload.sort_by(&:name)
     @clip_empty = @all_series.nil? || @all_series.empty?
     render :clipboard
   end
@@ -125,11 +125,7 @@ class SeriesController < ApplicationController
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
-    if @status_message.nil?
-      redirect_to action: :clipboard
-    else
-      clipboard
-    end
+    clipboard
   end
 
   def groupmeta
