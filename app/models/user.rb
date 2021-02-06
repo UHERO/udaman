@@ -71,7 +71,7 @@ class User < ApplicationRecord
         'Worker busy - try again in 1 hour'
       else
         username = email.sub(/@.*/, '')
-        ## Series.reload_with_dependencies(series.map(&:id), username)
+        Series.reload_with_dependencies(series.map(&:id), username)
         sleep 1
         "Reload job initiated for #{username}"
       end
