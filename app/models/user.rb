@@ -72,7 +72,7 @@ class User < ApplicationRecord
       else
         username = email.sub(/@.*/, '')
         ## Series.reload_with_dependencies(series.map(&:id), username)
-        sleep 2
+        sleep 1
         "Reload job initiated for #{username}"
       end
     when 'reset'
@@ -89,9 +89,10 @@ class User < ApplicationRecord
       nil
     when 'destroy'
       failed = []
+      nogo = false
       series.each {|s| s.destroy! rescue failed.push(s) }
-      failed.each {|s| s.destroy! rescue nil }  ## second pass
-      nil
+      failed.each {|s| s.destroy! rescue nogo = true }  ## second pass
+      nogo ? 'Some series could not be destroyed' : nil
     else
       unless action.blank?
         Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
