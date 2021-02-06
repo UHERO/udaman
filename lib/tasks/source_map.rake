@@ -63,6 +63,7 @@ end
 
 task :purge_old_logs => :environment do
   SeriesReloadLog.purge_old_logs
+  ReloadJob.purge_old_jobs
   DsdLogEntry.purge_old_logs(6.weeks)
 end
 
