@@ -1,6 +1,6 @@
-class CreateReloadQueue < ActiveRecord::Migration[5.2]
+class CreateReloadJobs < ActiveRecord::Migration[5.2]
   def change
-    create_table :reload_queue do |t|
+    create_table :reload_jobs do |t|
       t.belongs_to :user
       t.datetime :created_at
       t.datetime :finished_at
