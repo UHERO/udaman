@@ -130,6 +130,7 @@ task :reload_job_daemon => :environment do
       sleep 60
       next
     end
+    Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
     job.update!(status: 'processing')
     username = job.user.email.sub(/@.*/, '')
     begin
@@ -138,6 +139,7 @@ task :reload_job_daemon => :environment do
     rescue => e
       job.update!(status: 'fail', finished_at: Time.now, error: e.message[0..253])
     end
+    Rails.logger.info { "reload_job_daemon: finished running job #{job.id}" }
   end
 end
 
