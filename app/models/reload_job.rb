@@ -17,4 +17,8 @@ class ReloadJob < ApplicationRecord
       PackagerMailer.purge_log_notification(message).deliver
     end
   end
+
+  def ReloadJob.busy?
+    ReloadJob.find_by(status: 'processing') ? true : false
+  end
 end

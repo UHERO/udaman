@@ -28,5 +28,4 @@ private
     return true if DvwUpload.find_by(series_status: 'processing')
     false
   end
-
 end
