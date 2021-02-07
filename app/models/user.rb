@@ -65,15 +65,13 @@ class User < ApplicationRecord
   end
 
   def do_clip_action(action)
+    return nil if action.blank?
+
     case action
     when 'reload'
-      if worker_busy
-        'Worker busy - try again in 1 hour'
-      else
-        job = ReloadJob.create(user_id: id) rescue raise('Failed to create ReloadJob object')
-        job.series << series
-        "Reload job #{job.id} queued"
-      end
+      job = ReloadJob.create(user_id: id) rescue raise('Failed to create ReloadJob object')
+      job.series << series
+      "Reload job #{job.id} queued"
     when 'reset'
       series.each {|s| s.enabled_data_sources.each {|ld| ld.reset(false) } }
       Rails.cache.clear          ## clear file cache on local (prod) Rails
@@ -93,19 +91,9 @@ class User < ApplicationRecord
       failed.each {|s| s.destroy! rescue nogo = true }  ## second pass
       nogo ? 'Some series could not be destroyed' : nil
     else
-      unless action.blank?
-        Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
-        "Unknown action: #{action}"
-      end
+      Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
+      "Unknown action: #{action}"
     end
   end
 
-private
-
-  ### decide heuristically if the worker server Sidekiq is busy now
-  def worker_busy
-    return true if NewDbedtUpload.find_by(status: 'processing')
-    return true if DvwUpload.find_by(series_status: 'processing')
-    false
-  end
 end

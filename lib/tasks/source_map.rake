@@ -61,9 +61,9 @@ task :batch_reload_uhero => :environment do
   DataPoint.update_public_all_universes
 end
 
-task :purge_old_logs => :environment do
-  SeriesReloadLog.purge_old_logs
+task :purge_old_stuff => :environment do
   ReloadJob.purge_old_jobs
+  SeriesReloadLog.purge_old_logs
   DsdLogEntry.purge_old_logs(6.weeks)
 end
 
@@ -125,23 +125,7 @@ task :update_public_data_points => :environment do
 end
 
 task :reload_job_daemon => :environment do
-  loop do  ## infinite
-    job = ReloadJob.where(status: nil).order(:created_at).first
-    unless job
-      sleep 60
-      next
-    end
-    Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
-    job.update!(status: 'processing')
-    username = job.user.email.sub(/@.*/, '')
-    begin
-      Series.reload_with_dependencies(job.series.pluck(:id), username)
-      job.update!(status: 'done', finished_at: Time.now)
-    rescue => e
-      job.update!(status: 'fail', finished_at: Time.now, error: e.message[0..253])
-    end
-    Rails.logger.info { "reload_job_daemon: finished running job #{job.id}" }
-  end
+
 end
 
 API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='

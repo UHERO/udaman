@@ -13,6 +13,9 @@ class CreateReloadJobs < ActiveRecord::Migration[5.2]
       t.belongs_to :series
     end
     add_index :reload_job_series, [:reload_job_id, :series_id], unique: true
+
+    ## totally unrelated to this branch, just needed to get this extra thing done
+    change_column_default :series, :dependency_depth, 0
   end
 
   def self.down
