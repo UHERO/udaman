@@ -8,7 +8,7 @@ class NewDbedtUpload < ApplicationRecord
     return false unless file
     now = Time.now
     if ReloadJob.busy?
-      self.assign_attributes(upload_at: now, active: false,
+      self.assign_attributes(upload_at: now, active: false, filename: nil,
                              last_error_at: now, last_error: 'System busy - Please try again in 1 hour')
       self.save!
       return false

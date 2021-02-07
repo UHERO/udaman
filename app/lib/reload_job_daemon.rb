@@ -3,7 +3,7 @@ class ReloadJobDaemon
   def ReloadJobDaemon.perform
     loop do  ## infinite
       job = ReloadJob.where(status: nil).order(:created_at).first
-      if job.nil? || worker_busy
+      if job.nil? || worker_busy?
         sleep 120
         next
       end
@@ -23,7 +23,7 @@ class ReloadJobDaemon
 private
 
   ### decide heuristically if the worker server Sidekiq is busy now
-  def worker_busy
+  def self.worker_busy?
     return true if NewDbedtUpload.find_by(status: 'processing')
     return true if DvwUpload.find_by(series_status: 'processing')
     false
