@@ -124,10 +124,6 @@ task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task DONE' }
 end
 
-task :reload_job_daemon => :environment do
-
-end
-
 API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
 
 task :encachitize_rest_api => :environment do

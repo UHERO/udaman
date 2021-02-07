@@ -2,13 +2,9 @@ class ReloadJobDaemon
 
   def ReloadJobDaemon.perform
     loop do  ## infinite
-      if worker_busy
-        sleep 120
-        next
-      end
       job = ReloadJob.where(status: nil).order(:created_at).first
-      unless job
-        sleep 60
+      if job.nil? || worker_busy
+        sleep 120
         next
       end
       Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
