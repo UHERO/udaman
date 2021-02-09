@@ -6,11 +6,9 @@ class ReloadJob < ApplicationRecord
 
   def ReloadJob.purge_old_jobs(horizon = 2.weeks)
     begin
-      stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
-        delete from reload_jobs where created_at < ?
-      MYSQL
-      stmt.execute(Time.now - horizon)
-      stmt.close
+      ReloadJob.where('created_at < ?', Time.now - horizon).each do |job|
+        job.destroy!   ## done within Rails/AR to enable ORM to also remove dependent records
+      end
     rescue => e
       message = "ReloadJob.purge_old_jobs FAILURE: #{e.message}"
       Rails.logger.error { message }
