@@ -7,6 +7,12 @@ class NewDbedtUpload < ApplicationRecord
   def store_upload_file(file)
     return false unless file
     now = Time.now
+    if ReloadJob.busy?
+      self.assign_attributes(upload_at: now, active: false, filename: nil,
+                             last_error_at: now, last_error: 'System busy - Please try again in 1 hour')
+      self.save!
+      return false
+    end
     file_content = file.read
     filename_ext = file.original_filename.split('.')[-1]
     self.assign_attributes(upload_at: now,

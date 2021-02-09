@@ -65,17 +65,35 @@ class User < ApplicationRecord
   end
 
   def do_clip_action(action)
+    return nil if action.blank?
+
     case action
+    when 'reload'
+      job = ReloadJob.create(user_id: id) rescue raise('Failed to create ReloadJob object')
+      job.series << series
+      "Reload job #{job.id} queued"
+    when 'reset'
+      series.each {|s| s.enabled_data_sources.each {|ld| ld.reset(false) } }
+      Rails.cache.clear          ## clear file cache on local (prod) Rails
+      ResetWorker.perform_async  ## clear file cache on the worker Rails
+      Rails.logger.warn { 'Rails file cache CLEARED' }
+      'Reset done'
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
+      nil
     when 'unrestrict'
       series.each {|s| s.update!(restricted: false) }
+      nil
     when 'destroy'
       failed = []
+      nogo = false
       series.each {|s| s.destroy! rescue failed.push(s) }
-      failed.each {|s| s.destroy! rescue nil }  ## second pass
+      failed.each {|s| s.destroy! rescue nogo = true }  ## second pass
+      nogo ? 'Some series could not be destroyed' : nil
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
+      "Unknown action: #{action}"
     end
   end
+
 end
