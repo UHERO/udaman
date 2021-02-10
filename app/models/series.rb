@@ -1116,8 +1116,8 @@ class Series < ApplicationRecord
           conditions.push %q{series.name = ?}
           bindvars.push tane
         when /^\^/
-          conditions.push %q{substring_index(name,'@',1) regexp ?}
-          bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
+          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
+          bindvars.push '^' + term
         when /^[~]/  ## tilde
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push tane
@@ -1132,12 +1132,14 @@ class Series < ApplicationRecord
           end
         when /^[@]/
           all = all.joins(:geography)
-          conditions.push %q{geographies.handle = ?}
-          bindvars.push tane
+          geos = tane.upcase == 'HI5' ? %w{HI HAW HON KAU MAU} : [tane]
+          qmarks = (['?'] * geos.count).join(',')
+          conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
+          bindvars.concat geos
         when /^[.]/
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
-          conditions.push %Q{xseries.frequency in (#{qmarks})}
+          conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
