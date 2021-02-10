@@ -1105,7 +1105,8 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      tane = term[1..]
+      negated = term[1] == '-' ? 'not ' : nil
+      tane = negated ? term[2..] : term[1..]
       case term
         when /^\//
           univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
@@ -1118,7 +1119,7 @@ class Series < ApplicationRecord
           conditions.push %q{substring_index(name,'@',1) regexp ?}
           bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
         when /^[~]/  ## tilde
-          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push tane
         when /^[:]/
           if term =~ /^::/
