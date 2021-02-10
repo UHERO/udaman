@@ -7,7 +7,7 @@ class ReloadJob < ApplicationRecord
   def ReloadJob.purge_old_jobs(horizon = 2.weeks)
     begin
       ReloadJob.where('created_at < ?', Time.now - horizon).each do |job|
-        job.destroy!   ## done within Rails/AR to enable ORM to also remove dependent records
+        job.destroy!   ## done within Rails/AR to enable ORM to also remove dependent bridge table records
       end
     rescue => e
       message = "ReloadJob.purge_old_jobs FAILURE: #{e.message}"
