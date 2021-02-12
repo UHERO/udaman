@@ -1105,8 +1105,12 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      negated = term[1] == '-' ? 'not ' : nil
-      tane = negated ? term[2..] : term[1..]
+      negated = nil
+      if term[0] == '-'
+        negated = 'not '
+        term = term[1..]  ## chop off initial '-'
+      end
+      tane = term[1..]  ## chop off operator, if any
       case term
         when /^\//
           univ = { u: 'UHERO', db: 'DBEDT' }[tane.to_sym] || tane
@@ -1117,7 +1121,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^\^/
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
-          bindvars.push '^' + tane
+          bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
         when /^[~]/  ## tilde
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push tane
@@ -1170,12 +1174,9 @@ class Series < ApplicationRecord
           bindvars = sids
           univ = nil  ## disable setting of the universe - not wanted for direct ID number access
           break
-        when /^[-]/
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
-          bindvars.push tane
         else
-          ## a "bare" word
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) regexp ?}
+          ## a "bare" text string
+          conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           bindvars.push term
       end
     end
