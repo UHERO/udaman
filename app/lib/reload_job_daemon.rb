@@ -24,6 +24,9 @@ private
 
   ### decide heuristically if the worker server Sidekiq is busy now
   def self.worker_busy?
+    ## It sorta sucks to put the following scheduling info into the code, but it's the most practical way for now
+    return true if Time.now.hour >= 19 && Time.now.hour <= 23  ## the usual period of the nighttime part of the Nightly Load
+    return true if Time.now.hour >= 6  && Time.now.hour <= 9   ## the usual period of the morning part of the Nightly Load
     return true if NewDbedtUpload.find_by(status: 'processing')
     return true if DvwUpload.find_by(series_status: 'processing')
     false
