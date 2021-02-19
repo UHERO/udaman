@@ -358,11 +358,36 @@
           <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
         <% end %>
       </table>
-    <tr>
+      <tr><td><h2>Reload Jobs</h2></td></tr>
+      <table class="list_table">
+        <thead>
+        <tr>
+          <th>Id</th>
+          <th>User</th>
+          <th>Created</th>
+          <th>Status</th>
+          <th>Finished</th>
+          <th colspan="1"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <% @all_reload_jobs.each do |job| %>
+          <tr>
+            <td><%= job.id %></td>
+            <td><%= job.user.email %></td>
+            <td><%= job.created_at.strftime("%m/%d/%y %H:%M") %></td>
+            <td><%= job.status %></td>
+            <td><%= job.finished_at.strftime("%m/%d/%y %H:%M") %></td>
+            <td><%= job.error %></td>
+            <td><%= link_to 'Cancel', job, method: :delete, data: { confirm: "Cancel reload #{job.id}\nAre you sure??" } %></td>
+          </tr>
+        <% end %>
+        </tbody>
+      </table>
+      <tr>
 		<td colspan=2>
 			<h2>Update Spreadsheets</h2>
 			<svg id="update_spreadsheets"></svg>
-
 		</td>
 		</tr>
 		</table>
