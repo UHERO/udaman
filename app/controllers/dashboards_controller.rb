@@ -23,6 +23,10 @@ class DashboardsController < ApplicationController
     @all_reload_jobs = ReloadJob.all.order(created_at: :desc)
   end
 
+  def destroy_job
+
+  end
+
   def update_public_dp
     Rails.logger.info { 'Updating public data points for all universes' }
     DataPoint.update_public_all_universes

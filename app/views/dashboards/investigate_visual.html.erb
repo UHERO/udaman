@@ -351,13 +351,6 @@
       <% end %>
 		</td>
 		</tr>
-      <tr><td><h2>Current load errors</h2></td></tr>
-      <table>
-        <th>Count</th><th>Error message</th>
-        <% @err_summary.each do |entry| %>
-          <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
-        <% end %>
-      </table>
       <tr><td><h2>Reload Jobs</h2></td></tr>
       <table class="list_table">
         <thead>
@@ -369,8 +362,7 @@
           <th>Finished</th>
           <th>Count</th>
           <th>Series...</th>
-          <th>Error</th>
-          <th></th>
+          <th colspan="100%">Error</th>
         </tr>
         </thead>
         <tbody>
@@ -382,12 +374,21 @@
             <td><%= job.created_at.strftime("%m/%d/%y %H:%M") %></td>
             <td><%= job.finished_at.strftime("%m/%d/%y %H:%M") %></td>
             <td><%= job.series.count %></td>
-            <td><%= job.series.map(&:name)[0..2].join(' ') + ' ...' %></td>
+            <td><%= job.series[0..2].map(&:name).join(' ') + ' ...' %></td>
             <td><%= job.error[0..80] %></td>
-            <td><!-- %= link_to 'Cancel', job, method: :delete, data: { confirm: "Cancel reload #{job.id}\nAre you sure??" } % --></td>
+            <% if job.status == 'processing' %>
+              <td><!-- %= link_to 'Kill', { action: destroy_job, id: job }, data: { confirm: "Kill reload #{job.id}\nAre you sure??" } % --></td>
+            <% end %>
           </tr>
         <% end %>
         </tbody>
+      </table>
+      <tr><td><h2>Current load errors</h2></td></tr>
+      <table>
+        <th>Count</th><th>Error message</th>
+        <% @err_summary.each do |entry| %>
+          <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
+        <% end %>
       </table>
       <tr>
 		<td colspan=2>
