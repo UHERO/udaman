@@ -364,11 +364,11 @@
         <tr>
           <th>Id</th>
           <th>User</th>
-          <th>Count</th>
           <th>Status</th>
           <th>Created</th>
           <th>Finished</th>
-          <th>Series</th>
+          <th>Count</th>
+          <th>Series...</th>
           <th>Error</th>
           <th></th>
         </tr>
@@ -378,12 +378,12 @@
           <tr>
             <td><%= job.id %></td>
             <td><%= job.user.email.sub(/@.*/, '') %></td>
-            <td><%= job.series.count %></td>
             <td><%= job.status %></td>
             <td><%= job.created_at.strftime("%m/%d/%y %H:%M") %></td>
             <td><%= job.finished_at.strftime("%m/%d/%y %H:%M") %></td>
-            <td><%= job.series.map(&:name)[0..2].join(' ') + '...' %></td>
-            <td><%= job.error %></td>
+            <td><%= job.series.count %></td>
+            <td><%= job.series.map(&:name)[0..2].join(' ') + ' ...' %></td>
+            <td><%= job.error[0..80] %></td>
             <td><!-- %= link_to 'Cancel', job, method: :delete, data: { confirm: "Cancel reload #{job.id}\nAre you sure??" } % --></td>
           </tr>
         <% end %>
