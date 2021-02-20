@@ -26,7 +26,7 @@ class DashboardsController < ApplicationController
   def destroy_reload_job
     job_id = params[:id].to_i
     return if job_id < 1
-    ReloadJob.find(job_id).destroy
+    ReloadJob.find(job_id).destroy rescue nil
     redirect_to :investigate_visual
   end
 
