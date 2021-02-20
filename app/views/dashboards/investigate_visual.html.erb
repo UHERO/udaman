@@ -376,8 +376,9 @@
             <td><%= job.series.count %></td>
             <td><%= job.series[0..2].map(&:name).join(' ') + ' ...' %></td>
             <td><%= job.error[0..80] %></td>
-            <% if job.status == 'processing' %>
-              <td><!-- %= link_to 'Kill', { action: destroy_job, id: job }, data: { confirm: "Kill reload #{job.id}\nAre you sure??" } % --></td>
+            <% if job.status.nil? %>
+              <td><!-- %= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe,
+                            { action: destroy_job, id: job }, data: { confirm: "Cancel reload #{job.id}\nAre you sure??" } % --></td>
             <% end %>
           </tr>
         <% end %>
