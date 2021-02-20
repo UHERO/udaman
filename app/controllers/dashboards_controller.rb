@@ -23,7 +23,7 @@ class DashboardsController < ApplicationController
     @all_reload_jobs = ReloadJob.all.order(created_at: :desc)
   end
 
-  def destroy_job
+  def destroy_reload_job
     job_id = params[:id].to_i
     return if job_id < 1
     ReloadJob.find(job_id).destroy

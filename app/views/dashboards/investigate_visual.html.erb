@@ -371,8 +371,7 @@
             <td><%= job.id %></td>
             <td><%= job.user.email.sub(/@.*/, '') %></td>
             <td><% if job.status.nil? %>
-                    waiting<%= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe,
-                                { action: :destroy_job, id: job }, data: { confirm: "Cancel reload #{job.id}\nAre you sure??" } %>
+                    waiting<%= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe, { action: :destroy_reload_job, id: job } %>
                 <% else %>
                     <%= job.status %>
                 <% end %>
