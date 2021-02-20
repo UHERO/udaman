@@ -381,7 +381,7 @@
             <td style="text-align:center;"><%= job.finished_at.strftime('%H:%M') rescue '-' %></td>
             <td style="text-align:center;"><%= job.series.count %></td>
             <td><%= job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s %></td>
-            <td class="error_message"><%= (job.error[0..80] + ('...' if job.error.length > 81).to_s) rescue nil %></td>
+            <td class="error_message"><%= job.error rescue nil %></td>
           </tr>
         <% end %>
         </tbody>
