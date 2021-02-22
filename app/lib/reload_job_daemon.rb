@@ -24,6 +24,7 @@ private
 
   ### decide heuristically if the worker server Sidekiq is busy now
   def self.worker_busy?
+    return true if daily_batch_running?
     return true if NewDbedtUpload.find_by(status: 'processing')
     return true if DvwUpload.find_by(series_status: 'processing')
     false
