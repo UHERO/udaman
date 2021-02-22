@@ -1,5 +1,6 @@
 class ReloadJob < ApplicationRecord
   include Cleaning
+  ##include HelperUtilities
   belongs_to :user
   has_many :reload_job_series, dependent: :delete_all
   has_many :series, -> {distinct}, through: :reload_job_series
@@ -19,6 +20,8 @@ class ReloadJob < ApplicationRecord
   end
 
   def ReloadJob.busy?
-    ReloadJob.find_by(status: 'processing') ? true : false
+    return 'System busy - Please try again after 9:00 AM' if daily_batch_running?
+    return 'System busy - Please try again in 1 hour'     if ReloadJob.find_by(status: 'processing')
+    false
   end
 end

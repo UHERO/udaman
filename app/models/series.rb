@@ -1136,7 +1136,7 @@ class Series < ApplicationRecord
           end
         when /^[@]/
           all = all.joins(:geography)
-          geos = tane.upcase == 'HI5' ? %w{HI HAW HON KAU MAU} : [tane]
+          geos = tane.upcase == 'HI5' ? %w{HI HAW HON KAU MAU} : tane.split(',')
           qmarks = (['?'] * geos.count).join(',')
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos
