@@ -45,7 +45,8 @@ module SeriesHelper
 
   def series_data_csv_gen(series_set)
     CSV.generate do |csv|
-      csv << "foo"
+      csv << series.map(&:name)
+      # find earlier and latest observations, loop from earliest to latest, then (2nd dim) obsv.at each series at that date
       series_set.each do |s|
       end
     end

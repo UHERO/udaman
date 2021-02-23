@@ -113,7 +113,7 @@ class SeriesController < ApplicationController
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
       results = Series.search_box(params[:search], limit: 500, user_id: current_user.id)
-      current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &-clip is used
+      current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
     redirect_to action: :clipboard
@@ -129,8 +129,8 @@ class SeriesController < ApplicationController
   end
 
   def group_export
-    @all_series = current_user.series.sort_by(&:name)
     @type = params[:type]
+    @all_series = current_user.series.sort_by(&:name)
   end
 
   def index
