@@ -35,7 +35,7 @@ class TsdFile < ApplicationRecord
     raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
-    series_hash.merge!(get_second_line_attributes)
+    series_hash.merge! get_second_line_attributes
     series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
     read_next_line
     series_hash[:data] = get_data
@@ -88,7 +88,9 @@ class TsdFile < ApplicationRecord
     series = []
     read_tsd_block do |tsd|
       begin
-        series.push(tsd.get_next_series(nils: nils)) if @last_line_type == :name_line
+        if @last_line_type == :name_line
+          series.push tsd.get_next_series(nils: nils)
+        end
       end until @last_line.nil?
     end
     series
@@ -110,14 +112,14 @@ class TsdFile < ApplicationRecord
     return parse_quarterly_data(data, start_date_string, nils: nils) if frequency == 'Q'
     return parse_monthly_data(data, start_date_string, nils: nils) if frequency == 'M'
     return parse_weekly_data(data, start_date_string, nils: nils) if frequency == 'W'
-    parse_daily_data(data, start_date_string, nils: nils) if frequency == 'D'
+    return parse_daily_data(data, start_date_string, nils: nils) if frequency == 'D'
+    raise "TSD parse_data: unknown frequency #{frequency}"
   end
 
   def parse_date(aremos_date_string, frequency, daily_switches)
     if frequency == 'W'
       listed_date = Date.parse(aremos_date_string)
       date = listed_date+daily_switches.index('1')
-      #puts '#{daily_switches} | #{aremos_date_string} | #{Date.parse(aremos_date_string).wday} | #{date}' 
       return date.to_s
     end
     year = aremos_date_string[0..3]
@@ -131,7 +133,8 @@ class TsdFile < ApplicationRecord
     "#{year}-#{month}-#{day}"
   end
 
-  protected
+protected
+
   def read_tsd_block_no_first_line
     open_tsd
     yield self

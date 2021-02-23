@@ -37,6 +37,7 @@ a:visited { color: #000; }  // was #666 before buttonlink considerations
 a:hover { color: #fff; background-color:#000; }
 // a.buttonlink:visited { color: #000; }  // Don't change the color of actuator-type links when they are visited
 // a.buttonlink:hover { color: #fff; background-color:#000; }
+.error_message { color: #B81104; }
 span.error_message { color: #B81104; }
 span.error_message a { color: #B81104; }
 span.error_message a:visited { color: #B81104; }

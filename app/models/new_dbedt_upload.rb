@@ -7,6 +7,12 @@ class NewDbedtUpload < ApplicationRecord
   def store_upload_file(file)
     return false unless file
     now = Time.now
+    busy_message = ReloadJob.busy?
+    if busy_message
+      self.assign_attributes(upload_at: now, active: false, filename: nil, last_error_at: now, last_error: busy_message)
+      self.save!
+      return false
+    end
     file_content = file.read
     filename_ext = file.original_filename.split('.')[-1]
     self.assign_attributes(upload_at: now,
@@ -172,7 +178,7 @@ class NewDbedtUpload < ApplicationRecord
       area = row['area_id'].to_i
       ### Geography info hardwired in code for simplicity and convenience. Records are expected to already exist in db.
       geo_handle = [nil, 'HI', 'HAW', 'HON', 'KAU', 'MAU'][area] || raise("Area ID=#{area} is blank/unknown around row #{data_points.count}")
-      geo_id = allgeos[geo_handle]
+      geo_id = allgeos[geo_handle].id rescue nil
       unless geo_id
         allgeos[geo_handle] = Geography.get(universe: 'DBEDT', handle: geo_handle) || raise("Area handle #{geo_handle} missing from db")
         geo_id = allgeos[geo_handle].id
@@ -299,16 +305,17 @@ private
   def csv_extract
     xls_path = absolute_path
     csv_path = xls_path.change_file_extension('') ### truncate extension to make a directory name
-    other_worker = ENV['OTHER_WORKER']
+    ## other_worker = ENV['OTHER_WORKER']
 
     unless File.exists?(xls_path)
       mylogger :warn, "xls file #{xls_path} does not exist"
-      if other_worker.blank?
-        raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
-      end
-      unless system("rsync -t #{other_worker + ':' + xls_path} #{xls_path}")
-        raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
-      end
+      raise "Could not find xlsx file ((#{xls_path}) #{id})"
+      ## if other_worker.blank?
+      ##   raise "Could not find xlsx file ((#{xls_path}) #{id}) and no $OTHER_WORKER defined"
+      ## end
+      ## unless system("rsync -t #{other_worker + ':' + xls_path} #{xls_path}")
+      ##   raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
+      ## end
     end
     unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
       raise "Could not transform xlsx to csv (#{id}:#{$?})"
@@ -316,9 +323,9 @@ private
 
     Dir.glob(File.join(csv_path, '*.csv')).each {|f| File.rename(f, f.downcase) } ## force csv filenames to lower case
 
-    if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + csv_path}")
-      raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
-    end
+    ## if other_worker && !system("rsync -rt #{csv_path} #{other_worker + ':' + csv_path}")
+    ##   raise "Could not copy #{csv_path} for #{id} to $OTHER_WORKER: #{other_worker} (#{$?})"
+    ## end
   end
 
   def path(name = nil)

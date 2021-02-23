@@ -61,7 +61,8 @@ task :batch_reload_uhero => :environment do
   DataPoint.update_public_all_universes
 end
 
-task :purge_old_logs => :environment do
+task :purge_old_stuff => :environment do
+  ReloadJob.purge_old_jobs
   SeriesReloadLog.purge_old_logs
   DsdLogEntry.purge_old_logs(6.weeks)
 end

@@ -930,13 +930,14 @@ class Series < ApplicationRecord
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
      in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+    ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
+    nas_path = 'udaman@uheronas:/volume1/UHEROroot/work/udamandata'
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
-    ## Hostname alias "macmini" is defined in /etc/hosts - change there if necessary
-    if system("rsync -r --del uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/BnkLists/ #{in_path}")
-      Rails.logger.info { "run_tsd_exports: synced #{in_path} from Mac mini to local disk" }
+    if system("rsync -r --del #{nas_path}/BnkLists/ #{in_path}")  ## final slash needed on source dir name
+      Rails.logger.info { "run_tsd_exports: synced #{in_path} from NAS to local disk" }
     else
-      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from Mac mini to local disk - using existing files" }
+      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from NAS to local disk - using existing files" }
     end
 
     files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
@@ -950,21 +951,14 @@ class Series < ApplicationRecord
       frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
-      Rails.logger.info { "run_tsd_exports: exporting series to #{output_file}" }
+      Rails.logger.info { "run_tsd_exports: export #{list} to #{output_file}" }
       Series.write_data_list_tsd(list, output_file)
     end
 
-    mini_location = 'uhero@macmini:/Volumes/UHERO/UHEROwork/MacMiniData/udaman_tsd'
-    if system("rsync -r #{out_path}/ #{mini_location}")  ## final slash needed on source dir name
-      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to Mac mini" }
+    if system("rsync -r #{out_path}/ #{nas_path}/udaman_tsd")  ## final slash needed on source dir name
+      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to NAS" }
     else
-      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to Mac mini" }
-    end
-    prod_location = 'uhero@udaman.uhero.hawaii.edu:' + out_path
-    if system("rsync -r #{out_path}/ #{prod_location}")  ## this copy might not be needed. If not, 86 it later.
-      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to production" }
-    else
-      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} to production" }
+      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to NAS" }
     end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
@@ -1111,38 +1105,45 @@ class Series < ApplicationRecord
     conditions = []
     bindvars = []
     input_string.split.each do |term|
-      tane = term[1..]
+      negated = nil
+      if term[0] == '-'
+        negated = 'not '
+        term = term[1..]  ## chop off initial '-'
+      end
+      tane = term[1..]  ## chop off operator, if any
       case term
         when /^\//
-          univ = { 'u' => 'UHERO', 'db' => 'DBEDT' }[tane] || tane
+          univ = { u: 'UHERO', db: 'DBEDT' }[tane.to_sym] || tane
         when /^[+]/
           limit = tane.to_i
         when /^[=]/
           conditions.push %q{series.name = ?}
           bindvars.push tane
         when /^\^/
-          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
         when /^[~]/  ## tilde
-          conditions.push %q{substring_index(name,'@',1) regexp ?}
+          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push tane
         when /^[:]/
           if term =~ /^::/
             all = all.joins('left outer join sources on sources.id = series.source_id')
-            conditions.push %q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) regexp ?}
+            conditions.push %Q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) #{negated}regexp ?}
             bindvars.push tane[1..]
           else
-            conditions.push %q{source_link regexp ?}
+            conditions.push %Q{source_link #{negated}regexp ?}
             bindvars.push tane
           end
         when /^[@]/
           all = all.joins(:geography)
-          conditions.push %q{geographies.handle = ?}
-          bindvars.push tane
+          geos = tane.upcase == 'HI5' ? %w{HI HAW HON KAU MAU} : tane.split(',')
+          qmarks = (['?'] * geos.count).join(',')
+          conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
+          bindvars.concat geos
         when /^[.]/
           freqs = tane.split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
-          conditions.push %Q{xseries.frequency in (#{qmarks})}
+          conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
@@ -1153,12 +1154,12 @@ class Series < ApplicationRecord
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
         when /^[&]/
-          conditions.push case tane
+          conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}
                           when 'r'   then %q{restricted = true}
                           when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
                           when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
-                          when '-clip'
+                          when 'noclip'
                             raise 'No user identified for clipboard access' if user_id.nil?
                             bindvars.push user_id.to_i
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
@@ -1173,12 +1174,9 @@ class Series < ApplicationRecord
           bindvars = sids
           univ = nil  ## disable setting of the universe - not wanted for direct ID number access
           break
-        when /^[-]/
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) not regexp ?}
-          bindvars.push tane
         else
-          ## a "naked" word
-          conditions.push %q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) regexp ?}
+          ## a "bare" text string
+          conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           bindvars.push term
       end
     end

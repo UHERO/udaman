@@ -340,13 +340,52 @@
                         form_class: 'dvw-restart-button', remote: true) %>
                <i id="dvw-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i>
         </p>
+        <p>
         <%= button_to('Update public data points', { controller: :dashboards, action: :update_public_dp },
                          { form_class: 'button-with-indicator', remote: true }) %>
                <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
-
+        <%= button_to('Sync files from NAS', { controller: :dashboards, action: :force_sync_files },
+                        { form_class: 'nas-sync-button', remote: true }) %>
+          <i id="nas-sync-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
+        </p>
       <% end %>
 		</td>
 		</tr>
+      <tr><td><h2>Reload Jobs</h2></td></tr>
+      <table class="list_table">
+        <thead>
+        <tr>
+          <th>Id</th>
+          <th>User</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Finished</th>
+          <th>Count</th>
+          <th>Series...</th>
+          <th colspan="100%">Error</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% @all_reload_jobs.each do |job| %>
+          <tr>
+            <td><%= job.id %></td>
+            <td><%= job.user.email.sub(/@.*/, '') %></td>
+            <td style="text-align:center;">
+                <% if job.status.nil? %>
+                    waiting<%= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe, { action: :destroy_reload_job, id: job } %>
+                <% else %>
+                    <%= job.status %>
+                <% end %>
+            </td>
+            <td><%= job.created_at.strftime('%m/%d/%y %H:%M') %></td>
+            <td style="text-align:center;"><%= job.finished_at.strftime('%H:%M') rescue '-' %></td>
+            <td style="text-align:center;"><%= job.series.count %></td>
+            <td><%= job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s %></td>
+            <td class="error_message"><%= job.error rescue nil %></td>
+          </tr>
+        <% end %>
+        </tbody>
+      </table>
       <tr><td><h2>Current load errors</h2></td></tr>
       <table>
         <th>Count</th><th>Error message</th>
@@ -354,11 +393,10 @@
           <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
         <% end %>
       </table>
-    <tr>
+      <tr>
 		<td colspan=2>
 			<h2>Update Spreadsheets</h2>
 			<svg id="update_spreadsheets"></svg>
-
 		</td>
 		</tr>
 		</table>
