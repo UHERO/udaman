@@ -45,7 +45,7 @@ module SeriesHelper
 
   def series_data_csv_gen(series_set)
     CSV.generate do |csv|
-      csv << ['Date', series_set.map(&:name)]
+      csv << ['Date'] + series_set.map(&:name)
       all_dates = series_set.map {|s| s.data.keys }.flatten.sort.uniq
       all_dates.each do |date|
         csv << [date, series_set.map {|s| s.at(date) }]
