@@ -120,16 +120,17 @@ class SeriesController < ApplicationController
   end
 
   def do_clip_action
-    if params[:clip_action] == 'csv'
-      redirect_to action: :groupmeta, format: :csv, layout: false
+    if params[:clip_action] =~ /csv/
+      redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
 
-  def groupmeta
+  def group_export
     @all_series = current_user.series.sort_by(&:name)
+    @type = params[:type]
   end
 
   def index
