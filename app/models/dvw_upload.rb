@@ -6,8 +6,14 @@ class DvwUpload < ApplicationRecord
   enum status: { processing: 'processing', ok: 'ok', fail: 'fail' }
 
   def store_upload_files(series_file)
-    now = Time.now
     return false unless series_file
+    now = Time.now
+    busy_message = ReloadJob.busy?
+    if busy_message
+      self.assign_attributes(upload_at: now, active: false, filename: nil, last_error_at: now, last_error: busy_message)
+      self.save!
+      return false
+    end
     series_file_content = series_file.read
     series_file_ext = series_file.original_filename.split('.')[-1]
     self.filename = DvwUpload.make_filename(now, 'series', series_file_ext)

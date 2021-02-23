@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025767) do
+ActiveRecord::Schema.define(version: 220170413025769) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -366,6 +366,23 @@ ActiveRecord::Schema.define(version: 220170413025767) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "reload_job_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    t.bigint "reload_job_id"
+    t.bigint "series_id"
+    t.index ["reload_job_id", "series_id"], name: "index_reload_job_series_on_reload_job_id_and_series_id", unique: true
+    t.index ["reload_job_id"], name: "index_reload_job_series_on_reload_job_id"
+    t.index ["series_id"], name: "index_reload_job_series_on_series_id"
+  end
+
+  create_table "reload_jobs", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    t.bigint "user_id"
+    t.datetime "created_at", null: false
+    t.string "status", limit: 10
+    t.datetime "finished_at"
+    t.string "error"
+    t.index ["user_id"], name: "index_reload_jobs_on_user_id"
+  end
+
   create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.integer "xseries_id", null: false
@@ -375,7 +392,7 @@ ActiveRecord::Schema.define(version: 220170413025767) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.text "investigation_notes"
-    t.integer "dependency_depth"
+    t.integer "dependency_depth", default: 0
     t.integer "unit_id"
     t.integer "geography_id"
     t.integer "decimals", default: 1, null: false
@@ -445,6 +462,14 @@ ActiveRecord::Schema.define(version: 220170413025767) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["universe", "short_label", "long_label"], name: "index_units_on_universe_and_short_label_and_long_label", unique: true
+  end
+
+  create_table "user_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    t.bigint "user_id"
+    t.bigint "series_id"
+    t.index ["series_id"], name: "index_user_series_on_series_id"
+    t.index ["user_id", "series_id"], name: "index_user_series_on_user_id_and_series_id", unique: true
+    t.index ["user_id"], name: "index_user_series_on_user_id"
   end
 
   create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|

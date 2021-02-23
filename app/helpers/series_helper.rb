@@ -126,7 +126,7 @@ module SeriesHelper
   end
 
   def make_hyperlink(url, text = url)
-    return url if url.blank?
+    return text if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
     "<span class='error_message'>unvalidatable url=#{url}</span>".html_safe
   end

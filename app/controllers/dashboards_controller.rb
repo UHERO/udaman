@@ -20,6 +20,14 @@ class DashboardsController < ApplicationController
     @diff_data = []
     @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
     @err_summary = DataSource.load_error_summary
+    @all_reload_jobs = ReloadJob.all.order(created_at: :desc)
+  end
+
+  def destroy_reload_job
+    job_id = params[:id].to_i
+    return if job_id < 1
+    ReloadJob.find(job_id).destroy rescue nil
+    redirect_to :investigate_visual
   end
 
   def update_public_dp
@@ -40,12 +48,18 @@ class DashboardsController < ApplicationController
   def restart_restapi
     Rails.logger.info { 'Performing REST API restart' }
     %x{sudo systemctl restart rest-api.service}
-    render json: { message: 'REST API restarted' }
+    render json: { message: "REST API restart #{$?.success? ? 'done' : 'FAIL'}" }
   end
 
   def restart_dvwapi
     Rails.logger.info { 'Performing DVW API restart' }
     %x{sudo systemctl restart dvw-api.service}
-    render json: { message: 'DVW API restarted' }
+    render json: { message: "DVW API restart #{$?.success? ? 'done' : 'FAIL'}" }
+  end
+
+  def force_sync_files
+    Rails.logger.info { 'Performing NAS file sync' }
+    %x{ssh uhero@file.uhero.hawaii.edu "/home/uhero/filesync.sh"}
+    render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
   end
 end

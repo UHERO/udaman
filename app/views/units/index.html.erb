@@ -2,8 +2,9 @@
 
 <h1><%= @universe %> Units</h1>
 
-<%= link_to 'New Unit', new_unit_path %>
 <p>
+  <%= link_to "New Unit for #{@universe}", new_unit_path(universe: @universe) %>
+</p>
 
 <table class="list_table">
   <thead>

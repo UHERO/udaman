@@ -7,6 +7,12 @@ class NewDbedtUpload < ApplicationRecord
   def store_upload_file(file)
     return false unless file
     now = Time.now
+    busy_message = ReloadJob.busy?
+    if busy_message
+      self.assign_attributes(upload_at: now, active: false, filename: nil, last_error_at: now, last_error: busy_message)
+      self.save!
+      return false
+    end
     file_content = file.read
     filename_ext = file.original_filename.split('.')[-1]
     self.assign_attributes(upload_at: now,
@@ -172,7 +178,7 @@ class NewDbedtUpload < ApplicationRecord
       area = row['area_id'].to_i
       ### Geography info hardwired in code for simplicity and convenience. Records are expected to already exist in db.
       geo_handle = [nil, 'HI', 'HAW', 'HON', 'KAU', 'MAU'][area] || raise("Area ID=#{area} is blank/unknown around row #{data_points.count}")
-      geo_id = allgeos[geo_handle]
+      geo_id = allgeos[geo_handle].id rescue nil
       unless geo_id
         allgeos[geo_handle] = Geography.get(universe: 'DBEDT', handle: geo_handle) || raise("Area handle #{geo_handle} missing from db")
         geo_id = allgeos[geo_handle].id

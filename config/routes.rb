@@ -20,7 +20,6 @@ Rails.application.routes.draw do
   end
   resources :api_applications
   resources :sources
-  resources :transformations
   resources :categories
   resources :geographies
   resources :dbedt_uploads do

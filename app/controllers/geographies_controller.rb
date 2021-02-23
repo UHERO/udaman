@@ -4,23 +4,19 @@ class GeographiesController < ApplicationController
   before_action :check_authorization
   before_action :set_geography, only: [:show, :edit, :update, :destroy]
 
-  # GET /geographies
   def index
     @universe = params[:u].upcase rescue 'UHERO'
     @geographies = Geography.where(universe: @universe).order('COALESCE(list_order, 999), handle')
   end
 
-  # GET /geographies/1
   def show
   end
 
-  # GET /geographies/new
   def new
     @geography = Geography.new
     @universe = params[:u].upcase rescue params[:universe].upcase rescue 'UHERO'
   end
 
-  # GET /geographies/1/edit
   def edit
   end
 
