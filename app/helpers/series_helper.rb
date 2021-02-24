@@ -37,7 +37,8 @@ module SeriesHelper
       series_set.each do |s|
         csv << columns.map do |col|
           (attr, subattr) = col.split('.')
-          s.send(attr).send(subattr || 'to_s') rescue nil
+          ## s.send(attr).send(subattr || 'to_s') rescue nil
+          subattr.nil? ? s.send(attr) : s.send(attr).send(subattr) rescue nil
         end
       end
     end
@@ -48,7 +49,7 @@ module SeriesHelper
       csv << ['Date'] + series_set.map(&:name)
       all_dates = series_set.map {|s| s.data.keys }.flatten.sort.uniq
       all_dates.each do |date|
-        csv << [date, series_set.map {|s| s.at(date) }]
+        csv << [date] + series_set.map {|s| s.at(date) }
       end
     end
   end
