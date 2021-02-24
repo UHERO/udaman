@@ -37,7 +37,6 @@ module SeriesHelper
       series_set.each do |s|
         csv << columns.map do |col|
           (attr, subattr) = col.split('.')
-          ## s.send(attr).send(subattr || 'to_s') rescue nil
           subattr.nil? ? s.send(attr) : s.send(attr).send(subattr) rescue nil
         end
       end
