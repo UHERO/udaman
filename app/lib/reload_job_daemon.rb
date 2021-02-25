@@ -1,4 +1,5 @@
 class ReloadJobDaemon
+  extend HelperUtilities
 
   def ReloadJobDaemon.perform
     loop do  ## infinite
