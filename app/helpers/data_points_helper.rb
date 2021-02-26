@@ -19,6 +19,6 @@ module DataPointsHelper
             years = 1 if years == 0
             "#{years}y"
           end
-    age + (dp.pseudo_history? ? '(ph)' : '')
+    age + ('(ph)' if dp.pseudo_history?).to_s
   end
 end
