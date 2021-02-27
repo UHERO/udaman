@@ -316,8 +316,11 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
-      ## it would be best to rewrite this as a direct SQL query - will be much faster
-      data_points.each {|dp| dp.delete }
+      stmt = DataSource.connection.raw_connection.prepare(<<~MYSQL)
+        delete from data_points where data_source_id = ?
+      MYSQL
+      stmt.execute(id)
+      stmt.close
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
 
