@@ -16,7 +16,7 @@ module ForecastSnapshotsHelper
   end
 
   def forecast_snapshot_csv_gen
-    CSV.generate do |csv|                                                                    ## save memory by 86ing unneeded bits
+    CSV.generate(nil, col_sep: "\t") do |csv|                                                                    ## save memory by 86ing unneeded bits
       newstuff = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (new)'; h[:data] = h[:yoy_hash] = nil } }
       oldstuff = @tsd_files[1].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (old)'; h[:data] = h[:yoy_hash] = nil } }
       hisstuff = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (his)'; h[:data] = h[:yoy_hash] = nil } }
