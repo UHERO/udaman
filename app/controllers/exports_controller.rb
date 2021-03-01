@@ -13,8 +13,8 @@ class ExportsController < ApplicationController
   def show
     @export_series = @export.series.map do |s|
       data_points = DataPoint.where(xseries_id: s.xseries_id)
-      first = data_points.minimum(:date)
-       last = data_points.maximum(:date)
+      first = data_points.minimum(:date) || Date.new(1111, 1, 1)
+      last = data_points.maximum(:date)  || Date.new(9999, 12, 31)
       source = s.source.description rescue ''
       { series: s, name: s.name, first: first, last: last, source: source }
     end
