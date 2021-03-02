@@ -13,17 +13,19 @@ class ExportsController < ApplicationController
   def show
     @export_series = @export.series.map do |s|
       data_points = DataPoint.where(xseries_id: s.xseries_id)
-      first = data_points.minimum(:date) || Date.new(1111, 1, 1)
-       last = data_points.maximum(:date) || Date.new(9999, 12, 31)
+      first = data_points.minimum(:date)
+       last = data_points.maximum(:date)
       source = s.source.description rescue ''
       { series: s, name: s.name, first: first, last: last, source: source }
     end
     sortby = (params[:sortby] || 'last').to_sym
     @dir = params[:dir] || 'up'
     @export_series.sort! do |a, b|
-      c1 = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
-      c2 = @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
-      c1 == 0 ? c2 : c1
+      a_sort = a[sortby] || Date.new(1000, 1, 1)  ## this assumes that :first and :last are the only fields that would
+      b_sort = b[sortby] || Date.new(1000, 1, 1)  ## ever be nil, but it's a good enough bet to justify simpler code
+      cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
+      return cmp if cmp != 0
+      @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
     end
     @sortby = sortby.to_s
     respond_to do |format|
