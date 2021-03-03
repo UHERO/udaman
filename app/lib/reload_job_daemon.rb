@@ -1,4 +1,5 @@
 class ReloadJobDaemon
+  include Cleaning
   extend HelperUtilities
 
   def ReloadJobDaemon.perform
@@ -10,8 +11,8 @@ class ReloadJobDaemon
       end
       Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
       job.update!(status: 'processing')
-      xtra_params = Kernel::eval job.params
       begin
+        xtra_params = Kernel::eval(job.params.to_s) || []
         Series.reload_with_dependencies(job.series.pluck(:id), *xtra_params)
         DataPoint.update_public_all_universes if job.update_public
         job.update!(status: 'done', finished_at: Time.now)
