@@ -10,9 +10,9 @@ class ReloadJobDaemon
       end
       Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
       job.update!(status: 'processing')
-      params = Kernel::eval job.params
+      xtra_params = Kernel::eval job.params
       begin
-        Series.reload_with_dependencies(job.series.pluck(:id), *params)
+        Series.reload_with_dependencies(job.series.pluck(:id), *xtra_params)
         DataPoint.update_public_all_universes if job.update_public
         job.update!(status: 'done', finished_at: Time.now)
       rescue => e
