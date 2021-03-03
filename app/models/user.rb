@@ -69,7 +69,8 @@ class User < ApplicationRecord
 
     case action
     when 'reload'
-      job = ReloadJob.create(user_id: id) rescue raise('Failed to create ReloadJob object')
+      username = email.sub(/@.*/, '')
+      job = ReloadJob.create(user_id: id, params: [username].to_s) rescue raise('Failed to create ReloadJob object')
       job.series << series
       "Reload job #{job.id} queued"
     when 'reset'
