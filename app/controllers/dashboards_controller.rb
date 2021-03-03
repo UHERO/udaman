@@ -20,7 +20,7 @@ class DashboardsController < ApplicationController
     @diff_data = []
     @to_investigate = Series.get_all_uhero.where('aremos_missing > 0 OR ABS(aremos_diff) > 0.0').order('name ASC')
     @err_summary = DataSource.load_error_summary
-    @all_reload_jobs = ReloadJob.all.order(created_at: :desc)
+    @all_reload_jobs = ReloadJob.where('user_id > 1').order(created_at: :desc)  ## User id 1 is the system/cron user, don't show those
   end
 
   def destroy_reload_job

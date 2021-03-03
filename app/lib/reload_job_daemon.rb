@@ -13,6 +13,7 @@ class ReloadJobDaemon
       username = job.user.email.sub(/@.*/, '')
       begin
         Series.reload_with_dependencies(job.series.pluck(:id), username)
+        DataPoint.update_public_all_universes if job.update_public
         job.update!(status: 'done', finished_at: Time.now)
       rescue => e
         job.update!(status: 'fail', finished_at: Time.now, error: e.message[0..253])
