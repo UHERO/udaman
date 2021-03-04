@@ -114,7 +114,7 @@ task :reload_vispns_daily_series_only => :environment do
     return
   end
   begin
-    job = ReloadJob.create(user_id: 1, update_public: true, params: params.to_s)  ## User 1 is the system/cron user
+    job = ReloadJob.create!(user_id: 1, update_public: true, params: params.to_s)  ## User 1 is the system/cron user
     job.series << series
     Rails.logger.info { 'reload_vispns_daily_series_only: Reload job successfully queued' }
   rescue => e
@@ -130,7 +130,7 @@ task :reload_vap_hi_daily_series_only => :environment do
     return
   end
   begin
-    job = ReloadJob.create(user_id: 1, update_public: true, params: params.to_s)  ## User 1 is the system/cron user
+    job = ReloadJob.create!(user_id: 1, update_public: true, params: params.to_s)  ## User 1 is the system/cron user
     job.series << series
     Rails.logger.info { 'reload_vispns_daily_series_only: Reload job successfully queued' }
   rescue => e
