@@ -38,7 +38,7 @@ class ReloadJobDaemon
     end
   end
 
-  private
+private
 
   ### decide heuristically if the worker server Sidekiq is busy now
   def self.worker_busy?
