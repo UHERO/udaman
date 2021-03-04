@@ -32,7 +32,7 @@ module SeriesHelper
     columns = %w{id name dataPortalName description geography.display_name_short frequency units decimals
                  unit.short_label unit.long_label source.description source_link source_detail.description
                  seasonal_adjustment restricted restricted.to_01 quarantined quarantined.to_01 investigation_notes}
-    CSV.generate do |csv|
+    CSV.generate(nil, col_sep: "\t") do |csv|
       csv << columns
       series_set.each do |s|
         csv << columns.map do |col|
@@ -44,7 +44,7 @@ module SeriesHelper
   end
 
   def series_data_csv_gen(series_set)
-    CSV.generate do |csv|
+    CSV.generate(nil, col_sep: "\t") do |csv|
       csv << ['Date'] + series_set.map(&:name)
       all_dates = series_set.map {|s| s.data.keys }.flatten.sort.uniq
       all_dates.each do |date|

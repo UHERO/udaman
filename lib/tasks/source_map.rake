@@ -54,6 +54,7 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
+  full_set_ids -= Series.search_box('^vispns .d').pluck(:id)
   full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
@@ -105,11 +106,36 @@ task :reload_bea_series_only => :environment do
   DataPoint.update_public_all_universes
 end
 
+task :reload_vispns_daily_series_only => :environment do
+  series = Series.search_box('^vispns .d')
+  params = ['vispns', {nightly: true}]  ## extra parameters for Series.reload_with_dependencies call
+  if series.empty?
+    Rails.logger.warn { 'reload_vispns_daily_series_only: No series found - no job queued' }
+    return
+  end
+  begin
+    job = ReloadJob.create!(user_id: 1, update_public: true, params: params.to_s)  ## User 1 is the system/cron user
+    job.series << series
+    Rails.logger.info { 'reload_vispns_daily_series_only: Reload job successfully queued' }
+  rescue => e
+    Rails.logger.error { "reload_vispns_daily_series_only: Job creation failed: #{e.message}" }
+  end
+end
+
 task :reload_vap_hi_daily_series_only => :environment do
-  Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
-  vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
-  Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid', nightly: true)
-  DataPoint.update_public_all_universes
+  series = Series.search_box('^vap.*ns$ @hi .d')
+  params = ['vaphid', {nightly: true}]  ## extra parameters for Series.reload_with_dependencies call
+  if series.empty?
+    Rails.logger.warn { 'reload_vispns_daily_series_only: No series found - no job queued' }
+    return
+  end
+  begin
+    job = ReloadJob.create!(user_id: 1, update_public: true, params: params.to_s)  ## User 1 is the system/cron user
+    job.series << series
+    Rails.logger.info { 'reload_vispns_daily_series_only: Reload job successfully queued' }
+  rescue => e
+    Rails.logger.error { "reload_vispns_daily_series_only: Job creation failed: #{e.message}" }
+  end
 end
 
 task :reload_tour_ocup_series_only => :environment do

@@ -65,6 +65,10 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bls_series_only
 end
 
+every :weekday, :at => '12:00 pm' do
+  rake :reload_vispns_daily_series_only
+end
+
 every :weekday, :at => '4:15 pm' do
   rake :reload_vap_hi_daily_series_only
 end

@@ -1,11 +1,11 @@
 class ReloadJob < ApplicationRecord
   include Cleaning
-  ##include HelperUtilities
+  extend HelperUtilities
   belongs_to :user
   has_many :reload_job_series, dependent: :delete_all
   has_many :series, -> {distinct}, through: :reload_job_series
 
-  def ReloadJob.purge_old_jobs(horizon = 2.weeks)
+  def ReloadJob.purge_old_jobs(horizon = 1.week)
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
         delete from reload_jobs where created_at < ?
