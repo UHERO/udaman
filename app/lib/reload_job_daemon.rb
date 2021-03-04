@@ -27,15 +27,18 @@ class ReloadJobDaemon
     params = [short_name, {nightly: nightly}]  ## extra parameters for Series.reload_with_dependencies call
     if series.empty?
       Rails.logger.warn { "ReloadJobDaemon.enqueue #{short_name}: No series found, no job queued" }
-      return
+      return nil
     end
+    id = nil
     begin
       job = ReloadJob.create!(user_id: 1, update_public: upd_pub, params: params.to_s)  ## User 1 is the system/cron user
       job.series << series
+      id = job.id
       Rails.logger.info { "ReloadJobDaemon.enqueue #{short_name}: Reload job successfully queued" }
     rescue => e
       Rails.logger.error { "ReloadJobDaemon.enqueue #{short_name}: Job creation failed: #{e.message}" }
     end
+    id
   end
 
 private
