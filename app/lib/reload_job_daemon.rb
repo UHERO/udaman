@@ -22,7 +22,7 @@ class ReloadJobDaemon
     end
   end
 
-  def ReloadJobDaemon.enqueue(short_name, search, nightly: true, upd_pub: true)
+  def ReloadJobDaemon.enqueue(short_name, search, nightly: true, update_public: true)
     series = Series.search_box(search)
     params = [short_name, {nightly: nightly}]  ## extra parameters for Series.reload_with_dependencies call
     if series.empty?
@@ -31,7 +31,7 @@ class ReloadJobDaemon
     end
     id = nil
     begin
-      job = ReloadJob.create!(user_id: 1, update_public: upd_pub, params: params.to_s)  ## User 1 is the system/cron user
+      job = ReloadJob.create!(user_id: 1, update_public: update_public, params: params.to_s)  ## User 1 is the system/cron user
       job.series << series
       id = job.id
       Rails.logger.info { "ReloadJobDaemon.enqueue #{short_name}: Reload job successfully queued" }
