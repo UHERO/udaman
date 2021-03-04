@@ -1,5 +1,4 @@
 class ReloadJobDaemon
-  include Cleaning
   extend HelperUtilities
 
   def ReloadJobDaemon.perform
