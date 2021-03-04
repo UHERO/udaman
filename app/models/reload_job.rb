@@ -1,5 +1,4 @@
 class ReloadJob < ApplicationRecord
-  include Cleaning
   extend HelperUtilities
   belongs_to :user
   has_many :reload_job_series, dependent: :delete_all
