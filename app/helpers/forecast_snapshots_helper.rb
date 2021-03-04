@@ -27,7 +27,7 @@ module ForecastSnapshotsHelper
         (a0, a1) = a.split
         (b0, b1) = b.split
         cmp = name_order[a0] <=> name_order[b0]
-        next cmp if cmp != 0
+        next cmp if cmp != 0  ## early return from yielded block
         fc = { '(new)' => 0, '(old)' => 1, '(his)' => 2 }
         fc[a1] <=> fc[b1]
       end
