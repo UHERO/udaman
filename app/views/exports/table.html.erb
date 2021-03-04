@@ -22,7 +22,7 @@ span.lighten {color:#AAA;}
 		series = s.ts
 		next if series.nil?
 		plot_data = series.get_values_after(@start_date)
-		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1]
+		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1] rescue nil
  		dates = plot_data.keys.sort
 		ytd_abs = plot_data[dates[-1]] - plot_data["#{dates[-1][0..3]}-01-01"] rescue nil
 		series_table_data[s] = {
@@ -35,7 +35,7 @@ span.lighten {color:#AAA;}
 			:plot_data => plot_data,
 		}
 		date_keys |= plot_data.keys
-		all_series_ytd.push(ytd)
+		all_series_ytd.push(ytd) if ytd
 	end
 	
 	date_keys.sort!
