@@ -117,7 +117,7 @@ task :reload_vispns_daily => :environment do
 end
 
 task :reload_vap_hi_daily => :environment do
-  ReloadJobDaemon.enqueue('vaphid', '^vap.*ns$ @hi .d')
+  ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
 end
 
 task :update_public_data_points => :environment do
