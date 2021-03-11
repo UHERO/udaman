@@ -113,22 +113,23 @@ class SeriesController < ApplicationController
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
       results = Series.search_box(params[:search], limit: 500, user_id: current_user.id)
-      current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &-clip is used
+      current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
     redirect_to action: :clipboard
   end
 
   def do_clip_action
-    if params[:clip_action] == 'csv'
-      redirect_to action: :groupmeta, format: :csv, layout: false
+    if params[:clip_action] =~ /csv/
+      redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
 
-  def groupmeta
+  def group_export
+    @type = params[:type]
     @all_series = current_user.series.sort_by(&:name)
   end
 

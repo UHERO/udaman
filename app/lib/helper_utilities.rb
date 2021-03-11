@@ -42,4 +42,12 @@ module HelperUtilities
     }
     per[lower] && per[lower][higher]
   end
+
+  ## OK, it does truly suck to have this kind of real-world wallclock timing embedded in the code, but it's
+  ## just the most practical way to deal with this at present.
+  def daily_batch_running?
+    return :night   if Time.now.hour >= 19 && Time.now.hour <= 23  ## the usual period of the nighttime part of the Nightly Load
+    return :morning if Time.now.hour >= 6  && Time.now.hour <= 8   ## the usual period of the morning part of the Nightly Load
+    false
+  end
 end

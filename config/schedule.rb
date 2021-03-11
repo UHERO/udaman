@@ -44,7 +44,7 @@ every 1.day, :at => '1:00 am' do
 end
 
 every 1.day, at: '7:40 pm' do
-  rake :purge_old_logs
+  rake :purge_old_stuff
 end
 
 ## The famous "Nightly Reload"
@@ -63,6 +63,10 @@ end
 every 1.day, :at => '6:00 am' do
   rake :reload_bea_series_only
   rake :reload_bls_series_only
+end
+
+every :weekday, :at => '12:00 pm' do
+  rake :reload_vispns_daily_series_only
 end
 
 every :weekday, :at => '4:15 pm' do

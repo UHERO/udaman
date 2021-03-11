@@ -14,12 +14,17 @@ module SeriesHelper
       ytd = @ytd_chg.data
        
       csv << ["Date", "Values", "LVL","YOY", "YTD"]
-      # dates_array.each do |date|
-      #   csv << [date] + sorted_names.map {|series_name| series_data[series_name][date]}
-      # end
       dates.sort.each do |date|
         csv << [date, val[date], lvls[date], yoy[date], ytd[date]]
       end
+    end
+  end
+
+  def series_group_export(type, series)
+    case type
+      when 'metacsv' then series_meta_csv_gen(series)
+      when 'datacsv' then series_data_csv_gen(series)
+      else raise("series_group_export: unknown type #{type}")
     end
   end
 
@@ -27,13 +32,23 @@ module SeriesHelper
     columns = %w{id name dataPortalName description geography.display_name_short frequency units decimals
                  unit.short_label unit.long_label source.description source_link source_detail.description
                  seasonal_adjustment restricted restricted.to_01 quarantined quarantined.to_01 investigation_notes}
-    CSV.generate do |csv|
+    CSV.generate(nil, col_sep: "\t") do |csv|
       csv << columns
       series_set.each do |s|
         csv << columns.map do |col|
           (attr, subattr) = col.split('.')
-          s.send(attr).send(subattr || 'to_s') rescue nil
+          subattr.nil? ? s.send(attr) : s.send(attr).send(subattr) rescue nil
         end
+      end
+    end
+  end
+
+  def series_data_csv_gen(series_set)
+    CSV.generate(nil, col_sep: "\t") do |csv|
+      csv << ['Date'] + series_set.map(&:name)
+      all_dates = series_set.map {|s| s.data.keys }.flatten.sort.uniq
+      all_dates.each do |date|
+        csv << [date] + series_set.map {|s| s.at(date) }
       end
     end
   end

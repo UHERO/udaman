@@ -1,4 +1,5 @@
 class ReloadJobDaemon
+  extend HelperUtilities
 
   def ReloadJobDaemon.perform
     loop do  ## infinite
@@ -9,9 +10,10 @@ class ReloadJobDaemon
       end
       Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
       job.update!(status: 'processing')
-      username = job.user.email.sub(/@.*/, '')
       begin
-        Series.reload_with_dependencies(job.series.pluck(:id), username)
+        xtra_params = Kernel::eval(job.params.to_s) || []
+        Series.reload_with_dependencies(job.series.pluck(:id), *xtra_params)
+        DataPoint.update_public_all_universes if job.update_public
         job.update!(status: 'done', finished_at: Time.now)
       rescue => e
         job.update!(status: 'fail', finished_at: Time.now, error: e.message[0..253])
@@ -24,6 +26,7 @@ private
 
   ### decide heuristically if the worker server Sidekiq is busy now
   def self.worker_busy?
+    return true if daily_batch_running?
     return true if NewDbedtUpload.find_by(status: 'processing')
     return true if DvwUpload.find_by(series_status: 'processing')
     false

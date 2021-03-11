@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025769) do
+ActiveRecord::Schema.define(version: 220170413025771) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -379,6 +379,8 @@ ActiveRecord::Schema.define(version: 220170413025769) do
     t.datetime "created_at", null: false
     t.string "status", limit: 10
     t.datetime "finished_at"
+    t.string "params"
+    t.boolean "update_public", default: false, null: false
     t.string "error"
     t.index ["user_id"], name: "index_reload_jobs_on_user_id"
   end
@@ -437,14 +439,6 @@ ActiveRecord::Schema.define(version: 220170413025769) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["universe"], name: "index_sources_on_universe"
-  end
-
-  create_table "transformations", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "key"
-    t.string "description"
-    t.string "formula"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
   end
 
   create_table "tsd_files", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
