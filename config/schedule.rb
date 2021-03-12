@@ -66,11 +66,11 @@ every 1.day, :at => '6:00 am' do
 end
 
 every :weekday, :at => '12:00 pm' do
-  rake :reload_vispns_daily_series_only
+  rake :reload_vispns_daily
 end
 
 every :weekday, :at => '4:15 pm' do
-  rake :reload_vap_hi_daily_series_only
+  rake :reload_vap_hi_daily
 end
 
 # -----------------------------------------------------------
