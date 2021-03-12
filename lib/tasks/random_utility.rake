@@ -3,6 +3,27 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+## JIRA UA-1428
+task :ua_1428 => :environment do
+  ss = Series.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'aggregate'})
+  ss.each do |s|
+    dss = s.enabled_data_sources
+    next if dss.count != 2
+    next unless dss[0].eval =~ /\.aggregate/ && dss[1].eval =~ /\.aggregate/
+    if dss[0].eval =~ /\.([a-z])"\.ts\.aggregate/i
+      f0 = $1
+    else
+      next
+    end
+    if dss[1].eval =~ /\.([a-z])"\.ts\.aggregate/i
+      f1 = $1
+    else
+      next
+    end
+    f0 + f1
+  end
+end
+
 task :growth_rate_temp_fix => :environment do
   all = Series.search_box('^v #last_incomplete_year')
   all.each do |s|
