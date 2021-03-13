@@ -22,7 +22,7 @@ task :ua_1428 => :environment do
       next
     end
     next unless m0 == m1
-    puts "----->>>> DOING #{s}\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
+    puts "----->>>> DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
     disablit = f0.freqn >= f1.freqn ? 1 : 0
     ##dss[disablit].disable!
   end
