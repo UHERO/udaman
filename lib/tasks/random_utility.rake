@@ -5,22 +5,25 @@
 
 ## JIRA UA-1428
 task :ua_1428 => :environment do
-  ss = Series.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'aggregate'})
+  ss = Series.get_all_uhero.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'aggregate'})
   ss.each do |s|
     dss = s.enabled_data_sources
     next if dss.count != 2
-    next unless dss[0].eval =~ /\.aggregate/ && dss[1].eval =~ /\.aggregate/
-    if dss[0].eval =~ /\.([a-z])"\.ts\.aggregate/i
-      f0 = $1
+    if dss[0].eval =~ /"(\w+ns@\w+)\.([a-z])"\.ts\.aggregate/i
+      m0 = $1.upcase
+      f0 = $2.upcase
     else
       next
     end
-    if dss[1].eval =~ /\.([a-z])"\.ts\.aggregate/i
-      f1 = $1
+    if dss[1].eval =~ /"(\w+ns@\w+)\.([a-z])"\.ts\.aggregate/i
+      m1 = $1.upcase
+      f1 = $2.upcase
     else
       next
     end
-    f0 + f1
+    next unless m0 == m1
+    disablit = f0.freqn >= f1.freqn ? 1 : 0
+    dss[disablit].disable!
   end
 end
 
