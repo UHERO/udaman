@@ -9,19 +9,25 @@ task :ua_1428 => :environment do
   ss.each do |s|
     dss = s.enabled_data_sources
     next if dss.count != 2
-    if dss[0].eval =~ /"(\w+ns@\w+)\.([a-z])"\.ts\.aggregate/i
+    if dss[0].eval =~ /"(\w+ns@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
       m0 = $1.upcase
       f0 = $2.upcase
+      t0 = $3
     else
       next
     end
-    if dss[1].eval =~ /"(\w+ns@\w+)\.([a-z])"\.ts\.aggregate/i
+    if dss[1].eval =~ /"(\w+ns@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
       m1 = $1.upcase
       f1 = $2.upcase
+      t1 = $3
     else
       next
     end
     next unless m0 == m1
+    if f0 == f1 && t0 != t1
+      puts "------------>>>>>>>>>>>>>----------------->>>>>>>>> METHOD FYBAR #{s} (#{s.id})"
+      next
+    end
     puts "----->>>> DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
     disablit = f0.freqn >= f1.freqn ? 1 : 0
     ##dss[disablit].disable!
