@@ -33,7 +33,7 @@ task :ua_1428 => :environment do
     end
     puts "----->>>> DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
     disablit = f0.freqn >= f1.freqn ? 1 : 0
-    ##dss[disablit].disable!
+    dss[disablit].disable!
   end
 end
 
