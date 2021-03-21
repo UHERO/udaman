@@ -8,11 +8,14 @@ task :ua_1428 => :environment do
   ss = Series.get_all_uhero.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'ts.aggregate'})
   ss.each do |s|
     dss = s.enabled_data_sources.reject {|ds| ds.eval !~ /ts\.aggregate/ }
-    next if dss.count < 2 || dss.count > 3
-    dss.each_with_index do |_, i|
-      unless dss[i].eval =~ /"\w+NS@\w+\.[a-z]"\.ts/i
-        dss.delete_at(i)
-      end
+    #dss.each_with_index do |_, i|
+    #  unless dss[i].eval =~ /"\w+NS@\w+\.[a-z]"\.ts/i
+    #    dss.delete_at(i)
+    #  end
+    #end
+    if dss.count > 2
+      puts ">>>>>>>>>>>>>> TOO MANY AGGS #{s} --#{s.id},"
+      next
     end
     next if dss.count != 2
 
@@ -31,11 +34,11 @@ task :ua_1428 => :environment do
       next
     end
     if m0 != m1
-      puts ">>>>>>>>>>>>>> BASE SERIES mismatch #{s} (#{s.id})"
+      puts ">>>>>>>>>>>>>> BASE SERIES mismatch --#{s.id},"
       next
     end
     if t0 != t1
-      puts ">>>>>>>>>>>>>> METHOD mismatch #{s} (#{s.id})"
+      puts ">>>>>>>>>>>>>> METHOD mismatch --#{s.id},"
       next
     end
     puts "----- DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
