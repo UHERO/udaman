@@ -332,8 +332,8 @@ class DataSource < ApplicationRecord
 
     def disable!
       self.transaction do
-        self.update_attributes!(disabled: true, last_error: nil, last_error_at: nil)
         delete_data_points
+        self.update_attributes!(disabled: true, last_error: nil, last_error_at: nil)
       end
     end
 
