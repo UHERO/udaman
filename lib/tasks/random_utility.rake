@@ -16,14 +16,14 @@ task :ua_1428 => :environment do
     end
     next if dss.count != 2
 
-    if dss[0].eval =~ /"(\w+NS@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
+    if dss[0].eval =~ /"(\w+@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
       m0 = $1.upcase
       f0 = $2.upcase
       t0 = $3
     else
       next
     end
-    if dss[1].eval =~ /"(\w+NS@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
+    if dss[1].eval =~ /"(\w+@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
       m1 = $1.upcase
       f1 = $2.upcase
       t1 = $3
