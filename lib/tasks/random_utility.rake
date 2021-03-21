@@ -7,16 +7,23 @@
 task :ua_1428 => :environment do
   ss = Series.get_all_uhero.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'ts.aggregate'})
   ss.each do |s|
-    dss = s.enabled_data_sources
+    dss = s.enabled_data_sources.reject {|ds| ds.eval !~ /ts\.aggregate/ }
+    next if dss.count < 2 || dss.count > 3
+    dss.each_with_index do |_, i|
+      unless dss[i].eval =~ /"\w+NS@\w+\.[a-z]"\.ts/i
+        dss.delete_at(i)
+      end
+    end
     next if dss.count != 2
-    if dss[0].eval =~ /"(\w+@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
+
+    if dss[0].eval =~ /"(\w+NS@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
       m0 = $1.upcase
       f0 = $2.upcase
       t0 = $3
     else
       next
     end
-    if dss[1].eval =~ /"(\w+@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
+    if dss[1].eval =~ /"(\w+NS@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
       m1 = $1.upcase
       f1 = $2.upcase
       t1 = $3
@@ -24,14 +31,14 @@ task :ua_1428 => :environment do
       next
     end
     if m0 != m1
-      puts ">>>>>>>>> BASE SERIES mismatch #{s} (#{s.id})"
+      puts ">>>>>>>>>>>>>> BASE SERIES mismatch #{s} (#{s.id})"
       next
     end
     if t0 != t1
-      puts ">>>>>>>>> METHOD mismatch #{s} (#{s.id})"
+      puts ">>>>>>>>>>>>>> METHOD mismatch #{s} (#{s.id})"
       next
     end
-    puts "----->>>> DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
+    puts "----- DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
     disablit = f0.freqn >= f1.freqn ? 1 : 0
     dss[disablit].disable!
   end
