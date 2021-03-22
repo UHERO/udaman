@@ -53,10 +53,12 @@ private
     raise AggregationException.new, 'original series is not weekly' if frequency != 'week'
     dailyseries = {}
     weekly_keys = data.keys.sort
+    fill_length = 10  ## overlap the preceding week to avoid any gaps
     loop do
       date = weekly_keys.pop || break  ## loop through weekly_keys, whilst removing each item from the array as you go
+      fill_length = 6 if weekly_keys.empty?  ## don't overlap at the beginning
       week_value = data[date]
-      (0..6).each {|offset| dailyseries[date - offset] = week_value }
+      (0..fill_length).each {|offset| dailyseries[date - offset] = week_value }
     end
     new_transformation("Extrapolated from weekly series #{self}", dailyseries.sort, :day)
   end
