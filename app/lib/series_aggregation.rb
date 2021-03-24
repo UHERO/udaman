@@ -22,7 +22,6 @@ module SeriesAggregation
     aggregate(frequency, operation, prune: prune)
   end
   
-  # Only returns complete groups
   def group_data_by(frequency, prune: true)
     validate_aggregation(frequency)
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
