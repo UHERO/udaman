@@ -69,7 +69,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_all_universe(universe)
-    Series.joins(:xseries).where(universe: universe)
+    Series.joins(:xseries).where(universe: universe, forecast: false)
   end
 
   def Series.all_names
@@ -227,8 +227,8 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   def Series.parse_name(string)
-    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase, freq_long: frequency_from_code($3).to_s }
+    if string =~ /^((\S+?)(&(\w+)(v(\d+))?)?)@(\w+?)\.([ASQMWD])$/i
+      return { prefix_full: $1, prefix_full: $2, geo: $7, freq: $8.upcase, freq_long: frequency_from_code($8).to_s }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
   end
