@@ -2,7 +2,7 @@ module SeriesAggregation
   def aggregate_data_by(frequency, operation, prune: true)
     validate_aggregation(frequency)
 
-    orig_series = self.frequency.to_sym == :week ? week_to_day_interpolate(operation) : self
+    orig_series = self.frequency.to_sym == :week ? interpolate_week_to_day(operation) : self
     grouped_data = orig_series.group_data_by(frequency, prune: prune)
     aggregated_data = {}
     grouped_data.keys.each do |date_string|
@@ -49,7 +49,7 @@ private
   ### Assumes that weekly observations fall at the END of the week they represent, whatever weekday that might be.
   ### It's almost always Saturday, and we should try to keep it that way. Does not try to take into account the possibility
   ## of missing data points in the source series.
-  def week_to_day_interpolate(method)
+  def interpolate_week_to_day(method)
     raise AggregationException.new, 'original series is not weekly' if frequency != 'week'
     dailyseries = {}
     weekly_keys = data.keys.sort
