@@ -2,7 +2,11 @@ module SeriesAggregation
   def aggregate_data_by(frequency, operation, prune: true)
     validate_aggregation(frequency)
 
-    orig_series = self.frequency.to_sym == :week ? interpolate_week_to_day(operation) : self
+    orig_series = self
+    if self.frequency.to_sym == :week
+      method = (operation == :average) ? :fill : :distribute
+      orig_series = SeriesInterpolation.interpolate_week_to_day(method)
+    end
     grouped_data = orig_series.group_data_by(frequency, prune: prune)
     aggregated_data = {}
     grouped_data.keys.each do |date_string|
@@ -45,23 +49,6 @@ module SeriesAggregation
   end
 
 private
-
-  ### Assumes that weekly observations fall at the END of the week they represent, whatever weekday that might be.
-  ### It's almost always Saturday, and we should try to keep it that way. Does not try to take into account the possibility
-  ## of missing data points in the source series.
-  def interpolate_week_to_day(method)
-    raise AggregationException.new, 'original series is not weekly' if frequency != 'week'
-    dailyseries = {}
-    weekly_keys = data.keys.sort
-    fill_length = 10  ## overlap the preceding week to avoid any gaps
-    loop do
-      date = weekly_keys.pop || break  ## loop through weekly_keys, whilst removing each item from the array as you go
-      fill_length = 6 if weekly_keys.empty?  ## don't overlap at the beginning
-      week_value = data[date]
-      (0..fill_length).each {|offset| dailyseries[date - offset] = week_value }
-    end
-    new_transformation("Extrapolated from weekly series #{self}", dailyseries.sort, :day)
-  end
 
   def validate_aggregation(frequency)
     raise AggregationException.new, "cannot aggregate to frequency #{frequency}" unless %w[year semi quarter month week].include?(frequency.to_s)

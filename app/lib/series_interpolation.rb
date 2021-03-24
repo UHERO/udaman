@@ -89,27 +89,36 @@ module SeriesInterpolation
     else
       raise InterpolationException
     end
-    new_transformation("Interpolated by filling #{self.name} to #{target_frequency}", new_series_data, target_frequency.to_s)
+    new_transformation("Interpolated by filling #{self} to #{target_frequency}", new_series_data, target_frequency.to_s)
   end
   
   def fill_days_interpolation
-    daily_data = {}
-    raise InterpolationException if frequency != 'week' and frequency != 'W'
-    self.data.each do |date, val|
-      6.downto(0).each { |days_back| daily_data[date - days_back.days] = val }
-    end 
-    new_transformation("Interpolated Days (filled) from #{self.name}", daily_data, 'day')
+    interpolate_week_to_day(:fill)
   end
 
   def distribute_days_interpolation
-    daily_data = {}
-    raise InterpolationException if frequency != 'week' and frequency != 'W'
-    self.data.each do |date, val|
-      6.downto(0).each { |days_back| daily_data[date - days_back.days] = val / 7 }
-    end 
-    new_transformation("Interpolated Days (distributed) from #{self.name}", daily_data, 'day')
+    interpolate_week_to_day(:distribute)
   end
-  
+
+  ### Assumes that weekly observations fall at the END of the week they represent, whatever weekday that might be.
+  ### It's almost always Saturday, and we should try to keep it that way.
+  def interpolate_week_to_day(method = :fill)
+    raise "unknown method #{method}" unless method == :fill || method == :distribute
+    raise(InterpolationException, 'original series not weekly') if frequency != 'week'
+    dailyseries = {}
+    weekly_keys = data.keys.sort
+    loop do
+      date = weekly_keys.pop || break
+      fill_length = (date - weekly_keys[-1]).to_i rescue 7  ## if this fails, probly bec the keys array is empty
+      if fill_length > 10
+        raise InterpolationException, "obsv gap around #{date} far apart, check series"
+      end
+      value = (method == :fill) ? data[date] : (data[date] / fill_length.to_f)
+      (0...fill_length).each {|offset| dailyseries[date - offset.days] = value }  ## note the three dots
+    end
+    new_transformation("Interpolated days (#{method}) from #{self}", dailyseries.sort, :day)
+  end
+
   def pseudo_centered_spline_interpolation(frequency)
     raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
                                   (frequency == :month and self.frequency == 'quarter') or 
