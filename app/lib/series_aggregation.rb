@@ -1,8 +1,9 @@
 module SeriesAggregation
   def aggregate_data_by(frequency, operation, prune: true)
     validate_aggregation(frequency)
-    
-    grouped_data = group_data_by(frequency, prune: prune)
+
+    orig_series = self.frequency.to_sym == :week ? week_to_day_interpolate(operation) : self
+    grouped_data = orig_series.group_data_by(frequency, prune: prune)
     aggregated_data = {}
     grouped_data.keys.each do |date_string|
       aggregated_data[date_string] = grouped_data[date_string].send(operation)
@@ -21,24 +22,18 @@ module SeriesAggregation
   # Only returns complete groups
   def group_data_by(frequency, prune: true)
     validate_aggregation(frequency)
-
-    myfreq = self.frequency.to_sym
-    orig_series = self
-    if myfreq == :week
-      myfreq = :day
-      orig_series = fill_weeks_backward
-    end
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
 
     grouped_data = {}
-    orig_series.data.keys.each do |date|
-      value = orig_series.at(date) || next
+    data.keys.each do |date|
+      value = self.at(date) || next
       agg_date = date.send(agg_date_method)
       grouped_data[agg_date] ||= AggregatingArray.new
       grouped_data[agg_date].push value
     end
 
     if prune   ## normally (default) true
+      myfreq = self.frequency.to_sym
       minimum_data_points = freq_per_freq(myfreq, frequency)
       if myfreq == :day
         grouped_data.delete_if {|date, group| group.count != date.days_in_period(frequency) }
@@ -54,7 +49,7 @@ private
   ### Assumes that weekly observations fall at the END of the week they represent, whatever weekday that might be.
   ### It's almost always Saturday, and we should try to keep it that way. Does not try to take into account the possibility
   ## of missing data points in the source series.
-  def fill_weeks_backward
+  def week_to_day_interpolate(method)
     raise AggregationException.new, 'original series is not weekly' if frequency != 'week'
     dailyseries = {}
     weekly_keys = data.keys.sort
