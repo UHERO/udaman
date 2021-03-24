@@ -1,4 +1,9 @@
 module SeriesInterpolation
+  def suppress_interpolate_errors
+    @suppress_interpolate_errors = true
+    self
+  end
+
   def interpolate_to (frequency, operation, series_to_store_name)
     series_to_store_name.ts = interpolate(frequency, operation)
   end
@@ -93,16 +98,16 @@ module SeriesInterpolation
   end
   
   def fill_days_interpolation
-    interpolate_week_to_day(:fill)
+    interpolate_week_to_day :fill
   end
 
   def distribute_days_interpolation
-    interpolate_week_to_day(:distribute)
+    interpolate_week_to_day :distribute
   end
 
   ### Assumes that weekly observations fall at the END of the week they represent, whatever weekday that might be.
   ### It's almost always Saturday, and we should try to keep it that way.
-  def interpolate_week_to_day(method = :fill)
+  def interpolate_week_to_day(method)
     raise "unknown method #{method}" unless method == :fill || method == :distribute
     raise(InterpolationException, 'original series not weekly') if frequency != 'week'
     dailyseries = {}
@@ -110,7 +115,7 @@ module SeriesInterpolation
     loop do
       date = weekly_keys.pop || break
       fill_length = (date - weekly_keys[-1]).to_i rescue 7  ## if this fails, probly bec the keys array is empty
-      if fill_length > 10
+      if fill_length > 10 && !@suppress_interpolate_errors
         raise InterpolationException, "obsv gap around #{date} far apart, check series"
       end
       value = (method == :fill) ? data[date] : (data[date] / fill_length.to_f)
@@ -226,7 +231,7 @@ module SeriesInterpolation
         increment = (this_val - last_val) / how_many.to_f   ## to_f ensures float division not truncated
         values = factors.map {|f| last_val + f * increment }
         values = values.map {|val| val / how_many.to_f } if method == :sum
-        (0...how_many).each do |t|
+        (0...how_many).each do |t|   ## note the three dots
           date = last_date + (t * target_months).months
           interpol_data[date] = values[t]
         end
