@@ -227,7 +227,7 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   def Series.parse_name(string)
-    if string =~ /^((\S+?)(&(\w+)(v(\d+))?)?)@(\w+?)\.([ASQMWD])$/i
+    if string =~ /^((\S+?)(&([0-9Q]+|CURR)(v(\d+))?)?)@(\w+?)\.([ASQMWD])$/i
       return {
           prefix_full: $1,
           prefix: $2,
