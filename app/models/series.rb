@@ -69,7 +69,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_all_universe(universe)
-    Series.joins(:xseries).where(universe: universe, forecast: false)
+    Series.joins(:xseries).where(universe: universe)
   end
 
   def Series.all_names
@@ -232,7 +232,7 @@ class Series < ApplicationRecord
           prefix_full: $1,
           prefix: $2,
           forecast: ($4.upcase rescue $4),
-          version: $5,
+          version: $6,
           geo: $7,
           freq: $8.upcase,
           freq_long: frequency_from_code($8).to_s
