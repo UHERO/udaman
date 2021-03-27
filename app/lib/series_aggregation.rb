@@ -11,7 +11,7 @@ module SeriesAggregation
   end
 
   def aggregate(frequency, operation, prune: true)
-    new_transformation("Aggregated from #{self}", aggregate_data_by(frequency, operation, prune: prune), frequency)
+    new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation, prune: prune), frequency)
   end
 
   def aggregate_by(frequency, operation, prune: true)
