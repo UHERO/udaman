@@ -80,8 +80,8 @@ class Series < ApplicationRecord
     Series.parse_name(name) && Series.where(universe: universe, name: name).first
   end
 
-  def Series.get_or_new(series_name, universe = 'UHERO')
-    Series.get(series_name, universe) || Series.create_new(universe: universe, name: series_name.upcase)
+  def Series.get_or_new(name, universe = 'UHERO')
+    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.parse_name(name)[:freq_long])
   end
 
   def Series.bulk_create(definitions)
@@ -233,7 +233,7 @@ class Series < ApplicationRecord
           prefix: $2,
           forecast: ($4.upcase rescue $4),
           version: $6,
-          geo: $7,
+          geo: $7.upcase,
           freq: $8.upcase,
           freq_long: frequency_from_code($8).to_s
       }
