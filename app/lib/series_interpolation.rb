@@ -114,9 +114,9 @@ module SeriesInterpolation
     weekly_keys = data.keys.sort
     loop do
       date = weekly_keys.pop || break
-      fill_length = (date - weekly_keys[-1]).to_i rescue 7  ## rescue should only happen when keys are empty
+      fill_length = (date - weekly_keys[-1]).to_i rescue 7  ## rescue should only happen when keys array is empty
       if fill_length > 10 && !@suppress_interpolate_errors
-        raise InterpolationException, "obsv gap around #{date} far apart, check series"
+        raise InterpolationException, "observation gap around #{date} far apart, check series"
       end
       value = method == :fill ? data[date] : (data[date] / fill_length.to_f)
       (0...fill_length).each {|offset| dailyseries[date - offset.days] = value }  ## note the three dots
