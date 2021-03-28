@@ -53,6 +53,7 @@ class ForecastSnapshot < ApplicationRecord
       self.save! || raise('ForecastSnapshot object save failed')
       if new_tsd_content
         write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) || raise('TSD newfile disk write failed')
+        load_into_db(new_tsd_content)
       end
       if old_tsd_content
         write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) || raise('TSD oldfile disk write failed')
@@ -144,6 +145,14 @@ class ForecastSnapshot < ApplicationRecord
   end
 
 private
+
+  def load_into_db(tsd_text)
+    snax = TsdFile.new
+    snax.assign_content(tsd_text)
+    snax.get_all_series(nils: true).each do |series|
+      # do something
+    end
+  end
 
   def increment_version
     vers_base = version.sub(/\.\d*$/, '')
