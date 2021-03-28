@@ -80,8 +80,8 @@ class Series < ApplicationRecord
     Series.parse_name(name) && Series.where(universe: universe, name: name).first
   end
 
-  def Series.get_or_new(series_name, universe = 'UHERO')
-    Series.get(series_name, universe) || Series.new(universe: universe, name: series_name.upcase)
+  def Series.get_or_new(name, universe = 'UHERO')
+    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.parse_name(name)[:freq_long])
   end
 
   def Series.bulk_create(definitions)
