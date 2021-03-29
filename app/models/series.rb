@@ -348,8 +348,9 @@ class Series < ApplicationRecord
     end
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
   end
-  
-  def Series.region_hash
+
+  ## Appears vestigial - renaming for now, delete later
+  def Series.region_hash_DELETEME
     region_hash = {}
     all_names = Series.get_all_uhero.all_names
     all_names.each do |name|
@@ -362,7 +363,8 @@ class Series < ApplicationRecord
     region_hash
   end
 
-  def Series.region_counts
+  ## Appears vestigial - renaming for now, delete later
+  def Series.region_counts_DELETEME
     region_hash.map {|key, value| [key, value.count] }.to_h
   end
 
