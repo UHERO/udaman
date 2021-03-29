@@ -368,7 +368,8 @@ class Series < ApplicationRecord
     region_hash.map {|key, value| [key, value.count] }.to_h
   end
 
-  def Series.frequency_hash
+  ## Appears vestigial - renaming for now, delete later
+  def Series.frequency_hash_DELETEME
     frequency_hash = {}
     all_names = Series.get_all_uhero.select('name, frequency')
     all_names.each do |s|
@@ -377,8 +378,9 @@ class Series < ApplicationRecord
     end
     frequency_hash
   end
-  
-  def Series.frequency_counts
+
+  ## Appears vestigial - renaming for now, delete later
+  def Series.frequency_counts_DELETEME
     frequency_hash.map {|key, value| [key, value.count] }.to_h
   end
 
