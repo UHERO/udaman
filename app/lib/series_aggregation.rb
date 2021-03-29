@@ -4,7 +4,7 @@ module SeriesAggregation
 
     orig_series = self
     if self.frequency.to_sym == :week
-      orig_series = interpolate_week_to_day(operation == :average ? :fill : :distribute)
+      orig_series = self.interpolate_week_to_day(operation == :average ? :fill : :distribute)
     end
     grouped_data = orig_series.group_data_by(frequency, prune: prune)
     aggregated_data = {}
