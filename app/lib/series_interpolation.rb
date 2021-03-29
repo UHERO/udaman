@@ -1,6 +1,6 @@
 module SeriesInterpolation
-  def suppress_interpolate_errors
-    @suppress_interpolate_errors = true
+  def fixed_week(length = 7)
+    @fixed_week = length
     self
   end
 
@@ -114,8 +114,8 @@ module SeriesInterpolation
     weekly_keys = data.keys.sort
     loop do
       date = weekly_keys.pop || break
-      fill_length = (date - weekly_keys[-1]).to_i rescue 7  ## rescue should only happen when keys array is empty
-      if (fill_length < 6 || fill_length > 10) && !@suppress_interpolate_errors
+      fill_length = @fixed_week || (date - weekly_keys[-1]).to_i rescue 7  ## rescue should only happen when keys array is empty
+      if fill_length < 5 || fill_length > 9
         raise InterpolationException, "observation gap length #{fill_length} too long or short near #{date}"
       end
       value = method == :fill ? data[date] : (data[date] / fill_length.to_f)
