@@ -81,7 +81,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(name, universe = 'UHERO')
-    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.parse_name(name)[:freq_long])
+    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.frequency_from_name(name))
   end
 
   def Series.bulk_create(definitions)
@@ -356,8 +356,9 @@ class Series < ApplicationRecord
     end
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
   end
-  
-  def Series.region_hash
+
+  ## Appears vestigial - renaming for now, delete later
+  def Series.region_hash_DELETEME
     region_hash = {}
     all_names = Series.get_all_uhero.all_names
     all_names.each do |name|
@@ -370,11 +371,13 @@ class Series < ApplicationRecord
     region_hash
   end
 
-  def Series.region_counts
+  ## Appears vestigial - renaming for now, delete later
+  def Series.region_counts_DELETEME
     region_hash.map {|key, value| [key, value.count] }.to_h
   end
 
-  def Series.frequency_hash
+  ## Appears vestigial - renaming for now, delete later
+  def Series.frequency_hash_DELETEME
     frequency_hash = {}
     all_names = Series.get_all_uhero.select('name, frequency')
     all_names.each do |s|
@@ -383,8 +386,9 @@ class Series < ApplicationRecord
     end
     frequency_hash
   end
-  
-  def Series.frequency_counts
+
+  ## Appears vestigial - renaming for now, delete later
+  def Series.frequency_counts_DELETEME
     frequency_hash.map {|key, value| [key, value.count] }.to_h
   end
 
