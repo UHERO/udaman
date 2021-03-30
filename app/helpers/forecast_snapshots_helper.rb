@@ -15,7 +15,7 @@ module ForecastSnapshotsHelper
   end
 
   def forecast_snapshot_csv_gen
-    CSV.generate(nil, col_sep: "\t") do |csv|
+    CSV.generate do |csv|
       name_order = {}
       @tsd_files[0].get_all_series.each_with_index {|h, i| name_order[h[:name]] = i }         ## save memory by 86ing unneeded bits (below)
       newstuff = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (new)'; h[:data] = h[:yoy_hash] = nil } }
