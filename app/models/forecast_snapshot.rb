@@ -147,9 +147,8 @@ class ForecastSnapshot < ApplicationRecord
 private
 
   def load_into_db(tsd_text)
-    snax = TsdFile.new
-    snax.assign_content(tsd_text)
-    snax.get_all_series(nils: true).each do |series|
+    tsd = TsdFile.new.assign_content(tsd_text)
+    tsd.get_all_series(nils: true).each do |series|
       # do something
     end
   end

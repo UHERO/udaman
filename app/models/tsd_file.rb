@@ -10,7 +10,8 @@ class TsdFile < ApplicationRecord
   end
 
   def assign_content(text)
-    @content = StringIO.new(text)
+    @string_content = StringIO.new(text)
+    self
   end
 
   def store_tsd(file_content)
@@ -188,7 +189,7 @@ protected
   end
 
   def open_tsd
-    @file = @content || File.open(path, 'r')
+    @file = @string_content || File.open(path, 'r')
   end
 
   def read_data(line)
