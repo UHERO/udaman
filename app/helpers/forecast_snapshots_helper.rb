@@ -1,9 +1,8 @@
 module ForecastSnapshotsHelper
 
   def generate_date_range_controls(sample_from, sample_to)
-    date_f = @is_quarterly ? lambda {|d| date_to_qspec(d) } : lambda {|d| d[0..3] }
-    from_menu_list = @all_dates.each.to_a.map {|d| [date_f.call(d), d, { id: "fstab-from-#{d}" }] }
-    to_menu_list   = @all_dates.each.to_a.map {|d| [date_f.call(d), d, { id: "fstab-to-#{d}" }] }
+    from_menu_list = @all_dates.each.to_a.map {|d| [@date_disp_f.call(d), d, { id: "fstab-from-#{d}" }] }
+    to_menu_list   = @all_dates.each.to_a.map {|d| [@date_disp_f.call(d), d, { id: "fstab-to-#{d}" }] }
     select_tag('sample_from', options_for_select(from_menu_list, sample_from)) + ' from-to ' +
     select_tag('sample_to',   options_for_select(to_menu_list, sample_to))
   end

@@ -16,21 +16,21 @@ module SeriesDataAdjustment
   def trim(start_date = nil, end_date = nil)
     ## more flexibility to allow either or both parameters to be passed as nil and assign defaults within
     start_date ||= (self.trim_period_start || get_last_incomplete_january)
-    end_date ||= (self.trim_period_end || Time.now.to_date)
+      end_date ||= (self.trim_period_end || Time.now)
     if start_date.nil?
       return new_transformation("Trimmed #{name}", data)
     end
     new_series_data = get_values_after_including(start_date.to_date, end_date.to_date)
-    new_name = start_date.to_s == '1000-01-01' ? name : "Trimmed #{name} starting at #{start_date}"
+    new_name = start_date.to_s == '1000-01-01' ? name : "Trimmed #{name} starting #{start_date}"
     new_transformation(new_name, new_series_data)
   end
 
   def no_trim_past
-    self.tap {|o| o.trim_period_start = '1000-01-01' }
+    self.tap {|o| o.trim_period_start = '1000-01-01' }  ## Beginning of Time
   end
 
   def no_trim_future
-    self.tap {|o| o.trim_period_end = '2999-12-31' }
+    self.tap {|o| o.trim_period_end = '2999-12-31' }  ## End of Time
   end
 
   def no_trim
