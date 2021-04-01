@@ -574,6 +574,15 @@ class Series < ApplicationRecord
     DataPoint.update_public_data_points(universe)
   end
 
+  def Series.do_forecast_upload(params)
+    spec = params[:spec].strip.upcase
+    raise 'Bad forecast spec' unless spec =~ /\d\dQ\d/
+    vers = params[:vers].strip.upcase
+    raise 'Bad version' unless vers =~ /\d+|FIN/
+    content = params[:forecast_upload_filename].read rescue raise('Could not read the uploaded file')
+    []
+  end
+
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def update_data_hash_DELETEME
     data_hash = {}

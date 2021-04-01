@@ -147,8 +147,8 @@ class SeriesController < ApplicationController
     @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
   end
 
-  def new_search
-    @search_string = params[:search_string]
+  def new_search(search_string = nil)
+    @search_string = search_string || params[:search_string]
     Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
     @all_series = Series.search_box(@search_string, limit: 500, user_id: current_user.id)
     if @all_series.count == 1
@@ -195,6 +195,8 @@ class SeriesController < ApplicationController
   end
 
   def forecast_do_upload
+    created_series_ids = Series.do_forecast_upload(forecast_upload_params)
+    new_search(created_series_ids.join(','))
   end
 
   def old_bea_download
@@ -313,6 +315,7 @@ class SeriesController < ApplicationController
   end
 
 private
+
     def series_params
       params.require(:series).permit(
           :universe,
@@ -336,6 +339,10 @@ private
 
   def bulk_params
     params.require(:bulk_defs).permit(:definitions)
+  end
+
+  def forecast_upload_params
+    params.require(:forecast_upload).permit(:spec, :version, :forecast_upload_filename)
   end
 
   def set_series
