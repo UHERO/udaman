@@ -14,9 +14,6 @@ class SeriesController < ApplicationController
     set_attrib_resource_values(@series)
   end
 
-  def bulk_new
-  end
-
   def edit
     @add2meas = params[:add_to_meas].to_i
     set_attrib_resource_values(@series)
@@ -85,7 +82,9 @@ class SeriesController < ApplicationController
     end
   end
 
-  # POST /series/bulk
+  def bulk_new
+  end
+
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to action: :index
@@ -190,6 +189,12 @@ class SeriesController < ApplicationController
   def quarantine
     @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
+  end
+
+  def forecast_upload
+  end
+
+  def forecast_do_upload
   end
 
   def old_bea_download

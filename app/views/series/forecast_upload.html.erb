@@ -1,0 +1,19 @@
+<%= form_with url: { action: :forecast_do_upload } do |f| %>
+
+  <div class="field">
+    <%= f.label :spec %><br>
+    <%= f.text_field :spec, size: 8 %>
+  </div>
+  <div class="field">
+    <%= f.label :version %><br>
+    <%= f.text_field :version %>
+  </div>
+  <div class="field">
+    Upload file <%= f.file_field :forecast_upload_filename %>
+  </div>
+  <div class="actions">
+    <%= f.submit 'Save forecast series' %>
+    <%= link_to 'Cancel', :back %>
+  </div>
+
+<% end %>
