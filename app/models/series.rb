@@ -579,7 +579,7 @@ class Series < ApplicationRecord
     raise 'Bad forecast spec' unless spec =~ /\d\dQ\d/
     vers = params[:vers].strip.upcase
     raise 'Bad version' unless vers =~ /\d+|FIN/
-    content = params[:forecast_upload_filename].read rescue raise('Could not read the uploaded file')
+    content = params[:forecast_upload_file].read rescue raise('Could not read the uploaded file')
     []
   end
 

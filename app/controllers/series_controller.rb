@@ -342,7 +342,7 @@ private
   end
 
   def forecast_upload_params
-    params.require(:forecast_upload).permit(:spec, :version, :forecast_upload_filename)
+    params.require(:forecast_upload).permit(:spec, :version, :forecast_upload_file)
   end
 
   def set_series

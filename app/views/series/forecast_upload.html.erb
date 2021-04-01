@@ -1,16 +1,16 @@
 <%= form_with url: { action: :forecast_upload }, method: :post do |f| %>
 
   <div class="field">
-    Spec <%= f.text_field :forecast_upload, :spec, nil, size: 8 %> (must be YYQ[1234])
+    Forecast <%= f.text_field :forecast_upload, :spec, nil, size: 8 %> (must be YYQ[1234])
   </div>
   <div class="field">
     Version <%= text_field_tag 'forecast_upload[version]', nil, size: 8 %> (a number or FIN)
   </div>
   <div class="field">
-    Upload file <%= file_field_tag 'forecast_upload[forecast_upload_filename]', nil %>
+    Upload file <%= file_field_tag 'forecast_upload[forecast_upload_file]', nil %>
   </div>
   <div class="actions">
-    <%= f.submit 'Save forecast series' %>
+    <%= f.submit 'Store forecast series' %>
     <%= link_to 'Cancel', :back %>
   </div>
 
