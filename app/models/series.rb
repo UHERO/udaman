@@ -227,12 +227,12 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   def Series.parse_name(string)
-    if string =~ /^((\S+?)(&([0-9Q]+|CURR)(v(\d+))?)?)@(\w+?)\.([ASQMWD])$/i
+    if string =~ /^((\S+?)(&([0-9Q]+|CURR)(v(\w+))?)?)@(\w+?)\.([ASQMWD])$/i
       return {
           prefix_full: $1,
           prefix: $2,
           forecast: ($4.upcase rescue $4),
-          version: $6,
+          version: ($6.upcase rescue $6),
           geo: $7.upcase,
           freq: $8.upcase,
           freq_long: frequency_from_code($8).to_s
