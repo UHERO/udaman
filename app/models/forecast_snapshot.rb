@@ -53,15 +53,12 @@ class ForecastSnapshot < ApplicationRecord
       self.save! || raise('ForecastSnapshot object save failed')
       if new_tsd_content
         write_file_to_disk(new_forecast_tsd_filename, new_tsd_content) || raise('TSD newfile disk write failed')
-        load_into_db(new_tsd_content)
       end
       if old_tsd_content
         write_file_to_disk(old_forecast_tsd_filename, old_tsd_content) || raise('TSD oldfile disk write failed')
-        load_into_db(old_tsd_content)
       end
       if hist_tsd_content
         write_file_to_disk(history_tsd_filename, hist_tsd_content) || raise('TSD histfile disk write failed')
-        load_into_db(hist_tsd_content)
       end
     rescue StandardError => e
       Rails.logger.error { "store_fs: #{e.message}" }
