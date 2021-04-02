@@ -145,13 +145,6 @@ class ForecastSnapshot < ApplicationRecord
 
 private
 
-  def load_into_db(tsd_text)
-    tsd = TsdFile.new.assign_content(tsd_text)
-    tsd.get_all_series(nils: true).each do |series|
-      # do something
-    end
-  end
-
   def increment_version
     vers_base = version.sub(/\.\d*$/, '')
     verses = ForecastSnapshot.where('name = ? and version regexp ?', name, "^#{vers_base}\\.").pluck(:version)

@@ -594,6 +594,7 @@ class Series < ApplicationRecord
       parts[:prefix] += '&' + fcid + 'v' + vers
       to_create.push({ universe: 'FC', name_parts: parts })
     end
+    ids = []
     self.transaction do
       to_create.each do |properties|
         s = Series.create_new(properties)
@@ -603,8 +604,10 @@ class Series < ApplicationRecord
                                             priority: 100,
                                             reload_nightly: false)
         s.reload_sources
+        ids.push s.id
       end
     end
+    ids
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
