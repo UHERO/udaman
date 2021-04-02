@@ -145,7 +145,8 @@ class Series < ApplicationRecord
   end
 
   def Series.create_new(properties)
-    ## :xseries_attributes and :name_parts only present when called from SeriesController#create
+    ## :xseries_attributes only present when called from SeriesController#create
+    ## :name_parts present when called from SeriesController#create and Series.do_forecast_upload
     xs_attrs = properties.delete(:xseries_attributes)
     if xs_attrs
       properties.merge!(xs_attrs)
@@ -589,14 +590,18 @@ class Series < ApplicationRecord
       if parts[:freq] && parts[:freq] != freq
         raise "Contained series #{name} does not match selected frequency of #{freq}"
       end
-      s_name = Series.build_name('%s&%sv%s' % [parts[:prefix], fcid, vers], parts[:geo], freq)
-      to_create.push({ universe: 'FC', name: s_name, frequency: freq })
+      parts[:freq] = freq
+      parts[:prefix] += '&' + fcid + 'v' + vers
+      to_create.push({ universe: 'FC', name_parts: parts })
     end
     self.transaction do
       to_create.each do |properties|
         s = Series.create_new(properties)
-        eval = %q{"%s".ts.load_from("%s")} % [s.name, filename]
-        s.data_sources << DataSource.create(eval: eval, priority: 100, color: 'light_orange', reload_nightly: false)
+        s.data_sources << DataSource.create(universe: 'FC',
+                                            eval: %q{"%s".ts.load_from("%s")} % [s.name, filename],
+                                            color: 'light_orange',
+                                            priority: 100,
+                                            reload_nightly: false)
         s.reload_sources
       end
     end

@@ -10,7 +10,7 @@
     Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: false } %>
   </div>
   <div class="field">
-    Upload file <%= text_field_tag 'forecast_upload[filename]', nil %>
+    Upload file <%= text_field_tag 'forecast_upload[filename]', nil, size: 40 %>
   </div>
   <div class="actions">
     <%= f.submit 'Store forecast series' %>
