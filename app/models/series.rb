@@ -227,15 +227,15 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   def Series.parse_name(string)
-    if string =~ /^((\S+?)(&([0-9Q]+|CURR)(v(\d+|FIN))?)?)@(\w+?)\.([ASQMWD])$/i
+    if string =~ /^((\S+?)(&([0-9Q]+|CURR)(v(\d+|FIN))?)?)@(\w+?)(\.([ASQMWD]))?$/i
       return {
           prefix_full: $1,
           prefix: $2,
           forecast: ($4.upcase rescue $4),
           version: ($6.upcase rescue $6),
           geo: $7.upcase,
-          freq: $8.upcase,
-          freq_long: frequency_from_code($8).to_s
+          freq: ($9.upcase rescue $9),
+          freq_long: frequency_from_code($9).to_s
       }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
@@ -580,10 +580,25 @@ class Series < ApplicationRecord
     vers = params[:vers].strip.upcase
     raise 'Bad version' unless vers =~ /\d+|FIN/
     freq = params[:freq]
+    filename = params[:filename]
     csv = UpdateCSV.new(params[:filename])
     raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
+    to_create = []
     csv.headers.keys.each do |name|
-      data = csv.series(name)
+      parts = Series.parse_name(name)
+      if parts[:freq] && parts[:freq] != freq
+        raise "Contained series #{name} does not match selected frequency of #{freq}"
+      end
+      s_name = Series.build_name('%s&%sv%s' % [parts[:prefix], fcid, vers], parts[:geo], freq)
+      to_create.push({ universe: 'FC', name: s_name, frequency: freq })
+    end
+    self.transaction do
+      to_create.each do |properties|
+        s = Series.create_new(properties)
+        eval = %q{"%s".ts.load_from("%s")} % [s.name, filename]
+        s.data_sources << DataSource.create(eval: eval, priority: 100, color: 'light_orange', reload_nightly: false)
+        s.reload_sources
+      end
     end
   end
 
