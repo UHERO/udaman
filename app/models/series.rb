@@ -579,8 +579,8 @@ class Series < ApplicationRecord
     raise 'Bad forecast identifier' unless fcid =~ /\d\dQ\d/
     vers = params[:vers].strip.upcase
     raise 'Bad version' unless vers =~ /\d+|FIN/
-    content = params[:forecast_upload_file].read rescue raise('Could not read the uploaded file')
-    csv = UpdateCSV.new(content, type: :text)
+    freq = params[:freq]
+    csv = UpdateCSV.new(params[:filename])
     raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
     csv.headers.keys.each do |name|
       data = csv.series(name)

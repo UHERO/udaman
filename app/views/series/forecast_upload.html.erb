@@ -7,7 +7,10 @@
     Version <%= text_field_tag 'forecast_upload[version]', nil, size: 8 %> (a number or FIN)
   </div>
   <div class="field">
-    Upload file <%= file_field_tag 'forecast_upload[forecast_upload_file]', nil %>
+    Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: false } %>
+  </div>
+  <div class="field">
+    Upload file <%= text_field_tag 'forecast_upload[filename]', nil %>
   </div>
   <div class="actions">
     <%= f.submit 'Store forecast series' %>
