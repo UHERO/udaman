@@ -3,11 +3,11 @@ require 'csv'
 class UpdateCSV 
   include UpdateCore
 
-  def initialize(spreadsheet_name)
-    begin
-      @data = CSV.read(spreadsheet_name)
-    rescue
-      @load_error = true
+  def initialize(csv_file, type: :file)
+    if type == :text
+      @data = parse_csv_text(csv_file)
+    else
+      @data = CSV.read(csv_file) rescue @load_error = true
     end
   end
   
@@ -46,5 +46,19 @@ class UpdateCSV
     
     @dates
   end
-  
+
+private
+
+  def parse_csv_text(text, delim: ',', prune: true, nil_empties: false)
+    data = []
+    file = StringIO.new(text)
+    loop do
+      line = file.gets || break
+      row = line.split(delim).map(&:strip)
+      next if prune && (row.empty? || row.count == 1 && row[0] == '')
+      row = row.map {|x| x.blank? ? nil : x } if nil_empties
+      data.push row
+    end
+    data
+  end
 end

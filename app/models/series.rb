@@ -580,7 +580,11 @@ class Series < ApplicationRecord
     vers = params[:vers].strip.upcase
     raise 'Bad version' unless vers =~ /\d+|FIN/
     content = params[:forecast_upload_file].read rescue raise('Could not read the uploaded file')
-    []
+    csv = UpdateCSV.new(content, type: :text)
+    raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
+    csv.headers.keys.each do |name|
+      data = csv.series(name)
+    end
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
