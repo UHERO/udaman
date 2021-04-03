@@ -600,11 +600,13 @@ class Series < ApplicationRecord
     ids = []
     self.transaction do
       series.each do |properties|
+        ld_name = properties.delete(:ld_name)  ## remove this from properties or it'll screw up the find_by
+
         s = Series.find_by(properties)
         if s.nil?
           s = Series.create_new(properties)
           s.data_sources << DataSource.create(universe: 'FC',
-                                              eval: %q{"%s".ts.load_from("%s")} % [properties[:ld_name], filename],
+                                              eval: %q{"%s".ts.load_from("%s")} % [ld_name, filename],
                                               color: 'light_orange',
                                               priority: 100,
                                               reload_nightly: false)
