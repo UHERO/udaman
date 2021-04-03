@@ -153,7 +153,7 @@ module SeriesHelper
   end
 
   def make_alt_universe_links(series)
-    alt_univs = { 'UHERO' => %w{COH CCOM}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
+    alt_univs = { 'UHERO' => %w{FC COH CCOM}, 'DBEDT' => %w{UHERO COH} }  ## Yes, these relations are hardcoded. So sue me.
     links = []
     seen = {}
     series.aliases.sort_by{|x| [x.is_primary? ? 0 : 1, x.universe] }.each do |s|

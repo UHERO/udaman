@@ -606,8 +606,8 @@ class Series < ApplicationRecord
         if s.nil?
           s = Series.create_new(properties)
           s.data_sources << DataSource.create(universe: 'FC',
-                                              eval: %q{"%s".ts.load_from("%s")} % [ld_name, filename],
-                                              color: 'light_orange',
+                                              eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filename],
+                                              color: 'FFA500',   ## "web orange"
                                               priority: 100,
                                               reload_nightly: false)
         end
