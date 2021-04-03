@@ -1,7 +1,7 @@
 <%= form_with url: { action: :forecast_upload }, method: :post do |f| %>
 
   <div class="field">
-    Forecast <%= f.text_field :forecast_upload, :fcid, nil, size: 8 %> (must be YYQ[1234])
+    Forecast <%=  text_field_tag 'forecast_upload[fcid]', nil, size: 8 %> (must be YYQ[1234])
   </div>
   <div class="field">
     Version <%= text_field_tag 'forecast_upload[version]', nil, size: 8 %> (a number or FIN)

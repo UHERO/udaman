@@ -8,6 +8,7 @@ class UpdateCSV
       @data = parse_csv_text(csv_file)
     else
       @data = CSV.read(csv_file) rescue @load_error = true
+      raise 'File does not exist?' unless @data.class == Array
     end
   end
   
