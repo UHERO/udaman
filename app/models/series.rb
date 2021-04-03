@@ -595,7 +595,7 @@ class Series < ApplicationRecord
       end
       parts[:freq] = freq
       parts[:prefix] += '&' + fcid + 'v' + vers
-      series.push({ universe: 'FC', name: Series.build_name_from_hash(parts) })
+      series.push({ universe: 'FC', name: Series.build_name_from_hash(parts), ld_name: name })
     end
     ids = []
     self.transaction do
@@ -604,7 +604,7 @@ class Series < ApplicationRecord
         if s.nil?
           s = Series.create_new(properties)
           s.data_sources << DataSource.create(universe: 'FC',
-                                              eval: %q{"%s".ts.load_from("%s")} % [s.name, filename],
+                                              eval: %q{"%s".ts.load_from("%s")} % [properties[:ld_name], filename],
                                               color: 'light_orange',
                                               priority: 100,
                                               reload_nightly: false)
