@@ -145,8 +145,7 @@ class Series < ApplicationRecord
   end
 
   def Series.create_new(properties)
-    ## :xseries_attributes only present when called from SeriesController#create
-    ## :name_parts present when called from SeriesController#create and Series.do_forecast_upload
+    ## :xseries_attributes and :name_parts only present when called from SeriesController#create
     xs_attrs = properties.delete(:xseries_attributes)
     if xs_attrs
       properties.merge!(xs_attrs)
@@ -252,6 +251,10 @@ class Series < ApplicationRecord
     end
     name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
     Series.parse_name(name) && name
+  end
+
+  def Series.build_name_from_hash(h)
+    Series.build_name(h[:prefix], h[:geo], h[:freq])
   end
 
   def Series.build_name_two(prefixgeo, freq)
@@ -584,7 +587,7 @@ class Series < ApplicationRecord
     filename = params[:filename]
     csv = UpdateCSV.new(params[:filename])
     raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
-    to_create = []
+    series = []
     csv.headers.keys.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
@@ -592,17 +595,20 @@ class Series < ApplicationRecord
       end
       parts[:freq] = freq
       parts[:prefix] += '&' + fcid + 'v' + vers
-      to_create.push({ universe: 'FC', name_parts: parts })
+      series.push({ universe: 'FC', name: Series.build_name_from_hash(parts) })
     end
     ids = []
     self.transaction do
-      to_create.each do |properties|
-        s = Series.create_new(properties)
-        s.data_sources << DataSource.create(universe: 'FC',
-                                            eval: %q{"%s".ts.load_from("%s")} % [s.name, filename],
-                                            color: 'light_orange',
-                                            priority: 100,
-                                            reload_nightly: false)
+      series.each do |properties|
+        s = Series.find_by(properties)
+        if s.nil?
+          s = Series.create_new(properties)
+          s.data_sources << DataSource.create(universe: 'FC',
+                                              eval: %q{"%s".ts.load_from("%s")} % [s.name, filename],
+                                              color: 'light_orange',
+                                              priority: 100,
+                                              reload_nightly: false)
+        end
         s.reload_sources
         ids.push s.id
       end
