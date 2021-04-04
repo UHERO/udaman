@@ -142,6 +142,7 @@ class DataSource < ApplicationRecord
       return :pseudo_history if pseudo_history?
       case self.eval
       when /load_api/ then :api
+      when /forecast/i then :forecast
       when /load_from_download/ then :download
       when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this asap!
       when /load_[a-z_]*from.*history/i then :history
@@ -153,6 +154,7 @@ class DataSource < ApplicationRecord
     def type_colors(type = loader_type)
       case type
       when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
+      when :forecast then %w{FFA94E FFA500}    ## Oranges
       when :download then %w{A9BEF2 C3DDF9 6495ED}  ## Blues
       when :manual then %w{F9FF8B FBFFBD F0E67F}  ## Yellows
       when :history then %w{CAAF8C DFC3AA B78E5C}  ## Browns
@@ -183,6 +185,7 @@ class DataSource < ApplicationRecord
 
     def set_color!(color = find_my_color)
       self.update_attributes!(color: color)
+      self
     end
 
     def set_dependencies_without_save!
@@ -203,8 +206,8 @@ class DataSource < ApplicationRecord
     end
 
     def setup
-      set_dependencies!
       set_color!
+      set_dependencies!
     end
 
     def reload_source(clear_first = false)

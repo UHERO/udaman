@@ -607,9 +607,8 @@ class Series < ApplicationRecord
           s = Series.create_new(properties)
           s.data_sources << DataSource.create(universe: 'FC',
                                               eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filename],
-                                              color: 'FFA500',   ## "web orange"
                                               priority: 100,
-                                              reload_nightly: false)
+                                              reload_nightly: false).set_color!
         end
         s.reload_sources
         ids.push s.id
