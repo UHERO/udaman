@@ -87,7 +87,7 @@ module SeriesArithmetic
     end
     new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
-  
+
   def percentage_change
     new_series_data = {}
     last = nil
@@ -108,6 +108,19 @@ module SeriesArithmetic
       when last == 0 && current == 0 then 0
       else (current - last) / last * 100
     end
+  end
+
+  ## Generalized computation of change in level. Can be used for YOY, etc by changing the offset.
+  def level_change(offset: nil)
+    new_series = {}
+    last_val = nil
+    data.sort.each do |date, value|
+      next if value.nil?
+      prev = (offset.nil? ? last_val : data[date - offset]) || next
+      new_series[date] = value - prev
+      last_val = value
+    end
+    new_transformation("Level change of #{self} #{}", new_series)
   end
 
   def absolute_change(id = nil)

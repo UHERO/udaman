@@ -198,7 +198,7 @@ private
   def window_size
     return 12 if frequency == 'month'
     return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "no window size defined for frequency #{frequency}!"
+    raise "no window size defined for frequency #{frequency}"
   end
 
 end
