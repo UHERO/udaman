@@ -1,6 +1,6 @@
 module SeriesSharing
   def ma_series(ma_type = 'ma', start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Moving Average of #{name}", ma_series_data(ma_type, start_date, end_date))
+    new_transformation("Moving Average of #{self}", ma_series_data(ma_type, start_date, end_date))
   end
 
   def moving_average_for_sa(start_date = first_observation)
@@ -9,29 +9,29 @@ module SeriesSharing
   end
 
   def moving_average(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Moving Average of #{name}", ma_series_data('ma', start_date, end_date))
+    new_transformation("Moving Average of #{self}", ma_series_data('ma', start_date, end_date))
   end
   
   def moving_average_offset_early(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Moving Average of #{name}", ma_series_data('offset_ma', start_date, end_date))
+    new_transformation("Moving Average of #{self}", ma_series_data('offset_ma', start_date, end_date))
   end
 
   def moving_average_annavg_padded(start_date = first_observation, end_date = Time.now.to_date)
     ann_avg_data = annual_average.trim(start_date, end_date).data
     cma_data = ma_series_data('strict_cma', start_date, end_date)
-    new_transformation("Moving Average of #{name} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
+    new_transformation("Moving Average of #{self} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
   end
 
   def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
+    new_transformation("Backward Looking Moving Average of #{self}", ma_series_data('backward_ma', start_date, end_date))
   end
   
   def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Forward Looking Moving Average of #{name}", ma_series_data('forward_ma', start_date, end_date))
+    new_transformation("Forward Looking Moving Average of #{self}", ma_series_data('forward_ma', start_date, end_date))
   end
   
   def offset_forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Offset Forward Looking Moving Average of #{name}", ma_series_data('offset_forward_ma', start_date, end_date))
+    new_transformation("Offset Forward Looking Moving Average of #{self}", ma_series_data('offset_forward_ma', start_date, end_date))
   end
 
   ## Seems this function is not actually used anymore, but refactoring anyway, in case it is revived
@@ -85,7 +85,7 @@ module SeriesSharing
     shared_series = share_using(county.trim(start_date, end_date).moving_average, my_ns_series.trim(start_date, end_date).moving_average)
     mean_corrected_series = shared_series.share_using(county.annual_average, shared_series.annual_average)
     incomplete_year = county.backward_looking_moving_average.get_last_incomplete_year / my_ns_series.backward_looking_moving_average.get_last_incomplete_year * self
-    new_transformation("Share of #{name} using ratio of the moving average #{county.name} over the moving average of #{my_ns_series.name}, mean corrected for the year",
+    new_transformation("Share of #{self} using ratio of the moving average #{county.name} over the moving average of #{my_ns_series.name}, mean corrected for the year",
         mean_corrected_series.data.series_merge(incomplete_year.data))
   end
 
@@ -99,7 +99,7 @@ module SeriesSharing
     as2 = add_series_2.ts.load_sa_from(file)
     as_sum = as1 + as2
     new_series = as_sum / as_sum.annual_sum * mc_series.ts.annual_sum
-    new_transformation("#{add_series_1} + #{add_series_2} from demetra output of #{file} mean corrected against #{mc_series}", new_series.data, new_series.frequency)
+    new_transformation("#{add_series_1} + #{add_series_2} from demetra output of <#{file}> mean corrected against #{mc_series}", new_series.data, new_series.frequency)
   end
 
 private
