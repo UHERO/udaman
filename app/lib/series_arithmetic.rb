@@ -1,4 +1,6 @@
 module SeriesArithmetic
+  include ActionView::Helpers::DateHelper
+
   def round(prec = 0)
     new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
   end
@@ -112,13 +114,12 @@ module SeriesArithmetic
 
   ## Generalized computation of change in level. Can be used for YOY, etc by changing the offset.
   def level_change(offset: nil)
-    include ActionView::Helpers::DateHelper
     new_series = {}
     last_val = nil
     data.sort.each do |date, value|
       next if value.nil?
-      prev = (offset ? data[date - offset] : last_val) || next
-      new_series[date] = value - prev
+      prev = offset ? data[date - offset] : last_val
+      new_series[date] = (value - prev) unless prev.nil?
       last_val = value
     end
     offset_s = offset && " w/offset #{distance_of_time_in_words(offset).sub('about ','')}"
