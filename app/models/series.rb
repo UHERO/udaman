@@ -264,8 +264,7 @@ class Series < ApplicationRecord
 
   ## Build a new name starting from mine, and replacing whatever parts are passed in
   def build_name(new_parts)
-    name = self.parse_name.merge(new_parts)
-    Series.build_name(name[:prefix], name[:geo], name[:freq])
+    Series.build_name_from_hash( self.parse_name.merge(new_parts) )
   end
 
   def ns_series_name
