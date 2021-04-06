@@ -100,7 +100,7 @@ module SeriesArithmetic
       end
       last = value
     end
-    new_transformation("Percentage Change of #{name}", new_series_data)
+    new_transformation("Percentage change of #{name}", new_series_data)
   end
 
   def compute_percentage_change(current, last)
@@ -126,25 +126,8 @@ module SeriesArithmetic
     new_transformation("Level change of #{self}#{offset_s}", new_series)
   end
 
-  def absolute_change(id = nil)
-    return faster_change(id) if id
-    new_series_data = {}
-    last = nil
-    data.sort.each do |date, value|
-      new_series_data[date] = value - last unless last.nil?
-      last = value
-    end
-    new_transformation("Absolute change of #{self}", new_series_data)
-  end
-
-  def annual_absolute_change
-    new_series = {}
-    data.sort.each do |date, value|
-      next if value.nil?
-      prev = data[date - 1.year] || next
-      new_series[date] = value - prev
-    end
-    new_transformation("Annual absolute change of #{self}", new_series)
+  def absolute_change
+    level_change
   end
 
   def faster_change(id)
