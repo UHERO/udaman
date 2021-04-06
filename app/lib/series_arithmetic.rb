@@ -112,22 +112,27 @@ module SeriesArithmetic
     end
   end
 
-  ## Generalized computation of change in level. Can be used for YOY, etc by changing the offset.
-  def level_change(offset: nil)
+  ## Temporary aliases - get rid later as possible
+  def level_change
+    diff
+  end
+
+  def absolute_change
+    diff
+  end
+
+  ## Generalized computation of change in level. Can be used for YOY, etc by changing the lag.
+  def diff(lag: nil)   #### NOTE: make it so that if lag is a pure int, it counts data points (hard?!), if a time duration, then as it is now
     new_series = {}
     last_val = nil
     data.sort.each do |date, value|
       next if value.nil?
-      prev = offset ? data[date - offset] : last_val
+      prev = lag ? data[date - lag] : last_val
       new_series[date] = (value - prev) unless prev.nil?
       last_val = value
     end
-    offset_s = offset && " w/offset #{distance_of_time_in_words(offset).sub('about ','')}"
-    new_transformation("Level change of #{self}#{offset_s}", new_series)
-  end
-
-  def absolute_change
-    level_change
+    lag_s = lag && " w/lag #{distance_of_time_in_words(lag).sub('about ','')}"
+    new_transformation("Level change of #{self}#{lag_s}", new_series)
   end
 
   def faster_change(id)
