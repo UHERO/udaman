@@ -1,36 +1,36 @@
 module SeriesSharing
-  def ma_series(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def ma_series(ma_type = 'ma', start_date = first_observation, end_date = Time.now.to_date)
     new_transformation("Moving Average of #{name}", ma_series_data(ma_type, start_date, end_date))
   end
 
-  def moving_average_for_sa(start_date = self.data.keys.sort[0])
+  def moving_average_for_sa(start_date = first_observation)
     prev_year = (Time.now - 1.year).year
     self.moving_average(start_date, "#{prev_year}-12-01")
   end
 
-  def moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def moving_average(start_date = first_observation, end_date = Time.now.to_date)
     new_transformation("Moving Average of #{name}", ma_series_data('ma', start_date, end_date))
   end
   
-  def moving_average_offset_early(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def moving_average_offset_early(start_date = first_observation, end_date = Time.now.to_date)
     new_transformation("Moving Average of #{name}", ma_series_data('offset_ma', start_date, end_date))
   end
 
-  def moving_average_annavg_padded(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def moving_average_annavg_padded(start_date = first_observation, end_date = Time.now.to_date)
     ann_avg_data = annual_average.trim(start_date, end_date).data
     cma_data = ma_series_data('strict_cma', start_date, end_date)
     new_transformation("Moving Average of #{name} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
   end
 
-  def backward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
     new_transformation("Backward Looking Moving Average of #{name}", ma_series_data('backward_ma', start_date, end_date))
   end
   
-  def forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
     new_transformation("Forward Looking Moving Average of #{name}", ma_series_data('forward_ma', start_date, end_date))
   end
   
-  def offset_forward_looking_moving_average(start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+  def offset_forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
     new_transformation("Offset Forward Looking Moving Average of #{name}", ma_series_data('offset_forward_ma', start_date, end_date))
   end
 
@@ -103,7 +103,8 @@ module SeriesSharing
   end
 
 private
-  def ma_series_data(ma_type = 'ma', start_date = self.data.keys.sort[0], end_date = Time.now.to_date)
+
+  def ma_series_data(ma_type = 'ma', start_date = first_observation, end_date = Time.now.to_date)
     return {} if start_date.nil?
     trimmed_data = get_values_after(start_date - 1.month, end_date).sort
     last = trimmed_data.length - 1
