@@ -96,33 +96,29 @@ module SeriesDataAdjustment
   end
 
   def shift_by(laglead)
-    laglead_s = distance_of_time_in_words(laglead).sub('about ','')
-    new_transformation("Shifted Series #{self} by #{laglead_s}", data.map {|date,val| [date + laglead, val] }.to_h)
+    dir = laglead < 0 ? 'backward' : 'forward'
+    laglead_s = distance_of_time_in_words(laglead).sub(/(about|almost) /,'')
+    new_transformation("Shifted #{self} #{dir} by #{laglead_s}",
+                       data.map {|date, value| [date + laglead, value] }.to_h)
   end
 
   def shift_by_months(num_months)
-    new_transformation("Shifted Series #{self} by #{num_months} months",
-             data.map {|date,val| [date + num_months.months, val] }.to_h)
+    shift_by(num_months.months)
   end
 
   def shift_by_years(num_years)
-    new_transformation("Shifted Series #{self} by #{num_years} months",
-             data.map {|date,val| [date + num_years.years, val] }.to_h)
+    shift_by(num_years.years)
   end
 
   def shift_forward_months(num_months)
-    new_series_data = Hash[data.map {|date, val| [date + num_months.months, val]}]
-    new_transformation("Shifted Series #{name} forward by #{num_months} months ", new_series_data)
+    shift_by(num_months.months)
   end
 
   def shift_backward_months(num_months)
-    new_series_data = Hash[data.map {|date, val| [date - num_months.months, val]}]
-    new_transformation("Shifted Series #{name} backwards by #{num_months} months ", new_series_data)
+    shift_by(-num_months.months)
   end
-
   
   def shift_forward_years(num_years)
-    new_series_data = Hash[data.map {|date, val| [date + num_years.years, val]}]
-    new_transformation("Shifted Series #{name}", new_series_data)
+    shift_by(num_years.years)
   end
 end
