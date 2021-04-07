@@ -1,16 +1,12 @@
 module SeriesDataAdjustment
-  def first_value_date
-    self.data.sort.each do |date, value|
-      return date unless value.nil?
-    end
-    nil
+  include ActionView::Helpers::DateHelper
+
+  def first_value_date   ## this is an alias. Calls to this method could be replaced and the alias eliminated.
+    first_observation
   end
      
-  def last_value_date
-    self.data.sort.reverse.each do |date, value|
-      return date unless value.nil?
-    end
-    nil
+  def last_value_date   ## this is an alias. Calls to this method could be replaced and the alias eliminated.
+    last_observation
   end
 
   def trim(start_date = nil, end_date = nil)
@@ -99,14 +95,19 @@ module SeriesDataAdjustment
     data.reject {|date_string, _| date_string.month != month_num}
   end
 
+  def shift_by(laglead)
+    laglead_s = distance_of_time_in_words(laglead).sub('about ','')
+    new_transformation("Shifted Series #{self} by #{laglead_s}", data.map {|date,val| [date + laglead, val] }.to_h)
+  end
+
   def shift_by_months(num_months)
-    new_transformation("Shifted Series #{self.name} by #{num_months} months",
-             self.data.map {|date,val| [date + num_months.months, val] }.to_h)
+    new_transformation("Shifted Series #{self} by #{num_months} months",
+             data.map {|date,val| [date + num_months.months, val] }.to_h)
   end
 
   def shift_by_years(num_years)
-    new_transformation("Shifted Series #{self.name} by #{num_years} months",
-             self.data.map {|date,val| [date + num_years.years, val] }.to_h)
+    new_transformation("Shifted Series #{self} by #{num_years} months",
+             data.map {|date,val| [date + num_years.years, val] }.to_h)
   end
 
   def shift_forward_months(num_months)

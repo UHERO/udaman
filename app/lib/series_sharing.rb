@@ -184,7 +184,7 @@ private
       win_start += 1
       win_end += 1
     end
-    win_start < 0 || win_end > last ? [] : [win_start, win_end]
+    win_start < 0 || win_end > last ? [] : [win_start, win_end]   ## return empty [] if window overlaps undefined territory
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
