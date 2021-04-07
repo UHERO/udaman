@@ -95,11 +95,10 @@ module SeriesDataAdjustment
     data.reject {|date_string, _| date_string.month != month_num}
   end
 
-  def shift_by(laglead)
+  def shift_by(laglead)  ## laglead is expected to be a time duration, like 7.days, -1.month, 4.years, etc.
     dir = laglead < 0 ? 'backward' : 'forward'
     laglead_s = distance_of_time_in_words(laglead).sub(/(about|almost) /,'')
-    new_transformation("Shifted #{self} #{dir} by #{laglead_s}",
-                       data.map {|date, value| [date + laglead, value] }.to_h)
+    new_transformation("Shifted #{self} #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
   def shift_by_months(num_months)
