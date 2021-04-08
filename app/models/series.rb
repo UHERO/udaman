@@ -228,6 +228,7 @@ class Series < ApplicationRecord
 
   def Series.parse_name(string)
     if string =~ /^((\S+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)(\.([ASQMWD]))?$/i
+      freq_long = frequency_from_code($9)
       return {
         prefix_full: $1,
         prefix: $2,
@@ -236,7 +237,7 @@ class Series < ApplicationRecord
         history: ($6.upcase if $5.upcase == 'H' rescue $6),
         geo: $7.upcase,
         freq: ($9.upcase rescue $9),
-        freq_long: frequency_from_code($9).to_s
+        freq_long: freq_long && freq_long.to_s
       }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
