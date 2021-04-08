@@ -65,6 +65,10 @@ class String
     self.gsub("'", '')
   end
 
+  def nil_blank
+    self.blank? ? nil : self
+  end
+
   def change_file_extension(ext)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)

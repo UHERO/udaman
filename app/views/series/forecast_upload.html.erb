@@ -3,9 +3,9 @@
   <div class="field">
     Upload file
     <% if @path %>
-      <%= text_field_tag 'forecast_upload[filename]', @path, disabled: true, size: 30 %>
+      <%= text_field_tag 'forecast_upload[filepath]', @path || 'forecasts/', disabled: true, size: 30 %>
     <% else %>
-      <%= file_field_tag 'forecast_upload[filename]' %>
+      <%= file_field_tag 'forecast_upload[fileupload]' %>
     <% end %>
   </div>
   <div class="field">
