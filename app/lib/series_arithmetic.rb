@@ -132,7 +132,7 @@ module SeriesArithmetic
       last_val = value
     end
     lag_s = lag && " w/lag #{distance_of_time_in_words(lag).sub(/(about|almost) /,'')}"
-    new_transformation("Level change of #{self}#{lag_s}", new_series)
+    new_transformation("Difference of #{self}#{lag_s}", new_series)
   end
 
   def faster_change(id)
