@@ -585,8 +585,8 @@ class Series < ApplicationRecord
     vers = params[:version].strip.upcase
     raise 'Bad version' unless vers =~ /^\d+|FIN$/
     freq = params[:freq]
-    filename = params[:filename]
-    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], params[:filename]))
+    filepath = params[:filepath]
+    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], params[:filepath]))
     raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
     series = []
     csv.headers.keys.each do |name|
@@ -607,7 +607,7 @@ class Series < ApplicationRecord
         if s.nil?
           s = Series.create_new(properties)
           ld = DataSource.create(universe: 'FC',
-                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filename],
+                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filepath],
                                  priority: 100,
                                  reload_nightly: false)
           s.data_sources << ld

@@ -9,7 +9,7 @@
     <% end %>
   </div>
   <div class="field">
-    Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: false } %>
+    Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: true } %>
   </div>
   <div class="field">
     Forecast <%=  text_field_tag 'forecast_upload[fcid]', @fcid, size: 8 %> (YYQN)

@@ -196,13 +196,13 @@ class SeriesController < ApplicationController
 
   def forecast_do_upload
     params = forecast_upload_params
-    @path =  File.join('forecasts', params[:filename].original_filename) rescue nil
-    unless @path
-      redirect_to action: :forecast_upload, method: :get
-    end
-    if path =~ /(\d\dQ\d+)([FH](F|\d+))/i
+    @path = params[:filepath] = File.join('forecasts', params[:filename].original_filename) rescue nil
+    if @path =~ /(\d\dQ\d+)([FH](F|\d+))/i
       @fcid = params[:fcid] = $1.upcase
       @version = params[:version] = $2.upcase
+    end
+    unless @path && @fcid && @version && params[:freq]
+      redirect_to action: :forecast_upload, method: :get
     end
     created_series_ids = Series.do_forecast_upload(params)
     new_search(created_series_ids.join(','))
