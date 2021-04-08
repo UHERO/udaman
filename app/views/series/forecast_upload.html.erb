@@ -1,16 +1,18 @@
 <%= form_with url: { action: :forecast_upload }, method: :post do |f| %>
 
   <div class="field">
-    Forecast <%=  text_field_tag 'forecast_upload[fcid]', nil, size: 8 %> (must be YYQ[1234])
-  </div>
-  <div class="field">
-    Version <%= text_field_tag 'forecast_upload[version]', nil, size: 8 %> (a number or FIN)
+    Upload file
+    <%= text_field_tag 'forecast_upload[filename]', @filepath, disabled: true, size: 30 %>
+    <%= file_field_tag 'forecast_upload[filename]' %>
   </div>
   <div class="field">
     Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: false } %>
   </div>
   <div class="field">
-    Upload file <%= text_field_tag 'forecast_upload[filename]', 'forecasts/', size: 40 %>
+    Forecast <%=  text_field_tag 'forecast_upload[fcid]', @fcid, size: 8 %> (must be YYQ[1234])
+  </div>
+  <div class="field">
+    Version <%= text_field_tag 'forecast_upload[version]', @version, size: 8 %> (a number or FIN)
   </div>
   <div class="actions">
     <%= f.submit 'Store forecast series' %>

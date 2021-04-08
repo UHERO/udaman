@@ -195,6 +195,7 @@ class SeriesController < ApplicationController
   end
 
   def forecast_do_upload
+    ### redirect back to entry screen as necessary....
     created_series_ids = Series.do_forecast_upload(forecast_upload_params)
     new_search(created_series_ids.join(','))
   end
