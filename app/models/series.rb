@@ -227,15 +227,16 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   def Series.parse_name(string)
-    if string =~ /^((\S+?)(&([0-9Q]+|CURR)(v(\d+|FIN))?)?)@(\w+?)(\.([ASQMWD]))?$/i
+    if string =~ /^((\S+?) (&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)(\.([ASQMWD]))?$/ix
       return {
-          prefix_full: $1,
-          prefix: $2,
-          forecast: ($4.upcase rescue $4),
-          version: ($6.upcase rescue $6),
-          geo: $7.upcase,
-          freq: ($9.upcase rescue $9),
-          freq_long: frequency_from_code($9).to_s
+        prefix_full: $1,
+        prefix: $2,
+        forecast: ($4.upcase rescue $4),
+        version: ($6.upcase if $5.upcase == 'F' rescue $6),
+        history: ($6.upcase if $5.upcase == 'H' rescue $6),
+        geo: $7.upcase,
+        freq: ($9.upcase rescue $9),
+        freq_long: frequency_from_code($9).to_s
       }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
