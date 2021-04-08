@@ -2,17 +2,20 @@
 
   <div class="field">
     Upload file
-    <%= text_field_tag 'forecast_upload[filename]', @filepath, disabled: true, size: 30 %>
-    <%= file_field_tag 'forecast_upload[filename]' %>
+    <% if @path %>
+      <%= text_field_tag 'forecast_upload[filename]', @path, disabled: true, size: 30 %>
+    <% else %>
+      <%= file_field_tag 'forecast_upload[filename]' %>
+    <% end %>
   </div>
   <div class="field">
     Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: false } %>
   </div>
   <div class="field">
-    Forecast <%=  text_field_tag 'forecast_upload[fcid]', @fcid, size: 8 %> (must be YYQ[1234])
+    Forecast <%=  text_field_tag 'forecast_upload[fcid]', @fcid, size: 8 %> (YYQN)
   </div>
   <div class="field">
-    Version <%= text_field_tag 'forecast_upload[version]', @version, size: 8 %> (a number or FIN)
+    Version <%= text_field_tag 'forecast_upload[version]', @version, size: 8 %> (F1, F2, ... FF or H1, H2, ... HF)
   </div>
   <div class="actions">
     <%= f.submit 'Store forecast series' %>

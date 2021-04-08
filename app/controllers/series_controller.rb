@@ -195,8 +195,16 @@ class SeriesController < ApplicationController
   end
 
   def forecast_do_upload
-    ### redirect back to entry screen as necessary....
-    created_series_ids = Series.do_forecast_upload(forecast_upload_params)
+    params = forecast_upload_params
+    @path =  File.join('forecasts', params[:filename].original_filename) rescue nil
+    unless @path
+      redirect_to action: :forecast_upload, method: :get
+    end
+    if path =~ /(\d\dQ\d+)([FH](F|\d+))/i
+      @fcid = params[:fcid] = $1.upcase
+      @version = params[:version] = $2.upcase
+    end
+    created_series_ids = Series.do_forecast_upload(params)
     new_search(created_series_ids.join(','))
   end
 
