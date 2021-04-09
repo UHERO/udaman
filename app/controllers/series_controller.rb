@@ -207,7 +207,7 @@ class SeriesController < ApplicationController
     @freq = params[:freq].nil_blank
     Rails.logger.info "----------->>>>>>>>>>>>>> |#{@path || 'nil'}|#{@fcid || 'nil'}|#{@version || 'nil'}|#{@freq || 'nil'}|"
     unless @path && @fcid && @version && @freq
-      redirect_to action: :forecast_upload
+      render :forecast_upload
       return
     end
     created_series_ids = Series.do_forecast_upload(params)
