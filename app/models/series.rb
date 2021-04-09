@@ -81,7 +81,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(name, universe = 'UHERO')
-    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.frequency_from_name(name))
+    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.frequency_from_name(name) || 'X')
   end
 
   def Series.bulk_create(definitions)
