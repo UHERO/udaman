@@ -581,9 +581,9 @@ class Series < ApplicationRecord
 
   def Series.do_forecast_upload(params)
     fcid = params[:fcid].strip.upcase
-    raise 'Bad forecast identifier' unless fcid =~ /^\d\dQ\d$/
+    raise 'Bad forecast identifier' unless fcid =~ /^\d\dQ\d+$/
     vers = params[:version].strip.upcase
-    raise 'Bad version' unless vers =~ /^\d+|FIN$/
+    raise 'Bad version' unless vers =~ /^[FH](\d+|F)$/
     freq = params[:freq]
     filepath = params[:filepath]
     csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], 'forecasts', params[:filepath]))
