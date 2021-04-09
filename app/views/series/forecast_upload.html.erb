@@ -6,7 +6,7 @@
       <%= text_field_tag 'forecast_upload[filepath]', @path, size: 30 %>
     <% else %>
       <%= file_field_tag 'forecast_upload[filepath]' %>
-    <% end %>
+    <% end %> (file not uploaded by browser, must be found in forecasts directory)
   </div>
   <div class="field">
     Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: true } %>

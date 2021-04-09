@@ -595,7 +595,7 @@ class Series < ApplicationRecord
         raise "Contained series #{name} does not match selected frequency of #{freq}"
       end
       parts[:freq] = freq
-      parts[:prefix] += '&' + fcid + 'v' + vers
+      parts[:prefix] += '&' + fcid + vers
       series.push({ universe: 'FC', name: Series.build_name_from_hash(parts), ld_name: name })
     end
     ids = []

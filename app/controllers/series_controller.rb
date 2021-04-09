@@ -205,12 +205,12 @@ class SeriesController < ApplicationController
       @fcid = params[:fcid] = $1.upcase
       @version = params[:version] = $2.upcase
     end
-    @freq = forecast_upload_params[:freq].nil_blank
-    # Rails.logger.info "----------->>>>>>>>>>>>>> |#{@path || 'nil'}|#{@fcid || 'nil'}|#{@version || 'nil'}|#{@freq || 'nil'}|"
+    @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
     unless @path && @fcid && @version && @freq
       render :forecast_upload
       return
     end
+    Rails.logger.info "-----------GOT >>>>>>>>>> |#{@path || 'nil'}|#{@fcid || 'nil'}|#{@version || 'nil'}|#{@freq || 'nil'}|"
     created_series_ids = Series.do_forecast_upload(params)
     new_search(created_series_ids.join(','))
   end
