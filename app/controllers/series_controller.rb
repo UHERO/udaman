@@ -196,6 +196,7 @@ class SeriesController < ApplicationController
 
   def forecast_do_upload
     params = {}
+    Rails.logger.info "------------------>>>>> |#{forecast_upload_params[:fileupload]}|#{forecast_upload_params[:fileupload].original_filename}|"
     @path = params[:filepath] = forecast_upload_params[:filepath].nil_blank ||
                                 File.join('forecasts', forecast_upload_params[:fileupload].original_filename) rescue nil
     @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
