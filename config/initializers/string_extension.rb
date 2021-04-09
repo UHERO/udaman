@@ -81,6 +81,12 @@ class String
   end
 end
 
+class NilClass
+  def nil_blank
+    nil
+  end
+end
+
 class Symbol
   def freqn
     self.to_s.freqn
