@@ -585,8 +585,8 @@ class Series < ApplicationRecord
     vers = params[:version].strip.upcase
     raise 'Bad version' unless vers =~ /^[FH](\d+|F)$/
     freq = params[:freq]
-    filepath = params[:filepath]
-    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], 'forecasts', params[:filepath]))
+    filepath = File.join('forecasts', params[:filepath])
+    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], filepath))
     raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
     series = []
     csv.headers.keys.each do |name|
