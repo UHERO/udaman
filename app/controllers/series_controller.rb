@@ -192,6 +192,8 @@ class SeriesController < ApplicationController
   end
 
   def forecast_upload
+    @fcid = 'none'
+    @version = 'none'
   end
 
   def forecast_do_upload

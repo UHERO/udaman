@@ -11,12 +11,14 @@
   <div class="field">
     Frequency <%= select :forecast_upload, :freq, %w(A S Q M).collect {|x| [x, x] }, { include_blank: true } %>
   </div>
-  <div class="field">
-    Forecast <%=  text_field_tag 'forecast_upload[fcid]', @fcid, size: 8 %> (YYQN)
-  </div>
-  <div class="field">
-    Version <%= text_field_tag 'forecast_upload[version]', @version, size: 8 %> (F1, F2, ... FF or H1, H2, ... HF)
-  </div>
+  <% unless @fcid == 'none' && @version == 'none' %>
+    <div class="field">
+      Forecast <%=  text_field_tag 'forecast_upload[fcid]', @fcid, size: 8 %> (YYQN)
+    </div>
+    <div class="field">
+      Version <%= text_field_tag 'forecast_upload[version]', @version, size: 8 %> (F1, F2, ... FF or H1, H2, ... HF)
+    </div>
+  <% end %>
   <div class="actions">
     <%= f.submit 'Store forecast series' %>
     <%= link_to 'Cancel', :back %>
