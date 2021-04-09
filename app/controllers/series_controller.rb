@@ -198,13 +198,13 @@ class SeriesController < ApplicationController
     params = {}
     @path = params[:filepath] = forecast_upload_params[:filepath].nil_blank ||
                                 File.join('forecasts', forecast_upload_params[:fileupload].original_filename) rescue nil
-    @fcid = params[:fcid] = forecast_upload_params[:fcid].upcase.nil_blank
-    @version = params[:version] = forecast_upload_params[:version].upcase.nil_blank
+    @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
+    @version = params[:version] = forecast_upload_params[:version].nil_blank
     if @path =~ /(\d\dQ\d+)([FH](F|\d+))/i
       @fcid = params[:fcid] = $1.upcase
       @version = params[:version] = $2.upcase
     end
-    @freq = params[:freq].upcase.nil_blank
+    @freq = params[:freq].nil_blank
     Rails.logger.info "----------->>>>>>>>>>>>>> |#{@path || 'nil'}|#{@fcid || 'nil'}|#{@version || 'nil'}|#{@freq || 'nil'}|"
     unless @path && @fcid && @version && @freq
       redirect_to action: :forecast_upload
