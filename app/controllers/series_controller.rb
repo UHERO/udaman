@@ -202,15 +202,14 @@ class SeriesController < ApplicationController
     @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
     @version = params[:version] = forecast_upload_params[:version].nil_blank
     if @path =~ /(\d\dQ\d+)([FH](\d+|F))/i
-      @fcid = params[:fcid] = $1.upcase
-      @version = params[:version] = $2.upcase
+      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version overrides
+      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
     end
     @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
     unless @path && @fcid && @version && @freq
       render :forecast_upload
       return
     end
-    Rails.logger.info "-----------GOT >>>>>>>>>> |#{@path || 'nil'}|#{@fcid || 'nil'}|#{@version || 'nil'}|#{@freq || 'nil'}|"
     created_series_ids = Series.do_forecast_upload(params)
     new_search(created_series_ids.join(','))
   end

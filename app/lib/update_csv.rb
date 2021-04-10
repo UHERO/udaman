@@ -57,7 +57,7 @@ private
       line = file.gets || break
       row = line.split(delim).map(&:strip)
       next if prune && (row.empty? || row.count == 1 && row[0] == '')
-      row = row.map {|x| x.blank? ? nil : x } if nil_empties
+      row = row.map {|x| x.nil_blank } if nil_empties
       data.push row
     end
     data
