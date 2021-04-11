@@ -1415,7 +1415,7 @@ private
       ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
       ## as a result I've decided to use raise instead. It seems to work just as well.
     end
-    if !who_depends_on_me.empty? && !destroy_forced
+    unless who_depends_on_me.empty? || destroy_forced
       message = "ERROR: Cannot destroy series #{self} with dependent series. Delete dependencies first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
