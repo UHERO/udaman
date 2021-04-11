@@ -454,10 +454,8 @@ class Series < ApplicationRecord
       frequency_code = code_from_frequency update_spreadsheet.frequency  
       sa_base_name = series_name.sub('NS@','@')
       sa_series_name = sa_base_name+'.'+frequency_code
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
-      #sa_series_name.ts.update_attributes(:seasonally_adjusted => true, :last_demetra_datestring => update_spreadsheet.dates.keys.sort.last)
-      
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q{"#{sa_series_name}".tsn.load_sa_from("#{spreadsheet_path}", "#{sheet_to_load}")}) unless sheet_to_load.nil?
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q{"#{sa_series_name}".tsn.load_sa_from("#{spreadsheet_path}")}) if sheet_to_load.nil?
       sa_series_name
     end
   end
@@ -465,7 +463,7 @@ class Series < ApplicationRecord
   def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      eval_format = sheet_to_load ? '"%s".tsn.load_from "%s", "%s"' : '"%s".tsn.load_from "%s"'
+      eval_format = sheet_to_load ? '"%s".tsn.load_from("%s", "%s")' : '"%s".tsn.load_from("%s")'
       @data_source = Series.store(series_name,
                                   Series.new(frequency: update_spreadsheet.frequency, data: update_spreadsheet.series(series_name)),
                                   spreadsheet_path,
@@ -492,9 +490,8 @@ class Series < ApplicationRecord
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    series_to_set = series_name.tsn
-    series_to_set.frequency = series.frequency
-    series_to_set.save_source(desc, eval_statement, series.data, priority)
+    new_series = series_name.ts || Series.create_new(universe: 'UHERO', name: series_name.upcase, frequency: series.frequency)
+    new_series.save_source(desc, eval_statement, series.data, priority)
   end
 
   def save_source(source_desc, eval_statement, data, priority = 100)
