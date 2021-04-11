@@ -126,18 +126,18 @@ module SeriesArithmetic
     new_series = {}
     lag_type = lag.class == ActiveSupport::Duration ? :duration : :index
     sorted = data.sort
-    sorted.each_with_index do |point, cur|
+    sorted.each_with_index do |point, idx|
        date = point[0]
       value = point[1] || next
       prev = case lag_type
-               when :index then sorted[cur - lag]
+               when :index then sorted[idx - lag][1]
                when :duration then data[date - lag]
                else raise('bad lag type')
              end
       new_series[date] = (value - prev) unless prev.nil?
     end
-    #lag_s = lag && " w/lag #{distance_of_time_in_words(lag).sub(/(about|almost) /,'')}"
-    new_transformation("Difference of #{self}#{lag_s}", new_series)
+    lag_desc = lag_type == :index ? "#{lag} data points" : distance_of_time_in_words(lag).sub(/(about|almost) /,'')
+    new_transformation("Difference of #{self} w/lag of #{lag_desc}", new_series)
   end
 
   def faster_change(id)
