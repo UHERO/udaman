@@ -81,7 +81,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_or_new(name, universe = 'UHERO')
-    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.frequency_from_name(name))
+    Series.get(name, universe) || Series.new_transformation(name.upcase, {}, Series.frequency_from_name(name) || 'X')
   end
 
   def Series.bulk_create(definitions)
@@ -227,8 +227,18 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   def Series.parse_name(string)
-    if string =~ /^(\S+?)@(\w+?)\.([ASQMWD])$/i
-      return { prefix: $1, geo: $2, freq: $3.upcase, freq_long: frequency_from_code($3).to_s }
+    if string =~ /^(([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)(\.([ASQMWD]))?$/i
+      freq_long = frequency_from_code($9)
+      return {
+        prefix_full: $1,
+        prefix: $2,
+        forecast: ($4.upcase rescue $4),
+        version: ($6.upcase if $5.upcase == 'F' rescue $6),
+        history: ($6.upcase if $5.upcase == 'H' rescue $6),
+        geo: $7.upcase,
+        freq: ($9.upcase rescue $9),
+        freq_long: freq_long && freq_long.to_s
+      }
     end
     raise SeriesNameException, "Invalid series name format: #{string}"
   end
@@ -245,6 +255,10 @@ class Series < ApplicationRecord
     Series.parse_name(name) && name
   end
 
+  def Series.build_name_from_hash(h)
+    Series.build_name(h[:prefix], h[:geo], h[:freq])
+  end
+
   def Series.build_name_two(prefixgeo, freq)
     (prefix, geo) = prefixgeo.split('@')
     Series.build_name(prefix, geo, freq)
@@ -252,8 +266,7 @@ class Series < ApplicationRecord
 
   ## Build a new name starting from mine, and replacing whatever parts are passed in
   def build_name(new_parts)
-    name = self.parse_name.merge(new_parts)
-    Series.build_name(name[:prefix], name[:geo], name[:freq])
+    Series.build_name_from_hash( self.parse_name.merge(new_parts) )
   end
 
   def ns_series_name
@@ -441,10 +454,8 @@ class Series < ApplicationRecord
       frequency_code = code_from_frequency update_spreadsheet.frequency  
       sa_base_name = series_name.sub('NS@','@')
       sa_series_name = sa_base_name+'.'+frequency_code
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}", "#{sheet_to_load}"^) unless sheet_to_load.nil? 
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q^"#{sa_series_name}".tsn.load_sa_from "#{spreadsheet_path}"^) if sheet_to_load.nil?
-      #sa_series_name.ts.update_attributes(:seasonally_adjusted => true, :last_demetra_datestring => update_spreadsheet.dates.keys.sort.last)
-      
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q{"#{sa_series_name}".tsn.load_sa_from("#{spreadsheet_path}", "#{sheet_to_load}")}) unless sheet_to_load.nil?
+      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q{"#{sa_series_name}".tsn.load_sa_from("#{spreadsheet_path}")}) if sheet_to_load.nil?
       sa_series_name
     end
   end
@@ -452,7 +463,7 @@ class Series < ApplicationRecord
   def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      eval_format = sheet_to_load ? '"%s".tsn.load_from "%s", "%s"' : '"%s".tsn.load_from "%s"'
+      eval_format = sheet_to_load ? '"%s".tsn.load_from("%s", "%s")' : '"%s".tsn.load_from("%s")'
       @data_source = Series.store(series_name,
                                   Series.new(frequency: update_spreadsheet.frequency, data: update_spreadsheet.series(series_name)),
                                   spreadsheet_path,
@@ -479,9 +490,8 @@ class Series < ApplicationRecord
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    series_to_set = series_name.tsn
-    series_to_set.frequency = series.frequency
-    series_to_set.save_source(desc, eval_statement, series.data, priority)
+    new_series = series_name.ts || Series.create_new(universe: 'UHERO', name: series_name.upcase, frequency: series.frequency)
+    new_series.save_source(desc, eval_statement, series.data, priority)
   end
 
   def save_source(source_desc, eval_statement, data, priority = 100)
@@ -564,6 +574,47 @@ class Series < ApplicationRecord
   def Series.empty_quarantine
     Series.get_all_uhero.where('quarantined = true').update_all quarantined: false
     DataPoint.update_public_data_points(universe)
+  end
+
+  def Series.do_forecast_upload(params)
+    fcid = params[:fcid].strip.upcase
+    raise 'Bad forecast identifier' unless fcid =~ /^\d\dQ\d+$/
+    vers = params[:version].strip.upcase
+    raise 'Bad version' unless vers =~ /^[FH](\d+|F)$/
+    freq = params[:freq]
+    filepath = File.join('forecasts', params[:filepath])
+    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], filepath))
+    raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
+    series = []
+    csv.headers.keys.each do |name|
+      parts = Series.parse_name(name)
+      if parts[:freq] && parts[:freq] != freq
+        raise "Contained series #{name} does not match selected frequency of #{freq}"
+      end
+      parts[:freq] = freq
+      parts[:prefix] += '&' + fcid + vers
+      series.push({ universe: 'FC', name: Series.build_name_from_hash(parts), ld_name: name })
+    end
+    ids = []
+    self.transaction do
+      series.each do |properties|
+        ld_name = properties.delete(:ld_name)  ## remove this from properties or it'll screw up the find_by
+
+        s = Series.find_by(properties)
+        if s.nil?
+          s = Series.create_new(properties)
+          ld = DataSource.create(universe: 'FC',
+                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filepath],
+                                 priority: 100,
+                                 reload_nightly: false)
+          s.data_sources << ld
+          ld.set_color!
+        end
+        s.reload_sources
+        ids.push s.id
+      end
+    end
+    ids
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -705,11 +756,12 @@ class Series < ApplicationRecord
 
   ## This is for code testing purposes - generate random series data within the ranges specified
   def Series.generate_random(freq, start_date = nil, end_date = nil, low_range = 0.0, high_range = 100.0, specific_points = {})
+    freq = Series.frequency_from_code(freq) || freq.to_sym
     start_date ||= (Date.today - 5.years).send("#{freq}_d")   ## find the *_d methods in date_extension.rb
     end_date ||= Date.today.send("#{freq}_d")
     incr = 1
-    if freq == 'quarter'
-      freq = 'month'
+    if freq == :quarter
+      freq = :month
       incr = 3
     end
     series_data = {}

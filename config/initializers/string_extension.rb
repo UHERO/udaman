@@ -70,6 +70,10 @@ class String
     self.gsub("'", '')
   end
 
+  def nil_blank
+    self.blank? ? nil : self
+  end
+
   def change_file_extension(ext)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
@@ -79,6 +83,12 @@ class String
   ## returns nil for strings not included
   def freqn
     %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase) || raise("Unknown frequency #{self}")
+  end
+end
+
+class NilClass
+  def nil_blank
+    nil
   end
 end
 
