@@ -9,6 +9,11 @@ class TsdFile < ApplicationRecord
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(self.filename))
   end
 
+  def assign_content(text)
+    @string_content = StringIO.new(text)
+    self
+  end
+
   def store_tsd(file_content)
     begin
       self.save or raise StandardError, 'TSD object save failed'
@@ -184,7 +189,7 @@ protected
   end
 
   def open_tsd
-    @file = File.open(path, 'r')
+    @file = @string_content || File.open(path, 'r')
   end
 
   def read_data(line)

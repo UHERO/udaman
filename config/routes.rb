@@ -58,6 +58,8 @@ Rails.application.routes.draw do
   post 'series/bulk', to: 'series#bulk_create'
   get 'series/no_source', to: 'series#no_source'
   get 'series/no_source_no_restrict', to: 'series#no_source_no_restrict'
+  get 'series/forecast_upload', to: 'series#forecast_upload'
+  post 'series/forecast_upload', to: 'series#forecast_do_upload'
   get 'series/quarantine', to: 'series#quarantine'
   get 'series/old_bea_download', to: 'series#old_bea_download'
 

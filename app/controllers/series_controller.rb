@@ -14,9 +14,6 @@ class SeriesController < ApplicationController
     set_attrib_resource_values(@series)
   end
 
-  def bulk_new
-  end
-
   def edit
     @add2meas = params[:add_to_meas].to_i
     set_attrib_resource_values(@series)
@@ -85,7 +82,9 @@ class SeriesController < ApplicationController
     end
   end
 
-  # POST /series/bulk
+  def bulk_new
+  end
+
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to action: :index
@@ -148,8 +147,8 @@ class SeriesController < ApplicationController
     @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
   end
 
-  def new_search
-    @search_string = params[:search_string]
+  def new_search(search_string = nil)
+    @search_string = search_string || params[:search_string]
     Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
     @all_series = Series.search_box(@search_string, limit: 500, user_id: current_user.id)
     if @all_series.count == 1
@@ -190,6 +189,29 @@ class SeriesController < ApplicationController
   def quarantine
     @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
+  end
+
+  def forecast_upload
+    @fcid = 'none'
+    @version = 'none'
+  end
+
+  def forecast_do_upload
+    params = {}
+    @path = params[:filepath] = forecast_upload_params[:filepath].nil_blank
+    @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
+    @version = params[:version] = forecast_upload_params[:version].nil_blank
+    if @path =~ /(\d\dQ\d+)([FH](\d+|F))/i
+      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version overrides
+      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
+    end
+    @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
+    unless @path && @fcid && @version && @freq
+      render :forecast_upload
+      return
+    end
+    created_series_ids = Series.do_forecast_upload(params)
+    new_search(created_series_ids.join(','))
   end
 
   def old_bea_download
@@ -308,6 +330,7 @@ class SeriesController < ApplicationController
   end
 
 private
+
     def series_params
       params.require(:series).permit(
           :universe,
@@ -331,6 +354,10 @@ private
 
   def bulk_params
     params.require(:bulk_defs).permit(:definitions)
+  end
+
+  def forecast_upload_params
+    params.require(:forecast_upload).permit(:fcid, :version, :freq, :filepath)
   end
 
   def set_series
