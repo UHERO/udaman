@@ -128,7 +128,7 @@ module SeriesArithmetic
     lag_type = lag.class == ActiveSupport::Duration ? :duration : :index
     sorted = data.sort
     sorted.each_with_index do |point, idx|
-       date = point[0]
+      date  = point[0]
       value = point[1] || next
       prev = case lag_type
                when :index
