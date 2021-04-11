@@ -122,16 +122,21 @@ module SeriesArithmetic
   end
 
   ## Generalized computation of change in level. Can be used for YOY, etc by changing the lag.
-  def diff(lag: nil)   #### NOTE: make it so that if lag is a pure int, it counts data points (hard?!), if a time duration, then as it is now
+  def diff(lag: 1)
     new_series = {}
-    last_val = nil
-    data.sort.each do |date, value|
-      next if value.nil?
-      prev = lag ? data[date - lag] : last_val
+    lag_type = lag.class == ActiveSupport::Duration ? :duration : :index
+    sorted = data.sort
+    sorted.each_with_index do |point, cur|
+       date = point[0]
+      value = point[1] || next
+      prev = case lag_type
+               when :index then sorted[cur - lag]
+               when :duration then data[date - lag]
+               else raise('bad lag type')
+             end
       new_series[date] = (value - prev) unless prev.nil?
-      last_val = value
     end
-    lag_s = lag && " w/lag #{distance_of_time_in_words(lag).sub(/(about|almost) /,'')}"
+    #lag_s = lag && " w/lag #{distance_of_time_in_words(lag).sub(/(about|almost) /,'')}"
     new_transformation("Difference of #{self}#{lag_s}", new_series)
   end
 
