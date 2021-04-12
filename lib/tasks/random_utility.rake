@@ -7,6 +7,7 @@ task :ua_1099 => :environment do
   ss = Series.search_box('^v .m')
   ss.each do |s|
     puts "-------------------- #{s} ------------------------"
+    t = s.moving_average
     t = s.moving_average_annavg_padded
     t = s.forward_looking_moving_average
     t = s.backward_looking_moving_average
