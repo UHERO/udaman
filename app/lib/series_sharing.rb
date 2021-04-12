@@ -112,9 +112,7 @@ private
     position = 0
     periods = window || standard_window_size
     trimmed_data.each do |date, _|
-      start_pos = window_start(position, last, periods, ma_type)
-      end_pos = window_end(position, last, periods, ma_type)
-      #(start_pos, end_pos) = window_range(position, last, periods, ma_type)
+      (start_pos, end_pos) = window_range(position, last, periods, ma_type)
       if start_pos && end_pos
         new_data[date] = compute_window_average(trimmed_data, start_pos, end_pos, periods)
       end
@@ -123,43 +121,6 @@ private
     new_data
   end
 
-  def window_start(position, last, periods, ma_type_string)
-    half_window = periods / 2
-    return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
-    return position - half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
-    return position                 if ma_type_string == 'forward_ma' #forward looking moving average
-    return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
-    return nil                      if ma_type_string == 'backward_ma' ## window would extend into undefined territory
-    return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
-    return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
-    return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
-    return position - half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
-    return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
-    raise "unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
-  end
-
-  def window_end(position, last, periods, ma_type_string)
-    half_window = periods / 2
-    return position + periods - 1   if ma_type_string == 'ma' and position < half_window #forward looking moving average
-    return position + half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position                 if ma_type_string == 'ma' and position > last-half_window #backward looking moving average
-    return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
-    return nil                      if ma_type_string == 'forward_ma' ## window would extend into undefined territory
-    return position                 if ma_type_string == 'backward_ma' #backward looking moving average
-    return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
-    return nil                      if ma_type_string == 'offset_forward_ma' ## window would extend into undefined territory
-    return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
-    return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
-    return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
-    return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
-    raise "unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
-  end
-
-  ### This method is my refactoring of window_start and window_end into a single routine that is much, MUCH easier to understand
-  ### and reason about. I intend to replace the aforementioned two with this one as soon as I can sufficiently test it.
   def window_range(position, last, periods, ma_type)
     half_window = periods / 2
     at_left_edge = position < half_window
@@ -191,7 +152,11 @@ private
     halve_endpoints = (end_pos - start_pos) == periods  ## for centered ma only (where win width == periods+1), but not forward/backward
     sum = 0
     (start_pos..end_pos).each do |i|
-      value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
+      begin
+        value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
+      rescue
+        return 0.0
+      end
       value *= 0.50 if halve_endpoints && (i == start_pos || i == end_pos)
       sum += value
     end
