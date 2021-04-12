@@ -117,7 +117,8 @@ module SeriesArithmetic
     diff
   end
 
-  def absolute_change
+  def absolute_change(id = nil)
+    return faster_change(id) if id
     diff
   end
 
