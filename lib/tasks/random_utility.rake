@@ -3,6 +3,16 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :ua_1099 => :environment do
+  ss = Series.search_box('^v .m')
+  ss.each do |s|
+    puts "-------------------- #{s} ------------------------"
+    t = s.moving_average_annavg_padded
+    t = s.forward_looking_moving_average
+    t = s.backward_looking_moving_average
+  end
+end
+
 ## JIRA UA-1428
 task :ua_1428 => :environment do
   ss = Series.get_all_uhero.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'ts.aggregate'})
