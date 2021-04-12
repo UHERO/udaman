@@ -31,6 +31,11 @@ class String
     # puts "#{"%.2f" % (Time.now - t)} | #{new_series.data.count} | #{self} | #{eval_statement}"
   end
 
+  ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact
+  def at(date)
+    Series.get(self).at(date) rescue raise("Series #{self} does not exist")
+  end
+
   def is_numeric?
     true if Float self rescue false
   end

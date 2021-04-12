@@ -1,16 +1,12 @@
 module SeriesDataAdjustment
-  def first_value_date
-    self.data.sort.each do |date, value|
-      return date unless value.nil?
-    end
-    nil
+  include ActionView::Helpers::DateHelper
+
+  def first_value_date   ## this is an alias. Calls to this method could be replaced and the alias eliminated.
+    first_observation
   end
      
-  def last_value_date
-    self.data.sort.reverse.each do |date, value|
-      return date unless value.nil?
-    end
-    nil
+  def last_value_date   ## this is an alias. Calls to this method could be replaced and the alias eliminated.
+    last_observation
   end
 
   def trim(start_date = nil, end_date = nil)
@@ -99,29 +95,29 @@ module SeriesDataAdjustment
     data.reject {|date_string, _| date_string.month != month_num}
   end
 
+  def shift_by(laglead)  ## laglead is expected to be a time duration, like 7.days, -1.month, 4.years, etc.
+    dir = laglead < 0 ? 'backward' : 'forward'
+    laglead_s = distance_of_time_in_words(laglead).sub(/(about|almost) /,'')
+    new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
+  end
+
   def shift_by_months(num_months)
-    new_transformation("Shifted Series #{self.name} by #{num_months} months",
-             self.data.map {|date,val| [date + num_months.months, val] }.to_h)
+    shift_by(num_months.months)
   end
 
   def shift_by_years(num_years)
-    new_transformation("Shifted Series #{self.name} by #{num_years} months",
-             self.data.map {|date,val| [date + num_years.years, val] }.to_h)
+    shift_by(num_years.years)
   end
 
   def shift_forward_months(num_months)
-    new_series_data = Hash[data.map {|date, val| [date + num_months.months, val]}]
-    new_transformation("Shifted Series #{name} forward by #{num_months} months ", new_series_data)
+    shift_by(num_months.months)
   end
 
   def shift_backward_months(num_months)
-    new_series_data = Hash[data.map {|date, val| [date - num_months.months, val]}]
-    new_transformation("Shifted Series #{name} backwards by #{num_months} months ", new_series_data)
+    shift_by(-num_months.months)
   end
-
   
   def shift_forward_years(num_years)
-    new_series_data = Hash[data.map {|date, val| [date + num_years.years, val]}]
-    new_transformation("Shifted Series #{name}", new_series_data)
+    shift_by(num_years.years)
   end
 end

@@ -22,12 +22,12 @@ module SeriesSharing
     new_transformation("Moving Average of #{self} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
   end
 
-  def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Backward Looking Moving Average of #{self}", ma_series_data('backward_ma', start_date, end_date))
+  def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: nil)
+    new_transformation("Backward Looking Moving Average of #{self}", ma_series_data('backward_ma', start_date, end_date, window: window))
   end
   
-  def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
-    new_transformation("Forward Looking Moving Average of #{self}", ma_series_data('forward_ma', start_date, end_date))
+  def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: nil)
+    new_transformation("Forward Looking Moving Average of #{self}", ma_series_data('forward_ma', start_date, end_date, window: window))
   end
   
   def offset_forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
@@ -104,58 +104,21 @@ module SeriesSharing
 
 private
 
-  def ma_series_data(ma_type = 'ma', start_date = first_observation, end_date = Time.now.to_date)
+  def ma_series_data(ma_type = 'ma', start_date = first_observation, end_date = Time.now.to_date, window: nil)
     return {} if start_date.nil?
     trimmed_data = get_values_after(start_date - 1.month, end_date).sort
     last = trimmed_data.length - 1
     new_data = {}
     position = 0
-    periods = window_size
+    periods = window || standard_window_size
     trimmed_data.each do |date, _|
-      start_pos = window_start(position, last, periods, ma_type)
-      end_pos = window_end(position, last, periods, ma_type)
-      #(start_pos, end_pos) = window_range(position, last, periods, ma_type)
+      (start_pos, end_pos) = window_range(position, last, periods, ma_type)
       if start_pos && end_pos
         new_data[date] = compute_window_average(trimmed_data, start_pos, end_pos, periods)
       end
       position += 1
     end
     new_data
-  end
-
-  def window_start(position, last, periods, ma_type_string)
-    half_window = periods / 2
-    return position                 if ma_type_string == 'ma' and position < half_window #forward looking moving average
-    return position - half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position - periods + 1   if ma_type_string == 'ma' and position > last - half_window #backward looking moving average
-    return position                 if ma_type_string == 'forward_ma' #forward looking moving average
-    return position - periods + 1   if ma_type_string == 'backward_ma' and position - periods + 1 >= 0 #backward looking moving average
-    return nil                      if ma_type_string == 'backward_ma' ## window would extend into undefined territory
-    return position + 1             if ma_type_string == 'offset_forward_ma' #offset forward looking moving average
-    return position + 1             if ma_type_string == 'offset_ma' and position < half_window #offset forward looking moving average
-    return position - half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position - periods + 1   if ma_type_string == 'offset_ma' and position > last - half_window #backward looking moving average
-    return position - half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
-    return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
-    raise "unexpected window_start conditions at pos #{position}, ma_type=#{ma_type_string}"
-  end
-
-  def window_end(position, last, periods, ma_type_string)
-    half_window = periods / 2
-    return position + periods - 1   if ma_type_string == 'ma' and position < half_window #forward looking moving average
-    return position + half_window   if ma_type_string == 'ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position                 if ma_type_string == 'ma' and position > last-half_window #backward looking moving average
-    return position + periods - 1   if ma_type_string == 'forward_ma' and position + periods - 1 <= last #forward looking moving average
-    return nil                      if ma_type_string == 'forward_ma' ## window would extend into undefined territory
-    return position                 if ma_type_string == 'backward_ma' #backward looking moving average
-    return position + periods       if ma_type_string == 'offset_forward_ma' and position + periods <= last #offset forward looking moving average
-    return nil                      if ma_type_string == 'offset_forward_ma' ## window would extend into undefined territory
-    return position + periods       if ma_type_string == 'offset_ma' and position < half_window and position + periods <= last #offset forward looking moving average
-    return position + half_window   if ma_type_string == 'offset_ma' and position >= half_window and position <= last - half_window #centered moving average
-    return position                 if ma_type_string == 'offset_ma' and position > last-half_window #backward looking moving average
-    return position + half_window   if ma_type_string == 'strict_cma' && position >= half_window && position <= (last - half_window)
-    return nil                      if ma_type_string == 'strict_cma' ## window would extend into undefined territory
-    raise "unexpected window_end conditions at pos #{position}, ma_type=#{ma_type_string}"
   end
 
   def window_range(position, last, periods, ma_type)
@@ -182,24 +145,31 @@ private
       win_start += 1
       win_end += 1
     end
-    win_start < 0 || win_end > last ? [] : [win_start, win_end]
+    win_start < 0 || win_end > last ? [] : [win_start, win_end]   ## return empty [] if window overlaps undefined territory
   end
 
   def compute_window_average(trimmed_data, start_pos, end_pos, periods)
     halve_endpoints = (end_pos - start_pos) == periods  ## for centered ma only (where win width == periods+1), but not forward/backward
     sum = 0
     (start_pos..end_pos).each do |i|
-      value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
+      begin
+        value = trimmed_data[i][1]   ## because data is a 2D array [[date1, value1], [date2, value2], ...]
+      rescue
+        return 0.0
+      end
       value *= 0.50 if halve_endpoints && (i == start_pos || i == end_pos)
       sum += value
     end
     sum / periods.to_f
   end
 
-  def window_size
-    return 12 if frequency == 'month'
-    return 4 if frequency == 'quarter' || frequency == 'year'
-    raise "no window size defined for frequency #{frequency}"
+  def standard_window_size
+    case frequency.to_sym
+      when :day   then 7
+      when :month then 12
+      when :quarter, :year then 4
+      else raise "no window size defined for frequency #{frequency}"
+    end
   end
 
 end

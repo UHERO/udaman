@@ -100,7 +100,7 @@ module SeriesArithmetic
       end
       last = value
     end
-    new_transformation("Percentage Change of #{name}", new_series_data)
+    new_transformation("Percentage change of #{name}", new_series_data)
   end
 
   def compute_percentage_change(current, last)
@@ -112,39 +112,37 @@ module SeriesArithmetic
     end
   end
 
-  ## Generalized computation of change in level. Can be used for YOY, etc by changing the offset.
-  def level_change(offset: nil)
-    new_series = {}
-    last_val = nil
-    data.sort.each do |date, value|
-      next if value.nil?
-      prev = offset ? data[date - offset] : last_val
-      new_series[date] = (value - prev) unless prev.nil?
-      last_val = value
-    end
-    offset_s = offset && " w/offset #{distance_of_time_in_words(offset).sub('about ','')}"
-    new_transformation("Level change of #{self}#{offset_s}", new_series)
+  ## Temporary aliases - get rid later as possible
+  def level_change
+    diff
   end
 
   def absolute_change(id = nil)
     return faster_change(id) if id
-    new_series_data = {}
-    last = nil
-    data.sort.each do |date, value|
-      new_series_data[date] = value - last unless last.nil?
-      last = value
-    end
-    new_transformation("Absolute change of #{self}", new_series_data)
+    diff
   end
 
-  def annual_absolute_change
+  ## Generalized computation of change in level. Can be used for YOY, WOW, etc by changing the lag.
+  def diff(lag: 1)
     new_series = {}
-    data.sort.each do |date, value|
-      next if value.nil?
-      prev = data[date - 1.year] || next
-      new_series[date] = value - prev
+    raise 'lag cannot be a string, only Integer or Duration' if lag.class == String
+    lag_type = lag.class == ActiveSupport::Duration ? :duration : :index
+    sorted = data.sort
+    sorted.each_with_index do |point, idx|
+      date  = point[0]
+      value = point[1] || next
+      prev = case lag_type
+               when :index
+                 i = idx - lag
+                 next if i < 0  ## negative array indices are valid in Ruby, but will give wrong result here!
+                 sorted[i][1] rescue nil
+               when :duration then data[date - lag]
+               else raise('bad lag type')
+             end
+      new_series[date] = (value - prev) unless prev.nil?
     end
-    new_transformation("Annual absolute change of #{self}", new_series)
+    lag_desc = lag_type == :index ? "#{lag} observations" : distance_of_time_in_words(lag).sub(/(about|almost) /,'')
+    new_transformation("Difference of #{self} w/lag of #{lag_desc}", new_series)
   end
 
   def faster_change(id)
