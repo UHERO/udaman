@@ -521,7 +521,7 @@ class Series < ApplicationRecord
   end
 
   def enabled_data_sources
-    data_sources.reject {|d| d.disabled? }
+    data_sources.reject {|ld| ld.disabled? }
   end
 
   def data_sources_sort_for_display
@@ -928,7 +928,7 @@ class Series < ApplicationRecord
     end
     data[date] || blow_up && raise("Series #{self} has no value at #{date}")
   end
-  
+
   def units_at(date)
     dd = data[date]
     return nil if dd.nil?

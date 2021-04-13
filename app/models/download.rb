@@ -105,7 +105,7 @@ class Download < ApplicationRecord
   end
 
   def enabled_data_sources
-    data_sources.reject {|d| d.disabled? }
+    data_sources.reject {|ld| ld.disabled? }
   end
 
   def download
