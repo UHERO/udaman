@@ -32,7 +32,7 @@ class String
   end
 
   ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact
-  def at(date, error: nil)  ## if error is true, method will raise exception on nil value
+  def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
       Series.get(self).at(date, error: error)
     rescue NoMethodError
       raise("Series #{self} does not exist")
