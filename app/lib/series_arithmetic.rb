@@ -141,7 +141,7 @@ module SeriesArithmetic
              end
       new_series[date] = (value - prev) unless prev.nil?
     end
-    lag_desc = lag_type == :index ? "#{lag} observations" : distance_of_time_in_words(lag).sub(/(about|almost) /,'')
+    lag_desc = lag_type == :index ? "#{lag} observation".pluralize(lag) : distance_of_time_in_words(lag).sub(/(about|almost) /,'')
     new_transformation("Difference of #{self} w/lag of #{lag_desc}", new_series)
   end
 
