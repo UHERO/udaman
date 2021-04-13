@@ -32,8 +32,8 @@ class String
   end
 
   ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact
-  def at(date, blow_up: nil)  ## if blow_up is true, method will raise exception on nil value
-      Series.get(self).at(date, blow_up: blow_up)
+  def at(date, error: nil)  ## if error is true, method will raise exception on nil value
+      Series.get(self).at(date, error: error)
     rescue NoMethodError
       raise("Series #{self} does not exist")
   end

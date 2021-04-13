@@ -922,11 +922,11 @@ class Series < ApplicationRecord
     nil
   end
   
-  def at(date, blow_up: nil)  ## if blow_up is true, method will raise exception on nil value
+  def at(date, error: nil)  ## if error is true, method will raise exception on nil value
     unless date.class == Date
       date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
     end
-    data[date] || blow_up && raise("Series #{self} has no value at #{date}")
+    data[date] || error && raise("Series #{self} has no value at #{date}")
   end
 
   def units_at(date)
