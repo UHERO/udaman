@@ -521,7 +521,7 @@ class Series < ApplicationRecord
   end
 
   def enabled_data_sources
-    data_sources.reject {|d| d.disabled? }
+    data_sources.reject {|ld| ld.disabled? }
   end
 
   def data_sources_sort_for_display
@@ -922,13 +922,13 @@ class Series < ApplicationRecord
     nil
   end
   
-  def at(date)
+  def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
     unless date.class == Date
-      date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
+      date = Date.parse(date) rescue raise("Series.at: #{date} not a valid date string")
     end
-    data[date]
+    data[date] || error && raise("Series #{self} has no value at #{date}")
   end
-  
+
   def units_at(date)
     dd = data[date]
     return nil if dd.nil?

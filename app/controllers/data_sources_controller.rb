@@ -52,6 +52,7 @@ class DataSourcesController < ApplicationController
 
   def update
     if @data_source.update!(data_source_params)
+      @data_source.setup  ## in case the eval was changed
       create_action @data_source, 'UPDATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     else

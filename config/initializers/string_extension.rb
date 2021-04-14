@@ -31,20 +31,17 @@ class String
     # puts "#{"%.2f" % (Time.now - t)} | #{new_series.data.count} | #{self} | #{eval_statement}"
   end
 
-  ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact
-  def at(date)
-    Series.get(self).at(date) rescue raise("Series #{self} does not exist")
+  ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact. Also defaults to causing
+  ## the caller to throw an exception if the requested data point is not defined. This should be expected
+  ## behavior in most cases.
+  def at(date, error: true)
+      Series.get(self).at(date, error: error)
+    rescue NoMethodError
+      raise("Series #{self} does not exist")
   end
 
   def is_numeric?
-    true if Float self rescue false
-  end
-
-  def time
-    t = Time.now
-    result = eval self
-    puts "operation took #{Time.now - t}"
-    result
+    true if Float(self) rescue false
   end
 
   def unzip(want_file = nil)
