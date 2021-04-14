@@ -924,7 +924,7 @@ class Series < ApplicationRecord
   
   def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
     unless date.class == Date
-      date = Date.parse(date) rescue raise("Series.at: parameter #{date} not a proper date string")
+      date = Date.parse(date) rescue raise("Series.at: #{date} not a valid date string")
     end
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
