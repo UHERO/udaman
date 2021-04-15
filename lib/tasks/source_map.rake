@@ -120,6 +120,10 @@ task :reload_vap_hi_daily => :environment do
   ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
 end
 
+task :reload_covid_daily => :environment do
+  ReloadJobDaemon.enqueue('covid_d', 'cv_ .d')
+end
+
 task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task START' }
   DataPoint.update_public_all_universes
