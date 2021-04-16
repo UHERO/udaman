@@ -16,6 +16,9 @@
 			<%= ds.number_field :priority, size: 3, disabled: @disab %>
     </div>
     <div class="field">
+      <%= ds.check_box :clear_before_load %> Always clear existing data points before loading
+    </div>
+    <div class="field">
       <%= ds.check_box :pseudo_history, disabled: true %> Check on if this load is pseudo-history. (not yet)
 		</div>
     <div class="field">

@@ -210,7 +210,7 @@ class DataSource < ApplicationRecord
       set_dependencies!
     end
 
-    def reload_source(clear_first = false)
+    def reload_source(clear_first = clear_before_load?)
       return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
