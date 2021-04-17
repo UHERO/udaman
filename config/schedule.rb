@@ -74,7 +74,7 @@ every :weekday, :at => '4:15 pm' do
 end
 
 every 1.day, :at => ['4:30 am', '8:30 am', '12:30 pm', '4:30 pm'] do
-  rake :reload_covid_daily
+  rake :reload_covid_series
 end
 
 # -----------------------------------------------------------

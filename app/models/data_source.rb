@@ -227,7 +227,7 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first
+        if clear_first || clear_before_load?
           delete_data_points
         end
         s = self.send(presave_hook, s) if presave_hook
