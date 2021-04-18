@@ -130,7 +130,8 @@ module SeriesArithmetic
     sorted = data.sort
     sorted.each_with_index do |point, idx|
       date  = point[0]
-      value = point[1] || next
+      value = point[1]
+      next unless date && value
       prev = case lag_type
                when :index
                  i = idx - lag
