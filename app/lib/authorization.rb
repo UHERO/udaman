@@ -29,8 +29,7 @@ module Authorization
   end
 
   def check_export_authorization
-    Rails.logger.info "-- 2 -->>>>>>>>>>> |#{request.path}|#{request.fullpath}|#{request.original_fullpath}|#{request.original_url}|"
-    if current_user.fsonly? && (params[:action] == 'show')
+    if current_user.fsonly? && request.fullpath =~ /\.csv$/  ## allow csv downloads for HECO users (who already have URL in hand)
       return
     end
     check_authorization

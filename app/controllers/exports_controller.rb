@@ -11,7 +11,6 @@ class ExportsController < ApplicationController
   end
 
   def show
-    Rails.logger.info "-- 1 -->>>>>>>>>>> |#{request.path}|#{request.fullpath}|#{request.original_fullpath}|#{request.original_url}|"
     @export_series = @export.series.map do |s|
       data_points = DataPoint.where(xseries_id: s.xseries_id)
       first = data_points.minimum(:date)
