@@ -28,6 +28,14 @@ module Authorization
     check_authorization
   end
 
+  def check_export_authorization
+    Rails.logger.info "-- 2 -->>>>>>>>>>> |#{request.path}|#{request.fullpath}|#{request.original_fullpath}|#{request.original_url}|"
+    if current_user.fsonly? && (params[:action] == 'show')
+      return
+    end
+    check_authorization
+  end
+
   def check_authorization
     unless current_user.internal_user?
       redirect_back fallback_location: '/', flash: { error: 'Access not authorized' }

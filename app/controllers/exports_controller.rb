@@ -1,7 +1,7 @@
 class ExportsController < ApplicationController
   include Authorization
 
-  before_action :check_authorization
+  before_action :check_export_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
                                     :edit_as_text, :save_as_text, :import_clip, :add_clip,
                                     :add_series, :remove_series, :move_series_up, :move_series_down]
@@ -11,6 +11,7 @@ class ExportsController < ApplicationController
   end
 
   def show
+    Rails.logger.info "-- 1 -->>>>>>>>>>> |#{request.path}|#{request.fullpath}|#{request.original_fullpath}|#{request.original_url}|"
     @export_series = @export.series.map do |s|
       data_points = DataPoint.where(xseries_id: s.xseries_id)
       first = data_points.minimum(:date)
@@ -29,7 +30,7 @@ class ExportsController < ApplicationController
     end
     @sortby = sortby.to_s
     respond_to do |format|
-      format.csv { render :layout => false }
+      format.csv { render layout: false }
       format.html # show.html.erb
     end
   end
