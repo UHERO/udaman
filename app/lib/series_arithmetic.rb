@@ -19,7 +19,10 @@ module SeriesArithmetic
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
+    new_data = data.map do |date, value|
+      computed = value && value.send(operator, constant)
+      [date, computed && (computed.nan? || computed.infinite?) ? nil : computed]
+    end
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end
   
