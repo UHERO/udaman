@@ -13,13 +13,18 @@ module SeriesArithmetic
       my_val = self.at(date)
       op_val = op_series.at(date)
       computed = my_val && op_val && my_val.send(operator, op_val)
-      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
+      raise "Illegal calculation (divide by 0?) at #{date}" if computed && (computed.nan? || computed.infinite?)
+      new_data[date] = computed
     end
     new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
+    new_data = data.map do |date, value|
+      computed = value && value.send(operator, constant)
+      raise "Illegal calculation (divide by 0?) at #{date}" if computed && (computed.nan? || computed.infinite?)
+      [date, computed]
+    end
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end
   
