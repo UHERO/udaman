@@ -5,8 +5,8 @@
   <%= link_to 'Edit', edit_export_path(@export) %> |
 <% end %>
 <%= link_to 'Index', exports_path %> |
-<%= link_to 'CSV', action: :show, id: @export, format: :csv %> |
 <%= link_to 'Table', action: :show_table, id: @export %>
+<%= link_to 'CSV', action: :show, id: @export, format: :csv %> |
 <% if current_user.admin_user? || @export.owned_by == current_user.id %>
   | <%= link_to 'Destroy', @export, method: :delete, data: { confirm: "Destroy export #{@export.name}\nAre you sure??" } %>
 <% end %>
