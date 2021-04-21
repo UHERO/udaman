@@ -101,12 +101,14 @@ class TsdFile < ApplicationRecord
     series
   end
 
-  def search_names(name)
-    read_tsd_block_no_first_line do |tsd|
+  def get_series(name, nils: false)
+    read_tsd_block do |tsd|
       begin
-        last_line_type = tsd.read_next_line
-        return tsd.get_next_series if last_line_type == :name_line and get_name_line_attributes[:name] == name
-      end until last_line_type.nil?
+        if @last_line_type == :name_line
+          s = tsd.get_next_series(nils: nils)
+          return s if s[:name] == name
+        end
+      end until @last_line.nil?
     end
     nil
   end

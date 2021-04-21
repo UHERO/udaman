@@ -612,7 +612,7 @@ class Series < ApplicationRecord
         ld_name = properties.delete(:ld_name)  ## remove this from properties or it'll screw up the find_by
         s = Series.find_by(properties) || Series.create_new(properties)
 
-        if s.enabled_data_sources.select {|ld| ld.eval =~ /#{relpath}/ }.empty?
+        if s.find_loaders_matching(relpath).empty?
           ld = DataSource.create(universe: 'FC',
                                  eval: %q{"%s".tsn.%s("%s")} % [ld_name, ld_method, relpath],
                                  priority: 100,
@@ -627,6 +627,11 @@ class Series < ApplicationRecord
       end
     end
     ids
+  end
+
+  def find_loaders_matching(pattern, case_insens: false)
+    regex = case_insens ? %r/#{pattern}/i : %r/#{pattern}/
+    enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -764,6 +769,15 @@ class Series < ApplicationRecord
     self.frequency = update_spreadsheet.frequency
     mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
     new_transformation("mean corrected against #{ns_series} and loaded from <#{spreadsheet_path}>", mean_corrected.data)
+  end
+
+  def load_tsd_from(path)
+    path = File.join(ENV['DATA_PATH'], path.strip)
+    content = open(path, 'rb').read
+    tsd = TsdFile.new.assign_content(content)
+    series_hash = tsd.get_series(self.name)
+    ## what?
+    new_transformation("loaded from static file <#{path}>", series_hash[:foo])
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified
