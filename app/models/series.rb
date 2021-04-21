@@ -584,13 +584,17 @@ class Series < ApplicationRecord
     freq = params[:freq]
     relpath = File.join('forecasts', params[:filepath])
     filepath = File.join(ENV['DATA_PATH'], relpath)
-    filetype = relpath =~ /csv/i ? :csv : :tsd
-    if filetype == :csv
+    #filetype = relpath =~ /csv$/i ? :csv : :tsd
+    if relpath =~ /csv$/i  #filetype == :csv
       csv = UpdateCSV.new(filepath)
       raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
+      ld_method = 'load_from'
       names = csv.headers.keys
     else
-      names = []
+      content = open(filepath, 'rb').read
+      tsd = TsdFile.new.assign_content(content)
+      ld_method = 'load_tsd_from'
+      names = tsd.get_names
     end
     series = []
     names.each do |name|
@@ -606,16 +610,17 @@ class Series < ApplicationRecord
     self.transaction do
       series.each do |properties|
         ld_name = properties.delete(:ld_name)  ## remove this from properties or it'll screw up the find_by
+        s = Series.find_by(properties) || Series.create_new(properties)
 
-        s = Series.find_by(properties)
-        if s.nil?
-          s = Series.create_new(properties)
+        if s.enabled_data_sources.select {|ld| ld.eval =~ /#{relpath}/ }.empty?
           ld = DataSource.create(universe: 'FC',
-                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, relpath],
+                                 eval: %q{"%s".tsn.%s("%s")} % [ld_name, ld_method, relpath],
                                  priority: 100,
+                                 clear_before_load: true,
                                  reload_nightly: false)
           s.data_sources << ld
           ld.set_color!
+          ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all other loaders
         end
         s.reload_sources
         ids.push s.id
