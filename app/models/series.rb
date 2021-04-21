@@ -582,11 +582,18 @@ class Series < ApplicationRecord
     vers = params[:version].strip.upcase
     raise 'Bad version' unless vers =~ /^[FH](\d+|F)$/
     freq = params[:freq]
-    filepath = File.join('forecasts', params[:filepath])
-    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], filepath))
-    raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
+    relpath = File.join('forecasts', params[:filepath])
+    filepath = File.join(ENV['DATA_PATH'], relpath)
+    filetype = relpath =~ /csv/i ? :csv : :tsd
+    if filetype == :csv
+      csv = UpdateCSV.new(filepath)
+      raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
+      names = csv.headers.keys
+    else
+      names = []
+    end
     series = []
-    csv.headers.keys.each do |name|
+    names.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
         raise "Contained series #{name} does not match selected frequency of #{freq}"
@@ -604,7 +611,7 @@ class Series < ApplicationRecord
         if s.nil?
           s = Series.create_new(properties)
           ld = DataSource.create(universe: 'FC',
-                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filepath],
+                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, relpath],
                                  priority: 100,
                                  reload_nightly: false)
           s.data_sources << ld
