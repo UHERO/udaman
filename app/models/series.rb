@@ -772,12 +772,10 @@ class Series < ApplicationRecord
   end
 
   def load_tsd_from(path)
-    path = File.join(ENV['DATA_PATH'], path.strip)
-    content = open(path, 'rb').read
+    content = open(File.join(ENV['DATA_PATH'], path.strip), 'rb').read rescue raise("Cannot read file #{path}")
     tsd = TsdFile.new.assign_content(content)
-    series_hash = tsd.get_series(self.name) || raise("No series #{self} found in file #{path}")
-    ## what?
-    new_transformation("loaded from static file <#{path}>", series_hash[:foo])
+    series_hash = tsd.get_series(self.name, data_only: true) || raise("No series #{self} found in file #{path}")
+    new_transformation("loaded from static file <#{path}>", series_hash[:data_hash])
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified

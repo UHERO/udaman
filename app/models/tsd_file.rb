@@ -36,16 +36,16 @@ class TsdFile < ApplicationRecord
     close_tsd
   end
 
-  def get_next_series(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+  def get_next_series(nils: false, data_only: false)  ## nils means to include nil values, corresponding to trailing blank strings
     raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge! get_second_line_attributes
-    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
+    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts unless data_only
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency], nils: nils)
-    series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+    series_hash[:yoy_hash] = yoy(series_hash[:data_hash]) unless data_only
     series_hash
   end
 
@@ -101,11 +101,11 @@ class TsdFile < ApplicationRecord
     series
   end
 
-  def get_series(name, nils: false)
+  def get_series(name, nils: false, data_only: false)
     read_tsd_block do |tsd|
       begin
         if @last_line_type == :name_line
-          s = tsd.get_next_series(nils: nils)
+          s = tsd.get_next_series(nils: nils, data_only: data_only)
           return s if s[:name] == name
         end
       end until @last_line.nil?
@@ -183,8 +183,8 @@ protected
   def get_data
     check_error(@last_line_type, :data_line)
     @data_array = []
-    while @last_line_type == :data_line and !@last_line.nil?
-      @data_array += read_data(@last_line) unless @last_line.nil?
+    while @last_line && @last_line_type == :data_line
+      @data_array += read_data(@last_line)
       read_next_line
     end
     @data_array
