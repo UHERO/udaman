@@ -615,7 +615,6 @@ class Series < ApplicationRecord
         if s.find_loaders_matching(relpath).empty?
           ld = DataSource.create(universe: 'FC',
                                  eval: %q{"%s".tsn.%s("%s")} % [ld_name, ld_method, relpath],
-                                 priority: 100,
                                  clear_before_load: true,
                                  reload_nightly: false)
           s.data_sources << ld
