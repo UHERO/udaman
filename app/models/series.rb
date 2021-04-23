@@ -584,18 +584,18 @@ class Series < ApplicationRecord
     freq = params[:freq]
     relpath = File.join('forecasts', params[:filepath])
     filepath = File.join(ENV['DATA_PATH'], relpath)
-    #filetype = relpath =~ /csv$/i ? :csv : :tsd
-    if relpath =~ /csv$/i  #filetype == :csv
+    if relpath =~ /csv$/i
       csv = UpdateCSV.new(filepath)
       raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
-      ld_method = 'load_from'
       names = csv.headers.keys
+      ld_method = 'load_from'
     else
-      content = open(filepath, 'rb').read
+      content = open(filepath, 'rb').read rescue raise("Cannot read file #{filepath}")
       tsd = TsdFile.new.assign_content(content)
-      ld_method = 'load_tsd_from'
       names = tsd.get_names
+      ld_method = 'load_tsd_from'
     end
+    raise "No series names found in file #{filepath}" if names.empty?
     series = []
     names.each do |name|
       parts = Series.parse_name(name)
@@ -619,7 +619,7 @@ class Series < ApplicationRecord
                                  reload_nightly: false)
           s.data_sources << ld
           ld.set_color!
-          ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all other loaders
+          ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
         s.reload_sources
         ids.push s.id
