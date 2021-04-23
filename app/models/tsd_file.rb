@@ -1,5 +1,6 @@
 class TsdFile < ApplicationRecord
   include Cleaning
+  include HelperUtilities
   require 'digest/md5'
   require 'date'
   belongs_to :forecast_snapshot
@@ -41,11 +42,13 @@ class TsdFile < ApplicationRecord
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge! get_second_line_attributes
-    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts unless data_only
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency], nils: nils)
-    series_hash[:yoy_hash] = yoy(series_hash[:data_hash]) unless data_only
+    unless data_only
+      series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+      series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
+    end
     series_hash
   end
 
@@ -129,15 +132,14 @@ class TsdFile < ApplicationRecord
       date = listed_date+daily_switches.index('1')
       return date.to_s
     end
-    year = aremos_date_string[0..3]
-    month = aremos_date_string[4..5]
+    year = aremos_date_string[0..3].to_i
+    month = aremos_date_string[4..5].to_i
     if frequency == 'Q'
-      month_int = month.to_i * 3 - 2
-      month = month_int < 10 ? "0#{month_int}" : "#{month_int}"
+      month = first_month_of_quarter(month)
     end
-    day = aremos_date_string[6..7]
-    day = '01' if day == '00'
-    "#{year}-#{month}-#{day}"
+    day = aremos_date_string[6..7].to_i
+    day = 1 if day == 0
+    Date.new(year, month, day).to_s
   end
 
 protected

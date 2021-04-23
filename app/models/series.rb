@@ -774,6 +774,7 @@ class Series < ApplicationRecord
     content = open(File.join(ENV['DATA_PATH'], path.strip), 'rb').read rescue raise("Cannot read file #{path}")
     tsd = TsdFile.new.assign_content(content)
     series_hash = tsd.get_series(self.name, data_only: true) || raise("No series #{self} found in file #{path}")
+    series_hash[:data_hash].reject! {|_, value| value == 1.0E+15 }
     new_transformation("loaded from static file <#{path}>", series_hash[:data_hash])
   end
 
