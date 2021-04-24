@@ -588,12 +588,10 @@ class Series < ApplicationRecord
       csv = UpdateCSV.new(filepath)
       raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
       names = csv.headers.keys
-      ld_method = 'load_from'
     else
       content = open(filepath, 'rb').read rescue raise("Cannot read file #{filepath}")
       tsd = TsdFile.new.assign_content(content)
       names = tsd.get_names
-      ld_method = 'load_tsd_from'
     end
     raise "No series names found in file #{filepath}" if names.empty?
     series = []
@@ -614,7 +612,7 @@ class Series < ApplicationRecord
 
         if s.find_loaders_matching(relpath).empty?
           ld = DataSource.create(universe: 'FC',
-                                 eval: %q{"%s".tsn.%s("%s")} % [ld_name, ld_method, relpath],
+                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, relpath],
                                  clear_before_load: true,
                                  reload_nightly: false)
           s.data_sources << ld
@@ -730,6 +728,8 @@ class Series < ApplicationRecord
   end
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
+    return load_tsd_from(spreadsheet_path) if spreadsheet_path =~ /\.tsd$/i
+
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
     raise 'Load error: File not formatted in expected way' unless update_spreadsheet.update_formatted?
