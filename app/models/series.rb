@@ -582,11 +582,20 @@ class Series < ApplicationRecord
     vers = params[:version].strip.upcase
     raise 'Bad version' unless vers =~ /^[FH](\d+|F)$/
     freq = params[:freq]
-    filepath = File.join('forecasts', params[:filepath])
-    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], filepath))
-    raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
+    relpath = File.join('forecasts', params[:filepath])
+    filepath = File.join(ENV['DATA_PATH'], relpath)
+    if relpath =~ /csv$/i
+      csv = UpdateCSV.new(filepath)
+      raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
+      names = csv.headers.keys
+    else
+      content = open(filepath, 'rb').read rescue raise("Cannot read file #{filepath}")
+      tsd = TsdFile.new.assign_content(content)
+      names = tsd.get_names
+    end
+    raise "No series names found in file #{filepath}" if names.empty?
     series = []
-    csv.headers.keys.each do |name|
+    names.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
         raise "Contained series #{name} does not match selected frequency of #{freq}"
@@ -599,22 +608,27 @@ class Series < ApplicationRecord
     self.transaction do
       series.each do |properties|
         ld_name = properties.delete(:ld_name)  ## remove this from properties or it'll screw up the find_by
+        s = Series.find_by(properties) || Series.create_new(properties)
 
-        s = Series.find_by(properties)
-        if s.nil?
-          s = Series.create_new(properties)
+        if s.find_loaders_matching(relpath).empty?
           ld = DataSource.create(universe: 'FC',
-                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filepath],
-                                 priority: 100,
+                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, relpath],
+                                 clear_before_load: true,
                                  reload_nightly: false)
           s.data_sources << ld
           ld.set_color!
+          ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
         s.reload_sources
         ids.push s.id
       end
     end
     ids
+  end
+
+  def find_loaders_matching(pattern, case_insens: false)
+    regex = case_insens ? %r/#{pattern}/i : %r/#{pattern}/
+    enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -714,6 +728,8 @@ class Series < ApplicationRecord
   end
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
+    return load_tsd_from(spreadsheet_path) if spreadsheet_path =~ /\.tsd$/i
+
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
     raise 'Load error: File not formatted in expected way' unless update_spreadsheet.update_formatted?
@@ -752,6 +768,14 @@ class Series < ApplicationRecord
     self.frequency = update_spreadsheet.frequency
     mean_corrected = demetra_series / demetra_series.annual_sum * ns_series.annual_sum
     new_transformation("mean corrected against #{ns_series} and loaded from <#{spreadsheet_path}>", mean_corrected.data)
+  end
+
+  def load_tsd_from(path)
+    content = open(File.join(ENV['DATA_PATH'], path.strip), 'rb').read rescue raise("Cannot read file #{path}")
+    tsd = TsdFile.new.assign_content(content)
+    series_hash = tsd.get_series(self.name, data_only: true) || raise("No series #{self} found in file #{path}")
+    series_hash[:data_hash].reject! {|_, value| value == 1.0E+15 }
+    new_transformation("loaded from static file <#{path}>", series_hash[:data_hash])
   end
 
   ## This is for code testing purposes - generate random series data within the ranges specified

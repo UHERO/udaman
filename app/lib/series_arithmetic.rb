@@ -10,19 +10,13 @@ module SeriesArithmetic
     new_data = {}
     longer_series = self.data.length > op_series.data.length ? self : op_series
     longer_series.data.keys.each do |date|
-      my_val = self.at(date)
-      op_val = op_series.at(date)
-      computed = my_val && op_val && my_val.send(operator, op_val)
-      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
+      new_data[date] = do_arithmetic(self.at(date), operator, op_series.at(date))
     end
     new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_data = data.map do |date, value|
-      computed = value && value.send(operator, constant)
-      [date, computed && (computed.nan? || computed.infinite?) ? nil : computed]
-    end
+    new_data = data.map {|date, value| [date, do_arithmetic(value, operator, constant)] }
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end
   
@@ -393,6 +387,12 @@ module SeriesArithmetic
   end
 
 private
+
+  def do_arithmetic(op1, operation, op2)
+    computed = op1 && op2 && op1.send(operation, op2)
+    return nil if computed.nil?
+    computed.to_f.nan? || computed.infinite? ? nil : computed
+  end
 
   def validate_arithmetic(op_series)
     raise SeriesArithmeticException, 'Operand series frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
