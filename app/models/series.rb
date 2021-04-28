@@ -1147,19 +1147,19 @@ class Series < ApplicationRecord
         puts s.id
         puts s.name
       end
-      errors.concat s.reload_sources(false, clear_first)  ## hardcoding as NOT the series worker, because expecting to use
+      errors.concat s.reload_sources(nightly: false, clear_first: clear_first)  ## hardcoding as NOT the series worker, because expecting to use
                                                           ## this code only for ad-hoc jobs from now on
       eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
   end
 
-  def reload_sources(nightly_worker = false, clear_first = false)
+  def reload_sources(nightly: false, clear_first: false)
     series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless nightly_worker && !ds.reload_nightly
+        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly
         unless success
           raise 'error in reload_source method, should be logged above'
         end
