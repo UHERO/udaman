@@ -280,14 +280,15 @@ class DataHtmlParser
     true
   end
 
-  def download(verifyssl: true)
+  def download(verifyssl: true, use_proxy: false)
     require 'uri'
     require 'net/http'
     require 'timeout'
 
     url = URI(@url)
 
-    http = Net::HTTP.new(url.host, url.port)
+    other_params = use_proxy ? [nil] + ENV['UHERO_HTTP_PROXY'].split(':') : [url.port]
+    http = Net::HTTP.new(url.host, *other_params)
     http.use_ssl = url.scheme == 'https'
     unless verifyssl  ## can be used for temporary workaround when sites have SSL cert trouble
       Rails.logger.warn { "Not verifying SSL certs for #{url}" }

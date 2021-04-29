@@ -12,6 +12,7 @@ ENV['RAILS_SERVE_STATIC_FILES'] = 'true'
 
 # Sets the default environment variables
 ENV['DATA_PATH'] ||= '/data'
+ENV['UHERO_HTTP_PROXY'] ||= 'file.uhero.hawaii.edu:28082'
 
 # API_KEY_BEA, API_KEY_FRED must be provided by the outer environment if
 # those APIs are to be used.
