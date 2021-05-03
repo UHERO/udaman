@@ -812,11 +812,16 @@ class Series < ApplicationRecord
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
 
-  def Series.load_from_file(file, options)
-    %x(chmod 766 #{file}) unless file.include? '%'
-    dp = DownloadProcessor.new('manual', options.merge(:path => file))
-    series_data = dp.get_data
-    Series.new_transformation("loaded from static file <#{file}>", series_data, frequency_from_code(options[:frequency]))
+  def Series.load_from_file(path, options)
+    date_sens = path.include? '%'
+    #%x(chmod 766 #{path}) unless date_sens
+    dp = DownloadProcessor.new(:manual, options.merge(path: path))
+    descript = 'loaded from ' + date_sens ? "set of static files #{path}" : "static file <#{path}>"
+   # if Series.valid_download_handle(handle, date_sensitive: false)
+   #   path = Download.get(handle, :nondate).save_path_relativized rescue raise("Unknown download handle #{handle}")
+   #   descript = "loaded from download to <#{path}>"
+   # end
+    Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
   end
   
   def Series.load_api_bea(frequency, dataset, parameters)

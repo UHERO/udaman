@@ -103,7 +103,7 @@ class DataHtmlParser
   def get_clustermapping_series(dataset, parameters, proxy: false)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
-    @url = "http://clustermapping.us/data/region/#{query_params}"
+    @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
     ## The url should preferably use https, but Clustermapping was having trouble with their SSL certs, and I backed
     ## the code off to http. Should be restored to https at some time in future, after they get their "stuff" together.
