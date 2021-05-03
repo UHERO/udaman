@@ -816,7 +816,7 @@ class Series < ApplicationRecord
     date_sens = path.include? '%'
     #%x(chmod 766 #{path}) unless date_sens
     dp = DownloadProcessor.new(:manual, options.merge(path: path))
-    descript = 'loaded from ' + date_sens ? "set of static files #{path}" : "static file <#{path}>"
+    descript = 'loaded from %s with options' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
    # if Series.valid_download_handle(handle, date_sensitive: false)
    #   path = Download.get(handle, :nondate).save_path_relativized rescue raise("Unknown download handle #{handle}")
    #   descript = "loaded from download to <#{path}>"
