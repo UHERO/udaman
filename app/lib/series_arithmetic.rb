@@ -2,7 +2,7 @@ module SeriesArithmetic
   include ActionView::Helpers::DateHelper
 
   def round(prec = 0)
-    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && (value.round(prec).to_f rescue nil)] })
   end
   
   def perform_arithmetic_operation(operator, op_series)
