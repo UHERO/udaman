@@ -1374,17 +1374,13 @@ class Series < ApplicationRecord
     end
   end
 
-  def reload_with_dependencies
-    Series.reload_with_dependencies([self.id], 'self')
+  def get_all_dependencies
+    Series.get_all_dependencies([self.id])
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
-    unless series_id_list.class == Array
-      raise 'Series.reload_with_dependencies needs an array of series ids'
-    end
-    Rails.logger.info { 'reload_with_dependencies: start' }
-    result_set = series_id_list
-    next_set = series_id_list
+  def Series.get_all_dependencies(base_list)
+    result_set = base_list
+    next_set = base_list
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = (['?'] * next_set.count).join(',')
@@ -1400,7 +1396,19 @@ class Series < ApplicationRecord
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix, nightly: nightly)
+    result_set
+  end
+
+  def reload_with_dependencies
+    Series.reload_with_dependencies([self.id], 'self')
+  end
+
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
+    raise 'Series.reload_with_dependencies needs an array of series ids' unless series_id_list.class == Array
+    Rails.logger.info { 'reload_with_dependencies: start' }
+
+    full_set = Series.get_all_dependencies(series_id_list)
+    mgr = SeriesReloadManager.new(Series.where(id: full_set), suffix, nightly: nightly)
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
     mgr.batch_reload(clear_first: clear_first)
   end
