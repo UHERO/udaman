@@ -1379,6 +1379,7 @@ class Series < ApplicationRecord
   end
 
   def Series.get_all_dependencies(base_list)
+    raise 'Series.get_all_dependencies takes an array of series ids' unless base_list.class == Array
     result_set = base_list
     next_set = base_list
     until next_set.empty?
@@ -1404,7 +1405,7 @@ class Series < ApplicationRecord
   end
 
   def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
-    raise 'Series.reload_with_dependencies needs an array of series ids' unless series_id_list.class == Array
+    raise 'Series.reload_with_dependencies takes an array of series ids' unless series_id_list.class == Array
     Rails.logger.info { 'reload_with_dependencies: start' }
 
     full_set = Series.get_all_dependencies(series_id_list)
