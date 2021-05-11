@@ -105,8 +105,6 @@ class DataHtmlParser
     query_params = parameters.map(&:to_s).join('/')
     @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
-    ## The url should preferably use https, but Clustermapping was having trouble with their SSL certs, and I backed
-    ## the code off to http. Should be restored to https at some time in future, after they get their "stuff" together.
     @doc = self.download(proxy: proxy)
     response = JSON.parse self.content
     raise  'Clustermapping API: unknown failure' unless response
