@@ -812,11 +812,12 @@ class Series < ApplicationRecord
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
 
-  def Series.load_from_file(file, options)
-    %x(chmod 766 #{file}) unless file.include? '%'
-    dp = DownloadProcessor.new('manual', options.merge(:path => file))
-    series_data = dp.get_data
-    Series.new_transformation("loaded from static file <#{file}>", series_data, frequency_from_code(options[:frequency]))
+  def Series.load_from_file(path, options)
+    date_sens = path.include? '%'
+    #%x(chmod 766 #{path}) unless date_sens
+    dp = DownloadProcessor.new(:manual, options.merge(path: path))
+    descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
+    Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
   end
   
   def Series.load_api_bea(frequency, dataset, parameters)
@@ -1147,19 +1148,19 @@ class Series < ApplicationRecord
         puts s.id
         puts s.name
       end
-      errors.concat s.reload_sources(false, clear_first)  ## hardcoding as NOT the series worker, because expecting to use
+      errors.concat s.reload_sources(nightly: false, clear_first: clear_first)  ## hardcoding as NOT the series worker, because expecting to use
                                                           ## this code only for ad-hoc jobs from now on
       eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
   end
 
-  def reload_sources(nightly_worker = false, clear_first = false)
+  def reload_sources(nightly: false, clear_first: false)
     series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless nightly_worker && !ds.reload_nightly
+        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly
         unless success
           raise 'error in reload_source method, should be logged above'
         end
@@ -1373,17 +1374,14 @@ class Series < ApplicationRecord
     end
   end
 
-  def reload_with_dependencies
-    Series.reload_with_dependencies([self.id], 'self')
+  def get_all_dependencies
+    Series.get_all_dependencies([self.id])
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
-    unless series_id_list.class == Array
-      raise 'Series.reload_with_dependencies needs an array of series ids'
-    end
-    Rails.logger.info { 'reload_with_dependencies: start' }
-    result_set = series_id_list
-    next_set = series_id_list
+  def Series.get_all_dependencies(base_list)
+    raise 'Series.get_all_dependencies takes an array of series ids' unless base_list.class == Array
+    result_set = base_list
+    next_set = base_list
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = (['?'] * next_set.count).join(',')
@@ -1399,7 +1397,19 @@ class Series < ApplicationRecord
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix, nightly: nightly)
+    result_set
+  end
+
+  def reload_with_dependencies
+    Series.reload_with_dependencies([self.id], 'self')
+  end
+
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
+    raise 'Series.reload_with_dependencies takes an array of series ids' unless series_id_list.class == Array
+    Rails.logger.info { 'reload_with_dependencies: start' }
+
+    full_set = Series.get_all_dependencies(series_id_list)
+    mgr = SeriesReloadManager.new(Series.where(id: full_set), suffix, nightly: nightly)
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
     mgr.batch_reload(clear_first: clear_first)
   end

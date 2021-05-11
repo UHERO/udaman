@@ -38,27 +38,3 @@ def data_hash_string(update_spreadsheet_path, sheet_to_load = nil, sa = false)
   end
   dh_string
 end
-
-
-# maybe syntax difference? Not working in current version of rails
-# task :create_spec_data => :environment do 
-#   dh_string = ""
-#   path = "#{ENV["DATAFILES_PATH"]}/datafiles/"
-# 
-#   dh_string += data_hash_string(path+"sa_update.xls", "sadata", "true")
-#   dh_string += data_hash_string(path+"ns_update.xls")
-#   dh_string += data_hash_string(path+"horizontal_update_spreadsheet.xls")
-#   dh_string += data_hash_string(path+"tour_upd1.xls")
-#   dh_string += data_hash_string(path+"specs/quarter.xls")
-#   dh_string += data_hash_string(path+"specs/month.xls")
-#   dh_string += data_hash_string(path+"specs/quarter_load_merge.xls")
-#   dh_string += data_hash_string(path+"specs/semi.xls")
-#   #dh_string += data_hash_string("#{ENV["DATAFILES_PATH"]}/datafiles/ns_update.xls")
-#   dh_string = "@data_hash = {#{dh_string.chop.chop}}"
-#   
-#   File.open ("#{ENV["DATAFILES_PATH"]}/spec_data_hash.rb", "w+") do |data_hash_file|
-#     data_hash_file.syswrite "def get_data_hash\n"
-#     data_hash_file.syswrite "  "+dh_string+"\n"
-#     data_hash_file.syswrite "end"
-#   end
-# end

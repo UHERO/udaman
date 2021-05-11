@@ -255,7 +255,7 @@ class DataSource < ApplicationRecord
         base_year = eval_string[/rebase\("(\d*)/, 1]
         return base_year.to_i if base_year
 
-        series_name = eval_string[/"([^"]+)"\.ts\.rebase/, 1]
+        series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
         sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
         base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
         return base_series && base_series.last_observation.year
@@ -272,7 +272,7 @@ class DataSource < ApplicationRecord
     def reset(clear_cache = true)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
-            last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
+            last_file_vers_used: DateTime.new(1970), ## the column default value, 1 Jan 1970
             last_eval_options_used: nil)
       end
       if clear_cache

@@ -46,7 +46,8 @@ class DataHtmlParser
     @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting data from BEA API: #{@url}" }
     @doc = self.download
-    response = JSON.parse self.content
+    raise 'BEA API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('BEA API: JSON parse failure')
     beaapi = response['BEAAPI'] || raise('BEA API: major unknown failure')
     raise 'BEA API: no results included' unless beaapi['Results'] || beaapi['Error']
     err = beaapi['Error'] || beaapi['Results'] && beaapi['Results']['Error']
@@ -77,7 +78,8 @@ class DataHtmlParser
            "appId=#{api_key}&statsDataId=#{code}&#{query}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting data from ESTATJP API: #{@url}" }
     @doc = self.download
-    json = JSON.parse self.content
+    raise 'ESTATJP API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('ESTATJP API: JSON parse failure')
     apireturn = json['GET_STATS_DATA'] || raise('ESTATJP: major unknown failure')
     if apireturn['RESULT']['STATUS'] != 0
       raise 'ESTATJP Error: %s' % apireturn['RESULT']['ERROR_MSG']
@@ -103,13 +105,11 @@ class DataHtmlParser
   def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
-    @url = "http://clustermapping.us/data/region/#{query_params}"
+    @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
-    ## The url should preferably use https, but Clustermapping was having trouble with their SSL certs, and I backed
-    ## the code off to http. Should be restored to https at some time in future, after they get their "stuff" together.
     @doc = self.download
-    response = JSON.parse self.content
-    raise  'Clustermapping API: unknown failure' unless response
+    raise 'Clustermapping API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('Clustermapping API: JSON parse failure')
     new_data = {}
     response.each do |data_point|
       time_period = data_point['year_t']
@@ -131,8 +131,8 @@ class DataHtmlParser
     @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
-    response = JSON.parse self.content
-    raise 'EIA API: unknown failure' unless response
+    raise 'EIA API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
     err = response['data'] && response['data']['error']
     if err
       raise 'EIA API error: %s' % response['data']['error']
@@ -155,7 +155,8 @@ class DataHtmlParser
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
     Rails.logger.debug { 'Getting data from DVW API: ' + @url }
     @doc = self.download
-    json = JSON.parse self.content
+    raise 'DVW API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('DVW API: JSON parse failure')
     results = json['data'] || raise('DVW API: failure - no data returned')
     dates = results['series'][0]['dates'] rescue raise('DVW API: failure - no series data found')
     values = results['series'][0]['values']
@@ -281,12 +282,24 @@ class DataHtmlParser
   end
 
   def download(verifyssl: true)
+    begin
+      @content = get_by_http(verifyssl: verifyssl)
+    rescue => e
+      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
+      @content = %x{curl --insecure #{self.url}}  ### assumes that get_by_http failed because of SSL/TLS problem
+      raise "curl command failed: #{$?}" unless $?.success?
+    end
+    Nokogiri::HTML(@content)
+  end
+
+private
+
+  def get_by_http(verifyssl: true)
     require 'uri'
     require 'net/http'
     require 'timeout'
 
     url = URI(@url)
-
     http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = url.scheme == 'https'
     unless verifyssl  ## can be used for temporary workaround when sites have SSL cert trouble
@@ -294,16 +307,14 @@ class DataHtmlParser
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
     http.ssl_timeout = 60
-    if @post_parameters.nil? or @post_parameters.length == 0
-      @content = fetch(@url).read_body
-    else
-      request = Net::HTTP::Post.new(url)
-      request['cache-control'] = 'no-cache'
-      request['content-type'] = 'application/x-www-form-urlencoded'
-      request.body = URI::encode_www_form @post_parameters
-      @content = http.request(request).read_body
+    if @post_parameters.nil? || @post_parameters.length == 0
+      return fetch(@url).read_body
     end
-    Nokogiri::HTML(@content)
+    request = Net::HTTP::Post.new(url)
+    request['cache-control'] = 'no-cache'
+    request['content-type'] = 'application/x-www-form-urlencoded'
+    request.body = URI::encode_www_form @post_parameters
+    http.request(request).read_body
   end
 
   def fetch(uri_str, limit = 10)
@@ -318,7 +329,7 @@ class DataHtmlParser
       when Net::HTTPRedirection then
         location = response['location']
         Rails.logger.warn { "redirected to #{location}" }
-        fetch(location, limit - 1)
+        fetch(location, limit - 1)                         ### RECURSION
       else
         response.value
     end
