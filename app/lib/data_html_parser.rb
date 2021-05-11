@@ -284,7 +284,7 @@ private
     begin
       @content = get_by_http(verifyssl: verifyssl)
     rescue => e
-      Rails.logger.warn { "API download failure for url #{self.url}, backed off to curl [error: #{e.message}]" }
+      Rails.logger.warn { "API download failure for url #{self.url}, backing off to curl [error: #{e.message}]" }
       @content = %x{curl -k #{self.url}}
     rescue => e
       raise "Unable to get url #{self.url} by curl [error: #{e.message}]"
