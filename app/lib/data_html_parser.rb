@@ -278,8 +278,6 @@ class DataHtmlParser
     true
   end
 
-private
-
   def download(verifyssl: true)
     begin
       @content = get_by_http(verifyssl: verifyssl)
@@ -291,6 +289,8 @@ private
     end
     Nokogiri::HTML(@content)
   end
+
+private
 
   def get_by_http(verifyssl: true)
     require 'uri'
