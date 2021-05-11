@@ -283,10 +283,8 @@ class DataHtmlParser
       @content = get_by_http(verifyssl: verifyssl)
     rescue => e
       Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
-      @content = %x{curl -k #{self.url}}
+      @content = %x{curl --insecure #{self.url}}  ### assumes that get_by_http failed because of SSL/TLS problem
       raise "curl command failed: #{$?}" unless $?.success?
-    rescue => e
-      raise "Unable to get by curl, url=#{self.url} [error: #{e.message}]"
     end
     Nokogiri::HTML(@content)
   end
