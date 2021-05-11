@@ -100,14 +100,14 @@ class DataHtmlParser
     new_data
   end
 
-  def get_clustermapping_series(dataset, parameters, proxy: false)
+  def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
     query_params = parameters.map(&:to_s).join('/')
     @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
-    @doc = self.download(proxy: proxy)
-    response = JSON.parse self.content
-    raise  'Clustermapping API: unknown failure' unless response
+    @doc = self.download
+    raise 'Clustermapping API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) || raise('Clustermapping API: JSON parse failure')
     new_data = {}
     response.each do |data_point|
       time_period = data_point['year_t']
@@ -278,31 +278,41 @@ class DataHtmlParser
     true
   end
 
-  def download(verifyssl: true, proxy: false)
+private
+
+  def download(verifyssl: true)
+    begin
+      @content = get_by_http(verifyssl: verifyssl)
+    rescue => e
+      Rails.logger.warn { "API download failure for url #{self.url}, backed off to curl [error: #{e.message}]" }
+      @content = %x{curl -k #{self.url}}
+    rescue => e
+      raise "Unable to get url #{self.url} by curl [error: #{e.message}]"
+    end
+    Nokogiri::HTML(@content)
+  end
+
+  def get_by_http(verifyssl: true)
     require 'uri'
     require 'net/http'
     require 'timeout'
 
     url = URI(@url)
-
-    other_params = proxy ? [nil] + ENV['UHERO_HTTP_PROXY'].split(':') : [url.port]
-    http = Net::HTTP.new(url.host, *other_params)
+    http = Net::HTTP.new(url.host, url.port)
     http.use_ssl = url.scheme == 'https'
     unless verifyssl  ## can be used for temporary workaround when sites have SSL cert trouble
       Rails.logger.warn { "Not verifying SSL certs for #{url}" }
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
     http.ssl_timeout = 60
-    if @post_parameters.nil? or @post_parameters.length == 0
-      @content = fetch(@url).read_body
-    else
-      request = Net::HTTP::Post.new(url)
-      request['cache-control'] = 'no-cache'
-      request['content-type'] = 'application/x-www-form-urlencoded'
-      request.body = URI::encode_www_form @post_parameters
-      @content = http.request(request).read_body
+    if @post_parameters.nil? || @post_parameters.length == 0
+      return fetch(@url).read_body
     end
-    Nokogiri::HTML(@content)
+    request = Net::HTTP::Post.new(url)
+    request['cache-control'] = 'no-cache'
+    request['content-type'] = 'application/x-www-form-urlencoded'
+    request.body = URI::encode_www_form @post_parameters
+    http.request(request).read_body
   end
 
   def fetch(uri_str, limit = 10)
@@ -317,7 +327,7 @@ class DataHtmlParser
       when Net::HTTPRedirection then
         location = response['location']
         Rails.logger.warn { "redirected to #{location}" }
-        fetch(location, limit - 1)
+        fetch(location, limit - 1)                         ### RECURSION
       else
         response.value
     end

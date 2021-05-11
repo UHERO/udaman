@@ -869,7 +869,7 @@ class Series < ApplicationRecord
 
   def Series.load_api_clustermapping(dataset, parameters)
     dhp = DataHtmlParser.new
-    series_data = dhp.get_clustermapping_series(dataset, parameters)##, proxy: proxy)
+    series_data = dhp.get_clustermapping_series(dataset, parameters)
     link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
