@@ -46,7 +46,8 @@ class DataHtmlParser
     @url = "https://apps.bea.gov/api/data/?UserID=#{api_key}&method=GetData&datasetname=#{dataset}&#{query_pars}&ResultFormat=JSON&"
     Rails.logger.debug { "Getting data from BEA API: #{@url}" }
     @doc = self.download
-    response = JSON.parse self.content
+    raise 'BEA API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('BEA API: JSON parse failure')
     beaapi = response['BEAAPI'] || raise('BEA API: major unknown failure')
     raise 'BEA API: no results included' unless beaapi['Results'] || beaapi['Error']
     err = beaapi['Error'] || beaapi['Results'] && beaapi['Results']['Error']
@@ -77,7 +78,8 @@ class DataHtmlParser
            "appId=#{api_key}&statsDataId=#{code}&#{query}&lang=E&metaGetFlg=Y&sectionHeaderFlg=1"
     Rails.logger.debug { "Getting data from ESTATJP API: #{@url}" }
     @doc = self.download
-    json = JSON.parse self.content
+    raise 'ESTATJP API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('ESTATJP API: JSON parse failure')
     apireturn = json['GET_STATS_DATA'] || raise('ESTATJP: major unknown failure')
     if apireturn['RESULT']['STATUS'] != 0
       raise 'ESTATJP Error: %s' % apireturn['RESULT']['ERROR_MSG']
@@ -107,7 +109,7 @@ class DataHtmlParser
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     raise 'Clustermapping API: empty response returned' if self.content.blank?
-    response = JSON.parse(self.content) || raise('Clustermapping API: JSON parse failure')
+    response = JSON.parse(self.content) rescue raise('Clustermapping API: JSON parse failure')
     new_data = {}
     response.each do |data_point|
       time_period = data_point['year_t']
@@ -129,8 +131,8 @@ class DataHtmlParser
     @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
-    response = JSON.parse self.content
-    raise 'EIA API: unknown failure' unless response
+    raise 'EIA API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
     err = response['data'] && response['data']['error']
     if err
       raise 'EIA API error: %s' % response['data']['error']
@@ -153,7 +155,8 @@ class DataHtmlParser
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
     Rails.logger.debug { 'Getting data from DVW API: ' + @url }
     @doc = self.download
-    json = JSON.parse self.content
+    raise 'DVW API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('DVW API: JSON parse failure')
     results = json['data'] || raise('DVW API: failure - no data returned')
     dates = results['series'][0]['dates'] rescue raise('DVW API: failure - no series data found')
     values = results['series'][0]['values']
