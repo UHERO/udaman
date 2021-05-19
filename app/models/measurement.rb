@@ -23,7 +23,7 @@ class Measurement < ApplicationRecord
     "#{prefix} -> #{data_portal_name}"
   end
 
-  def replace_all_series(new_s_list)
+  def replace_all_series(new_s_list, from_universe = self.universe)
     my_series = series.includes(:measurement_series)  ## eager load the bridge table
                       .dup   ## make a copy so that we can modify while looping over
 
@@ -38,7 +38,7 @@ class Measurement < ApplicationRecord
       end
       new_s_list.each do |new|
         next if new == '_done'
-        series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown UHERO series name #{new}")
+        series = Series.find_by(universe: from_universe, name: new) || raise("Unknown #{from_universe} series name #{new}")
         (self.series << series) rescue raise("Series #{new} duplicated?")
       end
     end

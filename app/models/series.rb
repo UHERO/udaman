@@ -1414,16 +1414,6 @@ class Series < ApplicationRecord
     mgr.batch_reload(clear_first: clear_first)
   end
 
-  def Series.get_old_bea_downloads
-    series = []
-    Download.where(%q(handle like '%@bea.gov')).each do |dl|
-      dl.enabled_data_sources.each do |ds|
-        series.push ds.series
-      end
-    end
-    series.sort_by(&:name)
-  end
-
   def source_link_is_valid
     source_link.blank? || Series.valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
