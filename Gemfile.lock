@@ -156,7 +156,7 @@ GEM
       nokogiri (~> 1)
       rake
     mini_mime (1.0.2)
-    mini_portile2 (2.5.0)
+    mini_portile2 (2.5.1)
     minitest (5.14.4)
     multipart-post (2.0.0)
     mustermann (1.0.3)
@@ -171,7 +171,7 @@ GEM
     net-ssh (4.0.1)
     netrc (0.11.0)
     nio4r (2.5.7)
-    nokogiri (1.11.2)
+    nokogiri (1.11.4)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
     ntlm-http (0.1.1)
@@ -361,7 +361,7 @@ DEPENDENCIES
   mechanize (>= 2.7.5)
   mysql2 (~> 0.5, >= 0.5.3)
   net-sftp
-  nokogiri (~> 1.10, >= 1.11.0.rc4)
+  nokogiri (~> 1.11)
   passenger (~> 6.0.0)
   rack-protection (~> 2.0.1)
   rails (~> 5.2, >= 5.2.4.5)
