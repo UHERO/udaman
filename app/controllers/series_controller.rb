@@ -214,14 +214,6 @@ class SeriesController < ApplicationController
     new_search(created_series_ids.join(','))
   end
 
-  def old_bea_download
-    @old_bea_series = Series.get_old_bea_downloads
-    respond_to do |format|
-      format.csv { render layout: false }
-      format.html
-    end
-  end
-
   def add_to_quarantine
     if @series
       @series.add_to_quarantine
