@@ -33,7 +33,7 @@ end
 
 
 task :reset_dependency_depth => :environment do
-  DataSource.set_dependencies
+  DataSource.set_all_dependencies
   Series.assign_dependency_depth
 end
 
