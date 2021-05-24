@@ -189,10 +189,10 @@ class DataSource < ApplicationRecord
     end
 
     def set_dependencies_without_save!
-      set_dependencies!(dont_save: true)
+      set_dependencies!(no_save: true)
     end
 
-    def set_dependencies!(dont_save: false)
+    def set_dependencies!(no_save: false)
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
@@ -201,7 +201,7 @@ class DataSource < ApplicationRecord
         end
         self.dependencies.uniq!
       end
-      self.save unless dont_save
+      self.save unless no_save
     end
 
     def setup
