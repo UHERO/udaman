@@ -1,7 +1,7 @@
 class IntegerPatternProcessor
 
   def initialize(pattern)
-    @pattern = pattern
+    @pattern = pattern.to_s
   end
 
   def compute(index, cached_files = nil, handle = nil, sheet = nil)

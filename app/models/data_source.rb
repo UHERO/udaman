@@ -114,13 +114,13 @@ class DataSource < ApplicationRecord
     end
 
 
-    def DataSource.set_dependencies
-      Rails.logger.info { 'DataSource set_dependencies: start' }
+    def DataSource.set_all_dependencies
+      Rails.logger.info { 'DataSource set_all_dependencies: start' }
       DataSource.get_all_uhero.find_each(batch_size: 50) do |ds|
-        Rails.logger.debug { "DataSource set_dependencies: for #{ds.description}" }
-        ds.set_dependencies
+        Rails.logger.debug { "DataSource set_all_dependencies: for #{ds.description}" }
+        ds.set_dependencies!
       end
-      Rails.logger.info { 'DataSource set_dependencies: done' }
+      Rails.logger.info { 'DataSource set_all_dependencies: done' }
       return 0
     end
 
@@ -189,20 +189,19 @@ class DataSource < ApplicationRecord
     end
 
     def set_dependencies_without_save!
-      set_dependencies!(true)
+      set_dependencies!(no_save: true)
     end
 
-    def set_dependencies!(dont_save = false)
+    def set_dependencies!(no_save: false)
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
-          if DataSource.valid_series_name(word)
-            self.dependencies.push(word)
-          end
+          next unless word.include?('@') && valid_series_name(word)  ## performance hack: check for @ mark first
+          self.dependencies.push(word)
         end
         self.dependencies.uniq!
       end
-      self.save unless dont_save
+      self.save unless no_save
     end
 
     def setup

@@ -116,7 +116,7 @@ module SeriesInterpolation
       date = weekly_keys.pop || break
       fill_length = @fixed_week || (date - weekly_keys[-1]).to_i rescue 7  ## rescue should only happen when keys array is empty
       if (fill_length < 5 || fill_length > 9) && !@fixed_week
-        raise InterpolationException, "observation gap length #{fill_length} too long or short near #{date}"
+        raise InterpolationException, "observation gap of #{fill_length} days too long or short near #{date}"
       end
       value = method == :fill ? data[date] : (data[date] / fill_length.to_f)
       (0...fill_length).each {|offset| dailyseries[date - offset.days] = value }  ## note the three dots

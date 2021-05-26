@@ -1392,7 +1392,7 @@ class Series < ApplicationRecord
         select distinct data_sources.series_id as id
         from data_sources, series
         where series.id in (#{qmarks})
-        and dependencies like CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')
+        and dependencies regexp CONCAT(' ', series.name)
       SQL
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
