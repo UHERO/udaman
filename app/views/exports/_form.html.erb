@@ -39,9 +39,6 @@
               or <%= link_to 'Add all series to clipboard', { action: :add_clip, id: @export } %>
   <% end %>
 <p>
-  <div class="field">
-    <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
-  </div>
   <div class="actions">
     <%= f.submit %>
     <%= link_to 'Cancel', :back %>

@@ -52,6 +52,7 @@ class ExportsController < ApplicationController
 
   def create
     @export = Export.new(export_params)
+    @export.owned_by = current_user.id
 
     if @export.save
       redirect_to @export, notice: 'Export was successfully created.'
@@ -184,6 +185,6 @@ private
 
     # Only allow a trusted parameter "white list" through.
     def export_params
-      params.require(:export).permit(:name, :created_by, :updated_by, :owned_by)
+      params.require(:export).permit(:name, :created_by, :updated_by)
     end
 end
