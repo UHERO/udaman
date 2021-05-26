@@ -124,6 +124,10 @@ task :reload_covid_series => :environment do
   ReloadJobDaemon.enqueue('covid', 'cv_')
 end
 
+task :reload_uic_weekly => :environment do
+  ReloadJobDaemon.enqueue('uic_weekly', '#uic@hawa')
+end
+
 task :update_public_data_points => :environment do
   Rails.logger.info { 'update_public_all_universes: task START' }
   DataPoint.update_public_all_universes
