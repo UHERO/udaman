@@ -9,7 +9,6 @@ class UpdateCSV
     else
       begin
         @data = CSV.read(csv_file)
-        raise 'Unknown load failure, data not returned as array' unless @data.class == Array
       rescue Errno::ENOENT
         raise 'File appears not to exist on server'
       rescue CSV::MalformedCSVError => e
@@ -18,8 +17,11 @@ class UpdateCSV
           msg = 'plaintext line endings should be Mac/Linux style LF only'
         end
         raise 'Bad CSV format: ' + msg
+      rescue => e
+        raise 'Unexpected CSV file read error: %s' % e.message
       end
     end
+    raise 'Unknown CSV read failure, data not returned as array' unless @data.class == Array
   end
 
   def cell(row, col)
