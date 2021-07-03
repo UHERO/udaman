@@ -167,7 +167,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change params[:id]
     @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
     @clipboarded = current_user.clipboard_contains?(@series)
-    @dependencies = @series.who_depends_on_me(['series.name', 'series.id'])
+    @dependencies = @series.who_depends_on_me(['series.name', 'series.id']).sort_by {|a| a[0] }
     return if no_render
 
     respond_to do |format|
