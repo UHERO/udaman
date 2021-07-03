@@ -77,7 +77,11 @@ google.visualization.events.addListener(chart, 'select', function() {
   </table>
 
   <div id="chart_div"></div>
-  <div id="notes"><p><%= @series.investigation_notes %></p></div>
+  <div id="notes">
+    <% if @series.investigation_notes %>
+      <p><strong>Notes:</strong> <%= @series.investigation_notes %></p>
+    <% end %>
+  </div>
   <div id="series-deps">
     <% unless @dependencies.empty? %>
       <p><strong>Who depends on me:</strong>
