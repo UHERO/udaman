@@ -1,7 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
   include DataSourceHooks
-  extend Validators
+  include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
