@@ -6,7 +6,11 @@ class String
   def tsn
     Series.get_or_new self
   end
-  
+
+  def dbts
+    Series.get(self, 'DBEDT')
+  end
+
   def ts=(series)
     Series.store self, series
   end
@@ -27,15 +31,17 @@ class String
     # puts "#{"%.2f" % (Time.now - t)} | #{new_series.data.count} | #{self} | #{eval_statement}"
   end
 
-  def is_numeric?
-    true if Float self rescue false
+  ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact. Also defaults to causing
+  ## the caller to throw an exception if the requested data point is not defined. This should be expected
+  ## behavior in most cases.
+  def at(date, error: true)
+      Series.get(self).at(date, error: error)
+    rescue NoMethodError
+      raise("Series #{self} does not exist")
   end
 
-  def time
-    t = Time.now
-    result = eval self
-    puts "operation took #{Time.now - t}"
-    result
+  def is_numeric?
+    true if Float(self) rescue false
   end
 
   def unzip(want_file = nil)
@@ -61,6 +67,10 @@ class String
     self.gsub("'", '')
   end
 
+  def nil_blank
+    self.blank? ? nil : self
+  end
+
   def change_file_extension(ext)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
@@ -70,6 +80,12 @@ class String
   ## returns nil for strings not included
   def freqn
     %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase) || raise("Unknown frequency #{self}")
+  end
+end
+
+class NilClass
+  def nil_blank
+    nil
   end
 end
 

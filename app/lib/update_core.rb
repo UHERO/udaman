@@ -39,11 +39,9 @@ module UpdateCore
     @dates ||= read_dates
   end
   
-  def date_interval
+  def date_interval(a = 0, b = 1)
     sorted_dates = self.dates.keys.sort
-    date1 = Date.parse sorted_dates[0].to_s
-    date2 = Date.parse sorted_dates[1].to_s
-    (date2-date1).to_i
+    (sorted_dates[b].to_date - sorted_dates[a].to_date).to_i
   end
   
   def date_frequency
@@ -54,7 +52,7 @@ module UpdateCore
       when (28..31) then :month
       when 7 then :week
       when 1 then :day
-      else raise("Cannot compute date_frequency for interval of #{date_interval}")
+      else raise("Cannot compute frequency: date interval of #{date_interval} days")
     end
   end
   
@@ -173,17 +171,16 @@ module UpdateCore
   end
   
   def determine_header_location
-    return 'columns' if columns_have_series? 
-    'rows' if rows_have_series?
+    case
+      when columns_have_series? then 'columns'
+      when rows_have_series? then 'rows'
+      else raise 'Unable to determine series header location'
+    end
   end
   
   def update_formatted?
-    # puts "columns have series: #{columns_have_series?}"
-    # puts "rows have dates: #{rows_have_dates?}"
-    # puts "rows have series: #{rows_have_series?}"
-    # puts "columns have dates: #{columns_have_dates?}"
-    return true if columns_have_series? and rows_have_dates?
-    return true if columns_have_dates? and rows_have_series?
+    return true if columns_have_series? && rows_have_dates?
+    return true if columns_have_dates? && rows_have_series?
     false
   end
   

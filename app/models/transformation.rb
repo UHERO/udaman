@@ -1,2 +1,0 @@
-class Transformation < ApplicationRecord
-end

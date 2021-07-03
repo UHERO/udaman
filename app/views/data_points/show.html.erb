@@ -7,13 +7,9 @@
 %>
 <h2><%= current_dp.date %></h2>
 Current<br/>
-<%
-  [current_dp, other_dps].flatten.each do |dp|
-    dp_val = dp.value / units
-    data_source = dp.data_source
-    bgcolor = data_source.color || 'FFF'
-%>
-    <div class='datapoint' style='background-color:#<%= bgcolor %>' title="<%= data_source.description %>">
-      <%= '%.3f' % dp_val %><sup><%= dp_superscript(dp) %></sup>
-    </div>
+<div style="float:left;">
+<% [current_dp, other_dps].flatten.each do |dp| %>
+  <%= dp_display(dp.value / units, '#%s' % dp.data_source.color,
+                    age: dp_age_code(dp), title: dp.data_source.description) %>
 <% end %>
+</div>

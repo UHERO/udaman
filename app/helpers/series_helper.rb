@@ -14,26 +14,41 @@ module SeriesHelper
       ytd = @ytd_chg.data
        
       csv << ["Date", "Values", "LVL","YOY", "YTD"]
-      # dates_array.each do |date|
-      #   csv << [date] + sorted_names.map {|series_name| series_data[series_name][date]}
-      # end
       dates.sort.each do |date|
         csv << [date, val[date], lvls[date], yoy[date], ytd[date]]
       end
     end
   end
 
+  def series_group_export(type, series)
+    case type
+      when 'metacsv' then series_meta_csv_gen(series)
+      when 'datacsv' then series_data_csv_gen(series)
+      else raise("series_group_export: unknown type #{type}")
+    end
+  end
+
   def series_meta_csv_gen(series_set)
     columns = %w{id name dataPortalName description geography.display_name_short frequency units decimals
                  unit.short_label unit.long_label source.description source_link source_detail.description
-                 seasonal_adjustment restricted quarantined restricted.to_01 quarantined.to_01 investigation_notes}
-    CSV.generate do |csv|
+                 seasonal_adjustment restricted restricted.to_01 quarantined quarantined.to_01 investigation_notes}
+    CSV.generate(nil, col_sep: "\t") do |csv|
       csv << columns
       series_set.each do |s|
         csv << columns.map do |col|
           (attr, subattr) = col.split('.')
-          s.send(attr).send(subattr || 'to_s') rescue nil
+          subattr.nil? ? s.send(attr) : s.send(attr).send(subattr) rescue nil
         end
+      end
+    end
+  end
+
+  def series_data_csv_gen(series_set)
+    CSV.generate do |csv|
+      csv << ['Date'] + series_set.map(&:name)
+      all_dates = series_set.map {|s| s.data.keys }.flatten.sort.uniq
+      all_dates.each do |date|
+        csv << [date] + series_set.map {|s| s.at(date) }
       end
     end
   end
@@ -101,9 +116,11 @@ module SeriesHelper
         words[index] = link_to(word, { action: action, id: series }) if series
         next
       end
-      if valid_data_path(word)
-        rel_path = data_path_relativize(word)  ## relativize path under DATA_PATH prefix
-        words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
+      if word =~ /^<(.*)>$/
+        rel_path = $1
+        if valid_data_path(rel_path)
+          words[index] = link_to(word, { controller: :downloads, action: :pull_file, path: rel_path })
+        end
         next
       end
    end
@@ -124,7 +141,7 @@ module SeriesHelper
   end
 
   def make_hyperlink(url, text = url)
-    return url if url.blank?
+    return text if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
     "<span class='error_message'>unvalidatable url=#{url}</span>".html_safe
   end
@@ -159,9 +176,5 @@ module SeriesHelper
 
   def univ_create_label(text)
     "<span class='grayedout'>[#{text}]</span>".html_safe
-  end
-
-  def data_path_relativize(path)
-    path.sub(ENV['DATA_PATH'] + '/', '')
   end
 end

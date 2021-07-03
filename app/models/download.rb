@@ -20,12 +20,6 @@ class Download < ApplicationRecord
     end
   end
 
-  DEFAULT_DATA_PATH = '/Users/uhero/Documents/data'
-
-  def Download.default_data_path
-    DEFAULT_DATA_PATH
-  end
-
   def Download.get(handle, type = nil)
     case type || valid_download_handle(handle)
       when :nondate then Download.find_by(handle: handle)
@@ -82,6 +76,10 @@ class Download < ApplicationRecord
     "Download.upd(#{self.attributes.select {|_, value| !value.is_a? Time}})"
   end
 
+  def save_path_relativized(no_ext = false)
+    save_path(no_ext).sub(ENV['DATA_PATH'] + '/', '')   ## eventually rewrite this to use Ruby File package API, like the below methods, too lazy now
+  end
+
   def save_path(no_ext = false)
     save_path_flex(no_ext)
   end
@@ -107,7 +105,7 @@ class Download < ApplicationRecord
   end
 
   def enabled_data_sources
-    data_sources.reject {|d| d.disabled? }
+    data_sources.reject {|ld| ld.disabled? }
   end
 
   def download
@@ -131,7 +129,7 @@ class Download < ApplicationRecord
       update_times = { last_download_at: now }
       data_changed = content_changed?(resp.to_str)
       if data_changed || last_change_at.nil?
-        backup
+        ### backup  ## STOP BACKING UP ALL THE AUTO-DOWNLOADED FILES!
         update_times.merge!(last_change_at: now)
       end
       begin

@@ -1,6 +1,6 @@
 class StringWithDatePatternProcessor
   def initialize(string_format)
-    @string_format = string_format
+    @string_format = string_format.to_s
   end
 
   def compute(date_string)

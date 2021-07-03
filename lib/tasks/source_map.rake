@@ -33,7 +33,7 @@ end
 
 
 task :reset_dependency_depth => :environment do
-  DataSource.set_dependencies
+  DataSource.set_all_dependencies
   Series.assign_dependency_depth
 end
 
@@ -47,20 +47,23 @@ task debug: [:environment, :verbose] do
   Rails.logger.level = ActiveRecord::Base.logger.level = Logger::DEBUG
 end
 
-## The famous "Nightly Reload"
+## The (in)famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
   full_set_ids = Series.get_all_uhero.pluck(:id)
-  full_set_ids -= Series.search_box('#load_from_bls').pluck(:id)
-  full_set_ids -= Series.search_box('#load_from_bea').pluck(:id)
+  full_set_ids -= Series.search_box('#load_api_bls').pluck(:id)
+  full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
-  full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
+  full_set_ids -= Series.search_box('^vispns .d').pluck(:id)
+  full_set_ids -= Series.search_box('^vap ~ns$ @hi .d').pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
+  DataPoint.update_public_all_universes
 end
 
-task :purge_old_logs => :environment do
+task :purge_old_stuff => :environment do
+  ReloadJob.purge_old_jobs
   SeriesReloadLog.purge_old_logs
   DsdLogEntry.purge_old_logs(6.weeks)
 end
@@ -80,36 +83,49 @@ task :reload_hiwi_series_only => :environment do
   mgr = SeriesReloadManager.new(hiwi_series, 'hiwi', nightly: true)
   Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
+  DataPoint.update_public_all_universes
 end
 
 task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
-  bls_series = Series.get_all_series_by_eval('load_from_bls')
+  bls_series = Series.get_all_series_by_eval('load_api_bls')
   ## Convert this to use Series.reload_with_dependencies instead
   mgr = SeriesReloadManager.new(bls_series, 'bls', nightly: true)
   Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
+  DataPoint.update_public_all_universes
 end
 
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
-  bea_series = Series.get_all_series_by_eval(%w{load_from_bea bea.gov})
+  bea_series = Series.get_all_series_by_eval(%w{load_api_bea bea.gov})
   ## Convert this to use Series.reload_with_dependencies instead?
   mgr = SeriesReloadManager.new(bea_series, 'bea', nightly: true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-  mgr.batch_reload(group_size: 10)  ### try reduce group size to 10, bec we are blowing out req/min quota
-end
-
-task :reload_vap_hi_daily_series_only => :environment do
-  Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
-  vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
-  Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid', nightly: true)
+  mgr.batch_reload(group_size: 10)  ### try reduce group size to 10, bec we are blowing out BEA's req/min quota
+  DataPoint.update_public_all_universes
 end
 
 task :reload_tour_ocup_series_only => :environment do
   Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
   tour_ocup = Series.search_box('#tour_ocup%Y')
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
+end
+
+task :reload_vispns_daily => :environment do
+  ReloadJobDaemon.enqueue('vispns', '^vispns .d')
+end
+
+task :reload_vap_hi_daily => :environment do
+  ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
+end
+
+task :reload_covid_series => :environment do
+  ReloadJobDaemon.enqueue('covid', 'cv_')
+end
+
+task :reload_uic_weekly => :environment do
+  ReloadJobDaemon.enqueue('uic_weekly', '#uic@hawa')
 end
 
 task :update_public_data_points => :environment do
@@ -123,17 +139,42 @@ API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
 task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Start at #{Time.now}" }
   start_time = Time.now.to_i
-  url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
-  cmd = %q{curl --silent --output /dev/null -H "Authorization: Bearer %s" } % API_TOKEN
+  cat_url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
+  pkg_url = %q{https://api.uhero.hawaii.edu/v1/package/series?id=%d\&u=%s\&cat=%d\&nocache}
+  cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
 
   uh_cats = Category.where(%q{universe = 'UHERO' and not (hidden or masked) and data_list_id is not null})
   Rails.logger.info { "Encachitize: Doing UHERO, #{uh_cats.count} cats" }
   uh_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
+      try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        full_url = cat_url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: uhero category run => #{cat.id}, #{geo}, #{freq}" }
+        begin
+          content = %x{#{cmd + full_url}}
+          json = JSON.parse content
+        rescue => e
+          if try < 4  ## only try 4 times
+            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+            sleep 19
+            try += 1
+            retry
+          end
+          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
+          try = 0
+          next
+        end
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        ##Rails.logger.debug { ">>>>>>> Number of series #{json['data'].count}" }
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'uhero', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, uhero, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end
@@ -142,10 +183,33 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing COH, #{coh_cats.count} cats" }
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
+      try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        full_url = cat_url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: coh category run => #{cat.id}, #{geo}, #{freq}" }
+        begin
+          content = %x{#{cmd + full_url}}
+          json = JSON.parse content
+        rescue => e
+          if try < 4  ## only try 4 times
+            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+            sleep 19
+            try += 1
+            retry
+          end
+          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
+          try = 0
+          next
+        end
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'coh', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, coh, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end
@@ -154,10 +218,33 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing CCOM, #{ccom_cats.count} cats" }
   ccom_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
+      try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: run => #{cat.id}, #{geo}, #{freq}" }
-        %x{#{cmd + full_url}}
+        full_url = cat_url % [cat.id, geo, freq]
+        Rails.logger.debug { "Encachitize: ccom category run => #{cat.id}, #{geo}, #{freq}" }
+        begin
+          content = %x{#{cmd + full_url}}
+          json = JSON.parse content
+        rescue => e
+          if try < 4  ## only try 4 times
+            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+            sleep 19
+            try += 1
+            retry
+          end
+          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
+          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
+          try = 0
+          next
+        end
+        next unless freq == 'D'   ### only cache daily series packages for now
+        next unless json && json['data']   ### maybe no D series in this category
+        json['data'].each do |series|
+          sid = series['id'].to_i
+          full_url = pkg_url % [sid, 'ccom', cat.id]
+          Rails.logger.debug { "Encachitize: package run => #{sid}, ccom, cat=#{cat.id}" }
+          %x{#{cmd + '--output /dev/null ' + full_url}}
+        end
       end
     end
   end

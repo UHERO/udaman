@@ -28,6 +28,13 @@ module Authorization
     check_authorization
   end
 
+  def check_export_authorization
+    if current_user.fsonly? && request.fullpath =~ /\.csv$/  ## allow csv downloads for HECO users (who already have URL in hand)
+      return
+    end
+    check_authorization
+  end
+
   def check_authorization
     unless current_user.internal_user?
       redirect_back fallback_location: '/', flash: { error: 'Access not authorized' }

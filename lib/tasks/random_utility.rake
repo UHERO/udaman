@@ -3,6 +3,150 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :ua_1099 => :environment do
+  ss = Series.search_box('^v .m')
+  ss.each do |s|
+    puts "-------------------- #{s} ------------------------"
+    t = s.moving_average
+    t = s.moving_average_annavg_padded
+    t = s.forward_looking_moving_average
+    t = s.backward_looking_moving_average
+  end
+end
+
+## JIRA UA-1428
+task :ua_1428 => :environment do
+  ss = Series.get_all_uhero.joins(:data_sources).distinct.where(%q{data_sources.eval regexp 'ts.aggregate'})
+  ss.each do |s|
+    dss = s.enabled_data_sources.reject {|ds| ds.eval !~ /ts\.aggregate/ }
+    #dss.each_with_index do |_, i|
+    #  unless dss[i].eval =~ /"\w+NS@\w+\.[a-z]"\.ts/i
+    #    dss.delete_at(i)
+    #  end
+    #end
+    if dss.count > 2
+      puts ">>>>>>>>>>>>>> TOO MANY AGGS #{s} --#{s.id},"
+      next
+    end
+    next if dss.count != 2
+
+    if dss[0].eval =~ /"(\w+@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
+      m0 = $1.upcase
+      f0 = $2.upcase
+      t0 = $3
+    else
+      next
+    end
+    if dss[1].eval =~ /"(\w+@\w+)\.([a-z])"\.ts\.aggregate\(:\w+, :(\w+)/i
+      m1 = $1.upcase
+      f1 = $2.upcase
+      t1 = $3
+    else
+      next
+    end
+    if m0 != m1
+      puts ">>>>>>>>>>>>>> BASE SERIES mismatch --#{s.id},"
+      next
+    end
+    if t0 != t1
+      puts ">>>>>>>>>>>>>> METHOD mismatch --#{s.id},"
+      next
+    end
+    puts "----- DOING #{s} (#{s.id})\n\t#{dss[0].eval}\n\t#{dss[1].eval}"
+    disablit = f0.freqn >= f1.freqn ? 1 : 0
+    dss[disablit].disable!
+  end
+end
+
+task :growth_rate_temp_fix => :environment do
+  all = Series.search_box('^v #last_incomplete_year')
+  all.each do |s|
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /last_incomplete_year/
+      puts "------- DOING for #{s}"
+      newval = ld.eval.sub('plete_year','plete_year("2020-01-01")')
+      ld.update!(eval: newval)
+    end
+  end
+end
+
+## JIRA UA-1211
+task :ua_1211 => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    abs_path = %r{"(/Users/uhero/Documents)?/data/}
+    if ld.eval =~ abs_path
+      newval = ld.eval.sub(abs_path, '"')
+      if newval =~ /load_.*sa_from.*"sadata"/
+        newval.sub!(/\s*,\s*"sadata"\s*/, '')
+      end
+      ld.update!(eval: newval)  ## get rid of path prefix, just leave the double quote
+    end
+  end
+  puts "!!!!! Go in the db and edit any remaining sheet name parameters for load*sa_from methods!"
+end
+
+## JIRA UA-1256
+task :ua_1256 => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    if ld.eval =~ /load_from_(bea|bls|fred|eia|estatjp|clustermapping|dvw)[^a-z]/
+      api = $1
+      puts ">>>> Changing #{ld.eval}"
+      ld.update!(eval: ld.eval.sub("load_from_#{api}", "load_api_#{api}"))
+      ld.reload
+    end
+    ld.set_color!
+  end
+end
+
+## JIRA UA-1213
+task :ua_1213 => :environment do
+  all = Series.search_box('^pc .q #interpol')
+  all.each do |s|
+    dss = s.enabled_data_sources
+    if dss.count > 2
+      puts "#{s} >>>> more than 2, id #{s.id}"
+      next
+    end
+    interp = dss[0].eval =~ /interpolate/ ? 0 : 1
+    aggreg = (interp + 1) % 2
+    unless dss[aggreg].eval =~ /aggregate/
+      puts "#{s} >>>> no aggregate found, id #{s.id}"
+      next
+    end
+    dss[interp].update!(priority: 100)
+    dss[aggreg].update!(priority: 90)
+    puts "#{s} --------- DONE"
+  end
+end
+
+## JIRA UA-1259
+task :ua_1259 => :environment do
+  ss = Series.search_box('#load_from_bea')
+  ss.each do |s|
+    dss = s.enabled_data_sources
+    next if dss.count < 2
+    dss.each do |ds|
+      next unless ds.eval =~ /from_download/
+      if ds.last_error && ds.last_error !~ /404/
+        puts "---- #{s} #{s.id} :: #{ds.last_error}"
+        next
+      end
+      next unless ds.last_error
+      next if ds.current?
+      ds.disable!
+    end
+  end
+
+  ss = Series.search_box('#load_from_bls !invalid')
+  ss.each do |s|
+    dss = s.enabled_data_sources.select {|x| x.eval =~ /load_from_bls/ }
+    dss.each do |ds|
+      next unless ds.last_error =~ /invalid/i && !ds.current?
+      ds.disable!
+    end
+  end
+end
+
 ## JIRA UA-1376
 task :ua_1376 => :environment do
   allmeas = [
@@ -232,7 +376,11 @@ task :ua_1376 => :environment do
     ss.each do |s|
       ns_name = s.build_name(prefix: s.parse_name[:prefix] + 'NS')
       d = s.data_sources.first
-      d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      if d
+        d.update_attributes!(eval: d.eval.sub(s.name, ns_name))
+      else
+        puts "-=-=-=-=-> NO LOADER FOR #{s}"
+      end
       s.rename(ns_name)
       s.update_attributes!(dataPortalName: dpn,
                            units: units,
@@ -325,7 +473,7 @@ task :ua_1350 => :environment do
       puts "-------- Created series #{m_name}: #{load_stmt}"
     end
     ## Change all .Q/.A series to aggregate off the new .M series
-    qa.enabled_data_sources.each {|ds| ds.disable }
+    qa.enabled_data_sources.each {|ds| ds.disable! }
     loader = qa.data_sources.create(eval: %Q|"#{m_name}".ts.aggregate(:#{qa.frequency}, :average)|, description: m_name)
     loader.setup
     qa.update!(source_id: 3,  ## UHERO Calculation
@@ -344,7 +492,7 @@ task :ua_1344 => :environment do
     disabled_one = false
     s.enabled_data_sources.select {|d| d.eval =~ /load_from/ }.each do |ds|
       puts "   DISABLING: #{ds.eval}"
-      ds.disable
+      ds.disable!
       disabled_one = true
     end
     if disabled_one
@@ -353,7 +501,7 @@ task :ua_1344 => :environment do
           priority: 100,
           color: 'CCFFFF'
       )
-      puts"   CREATED NEW LOADER"
+      puts "   CREATED NEW LOADER"
       s.reload_sources
       puts "   LOADED THE NEW ONE"
     end

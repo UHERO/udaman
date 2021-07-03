@@ -19,8 +19,6 @@
 
 # Learn more: http://github.com/javan/whenever
 
-hour = '1'
-bls_hour = '4'
 set :output, {:standard => '~/Documents/cronlog/udaman-download.log', :error => '~/Documents/cronlog/udaman-error.log'}
 # set :environment, 'development'
 #job_type :rake,    'cd :path && rake :task :output'
@@ -46,7 +44,7 @@ every 1.day, :at => '1:00 am' do
 end
 
 every 1.day, at: '7:40 pm' do
-  rake :purge_old_logs
+  rake :purge_old_stuff
 end
 
 ## The famous "Nightly Reload"
@@ -67,25 +65,37 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bls_series_only
 end
 
+every :weekday, :at => '12:00 pm' do
+  rake :reload_vispns_daily
+end
+
 every :weekday, :at => '4:15 pm' do
-  rake :reload_vap_hi_daily_series_only
+  rake :reload_vap_hi_daily
+end
+
+every 1.day, :at => ['4:30 am', '8:30 am', '12:30 pm', '4:30 pm'] do
+  rake :reload_covid_series
+end
+
+every :thursday, :at => '11:00 am' do
+  rake :reload_uic_weekly
 end
 
 # -----------------------------------------------------------
 
-every 1.day, :at => "#{hour.to_i+5}:30 am" do
+every :day, at: '6:30 am' do
   rake :gen_investigate_csv
 end
 
-every 1.day, :at => "#{hour.to_i+5}:50 am" do
+every :day, at: '6:50 am' do
   rake :aremos_exports
 end
 
-every 1.day, :at => "#{hour.to_i+7}:50 am" do
+every :day, at: '8:50 am' do
   rake :tsd_exports
 end
 
-every 1.day, :at => "#{hour.to_i+6}:00 am" do
+every :day, at: ['11:01 am', '12:01 pm', '1:01 pm', '2:01 pm', '3:01 pm', '4:01 pm', '5:01 pm'] do
   rake :update_public_data_points
 end
 

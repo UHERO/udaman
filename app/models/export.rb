@@ -5,11 +5,7 @@ class Export < ApplicationRecord
   accepts_nested_attributes_for :series
 
   def series_data
-    @series_data ||= get_series_data
-  end
-
-  def get_series_data
-    Hash[series.map{|s| [s.name, s.data]}]
+    @series_data ||= series.map {|s| [s.name, s.data] }.to_h
   end
 
   def data_dates

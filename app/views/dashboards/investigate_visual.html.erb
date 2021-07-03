@@ -295,7 +295,7 @@
 	}
 	
 	//to get this to generate dynamically, remove the file from the public directory
-	d3.text('/investigate_visual.csv', 'text/csv', matching_diffs); 
+	d3.text('/investigate_visual.csv', 'text/csv', matching_diffs);
 	d3.csv('/dp_added.csv', new_data_points);
 	d3.csv('/download_results.csv', download_results);
 	d3.csv('/packager_output.csv', packager_output);
@@ -330,14 +330,64 @@
 		<td>
 			<h2>Downloads / Raw Data</h2>
 			<svg id="download_results"></svg>
-      <p><button id="export_tsd">Generate TSD Export</button></p>
-      <%= button_to('Update public data points', '/update_public_dp',
-                       { form_class: 'button-with-indicator', remote: true }) %>
-      <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
-
-      <p id="message_area"></p>
+      <% if current_user.admin_user? %>
+        <p><button id="export_tsd">Generate TSD Export</button><span id="message_area"></span></p>
+        <p>
+          <%= button_to('Restart REST API', { controller: :dashboards, action: :restart_restapi },
+                          form_class: 'rest-restart-button', remote: true) %>
+               <i id="rest-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i>
+          <%= button_to('Restart DVW API', { controller: :dashboards, action: :restart_dvwapi },
+                        form_class: 'dvw-restart-button', remote: true) %>
+               <i id="dvw-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i>
+        </p>
+        <p>
+        <%= button_to('Update public data points', { controller: :dashboards, action: :update_public_dp },
+                         { form_class: 'button-with-indicator', remote: true }) %>
+               <i id="pdp-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
+        <%= button_to('Sync files from NAS', { controller: :dashboards, action: :force_sync_files },
+                        { form_class: 'nas-sync-button', remote: true }) %>
+          <i id="nas-sync-indicator" class="fas fa-spinner fa-spin" aria-hidden="true" style="display:none;"></i>
+        </p>
+      <% end %>
 		</td>
 		</tr>
+      <tr><td><h2>Reload Jobs</h2></td></tr>
+      <table class="list_table">
+        <thead>
+        <tr>
+          <th>Id</th>
+          <th>User</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Finished</th>
+          <th>Count</th>
+          <th>Series...</th>
+          <th colspan="100%">Error</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% @all_reload_jobs.each do |job| %>
+          <tr>
+            <td><%= job.id %></td>
+            <td><%= job.user.email.sub(/@.*/, '') %></td>
+            <td style="text-align:center;">
+                <% if job.status.nil? %>
+                    waiting<% if current_user.id == job.user_id || current_user.dev_user? %>
+                              <%= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe, { action: :destroy_reload_job, id: job } %>
+                           <% end %>
+                <% else %>
+                    <%= job.status %>
+                <% end %>
+            </td>
+            <td><%= job.created_at.strftime('%m/%d/%y %H:%M') %></td>
+            <td style="text-align:center;"><%= job.finished_at.strftime('%H:%M') rescue '-' %></td>
+            <td style="text-align:center;"><%= job.series.count %></td>
+            <td><%= job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s %></td>
+            <td class="error_message"><%= job.error rescue nil %></td>
+          </tr>
+        <% end %>
+        </tbody>
+      </table>
       <tr><td><h2>Current load errors</h2></td></tr>
       <table>
         <th>Count</th><th>Error message</th>
@@ -345,11 +395,10 @@
           <tr><td><%= entry[2] %></td><td><%= link_to entry[0], controller: :series, action: :show, id: entry[1] %></td></tr>
         <% end %>
       </table>
-    <tr>
+      <tr>
 		<td colspan=2>
 			<h2>Update Spreadsheets</h2>
 			<svg id="update_spreadsheets"></svg>
-
 		</td>
 		</tr>
 		</table>
@@ -368,11 +417,10 @@
       d3.select('#message_area')
           .text(data.message)
           .style('background-color', '#A4CCB3')
-          .style('padding', '20px')
+       //   .style('padding', '20px')
           .style('display', 'inline-block')
           .style('font-weight', 700)
           .style('color', '#397A26');
     })
   })
 </script>
-

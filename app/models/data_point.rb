@@ -91,13 +91,13 @@ class DataPoint < ApplicationRecord
   def source_type
     source_eval = self.data_source.eval
     case 
-      when source_eval.index('load_from_bls')
+      when source_eval.index('load_api_bls')
         return :download
-      when source_eval.index('load_from_bea')
+      when source_eval.index('load_api_bea')
         return :download
       when source_eval.index('load_from_download')
         return :download
-      when source_eval.index('load_from_fred')
+      when source_eval.index('load_api_fred')
         return :download
       when source_eval.index('load_from')
         return :static_file
@@ -134,9 +134,9 @@ class DataPoint < ApplicationRecord
       return true unless remove_quarantine
 
       begin
-        stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~SQL)
+        stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
           delete from public_data_points where series_id = ?
-        SQL
+        MYSQL
         stmt.execute(series.id)
         stmt.close
       rescue
@@ -146,9 +146,9 @@ class DataPoint < ApplicationRecord
     end
     t = Time.now
     insert_type = universe == 'NTA' ? 'replace' : 'insert'
-    update_query = <<~SQL
+    update_query = <<~MYSQL
       update public_data_points p
-        join series_v s on s.id = p.series_id
+        join series_all_v s on s.id = p.series_id
         join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       set p.value = d.value,
           p.pseudo_history = d.pseudo_history,
@@ -157,11 +157,11 @@ class DataPoint < ApplicationRecord
       and not (s.restricted or s.quarantined)
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
-    SQL
-    insert_query = <<~SQL
+    MYSQL
+    insert_query = <<~MYSQL
       #{insert_type} into public_data_points (series_id, `date`, `value`, pseudo_history, created_at, updated_at)
       select s.id, d.date, d.value, d.pseudo_history, d.created_at, coalesce(d.updated_at, d.created_at)
-      from series_v s
+      from series_all_v s
         join data_points d on d.xseries_id = s.xseries_id
         left join public_data_points p on p.series_id = s.id and p.date = d.date
       where s.universe = ?
@@ -169,17 +169,17 @@ class DataPoint < ApplicationRecord
       and d.current
       and p.created_at is null  /* dp doesn't exist in public_data_points yet */
       #{' and s.id = ? ' if series} ;
-    SQL
-    delete_query = <<~SQL
+    MYSQL
+    delete_query = <<~MYSQL
       delete p
       from public_data_points p
-        join series_v s on s.id = p.series_id
+        join series_all_v s on s.id = p.series_id
         left join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       where s.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
            #{'or s.quarantined or s.restricted' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
-    SQL
+    MYSQL
     begin
       bind_vals = [universe]
       bind_vals.push(series.id) if series

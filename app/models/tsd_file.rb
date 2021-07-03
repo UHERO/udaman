@@ -1,5 +1,6 @@
 class TsdFile < ApplicationRecord
   include Cleaning
+  include HelperUtilities
   require 'digest/md5'
   require 'date'
   belongs_to :forecast_snapshot
@@ -7,6 +8,11 @@ class TsdFile < ApplicationRecord
 
   def path
     File.join(ENV['DATA_PATH'], tsd_rel_filepath(self.filename))
+  end
+
+  def assign_content(text)
+    @string_content = StringIO.new(text)
+    self
   end
 
   def store_tsd(file_content)
@@ -31,16 +37,18 @@ class TsdFile < ApplicationRecord
     close_tsd
   end
 
-  def get_next_series(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+  def get_next_series(nils: false, data_only: false)  ## nils means to include nil values, corresponding to trailing blank strings
     raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
-    series_hash.merge!(get_second_line_attributes)
-    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
+    series_hash.merge! get_second_line_attributes
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency], nils: nils)
-    series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+    unless data_only
+      series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+      series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
+    end
     series_hash
   end
 
@@ -88,18 +96,22 @@ class TsdFile < ApplicationRecord
     series = []
     read_tsd_block do |tsd|
       begin
-        series.push(tsd.get_next_series(nils: nils)) if @last_line_type == :name_line
+        if @last_line_type == :name_line
+          series.push tsd.get_next_series(nils: nils)
+        end
       end until @last_line.nil?
     end
     series
   end
 
-  def search_names(name)
-    read_tsd_block_no_first_line do |tsd|
+  def get_series(name, nils: false, data_only: false)
+    read_tsd_block do |tsd|
       begin
-        last_line_type = tsd.read_next_line
-        return tsd.get_next_series if last_line_type == :name_line and get_name_line_attributes[:name] == name
-      end until last_line_type.nil?
+        if @last_line_type == :name_line
+          s = tsd.get_next_series(nils: nils, data_only: data_only)
+          return s if s[:name] == name
+        end
+      end until @last_line.nil?
     end
     nil
   end
@@ -110,28 +122,28 @@ class TsdFile < ApplicationRecord
     return parse_quarterly_data(data, start_date_string, nils: nils) if frequency == 'Q'
     return parse_monthly_data(data, start_date_string, nils: nils) if frequency == 'M'
     return parse_weekly_data(data, start_date_string, nils: nils) if frequency == 'W'
-    parse_daily_data(data, start_date_string, nils: nils) if frequency == 'D'
+    return parse_daily_data(data, start_date_string, nils: nils) if frequency == 'D'
+    raise "TSD parse_data: unknown frequency #{frequency}"
   end
 
   def parse_date(aremos_date_string, frequency, daily_switches)
     if frequency == 'W'
       listed_date = Date.parse(aremos_date_string)
       date = listed_date+daily_switches.index('1')
-      #puts '#{daily_switches} | #{aremos_date_string} | #{Date.parse(aremos_date_string).wday} | #{date}' 
       return date.to_s
     end
-    year = aremos_date_string[0..3]
-    month = aremos_date_string[4..5]
+    year = aremos_date_string[0..3].to_i
+    month = aremos_date_string[4..5].to_i
     if frequency == 'Q'
-      month_int = month.to_i * 3 - 2
-      month = month_int < 10 ? "0#{month_int}" : "#{month_int}"
+      month = first_month_of_quarter(month)
     end
-    day = aremos_date_string[6..7]
-    day = '01' if day == '00'
-    "#{year}-#{month}-#{day}"
+    day = aremos_date_string[6..7].to_i
+    day = 1 if day == 0
+    Date.new(year, month, day).to_s
   end
 
-  protected
+protected
+
   def read_tsd_block_no_first_line
     open_tsd
     yield self
@@ -173,15 +185,15 @@ class TsdFile < ApplicationRecord
   def get_data
     check_error(@last_line_type, :data_line)
     @data_array = []
-    while @last_line_type == :data_line and !@last_line.nil?
-      @data_array += read_data(@last_line) unless @last_line.nil?
+    while @last_line && @last_line_type == :data_line
+      @data_array += read_data(@last_line)
       read_next_line
     end
     @data_array
   end
 
   def open_tsd
-    @file = File.open(path, 'r')
+    @file = @string_content || File.open(path, 'r')
   end
 
   def read_data(line)

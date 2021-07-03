@@ -19,7 +19,7 @@ class DownloadsCache
   def setup_and_check(type, handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method setup_and_check: type=#{type}, handle=#{handle}, path=#{path}" }
     skip = false
-    if path.nil?  ## this means that handle != 'manual'
+    if path.nil?  ## this means that handle != :manual
       @dload = @cache[:dloads][handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
       @cache[:dloads][handle] = @dload
       @handle = handle
@@ -58,6 +58,7 @@ class DownloadsCache
 
   def xls(handle, sheet, path = nil, date = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method xls: handle=#{handle}, sheet=#{sheet}, path=#{path}" }
+    path &&= File.join(ENV['DATA_PATH'], path)
     skip = setup_and_check('xls', handle, path, skip_proc)
     sheet = @dload.sheet_override.strip if @dload && !@dload.sheet_override.blank?
     sheet_key = make_cache_key('xls', @path, sheet)
@@ -74,7 +75,7 @@ class DownloadsCache
                 flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
                 Roo::Spreadsheet.open(@path, extension: flip_ext)
               rescue
-                if @handle.blank?  ## in case of 'manual' files
+                if @handle.blank?  ## in case of :manual files
                   raise "path #{@path} does not exist"
                 else
                   raise "bad spreadsheet for handle #{@handle}: likely a web 404"
@@ -106,6 +107,7 @@ class DownloadsCache
 
   def csv(handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method csv: handle=#{handle}, path=#{path}" }
+    path &&= File.join(ENV['DATA_PATH'], path)
     skip = setup_and_check('csv', handle, path, skip_proc)
     file_key = make_cache_key('csv', @path)
     value = get_files_cache(file_key)

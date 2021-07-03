@@ -1,6 +1,8 @@
 module SeriesArithmetic
+  include ActionView::Helpers::DateHelper
+
   def round(prec = 0)
-    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && (value.round(prec).to_f rescue nil)] })
   end
   
   def perform_arithmetic_operation(operator, op_series)
@@ -8,16 +10,13 @@ module SeriesArithmetic
     new_data = {}
     longer_series = self.data.length > op_series.data.length ? self : op_series
     longer_series.data.keys.each do |date|
-      my_val = self.at(date)
-      op_val = op_series.at(date)
-      computed = my_val && op_val && my_val.send(operator, op_val)
-      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
+      new_data[date] = do_arithmetic(self.at(date), operator, op_series.at(date))
     end
     new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
 
   def perform_const_arithmetic_op(operator, constant)
-    new_data = data.map {|date, value| [date, value && value.send(operator, constant)] }
+    new_data = data.map {|date, value| [date, do_arithmetic(value, operator, constant)] }
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end
   
@@ -71,18 +70,6 @@ module SeriesArithmetic
     perform_arithmetic_operation('/',other_series)
   end
 
-  #need to figure out the best way to validate these now... For now assume the right division
-  
-  def validate_additive_arithmetic(other_series)
-    #raise SeriesArithmeticException if self.units != other_series.units
-  end
-  
-  def validate_arithmetic(other_series)
-    #puts "#{self.name}: #{self.frequency}, other - #{other_series.name}: #{other_series.frequency}"
-    #raise SeriesArithmeticException if self.frequency.to_s != other_series.frequency.to_s
-    #raise SeriesArithmeticException if self.frequency.nil? or other_series.frequency.nil?
-  end
-  
   def rebase(date = nil)
     if date
       date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
@@ -99,7 +86,7 @@ module SeriesArithmetic
     end
     new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
-  
+
   def percentage_change
     new_series_data = {}
     last = nil
@@ -110,7 +97,7 @@ module SeriesArithmetic
       end
       last = value
     end
-    new_transformation("Percentage Change of #{name}", new_series_data)
+    new_transformation("Percentage change of #{name}", new_series_data)
   end
 
   def compute_percentage_change(current, last)
@@ -122,25 +109,38 @@ module SeriesArithmetic
     end
   end
 
-  def absolute_change(id = nil)
-    return faster_change(id) if id
-    new_series_data = {}
-    last = nil
-    data.sort.each do |date, value|
-      new_series_data[date] = value - last unless last.nil?
-      last = value
-    end
-    new_transformation("Absolute change of #{self}", new_series_data)
+  ## Temporary aliases - get rid later as possible
+  def level_change
+    diff
   end
 
-  def annual_absolute_change
+  def absolute_change(id = nil)
+    return faster_change(id) if id
+    diff
+  end
+
+  ## Generalized computation of change in level. Can be used for YOY, WOW, etc by changing the lag.
+  def diff(lag: 1)
     new_series = {}
-    data.sort.each do |date, value|
-      next if value.nil?
-      prev = data[date - 1.year] || next
-      new_series[date] = value - prev
+    raise 'lag cannot be a string, only Integer or Duration' if lag.class == String
+    lag_type = lag.class == ActiveSupport::Duration ? :duration : :index
+    sorted = data.sort
+    sorted.each_with_index do |point, idx|
+      date  = point[0]
+      value = point[1]
+      next unless date && value
+      prev = case lag_type
+               when :index
+                 i = idx - lag
+                 next if i < 0  ## negative array indices are valid in Ruby, but will give wrong result here!
+                 sorted[i][1] rescue nil
+               when :duration then data[date - lag]
+               else raise('bad lag type')
+             end
+      new_series[date] = (value - prev) unless prev.nil?
     end
-    new_transformation("Annual absolute change of #{self}", new_series)
+    lag_desc = lag_type == :index ? "#{lag} observation".pluralize(lag) : distance_of_time_in_words(lag).sub(/(about|almost) /,'')
+    new_transformation("Difference of #{self} w/lag of #{lag_desc}", new_series)
   end
 
   def faster_change(id)
@@ -384,5 +384,22 @@ module SeriesArithmetic
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
     new_transformation("Annual Average of #{name}", new_series_data)
+  end
+
+private
+
+  def do_arithmetic(op1, operation, op2)
+    computed = op1 && op2 && op1.send(operation, op2)
+    return nil if computed.nil?
+    computed.to_f.nan? || computed.infinite? ? nil : computed
+  end
+
+  def validate_arithmetic(op_series)
+    raise SeriesArithmeticException, 'Operand series frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
+  end
+
+  def validate_additive_arithmetic(op_series)
+    ## It seems we really don't need to check for units compatibility, as much as it seems like it should be necessary?
+    ##raise SeriesArithmeticException, 'Operand series units incompatible' if self.units != op_series.units
   end
 end

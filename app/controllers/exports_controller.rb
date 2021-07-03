@@ -1,7 +1,7 @@
 class ExportsController < ApplicationController
   include Authorization
 
-  before_action :check_authorization
+  before_action :check_export_authorization
   before_action :set_export, only: [:show, :show_table, :edit, :update, :destroy,
                                     :edit_as_text, :save_as_text, :import_clip, :add_clip,
                                     :add_series, :remove_series, :move_series_up, :move_series_down]
@@ -11,8 +11,25 @@ class ExportsController < ApplicationController
   end
 
   def show
+    @export_series = @export.series.map do |s|
+      data_points = DataPoint.where(xseries_id: s.xseries_id)
+      first = data_points.minimum(:date)
+       last = data_points.maximum(:date)
+      source = s.source.description rescue ''
+      { series: s, name: s.name, first: first, last: last, source: source }
+    end
+    sortby = (params[:sortby] || 'last').to_sym
+    @dir = params[:dir] || 'up'
+    @export_series.sort! do |a, b|
+      a_sort = a[sortby] || Date.new(1000, 1, 1)  ## this assumes that :first and :last are the only fields that would
+      b_sort = b[sortby] || Date.new(1000, 1, 1)  ## ever be nil, but it's a good enough bet to justify simpler code
+      cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
+      next cmp if cmp != 0  ## early return from yielded block
+      @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
+    end
+    @sortby = sortby.to_s
     respond_to do |format|
-      format.csv { render :layout => false }
+      format.csv { render layout: false }
       format.html # show.html.erb
     end
   end

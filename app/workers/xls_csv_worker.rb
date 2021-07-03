@@ -15,23 +15,24 @@ class XlsCsvWorker
     end
     xls_path = dbu.absolute_path(which)
     csv_path = xls_path.change_file_extension('csv')
-    other_worker = ENV['OTHER_WORKER']
+    ##other_worker = ENV['OTHER_WORKER']
     begin
       unless File.exists?(xls_path)
         Rails.logger.debug { "#{which}: xls file #{xls_path} does not exist" }
-        if other_worker.blank?
-          raise "Could not find xlsx file ((#{xls_path}) #{dbu_id}:#{which}) and no $OTHER_WORKER defined"
-        end
-        unless system("rsync -t #{other_worker + ':' + xls_path} #{dbu.absolute_path}")
-          raise "Could not get xlsx file ((#{xls_path}) #{dbu_id}:#{which}:#{$?}) from $OTHER_WORKER: #{other_worker}"
-        end
+        raise "Could not find xlsx file ((#{xls_path}) #{dbu_id}:#{which})"
+        ##if other_worker.blank?
+        ##  raise "Could not find xlsx file ((#{xls_path}) #{dbu_id}:#{which}) and no $OTHER_WORKER defined"
+        ##end
+        ##unless system("rsync -t #{other_worker + ':' + xls_path} #{dbu.absolute_path}")
+        ##  raise "Could not get xlsx file ((#{xls_path}) #{dbu_id}:#{which}:#{$?}) from $OTHER_WORKER: #{other_worker}"
+        ##end
       end
       unless system "xlsx2csv.py -s 1 -d tab -c utf-8  #{xls_path} #{csv_path}"
         raise "Could not transform xlsx to csv (#{dbu_id}:#{which}:#{$?})"
       end
-      if other_worker && !system("rsync -t #{csv_path} #{other_worker + ':' + dbu.absolute_path}")
-        raise "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{other_worker} (#{$?})"
-      end
+      ##if other_worker && !system("rsync -t #{csv_path} #{other_worker + ':' + dbu.absolute_path}")
+      ##  raise "Could not copy #{csv_path} for #{dbu_id} to $OTHER_WORKER: #{other_worker} (#{$?})"
+      ##end
       Rails.logger.debug { "#{which}: before load_csv" }
       dbu.load_csv(which)
       dbu.reload ## to get updated other_proc_status
