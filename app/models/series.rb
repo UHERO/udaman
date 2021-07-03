@@ -582,11 +582,20 @@ class Series < ApplicationRecord
     vers = params[:version].strip.upcase
     raise 'Bad version' unless vers =~ /^[FH](\d+|F)$/
     freq = params[:freq]
-    filepath = File.join('forecasts', params[:filepath])
-    csv = UpdateCSV.new(File.join(ENV['DATA_PATH'], filepath))
-    raise 'Unexpected format - series not in columns?' unless csv.columns_have_series?
+    relpath = File.join('forecasts', params[:filepath])
+    filepath = File.join(ENV['DATA_PATH'], relpath)
+    if relpath =~ /csv$/i
+      csv = UpdateCSV.new(filepath)
+      raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
+      names = csv.headers.keys
+    else
+      content = open(filepath, 'rb').read rescue raise("Cannot read file #{filepath}")
+      tsd = TsdFile.new.assign_content(content)
+      names = tsd.get_names
+    end
+    raise "No series names found in file #{filepath}" if names.empty?
     series = []
-    csv.headers.keys.each do |name|
+    names.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
         raise "Contained series #{name} does not match selected frequency of #{freq}"
@@ -599,22 +608,27 @@ class Series < ApplicationRecord
     self.transaction do
       series.each do |properties|
         ld_name = properties.delete(:ld_name)  ## remove this from properties or it'll screw up the find_by
+        s = Series.find_by(properties) || Series.create_new(properties)
 
-        s = Series.find_by(properties)
-        if s.nil?
-          s = Series.create_new(properties)
+        if s.find_loaders_matching(relpath).empty?
           ld = DataSource.create(universe: 'FC',
-                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, filepath],
-                                 priority: 100,
+                                 eval: %q{"%s".tsn.load_from("%s")} % [ld_name, relpath],
+                                 clear_before_load: true,
                                  reload_nightly: false)
           s.data_sources << ld
           ld.set_color!
+          ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
         s.reload_sources
         ids.push s.id
       end
     end
     ids
+  end
+
+  def find_loaders_matching(pattern, case_insens: false)
+    regex = case_insens ? %r/#{pattern}/i : %r/#{pattern}/
+    enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -714,6 +728,8 @@ class Series < ApplicationRecord
   end
 
   def load_from(spreadsheet_path, sheet_to_load = nil)
+    return load_tsd_from(spreadsheet_path) if spreadsheet_path =~ /\.tsd$/i
+
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
     raise 'Load error: File not formatted in expected way' unless update_spreadsheet.update_formatted?
@@ -754,6 +770,14 @@ class Series < ApplicationRecord
     new_transformation("mean corrected against #{ns_series} and loaded from <#{spreadsheet_path}>", mean_corrected.data)
   end
 
+  def load_tsd_from(path)
+    content = open(File.join(ENV['DATA_PATH'], path.strip), 'rb').read rescue raise("Cannot read file #{path}")
+    tsd = TsdFile.new.assign_content(content)
+    series_hash = tsd.get_series(self.name, data_only: true) || raise("No series #{self} found in file #{path}")
+    series_hash[:data_hash].reject! {|_, value| value == 1.0E+15 }
+    new_transformation("loaded from static file <#{path}>", series_hash[:data_hash])
+  end
+
   ## This is for code testing purposes - generate random series data within the ranges specified
   def Series.generate_random(freq, start_date = nil, end_date = nil, low_range = 0.0, high_range = 100.0, specific_points = {})
     freq = Series.frequency_from_code(freq) || freq.to_sym
@@ -788,11 +812,12 @@ class Series < ApplicationRecord
     Series.new_transformation(descript, series_data, frequency_from_code(options[:frequency]))
   end
 
-  def Series.load_from_file(file, options)
-    %x(chmod 766 #{file}) unless file.include? '%'
-    dp = DownloadProcessor.new('manual', options.merge(:path => file))
-    series_data = dp.get_data
-    Series.new_transformation("loaded from static file <#{file}>", series_data, frequency_from_code(options[:frequency]))
+  def Series.load_from_file(path, options)
+    date_sens = path.include? '%'
+    #%x(chmod 766 #{path}) unless date_sens
+    dp = DownloadProcessor.new(:manual, options.merge(path: path))
+    descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
+    Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
   end
   
   def Series.load_api_bea(frequency, dataset, parameters)
@@ -1123,19 +1148,19 @@ class Series < ApplicationRecord
         puts s.id
         puts s.name
       end
-      errors.concat s.reload_sources(false, clear_first)  ## hardcoding as NOT the series worker, because expecting to use
+      errors.concat s.reload_sources(nightly: false, clear_first: clear_first)  ## hardcoding as NOT the series worker, because expecting to use
                                                           ## this code only for ad-hoc jobs from now on
       eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
   end
 
-  def reload_sources(nightly_worker = false, clear_first = false)
+  def reload_sources(nightly: false, clear_first: false)
     series_success = true
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless nightly_worker && !ds.reload_nightly
+        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly
         unless success
           raise 'error in reload_source method, should be logged above'
         end
@@ -1349,17 +1374,14 @@ class Series < ApplicationRecord
     end
   end
 
-  def reload_with_dependencies
-    Series.reload_with_dependencies([self.id], 'self')
+  def get_all_dependencies
+    Series.get_all_dependencies([self.id])
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
-    unless series_id_list.class == Array
-      raise 'Series.reload_with_dependencies needs an array of series ids'
-    end
-    Rails.logger.info { 'reload_with_dependencies: start' }
-    result_set = series_id_list
-    next_set = series_id_list
+  def Series.get_all_dependencies(base_list)
+    raise 'Series.get_all_dependencies takes an array of series ids' unless base_list.class == Array
+    result_set = base_list
+    next_set = base_list
     until next_set.empty?
       Rails.logger.debug { "reload_with_dependencies: next_set is #{next_set}" }
       qmarks = (['?'] * next_set.count).join(',')
@@ -1370,24 +1392,26 @@ class Series < ApplicationRecord
         select distinct data_sources.series_id as id
         from data_sources, series
         where series.id in (#{qmarks})
-        and dependencies like CONCAT('% ', REPLACE(series.name, '%', '\\%'), '%')
+        and dependencies regexp CONCAT(' ', series.name)
       SQL
       next_set = new_deps.map(&:id) - result_set
       result_set += next_set
     end
-    mgr = SeriesReloadManager.new(Series.where(id: result_set), suffix, nightly: nightly)
-    Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-    mgr.batch_reload(clear_first: clear_first)
+    result_set
   end
 
-  def Series.get_old_bea_downloads
-    series = []
-    Download.where(%q(handle like '%@bea.gov')).each do |dl|
-      dl.enabled_data_sources.each do |ds|
-        series.push ds.series
-      end
-    end
-    series.sort_by(&:name)
+  def reload_with_dependencies
+    Series.reload_with_dependencies([self.id], 'self')
+  end
+
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
+    raise 'Series.reload_with_dependencies takes an array of series ids' unless series_id_list.class == Array
+    Rails.logger.info { 'reload_with_dependencies: start' }
+
+    full_set = Series.get_all_dependencies(series_id_list)
+    mgr = SeriesReloadManager.new(Series.where(id: full_set), suffix, nightly: nightly)
+    Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
+    mgr.batch_reload(clear_first: clear_first)
   end
 
   def source_link_is_valid

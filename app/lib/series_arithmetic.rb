@@ -2,7 +2,7 @@ module SeriesArithmetic
   include ActionView::Helpers::DateHelper
 
   def round(prec = 0)
-    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && value.round(prec).to_f] })
+    new_transformation("Rounded #{self}", data.map {|date, value| [date, value && (value.round(prec).to_f rescue nil)] })
   end
   
   def perform_arithmetic_operation(operator, op_series, err: false)
@@ -13,8 +13,9 @@ module SeriesArithmetic
       my_val = self.at(date)
       op_val = op_series.at(date)
       computed = my_val && op_val && my_val.send(operator, op_val)
-      raise "Illegal calculation (divide by zero?) at #{date}" if err && computed && (computed.nan? || computed.infinite?)
-      new_data[date] = (computed && (computed.nan? || computed.infinite?)) ? nil : computed
+      nan = computed && (computed.nan? || computed.infinite?)
+      raise "Illegal calculation (divide by zero?) at #{date}" if nan && err
+      new_data[date] = nan ? nil : computed
     end
     new_transformation("#{self} #{operator} #{op_series}", new_data)
   end
@@ -22,8 +23,9 @@ module SeriesArithmetic
   def perform_const_arithmetic_op(operator, constant, err: false)
     new_data = data.map do |date, value|
       computed = value && value.send(operator, constant)
-      raise "Illegal calculation (divide by zero?) at #{date}" if err && computed && (computed.nan? || computed.infinite?)
-      [date, computed && (computed.nan? || computed.infinite?) ? nil : computed]
+      nan = computed && (computed.nan? || computed.infinite?)
+      raise "Illegal calculation (divide by zero?) at #{date}" if nan && err
+      [date, nan ? nil : computed]
     end
     new_transformation("#{self} #{operator} #{constant}", new_data)
   end
@@ -76,12 +78,6 @@ module SeriesArithmetic
     #also not converting the to float. Tests are passing, so looks ok. May need to change later
     return perform_const_arithmetic_op('/', other_series) unless other_series.class == Series
     perform_arithmetic_operation('/',other_series)
-  end
-
-  def ÷(op_series)
-    op_series.class == Series ?
-        perform_arithmetic_operation('/', op_series, err: true) :
-         perform_const_arithmetic_op('/', op_series, err: true)
   end
 
   def rebase(date = nil)
@@ -401,6 +397,12 @@ module SeriesArithmetic
   end
 
 private
+
+  def do_arithmetic(op1, operation, op2)
+    computed = op1 && op2 && op1.send(operation, op2)
+    return nil if computed.nil?
+    computed.to_f.nan? || computed.infinite? ? nil : computed
+  end
 
   def validate_arithmetic(op_series)
     raise SeriesArithmeticException, 'Operand series frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn

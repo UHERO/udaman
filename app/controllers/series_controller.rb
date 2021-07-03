@@ -167,6 +167,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change params[:id]
     @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
     @clipboarded = current_user.clipboard_contains?(@series)
+    @dependencies = @series.who_depends_on_me(['series.name', 'series.id']).sort_by {|a| a[0] }
     return if no_render
 
     respond_to do |format|
@@ -212,14 +213,6 @@ class SeriesController < ApplicationController
     end
     created_series_ids = Series.do_forecast_upload(params)
     new_search(created_series_ids.join(','))
-  end
-
-  def old_bea_download
-    @old_bea_series = Series.get_old_bea_downloads
-    respond_to do |format|
-      format.csv { render layout: false }
-      format.html
-    end
   end
 
   def add_to_quarantine

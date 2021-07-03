@@ -1,7 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
   include DataSourceHooks
-  extend Validators
+  include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -114,13 +114,13 @@ class DataSource < ApplicationRecord
     end
 
 
-    def DataSource.set_dependencies
-      Rails.logger.info { 'DataSource set_dependencies: start' }
+    def DataSource.set_all_dependencies
+      Rails.logger.info { 'DataSource set_all_dependencies: start' }
       DataSource.get_all_uhero.find_each(batch_size: 50) do |ds|
-        Rails.logger.debug { "DataSource set_dependencies: for #{ds.description}" }
-        ds.set_dependencies
+        Rails.logger.debug { "DataSource set_all_dependencies: for #{ds.description}" }
+        ds.set_dependencies!
       end
-      Rails.logger.info { 'DataSource set_dependencies: done' }
+      Rails.logger.info { 'DataSource set_all_dependencies: done' }
       return 0
     end
 
@@ -189,20 +189,19 @@ class DataSource < ApplicationRecord
     end
 
     def set_dependencies_without_save!
-      set_dependencies!(true)
+      set_dependencies!(no_save: true)
     end
 
-    def set_dependencies!(dont_save = false)
+    def set_dependencies!(no_save: false)
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
-          if DataSource.valid_series_name(word)
-            self.dependencies.push(word)
-          end
+          next unless word.include?('@') && valid_series_name(word)  ## performance hack: check for @ mark first
+          self.dependencies.push(word)
         end
         self.dependencies.uniq!
       end
-      self.save unless dont_save
+      self.save unless no_save
     end
 
     def setup
@@ -255,7 +254,7 @@ class DataSource < ApplicationRecord
         base_year = eval_string[/rebase\("(\d*)/, 1]
         return base_year.to_i if base_year
 
-        series_name = eval_string[/"([^"]+)"\.ts\.rebase/, 1]
+        series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
         sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
         base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
         return base_series && base_series.last_observation.year
@@ -272,7 +271,7 @@ class DataSource < ApplicationRecord
     def reset(clear_cache = true)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
-            last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
+            last_file_vers_used: DateTime.new(1970), ## the column default value, 1 Jan 1970
             last_eval_options_used: nil)
       end
       if clear_cache

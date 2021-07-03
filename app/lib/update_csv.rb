@@ -7,11 +7,23 @@ class UpdateCSV
     if type == :text
       @data = parse_csv_text(csv_file)
     else
-      @data = CSV.read(csv_file) rescue @load_error = true
-      raise 'File does not exist?' unless @data.class == Array
+      begin
+        @data = CSV.read(csv_file)
+      rescue Errno::ENOENT
+        raise 'File appears not to exist on server'
+      rescue CSV::MalformedCSVError => e
+        msg = e.message
+        if e.message =~ /do not allow new line/
+          msg = 'plaintext line endings should be Mac/Linux style LF only'
+        end
+        raise 'Bad CSV format: ' + msg
+      rescue => e
+        raise 'Unexpected CSV file read error: %s' % e.message
+      end
     end
+    raise 'Unknown CSV read failure, data not returned as array' unless @data.class == Array
   end
-  
+
   def cell(row, col)
     val = @data[row - 1][col - 1] rescue raise("No data at CSV file row position #{row}")
     val = val.gsub(',','') if val.class == String

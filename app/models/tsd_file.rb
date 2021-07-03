@@ -1,5 +1,6 @@
 class TsdFile < ApplicationRecord
   include Cleaning
+  include HelperUtilities
   require 'digest/md5'
   require 'date'
   belongs_to :forecast_snapshot
@@ -36,16 +37,18 @@ class TsdFile < ApplicationRecord
     close_tsd
   end
 
-  def get_next_series(nils: false)  ## nils means to include nil values, corresponding to trailing blank strings
+  def get_next_series(nils: false, data_only: false)  ## nils means to include nil values, corresponding to trailing blank strings
     raise 'You are not at the right position in the file' unless @last_line_type == :name_line
     series_hash = get_name_line_attributes
     read_next_line
     series_hash.merge! get_second_line_attributes
-    series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
     read_next_line
     series_hash[:data] = get_data
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency], nils: nils)
-    series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+    unless data_only
+      series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
+      series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
+    end
     series_hash
   end
 
@@ -101,12 +104,14 @@ class TsdFile < ApplicationRecord
     series
   end
 
-  def search_names(name)
-    read_tsd_block_no_first_line do |tsd|
+  def get_series(name, nils: false, data_only: false)
+    read_tsd_block do |tsd|
       begin
-        last_line_type = tsd.read_next_line
-        return tsd.get_next_series if last_line_type == :name_line and get_name_line_attributes[:name] == name
-      end until last_line_type.nil?
+        if @last_line_type == :name_line
+          s = tsd.get_next_series(nils: nils, data_only: data_only)
+          return s if s[:name] == name
+        end
+      end until @last_line.nil?
     end
     nil
   end
@@ -127,15 +132,14 @@ class TsdFile < ApplicationRecord
       date = listed_date+daily_switches.index('1')
       return date.to_s
     end
-    year = aremos_date_string[0..3]
-    month = aremos_date_string[4..5]
+    year = aremos_date_string[0..3].to_i
+    month = aremos_date_string[4..5].to_i
     if frequency == 'Q'
-      month_int = month.to_i * 3 - 2
-      month = month_int < 10 ? "0#{month_int}" : "#{month_int}"
+      month = first_month_of_quarter(month)
     end
-    day = aremos_date_string[6..7]
-    day = '01' if day == '00'
-    "#{year}-#{month}-#{day}"
+    day = aremos_date_string[6..7].to_i
+    day = 1 if day == 0
+    Date.new(year, month, day).to_s
   end
 
 protected
@@ -181,8 +185,8 @@ protected
   def get_data
     check_error(@last_line_type, :data_line)
     @data_array = []
-    while @last_line_type == :data_line and !@last_line.nil?
-      @data_array += read_data(@last_line) unless @last_line.nil?
+    while @last_line && @last_line_type == :data_line
+      @data_array += read_data(@last_line)
       read_next_line
     end
     @data_array

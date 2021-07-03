@@ -33,7 +33,7 @@ end
 
 
 task :reset_dependency_depth => :environment do
-  DataSource.set_dependencies
+  DataSource.set_all_dependencies
   Series.assign_dependency_depth
 end
 
@@ -122,6 +122,10 @@ end
 
 task :reload_covid_series => :environment do
   ReloadJobDaemon.enqueue('covid', 'cv_')
+end
+
+task :reload_uic_weekly => :environment do
+  ReloadJobDaemon.enqueue('uic_weekly', '#uic@hawa')
 end
 
 task :update_public_data_points => :environment do

@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'rails', '~> 5.2', '>= 5.2.4.5'
+gem 'rails', '~> 5.2', '>= 5.2.6'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -44,7 +44,7 @@ gem 'jquery-ui-rails', '~> 6.0.1'
 gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
-gem 'nokogiri', '~> 1.10', ">= 1.11.0.rc4"
+gem 'nokogiri', '~> 1.11'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'
