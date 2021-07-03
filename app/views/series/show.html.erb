@@ -79,6 +79,7 @@ google.visualization.events.addListener(chart, 'select', function() {
   <div id="chart_div"></div>
   <div id="notes"><p><%= @series.investigation_notes %></p></div>
   <div id="series-deps"><p>
+    Who depends on me:
     <% @dependencies.each do |name, id| %>
       <%= link_to name, action: :show, id: id %>
     <% end %>
