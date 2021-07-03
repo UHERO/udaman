@@ -398,12 +398,6 @@ module SeriesArithmetic
 
 private
 
-  def do_arithmetic(op1, operation, op2)
-    computed = op1 && op2 && op1.send(operation, op2)
-    return nil if computed.nil?
-    computed.to_f.nan? || computed.infinite? ? nil : computed
-  end
-
   def validate_arithmetic(op_series)
     raise SeriesArithmeticException, 'Operand series frequencies incompatible' if self.frequency.freqn != op_series.frequency.freqn
   end
