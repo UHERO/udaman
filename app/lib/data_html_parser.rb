@@ -167,23 +167,6 @@ class DataHtmlParser
     new_data
   end
 
-  ## maybe no longer needed? If not used, delete later
-  def get_dvw_indicators(mod)
-    api_key = ENV['API_KEY_DVW']
-    raise 'No API key defined for DVW' unless api_key
-    @url = "https://api.uhero.hawaii.edu/dvw/indicators/all/#{mod}"
-    Rails.logger.debug { 'Getting data from DVW API: ' + @url }
-    @doc = self.download
-    json = JSON.parse self.content
-    results = json['data'] || raise('DVW API: major unknown failure - no data element')
-    indic = {}
-    results.each do |item|
-      handle = item['handle']
-      indic[handle] = item['nameT'] || item['nameW']
-    end
-    indic
-  end
-
   def request_match(request, data_point)
     dp = data_point.map{|k,v| [k.upcase, v] }.to_h
     request.keys.each do |key|

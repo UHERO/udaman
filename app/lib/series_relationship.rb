@@ -83,20 +83,20 @@ module SeriesRelationship
   # Why does this match against description rather than dependencies? Because sometimes the dependency is implicit
   # or hidden in the load statement code (perhaps inside a method call like apply_ns_growth_rate_sa), rather than
   # explicitly given in the load statement itself.
-  def Series.who_depends_on(name, attr = :name, universe = 'UHERO')
+  def Series.who_depends_on(name, attrs = [:name], universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
       .where('data_sources.universe = ? and data_sources.description RLIKE ?', universe, name_match)
       .joins(:series)
-      .pluck(attr)
+      .pluck(*attrs)
       .uniq
   end
 
   ## Try to use the above class method directly, if it will save you a model object instantiation.
   ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
   ## already exists anyway)
-  def who_depends_on_me(attr = :name)
-    Series.who_depends_on(self.name, attr, self.universe)
+  def who_depends_on_me(attrs = [:name])
+    Series.who_depends_on(self.name, attrs, self.universe)
   end
 
   def who_i_depend_on(direct_only = false)
