@@ -9,14 +9,14 @@
     <div>
       <%= link_to 'Create UHERO Series', controller: :series, action: :new, u: 'UHERO' %> |
       <%= link_to 'Create COH Series', controller: :series, action: :new, u: 'COH' %><br/>
-      <%= link_to 'Bulk UHERO Series Create', controller: :series, action: :bulk_new %>
+      <%= link_to 'Bulk UHERO Series Create', controller: :series, action: :bulk_new %><br/>
+      <%= link_to 'Forecast series upload', controller: :series, action: :forecast_upload %>
     </div>
     <div>
       <br />
       <%= link_to 'Series with no Source', controller: :series, action: 'no_source' %><br />
       <%= link_to 'Unrestricted series with no Source', controller: :series, action: 'no_source_no_restrict' %><br />
       <%= link_to 'Quarantined Series', controller: :series, action: 'quarantine' %><br />
-      <%= link_to 'BEA Series to be cleaned up', controller: :series, action: :old_bea_download %>
     </div>
   <br />
   <div>

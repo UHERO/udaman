@@ -1,4 +1,5 @@
 class ReloadJobDaemon
+  extend HelperUtilities
 
   def ReloadJobDaemon.perform
     loop do  ## infinite
@@ -9,15 +10,35 @@ class ReloadJobDaemon
       end
       Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
       job.update!(status: 'processing')
-      username = job.user.email.sub(/@.*/, '')
       begin
-        Series.reload_with_dependencies(job.series.pluck(:id), username)
+        xtra_params = Kernel::eval(job.params.to_s) || []
+        Series.reload_with_dependencies(job.series.pluck(:id), *xtra_params)
+        DataPoint.update_public_all_universes if job.update_public
         job.update!(status: 'done', finished_at: Time.now)
       rescue => e
         job.update!(status: 'fail', finished_at: Time.now, error: e.message[0..253])
       end
       Rails.logger.info { "reload_job_daemon: finished running job #{job.id}" }
     end
+  end
+
+  def ReloadJobDaemon.enqueue(short_name, search, nightly: true, update_public: true)
+    series = Series.search_box(search)
+    params = [short_name, {nightly: nightly}]  ## extra parameters for Series.reload_with_dependencies call
+    if series.empty?
+      Rails.logger.warn { "ReloadJobDaemon.enqueue #{short_name}: No series found, no job queued" }
+      return nil
+    end
+    id = nil
+    begin
+      job = ReloadJob.create!(user_id: 1, update_public: update_public, params: params.to_s)  ## User 1 is the system/cron user
+      job.series << series
+      id = job.id
+      Rails.logger.info { "ReloadJobDaemon.enqueue #{short_name}: Reload job successfully queued" }
+    rescue => e
+      Rails.logger.error { "ReloadJobDaemon.enqueue #{short_name}: Job creation failed: #{e.message}" }
+    end
+    id
   end
 
 private

@@ -1,7 +1,7 @@
 class DataSource < ApplicationRecord
   include Cleaning
   include DataSourceHooks
-  extend Validators
+  include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
@@ -114,13 +114,13 @@ class DataSource < ApplicationRecord
     end
 
 
-    def DataSource.set_dependencies
-      Rails.logger.info { 'DataSource set_dependencies: start' }
+    def DataSource.set_all_dependencies
+      Rails.logger.info { 'DataSource set_all_dependencies: start' }
       DataSource.get_all_uhero.find_each(batch_size: 50) do |ds|
-        Rails.logger.debug { "DataSource set_dependencies: for #{ds.description}" }
-        ds.set_dependencies
+        Rails.logger.debug { "DataSource set_all_dependencies: for #{ds.description}" }
+        ds.set_dependencies!
       end
-      Rails.logger.info { 'DataSource set_dependencies: done' }
+      Rails.logger.info { 'DataSource set_all_dependencies: done' }
       return 0
     end
 
@@ -142,6 +142,7 @@ class DataSource < ApplicationRecord
       return :pseudo_history if pseudo_history?
       case self.eval
       when /load_api/ then :api
+      when /forecast/i then :forecast
       when /load_from_download/ then :download
       when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this asap!
       when /load_[a-z_]*from.*history/i then :history
@@ -153,6 +154,7 @@ class DataSource < ApplicationRecord
     def type_colors(type = loader_type)
       case type
       when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
+      when :forecast then %w{FFA94E FFA500}    ## Oranges
       when :download then %w{A9BEF2 C3DDF9 6495ED}  ## Blues
       when :manual then %w{F9FF8B FBFFBD F0E67F}  ## Yellows
       when :history then %w{CAAF8C DFC3AA B78E5C}  ## Browns
@@ -183,28 +185,28 @@ class DataSource < ApplicationRecord
 
     def set_color!(color = find_my_color)
       self.update_attributes!(color: color)
+      self
     end
 
     def set_dependencies_without_save!
-      set_dependencies!(true)
+      set_dependencies!(no_save: true)
     end
 
-    def set_dependencies!(dont_save = false)
+    def set_dependencies!(no_save: false)
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
-          if DataSource.valid_series_name(word)
-            self.dependencies.push(word)
-          end
+          next unless word.include?('@') && valid_series_name(word)  ## performance hack: check for @ mark first
+          self.dependencies.push(word)
         end
         self.dependencies.uniq!
       end
-      self.save unless dont_save
+      self.save unless no_save
     end
 
     def setup
-      set_dependencies!
       set_color!
+      set_dependencies!
     end
 
     def reload_source(clear_first = false)
@@ -224,7 +226,7 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first
+        if clear_first || clear_before_load?
           delete_data_points
         end
         s = self.send(presave_hook, s) if presave_hook
@@ -252,7 +254,7 @@ class DataSource < ApplicationRecord
         base_year = eval_string[/rebase\("(\d*)/, 1]
         return base_year.to_i if base_year
 
-        series_name = eval_string[/"([^"]+)"\.ts\.rebase/, 1]
+        series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
         sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
         base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
         return base_series && base_series.last_observation.year
@@ -269,7 +271,7 @@ class DataSource < ApplicationRecord
     def reset(clear_cache = true)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
-            last_file_vers_used: DateTime.parse('1970-01-01'), ## the column default value
+            last_file_vers_used: DateTime.new(1970), ## the column default value, 1 Jan 1970
             last_eval_options_used: nil)
       end
       if clear_cache
@@ -316,8 +318,11 @@ class DataSource < ApplicationRecord
     end
         
     def delete_data_points
-      ## it would be best to rewrite this as a direct SQL query - will be much faster
-      data_points.each {|dp| dp.delete }
+      stmt = DataSource.connection.raw_connection.prepare(<<~MYSQL)
+        delete from data_points where data_source_id = ?
+      MYSQL
+      stmt.execute(id)
+      stmt.close
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
 
@@ -329,8 +334,8 @@ class DataSource < ApplicationRecord
 
     def disable!
       self.transaction do
-        self.update_attributes!(disabled: true, last_error: nil, last_error_at: nil)
         delete_data_points
+        self.update_attributes!(disabled: true, last_error: nil, last_error_at: nil)
       end
     end
 

@@ -4,7 +4,7 @@ module DataPointsHelper
     tane = '%.3f' % value
     tane += ' (%s)' % age if age
     styles = 'color:%s; background-color:%s;' % [value < 0 ? '#B81104' : 'black', bgcolor]
-    '<span class="datapoint" title="%s" style="%s">%s</span>'.html_safe % [sanitize(title), styles, tane]
+    '<span class="datapoint" title="%s" style="%s">%s</span>'.html_safe % [sanitize(strip_tags(title)), styles, tane]
   end
 
   def dp_age_code(dp)
@@ -19,6 +19,6 @@ module DataPointsHelper
             years = 1 if years == 0
             "#{years}y"
           end
-    age + (dp.pseudo_history? ? '(ph)' : '')
+    age + ('(ph)' if dp.pseudo_history?).to_s
   end
 end

@@ -13,7 +13,8 @@
     <p><%= form_with url: { action: :do_clip_action } do |f| %>
         <select id="clip_action" name="clip_action" <%= 'disabled' if @clip_empty %>>
           <option value=""></option>
-          <option value="csv">Download metadata csv</option>
+          <option value="metacsv">Download metadata csv</option>
+          <option value="datacsv">Download data csv</option>
           <% if current_user.admin_user? %>
             <option value="reload">Batch reload with deps</option>
             <option value="reset">Reset all downloads</option>

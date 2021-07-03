@@ -33,7 +33,7 @@ end
 
 
 task :reset_dependency_depth => :environment do
-  DataSource.set_dependencies
+  DataSource.set_all_dependencies
   Series.assign_dependency_depth
 end
 
@@ -54,7 +54,8 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
-  full_set_ids -= Series.search_box('^vap.*ns$ @hi .d').pluck(:id)
+  full_set_ids -= Series.search_box('^vispns .d').pluck(:id)
+  full_set_ids -= Series.search_box('^vap ~ns$ @hi .d').pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
@@ -105,17 +106,26 @@ task :reload_bea_series_only => :environment do
   DataPoint.update_public_all_universes
 end
 
-task :reload_vap_hi_daily_series_only => :environment do
-  Rails.logger.info { 'reload_vap_hi_daily_series_only: starting task, gathering series' }
-  vap_hi_dailies = Series.search_box('^vap.*ns$ @hi .d')
-  Series.reload_with_dependencies(vap_hi_dailies.pluck(:id), 'vaphid', nightly: true)
-  DataPoint.update_public_all_universes
-end
-
 task :reload_tour_ocup_series_only => :environment do
   Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
   tour_ocup = Series.search_box('#tour_ocup%Y')
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
+end
+
+task :reload_vispns_daily => :environment do
+  ReloadJobDaemon.enqueue('vispns', '^vispns .d')
+end
+
+task :reload_vap_hi_daily => :environment do
+  ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
+end
+
+task :reload_covid_series => :environment do
+  ReloadJobDaemon.enqueue('covid', 'cv_')
+end
+
+task :reload_uic_weekly => :environment do
+  ReloadJobDaemon.enqueue('uic_weekly', '#uic@hawa')
 end
 
 task :update_public_data_points => :environment do
