@@ -81,14 +81,6 @@ google.visualization.events.addListener(chart, 'select', function() {
         <p><strong>Notes:</strong> <%= @series.investigation_notes %></p>
       <% end %>
   </div>
-  <div id="series-deps">
-      <% unless @dependencies.empty? %>
-        <p><strong>Who depends on me:</strong>
-        <% @dependencies.each do |name, id| %>
-          <%= link_to name, action: :show, id: id %>
-        <% end %></p>
-      <% end %>
-  </div>
 
 	<div id="navigation">
     <% if current_user.admin_user? %>
@@ -104,6 +96,15 @@ google.visualization.events.addListener(chart, 'select', function() {
       <%= link_to 'Remove from clipboard', action: :clear_clip, id: @series %>
     <% else %>
       <%= link_to 'Add to clipboard', action: :add_clip, id: @series %>
+    <% end %>
+  </div>
+
+  <div id="series-deps">
+    <% unless @dependencies.empty? %>
+      <p><strong>Who depends on me:</strong>
+        <% @dependencies.each do |name, id| %>
+          <%= link_to name, action: :show, id: id %>
+        <% end %></p>
     <% end %>
   </div>
 </div>
