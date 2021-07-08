@@ -681,6 +681,23 @@ class Series < ApplicationRecord
     current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
   end
 
+  def delete_data_points(from: nil)
+    query = <<~MYSQL
+      delete from data_points where xseries_id = ?
+    MYSQL
+    bindvars = [xseries_id]
+    if from
+      query += <<~MYSQL
+        and date >= ?
+      MYSQL
+      bindvars.push from
+    end
+    stmt = Series.connection.raw_connection.prepare(query)
+    stmt.execute(*bindvars)
+    stmt.close
+    Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
+  end
+
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def scaled_data_no_pseudo_history_DELETEME(round_to = 3)
     data_hash = {}
