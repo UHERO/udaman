@@ -1234,6 +1234,11 @@ class Series < ApplicationRecord
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
+        when /^[;]/
+          uids = tane.split(',').map {|uid| uid.to_i }
+          qmarks = (['?'] * uids.count).join(',')
+          conditions.push %Q{series.unit_id #{negated}in (#{qmarks})}
+          bindvars.push uids
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}
