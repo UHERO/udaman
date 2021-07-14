@@ -9,6 +9,7 @@
 <table class="list_table">
   <thead>
     <tr>
+      <th>ID</th>
       <th>Short label</th>
       <th>Long label</th>
       <th colspan="3"></th>
@@ -18,6 +19,7 @@
   <tbody>
     <% @units.each do |unit| %>
       <tr>
+        <td><%= unit.id %></td>
         <td><%= unit.short_label %></td>
         <td class="linkselect"><%= link_to unit.long_label, edit_unit_path(unit) %></td>
       </tr>
