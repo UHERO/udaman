@@ -87,7 +87,7 @@ Rails.application.routes.draw do
   get 'series/search' => 'series#new_search'
 
 
-resources :series
+  resources :series
 
   get 'downloads/by_pattern' => 'downloads#by_pattern'
   get 'downloads/pull_file' => 'downloads#pull_file'
