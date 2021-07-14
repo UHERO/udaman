@@ -89,7 +89,7 @@ Rails.application.routes.draw do
 
 resources :series
 
-get 'downloads/by_pattern' => 'downloads#by_pattern'
+  get 'downloads/by_pattern' => 'downloads#by_pattern'
   get 'downloads/pull_file' => 'downloads#pull_file'
   post 'downloads/test_url' => 'downloads#test_url'
   post 'downloads/test_save_path' => 'downloads#test_save_path'
