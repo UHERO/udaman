@@ -1238,7 +1238,7 @@ class Series < ApplicationRecord
           uids = tane.split(',').map {|uid| uid.to_i }
           qmarks = (['?'] * uids.count).join(',')
           conditions.push %Q{series.unit_id #{negated}in (#{qmarks})}
-          bindvars.push uids
+          bindvars.concat uids
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}
