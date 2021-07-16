@@ -317,11 +317,19 @@ class DataSource < ApplicationRecord
       return false
     end
         
-    def delete_data_points
-      stmt = DataSource.connection.raw_connection.prepare(<<~MYSQL)
+    def delete_data_points(from: nil)
+      query = <<~MYSQL
         delete from data_points where data_source_id = ?
       MYSQL
-      stmt.execute(id)
+      bindvars = [id]
+      if from
+        query += <<~MYSQL
+          and date >= ?
+        MYSQL
+        bindvars.push from
+      end
+      stmt = Series.connection.raw_connection.prepare(query)
+      stmt.execute(*bindvars)
       stmt.close
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end
