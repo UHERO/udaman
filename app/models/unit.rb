@@ -22,7 +22,7 @@ private
     unless Measurement.where(unit_id: id).empty?
       raise "Cannot destroy Unit #{self} (id=#{id}) because a Measurement is using it"
     end
-    Rails.logger.info { "DESTROY unit #{self}: completed" }
+    Rails.logger.info { "DESTROY Unit #{self}: completed" }
   end
 
 end

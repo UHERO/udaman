@@ -13,7 +13,7 @@ private
     unless Measurement.where(source_detail_id: id).empty?
       raise "Cannot destroy Source Detail #{self} (id=#{id}) because a Measurement is using it"
     end
-    Rails.logger.info { "DESTROY unit #{self}: completed" }
+    Rails.logger.info { "DESTROY Source Detail #{self}: completed" }
   end
 
 end
