@@ -10,17 +10,24 @@
 <table class="list_table">
   <thead>
     <tr>
+      <th>ID</th>
       <th>Description</th>
       <th>Link</th>
       <th colspan="3"></th>
     </tr>
   </thead>
-
+  <%
+    univ = @universe == 'UHERO' ? '' : '%%20%%2F%s' % @universe   ## add space + / + universe name, e.g. " /dbedt"
+  %>>
   <tbody>
     <% @sources.each do |source| %>
       <tr>
+        <td style="text-align: center"><%= link_to source.id, '/series/search?search_string=%7B' + source.id.to_s + univ %></td>
         <td class="linkselect"><%= link_to source.description, edit_source_path(source) %></td>
         <td><%= make_hyperlink(source.link) %></td>
+        <% if current_user.dev_user? %>
+          <td><%= link_to 'Destroy', source, method: :delete, data: { confirm: "Destroy #{source.description[0..30]}: Are you sure??" } %></td>
+        <% end %>
       </tr>
     <% end %>
   </tbody>
