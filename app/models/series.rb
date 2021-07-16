@@ -1256,6 +1256,16 @@ class Series < ApplicationRecord
           qmarks = (['?'] * uids.count).join(',')
           conditions.push %Q{series.unit_id #{negated}in (#{qmarks})}
           bindvars.concat uids
+        when /^[{]/
+          src_ids = tane.split(',').map {|src_id| src_id.to_i }
+          qmarks = (['?'] * src_ids.count).join(',')
+          conditions.push %Q{series.source_id #{negated}in (#{qmarks})}
+          bindvars.concat src_ids
+        when /^[}]/
+          sd_ids = tane.split(',').map {|sd_id| sd_id.to_i }
+          qmarks = (['?'] * sd_ids.count).join(',')
+          conditions.push %Q{series.source_detail_id #{negated}in (#{qmarks})}
+          bindvars.concat sd_ids
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}
