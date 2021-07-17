@@ -80,7 +80,13 @@ class UnitsController < ApplicationController
     end
   end
 
+  def destroy
+    @unit.destroy
+    redirect_to units_url, notice: 'Unit was successfully destroyed.'
+  end
+
 private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_unit
       @unit = Unit.find params[:id]

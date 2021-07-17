@@ -1253,7 +1253,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^[;]/
           (res, id_list) = tane.split('=')
-          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("#{res} unknown resource type")
+          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("unknown resource type #{res}")
           ids = id_list.split(',').map {|uid| uid.to_i }
           qmarks = (['?'] * ids.count).join(',')
           conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
