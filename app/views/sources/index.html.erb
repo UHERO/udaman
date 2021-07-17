@@ -22,7 +22,7 @@
   <tbody>
     <% @sources.each do |source| %>
       <tr>
-        <td style="text-align: center"><%= link_to source.id, '/series/search?search_string=%7B' + source.id.to_s + univ %></td>
+        <td style="text-align: center"><%= link_to source.id, '/series/search?search_string=%3bsrc=' + source.id.to_s + univ %></td>
         <td class="linkselect"><%= link_to source.description, edit_source_path(source) %></td>
         <td><%= make_hyperlink(source.link) %></td>
         <% if current_user.dev_user? %>

@@ -22,7 +22,7 @@
   <tbody>
     <% @source_details.each do |source_detail| %>
     <tr>
-      <td style="text-align: center"><%= link_to source_detail.id, '/series/search?search_string=%7D' + source_detail.id.to_s + univ %></td>
+      <td style="text-align: center"><%= link_to source_detail.id, '/series/search?search_string=%3bdet=' + source_detail.id.to_s + univ %></td>
       <% if current_user.dev_user? %>
         <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: "Destroy #{source_detail[0..30]}: Are you sure??" } %></td>
       <% end %>

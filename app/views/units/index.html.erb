@@ -21,7 +21,7 @@
   <tbody>
     <% @units.each do |unit| %>
       <tr>
-        <td style="text-align: center"><%= link_to unit.id, '/series/search?search_string=%3b' + unit.id.to_s + univ %></td>
+        <td style="text-align: center"><%= link_to unit.id, '/series/search?search_string=%3bunit=' + unit.id.to_s + univ %></td>
         <td><%= unit.short_label %></td>
         <td class="linkselect"><%= link_to unit.long_label, edit_unit_path(unit) %></td>
         <% if current_user.dev_user? %>
