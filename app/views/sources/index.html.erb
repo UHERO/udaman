@@ -17,7 +17,7 @@
     </tr>
   </thead>
   <%
-    univ = @universe == 'UHERO' ? '' : '%%20%%2F%s' % @universe   ## add space + / + universe name, e.g. " /dbedt"
+    univ = @universe == 'UHERO' ? '' : '%%20%%2F%s' % @universe.downcase   ## add space + / + universe name, e.g. " /dbedt"
   %>
   <tbody>
     <% @sources.each do |source| %>
