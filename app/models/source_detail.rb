@@ -4,7 +4,11 @@ class SourceDetail < ApplicationRecord
   has_many :measurements
   before_destroy :last_rites
 
-private
+  def to_s
+    description
+  end
+
+  private
 
   def last_rites
     unless Series.where(source_detail_id: id).empty?

@@ -7,6 +7,10 @@ class Source < ApplicationRecord
   validate :link_is_valid
   before_destroy :last_rites
 
+  def to_s
+    description
+  end
+
   def Source.get_or_new(description, link = nil, universe = 'UHERO')
     Source.find_by(universe: universe, description: description) ||
     (link && Source.find_by(universe: universe, link: link)) ||
