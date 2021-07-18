@@ -63,6 +63,7 @@ class UnitsController < ApplicationController
     error = 'Unknown error'
     properties = unit_params.to_h
     properties.delete(:universe)  ## don't allow update of universe
+    updated = nil
     begin
       updated = @unit.update(properties)
     rescue => e
