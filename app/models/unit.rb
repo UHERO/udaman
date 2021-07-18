@@ -17,12 +17,12 @@ private
 
   def last_rites
     unless Series.where(unit_id: id).empty?
-      raise "Cannot destroy Unit #{self} (id=#{id}) because a Series is using it"
+      raise "Cannot destroy unit #{self} (id=#{id}) because a Series is using it"
     end
     unless Measurement.where(unit_id: id).empty?
-      raise "Cannot destroy Unit #{self} (id=#{id}) because a Measurement is using it"
+      raise "Cannot destroy unit #{self} (id=#{id}) because a Measurement is using it"
     end
-    Rails.logger.info { "DESTROY Unit #{self}: completed" }
+    Rails.logger.info { "DESTROY unit #{self}: completed" }
   end
 
 end
