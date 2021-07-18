@@ -22,7 +22,7 @@
       <td style="text-align: center"><%= link_to source_detail.id, '/series/search?search_string=%3bdet=' + source_detail.id.to_s + univ %></td>
       <td class="linkselect"><%= link_to source_detail.description, edit_source_detail_path(source_detail) %></td>
       <% if current_user.dev_user? %>
-        <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: "Destroy #{source_detail.description[0..30]}: Are you sure??" } %></td>
+        <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: "Destroy #{source_detail}: Are you sure??" } %></td>
       <% end %>
     </tr>
     <% end %>
