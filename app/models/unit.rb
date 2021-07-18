@@ -5,7 +5,7 @@ class Unit < ApplicationRecord
   before_destroy :last_rites
 
   def to_s
-    ('%s (%s)' % [long_label, short_label]).html_safe
+    '%s (%s)' % [long_label, short_label]
   end
 
   def Unit.get_or_new(label, universe = 'UHERO')
@@ -17,12 +17,12 @@ private
 
   def last_rites
     unless Series.where(unit_id: id).empty?
-      raise "Cannot destroy unit #{self} (id=#{id}) because a Series is using it"
+      raise "Cannot destroy unit '#{self}' (id=#{id}) because a Series is using it"
     end
     unless Measurement.where(unit_id: id).empty?
-      raise "Cannot destroy unit #{self} (id=#{id}) because a Measurement is using it"
+      raise "Cannot destroy unit '#{self}' (id=#{id}) because a Measurement is using it"
     end
-    Rails.logger.info { "DESTROY unit #{self}: completed" }
+    Rails.logger.info { "DESTROY unit '#{self}': completed" }
   end
 
 end
