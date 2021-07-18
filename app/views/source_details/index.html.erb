@@ -25,7 +25,7 @@
       <% if current_user.dev_user? %>
         <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: "Destroy #{source_detail}\n\nAre you sure??" } %></td>
       <% end %>
-      <td><%= Series.where(source_detail_id: @source_detail.id).count %></td>
+      <td><%= Series.where(source_detail_id: source_detail.id).count %></td>
     </tr>
     <% end %>
   </tbody>
