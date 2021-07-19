@@ -8,7 +8,7 @@ class SourceDetail < ApplicationRecord
     description
   end
 
-  private
+private
 
   def last_rites
     unless Series.where(source_detail_id: id).empty?
