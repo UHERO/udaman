@@ -1252,20 +1252,12 @@ class Series < ApplicationRecord
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
         when /^[;]/
-          uids = tane.split(',').map {|uid| uid.to_i }
-          qmarks = (['?'] * uids.count).join(',')
-          conditions.push %Q{series.unit_id #{negated}in (#{qmarks})}
-          bindvars.concat uids
-        when /^[{]/
-          src_ids = tane.split(',').map {|src_id| src_id.to_i }
-          qmarks = (['?'] * src_ids.count).join(',')
-          conditions.push %Q{series.source_id #{negated}in (#{qmarks})}
-          bindvars.concat src_ids
-        when /^[}]/
-          sd_ids = tane.split(',').map {|sd_id| sd_id.to_i }
-          qmarks = (['?'] * sd_ids.count).join(',')
-          conditions.push %Q{series.source_detail_id #{negated}in (#{qmarks})}
-          bindvars.concat sd_ids
+          (res, id_list) = tane.split('=')
+          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("unknown resource type #{res}")
+          ids = id_list.split(',').map {|uid| uid.to_i }
+          qmarks = (['?'] * ids.count).join(',')
+          conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
+          bindvars.concat ids
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}

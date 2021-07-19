@@ -7,6 +7,10 @@ class Source < ApplicationRecord
   validate :link_is_valid
   before_destroy :last_rites
 
+  def to_s
+    description
+  end
+
   def Source.get_or_new(description, link = nil, universe = 'UHERO')
     Source.find_by(universe: universe, description: description) ||
     (link && Source.find_by(universe: universe, link: link)) ||
@@ -21,12 +25,12 @@ private
 
   def last_rites
     unless Series.where(source_id: id).empty?
-      raise "Cannot destroy Source #{self} (id=#{id}) because a Series is using it"
+      raise "Cannot destroy source '#{self}' (id=#{id}) because a Series is using it"
     end
     unless Measurement.where(source_id: id).empty?
-      raise "Cannot destroy Source#{self} (id=#{id}) because a Measurement is using it"
+      raise "Cannot destroy source '#{self}' (id=#{id}) because a Measurement is using it"
     end
-    Rails.logger.info { "DESTROY Source #{self}: completed" }
+    Rails.logger.info { "DESTROY source '#{self}': completed" }
   end
 
 end

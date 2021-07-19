@@ -10,22 +10,26 @@
   <thead>
     <tr>
       <th>ID</th>
+      <th>Count</th>
       <th>Short label</th>
       <th>Long label</th>
       <th colspan="3"></th>
     </tr>
   </thead>
 <%
-  univ = @universe == 'UHERO' ? '' : '%%20%%2F%s' % @universe   ## add space + / + universe name, e.g. " /dbedt"
-%>>
+  univ = @universe == 'UHERO' ? '' : '%%20%%2F%s' % @universe.downcase   ## add space + / + universe name, e.g. " /dbedt"
+%>
   <tbody>
     <% @units.each do |unit| %>
       <tr>
-        <td style="text-align: center"><%= link_to unit.id, '/series/search?search_string=%3b' + unit.id.to_s + univ %></td>
+        <td style="text-align: right"><%= unit.id %></td>
+        <td class="linkselect" style="text-align: right">
+          <%= link_to Series.where(unit_id: unit.id).count, '/series/search?search_string=%3bunit=' + unit.id.to_s + univ %>
+        </td>
         <td><%= unit.short_label %></td>
         <td class="linkselect"><%= link_to unit.long_label, edit_unit_path(unit) %></td>
         <% if current_user.dev_user? %>
-          <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: "Destroy #{unit}: Are you sure??" } %></td>
+          <td><%= link_to 'Destroy', unit, method: :delete, data: { confirm: "Destroy #{unit}\n\nAre you sure??" } %></td>
         <% end %>
       </tr>
     <% end %>
