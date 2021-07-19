@@ -681,6 +681,23 @@ class Series < ApplicationRecord
     current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
   end
 
+  def delete_data_points(from: nil)
+    query = <<~MYSQL
+      delete from data_points where xseries_id = ?
+    MYSQL
+    bindvars = [xseries_id]
+    if from
+      query += <<~MYSQL
+        and date >= ?
+      MYSQL
+      bindvars.push from
+    end
+    stmt = Series.connection.raw_connection.prepare(query)
+    stmt.execute(*bindvars)
+    stmt.close
+    Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
+  end
+
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
   def scaled_data_no_pseudo_history_DELETEME(round_to = 3)
     data_hash = {}
@@ -1235,10 +1252,12 @@ class Series < ApplicationRecord
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
         when /^[;]/
-          uids = tane.split(',').map {|uid| uid.to_i }
-          qmarks = (['?'] * uids.count).join(',')
-          conditions.push %Q{series.unit_id #{negated}in (#{qmarks})}
-          bindvars.concat uids
+          (res, id_list) = tane.split('=')
+          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("unknown resource type #{res}")
+          ids = id_list.split(',').map {|uid| uid.to_i }
+          qmarks = (['?'] * ids.count).join(',')
+          conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
+          bindvars.concat ids
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}

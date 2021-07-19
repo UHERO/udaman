@@ -2,10 +2,10 @@ class Unit < ApplicationRecord
   include Cleaning
   has_many :series
   has_many :measurements
-  before_destroy :unlink_referring_objects
+  before_destroy :last_rites
 
   def to_s
-    ('%s (%s)' % [long_label, short_label]).html_safe
+    '%s (%s)' % [long_label, short_label]
   end
 
   def Unit.get_or_new(label, universe = 'UHERO')
@@ -14,9 +14,15 @@ class Unit < ApplicationRecord
   end
 
 private
-  def unlink_referring_objects
-    Series.where(unit_id: self.id).update_all(unit_id: nil)
-    Measurement.where(unit_id: self.id).update_all(unit_id: nil)
+
+  def last_rites
+    unless Series.where(unit_id: id).empty?
+      raise "Cannot destroy unit '#{self}' (id=#{id}) because a Series is using it"
+    end
+    unless Measurement.where(unit_id: id).empty?
+      raise "Cannot destroy unit '#{self}' (id=#{id}) because a Measurement is using it"
+    end
+    Rails.logger.info { "DESTROY unit '#{self}': completed" }
   end
 
 end
