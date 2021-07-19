@@ -23,7 +23,9 @@
     <% @units.each do |unit| %>
       <tr>
         <td style="text-align: right"><%= unit.id %></td>
-        <td class="linkselect" style="text-align: center"><%= link_to Series.where(unit_id: unit.id).count, '/series/search?search_string=%3bunit=' + unit.id.to_s + univ %></td>
+        <td class="linkselect" style="text-align: right">
+          <%= link_to Series.where(unit_id: unit.id).count, '/series/search?search_string=%3bunit=' + unit.id.to_s + univ %>
+        </td>
         <td><%= unit.short_label %></td>
         <td class="linkselect"><%= link_to unit.long_label, edit_unit_path(unit) %></td>
         <% if current_user.dev_user? %>

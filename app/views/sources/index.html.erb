@@ -24,7 +24,9 @@
     <% @sources.each do |source| %>
       <tr>
         <td style="text-align: right"><%= source.id %></td>
-        <td class="linkselect" style="text-align: right"><%= link_to Series.where(source_id: source.id).count, '/series/search?search_string=%3bsrc=' + source.id.to_s + univ %></td>
+        <td class="linkselect" style="text-align: right">
+          <%= link_to Series.where(source_id: source.id).count, '/series/search?search_string=%3bsrc=' + source.id.to_s + univ %>
+        </td>
         <td class="linkselect"><%= link_to source.description, edit_source_path(source) %></td>
         <td><%= make_hyperlink(source.link) %></td>
         <% if current_user.dev_user? %>
