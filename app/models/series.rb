@@ -1254,7 +1254,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^[;]/
           (res, id_list) = tane.split('=')
-          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("unknown resource type #{res}")
+          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("Unknown resource type #{res}")
           ids = id_list.split(',').map {|uid| uid.to_i }
           qmarks = (['?'] * ids.count).join(',')
           conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
@@ -1269,7 +1269,7 @@ class Series < ApplicationRecord
                             raise 'No user identified for clipboard access' if user_id.nil?
                             bindvars.push user_id.to_i
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
-                          else nil
+                          else raise("Unknown operator #{term}")
                           end
         when /^\s*\d+\b/
           ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
