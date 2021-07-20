@@ -1212,6 +1212,7 @@ class Series < ApplicationRecord
       case term
         when /^\//
           univ = { u: 'UHERO', db: 'DBEDT' }[tane.to_sym] || tane
+          raise "Unknown universe #{univ}" unless Series.valid_universe(univ)
         when /^[+]/
           limit = tane.to_i
         when /^[=]/
