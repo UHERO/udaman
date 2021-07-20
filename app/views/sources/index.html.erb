@@ -5,8 +5,10 @@
 
 <h1><%= @universe %> Sources</h1>
 <%= link_to "New Source for #{@universe}", new_source_path(universe: @universe) %>
-<p></p>
-
+<p>
+  * Count shows the number of series across all universes using each Source.
+    The search initiated by clicking only reveals those in universe <%= @universe %>.
+</p>
 <table class="list_table">
   <thead>
     <tr>
@@ -36,7 +38,4 @@
     <% end %>
   </tbody>
 </table>
-<p>
-  * Count shows the number of series across all universes using each Source.
-    The search initiated by clicking only reveals those in <%= @universe %> universe.
-</p>
+<p>&nbsp;</p>
