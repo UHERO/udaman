@@ -17,7 +17,11 @@ class PerformanceColumnMoves < ActiveRecord::Migration[5.2]
 
     remove_column :data_lists, :list
 
-    change_column :data_sources, :series_id, :integer, after: :id
+    change_column :data_sources, :disabled, :boolean, after: :series_id
+    change_column :data_sources, :color, :string, after: :presave_hook
+    add_column :data_sources, :new_eval, :string, limit: 500, after: :clear_before_load
+    change_column :data_sources, :description, :string, after: :last_error_at
+    change_column :data_sources, :dependencies, :string, after: :last_error_at
 
     change_column :measurements, :source_detail_id, :integer, after: :id
     change_column :measurements, :source_id, :integer, after: :id

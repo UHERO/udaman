@@ -1109,8 +1109,9 @@ class Series < ApplicationRecord
     space_padding = 80 - data_string.split("\r\n")[-1].length
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
-  
-  def refresh_all_datapoints
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def refresh_all_datapoints_DELETEME?
     unique_ds = {} #this is actually used ds
     current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
     eval_statements = []
