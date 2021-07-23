@@ -36,5 +36,10 @@ class PerformanceColumnMoves < ActiveRecord::Migration[5.2]
     change_column :xseries, :factor_application, :string, after: :frequency_transform
     change_column :xseries, :last_demetra_datestring, :string, after: :frequency_transform
     change_column :xseries, :last_demetra_date, :date, after: :frequency_transform
+
+    change_column :data_source_actions, :data_source_id, :integer, after: :id
+    add_column :data_source_actions, :new_eval, :string, limit: 500, after: :priority
+
+    add_column :source_details, :new_descrip, :string, limit: 1000, after: :updated_at
   end
 end
