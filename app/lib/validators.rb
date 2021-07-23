@@ -28,6 +28,7 @@ module Validators
   end
 
   def valid_series_name(string)
+    return false unless string.include?('@')  ## performance hack
     begin
       Series.parse_name(string)
     rescue SeriesNameException

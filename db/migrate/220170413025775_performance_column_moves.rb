@@ -23,9 +23,18 @@ class PerformanceColumnMoves < ActiveRecord::Migration[5.2]
     change_column :data_sources, :description, :string, after: :last_error_at
     change_column :data_sources, :dependencies, :string, after: :last_error_at
 
+    change_column :geographies, :fips, :string, after: :display_name_short
+
     change_column :measurements, :source_detail_id, :integer, after: :id
     change_column :measurements, :source_id, :integer, after: :id
     change_column :measurements, :unit_id, :integer, after: :id
     add_column :measurements, :new_notes, :string, limit: 500, after: :notes
+
+    change_column :xseries, :quarantined, :boolean, after: :primary_series_id
+    change_column :xseries, :restricted, :boolean, after: :primary_series_id
+    change_column :xseries, :factors, :text, after: :frequency_transform
+    change_column :xseries, :factor_application, :string, after: :frequency_transform
+    change_column :xseries, :last_demetra_datestring, :string, after: :frequency_transform
+    change_column :xseries, :last_demetra_date, :date, after: :frequency_transform
   end
 end

@@ -196,7 +196,7 @@ class DataSource < ApplicationRecord
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
-          next unless word.include?('@') && valid_series_name(word)  ## performance hack: check for @ mark first
+          next unless valid_series_name(word)
           self.dependencies.push(word)
         end
         self.dependencies.uniq!
