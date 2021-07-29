@@ -15,7 +15,7 @@ class PerformanceColumnMoves < ActiveRecord::Migration[5.2]
     change_column :categories, :data_list_id, :integer, after: :id
     change_column :categories, :name, :string, after: :order
 
-    remove_column :data_lists, :list
+    change_column :data_lists, :list, :text, after: :owned_by
 
     change_column :data_sources, :disabled, :boolean, after: :series_id
     change_column :data_sources, :color, :string, after: :presave_hook
