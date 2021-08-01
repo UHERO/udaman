@@ -620,7 +620,7 @@ class Series < ApplicationRecord
           ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
         s.reload_sources
-        s.link_to_forecast_measurements(ld_name) || Rails.logger.warn { "No matching measurement found for series #{s}" }
+        s.link_to_forecast_measurements || Rails.logger.warn { "No matching measurement found for series #{s}" }
         ids.push s.id
       end
     end
@@ -632,9 +632,9 @@ class Series < ApplicationRecord
     enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
-  def link_to_forecast_measurements(name)
+  def link_to_forecast_measurements
     m_found = false
-    m_prefix = name.sub(/(NS)?@.*/i, '')
+    m_prefix = self.parse_name[:prefix].sub(/NS$/i, '')
     Measurement.where(universe: 'FC', prefix: m_prefix).each do |m|
       m_found = true
       (m.series << self) rescue nil
