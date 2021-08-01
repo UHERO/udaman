@@ -598,7 +598,7 @@ class Series < ApplicationRecord
     names.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
-        raise "Contained series #{name} does not match selected frequency of #{freq}"
+        raise "Contained series #{name} does not match selected frequency #{freq}"
       end
       parts[:freq] = freq
       parts[:prefix] += '&' + fcid + vers
@@ -620,6 +620,7 @@ class Series < ApplicationRecord
           ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
         s.reload_sources
+        s.link_to_forecast_measurements(ld_name) || Rails.logger.warn { "No matching measurement found for series #{s}" }
         ids.push s.id
       end
     end
@@ -631,15 +632,16 @@ class Series < ApplicationRecord
     enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def update_data_hash_DELETEME
-    data_hash = {}
-    xseries.data_points.each do |dp|
-      data_hash[dp.date.to_s] = dp.value if dp.current
+  def link_to_forecast_measurements(name)
+    m_found = false
+    m_prefix = name.sub(/(NS)?@.*/i, '')
+    Measurement.where(universe: 'FC', prefix: m_prefix).each do |m|
+      m_found = true
+      (m.series << self) rescue nil
     end
-    self.save
+    m_found
   end
-  
+
   def data
     @data ||= extract_from_datapoints('value')
   end
