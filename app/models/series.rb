@@ -619,8 +619,8 @@ class Series < ApplicationRecord
           ld.set_color!
           ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
-        s.reload_sources
         s.link_to_forecast_measurements || Rails.logger.warn { "No matching measurement found for series #{s}" }
+        s.reload_sources
         ids.push s.id
       end
     end
@@ -1272,7 +1272,11 @@ class Series < ApplicationRecord
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
                           else nil
                           end
-        when /^\s*\d+\b/
+        when /^\d+\b/
+          if conditions.count > 0
+            term = (negated ? '-%' : '%') + term
+            redo
+          end
           ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
           ### else in the box except a list of numbers, so we just break the loop after setting the conditions, etc.
           sids = input_string.gsub(/\s+/, '').split(',').map(&:to_i)
@@ -1284,7 +1288,7 @@ class Series < ApplicationRecord
         else
           ## a "bare" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term
+          bindvars.push term.sub(/^[%]/, '')   ## remove any quoting operator that might be there
       end
     end
     if univ

@@ -10,9 +10,9 @@
 <h1><%= @series.name %></h1>
 <h3><%= @desc %></h3>
 <h3>
-<%= link_to 'Details', @series %> |  
+<%= link_to 'Details', @series %>
 <% @series.other_frequencies.each do |other_freq| %>
-	<%= link_to other_freq,  action: "analyze", id: other_freq.ts %> |
+	| <%= link_to other_freq, action: :analyze, id: other_freq.ts %>
 <% end %>
 
 </h3>
