@@ -289,12 +289,12 @@ class Series < ApplicationRecord
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
-    self.build_name(geo: geo.upcase).ts
+    self.build_name(geo: geo.to_s.upcase).ts
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
-    self.build_name(freq: freq.upcase).ts
+    self.build_name(freq: freq.to_s.upcase).ts
   end
 
   def is_primary?
