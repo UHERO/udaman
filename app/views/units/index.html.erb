@@ -5,12 +5,15 @@
 <p>
   <%= link_to "New Unit for #{@universe}", new_unit_path(universe: @universe) %>
 </p>
-
+<p>
+  * Count shows the number of series across all universes using each Unit.
+    The search initiated by clicking finds only those in universe <%= @universe %>.
+</p>
 <table class="list_table">
   <thead>
     <tr>
       <th>ID</th>
-      <th>Count</th>
+      <th>Count*</th>
       <th>Short label</th>
       <th>Long label</th>
       <th colspan="3"></th>
@@ -35,3 +38,4 @@
     <% end %>
   </tbody>
 </table>
+<p>&nbsp;</p>
