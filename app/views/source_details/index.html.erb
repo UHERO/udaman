@@ -4,12 +4,15 @@
 <p>
   <%= link_to "New Source Detail for #{@universe}", new_source_detail_path(universe: @universe) %>
 </p>
-
+<p>
+  * Count shows the number of series across all universes using each Source Detail.
+    The search initiated by clicking finds only those in universe <%= @universe %>.
+</p>
 <table class="list_table">
   <thead>
     <tr>
       <th>ID</th>
-      <th>Count</th>
+      <th>Count*</th>
       <th>Description</th>
       <th colspan="3"></th>
     </tr>
@@ -32,3 +35,4 @@
     <% end %>
   </tbody>
 </table>
+<p>&nbsp;</p>

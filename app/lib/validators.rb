@@ -28,6 +28,7 @@ module Validators
   end
 
   def valid_series_name(string)
+    return false unless string.include?('@')  ## performance hack
     begin
       Series.parse_name(string)
     rescue SeriesNameException
@@ -38,5 +39,9 @@ module Validators
 
   def valid_data_path(string)
     string !~ /\.\./    ### a very sorta minimal check. would be nice to make it more airtight at some point
+  end
+
+  def valid_universe(u)
+    %w{UHERO FC COH CCOM DBEDT NTA}.include?(u.upcase)
   end
 end
