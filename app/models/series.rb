@@ -1241,7 +1241,7 @@ class Series < ApplicationRecord
         when /^[;]/
           (res, id_list) = tane.split('=')
           rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("Unknown resource type #{res}")
-          ids = id_list.split(',').map {|uid| uid.to_i }
+          ids = id_list.split(',').map(&:to_i)
           qmarks = (['?'] * ids.count).join(',')
           conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
           bindvars.concat ids
@@ -1259,7 +1259,7 @@ class Series < ApplicationRecord
                           end
         when /^\d+\b/
           if conditions.count > 0
-            term = (negated ? '-%' : '%') + term
+            term = (negated ? %q{-"} : %q{"}) + term
             redo
           end
           ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
@@ -1273,7 +1273,7 @@ class Series < ApplicationRecord
         else
           ## a "bare" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term.sub(/^[%]/, '')   ## remove any quoting operator that might be there
+          bindvars.push term.sub(/^["']/, '')   ## remove any quoting operator that might be there
       end
     end
     if univ
