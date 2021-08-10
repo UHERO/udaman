@@ -17,6 +17,7 @@ class Series < ApplicationRecord
 
   validates :name, presence: true, uniqueness: { scope: :universe }
   validate :source_link_is_valid
+  validate :descriptive_text_is_valid
   before_destroy :last_rites, prepend: true
   after_destroy :post_mortem, prepend: true
 
@@ -289,12 +290,12 @@ class Series < ApplicationRecord
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
-    self.build_name(geo: geo.upcase).ts
+    self.build_name(geo: geo.to_s.upcase).ts
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
-    self.build_name(freq: freq.upcase).ts
+    self.build_name(freq: freq.to_s.upcase).ts
   end
 
   def is_primary?
@@ -598,7 +599,7 @@ class Series < ApplicationRecord
     names.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
-        raise "Contained series #{name} does not match selected frequency of #{freq}"
+        raise "Contained series #{name} does not match selected frequency #{freq}"
       end
       parts[:freq] = freq
       parts[:prefix] += '&' + fcid + vers
@@ -619,6 +620,7 @@ class Series < ApplicationRecord
           ld.set_color!
           ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
+        s.link_to_forecast_measurements || Rails.logger.warn { "No matching measurement found for series #{s}" }
         s.reload_sources
         ids.push s.id
       end
@@ -631,15 +633,16 @@ class Series < ApplicationRecord
     enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def update_data_hash_DELETEME
-    data_hash = {}
-    xseries.data_points.each do |dp|
-      data_hash[dp.date.to_s] = dp.value if dp.current
+  def link_to_forecast_measurements
+    m_found = false
+    m_prefix = self.parse_name[:prefix].sub(/NS$/i, '')
+    Measurement.where(universe: 'FC', prefix: m_prefix).each do |m|
+      m_found = true
+      (m.series << self) rescue nil
     end
-    self.save
+    m_found
   end
-  
+
   def data
     @data ||= extract_from_datapoints('value')
   end
@@ -679,6 +682,23 @@ class Series < ApplicationRecord
   def extract_from_datapoints(column)
     return {} unless xseries
     current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
+  end
+
+  def delete_data_points(from: nil)
+    query = <<~MYSQL
+      delete from data_points where xseries_id = ?
+    MYSQL
+    bindvars = [xseries_id]
+    if from
+      query += <<~MYSQL
+        and date >= ?
+      MYSQL
+      bindvars.push from
+    end
+    stmt = Series.connection.raw_connection.prepare(query)
+    stmt.execute(*bindvars)
+    stmt.close
+    Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -1092,8 +1112,9 @@ class Series < ApplicationRecord
     space_padding = 80 - data_string.split("\r\n")[-1].length
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
-  
-  def refresh_all_datapoints
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
+  def refresh_all_datapoints_DELETEME?
     unique_ds = {} #this is actually used ds
     current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
     eval_statements = []
@@ -1102,16 +1123,6 @@ class Series < ApplicationRecord
       ds.delete
     end
     eval_statements.each {|es| eval(es)}
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def delete_with_data_DELETEME?
-    puts "deleting #{name}"
-    data_sources.each do |ds|
-      puts "deleting: #{ds.id}" + ds.eval 
-      ds.delete
-    end
-    self.delete
   end
 
   def Series.get_all_series_by_eval(patterns)
@@ -1172,14 +1183,6 @@ class Series < ApplicationRecord
     series_success
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def Series.missing_from_aremos_DELETEME?
-    name_buckets = {}
-    (AremosSeries.all_names - Series.all_names).each {|name| name_buckets[name[0]] ||= []; name_buckets[name[0]].push(name)}
-    name_buckets.each {|letter, names| puts "#{letter}: #{names.count}"}
-    name_buckets
-  end
-  
   def Series.search_box(input_string, limit: 10000, user_id: nil)
     all = Series.joins(:xseries)
     univ = 'UHERO'
@@ -1195,6 +1198,7 @@ class Series < ApplicationRecord
       case term
         when /^\//
           univ = { u: 'UHERO', db: 'DBEDT' }[tane.to_sym] || tane
+          raise "Unknown universe #{univ}" unless Series.valid_universe(univ)
         when /^[+]/
           limit = tane.to_i
         when /^[=]/
@@ -1234,6 +1238,13 @@ class Series < ApplicationRecord
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane
+        when /^[;]/
+          (res, id_list) = tane.split('=')
+          rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("Unknown resource type #{res}")
+          ids = id_list.split(',').map(&:to_i)
+          qmarks = (['?'] * ids.count).join(',')
+          conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
+          bindvars.concat ids
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %q{restricted = false}
@@ -1244,9 +1255,13 @@ class Series < ApplicationRecord
                             raise 'No user identified for clipboard access' if user_id.nil?
                             bindvars.push user_id.to_i
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
-                          else nil
+                          else raise("Unknown operator #{term}")
                           end
-        when /^\s*\d+\b/
+        when /^\d+\b/
+          if conditions.count > 0
+            term = (negated ? %q{-"} : %q{"}) + term
+            redo
+          end
           ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
           ### else in the box except a list of numbers, so we just break the loop after setting the conditions, etc.
           sids = input_string.gsub(/\s+/, '').split(',').map(&:to_i)
@@ -1258,7 +1273,7 @@ class Series < ApplicationRecord
         else
           ## a "bare" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term
+          bindvars.push term.sub(/^["']/, '')   ## remove any quoting operator that might be there
       end
     end
     if univ
@@ -1362,18 +1377,6 @@ class Series < ApplicationRecord
     Rails.logger.info { "Assign_dependency_depth: done at #{Time.now}" }
   end
 
-  ## probably vestigial - make sure, then delete later
-  def increment_dependency_depth_DELETEME
-    self.dependency_depth += 1
-    dependencies = []
-    self.enabled_data_sources.each do |ds|
-      dependencies += ds.dependencies
-    end
-    dependencies.uniq.each do |dependency|
-      Series.get(dependency).increment_dependency_depth
-    end
-  end
-
   def get_all_dependencies
     Series.get_all_dependencies([self.id])
   end
@@ -1416,6 +1419,12 @@ class Series < ApplicationRecord
 
   def source_link_is_valid
     source_link.blank? || Series.valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
+  end
+
+  def descriptive_text_is_valid
+    return true if universe == 'FC'  ## don't enforce for forecast series
+    return true if scratch == 90909  ## being destroyed - no need for validation
+    dataPortalName.blank? && description.blank? && errors.add('Cannot save a Series without Data Portal Name and/or Description')
   end
 
   def force_destroy!

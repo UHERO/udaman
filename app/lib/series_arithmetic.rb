@@ -85,7 +85,7 @@ module SeriesArithmetic
       date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
     end
     ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
-    ann_series = find_sibling_for_freq('A') || raise("No annual series corresponding to #{self}")
+    ann_series = find_sibling_for_freq('A') || raise("No annual series found corresponding to #{self}")
     date ||= ann_series.last_observation
     new_base = ann_series.at(date).to_f
     raise "No nonzero rebase of #{self} to #{date}" unless new_base && new_base != 0
