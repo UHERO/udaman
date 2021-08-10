@@ -25,7 +25,7 @@ module ExportsHelper
     "data.addColumn('string', 'date');\ndata.addColumn('number','" <<
     sorted_names.join("');\n data.addColumn('number','") <<
     "');\ndata.addRows(["
-    dates_array.each {|date| rs += "['"+ date.strftime('%Y-%m-%d') +"'," + sorted_names.map {|s| series_data[s][date].nil? ? 0 : series_data[s][date] }.join(', ') +"],\n"}
+    dates_array.each {|date| rs += "['"+ date.strftime('%Y-%m-%d') +"'," + sorted_names.map {|s| series_data[s][date] || 0 }.join(', ') +"],\n" }
     rs + "]);\n"
   end
 

@@ -1,5 +1,5 @@
-<%= form_tag('/series/bulk', method: 'post') do %>
-    Example:
+<%= form_with url: { action: :bulk }, method: :post do %>
+  Example:
     <p>
       "VSOM2NS@HAW.M".ts_eval= %Q|Series.load_api_fred("MCOILBRENTEU", "M")|
     </p>
@@ -14,12 +14,12 @@
       If any ts_eval statement causes a fatal error, all creations in the set are canceled.
       Only when there are no errors, will all new series (and/or definitions) be stored.
     </p>
-  <p>
-    If submitting a very large set of creations, it is probably best to break it into groups
-    of 50 or less.
-  </p>
+    <p>
+      If submitting a very large set of creations, it is probably best to break it into groups
+      of 50 or less.
+    </p>
   <div class="field">
-    <%= text_area_tag 'bulk_defs[definitions]', nil, rows: 20, cols: 100 %>
+    <%= text_area :bulk_defs, :definitions, rows: 20, cols: 100 %>
   </div>
   <div class="actions">
     <%= submit_tag('Create All Definitions') %>

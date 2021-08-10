@@ -14,9 +14,6 @@ class SeriesController < ApplicationController
     set_attrib_resource_values(@series)
   end
 
-  def bulk_new
-  end
-
   def edit
     @add2meas = params[:add_to_meas].to_i
     set_attrib_resource_values(@series)
@@ -85,7 +82,9 @@ class SeriesController < ApplicationController
     end
   end
 
-  # POST /series/bulk
+  def bulk_new
+  end
+
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
       redirect_to action: :index
@@ -113,22 +112,23 @@ class SeriesController < ApplicationController
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
       results = Series.search_box(params[:search], limit: 500, user_id: current_user.id)
-      current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &-clip is used
+      current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
     redirect_to action: :clipboard
   end
 
   def do_clip_action
-    if params[:clip_action] == 'csv'
-      redirect_to action: :groupmeta, format: :csv, layout: false
+    if params[:clip_action] =~ /csv/
+      redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
 
-  def groupmeta
+  def group_export
+    @type = params[:type]
     @all_series = current_user.series.sort_by(&:name)
   end
 
@@ -147,8 +147,8 @@ class SeriesController < ApplicationController
     @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
   end
 
-  def new_search
-    @search_string = params[:search_string]
+  def new_search(search_string = nil)
+    @search_string = search_string || params[:search_string]
     Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
     @all_series = Series.search_box(@search_string, limit: 500, user_id: current_user.id)
     if @all_series.count == 1
@@ -167,6 +167,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change params[:id]
     @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
     @clipboarded = current_user.clipboard_contains?(@series)
+    @dependencies = @series.who_depends_on_me(['series.name', 'series.id']).sort_by {|a| a[0] }
     return if no_render
 
     respond_to do |format|
@@ -191,12 +192,27 @@ class SeriesController < ApplicationController
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
-  def old_bea_download
-    @old_bea_series = Series.get_old_bea_downloads
-    respond_to do |format|
-      format.csv { render layout: false }
-      format.html
+  def forecast_upload
+    @fcid = 'none'
+    @version = 'none'
+  end
+
+  def forecast_do_upload
+    params = {}
+    @path = params[:filepath] = forecast_upload_params[:filepath].nil_blank
+    @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
+    @version = params[:version] = forecast_upload_params[:version].nil_blank
+    if @path =~ /(\d\dQ\d+)([FH](\d+|F))/i
+      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version overrides
+      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
     end
+    @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
+    unless @path && @fcid && @version && @freq
+      render :forecast_upload
+      return
+    end
+    created_series_ids = Series.do_forecast_upload(params)
+    new_search(created_series_ids.join(','))
   end
 
   def add_to_quarantine
@@ -307,6 +323,7 @@ class SeriesController < ApplicationController
   end
 
 private
+
     def series_params
       params.require(:series).permit(
           :universe,
@@ -330,6 +347,10 @@ private
 
   def bulk_params
     params.require(:bulk_defs).permit(:definitions)
+  end
+
+  def forecast_upload_params
+    params.require(:forecast_upload).permit(:fcid, :version, :freq, :filepath)
   end
 
   def set_series

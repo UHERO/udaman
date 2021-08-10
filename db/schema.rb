@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025769) do
+ActiveRecord::Schema.define(version: 220170413025773) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -168,6 +168,7 @@ ActiveRecord::Schema.define(version: 220170413025769) do
     t.datetime "updated_at"
     t.boolean "reload_nightly", default: true
     t.boolean "pseudo_history", default: false, null: false
+    t.boolean "clear_before_load", default: false, null: false
     t.boolean "disabled", default: false, null: false
     t.string "presave_hook"
     t.float "runtime"
@@ -379,13 +380,16 @@ ActiveRecord::Schema.define(version: 220170413025769) do
     t.datetime "created_at", null: false
     t.string "status", limit: 10
     t.datetime "finished_at"
+    t.string "params"
+    t.boolean "update_public", default: false, null: false
     t.string "error"
     t.index ["user_id"], name: "index_reload_jobs_on_user_id"
   end
 
   create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+    t.integer "geography_id"
     t.integer "xseries_id", null: false
+    t.string "universe", limit: 5, default: "UHERO", null: false
     t.string "name"
     t.string "dataPortalName"
     t.text "description"
@@ -394,7 +398,6 @@ ActiveRecord::Schema.define(version: 220170413025769) do
     t.text "investigation_notes"
     t.integer "dependency_depth", default: 0
     t.integer "unit_id"
-    t.integer "geography_id"
     t.integer "decimals", default: 1, null: false
     t.integer "source_id"
     t.string "source_link"
@@ -437,14 +440,6 @@ ActiveRecord::Schema.define(version: 220170413025769) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["universe"], name: "index_sources_on_universe"
-  end
-
-  create_table "transformations", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "key"
-    t.string "description"
-    t.string "formula"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
   end
 
   create_table "tsd_files", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|

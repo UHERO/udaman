@@ -19,7 +19,7 @@ class DownloadsCache
   def setup_and_check(type, handle, path = nil, skip_proc = false)
     Rails.logger.debug { "... Entered method setup_and_check: type=#{type}, handle=#{handle}, path=#{path}" }
     skip = false
-    if path.nil?  ## this means that handle != 'manual'
+    if path.nil?  ## this means that handle != :manual
       @dload = @cache[:dloads][handle] || Download.get(handle) || raise("handle '#{handle}' does not exist")
       @cache[:dloads][handle] = @dload
       @handle = handle
@@ -75,7 +75,7 @@ class DownloadsCache
                 flip_ext = { '.xlsx' => 'xls', '.xls' => 'xlsx' }[File.extname(@path).downcase]
                 Roo::Spreadsheet.open(@path, extension: flip_ext)
               rescue
-                if @handle.blank?  ## in case of 'manual' files
+                if @handle.blank?  ## in case of :manual files
                   raise "path #{@path} does not exist"
                 else
                   raise "bad spreadsheet for handle #{@handle}: likely a web 404"

@@ -1,9 +1,8 @@
 module ForecastSnapshotsHelper
 
   def generate_date_range_controls(sample_from, sample_to)
-    date_f = @is_quarterly ? lambda {|d| date_to_qspec(d) } : lambda {|d| d[0..3] }
-    from_menu_list = @all_dates.each.to_a.map {|d| [date_f.call(d), d, { id: "fstab-from-#{d}" }] }
-    to_menu_list   = @all_dates.each.to_a.map {|d| [date_f.call(d), d, { id: "fstab-to-#{d}" }] }
+    from_menu_list = @all_dates.each.to_a.map {|d| [@date_disp_f.call(d), d, { id: "fstab-from-#{d}" }] }
+    to_menu_list   = @all_dates.each.to_a.map {|d| [@date_disp_f.call(d), d, { id: "fstab-to-#{d}" }] }
     select_tag('sample_from', options_for_select(from_menu_list, sample_from)) + ' from-to ' +
     select_tag('sample_to',   options_for_select(to_menu_list, sample_to))
   end
@@ -16,7 +15,9 @@ module ForecastSnapshotsHelper
   end
 
   def forecast_snapshot_csv_gen
-    CSV.generate do |csv|                                                                    ## save memory by 86ing unneeded bits
+    CSV.generate do |csv|
+      name_order = {}
+      @tsd_files[0].get_all_series.each_with_index {|h, i| name_order[h[:name]] = i }         ## save memory by 86ing unneeded bits (below)
       newstuff = @tsd_files[0].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (new)'; h[:data] = h[:yoy_hash] = nil } }
       oldstuff = @tsd_files[1].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (old)'; h[:data] = h[:yoy_hash] = nil } }
       hisstuff = @tsd_files[2].get_all_series.map {|hash| hash.tap {|h| h[:name] += ' (his)'; h[:data] = h[:yoy_hash] = nil } }
@@ -24,8 +25,10 @@ module ForecastSnapshotsHelper
       names = all.keys.sort do |a, b|
         (a0, a1) = a.split
         (b0, b1) = b.split
+        cmp = name_order[a0] <=> name_order[b0]
+        next cmp if cmp != 0  ## early return from yielded block
         fc = { '(new)' => 0, '(old)' => 1, '(his)' => 2 }
-        (a0 <=> b0) == 0 ? fc[a1] <=> fc[b1] : a0 <=> b0
+        fc[a1] <=> fc[b1]
       end
       dates = []
       all.each do |_, v|

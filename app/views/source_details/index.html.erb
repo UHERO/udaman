@@ -2,22 +2,37 @@
 
 <h1><%= @universe %> Source Details</h1>
 <p>
-  <%= link_to "New Source Details for #{@universe}", new_source_detail_path(universe: @universe) %>
+  <%= link_to "New Source Detail for #{@universe}", new_source_detail_path(universe: @universe) %>
 </p>
-
+<p>
+  * Count shows the number of series across all universes using each Source Detail.
+    The search initiated by clicking finds only those in universe <%= @universe %>.
+</p>
 <table class="list_table">
   <thead>
     <tr>
+      <th>ID</th>
+      <th>Count*</th>
       <th>Description</th>
       <th colspan="3"></th>
     </tr>
   </thead>
-
+  <%
+    univ = @universe == 'UHERO' ? '' : '%%20%%2F%s' % @universe.downcase   ## add space + / + universe name, e.g. " /dbedt"
+  %>
   <tbody>
     <% @source_details.each do |source_detail| %>
-      <tr>
-        <td class="linkselect"><%= link_to source_detail.description, edit_source_detail_path(source_detail) %></td>
-      </tr>
+    <tr>
+      <td style="text-align: right"><%= source_detail.id %></td>
+      <td class="linkselect" style="text-align: right">
+        <%= link_to Series.where(source_detail_id: source_detail.id).count, '/series/search?search_string=%3bdet=' + source_detail.id.to_s + univ %>
+      </td>
+      <td class="linkselect"><%= link_to source_detail.description, edit_source_detail_path(source_detail) %></td>
+      <% if current_user.dev_user? %>
+        <td><%= link_to 'Destroy', source_detail, method: :delete, data: { confirm: "Destroy #{source_detail}\n\nAre you sure??" } %></td>
+      <% end %>
+    </tr>
     <% end %>
   </tbody>
 </table>
+<p>&nbsp;</p>

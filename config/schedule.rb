@@ -44,7 +44,7 @@ every 1.day, :at => '1:00 am' do
 end
 
 every 1.day, at: '7:40 pm' do
-  rake :purge_old_logs
+  rake :purge_old_stuff
 end
 
 ## The famous "Nightly Reload"
@@ -65,8 +65,20 @@ every 1.day, :at => '6:00 am' do
   rake :reload_bls_series_only
 end
 
+every :weekday, :at => '12:00 pm' do
+  rake :reload_vispns_daily
+end
+
 every :weekday, :at => '4:15 pm' do
-  rake :reload_vap_hi_daily_series_only
+  rake :reload_vap_hi_daily
+end
+
+every 1.day, :at => ['4:30 am', '8:30 am', '12:30 pm', '4:30 pm'] do
+  rake :reload_covid_series
+end
+
+every :thursday, :at => '11:00 am' do
+  rake :reload_uic_weekly
 end
 
 # -----------------------------------------------------------

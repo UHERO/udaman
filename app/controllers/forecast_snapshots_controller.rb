@@ -1,5 +1,6 @@
 class ForecastSnapshotsController < ApplicationController
   include Authorization
+  include HelperUtilities
 
   before_action :check_forecast_snapshot_authorization
   before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy, :pull_file]
@@ -138,9 +139,24 @@ private
       @all_dates |= @tsd_files[1].get_all_dates(nils: true)
       @all_dates |= @tsd_files[2].get_all_dates(nils: true)
       @all_dates = @all_dates.reject {|d| d > max_horizon }.sort
-      @is_quarterly = @all_dates.any? {|s| s =~ /-(04|07|10)-/ }
-      default_from = Date.new(Date.today.year - 10).to_s
-      default_to   = Date.new(Date.today.year + 5, @is_quarterly ? 10 : 1).to_s
+
+      @date_disp_f = lambda {|d| d[0..3] }  ### Annual
+      years_past = 10
+      years_fut = 5
+      ending_month = 1
+      if @all_dates.any? {|s| s =~ /-(04|07|10)-/ }  ### Quarterly
+        @date_disp_f = lambda {|d| date_to_qspec(d) }
+        ending_month = 10
+      end
+      if @all_dates.any? {|s| s =~ /-(02|05|08)-/ } ### Monthly
+        @date_disp_f = lambda {|d| d[0..6] }
+        years_past = 3
+        years_fut = 1
+        ending_month = 12
+      end
+
+      default_from = Date.new(Date.today.year - years_past).to_s
+      default_to   = Date.new(Date.today.year + years_fut, ending_month).to_s
       user_from = params[:sample_from]
       user_to   = params[:sample_to]
       @sampl_fr = [user_from, default_from].select {|x| @all_dates.include? x }[0] || @all_dates[0]

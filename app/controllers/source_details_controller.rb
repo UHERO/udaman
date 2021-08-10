@@ -42,7 +42,13 @@ class SourceDetailsController < ApplicationController
     end
   end
 
+  def destroy
+    @source_detail.destroy
+    redirect_to source_details_url, notice: 'Source Detail was successfully destroyed.'
+  end
+
 private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_source_detail
       @source_detail = SourceDetail.find params[:id]

@@ -22,7 +22,7 @@ span.lighten {color:#AAA;}
 		series = s.ts
 		next if series.nil?
 		plot_data = series.get_values_after(@start_date)
-		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1]
+		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1] rescue nil
  		dates = plot_data.keys.sort
 		ytd_abs = plot_data[dates[-1]] - plot_data["#{dates[-1][0..3]}-01-01"] rescue nil
 		series_table_data[s] = {
@@ -35,12 +35,23 @@ span.lighten {color:#AAA;}
 			:plot_data => plot_data,
 		}
 		date_keys |= plot_data.keys
-		all_series_ytd.push(ytd)
+		all_series_ytd.push(ytd) if ytd
 	end
 	
 	date_keys.sort!
 %>
-<h1><%= @start_date %></h1>
+<h1>Export <%= @export.name %></h1>
+<p>
+  <% if current_user.admin_user? || @export.owned_by == current_user.id %>
+    <%= link_to 'Edit', edit_export_path(@export) %> |
+  <% end %>
+  <%= link_to 'Index', exports_path %> |
+  <%= link_to 'Show', action: :show, id: @export %> |
+  <%= link_to 'CSV', action: :show, id: @export, format: :csv %>
+  <% if current_user.admin_user? || @export.owned_by == current_user.id %>
+    | <%= link_to 'Destroy', @export, method: :delete, data: { confirm: "Destroy export #{@export.name}\nAre you sure??" } %>
+  <% end %>
+</p>
 <div id="chart-board">
 <table>
 	<tr>

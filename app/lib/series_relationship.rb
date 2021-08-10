@@ -1,17 +1,17 @@
 module SeriesRelationship
-  def all_frequencies
-    ### Ugh.... rewrite this with parse_name, etc
-    s_root = self.name[0..-3]
-    f_array = []
-    
-    %w(A S Q M W D).each do |suffix|
-      f_array.push(s_root + '.' + suffix) unless (s_root + '.' + suffix).ts.nil?
+  def all_frequencies(exclude_self: false)
+    sibs = []
+    mycode = Series.code_from_frequency(self.frequency)
+    %w(A S Q M W D).each do |code|
+      next if exclude_self && code == mycode
+      sib_series = find_sibling_for_freq(code)
+      sibs.push(sib_series) if sib_series
     end
-    f_array
+    sibs
   end
   
   def other_frequencies
-    all_frequencies.reject { |element| self.name == element }
+    all_frequencies(exclude_self: true)
   end
   
   def current_data_points
@@ -83,20 +83,20 @@ module SeriesRelationship
   # Why does this match against description rather than dependencies? Because sometimes the dependency is implicit
   # or hidden in the load statement code (perhaps inside a method call like apply_ns_growth_rate_sa), rather than
   # explicitly given in the load statement itself.
-  def Series.who_depends_on(name, attr = :name, universe = 'UHERO')
+  def Series.who_depends_on(name, attrs = [:name], universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
     DataSource
       .where('data_sources.universe = ? and data_sources.description RLIKE ?', universe, name_match)
       .joins(:series)
-      .pluck(attr)
+      .pluck(*attrs)
       .uniq
   end
 
   ## Try to use the above class method directly, if it will save you a model object instantiation.
   ## This is here mainly for some weird notion of OO completeness, or convenience (if your object
   ## already exists anyway)
-  def who_depends_on_me(attr = :name)
-    Series.who_depends_on(self.name, attr, self.universe)
+  def who_depends_on_me(attrs = [:name])
+    Series.who_depends_on(self.name, attrs, self.universe)
   end
 
   def who_i_depend_on(direct_only = false)

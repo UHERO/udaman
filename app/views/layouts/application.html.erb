@@ -24,7 +24,7 @@
   	<a href="/downloads">Downloads</a> |
       <a href="/exports">Exports</a> |
       <a href="/investigate_visual">Investigations</a> |
-      <a href="/help">Help</a> |
+      <a href="https://uhero-analytics.atlassian.net/wiki/spaces/UDD/overview">Docs</a> |
       <a href="#" title="Special operators:
 ^     match start of mnemonic (-)
 ~    (tilde) match anywhere in mnemonic (-)
@@ -33,20 +33,22 @@
 .      match frequency (combine: .am .wd etc) (-)
 #     match load statement
 !      match load error
-:      match source link URL (-)
+:      (colon) match source link URL (-)
+;      (semicolon) match resource id numbers for Unit, etc (-)
 &pub public/unrestricted only
 &r      restricted only
 &sa   seasonally adjusted only
 &ns   non-seasonally adjusted only
 &noclip   exclude series on the clipboard
-/        change universe (/db, /coh, /ccom, /nta)
+/        change universe (/fc, /db, /coh, /ccom, /nta)
 =       do OLD style predictive search :P
 
-Useful formulas:
+Useful formulas and hints:
 ^vap$    Match name prefix 'vap' exactly
 ~ns$      Match NS series based on name (combine w/other terms)
 @hi5     Match any of geographies HI, HAW, HON, KAU, MAU
-145746  Find series by ID number (or comma-sep list of 'em!)"><span style="font-size:larger;"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></span></a>
+145746  Find series by ID number (or comma-sep list of 'em!)
+!bad !date !format    Match multiple words (same for #)"><span style="font-size:larger;"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></span></a>
   	<div id="search" style="display:inline">
   		<%= render :partial => '/layouts/series_search' %>
   	</div>

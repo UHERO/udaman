@@ -52,6 +52,7 @@ class DataSourcesController < ApplicationController
 
   def update
     if @data_source.update!(data_source_params)
+      @data_source.setup  ## in case the eval was changed
       create_action @data_source, 'UPDATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     else
@@ -89,7 +90,7 @@ private
   end
 
   def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history)
+      params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
     def create_action(data_source, action)
