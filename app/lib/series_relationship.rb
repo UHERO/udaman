@@ -1,17 +1,17 @@
 module SeriesRelationship
-  def all_frequencies
-    ### Ugh.... rewrite this with parse_name, etc
-    s_root = self.name[0..-3]
-    f_array = []
-    
-    %w(A S Q M W D).each do |suffix|
-      f_array.push(s_root + '.' + suffix) unless (s_root + '.' + suffix).ts.nil?
+  def all_frequencies(exclude_self: false)
+    sibs = []
+    mycode = Series.code_from_frequency(self.frequency)
+    %w(A S Q M W D).each do |code|
+      next if exclude_self && code == mycode
+      sib_series = find_sibling_for_freq(code)
+      sibs.push(sib_series) if sib_series
     end
-    f_array
+    sibs
   end
   
   def other_frequencies
-    all_frequencies.reject { |element| self.name == element }
+    all_frequencies(exclude_self: true)
   end
   
   def current_data_points

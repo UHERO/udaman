@@ -290,12 +290,12 @@ class Series < ApplicationRecord
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
-    self.build_name(geo: geo.upcase).ts
+    self.build_name(geo: geo.to_s.upcase).ts
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
-    self.build_name(freq: freq.upcase).ts
+    self.build_name(freq: freq.to_s.upcase).ts
   end
 
   def is_primary?
@@ -599,7 +599,7 @@ class Series < ApplicationRecord
     names.each do |name|
       parts = Series.parse_name(name)
       if parts[:freq] && parts[:freq] != freq
-        raise "Contained series #{name} does not match selected frequency of #{freq}"
+        raise "Contained series #{name} does not match selected frequency #{freq}"
       end
       parts[:freq] = freq
       parts[:prefix] += '&' + fcid + vers
@@ -620,6 +620,7 @@ class Series < ApplicationRecord
           ld.set_color!
           ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
+        s.link_to_forecast_measurements || Rails.logger.warn { "No matching measurement found for series #{s}" }
         s.reload_sources
         ids.push s.id
       end
@@ -632,15 +633,16 @@ class Series < ApplicationRecord
     enabled_data_sources.select {|ld| ld.eval =~ regex }
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def update_data_hash_DELETEME
-    data_hash = {}
-    xseries.data_points.each do |dp|
-      data_hash[dp.date.to_s] = dp.value if dp.current
+  def link_to_forecast_measurements
+    m_found = false
+    m_prefix = self.parse_name[:prefix].sub(/NS$/i, '')
+    Measurement.where(universe: 'FC', prefix: m_prefix).each do |m|
+      m_found = true
+      (m.series << self) rescue nil
     end
-    self.save
+    m_found
   end
-  
+
   def data
     @data ||= extract_from_datapoints('value')
   end
@@ -1239,7 +1241,7 @@ class Series < ApplicationRecord
         when /^[;]/
           (res, id_list) = tane.split('=')
           rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("Unknown resource type #{res}")
-          ids = id_list.split(',').map {|uid| uid.to_i }
+          ids = id_list.split(',').map(&:to_i)
           qmarks = (['?'] * ids.count).join(',')
           conditions.push %Q{#{rescol} #{negated}in (#{qmarks})}
           bindvars.concat ids
@@ -1255,7 +1257,11 @@ class Series < ApplicationRecord
                             %q{series.id not in (select series_id from user_series where user_id = ?)}
                           else raise("Unknown operator #{term}")
                           end
-        when /^\s*\d+\b/
+        when /^\d+\b/
+          if conditions.count > 0
+            term = (negated ? %q{-"} : %q{"}) + term
+            redo
+          end
           ### Series ID# or comma-separated list of same. Note that the loop becomes irrelevant. There should be nothing
           ### else in the box except a list of numbers, so we just break the loop after setting the conditions, etc.
           sids = input_string.gsub(/\s+/, '').split(',').map(&:to_i)
@@ -1267,7 +1273,7 @@ class Series < ApplicationRecord
         else
           ## a "bare" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term
+          bindvars.push term.sub(/^["']/, '')   ## remove any quoting operator that might be there
       end
     end
     if univ
@@ -1416,6 +1422,8 @@ class Series < ApplicationRecord
   end
 
   def descriptive_text_is_valid
+    return true if universe == 'FC'  ## don't enforce for forecast series
+    return true if scratch == 90909  ## being destroyed - no need for validation
     dataPortalName.blank? && description.blank? && errors.add('Cannot save a Series without Data Portal Name and/or Description')
   end
 
