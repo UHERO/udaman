@@ -1251,10 +1251,11 @@ class Series < ApplicationRecord
                           when 'r'   then %q{restricted = true}
                           when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
                           when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                          when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
                           when 'noclip'
                             raise 'No user identified for clipboard access' if user_id.nil?
                             bindvars.push user_id.to_i
-                            %q{series.id not in (select series_id from user_series where user_id = ?)}
+                            %q{(series.id not in (select series_id from user_series where user_id = ?))}
                           else raise("Unknown operator #{term}")
                           end
         when /^\d+\b/
