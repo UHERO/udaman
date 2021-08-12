@@ -1,12 +1,11 @@
 class PerformanceModsPart2 < ActiveRecord::Migration[5.2]
   def change
-=begin
-    update series set new_descrip = description, new_notes = investigation_notes
-    update data_sources set new_eval = eval
-    update measurements set new_notes = notes
-    update data_source_actions set new_eval = eval
-    update source_details set new_descrip = description
-=end
+    execute 'update series set new_descrip = description, new_notes = investigation_notes;'
+    execute 'update data_sources set new_eval = eval;'
+    execute 'update measurements set new_notes = notes;'
+    execute 'update data_source_actions set new_eval = eval;'
+    execute 'update source_details set new_descrip = description;'
+
     change_column :series, :decimals, :integer, after: :universe
     remove_column :series, :description
     rename_column :series, :new_descrip, :description
