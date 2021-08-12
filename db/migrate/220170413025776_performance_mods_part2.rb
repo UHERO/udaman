@@ -1,12 +1,19 @@
 class PerformanceModsPart2 < ActiveRecord::Migration[5.2]
   def change
+=begin
+    update series set new_descrip = description, new_notes = investigation_notes
+    update data_sources set new_eval = eval
+    update measurements set new_notes = notes
+    update data_source_actions set new_eval = eval
+    update source_details set new_descrip = description
+=end
     change_column :series, :decimals, :integer, after: :universe
     remove_column :series, :description
     rename_column :series, :new_descrip, :description
     remove_column :series, :investigation_notes
     rename_column :series, :new_notes, :investigation_notes
 
-    #change_column :data_lists, :list, :text, after: :owned_by
+    remove_column :data_lists, :list
 
     remove_column :data_sources, :eval
     rename_column :data_sources, :new_eval, :eval
