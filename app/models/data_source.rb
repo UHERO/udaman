@@ -196,7 +196,7 @@ class DataSource < ApplicationRecord
       self.dependencies = []
       unless description.blank?
         description.split(' ').each do |word|
-          next unless word.include?('@') && valid_series_name(word)  ## performance hack: check for @ mark first
+          next unless valid_series_name(word)
           self.dependencies.push(word)
         end
         self.dependencies.uniq!
@@ -297,19 +297,6 @@ class DataSource < ApplicationRecord
       data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
 
-    ## This method appears to be vestigial - confirm and delete later
-    def delete_all_other_sources_DELETEME
-      s = self.series
-      s.data_sources_by_last_run.each {|ds| ds.delete unless ds.id == self.id}
-    end
-
-    ## This method appears to be vestigial - confirm and delete later
-    def DataSource.delete_related_sources_except_DELETEME(ids)
-      ds_main = DataSource.find_by(id: ids[0])
-      s = ds_main.series
-      s.data_sources_by_last_run.each {|ds| ds.delete if ids.index(ds.id).nil?}
-    end
-        
     def current?
       self.series.current_data_points.each { |dp| return true if dp.data_source_id == self.id }
       return false
@@ -317,11 +304,19 @@ class DataSource < ApplicationRecord
       return false
     end
         
-    def delete_data_points
-      stmt = DataSource.connection.raw_connection.prepare(<<~MYSQL)
+    def delete_data_points(from: nil)
+      query = <<~MYSQL
         delete from data_points where data_source_id = ?
       MYSQL
-      stmt.execute(id)
+      bindvars = [id]
+      if from
+        query += <<~MYSQL
+          and date >= ?
+        MYSQL
+        bindvars.push from
+      end
+      stmt = Series.connection.raw_connection.prepare(query)
+      stmt.execute(*bindvars)
       stmt.close
       Rails.logger.info { "Deleted all data points for definition #{id}" }
     end

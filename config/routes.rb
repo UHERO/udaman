@@ -69,8 +69,6 @@ Rails.application.routes.draw do
   get 'series/group_export', to: 'series#group_export'
   post 'series/do_clip_action', to: 'series#do_clip_action'
 
-  resources :series
-
   resources :data_sources
   resources :dashboards
   resources :data_lists do
@@ -87,6 +85,9 @@ Rails.application.routes.draw do
   get 'export_tsd' => 'dashboards#export_tsd'
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
+
+
+  resources :series
 
   get 'downloads/by_pattern' => 'downloads#by_pattern'
   get 'downloads/pull_file' => 'downloads#pull_file'

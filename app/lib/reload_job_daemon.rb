@@ -1,11 +1,11 @@
 class ReloadJobDaemon
   extend HelperUtilities
 
-  def ReloadJobDaemon.perform
+  def ReloadJobDaemon.perform(timer: 120)
     loop do  ## infinite
       job = ReloadJob.where(status: nil).order(:created_at).first
       if job.nil? || worker_busy?
-        sleep 120
+        sleep timer.seconds
         next
       end
       Rails.logger.info { "reload_job_daemon: picked job #{job.id} off the queue" }
