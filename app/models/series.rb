@@ -1247,8 +1247,7 @@ class Series < ApplicationRecord
           bindvars.concat ids
         when /^[&]/
           conditions.push case tane.downcase
-                          when 'pub' then %q{restricted = false}
-                          when 'r'   then %q{restricted = true}
+                          when 'pub' then %Q{restricted is #{negated}false}
                           when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
                           when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                           when 'nodpm'  then %Q{dataPortalName is #{negated}null}
