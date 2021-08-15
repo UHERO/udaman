@@ -1206,7 +1206,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^\^/
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
-          bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
+          bindvars.push term.sub(',', '|')   ## note term, not tane, because regexp accepts ^ syntax
         when /^[~]/  ## tilde
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push tane.sub(',', '|')   ## handle alternatives separated by comma
@@ -1233,11 +1233,11 @@ class Series < ApplicationRecord
         when /^[#]/
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
-          bindvars.push tane
+          bindvars.push tane.sub(',', '|')   ## handle alternatives separated by comma
         when /^[!]/
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
-          bindvars.push tane
+          bindvars.push tane.sub(',', '|')
         when /^[;]/
           (res, id_list) = tane.split('=')
           rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("Unknown resource type #{res}")
