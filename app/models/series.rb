@@ -1209,7 +1209,7 @@ class Series < ApplicationRecord
           bindvars.push term  ## note term, not tane, because regexp accepts ^ syntax
         when /^[~]/  ## tilde
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
-          bindvars.push tane
+          bindvars.push tane.sub(',', '|')   ## handle alternatives separated by comma
         when /^[:]/
           if term =~ /^::/
             all = all.joins('left outer join sources on sources.id = series.source_id')
@@ -1274,7 +1274,7 @@ class Series < ApplicationRecord
         else
           ## a "bare" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term.sub(/^["']/, '')   ## remove any quoting operator that might be there
+          bindvars.push term.sub(/^["']/, '').sub(',', '|')   ## remove any quoting operator, and handle alternatives separated by comma
       end
     end
     if univ
