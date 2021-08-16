@@ -3,6 +3,17 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :vexp_loader_job => :environment do
+  ss = Series.search_box('vexp &sa .m')
+  ss.each do |s|
+    next if s.name == 'VEXP@HI.M'
+    s.enabled_data_sources.each {|ld| ld.disable! }
+    ld = DataSource.create(priority: 100, eval: %q{"%s".tsn.load_from "rawdata/sadata/tour_vexp.csv"} % s.ns_series_name)
+    s.data_sources << ld
+    ld.setup!
+  end
+end
+
 task :ua_1099 => :environment do
   ss = Series.search_box('^v .m')
   ss.each do |s|
