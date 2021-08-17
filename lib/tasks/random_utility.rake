@@ -10,7 +10,7 @@ task :vexp_loader_job => :environment do
     s.enabled_data_sources.each {|ld| ld.disable! }
     ld = DataSource.create(priority: 100, eval: %q{"%s".tsn.load_from "rawdata/sadata/tour_vexp.csv"} % s.ns_series_name)
     s.data_sources << ld
-    ld.setup!
+    ld.setup
     s.reload_sources
   end
 end
