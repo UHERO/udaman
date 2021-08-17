@@ -3,6 +3,23 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :find_bad_aggregations => :environment do
+  dict = {}
+  Series.search_box('#aggreg').each do |s|
+    prefix = s.parse_name[:prefix]
+    ll = s.enabled_data_sources('aggreg').map(&:eval).each do |ldeval|
+      method = nil
+      if ldeval =~ /aggregate\(:\w+, :(\w+)/
+        method = $1
+      else
+        Rails.logger.warn { "find_bad_aggregations: unexpected aggregation loader for #{s}" }
+      end
+      dict[prefix] = method if method
+    end
+
+  end
+end
+
 task :vexp_loader_job => :environment do
   ss = Series.search_box('vexp &sa .m')
   ss.each do |s|

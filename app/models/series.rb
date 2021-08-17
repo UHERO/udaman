@@ -521,8 +521,8 @@ class Series < ApplicationRecord
     source
   end
 
-  def enabled_data_sources
-    data_sources.reject {|ld| ld.disabled? }
+  def enabled_data_sources(match = '.')
+    data_sources.to_a.select {|ld| ld.disabled? == false && ld.eval =~ %r/#{match}/i }
   end
 
   def data_sources_sort_for_display
