@@ -11,6 +11,7 @@ task :vexp_loader_job => :environment do
     ld = DataSource.create(priority: 100, eval: %q{"%s".tsn.load_from "rawdata/sadata/tour_vexp.csv"} % s.ns_series_name)
     s.data_sources << ld
     ld.setup!
+    s.reload_sources
   end
 end
 
