@@ -116,8 +116,8 @@ google.visualization.events.addListener(chart, 'select', function() {
         <td style="font-weight:bold;">Definitions (
           <% if current_user.admin_user? %>
               <%= link_to 'add', controller: :data_sources, action: :new, series_id: @series %> |
-              <%= link_to 'load all', controller: :series, action: :reload_all, id: @series %>
           <% end %>
+              <%= link_to 'load all', controller: :series, action: :reload_all, id: @series %>
           )
         </td></tr>
     <% end %>
