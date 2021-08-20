@@ -113,7 +113,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<table>
     <% if @series.is_primary? %>
       <tr>
-        <td style="font-weight:bold;">Definitions (
+        <td style="font-weight:bold;">Loaders (
           <% if current_user.admin_user? %>
               <%= link_to 'add', controller: :data_sources, action: :new, series_id: @series %> |
           <% end %>
