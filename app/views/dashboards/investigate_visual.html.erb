@@ -341,6 +341,7 @@
                <i id="dvw-restart-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i>
           <%= button_to('Clear API cache', { controller: :dashboards, action: :clear_api_cache },
                         { form_class: 'cache-clear-button', remote: true }) %>
+               <i id="cache-clear-indicator" class="fas fa-check" aria-hidden="true" style="display:none;"></i>
         </p>
         <p>
         <%= button_to('Update public data points', { controller: :dashboards, action: :update_public_dp },
