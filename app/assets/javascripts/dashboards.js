@@ -11,6 +11,9 @@ $(function() {
     $(".dvw-restart-button").on("ajax:success", function() {
         $("#dvw-restart-indicator").show()
     });
+    $(".cache-clear-button").on("ajax:success", function() {
+        $("#cache-clear-indicator").show()
+    });
     $(".nas-sync-button").on("ajax:success", function() {
         $("#nas-sync-indicator").removeClass('fa-spinner fa-spin').addClass('fa-check').show()
     });
