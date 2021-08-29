@@ -6,27 +6,25 @@
 task :find_bad_aggregations => :environment do
   dict = {}
   Series.search_box('#aggreg').each do |s|
-    prefix = s.parse_name[:prefix].sub(/NS$/i, '')
-    method = find_method_for_prefix(s, dict[prefix])
-    s.other_frequencies.each do |ot|
-      find_method_for_prefix(ot)
-    end
+    find_method_for_prefix(s, dict)
+    s.other_frequencies.each {|otfreq| find_method_for_prefix(otfreq, dict) }
+  end
+  dict.reject! {|k, v| v.count < 2 }
+  dict.each do |k, v|
+    puts "#{k} => #{v}"
   end
 end
 
-def find_method_for_prefix(series, known_method)
+def find_method_for_prefix(series, dict)
+  prefix = series.parse_name[:prefix].sub(/NS$/i, '')
   series.enabled_data_sources('aggreg').map(&:eval).each do |ldeval|
     method = (ldeval =~ /aggregate\(:\w+, :(\w+)/) ? $1 : nil
-    if method
-      if known_method && known_method != method
-        Rails.logger.warn { "find_method_for_prefix: #{s}: different aggregations in the same series" }
-        return nil
-      end
-      ##dict[prefix] = method
-    else
-      Rails.logger.warn { "find_method_for_prefix: #{s}: unexpected aggregation calling convention #{ldeval}" }
-      return nil
+    unless method
+      Rails.logger.warn { "find_method_for_prefix: #{series}: unexpected aggregation calling convention #{ldeval}" }
+      next
     end
+    dict[prefix] ||= []
+    dict[prefix] |= [method]
   end
 end
 
