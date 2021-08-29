@@ -8,13 +8,16 @@ task :find_bad_aggregations => :environment do
   Series.search_box('#aggreg').each do |s|
     prefix = s.parse_name[:prefix]
     ll = s.enabled_data_sources('aggreg').map(&:eval).each do |ldeval|
-      method = nil
-      if ldeval =~ /aggregate\(:\w+, :(\w+)/
-        method = $1
+      method = ldeval =~ /aggregate\(:\w+, :(\w+)/ ? $1 : nil
+      if method
+        if dict[prefix] && dict[prefix] != method
+          Rails.logger.warn { "find_bad_aggregations: #{s}: different aggs in the same series" }
+          next
+        end
+        dict[prefix] = method
       else
-        Rails.logger.warn { "find_bad_aggregations: unexpected aggregation loader for #{s}" }
+        Rails.logger.warn { "find_bad_aggregations: #{s}: unexpected aggregation calling convention" }
       end
-      dict[prefix] = method if method
     end
 
   end
