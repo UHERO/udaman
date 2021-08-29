@@ -9,7 +9,7 @@ task :find_bad_aggregations => :environment do
     find_method_for_prefix(s, dict)
     s.other_frequencies.each {|otfreq| find_method_for_prefix(otfreq, dict) }
   end
-  dict.reject! {|k, v| v.count < 2 }
+  dict.reject! {|_, v| v.count < 2 }
   dict.each do |k, v|
     puts "#{k} => #{v}"
   end
