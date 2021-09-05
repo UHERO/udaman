@@ -12,6 +12,7 @@ ENV['RAILS_SERVE_STATIC_FILES'] = 'true'
 
 # Sets the default environment variables
 ENV['DATA_PATH'] ||= '/data'
+ENV['SEARCH_DEFAULT_LIMIT'] ||= 500
 
 # API_KEY_BEA, API_KEY_FRED must be provided by the outer environment if
 # those APIs are to be used.
