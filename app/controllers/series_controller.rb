@@ -150,7 +150,7 @@ class SeriesController < ApplicationController
   def new_search(search_string = nil)
     @search_string = search_string || params[:search_string]
     Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
-    @all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'], user_id: current_user.id)
+    @all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user_id: current_user.id)
     if @all_series.count == 1
       @series = @all_series.first
       show(no_render: true)  ## call controller prep without render
