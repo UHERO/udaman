@@ -24,7 +24,7 @@ def find_method_for_prefix(series, dict)
       next
     end
     dict[prefix] ||= []
-    dict[prefix] |= [method]
+    dict[prefix] |= [method.downcase]
   end
 end
 

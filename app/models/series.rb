@@ -1256,7 +1256,7 @@ class Series < ApplicationRecord
                             raise 'No user identified for clipboard access' if user_id.nil?
                             bindvars.push user_id.to_i
                             %q{(series.id not in (select series_id from user_series where user_id = ?))}
-                          else raise("Unknown operator term #{term}")
+                          else raise("Unknown fixed term #{term}")
                           end
         when /^\d+\b/
           if conditions.count > 0
