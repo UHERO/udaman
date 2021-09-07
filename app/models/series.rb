@@ -1284,6 +1284,9 @@ class Series < ApplicationRecord
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
+  ##
+  ##  The search part of this method implementation ought to be replaced by a call to Series.search_box()
+  ##
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
