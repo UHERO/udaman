@@ -18,7 +18,7 @@ end
 def find_method_for_prefix(series, dict)
   prefix = series.parse_name[:prefix].sub(/NS$/i, '')
   series.enabled_data_sources('aggreg').map(&:eval).each do |ldeval|
-    method = (ldeval =~ /aggregate\(:\w+, :(\w+)/) ? $1 : nil
+    method = (ldeval =~ /aggregate\(:\w+, *:(\w+)/) ? $1 : nil
     unless method
       Rails.logger.warn { "find_method_for_prefix: #{series}: unexpected aggregation calling convention #{ldeval}" }
       next
