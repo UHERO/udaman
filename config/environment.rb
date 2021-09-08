@@ -10,7 +10,7 @@ ENV['LOAD_UPDATE_SPREADSHEET_PATTERNS_TO_DB'] = 'false'
 ## this was apparently the new way to enable this option. Not sure why we need it, but trying to keep status quo.
 ENV['RAILS_SERVE_STATIC_FILES'] = 'true'
 
-ENV['DATA_PATH'] ||= '/data'   ## Location of flat file directory
+ENV['DATA_PATH'] ||= '/data'   ## Location of flat file directory root
 ENV['SEARCH_DEFAULT_LIMIT'] ||= '500'  ## Default limit on number of results returned by search box
 
 # API_KEY_BEA, API_KEY_FRED must be provided by the outer environment if
