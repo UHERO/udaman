@@ -1,16 +1,16 @@
 <div id="summary_area">
-	<h4>Add Definition to<br/><%= @series.name %></h4>
+	<h2>Add New<br/>Loader</h2>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
 	<%= form_with(model: @data_source) do |ds| %>
 		<div class="field">
-			<%= ds.label :eval %>
+			Code
 			<%= ds.text_field :eval, size: 120 %>
 		</div>
 		<div class="field">
       <%= ds.label :priority %>
-      <%= ds.number_field :priority, size: 3 %>
+      <%= ds.number_field :priority, size: 5 %>
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
@@ -24,7 +24,7 @@
     </div>
 		<div class="actions">
       <%= ds.hidden_field :series_id %>
-			<%= ds.submit 'Save Definition' %>
+			<%= ds.submit 'Save Loader' %>
       <%= link_to 'Cancel', :back %>
     </div>
 	<% end %>

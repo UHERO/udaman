@@ -521,8 +521,8 @@ class Series < ApplicationRecord
     source
   end
 
-  def enabled_data_sources
-    data_sources.reject {|ld| ld.disabled? }
+  def enabled_data_sources(match = '.')
+    data_sources.to_a.select {|ld| ld.disabled? == false && ld.eval =~ %r/#{match}/i }
   end
 
   def data_sources_sort_for_display
@@ -1256,7 +1256,7 @@ class Series < ApplicationRecord
                             raise 'No user identified for clipboard access' if user_id.nil?
                             bindvars.push user_id.to_i
                             %q{(series.id not in (select series_id from user_series where user_id = ?))}
-                          else raise("Unknown operator #{term}")
+                          else raise("Unknown fixed term #{term}")
                           end
         when /^\d+\b/
           if conditions.count > 0
@@ -1284,6 +1284,9 @@ class Series < ApplicationRecord
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
+  ##
+  ##  The search part of this method implementation ought to be replaced by a call to Series.search_box()
+  ##
   def Series.web_search(search_string, universe, num_results = 10)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
