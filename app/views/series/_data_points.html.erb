@@ -7,6 +7,9 @@
 		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YTD</th>
 		<th>Values</th>
     <th>Age</th>
+    <% if loader_count > 1 %>
+      <th>Loader</th>
+    <% end %>
 	</tr>
 <%
   ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
@@ -53,6 +56,9 @@
         <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
         <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.data_source_id]) %></span></td>
         <td><span style="float:right;"><%= dp_age_code(cdp) %></span></td>
+        <% if loader_count > 1 %>
+          <td><span style="float:right;"><%= cdp.data_source_id %></span></td>
+        <% end %>
       </tr>
 <%
         else
@@ -80,5 +86,8 @@
 		<th>YTD</th>
 		<th>Values</th>
     <th>Age</th>
+    <% if loader_count > 1 %>
+      <th>Loader</th>
+    <% end %>
 	</tr>
 </table>
