@@ -22,7 +22,7 @@
       date_hash
     end
 
-    def display_data_points(date_hash, as)
+    def display_data_points(date_hash, as, env = {})
       units = @series.units
       chg_data = @chg.data.clone rescue {}
       ytd_data = @ytd_chg.data.clone rescue {}
@@ -56,7 +56,7 @@
         <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
         <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.data_source_id]) %></span></td>
         <td><span style="float:right;"><%= dp_age_code(cdp) %></span></td>
-        <% if loader_count > 1 %>
+        <% if env[:loader_count] > 1 %>
           <td><span style="float:right;"><%= cdp.data_source_id %></span></td>
         <% end %>
       </tr>
@@ -76,7 +76,7 @@
     end
 
     date_hash = process_missing_dates as
-    display_data_points(date_hash, as)
+    display_data_points(date_hash, as, { loader_count: loader_count })
 %>
 	<tr>
 		<th>Date</th>

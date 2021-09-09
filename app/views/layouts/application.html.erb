@@ -35,17 +35,18 @@
 !      match load error
 :      (colon) match source link URL (-)
 ;      (semicolon) match resource id numbers for Unit, etc (-)
-&pub public/unrestricted only
-&r      restricted only
+&pub public-facing series only (- for restricted)
 &sa   seasonally adjusted only
 &ns   non-seasonally adjusted only
 &nodata   only series having no data
+&nodpn    only series having no Portal Name (-)
 &noclip   exclude series on the clipboard
 /        change universe (/fc, /db, /coh, /ccom, /nta)
 =       do OLD style predictive search :P
 
 Useful formulas and hints:
 ^vap$    Match name prefix 'vap' exactly
+^yl,yc  Separate alternatives with commas
 ~ns$      Match NS series based on name (combine w/other terms)
 @hi5     Match any of geographies HI, HAW, HON, KAU, MAU
 145746  Find series by ID number (or comma-sep list of 'em!)
