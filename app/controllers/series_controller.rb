@@ -147,6 +147,11 @@ class SeriesController < ApplicationController
     @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
   end
 
+  def autocomplete_search
+    render :json => Series.web_search(params[:term], params[:universe])
+                          .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
+  end
+
   def new_search(search_string = nil)
     @search_string = search_string || params[:search_string]
     Rails.logger.info { "SEARCHLOG: user=#{current_user.email}, search=#{@search_string}" }
@@ -274,11 +279,6 @@ class SeriesController < ApplicationController
     @search_results = AremosSeries.web_search(params[:search])
   end
   
-  def autocomplete_search
-    render :json => Series.web_search(params[:term], params[:universe])
-                          .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
-  end
-
   def all_tsd_chart
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
