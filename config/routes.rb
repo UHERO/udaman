@@ -96,8 +96,7 @@ Rails.application.routes.draw do
   post 'downloads/test_post_params' => 'downloads#test_post_params'
   resources :downloads
 
-  get 'help/index' => 'help#index'
-  get 'help/data_sources' => 'help#data_sources'
+  get 'misc/get_branch_code' => 'misc#get_branch_code'
 
   # See how all your routes lay out with "rake routes"
 

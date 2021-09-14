@@ -3,6 +3,7 @@ class MiscController < ApplicationController
 
   before_action :check_authorization
 
-  def index
+  def get_branch_code
+
   end
 end
