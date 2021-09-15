@@ -100,20 +100,6 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.index ["data_list_id"], name: "index_data_lists_series_on_data_list_id"
   end
 
-  create_table "data_load_patterns", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.string "start_date"
-    t.string "frequency"
-    t.string "path"
-    t.string "worksheet"
-    t.string "row"
-    t.string "col"
-    t.string "last_date_read"
-    t.string "last_read_status"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-    t.boolean "reverse", default: false
-  end
-
   create_table "data_points", primary_key: ["xseries_id", "date", "created_at", "data_source_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.integer "xseries_id", null: false
     t.date "date", null: false
@@ -127,12 +113,6 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.float "change", limit: 53
     t.float "yoy", limit: 53
     t.float "ytd", limit: 53
-  end
-
-  create_table "data_portal_names", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "prefix"
-    t.string "units"
-    t.string "data_portal_name"
   end
 
   create_table "data_source_actions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
