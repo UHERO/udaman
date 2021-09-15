@@ -180,6 +180,6 @@ module SeriesHelper
 
   def search_count_display(count)
     return count unless count == ENV['SEARCH_DEFAULT_LIMIT'].to_i
-    "<span style='color:red;' title='Search results likely truncated because limit reached. Use + to override'>#{count}</span>".html_safe
+    "<span style='color:red;' title='Search results likely truncated because default limit reached. Use + to override'>#{count}</span>".html_safe
   end
 end

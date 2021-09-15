@@ -1206,7 +1206,7 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^\^/
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
-          bindvars.push term.gsub(',', '|')   ## note term, not tane, because regexp accepts ^ syntax
+          bindvars.push '^(%s)' % tane.gsub(',', '|')
         when /^[~]/  ## tilde
           conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
           bindvars.push tane.gsub(',', '|')   ## handle alternatives separated by comma

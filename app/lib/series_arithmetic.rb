@@ -168,6 +168,7 @@ module SeriesArithmetic
       val_chg = row[2]
       new_series_data[date] = val_chg if val_chg
     end
+    stmt.close
     new_transformation("Absolute Change of #{name}", new_series_data)
   end
 
@@ -214,6 +215,7 @@ module SeriesArithmetic
       yoy = row[2]
       new_series_data[date] = yoy if yoy
     end
+    stmt.close
     new_transformation("Annualized Percentage Change of #{name}", new_series_data)
   end
   
@@ -310,6 +312,7 @@ module SeriesArithmetic
       ytd = row[2]
       new_series_data[date] = ytd if ytd
     end
+    stmt.close
     new_transformation("Year to Date Percentage Change of #{name}", new_series_data)
   end
   
@@ -352,6 +355,7 @@ module SeriesArithmetic
       yoy_diff = row[2]
       new_series_data[date] = yoy_diff if yoy_diff
     end
+    stmt.close
     new_transformation("Scaled year over year diff of #{name}", new_series_data)
   end
   
