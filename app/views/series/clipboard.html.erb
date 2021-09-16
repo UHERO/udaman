@@ -22,6 +22,7 @@
             <option value="unrestrict">Unrestrict series</option>
           <% end %>
           <% if current_user.dev_user? %>
+            <option value="clear">Clear all data points</option>
             <option value="destroy">Destroy series</option>
           <% end %>
         </select>
