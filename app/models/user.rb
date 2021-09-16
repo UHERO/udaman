@@ -79,6 +79,9 @@ class User < ApplicationRecord
       ResetWorker.perform_async  ## clear file cache on the worker Rails
       Rails.logger.warn { 'Rails file cache CLEARED' }
       'Reset done'
+    when 'clear'
+      series.each {|s| s.enabled_data_sources.each {|ld| ld.delete_data_points } }
+      'Data points cleared'
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
       nil
