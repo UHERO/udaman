@@ -1287,6 +1287,8 @@ class Series < ApplicationRecord
   def Series.web_search(search_string, universe)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
+    regex = /"([^"]*)"/
+    search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
     series_results = Series.search_box("/#{universe} " + search_string, limit: 10)
 
     results = []
@@ -1298,7 +1300,7 @@ class Series < ApplicationRecord
     end
 
     if universe == 'UHERO'
-      aremos_desc_where = ''#####################################################search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
+      aremos_desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
       AremosSeries.where(aremos_desc_where).limit(10).each do |as|
         s = as.name.ts
         results.push({ name: as.name, series_id: (s.nil? ? 'no series' : s.id), description: as.description })
