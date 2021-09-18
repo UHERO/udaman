@@ -15,16 +15,14 @@ class AremosSeries < ApplicationRecord
     end
 
     def AremosSeries.search(search)      
-      search_condition = '%' + search + '%'
-      where('name LIKE ? OR description LIKE ?', search_condition, search_condition).order :name
+      where('name regexp ? or description regexp ?', search, search).order(:name)
     end
     
     def AremosSeries.web_search(search)
       results = self.search(search)
       results.map do |as| 
         series = as.name.ts
-        series_id = series.nil? ? nil : series.id
-        { :name => as.name, :description => as.description, :series_id => series_id }
+        { :name => as.name, :description => as.description, :series_id => series && series.id }
       end
       
     end
