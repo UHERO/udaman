@@ -19,10 +19,9 @@ class AremosSeries < ApplicationRecord
     end
     
     def AremosSeries.web_search(search)
-      results = self.search(search)
-      results.map do |as| 
+      search(search).map do |as|
         series = as.name.ts
-        { :name => as.name, :description => as.description, :series_id => series && series.id }
+        { name: as.name, description: as.description, series_id: series && series.id }
       end
       
     end
