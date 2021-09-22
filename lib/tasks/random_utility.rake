@@ -6,10 +6,11 @@
 task :ua_1468 => :environment do
   Measurement.where(universe: 'UHERO').order(:prefix).each do |m|
     next if m.data_lists.empty?  ## not in UHERO DP
-    dl_next = false
+    dl_next = true
     m.data_lists.each do |dl|
-      if dl.category.nil?
-        dl_next = true
+      if Category.find_by(universe: 'UHERO', data_list_id: dl.id)
+        dl_next = false
+        break
       end
     end
     next if dl_next
