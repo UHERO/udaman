@@ -80,7 +80,7 @@ class User < ApplicationRecord
       Rails.logger.warn { 'Rails file cache CLEARED' }
       'Reset done'
     when 'clear'
-      series.each {|s| s.enabled_data_sources.each {|ld| ld.delete_data_points } }
+      series.each {|s| s.delete_data_points }
       'Data points cleared'
     when 'restrict'
       series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()

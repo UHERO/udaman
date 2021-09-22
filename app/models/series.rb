@@ -1284,38 +1284,24 @@ class Series < ApplicationRecord
     all.distinct.where(conditions.join(' and '), *bindvars).limit(limit).sort_by(&:name)
   end
 
-  ##
-  ##  The search part of this method implementation ought to be replaced by a call to Series.search_box()
-  ##
-  def Series.web_search(search_string, universe, num_results = 10)
+  def Series.web_search(search_string, universe)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
-    regex = /"([^"]*)"/
-    search_parts = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
-    u = search_parts.select {|s| s =~ /^\// }.shift
-    if u  ## universe explicitly supplied in search box
-      search_parts.delete(u)
-      u = u[1..]  ## chop off first / char
-      universe = { 'u' => 'UHERO', 'db' => 'DBEDT' }[u] || u
-    end
-    name_where = search_parts.map {|s| "name LIKE '%#{s}%'" }.join(' AND ')
-    desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
-    dpn_where = search_parts.map {|s| "dataPortalName LIKE '%#{s}%'" }.join(' AND ')
-    where_clause = "((#{name_where}) OR (#{desc_where}) OR (#{dpn_where}))"
-
-    series_results = Series.get_all_universe(universe).where(where_clause).limit(num_results)
+    series_results = Series.search_box("/#{universe} " + search_string, limit: 10)
 
     results = []
     series_results.each do |s|
       description = s.description ||
                     (AremosSeries.get(s.name).description rescue nil) ||
                     'no aremos series'
-      results.push({ :name => s.name, :series_id => s.id, :description => description})
+      results.push({ name: s.name, series_id: s.id, description: description})
     end
 
     if universe == 'UHERO'
-      aremos_desc_where = search_parts.map {|s| "description LIKE '%#{s}%'" }.join(' AND ')
-      AremosSeries.where(aremos_desc_where).limit(num_results).each do |as|
+      regex = /"([^"]*)"/
+      search_terms = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
+      conditions = [%q{coalesce(description,'') regexp ?}] * search_terms.count
+      AremosSeries.where(conditions.join(' and '), *search_terms).limit(10).each do |as|
         s = as.name.ts
         results.push({ name: as.name, series_id: (s.nil? ? 'no series' : s.id), description: as.description })
       end
