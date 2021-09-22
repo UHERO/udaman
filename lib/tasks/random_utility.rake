@@ -14,14 +14,17 @@ task :ua_1468 => :environment do
       end
     end
     next if dl_next
+    print m.prefix, ": "
     series = m.series.to_a
     s0 = series.pop || next
+    result = ""
     series.each do |s|
       if (s0.source_link && s.source_link.nil?) || (s0.source_link.nil? && s.source_link)
-        puts m.prefix
+        result = "mixed"
         break
       end
     end
+    puts result
   end
 end
 
