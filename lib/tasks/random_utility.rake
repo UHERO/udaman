@@ -11,6 +11,7 @@ task :ua_1468 => :environment do
     series.each do |s|
       if (s0.source_link && s.source_link.nil?) || (s0.source_link.nil? && s.source_link)
         puts m
+        break
       end
     end
   end
