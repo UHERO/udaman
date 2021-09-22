@@ -3,6 +3,19 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :ua_1468 => :environment do
+  Measurement.where(universe: 'UHERO').each do |m|
+    next if m.data_lists.empty?  ## not in UHERO DP
+    series = m.series
+    s0 = series.pop || next
+    series.each do |s|
+      if (s0.source_link && s.source_link.nil?) || (s0.source_link.nil? && s.source_link)
+        puts m
+      end
+    end
+  end
+end
+
 task :find_bad_aggregations => :environment do
   dict = {}
   Series.search_box('#aggreg').each do |s|
