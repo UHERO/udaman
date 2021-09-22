@@ -4,8 +4,15 @@
 =end
 
 task :ua_1468 => :environment do
-  Measurement.where(universe: 'UHERO').each do |m|
+  Measurement.where(universe: 'UHERO').order(:prefix).each do |m|
     next if m.data_lists.empty?  ## not in UHERO DP
+    dl_next = false
+    m.data_lists.each do |dl|
+      if dl.category.nil?
+        dl_next = true
+      end
+    end
+    next if dl_next
     series = m.series.to_a
     s0 = series.pop || next
     series.each do |s|
