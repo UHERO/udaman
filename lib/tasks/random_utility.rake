@@ -18,7 +18,7 @@ task :ua_1468 => :environment do
     s0 = series.pop || next
     series.each do |s|
       if (s0.source_link && s.source_link.nil?) || (s0.source_link.nil? && s.source_link)
-        puts m
+        puts m.prefix
         break
       end
     end
