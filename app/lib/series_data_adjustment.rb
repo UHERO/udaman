@@ -101,23 +101,4 @@ module SeriesDataAdjustment
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
-  def shift_by_months(num_months)
-    shift_by(num_months.months)
-  end
-
-  def shift_by_years(num_years)
-    shift_by(num_years.years)
-  end
-
-  def shift_forward_months(num_months)
-    shift_by(num_months.months)
-  end
-
-  def shift_backward_months(num_months)
-    shift_by(-num_months.months)
-  end
-  
-  def shift_forward_years(num_years)
-    shift_by(num_years.years)
-  end
 end

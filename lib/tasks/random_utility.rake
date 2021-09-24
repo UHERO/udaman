@@ -3,6 +3,16 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :fix_backward_shifts => :environment do
+  Series.search_box('#shift_backward_months').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.eval =~ /shift_backward_months/
+      ld.update!(eval: ld.eval.gsub(/shift_backward_months\((-?\d+)\)/,
+                                    'shift_by(%s%d.months)' % [$1.to_i < 0 ? '+' : '-', $1.to_i.abs] ))
+    end
+  end
+end
+
 task :ua_1468 => :environment do
   Measurement.where(universe: 'UHERO').order(:prefix).each do |m|
     next if m.data_lists.empty?  ## not in UHERO DP

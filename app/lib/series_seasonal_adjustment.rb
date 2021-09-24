@@ -21,7 +21,7 @@ module SeriesSeasonalAdjustment
 
   def apply_ns_growth_rate_sa
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
-    shifted_self = self.shift_forward_years(1)
+    shifted_self = self.shift_by(+1.year)
     adjusted_series = {}
 
     ns_series.data.sort.each do |date, value|
