@@ -1272,7 +1272,7 @@ class Series < ApplicationRecord
           univ = nil  ## disable setting of the universe - not wanted for direct ID number access
           break
         else
-          ## a "bare" text string
+          ## a "bareword" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           bindvars.push term.sub(/^["']/, '').gsub(',', '|')   ## remove any quoting operator, and handle alternatives separated by comma
       end
