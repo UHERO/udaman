@@ -160,11 +160,11 @@ module SeriesHelper
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if current_user.admin_user? && series.is_primary? && alt_univs[series.universe]
+    if series.is_primary? && alt_univs[series.universe] && current_user.admin_user?
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to(univ_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
+        links.push link_to(univ_gray_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
       end
     end
     links.join(' ')
@@ -174,7 +174,7 @@ module SeriesHelper
     series.is_primary? ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
   end
 
-  def univ_create_label(text)
+  def univ_gray_create_label(text)
     "<span class='grayedout'>[#{text}]</span>".html_safe
   end
 
