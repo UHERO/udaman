@@ -139,7 +139,7 @@ class SeriesController < ApplicationController
   def meta_update
     @meta_update = true
     @all_series = current_user.series.reload.sort_by(&:name)
-    @series = Series.new(universe: 'UHERO', xseries: Xseries.new)
+    @series = Series.new(universe: 'UHERO', name: 'Metadata update', xseries: Xseries.new)
     set_attrib_resource_values(@series)
   end
 
