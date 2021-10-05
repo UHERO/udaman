@@ -143,6 +143,17 @@ class SeriesController < ApplicationController
     set_attrib_resource_values(@series)
   end
 
+  def meta_store
+    fields = series_params[:field_boxes].dup
+    unless fields && fields.count > 0
+      redirect_to({ action: :meta_update }, notice: 'No fields were specified for metadata propagation')
+      return
+    end
+    new_properties = fields.map {|f| [f, series_params[f.to_sym] ]}.to_h
+    current_user.series.reload.each {|s| s.update_attributes!(new_properties) }
+    redirect_to action: :clipboard
+  end
+
   def index
     if current_user.fsonly?
       redirect_to controller: :forecast_snapshots, action: :index

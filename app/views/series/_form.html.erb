@@ -1,4 +1,8 @@
-<%= form_for(@series) do |f| %>
+<%
+  form_spec = { model: @series }
+  form_spec.merge!({ url: { action: :meta_store }}) if @meta_update
+%>
+<%= form_with(form_spec) do |f| %>
     <% if @series.errors.any? %>
         <div id="error_explanation">
           <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>
@@ -20,12 +24,12 @@
       </div>
     <% end %>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[dataPortalName]', 1, false) %><% end %>
+      <% if @meta_update %><%= check_box_tag('field_boxes[dataPortalName]') %><% end %>
       <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
       <%= f.text_field :dataPortalName, :size => 80 %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[description]', 1, false) %><% end %>
+      <% if @meta_update %><%= check_box_tag('field_boxes[description]') %><% end %>
       <%= f.label :description %><br/>
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
     </div>
@@ -50,9 +54,9 @@
       <%= f.text_area :investigation_notes %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[decimals]', 1, false) %><% end %>
+      <% if @meta_update %><%= check_box_tag('field_boxes[decimals]') %><% end %>
       <%= f.label :decimals %>
-      <%= f.number_field :decimals, :size => 1 %>
+      <%= f.number_field :decimals, size: 3 %>
     </div>
     <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
@@ -65,7 +69,7 @@
             <%= xf.check_box :real %> (prevents adjustment for inflation)
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[seasonal_adjustment]', 1, false) %><% end %>
+            <% if @meta_update %><%= check_box_tag('field_boxes[seasonal_adjustment]') %><% end %>
             <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
             <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
           </div>
@@ -74,7 +78,7 @@
             <%= xf.text_field :units %>
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[frequency_transform]', 1, false) %><% end %>
+            <% if @meta_update %><%= check_box_tag('field_boxes[frequency_transform]') %><% end %>
             <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
             <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
           </div>

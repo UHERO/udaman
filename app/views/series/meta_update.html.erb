@@ -1,7 +1,10 @@
 <h1>Updating clipboard series metadata</h1>
 
+<p>Click on checkboxes next to fields that you wish to propagate to all series on the clipboard. Unchecked fields are ignored.</p>
+
 <%= render 'form' %>
 
 <div id="details_area">
+    <h4 style="text-align:center;">Clipboard contents</h4>
     <%= render partial: 'list_series', locals: { all_series: @all_series } %>
 </div>
