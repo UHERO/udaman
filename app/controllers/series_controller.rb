@@ -305,7 +305,7 @@ class SeriesController < ApplicationController
 
   def transform
     eval_string = params[:eval].gsub(/([+*\/()-])/, ' \1 ').strip  ## puts spaces around operators and parens
-    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? "'#{e}'.ts" : e }.join(' ')
+    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? %Q{"#{e}".ts} : e }.join(' ')
     @series = (Kernel::eval eval_statement) rescue nil
     unless @series
      redirect_to action: :index
