@@ -44,14 +44,17 @@
       <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
+      <% if @meta_update %><%= check_box_tag('field_boxes[source_link]') %><% end %>
       <%= f.label :source_link, 'Source link (web link more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
       <%= f.text_field :source_link, :size => 80 %>
     </div>
     <div class="field">
+      <% if @meta_update %><%= check_box_tag('field_boxes[source_detail_id]') %><% end %>
       <%= f.label :source_detail_id %><br>
       <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
+      <% if @meta_update %><%= check_box_tag('field_boxes[investigation_notes]') %><% end %>
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
@@ -63,10 +66,12 @@
     <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
+            <% if @meta_update %><%= check_box_tag('field_boxes[percent]') %><% end %>
             <%= xf.label :percent, 'Percent' %>
             <%= xf.check_box :percent %> (prevents calculation of growth rate)
           </div>
           <div class="field">
+            <% if @meta_update %><%= check_box_tag('field_boxes[real]') %><% end %>
             <%= xf.label :real, 'Real' %>
             <%= xf.check_box :real %> (prevents adjustment for inflation)
           </div>
@@ -76,6 +81,7 @@
             <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
           </div>
           <div class="field">
+            <% if @meta_update %><%= check_box_tag('field_boxes[units]') %><% end %>
             <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
             <%= xf.text_field :units %>
           </div>
@@ -85,6 +91,7 @@
             <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
           </div>
           <div class="field">
+            <% if @meta_update %><%= check_box_tag('field_boxes[restricted]') %><% end %>
             <%= xf.label :restricted, 'Restricted' %>
             <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
           </div>
