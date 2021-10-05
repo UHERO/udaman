@@ -144,12 +144,12 @@ class SeriesController < ApplicationController
   end
 
   def meta_store
-    fields = series_params[:field_boxes].dup
-    unless fields && fields.count > 0
+    fields = field_params.to_h.keys.map(&:to_sym)
+    unless fields.count > 0
       redirect_to({ action: :meta_update }, notice: 'No fields were specified for metadata propagation')
       return
     end
-    new_properties = fields.map {|f| [f, series_params[f.to_sym] ]}.to_h
+    new_properties = fields.map {|f| [f, series_params[f] ]}.to_h
     current_user.series.reload.each {|s| s.update_attributes!(new_properties) }
     redirect_to action: :clipboard
   end
@@ -370,6 +370,10 @@ private
 
   def bulk_params
     params.require(:bulk_defs).permit(:definitions)
+  end
+
+  def field_params
+    params.require(:field_boxes).permit(Series.attribute_names.map(&:to_sym))
   end
 
   def forecast_upload_params
