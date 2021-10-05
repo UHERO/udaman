@@ -1,6 +1,6 @@
 <%
   form_spec = { model: @series }
-  form_spec.merge!({ url: { action: :meta_store }}) if @meta_update
+  form_spec.merge!(url: { action: :meta_store }) if @meta_update
 %>
 <%= form_with(form_spec) do |f| %>
     <% if @series.errors.any? %>
