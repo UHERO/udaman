@@ -138,7 +138,8 @@ class SeriesController < ApplicationController
 
   def meta_update
     @meta_update = true
-    @series = Series.new
+    @series = Series.new(universe: 'UHERO', xseries: Xseries.new)
+    set_attrib_resource_values(@series)
   end
 
   def index
