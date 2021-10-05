@@ -149,7 +149,7 @@ class SeriesController < ApplicationController
       redirect_to({ action: :meta_update }, notice: 'No fields were specified for metadata propagation')
       return
     end
-    new_properties = fields.map {|f| [f, series_params[f] ]}.to_h
+    new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
     current_user.series.reload.each {|s| s.update_attributes!(new_properties) }
     redirect_to action: :clipboard
   end
