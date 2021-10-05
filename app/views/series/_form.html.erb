@@ -34,10 +34,12 @@
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
     </div>
     <div class="field">
+      <% if @meta_update %><%= check_box_tag('field_boxes[unit_id]') %><% end %>
       <%= f.label :unit_id %><br>
       <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
     <div class="field">
+      <% if @meta_update %><%= check_box_tag('field_boxes[source_id]') %><% end %>
       <%= f.label :source_id %><br>
       <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
     </div>
