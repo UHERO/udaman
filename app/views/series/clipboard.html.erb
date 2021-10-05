@@ -16,6 +16,7 @@
           <option value="metacsv">Download metadata csv</option>
           <option value="datacsv">Download data csv</option>
           <% if current_user.admin_user? %>
+            <option value="meta_update">Metadata update</option>
             <option value="reload">Batch reload with deps</option>
             <option value="reset">Reset all downloads</option>
             <option value="restrict">Restrict series</option>

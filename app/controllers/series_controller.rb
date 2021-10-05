@@ -123,6 +123,10 @@ class SeriesController < ApplicationController
       redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
+    if params[:clip_action] == 'meta_update'
+      redirect_to action: :meta_update
+      return
+    end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
@@ -130,6 +134,10 @@ class SeriesController < ApplicationController
   def group_export
     @type = params[:type]
     @all_series = current_user.series.sort_by(&:name)
+  end
+
+  def meta_update
+    @meta_update = true
   end
 
   def index
@@ -335,6 +343,7 @@ private
           :source_detail_id,
           :investigation_notes,
           :decimals,
+          :field_boxes,
           xseries_attributes: [
               :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
