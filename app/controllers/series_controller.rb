@@ -6,7 +6,7 @@ class SeriesController < ApplicationController
   before_action :set_series,
         only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
                :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart,
-               :render_data_points, :update_notes, :meta_update]
+               :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
