@@ -11,7 +11,7 @@
         </div>
     <% end %>
 
-    <% if request.path !~ /edit/ %>
+    <% if request.path !~ /edit|meta_update/ %>
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
@@ -90,7 +90,11 @@
     <div class="actions">
       <%= f.hidden_field :universe %>
       <%= hidden_field_tag(:add2meas, @add2meas) %>
-      <%= f.submit %>
+      <% if @meta_update %>
+        <%= f.submit 'Update metadata' %>
+      <% else %>
+        <%= f.submit %>
+      <% end %>
       <%= link_to 'Cancel', :back %>
     </div>
 <% end %>

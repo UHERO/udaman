@@ -1,3 +1,7 @@
-<h1>Updating clipboard series</h1>
+<h1>Updating clipboard series metadata</h1>
 
 <%= render 'form' %>
+
+<div id="details_area">
+    <%= render partial: 'list_series', locals: { all_series: @all_series } %>
+</div>
