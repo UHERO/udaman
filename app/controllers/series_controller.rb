@@ -373,7 +373,8 @@ private
   end
 
   def field_params
-    params.require(:field_boxes).permit(Series.attribute_names.map(&:to_sym))
+    all_attribs = Series.attribute_names + Xseries.attribute_names
+    params.require(:field_boxes).permit(all_attribs.map(&:to_sym))
   end
 
   def forecast_upload_params
