@@ -59,26 +59,27 @@ class SeriesController < ApplicationController
     @series = @series.create_alias(series_params)
     mid = params[:add2meas].to_i
     if mid > 0
-      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
     else
       redirect_to @series, notice: 'Alias series successfully created'
     end
   end
 
   def update
-    respond_to do |format|
-      if @series.update! series_params
-        mid = params[:add2meas].to_i
-        if mid > 0
-          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
-          return
-        end
+    begin
+      @series.update!(series_params)
+      mid = params[:add2meas].to_i
+      if mid > 0
+        redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
+        return
+      end
+      respond_to do |format|
         format.html { redirect_to(@series, notice: 'Series successfully updated') }
         format.xml  { head :ok }
-      else
-        format.html { render action: :edit }
-        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
       end
+    rescue => e
+      redirect_to({ action: :edit }, notice: e.message)
+      return
     end
   end
 
@@ -123,6 +124,10 @@ class SeriesController < ApplicationController
       redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
+    if params[:clip_action] == 'meta_update'
+      redirect_to action: :meta_update
+      return
+    end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
@@ -130,6 +135,24 @@ class SeriesController < ApplicationController
   def group_export
     @type = params[:type]
     @all_series = current_user.series.sort_by(&:name)
+  end
+
+  def meta_update
+    @meta_update = true
+    @all_series = current_user.series.reload.sort_by(&:name)
+    @series = Series.new(universe: 'UHERO', name: 'Metadata update', xseries: Xseries.new)
+    set_attrib_resource_values(@series)
+  end
+
+  def meta_store
+    fields = field_params.to_h.keys.map(&:to_sym)
+    unless fields.count > 0
+      redirect_to({ action: :meta_update }, notice: 'No fields were specified for metadata propagation')
+      return
+    end
+    new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
+    current_user.series.reload.each {|s| s.update_attributes!(new_properties) }
+    redirect_to action: :clipboard
   end
 
   def index
@@ -297,7 +320,7 @@ class SeriesController < ApplicationController
 
   def transform
     eval_string = params[:eval].gsub(/([+*\/()-])/, ' \1 ').strip  ## puts spaces around operators and parens
-    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? "'#{e}'.ts" : e }.join(' ')
+    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? %Q{"#{e}".ts} : e }.join(' ')
     @series = (Kernel::eval eval_statement) rescue nil
     unless @series
      redirect_to action: :index
@@ -340,6 +363,7 @@ private
           :source_detail_id,
           :investigation_notes,
           :decimals,
+          :fields_selected,
           xseries_attributes: [
               :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
@@ -352,6 +376,11 @@ private
 
   def bulk_params
     params.require(:bulk_defs).permit(:definitions)
+  end
+
+  def field_params
+    all_attribs = Series.attribute_names + Xseries.attribute_names
+    params.require(:fields_selected).permit(all_attribs.map(&:to_sym))
   end
 
   def forecast_upload_params

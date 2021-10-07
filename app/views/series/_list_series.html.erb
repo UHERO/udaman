@@ -22,7 +22,7 @@
       <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
       <td><%= DataPoint.where(xseries_id: series.xseries_id).minimum(:date) %></td>
       <td><%= DataPoint.where(xseries_id: series.xseries_id).maximum(:date) %></td>
-      <td><%= series.source && link_to(series.source.description, '/series/search?search_string=%3bsrc=%d' % series.source.id) %></td>
+      <td><%= series.source && link_to(series.source.description, '/series/search?search_string=%%3bsrc=%d' % series.source.id) %></td>
     </tr>
   <% end %>
   </tbody>

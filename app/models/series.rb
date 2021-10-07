@@ -1415,8 +1415,7 @@ class Series < ApplicationRecord
     return true if universe == 'FC'  ## don't enforce for forecast series
     return true if scratch == 90909  ## being destroyed - no need for validation
     return true unless dataPortalName.blank? && description.blank?
-    errors.add('Cannot save a Series without Data Portal Name and/or Description')
-    false
+    raise('Cannot save a Series without Data Portal Name and/or Description')
   end
 
   def force_destroy!
