@@ -24,74 +24,74 @@
       </div>
     <% end %>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[dataPortalName]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[dataPortalName]') %><% end %>
       <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
       <%= f.text_field :dataPortalName, :size => 80 %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[description]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[description]') %><% end %>
       <%= f.label :description %><br/>
       <%= f.text_area :description, :rows => 5, :cols => 60 %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[unit_id]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[unit_id]') %><% end %>
       <%= f.label :unit_id %><br>
       <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[source_id]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[source_id]') %><% end %>
       <%= f.label :source_id %><br>
       <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[source_link]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[source_link]') %><% end %>
       <%= f.label :source_link, 'Source link (web link more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
       <%= f.text_field :source_link, :size => 80 %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[source_detail_id]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[source_detail_id]') %><% end %>
       <%= f.label :source_detail_id %><br>
       <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[investigation_notes]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[investigation_notes]') %><% end %>
       <%= f.label :investigation_notes %><br/>
       <%= f.text_area :investigation_notes %>
     </div>
     <div class="field">
-      <% if @meta_update %><%= check_box_tag('field_boxes[decimals]') %><% end %>
+      <% if @meta_update %><%= check_box_tag('fields_selected[decimals]') %><% end %>
       <%= f.label :decimals %>
       <%= f.number_field :decimals, size: 3 %>
     </div>
     <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[percent]') %><% end %>
+            <% if @meta_update %><%= check_box_tag('fields_selected[percent]') %><% end %>
             <%= xf.label :percent, 'Percent' %>
             <%= xf.check_box :percent %> (prevents calculation of growth rate)
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[real]') %><% end %>
+            <% if @meta_update %><%= check_box_tag('fields_selected[real]') %><% end %>
             <%= xf.label :real, 'Real' %>
             <%= xf.check_box :real %> (prevents adjustment for inflation)
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[seasonal_adjustment]') %><% end %>
+            <% if @meta_update %><%= check_box_tag('fields_selected[seasonal_adjustment]') %><% end %>
             <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
             <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[units]') %><% end %>
+            <% if @meta_update %><%= check_box_tag('fields_selected[units]') %><% end %>
             <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
             <%= xf.text_field :units %>
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[frequency_transform]') %><% end %>
+            <% if @meta_update %><%= check_box_tag('fields_selected[frequency_transform]') %><% end %>
             <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
             <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('field_boxes[restricted]') %><% end %>
+            <% if @meta_update %><%= check_box_tag('fields_selected[restricted]') %><% end %>
             <%= xf.label :restricted, 'Restricted' %>
             <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
           </div>

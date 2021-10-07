@@ -357,7 +357,7 @@ private
           :source_detail_id,
           :investigation_notes,
           :decimals,
-          :field_boxes,
+          :fields_selected,
           xseries_attributes: [
               :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
@@ -374,7 +374,7 @@ private
 
   def field_params
     all_attribs = Series.attribute_names + Xseries.attribute_names
-    params.require(:field_boxes).permit(all_attribs.map(&:to_sym))
+    params.require(:fields_selected).permit(all_attribs.map(&:to_sym))
   end
 
   def forecast_upload_params
