@@ -59,26 +59,25 @@ class SeriesController < ApplicationController
     @series = @series.create_alias(series_params)
     mid = params[:add2meas].to_i
     if mid > 0
-      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
     else
       redirect_to @series, notice: 'Alias series successfully created'
     end
   end
 
   def update
-    respond_to do |format|
-      if @series.update! series_params
-        mid = params[:add2meas].to_i
-        if mid > 0
-          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
-          return
-        end
-        format.html { redirect_to(@series, notice: 'Series successfully updated') }
-        format.xml  { head :ok }
-      else
-        format.html { render action: :edit }
-        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
+    begin
+      @series.update!(series_params)
+      mid = params[:add2meas].to_i
+      if mid > 0
+        redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
+        return
       end
+      format.html { redirect_to(@series, notice: 'Series successfully updated') }
+      format.xml  { head :ok }
+    rescue => e
+      redirect_to({ action: :edit }, notice: e.message)
+      return
     end
   end
 
