@@ -73,8 +73,10 @@ class SeriesController < ApplicationController
         redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
         return
       end
-      format.html { redirect_to(@series, notice: 'Series successfully updated') }
-      format.xml  { head :ok }
+      respond_to do |format|
+        format.html { redirect_to(@series, notice: 'Series successfully updated') }
+        format.xml  { head :ok }
+      end
     rescue => e
       redirect_to({ action: :edit }, notice: e.message)
       return
