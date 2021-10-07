@@ -61,7 +61,8 @@ Rails.application.routes.draw do
   get 'series/forecast_upload', to: 'series#forecast_upload'
   post 'series/forecast_upload', to: 'series#forecast_do_upload'
   get 'series/quarantine', to: 'series#quarantine'
-  get 'series/old_bea_download', to: 'series#old_bea_download'
+  get 'series/meta_update', to: 'series#meta_update'
+  post 'series/meta_store', to: 'series#meta_store'
 
   get 'clip' => 'series#clipboard'
   get 'series/add_clip', to: 'series#add_clip'

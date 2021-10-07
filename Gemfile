@@ -30,7 +30,7 @@ gem 'whenever'
 gem 'mechanize', '>= 2.7.5'
 gem 'net-sftp'
 gem 'dalli', '~> 2.7'
-gem 'rails-assets-select2', '~> 4.0.5', source: 'https://rails-assets.org'
+gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.org'
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1.1', '>= 3.1.5'
 gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
@@ -44,7 +44,7 @@ gem 'jquery-ui-rails', '~> 6.0.1'
 gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
-gem 'nokogiri', '~> 1.11'
+gem 'nokogiri', '~> 1.12'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'
