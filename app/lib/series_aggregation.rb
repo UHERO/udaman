@@ -14,8 +14,11 @@ module SeriesAggregation
     aggregated_data
   end
 
-  def aggregate(frequency, operation, prune: true)
-    new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation, prune: prune), frequency)
+  def aggregate(frequency, operation = frequency_transform, prune: true)
+    if frequency_transform && frequency_transform != operation.to_s
+      raise 'Aggregation method provided in call does not match that specified in source series frequency transform'
+    end
+    new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation.to_sym, prune: prune), frequency)
   end
 
   def aggregate_by(frequency, operation, prune: true)
@@ -27,7 +30,7 @@ module SeriesAggregation
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
 
     grouped_data = {}
-    data.keys.each do |date|
+    data.keys.sort.each do |date|
       value = self.at(date) || next
       agg_date = date.send(agg_date_method)
       grouped_data[agg_date] ||= AggregatingArray.new

@@ -1,13 +1,9 @@
 class AggregatingArray < Array
-  def sum
-    returnvalue = 0
-    self.each do |value|
-      returnvalue += value
-    end
-    returnvalue
-  end
-  def average
-     self.sum / self.count.to_f
-  end  
-end
 
+  ## sum() and average() methods are already provided by (i.e. inherited from) Array
+
+  def last
+    self[-1]
+  end
+
+end
