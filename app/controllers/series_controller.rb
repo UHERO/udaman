@@ -124,6 +124,10 @@ class SeriesController < ApplicationController
       redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
+    if params[:clip_action] == 'datatsd'
+      redirect_to action: :group_export, type: params[:clip_action], format: :txt, layout: false
+      return
+    end
     if params[:clip_action] == 'meta_update'
       redirect_to action: :meta_update
       return

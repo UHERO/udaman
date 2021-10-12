@@ -24,6 +24,7 @@ module SeriesHelper
     case type
       when 'metacsv' then series_meta_csv_gen(series)
       when 'datacsv' then series_data_csv_gen(series)
+      when 'datatsd' then series_data_tsd_gen(series)
       else raise("series_group_export: unknown type #{type}")
     end
   end
@@ -51,6 +52,10 @@ module SeriesHelper
         csv << [date] + series_set.map {|s| s.at(date) }
       end
     end
+  end
+
+  def series_data_tsd_gen(series_set)
+    series_set.each {|s| puts s.tsd_string rescue nil }
   end
 
   def google_charts_data_table
