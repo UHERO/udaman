@@ -55,7 +55,9 @@ module SeriesHelper
   end
 
   def series_data_tsd_gen(series_set)
-    series_set.each {|s| puts s.tsd_string rescue nil }
+    output = ''
+    series_set.each {|s| output += s.tsd_string rescue nil }
+    output
   end
 
   def google_charts_data_table

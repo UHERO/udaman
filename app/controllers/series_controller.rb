@@ -125,7 +125,7 @@ class SeriesController < ApplicationController
       return
     end
     if params[:clip_action] == 'datatsd'
-      redirect_to action: :group_export, type: params[:clip_action], format: :txt, layout: false
+      redirect_to action: :group_export, type: params[:clip_action], format: :text, layout: false
       return
     end
     if params[:clip_action] == 'meta_update'
