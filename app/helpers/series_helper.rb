@@ -60,7 +60,7 @@ module SeriesHelper
       begin
         output += s.tsd_string
       rescue => e
-        Rail.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
+        Rails.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
       end
     end
     output
