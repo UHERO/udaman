@@ -6,9 +6,10 @@
 task :fix_backward_shifts => :environment do
   Series.search_box('#shift_backward_months').each do |s|
     s.data_sources.each do |ld|
-      next unless ld.eval =~ /shift_backward_months/
+      next unless ld.eval =~ /shift_backward_months\((-?\d+)\)/
+      num = $1.to_i
       ld.update!(eval: ld.eval.gsub(/shift_backward_months\((-?\d+)\)/,
-                                    'shift_by(%s%d.months)' % [$1.to_i < 0 ? '+' : '-', $1.to_i.abs] ))
+                                    'shift_by(%s%d.months)' % [num < 0 ? '+' : '-', num.abs] ))
     end
   end
 end
