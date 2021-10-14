@@ -3,7 +3,7 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
-task :fix_backward_shifts => :environment do
+task :ua_1472_fix_backward_shifts => :environment do
   Series.search_box('#shift_backward_months').each do |s|
     s.data_sources.each do |ld|
       while ld.eval =~ /shift_backward_months\((-?\d+)\)/
