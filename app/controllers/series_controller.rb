@@ -124,6 +124,10 @@ class SeriesController < ApplicationController
       redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
+    if params[:clip_action] == 'datatsd'
+      redirect_to action: :group_export, type: params[:clip_action], format: :tsd, layout: false
+      return
+    end
     if params[:clip_action] == 'meta_update'
       redirect_to action: :meta_update
       return
@@ -334,6 +338,11 @@ class SeriesController < ApplicationController
   end
   
   def analyze
+    @chg = @series.annualized_percentage_change
+    @as = AremosSeries.get @series.name
+    @desc = @as.nil? ? "No Aremos Series" : @as.description
+    @lvl_chg = @series.absolute_change
+    @ytd = @series.ytd_percentage_change
   end
   
   def render_data_points
