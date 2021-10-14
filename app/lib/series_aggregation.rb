@@ -22,10 +22,6 @@ module SeriesAggregation
     new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation.to_sym, prune: prune), frequency)
   end
 
-  def aggregate_by(frequency, operation = frequency_transform, prune: true)
-    aggregate(frequency, operation, prune: prune)
-  end
-  
   def group_data_by(frequency, prune: true)
     validate_aggregation(frequency)
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
