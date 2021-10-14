@@ -17,7 +17,7 @@ module SeriesAggregation
   def aggregate(frequency, operation = frequency_transform, prune: true)
     raise 'No method specified for aggregate' unless operation
     if frequency_transform && frequency_transform != operation.to_s
-      raise 'Aggregation method provided in call does not match that specified in source series frequency transform'
+      raise "Aggregation method #{operation} does not match that specified in source series frequency transform"
     end
     new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation.to_sym, prune: prune), frequency)
   end
