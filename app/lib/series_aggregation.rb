@@ -22,7 +22,7 @@ module SeriesAggregation
     new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation.to_sym, prune: prune), frequency)
   end
 
-  def aggregate_by(frequency, operation, prune: true)
+  def aggregate_by(frequency, operation = frequency_transform, prune: true)
     aggregate(frequency, operation, prune: prune)
   end
   
