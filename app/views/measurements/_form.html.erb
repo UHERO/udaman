@@ -41,7 +41,7 @@
   </div>
   <div class="field">
     <%= f.label :source_detail_id %><br>
-    <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {include_blank: true, class: 'wrappable'} %>
   </div>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>

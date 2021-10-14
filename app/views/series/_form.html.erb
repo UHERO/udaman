@@ -51,7 +51,7 @@
     <div class="field">
       <% if @meta_update %><%= check_box_tag('fields_selected[source_detail_id]') %><% end %>
       <%= f.label :source_detail_id %><br>
-      <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {:include_blank => true} %>
+      <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {include_blank: true, class: 'wrappable'} %>
     </div>
     <div class="field">
       <% if @meta_update %><%= check_box_tag('fields_selected[investigation_notes]') %><% end %>

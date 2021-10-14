@@ -40,11 +40,11 @@ class Date
   end
   
   def quarter_s
-    '%s-%02d-01' % [self.year, first_month_of_quarter(quarter_by_month(self.mon))]
+    quarter_d.to_s
   end
 
   def quarter_d
-    Date.parse(quarter_s)
+    Date.new(self.year, first_month_of_quarter(quarter_by_month(self.mon)))
   end
   
   def semi_i

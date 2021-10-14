@@ -21,7 +21,7 @@ module SeriesSeasonalAdjustment
 
   def apply_ns_growth_rate_sa
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
-    shifted_self = self.shift_forward_years(1)
+    shifted_self = self.shift_by(+1.year)
     adjusted_series = {}
 
     ns_series.data.sort.each do |date, value|
@@ -42,13 +42,11 @@ module SeriesSeasonalAdjustment
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
     self.factors ||= {}
 
-    last_demetra_date = (self.frequency == 'quarter' or self.frequency == 'Q') ? self.get_last_complete_4th_quarter : self.get_last_complete_december
+    last_demetra_date = (frequency == 'quarter') ? get_last_complete_4th_quarter : get_last_complete_december
     self.last_demetra_date = last_demetra_date
     last_year_of_sa_values = get_values_after(last_demetra_date - 1.year, last_demetra_date)
     last_year_of_sa_values.sort.each do |date,sa_value|
       ns_value = ns_series.at(date)
-      #puts "#{datestring} - ns:#{ns_value} sa:#{sa_value}"
-      #think can just use months for both months and quarters to keep things simple
       factor_month = date.month
       self.factors[factor_month.to_s] = ns_value - sa_value if factor_application == :additive
       self.factors[factor_month.to_s] = ns_value / sa_value if factor_application == :multiplicative
