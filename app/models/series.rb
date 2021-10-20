@@ -1412,7 +1412,7 @@ class Series < ApplicationRecord
   end
 
   def required_fields
-    return true if universe == 'FC'  ## don't enforce for forecast series
+    return true if universe != 'UHERO' ## only enforce for UHERO series
     return true if scratch == 90909  ## don't enforce if in process of being destroyed
     return true if name =~ /test/i   ## don't enforce if name contains "TEST"
     raise('Cannot save a Series without Data Portal Name') if dataPortalName.blank?
