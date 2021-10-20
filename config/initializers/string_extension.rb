@@ -71,6 +71,13 @@ class String
     self.blank? ? nil : self
   end
 
+  def to_bool
+    case self.downcase
+      when 'false', 'no', '0' then false
+      else true
+    end
+  end
+
   def change_file_extension(ext)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
