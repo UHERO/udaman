@@ -72,8 +72,8 @@ class String
   end
 
   def to_bool
-    case self.downcase
-      when 'false', 'no', '0' then false
+    case self.strip.downcase
+      when 'false', 'no', '0', '' then false
       else true
     end
   end
@@ -93,6 +93,10 @@ end
 class NilClass
   def nil_blank
     nil
+  end
+
+  def to_bool
+    false
   end
 end
 
@@ -168,10 +172,18 @@ class FalseClass
   def to_01
     0
   end
+
+  def to_bool
+    false
+  end
 end
 
 class TrueClass
   def to_01
     1
+  end
+
+  def to_bool
+    true
   end
 end
