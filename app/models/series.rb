@@ -16,8 +16,8 @@ class Series < ApplicationRecord
   extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
+  validate :required_fields
   validate :source_link_is_valid
-  validate :descriptive_text_is_valid
   before_destroy :last_rites, prepend: true
   after_destroy :post_mortem, prepend: true
 
@@ -1411,11 +1411,14 @@ class Series < ApplicationRecord
     source_link.blank? || Series.valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
-  def descriptive_text_is_valid
+  def required_fields
     return true if universe == 'FC'  ## don't enforce for forecast series
-    return true if scratch == 90909  ## being destroyed - no need for validation
-    return true unless dataPortalName.blank? && description.blank?
-    raise('Cannot save a Series without Data Portal Name and/or Description')
+    return true if scratch == 90909  ## don't enforce if in process of being destroyed
+    return true if name =~ /test/i   ## don't enforce if name contains "TEST"
+    raise('Cannot save a Series without Data Portal Name') if dataPortalName.blank?
+    raise('Cannot save a Series without Unit') unless unit
+    raise('Cannot save a Series without Source') unless source
+    true
   end
 
   def force_destroy!
