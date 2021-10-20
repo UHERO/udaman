@@ -3,6 +3,32 @@
     need to worry about any of this - it can be left alone, because it's not part of the production codebase.
 =end
 
+task :ua_1473_fill_blank_DPNs => :environment do
+  dict = {}
+  Series.get_all_uhero.each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    raise "DPN mismatch for indicator #{indicator}" if dict[indicator] && dict[indicator] != indicator
+    dict[indicator] = s.dataPortalName
+  end
+  puts "Finished building dictionary"
+  Series.search_box('&nodpn +9999').each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    if dict[indicator]
+      puts "Updating #{s.name}"
+      s.update!(dataPortalName: dict[indicator])
+    end
+  end
+end
+
+task :ua_1473_turn_off_YC_series => :environment do
+  Series.search_box('^yc +9999').each do |s|
+    s.update!(restricted: true)
+    s.enabled_data_sources.each do |ld|
+      ld.update!(reload_nightly: false)
+    end
+  end
+end
+
 task :ua_1472_fix_backward_shifts => :environment do
   Series.search_box('#shift_backward_months').each do |s|
     s.data_sources.each do |ld|
