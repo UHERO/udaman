@@ -22,8 +22,9 @@ end
 
 task :ua_1473_turn_off_YC_series => :environment do
   Series.search_box('^yc +9999').each do |s|
-    s.update!(restricted: true)
+    s.update!(restricted: true) unless s.restricted?
     s.enabled_data_sources.each do |ld|
+      next unless ld.reload_nightly?
       ld.update!(reload_nightly: false)
     end
   end
