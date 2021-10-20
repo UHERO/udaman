@@ -8,9 +8,9 @@ module SeriesAggregation
     end
     grouped_data = orig_series.group_data_by(frequency, prune: prune)
     aggregated_data = {}
-    grouped_data.keys.each do |date_string|
+    grouped_data.keys.each do |date|
       begin
-        aggregated_data[date_string] = grouped_data[date_string].send(operation)
+        aggregated_data[date] = grouped_data[date].send(operation)
       rescue NoMethodError
         raise "Method #{operation} is not implemented"
       end

@@ -2,6 +2,7 @@
   form_spec = { model: @series }
   form_spec.merge!(url: { action: :meta_store }) if @meta_update
 %>
+<p>* Required fields</p>
 <%= form_with(form_spec) do |f| %>
     <% if @series.errors.any? %>
         <div id="error_explanation">
@@ -25,7 +26,7 @@
     <% end %>
     <div class="field">
       <% if @meta_update %><%= check_box_tag('fields_selected[dataPortalName]') %><% end %>
-      <%= f.label :dataPortalName, 'Data Portal Name' %><br/>
+      <%= f.label :dataPortalName, 'Data Portal Name' %>*<br/>
       <%= f.text_field :dataPortalName, :size => 80 %>
     </div>
     <div class="field">
@@ -35,12 +36,12 @@
     </div>
     <div class="field">
       <% if @meta_update %><%= check_box_tag('fields_selected[unit_id]') %><% end %>
-      <%= f.label :unit_id %><br>
+      <%= f.label :unit_id %>*<br>
       <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
     </div>
     <div class="field">
       <% if @meta_update %><%= check_box_tag('fields_selected[source_id]') %><% end %>
-      <%= f.label :source_id %><br>
+      <%= f.label :source_id %>*<br>
       <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
     </div>
     <div class="field">
@@ -60,40 +61,40 @@
     </div>
     <div class="field">
       <% if @meta_update %><%= check_box_tag('fields_selected[decimals]') %><% end %>
-      <%= f.label :decimals %>
+      <%= f.label :decimals %>*
       <%= f.number_field :decimals, size: 3 %>
     </div>
     <% if @series.is_primary? || @series.id.nil? %>
       <%= f.fields_for :xseries do |xf| %>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[percent]') %><% end %>
-            <%= xf.label :percent, 'Percent' %>
-            <%= xf.check_box :percent %> (prevents calculation of growth rate)
+            <%= xf.label :percent, 'Percent' %>*
+            <%= xf.select :percent, %q{yes no}, { include_blank: true } %> (prevents calculation of growth rate)
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[real]') %><% end %>
             <%= xf.label :real, 'Real' %>
-            <%= xf.check_box :real %> (prevents adjustment for inflation)
+            <%= xf.select :real, %q{yes no}, { include_blank: true } %> (prevents adjustment for inflation)
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[seasonal_adjustment]') %><% end %>
-            <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
-            <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, {:include_blank => true} %>
+            <%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>*
+            <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, { include_blank: true } %>
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[units]') %><% end %>
-            <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
+            <%= xf.label :units, 'Units (1, 10, 1000, etc)' %>*
             <%= xf.text_field :units %>
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[frequency_transform]') %><% end %>
-            <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
+            <%= xf.label :frequency_transform, 'Frequency Transformation Method' %>*
             <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[restricted]') %><% end %>
-            <%= xf.label :restricted, 'Restricted' %>
-            <%= xf.check_box :restricted %> (prevents this series from being visible outside udaman)
+            <%= xf.label :restricted, 'Restricted' %>*
+            <<%= xf.select :restricted, %q{yes no}, { include_blank: true } %> (prevents visibility outside udaman)
           </div>
       <% end %>
     <% elsif @series.has_primary? %>
