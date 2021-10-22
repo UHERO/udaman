@@ -235,10 +235,10 @@ class SeriesController < ApplicationController
     @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
     @version = params[:version] = forecast_upload_params[:version].nil_blank
     @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
-    if @path =~ /(\d\dQ\d+)([FH](\d+|F))(_([ASQM])\b)?/i
+    if @path =~ /(\d\dQ\d+)([FH](\d+|F))(_([ASQM])[^A-Z])?/i
       @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version/freq override
       @version = params[:version] ||= $2.upcase  ## those scraped from the filename
-      @freq = params[:freq] ||= $4.upcase if $4
+      @freq = params[:freq] ||= $5.upcase if $5
     end
     unless @path && @fcid && @version && @freq
       render :forecast_upload
