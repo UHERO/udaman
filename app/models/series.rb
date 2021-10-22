@@ -172,16 +172,12 @@ class Series < ApplicationRecord
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
-    s = Series.new(series_props)  ## temporary ephemeral Series object just for use in validation of Xseries below
+    s = nil
     begin
       self.transaction do
-        begin
-          x = Xseries.create!(xseries_props)
-        rescue SeriesMissingFieldException => e
-          raise(e) unless s.no_enforce_fields?
-        end
-        s = Series.create!(series_props.merge(xseries_id: x.id))
-        x.update(primary_series_id: s.id)
+        x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## temporary ephemeral Series object just for validation
+        s = Series.create!(series_props.merge(xseries: x))
+        x.update(primary_series: s)  ## overwrite placeholder Series
       end
     rescue => e
       raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
