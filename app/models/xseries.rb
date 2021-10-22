@@ -10,14 +10,12 @@ class Xseries < ApplicationRecord
   serialize :factors, Hash
 
   def required_fields
-    return true if primary_series.universe != 'UHERO' ## only enforce for UHERO series
-    return true if primary_series.scratch == 90909  ## don't enforce if in process of being destroyed
-    return true if primary_series.name =~ /test/i   ## don't enforce if name contains "TEST"
-    raise('Cannot save a Series without Percent') if percent.nil?
-    raise('Cannot save a Series without Seasonal Adjustment') if seasonal_adjustment.blank?
-    raise('Cannot save a Series without Units') if units.blank?
-    raise('Cannot save a Series without Frequency Transform') if frequency_transform.blank?
-    raise('Cannot save a Series without Restricted') if restricted.nil?
+    return true if primary_series && primary_series.no_enforce_fields?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Percent') if percent.nil?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Seasonal Adjustment') if seasonal_adjustment.blank?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Units') if units.blank?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Frequency Transform') if frequency_transform.blank?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Restricted') if restricted.nil?
     true
   end
 

@@ -172,10 +172,14 @@ class Series < ApplicationRecord
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
-    s = nil
+    s = Series.new(series_props)  ## temporary ephemeral Series object just for use in validation of Xseries below
     begin
       self.transaction do
-        x = Xseries.create!(xseries_props)
+        begin
+          x = Xseries.create!(xseries_props)
+        rescue SeriesMissingFieldException => e
+          raise(e) unless s.no_enforce_fields?
+        end
         s = Series.create!(series_props.merge(xseries_id: x.id))
         x.update(primary_series_id: s.id)
       end
@@ -1412,14 +1416,19 @@ class Series < ApplicationRecord
   end
 
   def required_fields
+    return true if no_enforce_fields?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Data Portal Name') if dataPortalName.blank?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Unit') if unit_id.blank?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Source') if source_id.blank?
+    raise(SeriesMissingFieldException, 'Cannot save a Series without Decimals') if decimals.blank?
+    true
+  end
+
+  def no_enforce_fields?
     return true if universe != 'UHERO' ## only enforce for UHERO series
     return true if scratch == 90909  ## don't enforce if in process of being destroyed
     return true if name =~ /test/i   ## don't enforce if name contains "TEST"
-    raise('Cannot save a Series without Data Portal Name') if dataPortalName.blank?
-    raise('Cannot save a Series without Unit') if unit_id.blank?
-    raise('Cannot save a Series without Source') if source_id.blank?
-    raise('Cannot save a Series without Decimals') if decimals.blank?
-    true
+    false
   end
 
   def force_destroy!
