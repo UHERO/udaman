@@ -13,12 +13,11 @@ class Xseries < ApplicationRecord
     return true if primary_series.universe != 'UHERO' ## only enforce for UHERO series
     return true if primary_series.scratch == 90909  ## don't enforce if in process of being destroyed
     return true if primary_series.name =~ /test/i   ## don't enforce if name contains "TEST"
-    #raise('Cannot save a Series without Data Portal Name') if dataPortalName.blank?
-    #raise('Cannot save a Series without Unit') if unit_id.nil?
-    #raise('Cannot save a Series without Source') if source_id.nil?
-    raise('Cannot save a Series without Percent') if percent.nil?
+    raise('Cannot save a Series without Percent') if percent.blank?
     raise('Cannot save a Series without Seasonal Adjustment') if seasonal_adjustment.blank?
+    raise('Cannot save a Series without Units') if units.blank?
     raise('Cannot save a Series without Frequency Transform') if frequency_transform.blank?
+    raise('Cannot save a Series without Restricted') if restricted.blank?
     true
   end
 

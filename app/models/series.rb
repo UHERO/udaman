@@ -1416,11 +1416,9 @@ class Series < ApplicationRecord
     return true if scratch == 90909  ## don't enforce if in process of being destroyed
     return true if name =~ /test/i   ## don't enforce if name contains "TEST"
     raise('Cannot save a Series without Data Portal Name') if dataPortalName.blank?
-    raise('Cannot save a Series without Unit') if unit_id.nil?
-    raise('Cannot save a Series without Source') if source_id.nil?
-    #raise('Cannot save a Series without Percent') if percent.nil?
-    #raise('Cannot save a Series without Seasonal Adjustment') if seasonal_adjustment.blank?
-    #raise('Cannot save a Series without Frequency Transform') if frequency_transform.blank?
+    raise('Cannot save a Series without Unit') if unit_id.blank?
+    raise('Cannot save a Series without Source') if source_id.blank?
+    raise('Cannot save a Series without Decimals') if decimals.blank?
     true
   end
 
