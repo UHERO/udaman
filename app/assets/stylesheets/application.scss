@@ -48,7 +48,13 @@ div.field, div.actions {
 }
 
 #notice {
-  color: green;
+  color: red;
+  font-weight: bold;
+}
+
+.notice {
+  color: red;
+  font-weight: bold;
 }
 
 .field_with_errors {
