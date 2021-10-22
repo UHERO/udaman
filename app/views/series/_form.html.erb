@@ -69,12 +69,12 @@
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[percent]') %><% end %>
            *<%= xf.label :percent, 'Percent' %>
-            <%= xf.select :percent, [['yes', 1], ['no', 0]], { include_blank: true } %> (prevents calculation of growth rate)
+            <%= xf.select :percent, [['yes', true], ['no', false]], { include_blank: true } %> (prevents calculation of growth rate)
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[real]') %><% end %>
             <%= xf.label :real, 'Real' %>
-            <%= xf.select :real, [['yes', 1], ['no', 0]], { include_blank: true } %> (prevents adjustment for inflation)
+            <%= xf.select :real, [['yes', true], ['no', false]], { include_blank: true } %> (prevents adjustment for inflation)
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[seasonal_adjustment]') %><% end %>
@@ -94,7 +94,7 @@
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[restricted]') %><% end %>
            *<%= xf.label :restricted, 'Restricted' %>
-            <%= xf.select :restricted, %w{yes no}.collect {|x| [x, x] }, { include_blank: true } %> (prevents visibility outside udaman)
+            <%= xf.select :restricted, [['yes', true], ['no', false]], { include_blank: true } %> (prevents visibility outside udaman)
           </div>
       <% end %>
     <% elsif @series.has_primary? %>
