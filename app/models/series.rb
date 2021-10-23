@@ -175,9 +175,8 @@ class Series < ApplicationRecord
     s = nil
     begin
       self.transaction do
-        x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## temporary ephemeral Series object just for validation
-        s = Series.create!(series_props.merge(xseries: x))
-        x.update(primary_series: s)  ## overwrite placeholder Series
+        x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is saved & linked to Xseries via xseries_id
+        x.update(primary_series_id: x.primary_series.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
       end
     rescue => e
       raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"

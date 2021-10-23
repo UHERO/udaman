@@ -41,6 +41,7 @@ module UpdateCore
   
   def date_interval(a = 0, b = 1)
     sorted_dates = self.dates.keys.sort
+    raise 'There seems to be no data' if sorted_dates.empty?
     (sorted_dates[b].to_date - sorted_dates[a].to_date).to_i
   end
   
