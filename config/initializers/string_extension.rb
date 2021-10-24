@@ -16,7 +16,7 @@ class String
   end
   
   def ts_eval=(eval_statement)
-      Series.eval self, eval_statement
+      Series.eval(self, eval_statement, 100, no_enforce_fields: true)
   end
 
   def ts_append(series)

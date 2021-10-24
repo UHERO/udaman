@@ -175,7 +175,7 @@ class Series < ApplicationRecord
     s = nil
     begin
       self.transaction do
-        x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is saved & linked to Xseries via xseries_id
+        x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is also saved & linked to Xseries via xseries_id
         x.update(primary_series_id: x.primary_series.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
       end
     rescue => e
@@ -424,7 +424,8 @@ class Series < ApplicationRecord
     Series.frequency_from_name(self.name)
   end
 
-  def Series.each_spreadsheet_header(spreadsheet_path, sheet_to_load = nil, sa = false)
+  ## I suspect this is obsolete - renaming now, delete later
+  def Series.each_spreadsheet_header_DELETE_ME(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?
       return {:message => 'The spreadsheet could not be found', :headers => []}
@@ -448,8 +449,9 @@ class Series < ApplicationRecord
     sheets = update_spreadsheet.class == UpdateCSV ? [] : update_spreadsheet.sheets
     return {:message=>'success', :headers=>header_names, :sheets => sheets}
   end
-  
-  def Series.load_all_sa_series_from(spreadsheet_path, sheet_to_load = nil)  
+
+  ## I suspect this is obsolete - renaming now, delete later
+  def Series.load_all_sa_series_from_DELETE_ME(spreadsheet_path, sheet_to_load = nil)
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
       frequency_code = code_from_frequency update_spreadsheet.frequency  
       sa_base_name = series_name.sub('NS@','@')
@@ -460,7 +462,8 @@ class Series < ApplicationRecord
     end
   end
 
-  def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
+  ## I suspect this is obsolete - renaming now, delete later
+  def Series.load_all_series_from_DELETE_ME(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
       eval_format = sheet_to_load ? '"%s".tsn.load_from("%s", "%s")' : '"%s".tsn.load_from("%s")'
@@ -475,22 +478,24 @@ class Series < ApplicationRecord
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
 
-  def Series.eval(series_name, eval_statement, priority = 100)
+  def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
     begin
       new_series = Kernel::eval eval_statement
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-    Series.store(series_name, new_series, new_series.name, eval_statement, priority)
+    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
   end
 
-  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100)
+  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    new_series = series_name.ts || Series.create_new(universe: 'UHERO', name: series_name.upcase, frequency: series.frequency)
+    properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
+    properties[:scratch] = 11011 if no_enforce_fields
+    new_series = series_name.ts || Series.create_new(properties)
     new_series.save_source(desc, eval_statement, series.data, priority)
   end
 
@@ -1421,6 +1426,7 @@ class Series < ApplicationRecord
 
   def no_enforce_fields?
     return true if universe != 'UHERO' ## only enforce for UHERO series
+    return true if scratch == 11011  ## don't enforce because I said not to
     return true if scratch == 90909  ## don't enforce if in process of being destroyed
     return true if name =~ /test/i   ## don't enforce if name contains "TEST"
     false
