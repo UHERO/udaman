@@ -425,7 +425,7 @@ class Series < ApplicationRecord
   end
 
   ## I suspect this is obsolete - renaming now, delete later
-  def Series.each_spreadsheet_header_DELETE_ME(spreadsheet_path, sheet_to_load = nil, sa = false)
+  def Series.each_spreadsheet_header_DELETEME?(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?
       return {:message => 'The spreadsheet could not be found', :headers => []}
@@ -451,7 +451,7 @@ class Series < ApplicationRecord
   end
 
   ## I suspect this is obsolete - renaming now, delete later
-  def Series.load_all_sa_series_from_DELETE_ME(spreadsheet_path, sheet_to_load = nil)
+  def Series.load_all_sa_series_from_DELETEME?(spreadsheet_path, sheet_to_load = nil)
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
       frequency_code = code_from_frequency update_spreadsheet.frequency  
       sa_base_name = series_name.sub('NS@','@')
@@ -463,7 +463,7 @@ class Series < ApplicationRecord
   end
 
   ## I suspect this is obsolete - renaming now, delete later
-  def Series.load_all_series_from_DELETE_ME(spreadsheet_path, sheet_to_load = nil, priority = 100)
+  def Series.load_all_series_from_DELETEME?(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
       eval_format = sheet_to_load ? '"%s".tsn.load_from("%s", "%s")' : '"%s".tsn.load_from("%s")'
@@ -933,44 +933,6 @@ class Series < ApplicationRecord
     new_transformation("number of days in each #{frequency}", new_data, frequency)
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def Series.where_ds_like_DELETEME(string)
-    ds_array = DataSource.where("eval LIKE '%#{string}%'").all
-    series_array = []
-    ds_array.each do |ds|
-      series_array.push ds.series
-    end 
-    series_array
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def ds_like_DELETEME?(string)
-    self.enabled_data_sources.each do |ds|
-      return true unless ds.eval.index(string).nil?
-    end
-    false
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def handle_DELETEME?
-    self.enabled_data_sources.each do |ds|
-      unless ds.eval.index('load_from_download').nil?
-        return ds.eval.split('load_from_download')[1].split("\"")[1]
-      end
-    end
-    nil
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def original_url_DELETEME?
-    self.enabled_data_sources.each do |ds|
-      unless ds.eval.index('load_from_download').nil?
-        return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
-      end
-    end
-    nil
-  end
-  
   def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
     unless date.class == Date
       date = Date.parse(date) rescue raise("Series.at: #{date} not a valid date string")
