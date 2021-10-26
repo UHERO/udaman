@@ -61,7 +61,7 @@
   </div>
   <div class="field">
     <%= f.label :frequency_transform, 'Frequency transformation method' %>
-    <%= f.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
+    <%= f.select :frequency_transform, %w(average sum first last).collect {|x| [x, x] }, { include_blank: true } %>
     </div>
   <div class="field">
     <%= f.label :restricted, 'Restricted?' %>

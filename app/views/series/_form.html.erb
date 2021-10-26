@@ -89,7 +89,7 @@
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[frequency_transform]') %><% end %>
            *<%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
-            <%= xf.select :frequency_transform, %w(average sum last).collect {|x| [x, x] }, { include_blank: true } %>
+            <%= xf.select :frequency_transform, %w(average sum first last).collect {|x| [x, x] }, { include_blank: true } %>
           </div>
           <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[restricted]') %><% end %>
