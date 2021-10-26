@@ -1378,6 +1378,7 @@ class Series < ApplicationRecord
   end
 
   def required_fields
+    return true   ### REVERT!
     return true if no_enforce_fields?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Data Portal Name') if dataPortalName.blank?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Unit') if unit_id.blank?
