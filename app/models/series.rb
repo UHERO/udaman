@@ -178,7 +178,7 @@ class Series < ApplicationRecord
         x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is also saved & linked to Xseries via xseries_id
         s = x.primary_series
         x.update(primary_series_id: s.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
-        s.update(scratch: 0)  ## in case no_enforce_fields had been used in Series.store()
+        s.update(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
       end
     rescue => e
       raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
