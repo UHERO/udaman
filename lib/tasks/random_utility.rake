@@ -7,8 +7,9 @@ task :ua_1473_fill_blank_DPNs => :environment do
   dict = {}
   Series.get_all_uhero.each do |s|
     indicator = s.parse_name[:prefix].sub(/NS$/i,'')
-    raise "DPN mismatch for indicator #{indicator}" if dict[indicator] && dict[indicator] != indicator
-    dict[indicator] = s.dataPortalName
+    dpn = s.dataPortalName
+    raise "DPN mismatch for indicator #{indicator}" if dict[indicator] && dict[indicator] != dpn
+    dict[indicator] = dpn
   end
   puts "Finished building dictionary"
   Series.search_box('&nodpn +9999').each do |s|
