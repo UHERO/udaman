@@ -8,6 +8,7 @@ task :ua_1473_fill_blank_DPNs => :environment do
   Series.get_all_uhero.each do |s|
     indicator = s.parse_name[:prefix].sub(/NS$/i,'')
     dpn = s.dataPortalName
+    next if dpn.blank?
     raise "DPN mismatch for indicator #{indicator}" if dict[indicator] && dict[indicator] != dpn
     dict[indicator] = dpn
   end
