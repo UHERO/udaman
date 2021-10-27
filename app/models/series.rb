@@ -198,7 +198,7 @@ class Series < ApplicationRecord
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save
-        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) if is_primary?
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -219,7 +219,7 @@ class Series < ApplicationRecord
       with_transaction_returning_status do
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save!
-        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) if is_primary?
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
@@ -1380,7 +1380,7 @@ class Series < ApplicationRecord
   end
 
   def required_fields
-    return true   ### REVERT!
+    #return true   ### REVERT!
     return true if no_enforce_fields?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Data Portal Name') if dataPortalName.blank?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Unit') if unit_id.blank?
