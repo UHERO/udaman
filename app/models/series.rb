@@ -195,10 +195,10 @@ class Series < ApplicationRecord
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
-      with_transaction_returning_status do
+      with_transaction_returning_status do  ## block must return true for transaction to commit
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
-        save
-        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) if is_primary?
+        rval = save
+        is_primary? ? xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : rval
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -216,10 +216,10 @@ class Series < ApplicationRecord
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
-      with_transaction_returning_status do
+      with_transaction_returning_status do  ## block must return true for transaction to commit
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
-        save!
-        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) if is_primary?
+        rval = save!
+        is_primary? ? xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : rval
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
