@@ -155,7 +155,7 @@ class SeriesController < ApplicationController
       return
     end
     new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
-    current_user.series.reload.each {|s| s.update_attributes!(new_properties) }
+    current_user.meta_update(new_properties)
     redirect_to action: :clipboard
   end
 

@@ -100,4 +100,10 @@ class User < ApplicationRecord
     end
   end
 
+  def meta_update(properties)
+    User.transaction do
+      series.each {|s| s.update!(properties) }
+    end
+  end
+
 end
