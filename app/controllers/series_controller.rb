@@ -404,10 +404,13 @@ private
     end
     @all_units = Unit.where(universe: series.universe)
     @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_units = Unit.where(universe: 'UHERO')      if @all_units.empty?
     @all_sources = Source.where(universe: series.universe)
     @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_sources = Source.where(universe: 'UHERO')      if @all_sources.empty?
     @all_details = SourceDetail.where(universe: series.universe)
     @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
+    @all_details = SourceDetail.where(universe: 'UHERO')      if @all_details.empty?
   end
 
   def json_from_heroku_tsd(series_name, tsd_file)
