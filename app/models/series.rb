@@ -126,7 +126,7 @@ class Series < ApplicationRecord
     new = self.dup
     new.assign_attributes(properties.merge(geography_id: new_geo.id))
     new.save!
-    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    new.xseries.update_columns(primary_series_id: self.id)  ## just for extra insurance
     new
   end
 
