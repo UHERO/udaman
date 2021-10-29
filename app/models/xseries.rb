@@ -10,7 +10,6 @@ class Xseries < ApplicationRecord
   serialize :factors, Hash
 
   def required_fields
-    #return true   ### REVERT!
     return true if primary_series.nil?
     return true if primary_series.no_enforce_fields?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Percent') if percent.nil?  ## booleans need to be tested against nil!

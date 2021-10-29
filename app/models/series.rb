@@ -496,8 +496,9 @@ class Series < ApplicationRecord
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
     properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
-    properties[:scratch] = 11011 if no_enforce_fields
+    properties[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
     new_series = series_name.ts || Series.create_new(properties)
+    new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag
     new_series.save_source(desc, eval_statement, series.data, priority)
   end
 
@@ -1380,7 +1381,6 @@ class Series < ApplicationRecord
   end
 
   def required_fields
-    #return true   ### REVERT!
     return true if no_enforce_fields?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Data Portal Name') if dataPortalName.blank?
     raise(SeriesMissingFieldException, 'Cannot save a Series without Unit') if unit_id.blank?
