@@ -155,7 +155,7 @@ class SeriesController < ApplicationController
       return
     end
     new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
-    current_user.series.reload.each {|s| s.update_attributes!(new_properties) }
+    current_user.meta_update(new_properties)
     redirect_to action: :clipboard
   end
 
@@ -234,11 +234,12 @@ class SeriesController < ApplicationController
     @path = params[:filepath] = forecast_upload_params[:filepath].nil_blank
     @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
     @version = params[:version] = forecast_upload_params[:version].nil_blank
-    if @path =~ /(\d\dQ\d+)([FH](\d+|F))/i
-      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version overrides
-      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
-    end
     @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
+    if @path =~ /(\d\dQ\d+)([FH](\d+|F))(_([ASQM])[^A-Z])?/i
+      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version/freq override
+      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
+      @freq = params[:freq] ||= $5.upcase if $5
+    end
     unless @path && @fcid && @version && @freq
       render :forecast_upload
       return
@@ -403,10 +404,13 @@ private
     end
     @all_units = Unit.where(universe: series.universe)
     @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_units = Unit.where(universe: 'UHERO')      if @all_units.empty?
     @all_sources = Source.where(universe: series.universe)
     @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_sources = Source.where(universe: 'UHERO')      if @all_sources.empty?
     @all_details = SourceDetail.where(universe: series.universe)
     @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
+    @all_details = SourceDetail.where(universe: 'UHERO')      if @all_details.empty?
   end
 
   def json_from_heroku_tsd(series_name, tsd_file)
