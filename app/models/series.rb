@@ -16,8 +16,8 @@ class Series < ApplicationRecord
   extend Validators
 
   validates :name, presence: true, uniqueness: { scope: :universe }
+  validate :required_fields
   validate :source_link_is_valid
-  validate :descriptive_text_is_valid
   before_destroy :last_rites, prepend: true
   after_destroy :post_mortem, prepend: true
 
@@ -126,7 +126,7 @@ class Series < ApplicationRecord
     new = self.dup
     new.assign_attributes(properties.merge(geography_id: new_geo.id))
     new.save!
-    new.xseries.update!(primary_series_id: self.id)  ## just for insurance
+    new.xseries.update_columns(primary_series_id: self.id)  ## just for extra insurance
     new
   end
 
@@ -175,9 +175,10 @@ class Series < ApplicationRecord
     s = nil
     begin
       self.transaction do
-        x = Xseries.create!(xseries_props)
-        s = Series.create!(series_props.merge(xseries_id: x.id))
-        x.update(primary_series_id: s.id)
+        x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is also saved & linked to Xseries via xseries_id
+        s = x.primary_series
+        x.update_columns(primary_series_id: s.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
+        s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
       end
     rescue => e
       raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
@@ -194,10 +195,10 @@ class Series < ApplicationRecord
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
-      with_transaction_returning_status do
+      with_transaction_returning_status do  ## block must return true for transaction to commit
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
-        save
-        xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+        save_status = save
+        is_primary? ? xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : save_status
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -215,10 +216,10 @@ class Series < ApplicationRecord
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
-      with_transaction_returning_status do
+      with_transaction_returning_status do  ## block must return true for transaction to commit
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
-        save!
-        xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s })
+        save_status = save!
+        is_primary? ? xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : save_status
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
@@ -300,6 +301,10 @@ class Series < ApplicationRecord
 
   def is_primary?
     xseries.primary_series === self
+  end
+
+  def is_alias?
+    !is_primary?
   end
 
   def has_primary?
@@ -425,7 +430,8 @@ class Series < ApplicationRecord
     Series.frequency_from_name(self.name)
   end
 
-  def Series.each_spreadsheet_header(spreadsheet_path, sheet_to_load = nil, sa = false)
+  ## I suspect this is obsolete - renaming now, delete later
+  def Series.each_spreadsheet_header_DELETEME?(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?
       return {:message => 'The spreadsheet could not be found', :headers => []}
@@ -449,8 +455,9 @@ class Series < ApplicationRecord
     sheets = update_spreadsheet.class == UpdateCSV ? [] : update_spreadsheet.sheets
     return {:message=>'success', :headers=>header_names, :sheets => sheets}
   end
-  
-  def Series.load_all_sa_series_from(spreadsheet_path, sheet_to_load = nil)  
+
+  ## I suspect this is obsolete - renaming now, delete later
+  def Series.load_all_sa_series_from_DELETEME?(spreadsheet_path, sheet_to_load = nil)
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
       frequency_code = code_from_frequency update_spreadsheet.frequency  
       sa_base_name = series_name.sub('NS@','@')
@@ -461,7 +468,8 @@ class Series < ApplicationRecord
     end
   end
 
-  def Series.load_all_series_from(spreadsheet_path, sheet_to_load = nil, priority = 100)
+  ## I suspect this is obsolete - renaming now, delete later
+  def Series.load_all_series_from_DELETEME?(spreadsheet_path, sheet_to_load = nil, priority = 100)
     t = Time.now
     each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
       eval_format = sheet_to_load ? '"%s".tsn.load_from("%s", "%s")' : '"%s".tsn.load_from("%s")'
@@ -476,22 +484,25 @@ class Series < ApplicationRecord
     puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
 
-  def Series.eval(series_name, eval_statement, priority = 100)
+  def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
     begin
       new_series = Kernel::eval eval_statement
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-    Series.store(series_name, new_series, new_series.name, eval_statement, priority)
+    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
   end
 
-  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100)
+  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
     desc = series.name if desc.nil?
     desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    new_series = series_name.ts || Series.create_new(universe: 'UHERO', name: series_name.upcase, frequency: series.frequency)
+    properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
+    properties[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
+    new_series = series_name.ts || Series.create_new(properties)
+    new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag
     new_series.save_source(desc, eval_statement, series.data, priority)
   end
 
@@ -929,44 +940,6 @@ class Series < ApplicationRecord
     new_transformation("number of days in each #{frequency}", new_data, frequency)
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def Series.where_ds_like_DELETEME(string)
-    ds_array = DataSource.where("eval LIKE '%#{string}%'").all
-    series_array = []
-    ds_array.each do |ds|
-      series_array.push ds.series
-    end 
-    series_array
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def ds_like_DELETEME?(string)
-    self.enabled_data_sources.each do |ds|
-      return true unless ds.eval.index(string).nil?
-    end
-    false
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def handle_DELETEME?
-    self.enabled_data_sources.each do |ds|
-      unless ds.eval.index('load_from_download').nil?
-        return ds.eval.split('load_from_download')[1].split("\"")[1]
-      end
-    end
-    nil
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def original_url_DELETEME?
-    self.enabled_data_sources.each do |ds|
-      unless ds.eval.index('load_from_download').nil?
-        return Download.get(ds.eval.split('load_from_download')[1].split("\"")[1]).url
-      end
-    end
-    nil
-  end
-  
   def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
     unless date.class == Date
       date = Date.parse(date) rescue raise("Series.at: #{date} not a valid date string")
@@ -1171,7 +1144,7 @@ class Series < ApplicationRecord
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly
+        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly?
         unless success
           raise 'error in reload_source method, should be logged above'
         end
@@ -1411,11 +1384,21 @@ class Series < ApplicationRecord
     source_link.blank? || Series.valid_url(source_link) || errors.add(:source_link, 'is not a valid URL')
   end
 
-  def descriptive_text_is_valid
-    return true if universe == 'FC'  ## don't enforce for forecast series
-    return true if scratch == 90909  ## being destroyed - no need for validation
-    return true unless dataPortalName.blank? && description.blank?
-    raise('Cannot save a Series without Data Portal Name and/or Description')
+  def required_fields
+    return true if no_enforce_fields?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Data Portal Name') if dataPortalName.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Unit') if unit_id.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Source') if source_id.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Decimals') if decimals.blank?
+    true
+  end
+
+  def no_enforce_fields?
+    return true if universe != 'UHERO' ## only enforce for UHERO series
+    return true if scratch == 11011  ## don't enforce because I said not to
+    return true if scratch == 90909  ## don't enforce if in process of being destroyed
+    return true if name =~ /test/i   ## don't enforce if name contains "TEST"
+    false
   end
 
   def force_destroy!
@@ -1456,8 +1439,8 @@ private
       raise SeriesDestroyException, message
     end
     if is_primary?
-      xseries.update_attributes(primary_series_id: nil)  ## to avoid failure on foreign key constraint
-      self.update_attributes(scratch: 90909)  ## a flag to tell next callback to delete the xseries
+      xseries.update_columns(primary_series_id: nil)  ## to avoid failure on foreign key constraint
+      self.update_columns(scratch: 90909)  ## a flag to tell next callback to delete the xseries
     end
   end
 

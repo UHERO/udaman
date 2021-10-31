@@ -1,9 +1,50 @@
 =begin
     ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
-    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+    need to worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
-task :fix_backward_shifts => :environment do
+task :ua_1473_fill_blank_DPNs => :environment do
+  dict = {}
+  Series.get_all_uhero.each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    dpn = s.dataPortalName || next
+    if dict[indicator] && dict[indicator] != dpn
+      puts ">> DPN mismatch for indicator #{indicator}"
+      next
+    end
+    dict[indicator] = dpn
+  end
+  puts "Finished building dictionary"
+  Series.search_box('&nodpn +9999').each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    if dict[indicator]
+      puts "Updating #{s.name}"
+      s.update!(dataPortalName: dict[indicator])
+    end
+  end
+end
+
+task :ua_1473_fix_VSO_agg_methods => :environment do
+  Series.search_box('^vso #aggregate #average +9999').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.eval =~ /aggregate.*:average/i
+      puts "Updating #{s.name}"
+      ld.update(eval: ld.eval.sub(':average', ':sum'))
+    end
+  end
+end
+
+task :ua_1473_turn_off_YC_series => :environment do
+  Series.search_box('^yc +9999').each do |s|
+    s.update!(restricted: true) unless s.restricted?
+    s.data_sources.each do |ld|
+      next unless ld.reload_nightly?
+      ld.update(reload_nightly: false)
+    end
+  end
+end
+
+task :ua_1472_fix_backward_shifts => :environment do
   Series.search_box('#shift_backward_months').each do |s|
     s.data_sources.each do |ld|
       while ld.eval =~ /shift_backward_months\((-?\d+)\)/

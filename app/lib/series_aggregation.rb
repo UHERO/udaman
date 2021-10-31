@@ -8,8 +8,12 @@ module SeriesAggregation
     end
     grouped_data = orig_series.group_data_by(frequency, prune: prune)
     aggregated_data = {}
-    grouped_data.keys.each do |date_string|
-      aggregated_data[date_string] = grouped_data[date_string].send(operation)
+    grouped_data.keys.each do |date|
+      begin
+        aggregated_data[date] = grouped_data[date].send(operation)
+      rescue NoMethodError
+        raise "Method #{operation} is not implemented"
+      end
     end
     aggregated_data
   end
@@ -22,10 +26,6 @@ module SeriesAggregation
     new_transformation("Aggregated as #{operation} from #{self}", aggregate_data_by(frequency, operation.to_sym, prune: prune), frequency)
   end
 
-  def aggregate_by(frequency, operation = frequency_transform, prune: true)
-    aggregate(frequency, operation, prune: prune)
-  end
-  
   def group_data_by(frequency, prune: true)
     validate_aggregation(frequency)
     agg_date_method = frequency.to_s + '_d' ## see date_extension.rb
