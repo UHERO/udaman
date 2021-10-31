@@ -177,8 +177,8 @@ class Series < ApplicationRecord
       self.transaction do
         x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is also saved & linked to Xseries via xseries_id
         s = x.primary_series
-        x.update(primary_series_id: s.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
-        s.update(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
+        x.update_columns(primary_series_id: s.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
+        s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
       end
     rescue => e
       raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
@@ -301,6 +301,10 @@ class Series < ApplicationRecord
 
   def is_primary?
     xseries.primary_series === self
+  end
+
+  def is_alias?
+    !is_primary?
   end
 
   def has_primary?
@@ -1382,10 +1386,10 @@ class Series < ApplicationRecord
 
   def required_fields
     return true if no_enforce_fields?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Data Portal Name') if dataPortalName.blank?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Unit') if unit_id.blank?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Source') if source_id.blank?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Decimals') if decimals.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Data Portal Name') if dataPortalName.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Unit') if unit_id.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Source') if source_id.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Decimals') if decimals.blank?
     true
   end
 

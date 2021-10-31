@@ -12,11 +12,11 @@ class Xseries < ApplicationRecord
   def required_fields
     return true if primary_series.nil?
     return true if primary_series.no_enforce_fields?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Percent') if percent.nil?  ## booleans need to be tested against nil!
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Seasonal Adjustment') if seasonal_adjustment.blank?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Units') if units.blank?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Frequency Transform') if frequency_transform.blank?
-    raise(SeriesMissingFieldException, 'Cannot save a Series without Restricted') if restricted.nil?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Percent') if percent.nil?  ## booleans need to be tested against nil!
+    raise(SeriesMissingFieldException, 'Cannot save Series without Seasonal Adjustment') if seasonal_adjustment.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Units') if units.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Frequency Transform') if frequency_transform.blank?
+    raise(SeriesMissingFieldException, 'Cannot save Series without Restricted') if restricted.nil?
     true
   end
 
