@@ -31,7 +31,7 @@ module SeriesSeasonalAdjustment
       if prev == 0 || apc > 100
         adjusted_series[date] = value - prev + sval
       else
-        adjusted_series[date] = (1 + apc / 100) * sval
+        adjusted_series[date] = (1 + apc / 100.0) * sval
       end
     end
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series)
