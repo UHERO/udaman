@@ -36,7 +36,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 <p class="notice"><%= notice %></p>
 
 <div id="summary_area">
-	<h3><%= @series.name %></h3>
+	<h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
 	<h3><%= @series.dataPortalName %></h3>
 
   <table>
@@ -74,6 +74,9 @@ google.visualization.events.addListener(chart, 'select', function() {
     <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
     <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
     <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to('permalink', action: :show, id: @series) %>)</td></tr>
+    <% if current_user.dev_user? %>
+      <tr><td>Xseries ID</td><td><%= @series.xseries_id %></td></tr>
+    <% end %>
   </table>
 
   <div id="notes">

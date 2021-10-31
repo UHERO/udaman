@@ -28,7 +28,7 @@ module SeriesSeasonalAdjustment
       prev = ns_series.at(date - 1.year) || next
       sval = shifted_self.at(date) || next
       apc = compute_percentage_change(value, prev)
-      if prev == 0 || apc > 100
+      if prev == 0 || apc.nil? || apc > 100
         adjusted_series[date] = value - prev + sval
       else
         adjusted_series[date] = (1 + apc / 100.0) * sval

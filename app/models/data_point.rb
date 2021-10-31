@@ -122,6 +122,8 @@ class DataPoint < ApplicationRecord
   def DataPoint.update_public_all_universes
     Rails.logger.info { 'update_public_data_points: UHERO' }
     DataPoint.update_public_data_points('UHERO')
+    Rails.logger.info { 'update_public_data_points: FC' }
+    DataPoint.update_public_data_points('FC')
     Rails.logger.info { 'update_public_data_points: COH' }
     DataPoint.update_public_data_points('COH')
     Rails.logger.info { 'update_public_data_points: CCOM' }
