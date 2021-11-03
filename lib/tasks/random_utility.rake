@@ -3,6 +3,17 @@
     need to worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :ua_1456_emergency_reload_ns_growth_rate => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /apply_ns_growth_rate_sa/
+      ld.reload_source
+      ld.reload_source  ## twice for good luck
+    end
+  end
+end
+
 task :ua_1473_fill_blank_DPNs => :environment do
   dict = {}
   Series.get_all_uhero.each do |s|
