@@ -198,7 +198,7 @@ class Series < ApplicationRecord
       with_transaction_returning_status do  ## block must return true for transaction to commit
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save_status = save
-        is_primary? ? xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : save_status
+        save_status && is_primary? ? xseries.update(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : save_status
       end
     rescue => e
       raise "Model object update failed for Series #{name} (id=#{id}): #{e.message}"
@@ -219,7 +219,7 @@ class Series < ApplicationRecord
       with_transaction_returning_status do  ## block must return true for transaction to commit
         assign_attributes(attributes.select{|k,_| series_attrs.include? k.to_s })
         save_status = save!
-        is_primary? ? xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : save_status
+        save_status && is_primary? ? xseries.update!(attributes.select{|k,_| xseries_attrs.include? k.to_s }) : save_status
       end
     rescue => e
       raise "Model object update! failed for Series #{name} (id=#{id}): #{e.message}"
