@@ -338,7 +338,11 @@ class DataSource < ApplicationRecord
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
 
-    #### Do we really need this method? Test to find out
+    def set_reload_nightly(value)
+      self.update!(reload_nightly: value)
+    end
+
+  #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
     end
