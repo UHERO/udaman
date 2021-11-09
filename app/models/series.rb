@@ -1221,6 +1221,7 @@ class Series < ApplicationRecord
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %Q{restricted is #{negated}false}
+                          when 'pct' then %Q{percent is #{negated}true}
                           when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
                           when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
