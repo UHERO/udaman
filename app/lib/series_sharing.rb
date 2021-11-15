@@ -169,7 +169,7 @@ private
     case frequency.to_sym
       when :day   then 7
       when :month then 12
-      when :quarter, :year then 4
+      when :week, :quarter, :year then 4
       else raise "no window size defined for frequency #{frequency}"
     end
   end

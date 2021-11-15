@@ -551,7 +551,7 @@ class Series < ApplicationRecord
 
     # make sure data keys are in Date format
     formatted_data = {}
-    data.each_pair {|date, value| formatted_data[Date.parse date.to_s] = value}
+    data.each_pair {|date, value| formatted_data[date.to_date] = value}
     data = formatted_data
     observation_dates = data.keys
     current_data_points.each do |dp|
