@@ -1245,10 +1245,17 @@ class Series < ApplicationRecord
           bindvars = sids
           univ = nil  ## disable setting of the universe - not wanted for direct ID number access
           break
+        when /^[{]/
+          conditions.push %Q{coalesce(dataPortalName,'') #{negated}regexp ?}
+          bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+        when /^[}]/
+          conditions.push %Q{coalesce(series.description,'') #{negated}regexp ?}
+          bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
         else
           ## a "bareword" text string
           conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term.sub(/^["']/, '').gsub(',', '|')   ## remove any quoting operator, and handle alternatives separated by comma
+          ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
+          bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
       end
     end
     if univ
