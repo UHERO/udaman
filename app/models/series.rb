@@ -250,7 +250,7 @@ class Series < ApplicationRecord
   end
 
   def Series.build_name(prefix, geo, freq)
-    unless prefix && geo && freq
+    if prefix.blank? || geo.blank? || freq.blank?
       raise 'Null members not allowed in series name! (got %s + %s + %s)' % [prefix, geo, freq]
     end
     name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
