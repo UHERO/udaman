@@ -73,9 +73,9 @@ class DataSource < ApplicationRecord
       end
       series_names.uniq
     end
-    
-    #const is not there yet
-    def DataSource.all_history_and_manual_series_names
+
+    ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_history_and_manual_series_names_DELETEME
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
@@ -225,7 +225,7 @@ class DataSource < ApplicationRecord
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
-        s = Kernel::eval eval_stmt
+        s = Kernel::eval eval_stmt, set_binding
         if clear_first || clear_before_load?
           delete_data_points
         end
@@ -453,6 +453,13 @@ class DataSource < ApplicationRecord
           raise
       end
     end
+  end
+
+private
+
+  def set_binding
+    @loading_series = series
+    binding
   end
 
 end

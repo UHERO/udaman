@@ -87,8 +87,10 @@ module SeriesArithmetic
     new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
 
-  def convert_dollars_to_real(prices_name = nil)
-    prices_name ||= self.build_name(prefix: 'CPI_B', geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
+  def convert_to_real(prices_name = nil, rebase: false)
+    Rails.logger.info "--------->>>>>>>>>>>>> loading series is #{@loading_series}"
+    rebase ||= @loading_series && @loading_series.name =~ /_RB$/
+    prices_name ||= self.build_name(prefix: rebase ? 'CPI_B' : 'CPI', geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
     prices = Series.find_by(name: prices_name, universe: universe) || raise("No price series #{prices_name} found in #{universe}")
     new_transformation("#{self} / #{prices} * 100", (self / prices * 100).data)
   end

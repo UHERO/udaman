@@ -272,7 +272,9 @@ class Series < ApplicationRecord
   end
 
   def ns_series_name
-    self.build_name(prefix: self.parse_name[:prefix] + 'NS')
+    prefix = self.parse_name[:prefix]
+    raise "Trying to add NS to prefix of #{self} that already has NS" if prefix =~ /NS$/
+    self.build_name(prefix:  prefix + 'NS')
   end
 
   def non_ns_series_name
