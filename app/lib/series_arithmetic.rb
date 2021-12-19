@@ -87,13 +87,13 @@ module SeriesArithmetic
     new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
 
-  def convert_to_real(prices_name = nil, index: 'CPI', rebase: false)
+  def convert_to_real(idx_series_name = nil, index: 'CPI', rebased: false)
     Rails.logger.info "--------->>>>>>>>>>>>> loading series is #{@loading_series}"
-    rebase ||= @loading_series.name =~ /_RB$/ if @loading_series
-    prices_name ||= self.build_name(prefix: rebase ? index + '_B' : index,
-                                    geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
-    prices = Series.find_by(name: prices_name, universe: universe) || raise("No price series #{prices_name} found in #{universe}")
-    new_transformation("#{self} / #{prices} * 100", (self / prices * 100).data)
+    rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
+    idx_series_name ||= self.build_name(prefix: rebased ? index + '_B' : index,
+                                        geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
+    index = Series.find_by(name: idx_series_name, universe: universe) || raise("No index series #{idx_series_name} found in #{universe}")
+    new_transformation("#{self} / #{index} * 100", (self / index * 100).data)
   end
 
   def percentage_change
