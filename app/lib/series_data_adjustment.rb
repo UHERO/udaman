@@ -55,7 +55,13 @@ module SeriesDataAdjustment
     return nil if last_date.nil?
     last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
-  
+
+  def first_complete_year
+    first_obs = first_observation
+    return nil if first_obs.nil?
+    first_obs.month == 1 ? first_obs : Date.new(first_obs.year + 1)
+  end
+
   def get_last_incomplete_year(start_date = nil)
     return trim(start_date, nil) if start_date  ## special handling for unusual cases where we want to force a specific cutoff
     last_date = self.last_observation
