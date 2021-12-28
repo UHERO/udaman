@@ -20,7 +20,7 @@ class ReloadJob < ApplicationRecord
   def rerun_as(user = nil)
     raise 'rerun_as: argument is not a user' unless user.class == User
     new_job = ReloadJob.create!(user_id: user.id, params: [user.username].to_s) rescue raise('Failed to create ReloadJob object')
-    new_job.series << job.series
+    new_job.series << self.series
   end
 
   def ReloadJob.busy?

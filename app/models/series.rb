@@ -1180,10 +1180,10 @@ class Series < ApplicationRecord
           conditions.push %q{series.name = ?}
           bindvars.push tane
         when /^\^/
-          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
+          conditions.push %Q{substring_index(series.name,'@',1) #{negated}regexp ?}
           bindvars.push '^(%s)' % tane.gsub(',', '|')
         when /^[~]/  ## tilde
-          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
+          conditions.push %Q{substring_index(series.name,'@',1) #{negated}regexp ?}
           bindvars.push tane.gsub(',', '|')   ## handle alternatives separated by comma
         when /^[:]/
           if term =~ /^::/
@@ -1255,7 +1255,7 @@ class Series < ApplicationRecord
           bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
         else
           ## a "bareword" text string
-          conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
+          conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
           bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
       end
