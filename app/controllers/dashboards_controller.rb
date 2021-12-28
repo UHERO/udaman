@@ -23,6 +23,12 @@ class DashboardsController < ApplicationController
     @all_reload_jobs = ReloadJob.where('user_id > 1').order(created_at: :desc)  ## User id 1 is the system/cron user, don't show those
   end
 
+  def rerun_job
+    job = ReloadJob.find(params[:id].to_i) rescue raise("Could not find existing ReloadJob id = #{params[:id]}")
+    job.rerun_as(current_user)
+    redirect_to :investigate_visual
+  end
+
   def destroy_reload_job
     job_id = params[:id].to_i
     return if job_id < 1
