@@ -9,10 +9,10 @@ module SeriesDataAdjustment
     last_observation
   end
 
-  def trim(start_date = nil, end_date = nil)
+  def trim(start_date = nil, end_date = nil, before: nil, after: nil)
     ## more flexibility to allow either or both parameters to be passed as nil and assign defaults within
-    start_date ||= (self.trim_period_start || get_last_incomplete_january)
-      end_date ||= (self.trim_period_end || Time.now)
+    start_date ||= (before || self.trim_period_start || get_last_incomplete_january)
+      end_date ||= (after  || self.trim_period_end || Time.now)
     if start_date.nil?
       return new_transformation("Trimmed #{name}", data)
     end
@@ -55,7 +55,13 @@ module SeriesDataAdjustment
     return nil if last_date.nil?
     last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
-  
+
+  def first_complete_year
+    first_obs = first_observation
+    return nil if first_obs.nil?
+    first_obs.month == 1 ? first_obs : Date.new(first_obs.year + 1)
+  end
+
   def get_last_incomplete_year(start_date = nil)
     return trim(start_date, nil) if start_date  ## special handling for unusual cases where we want to force a specific cutoff
     last_date = self.last_observation

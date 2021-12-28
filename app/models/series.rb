@@ -250,7 +250,7 @@ class Series < ApplicationRecord
   end
 
   def Series.build_name(prefix, geo, freq)
-    unless prefix && geo && freq
+    if prefix.blank? || geo.blank? || freq.blank?
       raise 'Null members not allowed in series name! (got %s + %s + %s)' % [prefix, geo, freq]
     end
     name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
@@ -272,7 +272,9 @@ class Series < ApplicationRecord
   end
 
   def ns_series_name
-    self.build_name(prefix: self.parse_name[:prefix] + 'NS')
+    prefix = self.parse_name[:prefix]
+    raise "Trying to add NS to prefix of #{self} that already has NS" if prefix =~ /NS$/
+    self.build_name(prefix:  prefix + 'NS')
   end
 
   def non_ns_series_name
@@ -551,7 +553,7 @@ class Series < ApplicationRecord
 
     # make sure data keys are in Date format
     formatted_data = {}
-    data.each_pair {|date, value| formatted_data[Date.parse date.to_s] = value}
+    data.each_pair {|date, value| formatted_data[date.to_date] = value}
     data = formatted_data
     observation_dates = data.keys
     current_data_points.each do |dp|
@@ -1178,10 +1180,10 @@ class Series < ApplicationRecord
           conditions.push %q{series.name = ?}
           bindvars.push tane
         when /^\^/
-          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
+          conditions.push %Q{substring_index(series.name,'@',1) #{negated}regexp ?}
           bindvars.push '^(%s)' % tane.gsub(',', '|')
         when /^[~]/  ## tilde
-          conditions.push %Q{substring_index(name,'@',1) #{negated}regexp ?}
+          conditions.push %Q{substring_index(series.name,'@',1) #{negated}regexp ?}
           bindvars.push tane.gsub(',', '|')   ## handle alternatives separated by comma
         when /^[:]/
           if term =~ /^::/
@@ -1221,6 +1223,7 @@ class Series < ApplicationRecord
         when /^[&]/
           conditions.push case tane.downcase
                           when 'pub' then %Q{restricted is #{negated}false}
+                          when 'pct' then %Q{percent is #{negated}true}
                           when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
                           when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
@@ -1244,10 +1247,17 @@ class Series < ApplicationRecord
           bindvars = sids
           univ = nil  ## disable setting of the universe - not wanted for direct ID number access
           break
+        when /^[{]/
+          conditions.push %Q{dataPortalName #{negated}regexp ?}
+          bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+        when /^[}]/
+          conditions.push %Q{series.description #{negated}regexp ?}
+          bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
         else
           ## a "bareword" text string
-          conditions.push %Q{concat(substring_index(name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
-          bindvars.push term.sub(/^["']/, '').gsub(',', '|')   ## remove any quoting operator, and handle alternatives separated by comma
+          conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
+          ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
+          bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
       end
     end
     if univ
@@ -1402,7 +1412,7 @@ class Series < ApplicationRecord
   end
 
   def force_destroy!
-    self.update_attributes(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
+    self.update_columns(scratch: 44444)  ## a flag to permit destruction even with certain inhibiting factors
     self.destroy!
   end
 

@@ -51,7 +51,7 @@ module SeriesInterpolation
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
   ## with the mean of surrounding monthly values.
   def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil)
-    raise InterpolationException unless frequency == 'month'
+    raise "Cannot call fill_alternate_missing_months on a series of frequency #{frequency}" unless frequency == 'month'
     semi = find_sibling_for_freq('S')
     start_date = range_start_date ? Date.strptime(range_start_date) : data.sort[0][0]
     end_date = range_end_date ? Date.strptime(range_end_date) : data.sort[-1][0]
@@ -60,15 +60,14 @@ module SeriesInterpolation
     while date < end_date do
       prevm = date - 1.month
       nextm = date + 1.month
-      unless data[prevm] && data[nextm]
-        raise InterpolationException, 'data not strictly alternating months'
-      end
-      new_dp[date] = (data[prevm] + data[nextm]) / 2.0
-      if semi && date.month % 6 == 0
-        semi_date = date - 5.months
-        semi_val = semi.at(semi_date)
-        if semi_val
-          redistribute_semi(semi_val, semi_date, new_dp)
+      if data[prevm] && data[nextm]
+        new_dp[date] = (data[prevm] + data[nextm]) / 2.0
+        if semi && date.month % 6 == 0
+          semi_date = date - 5.months
+          semi_val = semi.at(semi_date)
+          if semi_val
+            redistribute_semi(semi_val, semi_date, new_dp)
+          end
         end
       end
       date += 2.months ## track only the missing data points

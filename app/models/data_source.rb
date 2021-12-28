@@ -73,9 +73,9 @@ class DataSource < ApplicationRecord
       end
       series_names.uniq
     end
-    
-    #const is not there yet
-    def DataSource.all_history_and_manual_series_names
+
+    ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_history_and_manual_series_names_DELETEME
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
@@ -225,7 +225,7 @@ class DataSource < ApplicationRecord
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
-        s = Kernel::eval eval_stmt
+        s = Kernel::eval eval_stmt##, set_binding
         if clear_first || clear_before_load?
           delete_data_points
         end
@@ -240,7 +240,7 @@ class DataSource < ApplicationRecord
       rescue => e
         Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
         update_props.merge!(last_error: e.message[0..253], last_error_at: t)
-        return false
+        return false  ## Note! ensure block runs despite this early return!
       ensure
         self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will end up saved below
         self.update!(update_props)
@@ -338,7 +338,11 @@ class DataSource < ApplicationRecord
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
 
-    #### Do we really need this method? Test to find out
+    def set_reload_nightly(value)
+      self.update!(reload_nightly: value)
+    end
+
+  #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
     end
@@ -449,6 +453,13 @@ class DataSource < ApplicationRecord
           raise
       end
     end
+  end
+
+private
+
+  def set_binding
+    @loading_series = series
+    binding
   end
 
 end
