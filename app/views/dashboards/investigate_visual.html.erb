@@ -364,7 +364,7 @@
           <th>Created</th>
           <th>Finished</th>
           <th>Count</th>
-          <th>Series...</th>
+          <th>Series... (click to re-run job)</th>
           <th colspan="100%">Error</th>
         </tr>
         </thead>
@@ -385,7 +385,8 @@
             <td><%= job.created_at.strftime('%m/%d/%y %H:%M') %></td>
             <td style="text-align:center;"><%= job.finished_at.strftime('%H:%M') rescue '-' %></td>
             <td style="text-align:center;"><%= job.series.count %></td>
-            <td><%= job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s %></td>
+            <td><%= series_list = job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s
+                    link_to(series_list, { action: :rerun_job, id: job }) %></td>
             <td class="error_message"><%= job.error rescue nil %></td>
           </tr>
         <% end %>
