@@ -372,7 +372,7 @@
         <% @all_reload_jobs.each do |job| %>
           <tr>
             <td><%= job.id %></td>
-            <td><%= job.user.email.sub(/@.*/, '') %></td>
+            <td><%= job.user.username %></td>
             <td style="text-align:center;">
                 <% if job.status.nil? %>
                     waiting<% if current_user.id == job.user_id || current_user.dev_user? %>
