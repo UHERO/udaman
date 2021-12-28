@@ -87,6 +87,16 @@ module SeriesArithmetic
     new_transformation("Rebased #{self} to #{date}", new_series_data)
   end
 
+  def convert_to_real(idx_series_name = nil, index: 'CPI', rebased: false)
+    Rails.logger.info "--------->>>>>>>>>>>>> loading series is #{@loading_series}"
+    rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
+    raise 'Do not include _B in index name' if rebased && index =~ /_B$/i
+    idx_series_name ||= self.build_name(prefix: rebased ? index + '_B' : index,
+                                        geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
+    idx_series = Series.find_by(name: idx_series_name, universe: universe) || raise("No index series #{idx_series_name} found in #{universe}")
+    new_transformation("#{self} / #{idx_series} * 100", (self / idx_series * 100).data)
+  end
+
   def percentage_change
     new_series_data = {}
     last = nil
@@ -190,7 +200,7 @@ module SeriesArithmetic
       pc = compute_percentage_change(value, data[date - 1.year]) || next
       new_series_data[date] = pc
     end
-    new_transformation("Annualized Percentage Change of #{self}", new_series_data)
+    new_transformation("Annualized percentage change of #{self}", new_series_data)
   end
 
   def faster_yoy(id)
@@ -216,11 +226,11 @@ module SeriesArithmetic
       new_series_data[date] = yoy if yoy
     end
     stmt.close
-    new_transformation("Annualized Percentage Change of #{name}", new_series_data)
+    new_transformation("Annualized percentage change of #{name}", new_series_data)
   end
   
   def mtd_sum
-    return all_nil unless frequency == 'day'
+    raise "mtd_sum cannot be called on a series of frequency #{frequency}" unless frequency == 'day'
     sum_series = {}
     mtd_sum = 0
     last_day = 0
@@ -236,16 +246,15 @@ module SeriesArithmetic
       last_day = date.day
       sum_series[date] = mtd_sum
     end
-    new_transformation("Month-To-Date sum of #{self}", sum_series)
+    new_transformation("Month-to-date sum of #{self}", sum_series)
   end
 
   def mtd_avg
-    return all_nil unless frequency == 'day'
     avg_series = {}
     mtd_sum.data.sort.each do |date, value|
       avg_series[date] = value / date.day.to_f
     end
-    new_transformation("Month-To-Date average of #{self}", avg_series)
+    new_transformation("Month-to-date average of #{self}", avg_series)
   end
 
   def mtd
@@ -253,7 +262,7 @@ module SeriesArithmetic
   end
 
   def ytd_sum
-    return all_nil if frequency == 'week' || frequency == 'day'
+    raise "ytd_sum cannot be called on a series of frequency #{frequency}" if frequency == 'week' || frequency == 'day'
     dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
     sum_series = {}
     ytd_sum = 0
@@ -273,7 +282,7 @@ module SeriesArithmetic
       prev_month = date.month
       sum_series[date] = ytd_sum
     end
-    new_transformation("Year-To-Date sum of #{self}", sum_series)
+    new_transformation("Year-to-date sum of #{self}", sum_series)
   end
   
   def ytd(id = nil)
@@ -281,9 +290,8 @@ module SeriesArithmetic
   end
   
   def ytd_percentage_change(id = nil)
-    return all_nil if frequency == 'week' || frequency == 'day'
     return faster_ytd(id) if id
-    new_transformation("Year-To-Date percentage change of #{self}", ytd_sum.data).annualized_percentage_change
+    ytd_sum.yoy
   end
 
   def faster_ytd(id)
@@ -313,7 +321,7 @@ module SeriesArithmetic
       new_series_data[date] = ytd if ytd
     end
     stmt.close
-    new_transformation("Year to Date Percentage Change of #{name}", new_series_data)
+    new_transformation("Year-to-date percentage change of #{name}", new_series_data)
   end
   
   def yoy_diff
@@ -377,7 +385,7 @@ module SeriesArithmetic
       ## don't we need a check if the annual_values array is !nil ?
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
-    new_transformation("Annual Sum of #{name}", new_series_data)
+    new_transformation("Annual sum of #{name}", new_series_data)
   end
   
   def annual_average
@@ -387,7 +395,7 @@ module SeriesArithmetic
     self.data.each do |date, _|
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
-    new_transformation("Annual Average of #{name}", new_series_data)
+    new_transformation("Annual average of #{name}", new_series_data)
   end
 
 private

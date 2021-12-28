@@ -11,6 +11,10 @@ class Geography < ApplicationRecord
     '%s (%s)' % [handle, display_name_short]
   end
 
+  def is_in_hawaii?
+    %w[HI HAW HON KAU MAU NBI MAUI LAN MOL HAWH HAWK].include?(handle.upcase)
+  end
+
   def Geography.get(attrs)
     attrs[:universe] ||= 'UHERO'
     Geography.find_by(attrs)

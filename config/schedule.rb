@@ -73,7 +73,7 @@ every :weekday, :at => '4:15 pm' do
   rake :reload_vap_hi_daily
 end
 
-every 1.day, :at => ['9:45 am', '1:00 pm'] do
+every 1.day, :at => ['9:15 am', '1:00 pm'] do
   rake :reload_covid_series
 end
 

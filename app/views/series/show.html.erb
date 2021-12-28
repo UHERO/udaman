@@ -73,10 +73,10 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% end %>
     <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
     <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
-    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to('permalink', action: :show, id: @series) %>)</td></tr>
     <% if current_user.dev_user? %>
-      <tr><td>Xseries ID</td><td><%= @series.xseries_id %></td></tr>
+      <tr><td>XID (devs only)</td><td><%= @series.xseries_id %></td></tr>
     <% end %>
+    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to('permalink', action: :show, id: @series) %>)</td></tr>
   </table>
 
   <div id="notes">
@@ -118,7 +118,7 @@ google.visualization.events.addListener(chart, 'select', function() {
       <tr>
         <td style="font-weight:bold;">Loaders (
           <% if current_user.admin_user? %>
-              <%= link_to 'add', controller: :data_sources, action: :new, series_id: @series %> |
+              <%= link_to 'new', controller: :data_sources, action: :new, series_id: @series %> |
           <% end %>
               <%= link_to 'load all', controller: :series, action: :reload_all, id: @series %>
           )

@@ -179,7 +179,7 @@ class DataPoint < ApplicationRecord
         left join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       where s.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
-           #{'or s.quarantined or s.restricted' if remove_quarantine} )
+          or s.restricted #{' or s.quarantined ' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
     MYSQL
     begin
