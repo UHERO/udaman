@@ -225,7 +225,7 @@ class DataSource < ApplicationRecord
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
-        s = Kernel::eval eval_stmt, set_binding
+        s = Kernel::eval eval_stmt##, set_binding
         if clear_first || clear_before_load?
           delete_data_points
         end

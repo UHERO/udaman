@@ -396,7 +396,6 @@ module SeriesArithmetic
       new_series_data[date] = annual_values[Date.new(date.year)]
     end
     new_transformation("Annual average of #{name}", new_series_data)
-    new_transformation("Annual average of #{self}", data.map {|date, _| [date, annual_values[Date.new(date.year)]] })
   end
 
 private
