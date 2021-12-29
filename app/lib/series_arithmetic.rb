@@ -230,7 +230,7 @@ module SeriesArithmetic
   end
   
   def mtd_sum
-    raise "mtd_sum cannot be called on a series of frequency #{frequency}" unless frequency == 'day'
+    return all_nil unless frequency == 'day'
     sum_series = {}
     mtd_sum = 0
     last_day = 0
@@ -250,6 +250,7 @@ module SeriesArithmetic
   end
 
   def mtd_avg
+    return all_nil unless frequency == 'day'
     avg_series = {}
     mtd_sum.data.sort.each do |date, value|
       avg_series[date] = value / date.day.to_f
@@ -262,7 +263,7 @@ module SeriesArithmetic
   end
 
   def ytd_sum
-    raise "ytd_sum cannot be called on a series of frequency #{frequency}" if frequency == 'week' || frequency == 'day'
+    return all_nil if frequency == 'week' || frequency == 'day'
     dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
     sum_series = {}
     ytd_sum = 0
@@ -290,6 +291,7 @@ module SeriesArithmetic
   end
   
   def ytd_percentage_change(id = nil)
+    return all_nil if frequency == 'week' || frequency == 'day'
     return faster_ytd(id) if id
     ytd_sum.yoy
   end
