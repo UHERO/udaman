@@ -88,9 +88,8 @@ module SeriesArithmetic
   end
 
   def convert_to_real(idx_series_name = nil, index: 'CPI', rebased: false)
-    Rails.logger.info "--------->>>>>>>>>>>>> loading series is #{@loading_series}"
-    rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
-    raise 'Do not include _B in index name' if rebased && index =~ /_B$/i
+    #rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
+    #raise 'Do not include _B in index name' if rebased && index =~ /_B$/i
     idx_series_name ||= self.build_name(prefix: rebased ? index + '_B' : index,
                                         geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
     idx_series = Series.find_by(name: idx_series_name, universe: universe) || raise("No index series #{idx_series_name} found in #{universe}")
