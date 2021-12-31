@@ -1146,7 +1146,8 @@ class Series < ApplicationRecord
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly?
+        clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly?              ## Please be sure you understand before changing.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
