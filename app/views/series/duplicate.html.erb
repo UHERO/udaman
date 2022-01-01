@@ -1,0 +1,11 @@
+<h1>Duplicate series <%= @series.name %> (<%= @series.universe %>)</h1>
+
+<p>Some instructions</p>
+
+<%= form_with url: { action: :save_duplicate, id: @series } do |f| %>
+  New name <%= text_field_tag :new_name, nil, size: 30 %>
+  <p>
+    <%= f.submit 'Duplicate' %>
+    <%= link_to 'Cancel', :back %>
+  </p>
+<% end %>
