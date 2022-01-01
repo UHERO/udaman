@@ -121,7 +121,7 @@ task :reload_vap_hi_daily => :environment do
 end
 
 task :reload_covid_series => :environment do
-  ReloadJobDaemon.enqueue('covid', '~cv_,covcase,covid')
+  ReloadJobDaemon.enqueue('covid', '~cv_,covcase,covhosp,covid')
 end
 
 task :reload_uic_weekly => :environment do

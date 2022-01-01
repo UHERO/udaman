@@ -97,30 +97,7 @@ describe DataSource do
     ("YSTWTR@HI.A".ts.data_sources.sort_by(&:last_run)[0].last_run < "YSTWTR@HI.A".ts.data_sources.sort_by(&:last_run)[-1].last_run).should be_true
   end
 
-  
-  xit "should be able to reload series data from a source" do
-    # Series.store("YSTWTR@HI.A", Series.new(:data => @data2_hash),nil,"desc2", %Q|"YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|)    
-    # Series.store("YSTWTR@HI.A", Series.new(:data => @data1_hash),nil,"desc1", %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|)
-    
-    "YSTWTR@HI.A".ts_append_eval %Q|"YSTWTT@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
-    "YSTWTR@HI.A".ts_append_eval %Q|"YSTWTR@HI.A".tsn.load_from "#{ENV["DATAFILES_PATH"]}/datafiles/specs/gsp_upd.xls"|
-    
-    ds_first = "YSTWTR@HI.A".ts.data_sources_by_last_run[0]
-    ds_second = "YSTWTR@HI.A".ts.data_sources_by_last_run[1]
-    
-    "YSTWTR@HI.A".ts.data_sources_by_last_run[0].id.should == ds_first.id    
-    "YSTWTR@HI.A".ts.identical_to?(ds_first.data).should be_false
-    "YSTWTR@HI.A".ts.identical_to?(ds_second.data).should be_true
-    
-    sleep 2 #need to create separation between current time and the original time that the sources were run
-    ds_first.reload_source
-    
-    "YSTWTR@HI.A".ts.data_sources_by_last_run[0].id.should == ds_second.id    
-    "YSTWTR@HI.A".ts.identical_to?(ds_first.data).should be_true
-    "YSTWTR@HI.A".ts.identical_to?(ds_second.data).should be_false
-  end
-  
-    #turn off "setting" data sources. Now that we can delete sources and data points. All sources should be appended
+   #turn off "setting" data sources. Now that we can delete sources and data points. All sources should be appended
    xit "should mark data points as history if they are attached to current data source, but the date is not in the source data hash" do
      #Series.store(series_name, series, mode, desc=nil, eval_statement=nil)
      delete_date = "2000-01-01"
