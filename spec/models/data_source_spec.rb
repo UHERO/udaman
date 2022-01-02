@@ -97,7 +97,7 @@ describe DataSource do
     ("YSTWTR@HI.A".ts.data_sources.sort_by(&:last_run)[0].last_run < "YSTWTR@HI.A".ts.data_sources.sort_by(&:last_run)[-1].last_run).should be_true
   end
 
-   #turn off "setting" data sources. Now that we can delete sources and data points. All sources should be appended
+    #turn off "setting" data sources. Now that we can delete sources and data points. All sources should be appended
    xit "should mark data points as history if they are attached to current data source, but the date is not in the source data hash" do
      #Series.store(series_name, series, mode, desc=nil, eval_statement=nil)
      delete_date = "2000-01-01"
