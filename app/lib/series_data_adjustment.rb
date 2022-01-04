@@ -29,11 +29,6 @@ module SeriesDataAdjustment
     self.tap {|o| o.trim_period_end = '2999-12-31' }  ## End of Time
   end
 
-  def no_trim
-    no_trim_past
-    no_trim_future
-  end
-
   def get_last_incomplete_january
     last_date = self.last_observation
     return nil if last_date.nil?
