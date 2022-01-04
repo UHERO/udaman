@@ -56,10 +56,25 @@ module SeriesDataAdjustment
     last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
 
+  def get_last_complete_semi_period
+    last_obs =  last_observation
+    return nil if last_obs.nil?
+    last_obs.month == 7 ? last_obs : Date.new(last_obs.year - 1, 7)
+  end
+
   def first_complete_year
     first_obs = first_observation
     return nil if first_obs.nil?
     first_obs.month == 1 ? first_obs : Date.new(first_obs.year + 1)
+  end
+
+  def last_complete_year
+    case frequency.to_sym
+    when :month then get_last_complete_december
+    when :quarter then get_last_complete_4th_quarter
+    when :semi then get_last_complete_semi_period
+    else raise('last_complete_year can only be used on .S/.Q/.M series')
+    end
   end
 
   def get_last_incomplete_year(start_date = nil)
