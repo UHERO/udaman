@@ -5,8 +5,8 @@ class SeriesController < ApplicationController
   before_action :check_authorization, except: [:index]
   before_action :set_series,
         only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-               :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart,
-               :render_data_points, :update_notes]
+               :reload_all, :rename, :save_rename, :duplicate, :save_duplicate, :json_with_change, :show_forecast, :refresh_aremos,
+               :all_tsd_chart, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -31,6 +31,21 @@ class SeriesController < ApplicationController
       end
     end
     redirect_to action: :show
+  end
+
+  def duplicate
+  end
+
+  def save_duplicate
+    new_name = params[:new_name].strip
+    dup_series = @series.duplicate(new_name)
+    if params[:copy_loaders] == 'yes'
+      @series.enabled_data_sources.each do |ld|
+        new_ld = ld.dup
+        dup_series.data_sources << new_ld
+      end
+    end
+    redirect_to edit_series_path(dup_series)
   end
 
   def create
