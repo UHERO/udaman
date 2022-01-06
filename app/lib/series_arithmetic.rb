@@ -72,25 +72,24 @@ module SeriesArithmetic
 
   def rebase(date = nil)
     if date
-      date = Date.parse(date) rescue raise('Rebase arg must be a string "YYYY-01-01"')
+      date = Date.parse(date) rescue Date.new(date) rescue raise('Argument can be, e.g. 2000 or "2000-01-01"')
     end
     ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
     ann_series = find_sibling_for_freq('A') || raise("No annual series found corresponding to #{self}")
     date ||= ann_series.last_observation
     new_base = ann_series.at(date).to_f
-    raise "No nonzero rebase of #{self} to #{date}" unless new_base && new_base != 0
+    raise "No nonzero rebase of #{self} to #{date.year}" unless new_base && new_base != 0
 
     new_series_data = {}
     data.sort.each do |at_date, value|
       new_series_data[at_date] = value / new_base * 100
     end
-    new_transformation("Rebased #{self} to #{date}", new_series_data)
+    new_transformation("#{self} rebased to #{date.year}", new_series_data)
   end
 
   def convert_to_real(idx_series_name = nil, index: 'CPI', rebased: false)
-    Rails.logger.info "--------->>>>>>>>>>>>> loading series is #{@loading_series}"
-    rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
-    raise 'Do not include _B in index name' if rebased && index =~ /_B$/i
+    #rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
+    #raise 'Do not include _B in index name' if rebased && index =~ /_B$/i
     idx_series_name ||= self.build_name(prefix: rebased ? index + '_B' : index,
                                         geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
     idx_series = Series.find_by(name: idx_series_name, universe: universe) || raise("No index series #{idx_series_name} found in #{universe}")
@@ -230,7 +229,7 @@ module SeriesArithmetic
   end
   
   def mtd_sum
-    raise "mtd_sum cannot be called on a series of frequency #{frequency}" unless frequency == 'day'
+    return all_nil unless frequency == 'day'
     sum_series = {}
     mtd_sum = 0
     last_day = 0
@@ -250,6 +249,7 @@ module SeriesArithmetic
   end
 
   def mtd_avg
+    return all_nil unless frequency == 'day'
     avg_series = {}
     mtd_sum.data.sort.each do |date, value|
       avg_series[date] = value / date.day.to_f
@@ -262,7 +262,7 @@ module SeriesArithmetic
   end
 
   def ytd_sum
-    raise "ytd_sum cannot be called on a series of frequency #{frequency}" if frequency == 'week' || frequency == 'day'
+    return all_nil if frequency == 'week' || frequency == 'day'
     dp_month_diff = frequency == 'quarter' ? 3 : 1  ## only Q or M are possible
     sum_series = {}
     ytd_sum = 0
@@ -290,6 +290,7 @@ module SeriesArithmetic
   end
   
   def ytd_percentage_change(id = nil)
+    return all_nil if frequency == 'week' || frequency == 'day'
     return faster_ytd(id) if id
     ytd_sum.yoy
   end

@@ -166,7 +166,7 @@ class Series < ApplicationRecord
     end
     properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] ||= geo.id
-    properties[:frequency] ||= Series.frequency_from_code(name_parts[:freq])
+    properties[:frequency] ||= name_parts[:freq_long]
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
@@ -1146,7 +1146,8 @@ class Series < ApplicationRecord
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        success = ds.reload_source(clear_first) unless nightly && !ds.reload_nightly?
+        clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly?              ## Please be sure you understand before changing.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
