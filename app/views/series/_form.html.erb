@@ -108,7 +108,7 @@
       <%= hidden_field_tag(:add2meas, @add2meas) %>
       <% if @meta_update %>
         <%= f.submit 'Update all clipboard series' %>
-        <% backlink = :back %>
+        <% backlink = { action: :clip } %>
       <% else %>
         <%= f.submit %>
       <% end %>
