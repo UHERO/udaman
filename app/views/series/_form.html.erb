@@ -16,12 +16,14 @@
         </div>
     <% end %>
 
-    <% if request.path !~ /edit|meta_update/ %>
+    <% backlink = { action: :show, id: @series } %>
+    <% if (@series.name.blank? rescue true) %>
       <div class="field">
         <%= f.label :name, 'Name: Prefix' %><br/>
         <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
         <%= select :name_parts, :geography_id, @all_geos.collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
         <%= select :name_parts, :freq, %w(A Q M W S D).collect {|x| [x, x] }, {:include_blank => false} %>
+        <% backlink = :back %>
       </div>
     <% end %>
     <div class="field">
@@ -106,9 +108,10 @@
       <%= hidden_field_tag(:add2meas, @add2meas) %>
       <% if @meta_update %>
         <%= f.submit 'Update all clipboard series' %>
+        <% backlink = :back %>
       <% else %>
         <%= f.submit %>
       <% end %>
-      <%= link_to 'Cancel', (@backlink || :back) %>
+      <%= link_to 'Cancel', backlink %>
     </div>
 <% end %>
