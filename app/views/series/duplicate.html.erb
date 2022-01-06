@@ -1,11 +1,15 @@
 <h1>Duplicate series <%= @series.name %> (<%= @series.universe %>)</h1>
 
-<p>Some instructions</p>
+<p>You are attempting to duplicate a series within the same universe. All this really means is that a new series will
+be created, necessarily with a different name, and most of the metadata of the original series copied in. The first
+attempt may fail if the original series has any required metadata missing. Check the box if you would like all active
+loaders to be copied along with the metadata. On success, you will be sent to the edit screen for the newly created
+series, to make any necessary modifications.</p>
 
 <%= form_with url: { action: :save_duplicate, id: @series } do |f| %>
   New name <%= text_field_tag :new_name, nil, size: 30 %>
     <% unless @series.enabled_data_sources.empty? %>
-    <p><%= check_box_tag :copy_loaders, 'yes' %> Copy loaders along with series metadata</p>
+      <p><%= check_box_tag :copy_loaders, 'yes' %> Copy loaders along with series metadata</p>
     <% end %>
   <p>
     <%= f.submit 'Duplicate' %>
