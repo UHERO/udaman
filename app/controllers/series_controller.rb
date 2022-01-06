@@ -45,7 +45,7 @@ class SeriesController < ApplicationController
         dup_series.data_sources << new_ld
       end
     end
-    @backlink = link_to({ action: :show, id: dup_series })
+    @backlink = { action: :show, id: dup_series }
     redirect_to edit_series_path(dup_series)
   end
 
