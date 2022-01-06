@@ -45,7 +45,7 @@ class SeriesController < ApplicationController
         dup_series.data_sources << new_ld
       end
     end
-    redirect_to action: :edit
+    redirect_to edit_series_path(dup_series)
   end
 
   def create
