@@ -40,8 +40,8 @@ class SeriesController < ApplicationController
     new_name = params[:new_name].strip
     dup_series = @series.duplicate(new_name)
     if params[:copy_loaders] == 'yes'
-      @series.enabled_data_sources.each do |l|
-        new_ld = l.dup
+      @series.enabled_data_sources.each do |ld|
+        new_ld = ld.dup
         dup_series.data_sources << new_ld
       end
     end
