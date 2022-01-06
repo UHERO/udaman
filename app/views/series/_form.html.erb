@@ -109,6 +109,6 @@
       <% else %>
         <%= f.submit %>
       <% end %>
-      <%= link_to 'Cancel', :back %>
+      <%= link_to 'Cancel', (@backlink || :back) %>
     </div>
 <% end %>
