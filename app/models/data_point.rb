@@ -156,7 +156,7 @@ class DataPoint < ApplicationRecord
           p.pseudo_history = d.pseudo_history,
           p.updated_at = coalesce(d.updated_at, now())
       where s.universe = ?
-      and not s.quarantined
+      and not(s.quarantined)
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
     MYSQL
@@ -167,7 +167,7 @@ class DataPoint < ApplicationRecord
         join data_points d on d.xseries_id = s.xseries_id
         left join public_data_points p on p.series_id = s.id and p.date = d.date
       where s.universe = ?
-      and not s.quarantined
+      and not(s.quarantined)
       and d.current
       and p.created_at is null  /* dp doesn't exist in public_data_points yet */
       #{' and s.id = ? ' if series} ;
