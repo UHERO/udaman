@@ -1254,6 +1254,8 @@ class Series < ApplicationRecord
         when /^[}]/
           conditions.push %Q{series.description #{negated}regexp ?}
           bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+        when /^[,]/
+          raise 'Spaces cannot occur in comma-separated search lists'
         else
           ## a "bareword" text string
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}

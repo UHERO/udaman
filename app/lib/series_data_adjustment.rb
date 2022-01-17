@@ -82,6 +82,14 @@ module SeriesDataAdjustment
     trim(Date.new(last_date.year), nil)
   end
 
+  def trim_first_incomplete_year
+    no_trim_future.trim(before: first_complete_year)
+  end
+
+  def trim_last_incomplete_year
+    no_trim_past.trim(after: last_complete_year)
+  end
+
   def get_values_after(start_date, end_date = self.last_observation)
     data.reject {|date, value| date <= start_date or value.nil? or date > end_date}
   end

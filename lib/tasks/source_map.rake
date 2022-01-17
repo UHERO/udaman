@@ -98,7 +98,7 @@ end
 
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
-  bea_series = Series.get_all_series_by_eval(%w{load_api_bea bea.gov})
+  bea_series = Series.get_all_series_by_eval('load_api_bea')
   ## Convert this to use Series.reload_with_dependencies instead?
   mgr = SeriesReloadManager.new(bea_series, 'bea', nightly: true)
   Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
