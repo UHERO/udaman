@@ -248,30 +248,6 @@ module SeriesInterpolation
     new_transformation("Interpolated by #{method} method from #{self}", interpol_data, target_freq)
   end
 
-  # this method looks obsolete/vestigial - rename now, remove later
-  def interpolate_missing_months_and_aggregate_DELETEME(frequency, operation)
-    last_val = nil
-    last_date = nil
-    monthly_series_data = {}
-    data.sort.each do |key, val|
-      next if val.nil?
-      monthly_series_data[key] = val
-      unless last_val.nil?
-        val_diff = val - last_val
-        d1 = key
-        d2 = last_date
-        month_diff = (d1.year - d2.year) * 12 + (d1.month - d2.month)
-        #puts "#{key}: #{month_diff}"
-        (1..month_diff-1).each { |offset| monthly_series_data[d2 + offset.months] = last_val + (val_diff / month_diff) * offset }
-      end
-      last_val = val
-      last_date = key
-    end
-    monthly_series = new_transformation("Interpolated Monthly Series from #{self.name}", monthly_series_data, 'month')
-    monthly_series.aggregate(frequency, operation)
-
-  end
-  
   def trms_interpolate_to_quarterly
     raise InterpolationException if frequency != 'year'
     new_series_data = {}
