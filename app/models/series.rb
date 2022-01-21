@@ -1358,8 +1358,8 @@ class Series < ApplicationRecord
     result_set
   end
 
-  def reload_with_dependencies
-    Series.reload_with_dependencies([self.id], 'self')
+  def reload_with_dependencies(nightly: false, clear_first: false, group_size: nil, cycle_time: nil)
+    Series.reload_with_dependencies([self.id], 'self', nightly: nightly, clear_first: clear_first, group_size: group_size, cycle_time: cycle_time)
   end
 
   def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false, group_size: nil, cycle_time: nil)
