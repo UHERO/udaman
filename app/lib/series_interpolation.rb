@@ -124,25 +124,20 @@ module SeriesInterpolation
   end
 
   def pseudo_centered_spline_interpolation(frequency)
-    raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
-                                  (frequency == :month and self.frequency == 'quarter') or 
-                                  (frequency == :day and self.frequency == 'month')
-
-    divisor = 4 if frequency == :quarter and self.frequency == 'year'
-    divisor = 3 if frequency == :month and self.frequency == 'quarter'
-    divisor = 30.4375 if frequency == :day and self.frequency == 'month'
-    
     temp_series_data = {}
-    #last_temp_val = nil
     last_date = nil
-    first_val = nil
+    divisor = case
+              when frequency.to_sym == :quarter && self.frequency == 'year'  then 4
+              when frequency.to_sym == :month && self.frequency == 'quarter' then 3
+              when frequency.to_sym == :day && self.frequency == 'month'     then 30.4375
+              else raise("pseudo_centered_spline_interpolation from #{self.frequency} to #{frequency} not supported")
+              end
 
     self.data.sort.each do |date, val|
       #first period only
       if last_date.nil?
         last_date = date
         temp_series_data[date] = val
-        first_val = val
         next
       end
       
@@ -151,11 +146,11 @@ module SeriesInterpolation
       last_date = date
     end
     
-    temp_series = new_transformation("Temp series from #{self.name}", temp_series_data)
+    temp_series = new_transformation("Temp series from #{self}", temp_series_data)
     temp_series.frequency = self.frequency
     
     series_data = temp_series.linear_interpolate(frequency).data
-    new_transformation("Pseudo Centered Spline Interpolation of #{self.name}", series_data, frequency)
+    new_transformation("Pseudo Centered Spline Interpolation of #{self}", series_data, frequency)
   end
 
   #first period is just first value
@@ -248,6 +243,8 @@ module SeriesInterpolation
     new_transformation("Interpolated by #{method} method from #{self}", interpol_data, target_freq)
   end
 
+  ## This method is only used for a very restricted set of series. Do they really need their own unique
+  ## interpolation algorithm, or will a standard one (like interpolate(), in this file) do?
   def trms_interpolate_to_quarterly
     raise InterpolationException if frequency != 'year'
     new_series_data = {}
@@ -278,16 +275,13 @@ module SeriesInterpolation
     
     blma_new_series_data = {}
     prev_val = nil
-    prev_date = nil
     new_series_data.sort.each do |key,val|
       if prev_val.nil?
         prev_val = val
-        prev_date = key
         next
       end
       blma_new_series_data[key] = (val + prev_val) / 2
       prev_val = val
-      prev_date = key
     end
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
   end
