@@ -957,8 +957,7 @@ class Series < ApplicationRecord
   def units_at(date)
     dd = at(date)
     return nil if dd.nil?
-    self.units ||= 1
-    dd / self.units
+    dd / (units || 1.0)
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
