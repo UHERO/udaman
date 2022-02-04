@@ -955,7 +955,7 @@ class Series < ApplicationRecord
   end
 
   def units_at(date)
-    dd = data[date]
+    dd = at(date)
     return nil if dd.nil?
     self.units ||= 1
     dd / self.units
