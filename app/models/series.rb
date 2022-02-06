@@ -934,7 +934,7 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, freq)
   end
 
-  def compute_adc
+  def daily_census
     raise 'Cannot compute avg daily census on daily series' if frequency == 'day'
     self / days_in_period
   end
