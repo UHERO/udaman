@@ -72,7 +72,7 @@ module SeriesArithmetic
 
   def rebase(date = nil)
     if date
-      date = Date.parse(date) rescue Date.new(date) rescue raise('Argument can be, e.g. 2000 or "2000-01-01"')
+      date = Date.parse(date) rescue Date.new(date) rescue raise('rebase: Argument can be, e.g. 2000 or "2000-01-01"')
     end
     ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
     ann_series = find_sibling_for_freq('A') || raise("No annual series found corresponding to #{self}")
