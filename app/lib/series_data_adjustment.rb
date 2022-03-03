@@ -125,4 +125,11 @@ module SeriesDataAdjustment
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
+  def get_vintage_at(date)
+    vintage_data = {}                        ## entries for same date overwrite, leaving only the one with latest created_at
+    data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
+      vintage_data[dp.date] = dp.value
+    end
+    new_transformation("Vintage of #{self} as of #{date}", vintage_data)
+  end
 end
