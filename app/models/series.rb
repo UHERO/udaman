@@ -934,6 +934,11 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, freq)
   end
 
+  def daily_census
+    raise 'Cannot compute avg daily census on daily series' if frequency == 'day'
+    self / days_in_period
+  end
+
   def days_in_period
     new_data = {}
     data.each do |date, _|
@@ -944,16 +949,15 @@ class Series < ApplicationRecord
 
   def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
     unless date.class == Date
-      date = Date.parse(date) rescue raise("Series.at: #{date} not a valid date string")
+      date = Date.parse(date) rescue Date.new(date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
     end
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
 
   def units_at(date)
-    dd = data[date]
+    dd = at(date)
     return nil if dd.nil?
-    self.units ||= 1
-    dd / self.units
+    dd / (units || 1.0)
   end
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
@@ -1100,27 +1104,6 @@ class Series < ApplicationRecord
     eval_statements.each {|es| eval(es)}
   end
 
-  def Series.get_all_series_by_eval(patterns)
-    if patterns.class == String
-      patterns = [patterns]
-    end
-    names = []
-    all_uhero = DataSource.get_all_uhero
-    patterns.each do |pat|
-      pat.gsub!('%','\%')
-      names |= all_uhero.where("eval LIKE '%#{pat}%'").joins(:series).pluck(:name)
-    end
-    seen_series = []
-    all_names = names.dup
-    names.each do |name|
-      Rails.logger.debug { name }
-      dependents = Series.all_who_depend_on(name, seen_series)
-      seen_series |= [name, dependents].flatten
-      all_names |= dependents
-    end
-    Series.where(name: all_names)
-  end
-
   ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
   ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
@@ -1254,6 +1237,8 @@ class Series < ApplicationRecord
         when /^[}]/
           conditions.push %Q{series.description #{negated}regexp ?}
           bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+        when /^[,]/
+          raise 'Spaces cannot occur in comma-separated search lists'
         else
           ## a "bareword" text string
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
@@ -1377,18 +1362,22 @@ class Series < ApplicationRecord
     result_set
   end
 
-  def reload_with_dependencies
-    Series.reload_with_dependencies([self.id], 'self')
+  def reload_with_dependencies(nightly: false, clear_first: false, group_size: nil, cycle_time: nil)
+    Series.reload_with_dependencies([self.id], 'self', nightly: nightly, clear_first: clear_first, group_size: group_size, cycle_time: cycle_time)
   end
 
-  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false)
+  def Series.reload_with_dependencies(series_id_list, suffix = 'adhoc', nightly: false, clear_first: false, group_size: nil, cycle_time: nil)
     raise 'Series.reload_with_dependencies takes an array of series ids' unless series_id_list.class == Array
     Rails.logger.info { 'reload_with_dependencies: start' }
 
     full_set = Series.get_all_dependencies(series_id_list)
     mgr = SeriesReloadManager.new(Series.where(id: full_set), suffix, nightly: nightly)
+    load_params = {}  ## this is an awkward way to pass params, but the best way to ensure defaults in batch_reload() work as they should
+    load_params.merge!(clear_first: clear_first) if clear_first
+    load_params.merge!(group_size: group_size) if group_size
+    load_params.merge!(cycle_time: cycle_time) if cycle_time
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-    mgr.batch_reload(clear_first: clear_first)
+    mgr.batch_reload(load_params)
   end
 
   def source_link_is_valid

@@ -3,6 +3,21 @@
     need to worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :undo_ns_growth_rate_temp_hack => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next if ld.loader_type == :history
+      if ld.eval =~ /apply_ns_growth_rate_sa.*plete_year/
+        ld.update!(eval: ld.eval.sub(/\("2020-01-01"\)\s*$/, ''))   ## remove date parameter from last method call
+      else
+        ld.set_reload_nightly(true)
+      end
+    end
+    s.reload_sources
+  end
+end
+
 task :ua_1456_emergency_reload_ns_growth_rate => :environment do
   Series.search_box('#apply_ns_growth_rate_sa +9999').each do |s|
     puts "Doing #{s}"

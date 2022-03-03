@@ -225,7 +225,7 @@ class DataSource < ApplicationRecord
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
-        s = Kernel::eval eval_stmt##, set_binding
+        s = Kernel::eval eval_stmt
         if clear_first
           delete_data_points
         end
@@ -233,7 +233,7 @@ class DataSource < ApplicationRecord
 
         base_year = base_year_from_eval_string(eval_stmt)
         if base_year && base_year != series.base_year
-          series.update!(base_year: base_year)
+          series.xseries.update_columns(base_year: base_year)
         end
         series.update_data(s.data, self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
@@ -251,7 +251,7 @@ class DataSource < ApplicationRecord
 
     def base_year_from_eval_string(eval_string)
       if eval_string =~ /rebase/
-        base_year = eval_string[/rebase\("(\d*)/, 1]
+        base_year = eval_string[/rebase\(["']?(\d*)/, 1]
         return base_year.to_i if base_year
 
         series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
@@ -453,13 +453,6 @@ class DataSource < ApplicationRecord
           raise
       end
     end
-  end
-
-private
-
-  def set_binding
-    @loading_series = series
-    binding
   end
 
 end

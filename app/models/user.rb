@@ -43,12 +43,8 @@ class User < ApplicationRecord
     email.sub(/@.*/, '')
   end
 
-  def clipboard_contains?(series_to_check)
-    series.include?(series_to_check)
-  end
-
-  def clipboard_empty?
-    series.empty?
+  def clipboard
+    series
   end
 
   def add_series(series_to_add)
