@@ -19,7 +19,7 @@
 <% end %>
 <p><%= render 'add_series', { universe: @measurement.universe } %>
        or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @measurement } %>
-       <% unless current_user.clipboard_empty? %>
+       <% unless current_user.clipboard.empty? %>
          or <%= link_to 'Import from clipboard', { action: :import_clip, id: @measurement } %>
        <% end %>
        or <%= link_to 'Add to clipboard', { action: :add_clip, id: @measurement } %></p>

@@ -82,6 +82,14 @@ module SeriesDataAdjustment
     trim(Date.new(last_date.year), nil)
   end
 
+  def trim_first_incomplete_year
+    no_trim_future.trim(before: first_complete_year)
+  end
+
+  def trim_last_incomplete_year
+    no_trim_past.trim(after: last_complete_year)
+  end
+
   def get_values_after(start_date, end_date = self.last_observation)
     data.reject {|date, value| date <= start_date or value.nil? or date > end_date}
   end
@@ -117,4 +125,11 @@ module SeriesDataAdjustment
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
+  def get_vintage_at(date)
+    vintage_data = {}                        ## entries for same :date overwrite, leaving only the one with latest created_at
+    data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
+      vintage_data[dp.date] = dp.value
+    end
+    new_transformation("Vintage of #{self} as of #{date}", vintage_data)
+  end
 end
