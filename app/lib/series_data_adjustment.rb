@@ -130,6 +130,6 @@ module SeriesDataAdjustment
     data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
       vintage_data[dp.date] = dp.value
     end
-    new_transformation("Vintage of #{self} as of #{date}", vintage_data)
+    new_transformation("Vintage of #{self} as of #{date} (00:00)", vintage_data)
   end
 end
