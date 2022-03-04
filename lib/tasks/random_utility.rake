@@ -3,6 +3,41 @@
     need to worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :deploy_convert_to_real => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "cpi(_b)?@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100
+                              \s*$}xi
+    base_series = $1
+    _b = $2
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.convert_to_real' + _b)
+  end
+end
+
+task :deploy_daily_census => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              \1\.days_in_period
+                              \s*$}xi
+    base_series = $1
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.daily_census')
+  end
+end
+
 task :undo_ns_growth_rate_temp_hack => :environment do
   Series.search_box('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
     puts "Doing #{s}"
