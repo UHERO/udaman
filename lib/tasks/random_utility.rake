@@ -17,7 +17,7 @@ task :deploy_convert_to_real => :environment do
                               100
                               \s*$}xi
     base_series = $1
-    _b = $2
+    _b = $2.to_s
     puts "DOING #{base_series}"
     ld.update!(eval: base_series + '.convert_to_real' + _b)
   end
