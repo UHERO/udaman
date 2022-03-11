@@ -87,7 +87,7 @@ module SeriesArithmetic
     new_transformation("#{self} rebased to #{date.year}", new_series_data)
   end
 
-  def convert_to_real_b(index: 'CPI')
+  def convert_to_real_B(index: 'CPI')
     raise 'Do not include _B in index name' if index =~ /_B$/i
     convert_to_real(index: index + '_B')
   end
