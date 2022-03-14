@@ -17,7 +17,7 @@ gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
-gem 'sidekiq', '~> 5.2.0'
+gem 'sidekiq', '~> 6.4.0'
 gem 'sidekiq-status', '>= 1.0.1'
 gem 'sinatra', '~> 2.0', require: false
 gem 'sinatra_auth_github', '~> 2.0', require: false
