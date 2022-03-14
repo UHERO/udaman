@@ -51,7 +51,7 @@ module SeriesInterpolation
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
   ## with the mean of surrounding monthly values.
   def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil, from: nil, to: nil)
-    raise "Cannot call fill_alternate_missing_months on a series of frequency #{frequency}" unless frequency == 'month'
+    raise "Cannot fill_alternate_missing_months on a series of frequency #{frequency}" unless frequency == 'month'
     semi = find_sibling_for_freq('S')
     start_date = Date.parse(from || range_start_date) rescue first_observation
     end_date = Date.parse(to || range_end_date) rescue last_observation
