@@ -73,9 +73,9 @@ class DataSource < ApplicationRecord
       end
       series_names.uniq
     end
-    
-    #const is not there yet
-    def DataSource.all_history_and_manual_series_names
+
+    ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_history_and_manual_series_names_DELETEME
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
@@ -209,7 +209,7 @@ class DataSource < ApplicationRecord
       set_dependencies!
     end
 
-    def reload_source(clear_first = false)
+    def reload_source(clear_first = clear_before_load?)
       return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
@@ -226,21 +226,21 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first || clear_before_load?
+        if clear_first
           delete_data_points
         end
         s = self.send(presave_hook, s) if presave_hook
 
         base_year = base_year_from_eval_string(eval_stmt)
         if base_year && base_year != series.base_year
-          series.update!(base_year: base_year)
+          series.xseries.update_columns(base_year: base_year)
         end
         series.update_data(s.data, self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
         Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
         update_props.merge!(last_error: e.message[0..253], last_error_at: t)
-        return false
+        return false  ## Note! ensure block runs despite this early return!
       ensure
         self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will end up saved below
         self.update!(update_props)
@@ -251,7 +251,7 @@ class DataSource < ApplicationRecord
 
     def base_year_from_eval_string(eval_string)
       if eval_string =~ /rebase/
-        base_year = eval_string[/rebase\("(\d*)/, 1]
+        base_year = eval_string[/rebase\(["']?(\d*)/, 1]
         return base_year.to_i if base_year
 
         series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
@@ -338,7 +338,11 @@ class DataSource < ApplicationRecord
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
 
-    #### Do we really need this method? Test to find out
+    def set_reload_nightly(value)
+      self.update!(reload_nightly: value)
+    end
+
+  #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
     end

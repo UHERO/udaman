@@ -1,7 +1,126 @@
 =begin
     ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
-    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+    need to worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
+
+task :deploy_convert_to_real => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "cpi(_b)?@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100
+                              \s*$}xi
+    base_series = $1
+    _b = $2.upcase.to_s
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.convert_to_real' + _b)
+  end
+end
+
+task :deploy_daily_census => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              \1\.days_in_period
+                              \s*$}xi
+    base_series = $1
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.daily_census')
+  end
+end
+
+task :undo_ns_growth_rate_temp_hack => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next if ld.loader_type == :history
+      if ld.eval =~ /apply_ns_growth_rate_sa.*plete_year/
+        ld.update!(eval: ld.eval.sub(/\("2020-01-01"\)\s*$/, ''))   ## remove date parameter from last method call
+      else
+        ld.set_reload_nightly(true)
+      end
+    end
+    s.reload_sources
+  end
+end
+
+task :ua_1456_emergency_reload_ns_growth_rate => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next if ld.eval =~ /apply_ns_growth_rate_sa/
+      ld.set_reload_nightly(true)
+      if ld.eval =~ /county_share_for/
+        ld.update!(eval: ld.eval.strip + '.trim(after: "2019-12-31")')
+      else
+        Rails.logger.info ">>>>!!!>>>>> #{s} has unexpected loaders"
+      end
+    end
+  end
+end
+
+task :ua_1473_fill_blank_DPNs => :environment do
+  dict = {}
+  Series.get_all_uhero.each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    dpn = s.dataPortalName || next
+    if dict[indicator] && dict[indicator] != dpn
+      puts ">> DPN mismatch for indicator #{indicator}"
+      next
+    end
+    dict[indicator] = dpn
+  end
+  puts "Finished building dictionary"
+  Series.search_box('&nodpn +9999').each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    if dict[indicator]
+      puts "Updating #{s.name}"
+      s.update!(dataPortalName: dict[indicator])
+    end
+  end
+end
+
+task :ua_1473_fix_VSO_agg_methods => :environment do
+  Series.search_box('^vso #aggregate #average +9999').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.eval =~ /aggregate.*:average/i
+      puts "Updating #{s.name}"
+      ld.update(eval: ld.eval.sub(':average', ':sum'))
+    end
+  end
+end
+
+task :ua_1473_turn_off_YC_series => :environment do
+  Series.search_box('^yc +9999').each do |s|
+    s.update!(restricted: true) unless s.restricted?
+    s.data_sources.each do |ld|
+      next unless ld.reload_nightly?
+      ld.update(reload_nightly: false)
+    end
+  end
+end
+
+task :ua_1472_fix_backward_shifts => :environment do
+  Series.search_box('#shift_backward_months').each do |s|
+    s.data_sources.each do |ld|
+      while ld.eval =~ /shift_backward_months\((-?\d+)\)/
+        num = $1.to_i
+        ld.update!(eval: ld.eval.sub(/shift_backward_months\((-?\d+)\)/,
+                                      'shift_by(%s%d.months)' % [num < 0 ? '+' : '-', num.abs] ))
+        ld.reload
+      end
+    end
+  end
+end
 
 task :ua_1468 => :environment do
   Measurement.where(universe: 'UHERO').order(:prefix).each do |m|

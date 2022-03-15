@@ -269,7 +269,7 @@ class DataHtmlParser
       @content = get_by_http(verifyssl: verifyssl)
     rescue => e
       Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
-      @content = %x{curl --insecure #{self.url} 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
+      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
       unless $?.success?
         msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
         raise "curl command failed: #{msg}"

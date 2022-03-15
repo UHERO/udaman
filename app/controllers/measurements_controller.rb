@@ -11,7 +11,6 @@ class MeasurementsController < ApplicationController
       ['Source', :source_id],
       ['Source detail', :source_detail_id],
       ['Source link', :source_link],
-      ['Seasonally adjusted', :seasonally_adjusted],
       ['Seasonal adjustment', :seasonal_adjustment],
       ['Percent', :percent],
       ['Real', :real],
@@ -158,8 +157,7 @@ private
 
     def translate(name)
       # Translate column names from Measurement table form to Series table form
-      trans_hash = {'data_portal_name' => 'dataPortalName'}
-      trans_hash[name] || name
+      { 'data_portal_name' => 'dataPortalName' }[name] || name
     end
 
     # Use callbacks to share common setup or constraints between actions.

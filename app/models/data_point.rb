@@ -19,7 +19,7 @@ class DataPoint < ApplicationRecord
 
   def series_auto_quarantine_check
     return if series.quarantined? || series.restricted?
-    return unless FeatureToggle.is_set('auto_quarantine', true, series.universe)
+    return unless FeatureToggle.is_set?('auto_quarantine', true, series.universe)
     if self.date < (Date.today - 2.years)
       series.add_to_quarantine(run_update: false)
     end
@@ -122,6 +122,8 @@ class DataPoint < ApplicationRecord
   def DataPoint.update_public_all_universes
     Rails.logger.info { 'update_public_data_points: UHERO' }
     DataPoint.update_public_data_points('UHERO')
+    Rails.logger.info { 'update_public_data_points: FC' }
+    DataPoint.update_public_data_points('FC')
     Rails.logger.info { 'update_public_data_points: COH' }
     DataPoint.update_public_data_points('COH')
     Rails.logger.info { 'update_public_data_points: CCOM' }
@@ -129,7 +131,7 @@ class DataPoint < ApplicationRecord
   end
 
   def DataPoint.update_public_data_points(universe = 'UHERO', series = nil)
-    remove_quarantine = FeatureToggle.is_set('remove_quarantined_from_public', false, universe)
+    remove_quarantine = FeatureToggle.is_set?('remove_quarantined_from_public', false, universe)
     if series && series.quarantined?
       return true unless remove_quarantine
 
@@ -154,7 +156,7 @@ class DataPoint < ApplicationRecord
           p.pseudo_history = d.pseudo_history,
           p.updated_at = coalesce(d.updated_at, now())
       where s.universe = ?
-      and not (s.restricted or s.quarantined)
+      and not(s.quarantined)
       and (d.updated_at is null or d.updated_at > p.updated_at)
       #{' and s.id = ? ' if series} ;
     MYSQL
@@ -165,7 +167,7 @@ class DataPoint < ApplicationRecord
         join data_points d on d.xseries_id = s.xseries_id
         left join public_data_points p on p.series_id = s.id and p.date = d.date
       where s.universe = ?
-      and not (s.restricted or s.quarantined)
+      and not(s.quarantined)
       and d.current
       and p.created_at is null  /* dp doesn't exist in public_data_points yet */
       #{' and s.id = ? ' if series} ;
@@ -177,7 +179,7 @@ class DataPoint < ApplicationRecord
         left join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
       where s.universe = ?
       and( d.created_at is null  /* dp no longer exists in data_points */
-           #{'or s.quarantined or s.restricted' if remove_quarantine} )
+          #{' or s.quarantined ' if remove_quarantine} )
       #{' and s.id = ? ' if series} ;
     MYSQL
     begin

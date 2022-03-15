@@ -39,12 +39,12 @@ class User < ApplicationRecord
     universe == 'UHERO' && dev?
   end
 
-  def clipboard_contains?(series_to_check)
-    series.include?(series_to_check)
+  def username
+    email.sub(/@.*/, '')
   end
 
-  def clipboard_empty?
-    series.empty?
+  def clipboard
+    series
   end
 
   def add_series(series_to_add)
@@ -69,7 +69,6 @@ class User < ApplicationRecord
 
     case action
     when 'reload'
-      username = email.sub(/@.*/, '')
       job = ReloadJob.create!(user_id: id, params: [username].to_s) rescue raise('Failed to create ReloadJob object')
       job.series << series
       "Reload job #{job.id} queued"
@@ -83,10 +82,10 @@ class User < ApplicationRecord
       series.each {|s| s.delete_data_points }
       'Data points cleared'
     when 'restrict'
-      series.each {|s| s.update!(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
+      series.each {|s| s.update(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
       nil
     when 'unrestrict'
-      series.each {|s| s.update!(restricted: false) }
+      series.each {|s| s.update(restricted: false) }
       nil
     when 'destroy'
       failed = []
@@ -97,6 +96,12 @@ class User < ApplicationRecord
     else
       Rails.logger.warn { "User.do_clip_action: unknown action: #{action}" }
       "Unknown action: #{action}"
+    end
+  end
+
+  def meta_update(properties)
+    User.transaction do
+      series.each {|s| s.update!(properties) }
     end
   end
 

@@ -9,10 +9,10 @@ module SeriesDataAdjustment
     last_observation
   end
 
-  def trim(start_date = nil, end_date = nil)
+  def trim(start_date = nil, end_date = nil, before: nil, after: nil)
     ## more flexibility to allow either or both parameters to be passed as nil and assign defaults within
-    start_date ||= (self.trim_period_start || get_last_incomplete_january)
-      end_date ||= (self.trim_period_end || Time.now)
+    start_date ||= (before || self.trim_period_start || get_last_incomplete_january)
+      end_date ||= (after  || self.trim_period_end || Time.now)
     if start_date.nil?
       return new_transformation("Trimmed #{name}", data)
     end
@@ -27,11 +27,6 @@ module SeriesDataAdjustment
 
   def no_trim_future
     self.tap {|o| o.trim_period_end = '2999-12-31' }  ## End of Time
-  end
-
-  def no_trim
-    no_trim_past
-    no_trim_future
   end
 
   def get_last_incomplete_january
@@ -55,7 +50,28 @@ module SeriesDataAdjustment
     return nil if last_date.nil?
     last_date.month == 10 ? last_date : Date.new(last_date.year - 1, 10)
   end
-  
+
+  def get_last_complete_semi_period
+    last_obs =  last_observation
+    return nil if last_obs.nil?
+    last_obs.month == 7 ? last_obs : Date.new(last_obs.year - 1, 7)
+  end
+
+  def first_complete_year
+    first_obs = first_observation
+    return nil if first_obs.nil?
+    first_obs.month == 1 ? first_obs : Date.new(first_obs.year + 1)
+  end
+
+  def last_complete_year
+    case frequency.to_sym
+    when :month then get_last_complete_december
+    when :quarter then get_last_complete_4th_quarter
+    when :semi then get_last_complete_semi_period
+    else raise('last_complete_year can only be used on .S/.Q/.M series')
+    end
+  end
+
   def get_last_incomplete_year(start_date = nil)
     return trim(start_date, nil) if start_date  ## special handling for unusual cases where we want to force a specific cutoff
     last_date = self.last_observation
@@ -64,6 +80,14 @@ module SeriesDataAdjustment
       return new_transformation('No data because no incomplete year', {})
     end
     trim(Date.new(last_date.year), nil)
+  end
+
+  def trim_first_incomplete_year
+    no_trim_future.trim(before: first_complete_year)
+  end
+
+  def trim_last_incomplete_year
+    no_trim_past.trim(after: last_complete_year)
   end
 
   def get_values_after(start_date, end_date = self.last_observation)
@@ -101,23 +125,11 @@ module SeriesDataAdjustment
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
-  def shift_by_months(num_months)
-    shift_by(num_months.months)
-  end
-
-  def shift_by_years(num_years)
-    shift_by(num_years.years)
-  end
-
-  def shift_forward_months(num_months)
-    shift_by(num_months.months)
-  end
-
-  def shift_backward_months(num_months)
-    shift_by(-num_months.months)
-  end
-  
-  def shift_forward_years(num_years)
-    shift_by(num_years.years)
+  def vintage_as_of(date)
+    vintage_data = {}                        ## entries for same :date overwrite, leaving only the one with latest created_at
+    data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
+      vintage_data[dp.date] = dp.value
+    end
+    new_transformation("The state of #{self} as of #{date} (00:00)", vintage_data)
   end
 end

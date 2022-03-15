@@ -5,8 +5,8 @@ class SeriesController < ApplicationController
   before_action :check_authorization, except: [:index]
   before_action :set_series,
         only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-               :reload_all, :rename, :save_rename, :json_with_change, :show_forecast, :refresh_aremos, :all_tsd_chart,
-               :render_data_points, :update_notes]
+               :reload_all, :rename, :save_rename, :duplicate, :save_duplicate, :json_with_change, :show_forecast, :refresh_aremos,
+               :all_tsd_chart, :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -31,6 +31,21 @@ class SeriesController < ApplicationController
       end
     end
     redirect_to action: :show
+  end
+
+  def duplicate
+  end
+
+  def save_duplicate
+    new_name = params[:new_name].strip
+    dup_series = @series.duplicate(new_name)
+    if params[:copy_loaders] == 'yes'
+      @series.enabled_data_sources.each do |ld|
+        new_ld = ld.dup
+        dup_series.data_sources << new_ld
+      end
+    end
+    redirect_to edit_series_path(dup_series)
   end
 
   def create
@@ -59,26 +74,27 @@ class SeriesController < ApplicationController
     @series = @series.create_alias(series_params)
     mid = params[:add2meas].to_i
     if mid > 0
-      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
+      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
     else
       redirect_to @series, notice: 'Alias series successfully created'
     end
   end
 
   def update
-    respond_to do |format|
-      if @series.update! series_params
-        mid = params[:add2meas].to_i
-        if mid > 0
-          redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series.id
-          return
-        end
+    begin
+      @series.update!(series_params)
+      mid = params[:add2meas].to_i
+      if mid > 0
+        redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
+        return
+      end
+      respond_to do |format|
         format.html { redirect_to(@series, notice: 'Series successfully updated') }
         format.xml  { head :ok }
-      else
-        format.html { render action: :edit }
-        format.xml  { render xml: @series.errors, status: :unprocessable_entity }
       end
+    rescue => e
+      redirect_to({ action: :edit }, notice: e.message)
+      return
     end
   end
 
@@ -123,6 +139,14 @@ class SeriesController < ApplicationController
       redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
       return
     end
+    if params[:clip_action] == 'datatsd'
+      redirect_to action: :group_export, type: params[:clip_action], format: :tsd, layout: false
+      return
+    end
+    if params[:clip_action] == 'meta_update'
+      redirect_to action: :meta_update
+      return
+    end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
@@ -130,6 +154,24 @@ class SeriesController < ApplicationController
   def group_export
     @type = params[:type]
     @all_series = current_user.series.sort_by(&:name)
+  end
+
+  def meta_update
+    @meta_update = true
+    @all_series = current_user.series.reload.sort_by(&:name)
+    @series = Series.new(universe: 'UHERO', name: 'Metadata update', xseries: Xseries.new)
+    set_attrib_resource_values(@series)
+  end
+
+  def meta_store
+    fields = field_params.to_h.keys.map(&:to_sym)
+    unless fields.count > 0
+      redirect_to({ action: :meta_update }, notice: 'No fields were specified for metadata propagation')
+      return
+    end
+    new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
+    current_user.meta_update(new_properties)
+    redirect_to action: :clipboard
   end
 
   def index
@@ -171,7 +213,7 @@ class SeriesController < ApplicationController
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
-    @clipboarded = current_user.clipboard_contains?(@series)
+    @clipboarded = current_user.clipboard.include?(@series)
     @dependencies = @series.who_depends_on_me(['series.name', 'series.id']).sort_by {|a| a[0] }
     return if no_render
 
@@ -207,11 +249,12 @@ class SeriesController < ApplicationController
     @path = params[:filepath] = forecast_upload_params[:filepath].nil_blank
     @fcid = params[:fcid] = forecast_upload_params[:fcid].nil_blank
     @version = params[:version] = forecast_upload_params[:version].nil_blank
-    if @path =~ /(\d\dQ\d+)([FH](\d+|F))/i
-      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version overrides
-      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
-    end
     @freq = params[:freq] = forecast_upload_params[:freq].nil_blank
+    if @path =~ /(\d\dQ\d+)([FH](\d+|F))(_([ASQM])[^A-Z])?/i
+      @fcid = params[:fcid] ||= $1.upcase        ## explicitly entered fcid/version/freq override
+      @version = params[:version] ||= $2.upcase  ## those scraped from the filename
+      @freq = params[:freq] ||= $5.upcase if $5
+    end
     unless @path && @fcid && @version && @freq
       render :forecast_upload
       return
@@ -297,7 +340,7 @@ class SeriesController < ApplicationController
 
   def transform
     eval_string = params[:eval].gsub(/([+*\/()-])/, ' \1 ').strip  ## puts spaces around operators and parens
-    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? "'#{e}'.ts" : e }.join(' ')
+    eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? %Q{"#{e}".ts} : e }.join(' ')
     @series = (Kernel::eval eval_statement) rescue nil
     unless @series
      redirect_to action: :index
@@ -311,6 +354,11 @@ class SeriesController < ApplicationController
   end
   
   def analyze
+    @chg = @series.annualized_percentage_change
+    @as = AremosSeries.get @series.name
+    @desc = @as.nil? ? "No Aremos Series" : @as.description
+    @lvl_chg = @series.absolute_change
+    @ytd = @series.ytd_percentage_change
   end
   
   def render_data_points
@@ -335,6 +383,7 @@ private
           :source_detail_id,
           :investigation_notes,
           :decimals,
+          :fields_selected,
           xseries_attributes: [
               :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
           ]
@@ -347,6 +396,11 @@ private
 
   def bulk_params
     params.require(:bulk_defs).permit(:definitions)
+  end
+
+  def field_params
+    all_attribs = Series.attribute_names + Xseries.attribute_names
+    params.require(:fields_selected).permit(all_attribs.map(&:to_sym))
   end
 
   def forecast_upload_params
@@ -365,10 +419,13 @@ private
     end
     @all_units = Unit.where(universe: series.universe)
     @all_units = Unit.where(universe: primary_univ) if @all_units.empty?
+    @all_units = Unit.where(universe: 'UHERO')      if @all_units.empty?
     @all_sources = Source.where(universe: series.universe)
     @all_sources = Source.where(universe: primary_univ) if @all_sources.empty?
+    @all_sources = Source.where(universe: 'UHERO')      if @all_sources.empty?
     @all_details = SourceDetail.where(universe: series.universe)
     @all_details = SourceDetail.where(universe: primary_univ) if @all_details.empty?
+    @all_details = SourceDetail.where(universe: 'UHERO')      if @all_details.empty?
   end
 
   def json_from_heroku_tsd(series_name, tsd_file)
