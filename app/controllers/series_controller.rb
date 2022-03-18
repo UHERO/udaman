@@ -360,8 +360,9 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change
     @ytd = @series.ytd_percentage_change
   end
-  
-  def render_data_points
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later (also :only ref at top of file)
+  def render_data_points_DELETEME?
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
   
