@@ -16,8 +16,7 @@
     as = @as && @as.data
 
     def process_missing_dates(as)
-      date_hash = {}
-      date_hash = as.clone unless as.nil?
+      date_hash = as.clone rescue {}
       @series.current_data_points.each {|cdp| date_hash[cdp.date] = cdp}
       date_hash
     end

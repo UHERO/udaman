@@ -126,10 +126,15 @@ module SeriesDataAdjustment
   end
 
   def vintage_as_of(date)
+    new_transformation("The state of #{self} as of #{date} (00:00)",
+                       get_vintage_as_data_points(date).map {|dat, dp| [dat, dp.value] })
+  end
+
+  def get_vintage_as_data_points(date)
     vintage_data = {}                        ## entries for same :date overwrite, leaving only the one with latest created_at
     data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
-      vintage_data[dp.date] = dp.value
+      vintage_data[dp.date] = dp
     end
-    new_transformation("The state of #{self} as of #{date} (00:00)", vintage_data)
+    vintage_data
   end
 end
