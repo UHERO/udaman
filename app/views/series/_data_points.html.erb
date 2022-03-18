@@ -16,14 +16,8 @@
     as = @as && @as.data
 
     def process_missing_dates(as)
-      data_hash = as.clone rescue {}
-      if @vintage
-        data_hash.merge! @series.get_vintage_as_data_points(@vintage)
-      else
-        data_hash
-      end
-       @series.current_data_points.each {|cdp| data_hash[cdp.date] = cdp}
-      data_hash
+      data = as.clone rescue {}
+      data.merge(@vintage ? @series.get_vintage_as_data_points(@vintage) : @series.current_data_points(:hash))
     end
 
     def display_data_points(date_hash, as, env = {})

@@ -98,15 +98,6 @@ module SeriesDataAdjustment
     data.reject {|date, value| date < start_date or value.nil? or date > end_date}
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def get_scaled_no_ph_after_inc_DELETEME(start_date, end_date = Time.now.to_date, round_to = 3)
-    start_date = start_date.to_date
-    end_date = end_date.to_date
-    scaled_data_no_pseudo_history(round_to).reject do |date, value|
-      date < start_date or value.nil? or date > end_date
-    end
-  end
-
   ## Obsolete? Track it down.
   def compressed_date_range_data(compressed_dates = Date.compressed_date_range)
     compressed_date_range_data = {}
