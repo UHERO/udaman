@@ -209,6 +209,7 @@ class SeriesController < ApplicationController
 
   def show(no_render: false)
     @desc = AremosSeries.get(@series.name).description rescue 'No Aremos Series'
+    @vintage = Date.parse(params[:vintage]) rescue nil
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]

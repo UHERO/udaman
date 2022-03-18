@@ -4,9 +4,6 @@ module SeriesHelper
 
   def csv_helper
     CSV.generate do |csv| 
-      # series_data = @data_list.series_data
-      # sorted_names = series_data.keys.sort
-      # dates_array = @data_list.data_dates
       dates = @series.data.keys
       val = @series.data
       lvls = @lvl_chg.data

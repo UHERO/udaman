@@ -117,7 +117,7 @@ module SeriesDataAdjustment
   end
 
   def vintage_as_of(date)
-    new_transformation("The state of #{self} as of #{date} (00:00)",
+    new_transformation("The state of #{self} as of #{date} at 00:00h",
                        get_vintage_as_data_points(date).map {|dat, dp| [dat, dp.value] })
   end
 
