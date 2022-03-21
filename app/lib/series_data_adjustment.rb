@@ -111,6 +111,7 @@ module SeriesDataAdjustment
   end
 
   def shift_by(laglead)  ## laglead is expected to be a time duration, like 7.days, -1.month, 4.years, etc.
+    raise 'shift_by: parameter must be a valid duration' unless laglead.class == ActiveSupport::Duration
     dir = laglead < 0 ? 'backward' : 'forward'
     laglead_s = distance_of_time_in_words(laglead).sub(/(about|almost) /,'')
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
