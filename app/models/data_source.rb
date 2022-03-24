@@ -338,7 +338,7 @@ class DataSource < ApplicationRecord
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
 
-    def set_reload_nightly(value)
+    def set_reload_nightly(value = true)
       self.update!(reload_nightly: value)
     end
 
