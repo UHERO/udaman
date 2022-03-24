@@ -1,20 +1,20 @@
 class DataPoint < ApplicationRecord
-  self.primary_key = :xseries_id, :date, :created_at, :data_source_id
+  self.primary_key = :xseries_id, :date, :created_at, :loader_id
   belongs_to :xseries, inverse_of: :data_points
-  belongs_to :data_source
+  belongs_to :loader
   
-  def upd(value, data_source)
+  def upd(value, loader)
     return nil if trying_to_replace_with_nil?(value)
-    return nil unless value_or_source_has_changed?(value, data_source)
-    restore_prior_dp(value, data_source) || create_new_dp(value, data_source)
+    return nil unless value_or_loader_has_changed?(value, loader)
+    restore_prior_dp(value, loader) || create_new_dp(value, loader)
   end
   
-  def value_or_source_has_changed?(value, data_source)
+  def value_or_loader_has_changed?(value, loader)
     unless self.value_equal_to? value
       series_auto_quarantine_check
       return true
     end
-    self.data_source_id != data_source.id
+    self.loader_id != loader.id
   end
 
   def series_auto_quarantine_check
@@ -35,16 +35,16 @@ class DataPoint < ApplicationRecord
      value.nil? && !self.value.nil?
   end
   
-  def create_new_dp(upd_value, upd_source)
-    #create a new datapoint because value or source changed
+  def create_new_dp(upd_value, upd_loader)
+    #create a new datapoint because value or loader changed
     #need to understand how to control the rounding...not sure what sets this
     #rounding doesnt work, looks like there's some kind of truncation too.
-    return nil if upd_source.priority < self.data_source.priority
+    return nil if upd_loader.priority < self.loader.priority
     ##now = Time.now
     new_dp = DataPoint.create(
         xseries_id: self.xseries_id,
         date: self.date,
-        data_source_id: upd_source.id,
+        loader_id: upd_loader.id,
         value: upd_value,
         current: false  ## will be set to true just below
       #  :created_at => now,
@@ -54,13 +54,13 @@ class DataPoint < ApplicationRecord
     new_dp
   end
 
-  def restore_prior_dp(upd_value, upd_source)
+  def restore_prior_dp(upd_value, upd_loader)
     prior_dp = DataPoint.where(xseries_id: xseries_id,
                                date: date,
-                               data_source_id: upd_source.id,
+                               loader_id: upd_loader.id,
                                value: upd_value).first
     return nil if prior_dp.nil?
-    unless upd_source.priority < self.data_source.priority
+    unless upd_loader.priority < self.loader.priority
       make_current(prior_dp)
     end
     prior_dp
@@ -89,7 +89,7 @@ class DataPoint < ApplicationRecord
   end
 
   def source_type
-    source_eval = self.data_source.eval
+    source_eval = self.loader.eval
     case 
       when source_eval.index('load_api_bls')
         return :download
