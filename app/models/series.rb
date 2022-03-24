@@ -960,11 +960,6 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def new_at_DELETEME(date)
-    DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
-  end
-
   def observation_count
     observations = 0
     data.each do |_, value|
