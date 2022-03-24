@@ -25,7 +25,7 @@ class Series < ApplicationRecord
   accepts_nested_attributes_for :xseries
   delegate_missing_to :xseries  ## methods that Series does not 'respond_to?' are tried against the contained Xseries
 
-  has_many :data_sources, inverse_of: :series, dependent: :destroy
+  has_many :loaders, inverse_of: :series, dependent: :destroy
 
   has_and_belongs_to_many :data_lists
 
@@ -103,11 +103,11 @@ class Series < ApplicationRecord
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
     self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
     if geo_freq_change
-      data_sources.each {|ld| ld.delete_data_points }  ## clear all data points
+      loaders.each {|ld| ld.delete_data_points }  ## clear all data points
     end
     dependents.each do |series_name|
       s = series_name.ts || next
-      s.enabled_data_sources.each do |ds|
+      s.enabled_loaders.each do |ds|
         new_eval = ds.eval.gsub(old_name, newname)
         ds.update_attributes!(eval: new_eval) if new_eval != ds.eval
       end
@@ -331,11 +331,11 @@ class Series < ApplicationRecord
     ## future/next time: the dataPortalName also needs to be copied over (with mods?)
     )
     new.save!
-    self.enabled_data_sources.each do |ds|
+    self.enabled_loaders.each do |ds|
       new_ds = ds.dup
       if new_ds.save!
         new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
-        new.data_sources << new_ds
+        new.loaders << new_ds
         new_ds.reload_source
       end
     end
@@ -513,7 +513,7 @@ class Series < ApplicationRecord
     now = Time.now
     if eval_statement
       eval_statement.strip!
-      data_sources.each do |ds|
+      loaders.each do |ds|
         if ds.eval && ds.eval.strip == eval_statement
           ds.update_attributes(last_run: now)
           source = ds
@@ -522,7 +522,7 @@ class Series < ApplicationRecord
     end
 
     if source.nil?
-      source = data_sources.create(
+      source = loaders.create(
         :description => source_desc,
         :eval => eval_statement,
         :priority => priority,
@@ -534,13 +534,13 @@ class Series < ApplicationRecord
     source
   end
 
-  def enabled_data_sources(match = '.')
-    data_sources.to_a.select {|ld| ld.disabled? == false && ld.eval =~ %r/#{match}/i }
+  def enabled_loaders(match = '.')
+    loaders.to_a.select {|ld| ld.disabled? == false && ld.eval =~ %r/#{match}/i }
   end
 
-  def data_sources_sort_for_display
+  def loaders_sort_for_display
     ## Disabled at the top, then non-nightlies, then by priority, then by id within priority groups.
-    data_sources.sort_by {|ds| [(ds.disabled? ? 0 : 1), (ds.reload_nightly? ? 1 : 0), ds.priority, ds.id] }
+    loaders.sort_by {|ds| [(ds.disabled? ? 0 : 1), (ds.reload_nightly? ? 1 : 0), ds.priority, ds.id] }
     ## For some reason, sort_by does not take the boolean attributes as-is, but they need to be "reconverted"
     ## to integer - I am mystified by this.
   end
@@ -625,11 +625,11 @@ class Series < ApplicationRecord
         s = Series.find_by(properties) || Series.create_new(properties)
 
         if s.find_loaders_matching(relpath).empty?
-          ld = DataSource.create(universe: 'FC',
+          ld = Loader.create(universe: 'FC',
                                  eval: %q{"%s".tsn.load_from("%s")} % [ld_name, relpath],
                                  clear_before_load: true,
                                  reload_nightly: false)
-          s.data_sources << ld
+          s.loaders << ld
           ld.set_color!
           ld.colleagues.each {|c| c.update!(priority: c.priority - 10) }  ## demote all existing loaders
         end
@@ -643,7 +643,7 @@ class Series < ApplicationRecord
 
   def find_loaders_matching(pattern, case_insens: false)
     regex = case_insens ? %r/#{pattern}/i : %r/#{pattern}/
-    enabled_data_sources.select {|ld| ld.eval =~ regex }
+    enabled_loaders.select {|ld| ld.eval =~ regex }
   end
 
   def link_to_forecast_measurements
@@ -1097,7 +1097,7 @@ class Series < ApplicationRecord
     unique_ds = {} #this is actually used ds
     current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
     eval_statements = []
-    self.data_sources_by_last_run.each do |ds| 
+    self.loaders_by_last_run.each do |ds|
       eval_statements.push(ds.get_eval_statement) unless unique_ds.keys.index(ds.id).nil?
       ds.delete
     end
@@ -1119,14 +1119,14 @@ class Series < ApplicationRecord
       end
       errors.concat s.reload_sources(nightly: false, clear_first: clear_first)  ## hardcoding as NOT the series worker, because expecting to use
                                                           ## this code only for ad-hoc jobs from now on
-      eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
+      eval_statements.concat(s.loaders_by_last_run.map {|ds| ds.get_eval_statement})
       already_run[s_name] = true
     end
   end
 
   def reload_sources(nightly: false, clear_first: false)
     series_success = true
-    self.data_sources_by_last_run.each do |ds|
+    self.loaders_by_last_run.each do |ds|
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly.
@@ -1190,11 +1190,11 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
-          all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
+          all = all.joins('inner join loaders as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
           bindvars.push tane.gsub(',', '|')   ## handle alternatives separated by comma
         when /^[!]/
-          all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
+          all = all.joins('inner join loaders as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane.gsub(',', '|')
         when /^[;]/
@@ -1286,7 +1286,7 @@ class Series < ApplicationRecord
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
-          SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+          SELECT id, series_id, dependencies FROM loaders WHERE universe = 'UHERO'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
       CREATE TEMPORARY TABLE t2_series LIKE t_series
@@ -1351,8 +1351,8 @@ class Series < ApplicationRecord
       ##   https://apidock.com/rails/ActiveRecord/Querying/find_by_sql (check sample code - method signature shown is wrong!)
       ##   https://stackoverflow.com/questions/18934542/rails-find-by-sql-and-parameter-for-id/49765762#49765762
       new_deps = Series.find_by_sql [<<~SQL, next_set].flatten
-        select distinct data_sources.series_id as id
-        from data_sources, series
+        select distinct loaders.series_id as id
+        from loaders, series
         where series.id in (#{qmarks})
         and dependencies regexp CONCAT(' ', series.name)
       SQL

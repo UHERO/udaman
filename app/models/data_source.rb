@@ -1,4 +1,4 @@
-class DataSource < ApplicationRecord
+class Loader < ApplicationRecord
   include Cleaning
   include DataSourceHooks
   include Validators
@@ -7,9 +7,9 @@ class DataSource < ApplicationRecord
   
   belongs_to :series, inverse_of: :data_sources
   has_many :data_points, dependent: :delete_all
-  has_many :data_source_downloads, dependent: :delete_all
-  has_many :downloads, -> {distinct}, through: :data_source_downloads
-  has_many :data_source_actions, dependent: :delete_all
+  has_many :loader_downloads, dependent: :delete_all
+  has_many :downloads, -> {distinct}, through: :loader_downloads
+  has_many :loader_actions, dependent: :delete_all
 
   composed_of   :last_run,
                 :class_name => 'Time',
@@ -28,9 +28,9 @@ class DataSource < ApplicationRecord
   OPTIONS_MATCHER = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
 
     ## This method appears to be vestigial - confirm and delete later
-    def DataSource.type_buckets_DELETEME
+    def Loader.type_buckets_DELETEME
       type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
-      all_evals = DataSource.all_evals
+      all_evals = Loader.all_evals
       all_evals.each do |eval|
         next if eval.nil?
         type_buckets[:arithmetic] += 1 unless eval.index(' + ').nil? and eval.index(' - ').nil? and eval.index(' / ').nil? and eval.index(' * ').nil? and eval.index(' ** ').nil? and eval.index('zero_add').nil? 
@@ -46,44 +46,44 @@ class DataSource < ApplicationRecord
       type_buckets
     end
 
-    def DataSource.get_all_uhero
-      DataSource.where(universe: 'UHERO')
+    def Loader.get_all_uhero
+      Loader.where(universe: 'UHERO')
     end
 
     #technically, this will not check for duplicate series
     #that are loading two seasonally adjusted source spreadsheets
     #but this should not happen, so not worried
-    def DataSource.all_evals
-      DataSource.get_all_uhero.pluck(:eval)
+    def Loader.all_evals
+      Loader.get_all_uhero.pluck(:eval)
     end
 
-    def DataSource.handle_hash
+    def Loader.handle_hash
       handle_hash = {}
-      DataSource.where("eval LIKE '%load_from_download%'").select([:eval, :series_id]).all.each do |ds|
+      Loader.where("eval LIKE '%load_from_download%'").select([:eval, :series_id]).all.each do |ds|
         handle = ds.eval.split('load_from_download')[1].split("\"")[1]
         handle_hash[ds.series_id] = handle
       end
       handle_hash
     end
 
-    def DataSource.all_load_from_file_series_names
+    def Loader.all_load_from_file_series_names
       series_names = []
-      DataSource.where("eval LIKE '%load_from %'").all.each do |ds|
+      Loader.where("eval LIKE '%load_from %'").all.each do |ds|
         series_names.push ds.series.name
       end
       series_names.uniq
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def DataSource.all_history_and_manual_series_names_DELETEME
+    def Loader.all_history_and_manual_series_names_DELETEME
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
-        DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
+        Loader.where("eval LIKE '%load_from %#{type}%'").each do |ds|
           series_names.push ds.series.name
         end
       end
       %w(visusns vrlsns tke tkb vrdc gffot yl_o yl_tu yl_trade).each do |type|
-        DataSource.where("eval LIKE '%#{type}%load_from %'").each do |ds|
+        Loader.where("eval LIKE '%#{type}%load_from %'").each do |ds|
           series_names.push ds.series.name
         end
       end
@@ -94,29 +94,29 @@ class DataSource < ApplicationRecord
       series_names.uniq
     end
     
-    def DataSource.pattern_only_series_names
-      DataSource.all_pattern_series_names - DataSource.all_load_from_file_series_names
+    def Loader.pattern_only_series_names
+      Loader.all_pattern_series_names - Loader.all_load_from_file_series_names
     end
-    def DataSource.load_only_series_names
-      DataSource.all_load_from_file_series_names - DataSource.all_pattern_series_names
+    def Loader.load_only_series_names
+      Loader.all_load_from_file_series_names - Loader.all_pattern_series_names
     end
-    def DataSource.pattern_and_load_series_names
-      DataSource.all_pattern_series_names & DataSource.all_load_from_file_series_names
+    def Loader.pattern_and_load_series_names
+      Loader.all_pattern_series_names & Loader.all_load_from_file_series_names
     end
-    def DataSource.load_and_pattern_series_names
-      DataSource.pattern_and_load_series_names
+    def Loader.load_and_pattern_series_names
+      Loader.pattern_and_load_series_names
     end
     
-    def DataSource.series_sources
+    def Loader.series_sources
       sa_series_sources = [] 
-      DataSource.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
+      Loader.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
       sa_series_sources
     end
 
 
-    def DataSource.set_all_dependencies
+    def Loader.set_all_dependencies
       Rails.logger.info { 'DataSource set_all_dependencies: start' }
-      DataSource.get_all_uhero.find_each(batch_size: 50) do |ds|
+      Loader.get_all_uhero.find_each(batch_size: 50) do |ds|
         Rails.logger.debug { "DataSource set_all_dependencies: for #{ds.description}" }
         ds.set_dependencies!
       end
@@ -351,10 +351,10 @@ class DataSource < ApplicationRecord
       "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
 
-  def DataSource.load_error_summary
+  def Loader.load_error_summary
     ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
-    DataSource.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
-    results = DataSource.connection.execute(<<~MYSQL)
+    Loader.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
+    results = Loader.connection.execute(<<~MYSQL)
       select last_error, series_id, count(*) from data_sources
       where universe = 'UHERO'
       and not disabled
@@ -362,7 +362,7 @@ class DataSource < ApplicationRecord
       group by last_error
       order by 3 desc, 1
     MYSQL
-    DataSource.connection.execute('set @@SESSION.sql_mode = DEFAULT')    ## restore defaults
+    Loader.connection.execute('set @@SESSION.sql_mode = DEFAULT')    ## restore defaults
     results.to_a
   end
 
@@ -394,26 +394,26 @@ class DataSource < ApplicationRecord
   #
   # First, let the change set be
   #
-  #  cset = DataSource.where(%q{eval like '%UIC@haw%'})
+  #  cset = Loader.where(%q{eval like '%UIC@haw%'})
   #
   # then we can:
   # Change the :start_date for all rows to be July 4, 2011:
   #
-  #   DataSource.mass_update_eval_options(cset, { start_date: "2011-07-04" })
+  #   Loader.mass_update_eval_options(cset, { start_date: "2011-07-04" })
   #
   # Remove the :frequency option from all rows:
   #
-  #   DataSource.mass_update_eval_options(cset, { frequency: nil })
+  #   Loader.mass_update_eval_options(cset, { frequency: nil })
   #
   # On the XLS worksheet "iwcweekly", a new column was added at the far left, causing all other columns to shift
   # to the right by one:
   #
-  #   DataSource.mass_update_eval_options(cset, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
+  #   Loader.mass_update_eval_options(cset, { col: lambda {|op| op[:sheet] == 'iwcweekly' ? op[:col].to_i + 1 : op[:col] } })
   #
   # Change :start_date to be "2015-01-01" plus the number of months indicated by :col, and then (sequentially) set :end_date to
   # be exactly 10 years and 1 day after the new start_date:
   #
-  #   DataSource.mass_update_eval_options(cset,
+  #   Loader.mass_update_eval_options(cset,
   #           { start_date: lambda {|op| (Date.new(2015, 1, 1) + op[:col].to_i.months).strftime("%F") },
   #              end_date:  lambda {|op| (Date.strptime(op[:start_date],'%Y-%m-%d') + 10.years + 1.day).strftime("%F") } })
   #
@@ -426,7 +426,7 @@ class DataSource < ApplicationRecord
   #
   # BE CAREFUL! Always check changes carefully by doing dry runs before committing to the database!
   #
-  def DataSource.mass_update_eval_options(change_set, replace_options, commit = false)
+  def Loader.mass_update_eval_options(change_set, replace_options, commit = false)
     change_set.each do |ds|
       begin
         options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
