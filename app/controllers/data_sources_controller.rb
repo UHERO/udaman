@@ -1,107 +1,108 @@
-class DataSourcesController < ApplicationController
+class LoadersController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_data_source, except: [:new, :create]
+  before_action :set_loader, except: [:new, :create]
 
   def source
-    @data_source.reload_source
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    @loader.reload_source
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
   
   def clear
-    @data_source.delete_data_points
-    @data_source.reset
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    @loader.delete_data_points
+    @loader.reset
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
   
   def delete
-    if @data_source.destroy
-      create_action @data_source, 'DELETE'
+    if @loader.destroy
+      create_action @loader, 'DELETE'
     end
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
 
   def reset
-    @data_source.reset
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    @loader.reset
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
 
   def disable
-    @data_source.disable!
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    @loader.disable!
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
 
   def toggle_reload_nightly
-    @data_source.toggle_reload_nightly
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    @loader.toggle_reload_nightly
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
 
   def new
     @series = Series.find params[:series_id]
-    @data_source = DataSource.new(:series_id => @series.id)
+    @loader = Loader.new(:series_id => @series.id)
   end
 
   def show
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
 
   def edit
-    @disab = @data_source.disabled?
+    @disab = @loader.disabled?
   end
 
   def update
-    if @data_source.update!(data_source_params)
-      @data_source.setup  ## in case the eval was changed
-      create_action @data_source, 'UPDATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
+    if @loader.update!(loader_params)
+      @loader.setup  ## in case the eval was changed
+      create_action @loader, 'UPDATE'
+      redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id
     else
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
+      redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id
     end
   end
 
   def inline_update
-    if @data_source.update_attributes(eval: data_source_params[:eval])
-      create_action @data_source, 'UPDATE'
+    if @loader.update_attributes(eval: loader_params[:eval])
+      create_action @loader, 'UPDATE'
       begin
-        render partial: 'inline_edit', locals: {:ds => @data_source, :notice => "OK, (#{@data_source.series.aremos_diff})"}
+        render partial: 'inline_edit', locals: {:ds => @loader, :notice => "OK, (#{@loader.series.aremos_diff})"}
       rescue
-        render partial: 'inline_edit', locals: {:ds => @data_source, :notice => 'BROKE ON LOAD'}
+        render partial: 'inline_edit', locals: {:ds => @loader, :notice => 'BROKE ON LOAD'}
       end
     else
-      render partial: 'inline_edit', locals: {:ds => @data_source, :notice => 'BROKE ON SAVE'}
+      render partial: 'inline_edit', locals: {:ds => @loader, :notice => 'BROKE ON SAVE'}
     end
   end
   
   def create
-    @data_source = DataSource.new(data_source_params)
-    if @data_source.create_from_form
-      create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'Definition processed successfully'
+    @loader = Loader.new(loader_params)
+    if @loader.create_from_form
+      create_action @loader.series.loaders_by_last_run.first, 'CREATE'
+      redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id, :notice => 'Definition processed successfully'
     else
-      @series = Series.find_by id: @data_source.series_id
-      render :action => 'new', :series_id => @data_source.series_id
+      @series = Series.find_by id: @loader.series_id
+      render :action => 'new', :series_id => @loader.series_id
     end
   end
 
 private
-  def set_data_source
-    @data_source = DataSource.find params[:id]
+
+  def set_loader
+    @loader = Loader.find params[:id]
   end
 
-  def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
+  def loader_params
+      params.require(:loader).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
-    def create_action(data_source, action)
-      DataSourceAction.create do |dsa|
-        dsa.data_source_id = data_source.id
-        dsa.series_id = data_source.series.id
-        dsa.user_id = current_user.id
-        dsa.user_email = current_user.email
-        dsa.eval = data_source.eval
-        dsa.priority = data_source.priority
-        dsa.action = action
-      end
+  def create_action(loader, action)
+    LoaderAction.create do |dsa|
+      dsa.loader_id = loader.id
+      dsa.series_id = loader.series.id
+      dsa.user_id = current_user.id
+      dsa.user_email = current_user.email
+      dsa.eval = loader.eval
+      dsa.priority = loader.priority
+      dsa.action = action
     end
+  end
 end
