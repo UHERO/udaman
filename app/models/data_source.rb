@@ -242,7 +242,7 @@ class Loader < ApplicationRecord
         update_props.merge!(last_error: e.message[0..253], last_error_at: t)
         return false  ## Note! ensure block runs despite this early return!
       ensure
-        self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will end up saved below
+        self.reload if presave_hook  ## ORM reload: It sucks to have to do this, but presave_hook might change something, that will end up saved below
         self.update!(update_props)
       end
       Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series}> [#{description}]" }
