@@ -27,25 +27,6 @@ class DataSource < ApplicationRecord
   ## here will break it.
   OPTIONS_MATCHER = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
 
-    ## This method appears to be vestigial - confirm and delete later
-    def DataSource.type_buckets_DELETEME
-      type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
-      all_evals = DataSource.all_evals
-      all_evals.each do |eval|
-        next if eval.nil?
-        type_buckets[:arithmetic] += 1 unless eval.index(' + ').nil? and eval.index(' - ').nil? and eval.index(' / ').nil? and eval.index(' * ').nil? and eval.index(' ** ').nil? and eval.index('zero_add').nil? 
-        type_buckets[:aggregation] += 1 unless eval.index('aggregate').nil?
-        type_buckets[:share] += 1 unless eval.index('share').nil?
-        type_buckets[:seasonal_factors] += 1 unless eval.index('seasonal_adjustment').nil?
-        type_buckets[:mean_corrected_load] += 1 unless eval.index('load_mean_corrected_sa_from').nil?
-        type_buckets[:sa_load] += 1 unless eval.index('load_sa_from').nil?
-        type_buckets[:interpolation] += 1 unless eval.index('interpolate').nil?
-        type_buckets[:other_mathemetical] += 1 unless eval.index('rebase').nil? and eval.index('annual').nil?
-        type_buckets[:load] += 1 unless eval.index('load_from').nil?
-      end
-      type_buckets
-    end
-
     def DataSource.get_all_uhero
       DataSource.where(universe: 'UHERO')
     end
