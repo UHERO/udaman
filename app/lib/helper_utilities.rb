@@ -30,7 +30,7 @@ module HelperUtilities
     '%s%sQ%d' % [date.year, delim, quarter_by_month(date.mon)]
   end
 
-  ## Return how many higher frequency units there are in a lower frequency unit. Nil if not defined.
+  ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.
   def freq_per_freq(higher, lower)
     higher = higher.to_sym
     lower = lower.to_sym
