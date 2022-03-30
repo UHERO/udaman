@@ -342,17 +342,6 @@ class Series < ApplicationRecord
     new
   end
 
-  def Series.handle_buckets(series_array, handle_hash)
-    series_array_buckets = {}
-    series_array.each do |s|
-      handle = handle_hash[s.id]
-      #next if handle.nil?
-      series_array_buckets[handle] ||= []
-      series_array_buckets[handle].push(s)
-    end
-    return series_array_buckets
-  end
-  
   #takes about 8 seconds to run for month, but not bad
   #chart both last updated and last observed (rebucket?)
   def Series.last_observation_buckets(frequency)
@@ -958,11 +947,6 @@ class Series < ApplicationRecord
     dd = at(date)
     return nil if dd.nil?
     dd / (units || 1.0)
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def new_at_DELETEME(date)
-    DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
   end
 
   def observation_count

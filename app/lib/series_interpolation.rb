@@ -8,44 +8,35 @@ module SeriesInterpolation
     series_to_store_name.ts = interpolate(frequency, operation)
   end
   
-  def extend_first_data_point_back_to(date)
-    new_data = {}
-    first_data_point_date = self.first_value_date
-    first_data_point_val = data[first_data_point_date]
+  def extend_first_back_to(date)
+    first_data_point_date = self.first_observation
+    first_data_point_val = self.at(first_data_point_date)
 
-    offset = 0
-    offset = 1 if self.frequency == 'month'
-    offset = 3 if self.frequency == 'quarter'
-    offset = 6 if self.frequency == 'semi'
-    offset = 12 if self.frequency == 'year'
+    offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = first_data_point_date - offset.months
 
+    new_data = {}
     while new_date >= Date.parse(date)
       new_data[new_date] = first_data_point_val
-      new_date = new_date - offset.months
+      new_date -= offset.months
     end
-    new_transformation("Extended the first value back to #{date}", new_data)
+    new_transformation("Replicated the first value back to #{date}", new_data)
   end
   
-  def extend_last_date_to_match(series_name)
-    new_data = {}
-    last_data_point_date = series_name.ts.last_value_date rescue raise("Series #{series_name} does not exist")
-    current_last_data_point = self.last_value_date
-    
-    last_data_point_val = data[current_last_data_point]
-    
-    offset = 0
-    offset = 1 if self.frequency == 'month'
-    offset = 3 if self.frequency == 'quarter'
-    offset = 6 if self.frequency == 'semi'
-    offset = 12 if self.frequency == 'year'
+  def extend_last_fwd_to_match(series_name)
+    last_data_point_date = series_name.ts.last_observation rescue raise("Series #{series_name} does not exist")
+    current_last_data_point = self.last_observation
+    last_data_point_val = self.at(current_last_data_point)
+
+    offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = current_last_data_point + offset.months
 
+    new_data = {}
     while new_date <= last_data_point_date
       new_data[new_date] = last_data_point_val
-      new_date = new_date + offset.months
+      new_date += offset.months
     end
-    new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
+    new_transformation("Replicated the last value out to the last date of #{series_name}", new_data)
   end
 
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
