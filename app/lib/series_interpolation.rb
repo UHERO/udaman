@@ -20,7 +20,7 @@ module SeriesInterpolation
       new_data[new_date] = first_data_point_val
       new_date -= offset.months
     end
-    new_transformation("Extended the first value back to #{date}", new_data)
+    new_transformation("Replicated the first value back to #{date}", new_data)
   end
   
   def extend_last_fwd_to_match(series_name)
@@ -36,7 +36,7 @@ module SeriesInterpolation
       new_data[new_date] = last_data_point_val
       new_date += offset.months
     end
-    new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
+    new_transformation("Replicated the last value out to the last date of #{series_name}", new_data)
   end
 
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
