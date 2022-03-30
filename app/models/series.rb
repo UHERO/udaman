@@ -1126,11 +1126,12 @@ class Series < ApplicationRecord
     series_success
   end
 
-  def Series.search_box(input_string, limit: 10000, user_id: nil)
+  def Series.search_box(input_string, limit: 10000, user: nil)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
     bindvars = []
+    first_term = nil
     input_string.split.each do |term|
       negated = nil
       if term[0] == '-'
@@ -1197,8 +1198,8 @@ class Series < ApplicationRecord
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
                           when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
                           when 'noclip'
-                            raise 'No user identified for clipboard access' if user_id.nil?
-                            bindvars.push user_id.to_i
+                            raise 'No user identified for clipboard access' if user.nil?
+                            bindvars.push user.id.to_i
                             %q{(series.id not in (select series_id from user_series where user_id = ?))}
                           else raise("Unknown fixed term #{term}")
                           end
@@ -1225,11 +1226,16 @@ class Series < ApplicationRecord
           raise 'Spaces cannot occur in comma-separated search lists'
         else
           ## a "bareword" text string
+          if user.mnemo_search? && first_term.nil? && !negated
+            term = '^' + term
+            first_term = term
+            redo
+          end
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
           bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+        end
       end
-    end
     if univ
       conditions.push %q{series.universe = ?}
       bindvars.push univ
