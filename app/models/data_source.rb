@@ -189,6 +189,9 @@ class DataSource < ApplicationRecord
 
       eval_stmt = self['eval'].dup
       begin
+        if clear_first
+          delete_data_points
+        end
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
@@ -198,9 +201,6 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first
-          delete_data_points
-        end
         s = self.send(presave_hook, s) if presave_hook
 
         base_year = base_year_from_eval_string(eval_stmt)

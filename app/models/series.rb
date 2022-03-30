@@ -1225,8 +1225,7 @@ class Series < ApplicationRecord
         when /^[,]/
           raise 'Spaces cannot occur in comma-separated search lists'
         else
-          ## a "bareword" text string
-          if user.mnemo_search? && first_term.nil? && !negated
+          if user.mnemo_search? && first_term.nil? && !negated    ## A special hack for special users ;=)
             first_term = term
             if term =~ /^[^"]/
               term = '^' + term
