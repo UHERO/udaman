@@ -127,7 +127,7 @@ class SeriesController < ApplicationController
     if params[:id]
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
-      results = Series.search_box(params[:search], limit: 500, user_id: current_user.id)
+      results = Series.search_box(params[:search], limit: 500, user: current_user)
       current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
