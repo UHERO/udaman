@@ -1227,9 +1227,11 @@ class Series < ApplicationRecord
         else
           ## a "bareword" text string
           if user.mnemo_search? && first_term.nil? && !negated
-            term = '^' + term
             first_term = term
-            redo
+            if term =~ /^[^"]/
+              term = '^' + term
+              redo
+            end
           end
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
