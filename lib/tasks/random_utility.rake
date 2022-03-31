@@ -3,9 +3,7 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
-task :convert_sa_loaders => :environment do
-  sids = []
-  names = %w{CPINS@JP.M EMPLNS@JP.M LFNS@JP.M LFPNS@JP.M OCUP%NS@HI.M PRMNS@HI.M RMRVNS@HI.M TDAPNS@HI.M TDCTFUNS@HI.M TDCTNS@HI.M TDGFNS@HI.M
+=begin
             TDHWNS@HI.M TGBCTNS@HI.M TGBHTNS@HI.M TGBNS@HI.M TGBORNS@HI.M TGBRTNS@HI.M TGBSVNS@HI.M TGBWTNS@HI.M TGRCTNS@HI.M TGRHTNS@HI.M
             TGRNS@HI.M TGRORNS@HI.M TGRRTNS@HI.M TGRSVNS@HI.M TGRWTNS@HI.M TRCORFNS@HI.M TRFUNS@HI.M TRGTNS@HI.M TRHSNS@HI.M TRINESNS@HI.M
             TRINNS@HI.M TRINPRNS@HI.M TRINRFNS@HI.M TRINWHNS@HI.M TRNS@HI.M TRTTNS@HI.M URNS@JP.M VAPDMNS@HI.M VAPITJPNS@HI.M VAPITOTNS@HI.M
@@ -17,13 +15,18 @@ task :convert_sa_loaders => :environment do
             VEXPUSWNS@HI.M VISCANNS@HI.M VISCRAIRNS@HI.M VISCRNS@HI.M VISDMNS@HI.M VISITNS@HI.M VISJPNS@HI.M VISNS@HI.M VISRESNS@HI.M
             VISUSENS@HI.M VISUSNS@HI.M VISUSWNS@HI.M VLOSCRAIRNS@HI.M VSDMNS@HI.M VSNS@HI.M VSODMNS@HI.M VSONS@HI.M
   }
+=end
+task :convert_sa_loaders => :environment do
+  sids = []
+  names = %w{CPINS@JP.M EMPLNS@JP.M}# LFNS@JP.M LFPNS@JP.M OCUP%NS@HI.M PRMNS@HI.M RMRVNS@HI.M TDAPNS@HI.M TDCTFUNS@HI.M TDCTNS@HI.M TDGFNS@HI.M
   names.each do |n|
     s = n.ts || raise(">>>>>>> oops #{n} doesnt exist")
     puts "DOING #{n}"
     sids.push s.id
     s.enabled_data_sources.each do |ld|
-      if ld.eval =~ /load_from.*rparsed/ && ld.reload_nightly?
+      if ld.eval =~ %r|load_from "rparsed/sa_| && ld.reload_nightly?
         s.data_sources.delete(ld)
+        ld.destroy!
         next
       end
       ld.set_reload_nightly unless ld.eval =~ /history/i
