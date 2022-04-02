@@ -1,4 +1,6 @@
-	<div id="all_charts">
+<%= javascript_include_tag 'd3.v2.min' %>
+
+<div id="all_charts">
 		<table>
       <% if current_user.admin_user? %>
         <tr>
@@ -73,3 +75,17 @@
       </table>
 		</table>
   </div>
+
+<script>
+    d3.select('#export_tsd').on('click', function() {
+        d3.json('/export_tsd', function(data) {
+            d3.select('#message_area')
+                .text(data.message)
+                .style('background-color', '#A4CCB3')
+                //   .style('padding', '20px')
+                .style('display', 'inline-block')
+                .style('font-weight', 700)
+                .style('color', '#397A26');
+        })
+    })
+</script>
