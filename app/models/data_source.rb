@@ -31,14 +31,13 @@ class DataSource < ApplicationRecord
       DataSource.where(universe: 'UHERO')
     end
 
-    #technically, this will not check for duplicate series
-    #that are loading two seasonally adjusted source spreadsheets
-    #but this should not happen, so not worried
-    def DataSource.all_evals
+  ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_evals_DELETEME?
       DataSource.get_all_uhero.pluck(:eval)
     end
 
-    def DataSource.all_load_from_file_series_names
+  ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_load_from_file_series_names_DELETEME?
       series_names = []
       DataSource.where("eval LIKE '%load_from %'").all.each do |ds|
         series_names.push ds.series.name
@@ -47,7 +46,7 @@ class DataSource < ApplicationRecord
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def DataSource.all_history_and_manual_series_names_DELETEME
+    def DataSource.all_history_and_manual_series_names_DELETEME?
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
@@ -65,26 +64,25 @@ class DataSource < ApplicationRecord
       series_names.push 'NTTOURNS@HI.M'
       series_names.uniq
     end
-    
-    def DataSource.pattern_only_series_names
+
+    ## These methods ALL appear to be vestigial - confirm and delete later
+    def DataSource.pattern_only_series_names_DELETEME?
       DataSource.all_pattern_series_names - DataSource.all_load_from_file_series_names
     end
-    def DataSource.load_only_series_names
+    def DataSource.load_only_series_names_DELETEME?
       DataSource.all_load_from_file_series_names - DataSource.all_pattern_series_names
     end
-    def DataSource.pattern_and_load_series_names
+    def DataSource.pattern_and_load_series_names_DELETEME?
       DataSource.all_pattern_series_names & DataSource.all_load_from_file_series_names
     end
-    def DataSource.load_and_pattern_series_names
+    def DataSource.load_and_pattern_series_names_DELETEME?
       DataSource.pattern_and_load_series_names
     end
-    
-    def DataSource.series_sources
-      sa_series_sources = [] 
+    def DataSource.series_sources_DELETEME?
+      sa_series_sources = []
       DataSource.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
       sa_series_sources
     end
-
 
     def DataSource.set_all_dependencies
       Rails.logger.info { 'DataSource set_all_dependencies: start' }
@@ -189,6 +187,9 @@ class DataSource < ApplicationRecord
 
       eval_stmt = self['eval'].dup
       begin
+        if clear_first
+          delete_data_points
+        end
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
@@ -198,9 +199,6 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first
-          delete_data_points
-        end
         s = self.send(presave_hook, s) if presave_hook
 
         base_year = base_year_from_eval_string(eval_stmt)
