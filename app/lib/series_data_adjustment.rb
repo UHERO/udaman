@@ -5,10 +5,6 @@ module SeriesDataAdjustment
     first_observation
   end
      
-  def last_value_date   ## this is an alias. Calls to this method could be replaced and the alias eliminated.
-    last_observation
-  end
-
   def trim(start_date = nil, end_date = nil, before: nil, after: nil)
     ## more flexibility to allow either or both parameters to be passed as nil and assign defaults within
     start_date ||= (before || self.trim_period_start || get_last_incomplete_january)
