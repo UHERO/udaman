@@ -127,7 +127,7 @@ class SeriesController < ApplicationController
     if params[:id]
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
-      results = Series.search_box(params[:search], limit: 500, user_id: current_user.id)
+      results = Series.search_box(params[:search], limit: 500, user: current_user)
       current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
@@ -197,7 +197,7 @@ class SeriesController < ApplicationController
   def new_search(search_string = nil)
     @search_string = search_string || params[:search_string]
     Rails.logger.info { "SEARCHLOG: user #{current_user.email} searched #{@search_string}" }
-    @all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user_id: current_user.id)
+    @all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if @all_series.count == 1
       @series = @all_series.first
       show(no_render: true)  ## call controller prep without render
@@ -213,7 +213,7 @@ class SeriesController < ApplicationController
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
     @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
-    @clipboarded = current_user.clipboard_contains?(@series)
+    @clipboarded = current_user.clipboard.include?(@series)
     @dependencies = @series.who_depends_on_me(['series.name', 'series.id']).sort_by {|a| a[0] }
     return if no_render
 

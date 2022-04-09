@@ -5,10 +5,6 @@ module SeriesDataAdjustment
     first_observation
   end
      
-  def last_value_date   ## this is an alias. Calls to this method could be replaced and the alias eliminated.
-    last_observation
-  end
-
   def trim(start_date = nil, end_date = nil, before: nil, after: nil)
     ## more flexibility to allow either or both parameters to be passed as nil and assign defaults within
     start_date ||= (before || self.trim_period_start || get_last_incomplete_january)
@@ -82,6 +78,14 @@ module SeriesDataAdjustment
     trim(Date.new(last_date.year), nil)
   end
 
+  def trim_first_incomplete_year
+    no_trim_future.trim(before: first_complete_year)
+  end
+
+  def trim_last_incomplete_year
+    no_trim_past.trim(after: last_complete_year)
+  end
+
   def get_values_after(start_date, end_date = self.last_observation)
     data.reject {|date, value| date <= start_date or value.nil? or date > end_date}
   end
@@ -117,4 +121,11 @@ module SeriesDataAdjustment
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
+  def vintage_as_of(date)
+    vintage_data = {}                        ## entries for same :date overwrite, leaving only the one with latest created_at
+    data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
+      vintage_data[dp.date] = dp.value
+    end
+    new_transformation("The state of #{self} as of #{date} (00:00)", vintage_data)
+  end
 end

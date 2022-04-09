@@ -124,6 +124,13 @@ class Array
     raise 'Cannot average an empty array' if self.count == 0
     self.sum / self.count.to_f
   end
+end
+
+class Hash
+
+  def where_key_belongs_to(an_array)
+    select {|key, _| an_array.include? key.to_s }
+  end
 
 end
 

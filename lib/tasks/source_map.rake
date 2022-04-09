@@ -52,7 +52,6 @@ task :batch_reload_uhero => :environment do
   full_set_ids = Series.get_all_uhero.pluck(:id)
   full_set_ids -= Series.search_box('#load_api_bls').pluck(:id)
   full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
-  full_set_ids -= Series.search_box('#bea.gov').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
   full_set_ids -= Series.search_box('^vispns .d').pluck(:id)
   full_set_ids -= Series.search_box('^vap ~ns$ @hi .d').pluck(:id)
@@ -78,31 +77,22 @@ end
 
 task :reload_hiwi_series_only => :environment do
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
-  hiwi_series = Series.get_all_series_by_eval('hiwi.org')
-  ## Convert this to use Series.reload_with_dependencies instead
-  mgr = SeriesReloadManager.new(hiwi_series, 'hiwi', nightly: true)
-  Rails.logger.info { "Task reload_hiwi_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-  mgr.batch_reload
+  hiwi_series = Series.search_box('#hiwi.org')
+  Series.reload_with_dependencies(hiwi_series.pluck(:id), 'hiwi', nightly: true)
   DataPoint.update_public_all_universes
 end
 
 task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
-  bls_series = Series.get_all_series_by_eval('load_api_bls')
-  ## Convert this to use Series.reload_with_dependencies instead
-  mgr = SeriesReloadManager.new(bls_series, 'bls', nightly: true)
-  Rails.logger.info { "Task reload_bls_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-  mgr.batch_reload
+  bls_series = Series.search_box('#load_api_bls')
+  Series.reload_with_dependencies(bls_series.pluck(:id), 'bls', nightly: true)
   DataPoint.update_public_all_universes
 end
 
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
-  bea_series = Series.get_all_series_by_eval(%w{load_api_bea bea.gov})
-  ## Convert this to use Series.reload_with_dependencies instead?
-  mgr = SeriesReloadManager.new(bea_series, 'bea', nightly: true)
-  Rails.logger.info { "Task reload_bea_series_only: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-  mgr.batch_reload(group_size: 10)  ### try reduce group size to 10, bec we are blowing out BEA's req/min quota
+  bea_series = Series.search_box('#load_api_bea')
+  Series.reload_with_dependencies(bea_series.pluck(:id), 'bea', nightly: true, group_size: 10) ### reduce group size, bec we are blowing out BEA's req/min quota
   DataPoint.update_public_all_universes
 end
 

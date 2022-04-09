@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025778) do
+ActiveRecord::Schema.define(version: 220170413025779) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -67,6 +67,7 @@ ActiveRecord::Schema.define(version: 220170413025778) do
     t.string "default_handle"
     t.string "default_freq", limit: 1
     t.string "meta"
+    t.string "description", limit: 500
     t.index ["ancestry"], name: "index_categories_on_ancestry"
     t.index ["data_list_id"], name: "fk_rails_cats_data_list_id"
     t.index ["default_geo_id"], name: "fk_rails_c390c9a75e"

@@ -4,7 +4,7 @@
 be created, necessarily with a different name,<br/>and most of the metadata of the original series copied in. The first
 attempt may fail if the original series has any required metadata missing. Check the box if<br/>you would like all active
 loaders to be duplicated. On success, you will be sent to the edit screen for the newly created
-series, to make any<br/>necessary modifications.</p>
+series, to make any<br/>necessary adjustments.</p>
 
 <%= form_with url: { action: :save_duplicate, id: @series } do |f| %>
   New name <%= text_field_tag :new_name, nil, size: 30 %>

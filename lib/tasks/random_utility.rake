@@ -1,7 +1,84 @@
 =begin
-    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
-    need to worry about any of this - it can be left alone, because it's history - not part of the production codebase.
+    ATTENZIONE! ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future
+    need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
+
+task :convert_sa_jobs_loaders => :environment do
+  sids = []
+  names = %w{EAF@HAW.M EAF@HI.M EAF@HON.M EAF@KAU.M EAF@MAU.M EAF@NBI.M EAG@HAW.M EAG@HI.M EAG@HON.M EAG@KAU.M EAG@MAU.M
+             EAG@NBI.M ECT@HAW.M ECT@HI.M ECT@HON.M ECT@KAU.M ECT@MAU.M ECT@NBI.M E_ELSE@HAW.M E_ELSE@HI.M E_ELSE@HON.M
+             E_ELSE@KAU.M E_ELSE@MAU.M E_ELSE@NBI.M E_FIR@HAW.M E_FIR@HI.M E_FIR@HON.M E_FIR@KAU.M E_FIR@MAU.M E_FIR@NBI.M
+             EGVFD@HAW.M EGVFD@HI.M EGVFD@HON.M EGVFD@KAU.M EGVFD@MAU.M EGVFD@NBI.M E_GVSL@HAW.M E_GVSL@HI.M E_GVSL@HON.M
+             E_GVSL@KAU.M E_GVSL@MAU.M E_GVSL@NBI.M EHC@HAW.M EHC@HI.M EHC@HON.M EHC@KAU.M EHC@MAU.M EHC@NBI.M EMN@HAW.M
+             EMN@HI.M EMN@HON.M EMN@KAU.M EMN@MAU.M EMN@NBI.M EMPL@HAW.M EMPL@HI.M EMPL@HON.M EMPL@KAU.M EMPL@MAU.M EMPL@NBI.M
+             E_NF@HAW.M E_NF@HI.M E_NF@HON.M E_NF@KAU.M E_NF@MAU.M E_NF@NBI.M E_TRADE@HAW.M E_TRADE@HI.M E_TRADE@HON.M
+             E_TRADE@KAU.M E_TRADE@MAU.M E_TRADE@NBI.M E_TU@HAW.M E_TU@HI.M E_TU@HON.M E_TU@KAU.M E_TU@MAU.M E_TU@NBI.M
+             LF@HAW.M LF@HI.M LF@HON.M LF@KAU.M LF@MAU.M LF@NBI.M UR@HAW.M UR@HI.M UR@HON.M UR@KAU.M UR@MAU.M UR@NBI.M}
+  names.each do |n|
+    s = n.ts || raise(">>>>>>> oops #{n} doesnt exist")
+    puts "DOING #{n}"
+    sids.push s.id
+    s.enabled_data_sources.each do |ld|
+      ld.set_reload_nightly(false)
+      ld.delete_data_points
+    end
+    newld = DataSource.create(eval: '"%s".tsn.load_from "rparsed/sa_jobs.csv"' % n)
+    s.data_sources << newld
+    newld.setup
+    newld.reload_source
+  end
+  puts sids.join(',')
+end
+
+task :deploy_convert_to_real => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "cpi(_b)?@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100
+                              \s*$}xi
+    base_series = $1
+    _b = $2.upcase.to_s
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.convert_to_real' + _b)
+  end
+end
+
+task :deploy_daily_census => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              \1\.days_in_period
+                              \s*$}xi
+    base_series = $1
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.daily_census')
+  end
+end
+
+task :undo_ns_growth_rate_temp_hack => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next if ld.loader_type == :history
+      if ld.eval =~ /apply_ns_growth_rate_sa.*plete_year/
+        ld.update!(eval: ld.eval.sub(/\("2020-01-01"\)\s*$/, ''))   ## remove date parameter from last method call
+      else
+        ld.set_reload_nightly(true)
+      end
+    end
+    s.reload_sources
+  end
+end
 
 task :ua_1456_emergency_reload_ns_growth_rate => :environment do
   Series.search_box('#apply_ns_growth_rate_sa +9999').each do |s|

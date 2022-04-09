@@ -72,7 +72,7 @@ module SeriesArithmetic
 
   def rebase(date = nil)
     if date
-      date = Date.parse(date) rescue Date.new(date) rescue raise('Argument can be, e.g. 2000 or "2000-01-01"')
+      date = Date.parse(date) rescue Date.new(date) rescue raise('rebase: Argument can be, e.g. 2000 or "2000-01-01"')
     end
     ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
     ann_series = find_sibling_for_freq('A') || raise("No annual series found corresponding to #{self}")
@@ -87,13 +87,15 @@ module SeriesArithmetic
     new_transformation("#{self} rebased to #{date.year}", new_series_data)
   end
 
-  def convert_to_real(idx_series_name = nil, index: 'CPI', rebased: false)
-    #rebased ||= @loading_series.name =~ /_RB$/ if @loading_series
-    #raise 'Do not include _B in index name' if rebased && index =~ /_B$/i
-    idx_series_name ||= self.build_name(prefix: rebased ? index + '_B' : index,
-                                        geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
+  def convert_to_real_B(index: 'CPI')
+    raise 'Do not include _B in index name' if index =~ /_B$/i
+    convert_to_real(index: index + '_B')
+  end
+
+  def convert_to_real(idx_series_name = nil, index: 'CPI')
+    idx_series_name ||= self.build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
     idx_series = Series.find_by(name: idx_series_name, universe: universe) || raise("No index series #{idx_series_name} found in #{universe}")
-    new_transformation("#{self} / #{idx_series} * 100", (self / idx_series * 100).data)
+    self / idx_series * 100
   end
 
   def percentage_change

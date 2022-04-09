@@ -8,53 +8,44 @@ module SeriesInterpolation
     series_to_store_name.ts = interpolate(frequency, operation)
   end
   
-  def extend_first_data_point_back_to(date)
-    new_data = {}
-    first_data_point_date = self.first_value_date
-    first_data_point_val = data[first_data_point_date]
+  def extend_first_back_to(date)
+    first_data_point_date = self.first_observation
+    first_data_point_val = self.at(first_data_point_date)
 
-    offset = 0
-    offset = 1 if self.frequency == 'month'
-    offset = 3 if self.frequency == 'quarter'
-    offset = 6 if self.frequency == 'semi'
-    offset = 12 if self.frequency == 'year'
+    offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = first_data_point_date - offset.months
 
+    new_data = {}
     while new_date >= Date.parse(date)
       new_data[new_date] = first_data_point_val
-      new_date = new_date - offset.months
+      new_date -= offset.months
     end
-    new_transformation("Extended the first value back to #{date}", new_data)
+    new_transformation("Replicated the first value back to #{date}", new_data)
   end
   
-  def extend_last_date_to_match(series_name)
-    new_data = {}
-    last_data_point_date = series_name.ts.last_value_date rescue raise("Series #{series_name} does not exist")
-    current_last_data_point = self.last_value_date
-    
-    last_data_point_val = data[current_last_data_point]
-    
-    offset = 0
-    offset = 1 if self.frequency == 'month'
-    offset = 3 if self.frequency == 'quarter'
-    offset = 6 if self.frequency == 'semi'
-    offset = 12 if self.frequency == 'year'
+  def extend_last_fwd_to_match(series_name)
+    last_data_point_date = series_name.ts.last_observation rescue raise("Series #{series_name} does not exist")
+    current_last_data_point = self.last_observation
+    last_data_point_val = self.at(current_last_data_point)
+
+    offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = current_last_data_point + offset.months
 
+    new_data = {}
     while new_date <= last_data_point_date
       new_data[new_date] = last_data_point_val
-      new_date = new_date + offset.months
+      new_date += offset.months
     end
-    new_transformation("Extended the value value out to the last date of #{series_name}", new_data)
+    new_transformation("Replicated the last value out to the last date of #{series_name}", new_data)
   end
 
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
   ## with the mean of surrounding monthly values.
-  def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil)
-    raise "Cannot call fill_alternate_missing_months on a series of frequency #{frequency}" unless frequency == 'month'
+  def fill_alternate_missing_months(range_start_date = nil, range_end_date = nil, from: nil, to: nil)
+    raise "Cannot fill_alternate_missing_months on a series of frequency #{frequency}" unless frequency == 'month'
     semi = find_sibling_for_freq('S')
-    start_date = range_start_date ? Date.strptime(range_start_date) : data.sort[0][0]
-    end_date = range_end_date ? Date.strptime(range_end_date) : data.sort[-1][0]
+    start_date = Date.parse(from || range_start_date) rescue first_observation
+    end_date = Date.parse(to || range_end_date) rescue last_observation
     new_dp = {}
     date = start_date + 1.month
     while date < end_date do
@@ -124,25 +115,20 @@ module SeriesInterpolation
   end
 
   def pseudo_centered_spline_interpolation(frequency)
-    raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
-                                  (frequency == :month and self.frequency == 'quarter') or 
-                                  (frequency == :day and self.frequency == 'month')
-
-    divisor = 4 if frequency == :quarter and self.frequency == 'year'
-    divisor = 3 if frequency == :month and self.frequency == 'quarter'
-    divisor = 30.4375 if frequency == :day and self.frequency == 'month'
-    
     temp_series_data = {}
-    #last_temp_val = nil
     last_date = nil
-    first_val = nil
+    divisor = case
+              when frequency.to_sym == :quarter && self.frequency == 'year'  then 4
+              when frequency.to_sym == :month && self.frequency == 'quarter' then 3
+              when frequency.to_sym == :day && self.frequency == 'month'     then 30.4375
+              else raise("pseudo_centered_spline_interpolation from #{self.frequency} to #{frequency} not supported")
+              end
 
     self.data.sort.each do |date, val|
       #first period only
       if last_date.nil?
         last_date = date
         temp_series_data[date] = val
-        first_val = val
         next
       end
       
@@ -151,11 +137,11 @@ module SeriesInterpolation
       last_date = date
     end
     
-    temp_series = new_transformation("Temp series from #{self.name}", temp_series_data)
+    temp_series = new_transformation("Temp series from #{self}", temp_series_data)
     temp_series.frequency = self.frequency
     
     series_data = temp_series.linear_interpolate(frequency).data
-    new_transformation("Pseudo Centered Spline Interpolation of #{self.name}", series_data, frequency)
+    new_transformation("Pseudo Centered Spline Interpolation of #{self}", series_data, frequency)
   end
 
   #first period is just first value
@@ -248,30 +234,8 @@ module SeriesInterpolation
     new_transformation("Interpolated by #{method} method from #{self}", interpol_data, target_freq)
   end
 
-  # this method looks obsolete/vestigial - rename now, remove later
-  def interpolate_missing_months_and_aggregate_DELETEME(frequency, operation)
-    last_val = nil
-    last_date = nil
-    monthly_series_data = {}
-    data.sort.each do |key, val|
-      next if val.nil?
-      monthly_series_data[key] = val
-      unless last_val.nil?
-        val_diff = val - last_val
-        d1 = key
-        d2 = last_date
-        month_diff = (d1.year - d2.year) * 12 + (d1.month - d2.month)
-        #puts "#{key}: #{month_diff}"
-        (1..month_diff-1).each { |offset| monthly_series_data[d2 + offset.months] = last_val + (val_diff / month_diff) * offset }
-      end
-      last_val = val
-      last_date = key
-    end
-    monthly_series = new_transformation("Interpolated Monthly Series from #{self.name}", monthly_series_data, 'month')
-    monthly_series.aggregate(frequency, operation)
-
-  end
-  
+  ## This method is only used for a very restricted set of series. Do they really need their own unique
+  ## interpolation algorithm, or will a standard one (like interpolate(), in this file) do?
   def trms_interpolate_to_quarterly
     raise InterpolationException if frequency != 'year'
     new_series_data = {}
@@ -302,16 +266,13 @@ module SeriesInterpolation
     
     blma_new_series_data = {}
     prev_val = nil
-    prev_date = nil
     new_series_data.sort.each do |key,val|
       if prev_val.nil?
         prev_val = val
-        prev_date = key
         next
       end
       blma_new_series_data[key] = (val + prev_val) / 2
       prev_val = val
-      prev_date = key
     end
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
   end
