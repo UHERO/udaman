@@ -1235,8 +1235,8 @@ class Series < ApplicationRecord
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
           bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
-        end
       end
+    end
     if univ
       conditions.push %q{series.universe = ?}
       bindvars.push univ
