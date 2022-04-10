@@ -2,6 +2,8 @@ class Geography < ApplicationRecord
   include Cleaning
   has_many :series
 
+  HAWAII_GEOS = %w[HI HAW HON KAU MAU NBI MAUI LAN MOL HAWH HAWK]
+
   def initialize(*args, &block)
     super
     @cache = {}  ## Not separated by universe, but you should know what you're doing.
@@ -11,8 +13,12 @@ class Geography < ApplicationRecord
     '%s (%s)' % [handle, display_name_short]
   end
 
+  def Geography.is_in_hawaii?(handle)
+    HAWAII_GEOS.include?(handle.upcase)
+  end
+
   def is_in_hawaii?
-    %w[HI HAW HON KAU MAU NBI MAUI LAN MOL HAWH HAWK].include?(handle.upcase)
+    Geography.is_in_hawaii?(handle)
   end
 
   def Geography.get(attrs)
