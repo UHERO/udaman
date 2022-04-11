@@ -1,16 +1,11 @@
 module ExportsHelper
   def exports_csv_helper
     CSV.generate do |csv|
-      series_data = @export.series_data
-      names = Export.connection.execute(%Q|SELECT series.name AS name
-          FROM export_series
-          LEFT JOIN series ON series.id = export_series.series_id
-          WHERE export_series.export_id = #{@export.id}
-          ORDER BY export_series.list_order;|).to_a.flatten
-      dates_array = @export.data_dates
+      names = @export.export_series.order(:list_order).map {|es| es.series.name }
+      data = @export.series_data
       csv << ['date'] + names
-      dates_array.each do |date|
-        csv << [date] + names.map {|series_name| series_data[series_name][date]}
+      @export.data_dates.each do |date|
+        csv << [date] + names.map {|series_name| data[series_name][date] }
       end
     end
   end
