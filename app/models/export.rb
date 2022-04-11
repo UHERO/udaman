@@ -33,7 +33,7 @@ class Export < ApplicationRecord
         series = Series.find_by(universe: 'UHERO', name: new) || raise("Unknown series name #{new}")
         (self.series << series) rescue raise("Series #{new} duplicated?")
         new_es = ExportSeries.find_by(export_id: id, series_id: series.id) ||
-            raise('ExportSeries creation failed')  ## 'creation failed' bec previous << operation should have created it
+            raise('ExportSeries creation failed')  ## 'creation failed' bec preceding << operation should have created it
         new_es.update_attributes(list_order: index)
       end
     end
