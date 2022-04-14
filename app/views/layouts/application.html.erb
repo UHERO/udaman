@@ -74,8 +74,12 @@ Useful formulas and hints:
   <% end %>
   </div>
 <% end %>
-<p class="notice"><%= flash[:notice] %></p>
-<p class="alert"><%= flash[:alert] %></p>
+<% unless flash[:notice] =~ /signed.*in.*success/i %>
+  <p class="notice"><%= flash[:notice] %></p>
+<% end %>
+<% unless flash[:alert] =~ /signed.*in.*success/i %>
+  <p class="alert"><%= flash[:alert] %></p>
+<% end %>
 <p class="error"><%= flash[:error] %></p>
 <%= yield %>
 
