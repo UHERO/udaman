@@ -5,7 +5,7 @@ module ExportsHelper
       data = @export.series_data
       csv << ['date'] + names
       @export.data_dates.each do |date|
-        csv << [date] + names.map {|series_name| data[series_name][date] rescue nil }
+        csv << [date] + names.map {|series_name| data[series_name][date] rescue 'error' }
       end
     end
   end
