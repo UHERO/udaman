@@ -28,7 +28,7 @@ class Loader < ApplicationRecord
   OPTIONS_MATCHER = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
 
     ## This method appears to be vestigial - confirm and delete later
-    def Loader.type_buckets_DELETEME
+    def Loader.type_buckets_DELETEME?
       type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
       all_evals = Loader.all_evals
       all_evals.each do |eval|
