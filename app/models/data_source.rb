@@ -50,23 +50,13 @@ class Loader < ApplicationRecord
       Loader.where(universe: 'UHERO')
     end
 
-    #technically, this will not check for duplicate series
-    #that are loading two seasonally adjusted source spreadsheets
-    #but this should not happen, so not worried
-    def Loader.all_evals
+    ## This method appears to be vestigial - confirm and delete later
+    def Loader.all_evals_DELETEME?
       Loader.get_all_uhero.pluck(:eval)
     end
 
-    def Loader.handle_hash
-      handle_hash = {}
-      Loader.where("eval LIKE '%load_from_download%'").select([:eval, :series_id]).all.each do |ds|
-        handle = ds.eval.split('load_from_download')[1].split("\"")[1]
-        handle_hash[ds.series_id] = handle
-      end
-      handle_hash
-    end
-
-    def Loader.all_load_from_file_series_names
+    ## This method appears to be vestigial - confirm and delete later
+    def Loader.all_load_from_file_series_names_DELETEME?
       series_names = []
       Loader.where("eval LIKE '%load_from %'").all.each do |ds|
         series_names.push ds.series.name
