@@ -85,43 +85,6 @@ module SeriesExternalRelationship
     return aremos_diff
   end
   
-  def aremos_comp_display_array
-    results = []
-    begin
-      as = AremosSeries.get self.name
-      if as.nil?
-        return []
-      end
-      
-      as.data.each do |datestring, value|
-        data = self.data
-        date = datestring.to_date
-        unless data[date].nil?
-          diff = a_diff(value, self.units_at(date))
-          dp = DataPoint.where(:xseries_id => self.xseries.id, :date => date, :current => true)[0]
-          source_code = dp.source_type_code
-          #Rails.logger.debug { "aremos_comp_display_array: #{self.name}: #{datestring}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
-          results.push(0+source_code) if diff == 0
-          results.push(1+source_code) if diff > 0 and diff <= 1.0
-          results.push(2+source_code) if diff > 1.0 and diff  <= 10.0
-          results.push(3+source_code) if diff > 10.0          
-          next #need this. otherwise might add two array elements per diff
-        end
-        
-        if data[date].nil? and value == 1000000000000000.0
-          results.push(0)
-        else
-          results.push(-1)
-        end
-      end
-      results
-    rescue => e
-      #puts e.message
-      #puts "ERROR WITH \"#{self.name}\".ts.aremos_comparison"
-    end
-    
-  end
-  
   def aremos_series
     AremosSeries.get self.name
   end

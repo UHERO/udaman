@@ -88,37 +88,6 @@ class DataPoint < ApplicationRecord
     self.xseries.primary_series
   end
 
-  def source_type
-    source_eval = self.loader.eval
-    case 
-      when source_eval.index('load_api_bls')
-        return :download
-      when source_eval.index('load_api_bea')
-        return :download
-      when source_eval.index('load_from_download')
-        return :download
-      when source_eval.index('load_api_fred')
-        return :download
-      when source_eval.index('load_from')
-        return :static_file
-      else
-        return :identity
-      end
-  end
-  
-  def source_type_code
-    case source_type
-    when :download
-      return 10
-    when :static_file
-      return 20
-    when :identity
-      return 30
-    else
-      return 40
-    end
-  end
-
   def DataPoint.update_public_all_universes
     Rails.logger.info { 'update_public_data_points: UHERO' }
     DataPoint.update_public_data_points('UHERO')

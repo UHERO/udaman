@@ -75,7 +75,7 @@ class Loader < ApplicationRecord
     end
 
     ## This method appears to be vestigial - confirm and delete later
-    def Loader.all_history_and_manual_series_names_DELETEME
+    def Loader.all_history_and_manual_series_names_DELETEME?
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         Loader.where("eval LIKE '%load_from %#{type}%'").each do |ds|
@@ -93,21 +93,22 @@ class Loader < ApplicationRecord
       series_names.push 'NTTOURNS@HI.M'
       series_names.uniq
     end
-    
-    def Loader.pattern_only_series_names
+
+  ## These methods ALL appear to be vestigial - confirm and delete later
+    def Loader.pattern_only_series_names_DELETEME?
       Loader.all_pattern_series_names - Loader.all_load_from_file_series_names
     end
-    def Loader.load_only_series_names
+    def Loader.load_only_series_names_DELETEME?
       Loader.all_load_from_file_series_names - Loader.all_pattern_series_names
     end
-    def Loader.pattern_and_load_series_names
+    def Loader.pattern_and_load_series_names_DELETEME?
       Loader.all_pattern_series_names & Loader.all_load_from_file_series_names
     end
-    def Loader.load_and_pattern_series_names
+    def Loader.load_and_pattern_series_names_DELETEME?
       Loader.pattern_and_load_series_names
     end
     
-    def Loader.series_sources
+    def Loader.series_sources_DELETEME?
       sa_series_sources = [] 
       Loader.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
       sa_series_sources
@@ -217,6 +218,9 @@ class Loader < ApplicationRecord
 
       eval_stmt = self['eval'].dup
       begin
+        if clear_first
+          delete_data_points
+        end
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
@@ -226,9 +230,6 @@ class Loader < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first
-          delete_data_points
-        end
         s = self.send(presave_hook, s) if presave_hook
 
         base_year = base_year_from_eval_string(eval_stmt)

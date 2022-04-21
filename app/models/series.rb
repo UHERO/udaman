@@ -342,17 +342,6 @@ class Series < ApplicationRecord
     new
   end
 
-  def Series.handle_buckets(series_array, handle_hash)
-    series_array_buckets = {}
-    series_array.each do |s|
-      handle = handle_hash[s.id]
-      #next if handle.nil?
-      series_array_buckets[handle] ||= []
-      series_array_buckets[handle].push(s)
-    end
-    return series_array_buckets
-  end
-  
   #takes about 8 seconds to run for month, but not bad
   #chart both last updated and last observed (rebucket?)
   def Series.last_observation_buckets(frequency)
@@ -960,11 +949,6 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def new_at_DELETEME(date)
-    DataPoint.first(:conditions => {:date => date, :current => true, :series_id => self.id})
-  end
-
   def observation_count
     observations = 0
     data.each do |_, value|
@@ -1142,11 +1126,12 @@ class Series < ApplicationRecord
     series_success
   end
 
-  def Series.search_box(input_string, limit: 10000, user_id: nil)
+  def Series.search_box(input_string, limit: 10000, user: nil)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
     bindvars = []
+    first_term = nil
     input_string.split.each do |term|
       negated = nil
       if term[0] == '-'
@@ -1213,8 +1198,8 @@ class Series < ApplicationRecord
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
                           when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
                           when 'noclip'
-                            raise 'No user identified for clipboard access' if user_id.nil?
-                            bindvars.push user_id.to_i
+                            raise 'No user identified for clipboard access' if user.nil?
+                            bindvars.push user.id.to_i
                             %q{(series.id not in (select series_id from user_series where user_id = ?))}
                           else raise("Unknown fixed term #{term}")
                           end
@@ -1240,7 +1225,13 @@ class Series < ApplicationRecord
         when /^[,]/
           raise 'Spaces cannot occur in comma-separated search lists'
         else
-          ## a "bareword" text string
+          if user && user.mnemo_search? && first_term.nil? && !negated    ## A special hack for special users ;=)
+            first_term = term
+            if term =~ /^[^"]/
+              term = '^' + term
+              redo
+            end
+          end
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
           bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
