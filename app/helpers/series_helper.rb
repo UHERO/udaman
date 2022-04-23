@@ -3,16 +3,17 @@ module SeriesHelper
   require 'csv'
 
   def csv_helper
-    CSV.generate do |csv| 
-      dates = @series.data.keys
-      val = @series.data
-      lvls = @lvl_chg.data
-      yoy = @chg.data
-      ytd = @ytd_chg.data
-       
-      csv << ["Date", "Values", "LVL","YOY", "YTD"]
+    series = @vintage ? @series.vintage_as_of(@vintage): @series
+    values = series.data
+    lvl = @vintage ? {} : @lvl_chg.data  ## disable lvl, yoy, ytd in case of vintage request
+    yoy = @vintage ? {} : @chg.data
+    ytd = @vintage ? {} : @ytd_chg.data
+    dates = series.keys
+    headers =  @vintage ? %w[Date Values] : %w[Date Values LVL YOY YTD]
+    CSV.generate do |csv|
+      csv << headers
       dates.sort.each do |date|
-        csv << [date, val[date], lvls[date], yoy[date], ytd[date]]
+        csv << [date, values[date], lvl[date], yoy[date], ytd[date]]
       end
     end
   end
