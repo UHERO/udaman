@@ -38,7 +38,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 <div id="summary_area">
 	<h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
   <% if @vintage %>
-     <h5>Vintage as of <%= @vintage %> at 00:00h</h5>
+     <h4 style="color:#B81104;">Vintage as of <%= @vintage %> at 00:00h</h4>
   <% end %>
 	<h3><%= @series.dataPortalName %></h3>
 
