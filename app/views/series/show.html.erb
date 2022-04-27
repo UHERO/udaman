@@ -33,6 +33,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 
 
 </script>
+<% vint_options = @vintage ? { vintage: @vintage } : {} %>
 <p class="notice"><%= notice %></p>
 
 <div id="summary_area">
@@ -76,7 +77,7 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% if current_user.dev_user? %>
       <tr><td>XID (devs only)</td><td><%= @series.xseries_id %></td></tr>
     <% end %>
-    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to('permalink', action: :show, id: @series) %>)</td></tr>
+    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to 'permalink', series_path({ id: @series }.merge(vint_options)) %>)</td></tr>
   </table>
 
   <div id="notes">
@@ -92,7 +93,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 		  <%= link_to 'Duplicate', action: :duplicate, id: @series %> |
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
-		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> |
+		<%= link_to 'CSV', series_path({ id: @series, format: :csv }.merge(vint_options)) %> |
     <% if current_user.dev_user? %>
       <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
     <% end %>
