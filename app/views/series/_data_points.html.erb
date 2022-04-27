@@ -16,7 +16,7 @@
     as = @as && @as.data
 
     def process_missing_dates(as)
-      data = as.clone rescue {}
+      data = as.clone || {}
       data.merge(@vintage ? @series.get_vintage_as_data_points(@vintage) : @series.current_data_points(:hash))
     end
 
