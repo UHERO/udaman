@@ -8,7 +8,7 @@ module SeriesHelper
     lvl = @vintage ? {} : @lvl_chg.data  ## disable lvl, yoy, ytd in case of vintage request
     yoy = @vintage ? {} : @chg.data
     ytd = @vintage ? {} : @ytd_chg.data
-    dates = series.keys
+    dates = series.data.keys
     headers =  @vintage ? %w[Date Values] : %w[Date Values LVL YOY YTD]
     CSV.generate do |csv|
       csv << headers
