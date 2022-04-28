@@ -94,15 +94,6 @@ module SeriesDataAdjustment
     data.reject {|date, value| date < start_date or value.nil? or date > end_date}
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def get_scaled_no_ph_after_inc_DELETEME(start_date, end_date = Time.now.to_date, round_to = 3)
-    start_date = start_date.to_date
-    end_date = end_date.to_date
-    scaled_data_no_pseudo_history(round_to).reject do |date, value|
-      date < start_date or value.nil? or date > end_date
-    end
-  end
-
   ## Obsolete? Track it down.
   def compressed_date_range_data(compressed_dates = Date.compressed_date_range)
     compressed_date_range_data = {}
@@ -116,16 +107,22 @@ module SeriesDataAdjustment
   end
 
   def shift_by(laglead)  ## laglead is expected to be a time duration, like 7.days, -1.month, 4.years, etc.
+    raise 'shift_by: parameter must be a valid duration' unless laglead.class == ActiveSupport::Duration
     dir = laglead < 0 ? 'backward' : 'forward'
     laglead_s = distance_of_time_in_words(laglead).sub(/(about|almost) /,'')
     new_transformation("#{self} shifted #{dir} by #{laglead_s}", data.map {|date, value| [date + laglead, value] })
   end
 
   def vintage_as_of(date)
+    new_transformation("The state of #{self} as of #{date} at 00:00h",
+                       get_vintage_as_data_points(date).map {|dat, dp| [dat, dp.value] })
+  end
+
+  def get_vintage_as_data_points(date)
     vintage_data = {}                        ## entries for same :date overwrite, leaving only the one with latest created_at
     data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
-      vintage_data[dp.date] = dp.value
+      vintage_data[dp.date] = dp
     end
-    new_transformation("The state of #{self} as of #{date} (00:00)", vintage_data)
+    vintage_data
   end
 end

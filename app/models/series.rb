@@ -937,6 +937,9 @@ class Series < ApplicationRecord
   end
 
   def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
+    if date === :last
+      date = last_observation
+    end
     unless date.class == Date
       date = Date.parse(date) rescue Date.new(date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
     end

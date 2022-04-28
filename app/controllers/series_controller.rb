@@ -209,6 +209,7 @@ class SeriesController < ApplicationController
 
   def show(no_render: false)
     @desc = AremosSeries.get(@series.name).description rescue 'No Aremos Series'
+    @vintage = Date.parse(params[:vintage]) rescue nil
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
@@ -360,8 +361,9 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change
     @ytd = @series.ytd_percentage_change
   end
-  
-  def render_data_points
+
+  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later (also :only ref at top of file)
+  def render_data_points_DELETEME?
     render :partial => 'data_points', :locals => {:series => @series, :as => @as}
   end
   

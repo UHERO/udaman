@@ -38,6 +38,9 @@ google.visualization.events.addListener(chart, 'select', function() {
 
 <div id="summary_area">
 	<h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
+  <% if @vintage %>
+     <h4 style="color:#B81104;">Vintage as of <%= @vintage %> at 00:00h</h4>
+  <% end %>
 	<h3><%= @series.dataPortalName %></h3>
 
   <table>
@@ -77,7 +80,7 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% if current_user.dev_user? %>
       <tr><td>XID (devs only)</td><td><%= @series.xseries_id %></td></tr>
     <% end %>
-    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to 'permalink', series_path({ id: @series }.merge(vint_options)) %>)</td></tr>
+    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to 'permalink', series_path(id: @series) %>)</td></tr>
   </table>
 
   <div id="notes">
