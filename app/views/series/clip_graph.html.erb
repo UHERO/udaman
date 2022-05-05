@@ -1,3 +1,57 @@
 <script>
+  var the_series_list = [];
 
+  <% @all_series.each do |series| %>
+    the_series_list.push({
+      name: '<%= series.name %>',
+      frequency: '<%= series.frequency %>',
+      title: '<%= series.dataPortalName || series.name %>',
+      units: '<%= series.unit.long_label %>',
+      data: [<% series.data.sort.each do |date, value| %>
+                  foo
+             <% end %>]
+    });
+  <% end %>
+
+  $('#chart_container').highcharts({
+      chart: {
+          alignTicks: false
+      },
+      title: {
+          text: 'Nan darou',
+          align: 'left',
+          useHTML: true,
+          style: {
+              textTransform: 'capitalize'
+          }
+      },
+      credits: {
+          enabled: false
+      },
+      plotOptions: {
+          line: {
+              marker: {
+                  enabled: false
+              }
+          },
+          series: {
+              // pointStart: Date.parse(chart_data[i].start_date_chart),
+              // pointInterval: interval,
+              // pointIntervalUnit: intervalUnit,
+              // events: {
+              //    legendItemClick: function() {
+              //    return false; // Prevent series from being toggled on/off
+              //    }
+              // }
+          }
+      },
+      xAxis: {
+          type: 'datetime',
+          dateTimeLabelFormats: 'nani'
+      },
+      yAxis: y_axis_list,
+      series: the_series_list
+  });
 </script>
+
+<div id="chart_container"></div>
