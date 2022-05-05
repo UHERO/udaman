@@ -1,14 +1,16 @@
 <script>
   var the_series_list = [];
+  var y_axis_list = [];
 
   <% @all_series.each do |series| %>
     the_series_list.push({
       name: '<%= series.name %>',
       frequency: '<%= series.frequency %>',
-      title: '<%= series.dataPortalName || series.name %>',
-      units: '<%= series.unit.long_label %>',
-      data: [<% series.data.sort.each do |date, value| %>
-                  foo
+      title: '<%= series.dataPortalName || series.name %>', // need this?
+      units: '<%= series.unit.short_label %>',
+      start: '<%= series.first_observation %>',
+      data: [<% series.data.sort.each do |_, value| %>
+             <%=  '%.2f' % value rescue 'null' %>
              <% end %>]
     });
   <% end %>
@@ -53,5 +55,4 @@
       series: the_series_list
   });
 </script>
-
 <div id="chart_container"></div>

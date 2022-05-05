@@ -169,6 +169,7 @@ class SeriesController < ApplicationController
 
   def clip_graph
     @all_series = current_user.series.sort_by(&:name)
+    @all_start_date = @all_series.map {|s| s.first_observation }.min
   end
 
   def meta_store
