@@ -147,6 +147,10 @@ class SeriesController < ApplicationController
       redirect_to action: :meta_update
       return
     end
+    if params[:clip_action] == 'graph'
+      redirect_to action: :clip_graph
+      return
+    end
     @status_message = current_user.do_clip_action(params[:clip_action])
     clipboard
   end
@@ -161,6 +165,10 @@ class SeriesController < ApplicationController
     @all_series = current_user.series.reload.sort_by(&:name)
     @series = Series.new(universe: 'UHERO', name: 'Metadata update', xseries: Xseries.new)
     set_attrib_resource_values(@series)
+  end
+
+  def clip_graph
+    @all_series = current_user.series.sort_by(&:name)
   end
 
   def meta_store
