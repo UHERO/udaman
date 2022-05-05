@@ -10,7 +10,7 @@
       units: '<%= series.unit.short_label %>',
       start: '<%= series.first_observation %>',
       data: [<% series.data.sort.each do |_, value| %>
-             <%=  '%.2f' % value rescue 'null' %>
+             <%=  '%.2f,' % value rescue 'null,' %>
              <% end %>]
     });
   <% end %>
