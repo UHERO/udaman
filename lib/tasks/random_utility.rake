@@ -5,7 +5,8 @@
 
 task :convert_sa_tours_loaders => :environment do
   sids = []
-  names = %w{OCUP%@HI.M PRM@HI.M RMRV@HI.M VAP@HI.M VAPDM@HI.M VAPITJP@HI.M VAPITOT@HI.M VDAY@HI.M VDAYCAN@HI.M VDAYDM@HI.M VDAYIT@HI.M VDAYJP@HI.M VDAYRES@HI.M
+  names = %w{
+      OCUP%@HI.M PRM@HI.M RMRV@HI.M VAP@HI.M VAPDM@HI.M VAPITJP@HI.M VAPITOT@HI.M VDAY@HI.M VDAYCAN@HI.M VDAYDM@HI.M VDAYIT@HI.M VDAYJP@HI.M VDAYRES@HI.M
       VDAYUS@HI.M VDAYUSE@HI.M VDAYUSW@HI.M VIS@HI.M VISCAN@HI.M VISCR@HI.M VISCRAIR@HI.M VISDM@HI.M VISIT@HI.M VISJP@HI.M VISRES@HI.M VISUS@HI.M VISUSE@HI.M
       VISUSW@HI.M VLOSCRAIR@HI.M VS@HI.M VSDM@HI.M VSO@HI.M VSODM@HI.M OCUP%@HAW.M OCUP%@HON.M OCUP%@MAU.M OCUP%@KAU.M PRM@HAW.M PRM@HON.M PRM@MAU.M PRM@KAU.M
       RMRV@HAW.M RMRV@HON.M RMRV@MAU.M RMRV@KAU.M VAPDM@HAW.M VAPDM@HON.M VAPDM@MAU.M VAPDM@KAU.M VDAY@HAW.M VDAY@HON.M VDAY@MAU.M VDAY@KAU.M VDAYCAN@HAW.M
@@ -24,16 +25,15 @@ task :convert_sa_tours_loaders => :environment do
   names.each do |n|
     s = n.ts || raise(">>>>>>> oops #{n} doesnt exist")
     puts "DOING #{n}"
-    found_sa_tour = false
+    breakit = false
     s.enabled_data_sources.each do |ld|
       if ld.eval =~ %r{rparsed/sa_tour\.csv}
-        found_sa_tour = true
+        puts "------------>>> CHECK #{s.id}"
+        breakit = true
+        break
       end
     end
-    if found_sa_tour
-      puts "------------>>> CHECK #{n}"
-      next
-    end
+    next if breakit
     sids.push s.id
     s.enabled_data_sources.each do |ld|
       ld.set_reload_nightly(false)
