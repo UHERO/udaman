@@ -24,6 +24,10 @@ task :convert_sa_tours_loaders => :environment do
   }
   names.each do |n|
     s = n.ts || raise(">>>>>>> oops #{n} doesnt exist")
+    unless s
+      puts "------------>>> NONEXIST #{n}"
+      next
+    end
     puts "DOING #{n}"
     breakit = false
     s.enabled_data_sources.each do |ld|
