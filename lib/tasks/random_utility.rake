@@ -3,6 +3,17 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :turn_on_clear_for_vlos => :environment do
+  Series.search_box('^vlos').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ %r{\.ts */ *".+"\.ts}
+      ld.update_attributes(clear_before_load: true)
+      puts "--------------> updated"
+    end
+  end
+end
+
 task :convert_sa_tours_loaders => :environment do
   sids = []
   names = %w{
