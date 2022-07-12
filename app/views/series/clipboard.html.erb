@@ -23,9 +23,9 @@
             <option value="reset">Reset all downloads</option>
             <option value="restrict">Restrict series</option>
             <option value="unrestrict">Unrestrict series</option>
+            <option value="clear">Clear all data points</option>
           <% end %>
           <% if current_user.dev_user? %>
-            <option value="clear">Clear all data points</option>
             <option value="destroy">Destroy series</option>
           <% end %>
         </select>
