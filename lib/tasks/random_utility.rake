@@ -4,7 +4,7 @@
 =end
 
 task :change_api_bls_statements => :environment do
-  DataSource.where(%q{ universe <> 'FC' and eval regexp 'tsn.*api_bls' }) do |ld|
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'tsn.*api_bls' }).each do |ld|
     puts "Doing => #{ld.eval}"
     ld.update_attributes(eval: ld.eval.sub(/^.*\.tsn/, 'Series'))
   end
