@@ -854,10 +854,6 @@ class Series < ApplicationRecord
   end
   
   def Series.load_api_bls(code, frequency)
-    Series.new.load_api_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
-  end
-  
-  def load_api_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
     name = "loaded series code: #{code} from BLS API"
     if series_data && series_data.empty?
