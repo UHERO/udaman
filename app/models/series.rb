@@ -836,7 +836,6 @@ class Series < ApplicationRecord
 
   def Series.load_from_file(path, options)
     date_sens = path.include? '%'
-    #%x(chmod 766 #{path}) unless date_sens
     dp = DownloadProcessor.new(:manual, options.merge(path: path))
     descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
     Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
