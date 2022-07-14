@@ -3,6 +3,13 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :change_api_bls_statements => :environment do
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'tsn.*api_bls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(/^.*\.tsn/, 'Series'))
+  end
+end
+
 task :turn_on_clear_for_vlos => :environment do
   Series.search_box('^vlos').each do |s|
     puts "Doing #{s}"
