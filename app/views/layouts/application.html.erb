@@ -5,7 +5,7 @@
   <%= stylesheet_link_tag 'application' %>
 
 <!--Load the AJAX API-->
-<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<!-- script type="text/javascript" src="https://www.google.com/jsapi"></script -->
   <%= javascript_include_tag 'application' %>
   <%= csrf_meta_tag %>
   <!-- stylesheet_link_tag 'jquery-ui' %>-->
@@ -43,6 +43,7 @@
 &noclip   exclude series on the clipboard
 /        change universe (/fc, /db, /coh, /ccom, /nta)
 =       dynamic predictive search, or find series by name
+&quot;       force term to be searched as a bareword
 
 Useful formulas and hints:
 ^vap$    Match name prefix 'vap' exactly
