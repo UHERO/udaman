@@ -16,7 +16,7 @@ class String
   end
   
   def ts_eval=(eval_statement)
-      Series.eval self, eval_statement
+      Series.eval(self, eval_statement, no_enforce_fields: true)
   end
 
   def ts_append(series)
@@ -71,6 +71,13 @@ class String
     self.blank? ? nil : self
   end
 
+  def to_bool
+    case self.strip.downcase
+      when 'false', 'no', '0', '' then false
+      else true
+    end
+  end
+
   def change_file_extension(ext)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
@@ -86,6 +93,10 @@ end
 class NilClass
   def nil_blank
     nil
+  end
+
+  def to_bool
+    false
   end
 end
 
@@ -112,6 +123,13 @@ class Array
   def average
     raise 'Cannot average an empty array' if self.count == 0
     self.sum / self.count.to_f
+  end
+end
+
+class Hash
+
+  def where_key_belongs_to(an_array)
+    select {|key, _| an_array.include? key.to_s }
   end
 
 end
@@ -161,10 +179,18 @@ class FalseClass
   def to_01
     0
   end
+
+  def to_bool
+    false
+  end
 end
 
 class TrueClass
   def to_01
     1
+  end
+
+  def to_bool
+    true
   end
 end

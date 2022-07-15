@@ -19,7 +19,7 @@
   	render 'devise/menu/login_items' 
   	%>
     <% if current_user.internal_user? %> |
-  	<a href="/clip">Clipboard</a> |
+  	<a href="/series/clip">Clipboard</a> |
   	<a href="/series">Data Series</a> |
   	<a href="/downloads">Downloads</a> |
       <a href="/exports">Exports</a> |
@@ -35,17 +35,18 @@
 !      match load error
 :      (colon) match source link URL (-)
 ;      (semicolon) match resource id numbers for Unit, etc (-)
-&pub public/unrestricted only
-&r      restricted only
+&pub  public-facing series only (- for restricted)
+&pct   percent field is set to true (-)
 &sa   seasonally adjusted only
 &ns   non-seasonally adjusted only
 &nodata   only series having no data
 &noclip   exclude series on the clipboard
 /        change universe (/fc, /db, /coh, /ccom, /nta)
-=       do OLD style predictive search :P
+=       dynamic predictive search, or find series by name
 
 Useful formulas and hints:
 ^vap$    Match name prefix 'vap' exactly
+^yl,yc  Separate alternatives with commas
 ~ns$      Match NS series based on name (combine w/other terms)
 @hi5     Match any of geographies HI, HAW, HON, KAU, MAU
 145746  Find series by ID number (or comma-sep list of 'em!)
