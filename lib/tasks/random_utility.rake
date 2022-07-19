@@ -3,26 +3,65 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
-task :convert_sa_jobs_loaders => :environment do
+task :change_api_bls_statements => :environment do
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'tsn.*api_bls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(/^.*\.tsn/, 'Series'))
+  end
+end
+
+task :turn_on_clear_for_vlos => :environment do
+  Series.search_box('^vlos').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ %r{\.ts */ *".+"\.ts}
+      ld.update_attributes(clear_before_load: true)
+      puts "--------------> updated"
+    end
+  end
+end
+
+task :convert_sa_tours_loaders => :environment do
   sids = []
-  names = %w{EAF@HAW.M EAF@HI.M EAF@HON.M EAF@KAU.M EAF@MAU.M EAF@NBI.M EAG@HAW.M EAG@HI.M EAG@HON.M EAG@KAU.M EAG@MAU.M
-             EAG@NBI.M ECT@HAW.M ECT@HI.M ECT@HON.M ECT@KAU.M ECT@MAU.M ECT@NBI.M E_ELSE@HAW.M E_ELSE@HI.M E_ELSE@HON.M
-             E_ELSE@KAU.M E_ELSE@MAU.M E_ELSE@NBI.M E_FIR@HAW.M E_FIR@HI.M E_FIR@HON.M E_FIR@KAU.M E_FIR@MAU.M E_FIR@NBI.M
-             EGVFD@HAW.M EGVFD@HI.M EGVFD@HON.M EGVFD@KAU.M EGVFD@MAU.M EGVFD@NBI.M E_GVSL@HAW.M E_GVSL@HI.M E_GVSL@HON.M
-             E_GVSL@KAU.M E_GVSL@MAU.M E_GVSL@NBI.M EHC@HAW.M EHC@HI.M EHC@HON.M EHC@KAU.M EHC@MAU.M EHC@NBI.M EMN@HAW.M
-             EMN@HI.M EMN@HON.M EMN@KAU.M EMN@MAU.M EMN@NBI.M EMPL@HAW.M EMPL@HI.M EMPL@HON.M EMPL@KAU.M EMPL@MAU.M EMPL@NBI.M
-             E_NF@HAW.M E_NF@HI.M E_NF@HON.M E_NF@KAU.M E_NF@MAU.M E_NF@NBI.M E_TRADE@HAW.M E_TRADE@HI.M E_TRADE@HON.M
-             E_TRADE@KAU.M E_TRADE@MAU.M E_TRADE@NBI.M E_TU@HAW.M E_TU@HI.M E_TU@HON.M E_TU@KAU.M E_TU@MAU.M E_TU@NBI.M
-             LF@HAW.M LF@HI.M LF@HON.M LF@KAU.M LF@MAU.M LF@NBI.M UR@HAW.M UR@HI.M UR@HON.M UR@KAU.M UR@MAU.M UR@NBI.M}
+  names = %w{
+      OCUP%@HI.M PRM@HI.M RMRV@HI.M VAP@HI.M VAPDM@HI.M VAPITJP@HI.M VAPITOT@HI.M VDAY@HI.M VDAYCAN@HI.M VDAYDM@HI.M VDAYIT@HI.M VDAYJP@HI.M VDAYRES@HI.M
+      VDAYUS@HI.M VDAYUSE@HI.M VDAYUSW@HI.M VIS@HI.M VISCAN@HI.M VISCR@HI.M VISCRAIR@HI.M VISDM@HI.M VISIT@HI.M VISJP@HI.M VISRES@HI.M VISUS@HI.M VISUSE@HI.M
+      VISUSW@HI.M VLOSCRAIR@HI.M VS@HI.M VSDM@HI.M VSO@HI.M VSODM@HI.M OCUP%@HAW.M OCUP%@HON.M OCUP%@MAU.M OCUP%@KAU.M PRM@HAW.M PRM@HON.M PRM@MAU.M PRM@KAU.M
+      RMRV@HAW.M RMRV@HON.M RMRV@MAU.M RMRV@KAU.M VAPDM@HAW.M VAPDM@HON.M VAPDM@MAU.M VAPDM@KAU.M VDAY@HAW.M VDAY@HON.M VDAY@MAU.M VDAY@KAU.M VDAYCAN@HAW.M
+      VDAYCAN@HON.M VDAYCAN@MAU.M VDAYCAN@KAU.M VDAYDM@HAW.M VDAYDM@HON.M VDAYDM@MAU.M VDAYDM@KAU.M VDAYIT@HAW.M VDAYIT@HON.M VDAYIT@MAU.M VDAYIT@KAU.M
+      VDAYJP@HAW.M VDAYJP@HON.M VDAYJP@MAU.M VDAYJP@KAU.M VDAYRES@HAW.M VDAYRES@HON.M VDAYRES@MAU.M VDAYRES@KAU.M VDAYUS@HAW.M VDAYUS@HON.M VDAYUS@MAU.M
+      VDAYUS@KAU.M VDAYUSE@HAW.M VDAYUSE@HON.M VDAYUSE@MAU.M VDAYUSE@KAU.M VDAYUSW@HAW.M VDAYUSW@HON.M VDAYUSW@MAU.M VDAYUSW@KAU.M VIS@HAW.M VIS@HON.M VIS@MAU.M
+      VIS@KAU.M VISCAN@HAW.M VISCAN@HON.M VISCAN@MAU.M VISCAN@KAU.M VISCR@HAW.M VISCR@HON.M VISCR@MAU.M VISCR@KAU.M VISCRAIR@HAW.M VISCRAIR@HON.M VISCRAIR@MAU.M
+      VISCRAIR@KAU.M VISDM@HAW.M VISDM@HON.M VISDM@MAU.M VISDM@KAU.M VISIT@HAW.M VISIT@HON.M VISIT@MAU.M VISIT@KAU.M VISJP@HAW.M VISJP@HON.M VISJP@MAU.M
+      VISJP@KAU.M VISRES@HAW.M VISRES@HON.M VISRES@MAU.M VISRES@KAU.M VISUS@HAW.M VISUS@HON.M VISUS@MAU.M VISUS@KAU.M VISUSE@HAW.M VISUSE@HON.M VISUSE@MAU.M
+      VISUSE@KAU.M VISUSW@HAW.M VISUSW@HON.M VISUSW@MAU.M VISUSW@KAU.M VS@HAW.M VS@HON.M VS@MAU.M VS@KAU.M VSDM@HAW.M VSDM@HON.M VSDM@MAU.M VSDM@KAU.M VSO@HAW.M
+      VSO@HON.M VSO@MAU.M VSO@KAU.M VSODM@HAW.M VSODM@HON.M VSODM@MAU.M VSODM@KAU.M VEXP@HAW.M VEXP@HI.M VEXP@HON.M VEXP@KAU.M VEXP@MAU.M VEXPCAN@HI.M
+      VEXPJP@HI.M VEXPOT@HI.M VEXPPD@HAW.M VEXPPD@HI.M VEXPPD@HON.M VEXPPD@KAU.M VEXPPD@MAU.M VEXPPDCAN@HI.M VEXPPDJP@HI.M VEXPPDOT@HI.M VEXPPDUS@HI.M
+      VEXPPDUSE@HI.M VEXPPDUSW@HI.M VEXPPT@HAW.M VEXPPT@HI.M VEXPPT@HON.M VEXPPT@KAU.M VEXPPT@MAU.M VEXPPTCAN@HI.M VEXPPTJP@HI.M VEXPPTOT@HI.M VEXPPTUS@HI.M
+      VEXPPTUSE@HI.M VEXPPTUSW@HI.M VEXPUS@HI.M VEXPUSE@HI.M VEXPUSW@HI.M
+  }
   names.each do |n|
     s = n.ts || raise(">>>>>>> oops #{n} doesnt exist")
+    unless s
+      puts "------------>>> NONEXIST #{n}"
+      next
+    end
     puts "DOING #{n}"
+    breakit = false
+    s.enabled_data_sources.each do |ld|
+      if ld.eval =~ %r{rparsed/sa_tour\.csv}
+        puts "------------>>> CHECK #{s.id}"
+        breakit = true
+        break
+      end
+    end
+    next if breakit
     sids.push s.id
     s.enabled_data_sources.each do |ld|
       ld.set_reload_nightly(false)
       ld.delete_data_points
     end
-    newld = DataSource.create(eval: '"%s".tsn.load_from "rparsed/sa_jobs.csv"' % n)
+    newld = DataSource.create(eval: '"%s".tsn.load_from "rparsed/sa_tour.csv"' % n)
     s.data_sources << newld
     newld.setup
     newld.reload_source
