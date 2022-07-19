@@ -836,7 +836,6 @@ class Series < ApplicationRecord
 
   def Series.load_from_file(path, options)
     date_sens = path.include? '%'
-    #%x(chmod 766 #{path}) unless date_sens
     dp = DownloadProcessor.new(:manual, options.merge(path: path))
     descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
     Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
@@ -854,10 +853,6 @@ class Series < ApplicationRecord
   end
   
   def Series.load_api_bls(code, frequency)
-    Series.new.load_api_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
-  end
-  
-  def load_api_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
     name = "loaded series code: #{code} from BLS API"
     if series_data && series_data.empty?
