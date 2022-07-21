@@ -772,7 +772,7 @@ class Series < ApplicationRecord
       update_spreadsheet.default_sheet = sheet
     end
     self.frequency = update_spreadsheet.frequency
-    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
+    new_transformation("loaded SA from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')

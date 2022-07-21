@@ -3,6 +3,17 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :bls_wages_load_stmts => :environment do
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'load_sa_from.*sadata/bls_wages.xls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(%r{load_sa_from.*"rawdata/sadata/bls_wages.xls"}, 'load_from "rparsed/bls_weekly_wages_sa.csv"'))
+  end
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'load_sa_from.*sadata/bls_hourly_wages.xls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(%r{load_sa_from.*"rawdata/sadata/bls_hourly_wages.xls"}, 'load_from "rparsed/bls_hourly_wages_sa.csv"'))
+  end
+end
+
 task :change_api_bls_statements => :environment do
   DataSource.where(%q{ universe <> 'FC' and eval regexp 'tsn.*api_bls' }).each do |ld|
     puts "Doing => #{ld.eval}"
