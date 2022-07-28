@@ -3,6 +3,34 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :convert_sa_tax_loaders => :environment do
+  sids = []
+  names = %w{
+      TDCT@HI.M TDCTFU@HI.M TDCTTT@HI.M TDGF@HI.M TDHW@HI.M TDTS@HI.M TGB@HI.M TGBCT@HI.M TGBHT@HI.M TGBRT@HI.M TGBSV@HI.M
+      TGR@HI.M TGRCT@HI.M TGRHT@HI.M TGRRT@HI.M TGRSV@HI.M TR@HI.M TRCO@HI.M TRCOES@HI.M TRCOPR@HI.M TRCORF@HI.M TRFU@HI.M
+      TRGT@HI.M TRIN@HI.M TRINES@HI.M TRINPR@HI.M TRINRF@HI.M TRINWH@HI.M TRTT@HI.M
+  }
+  names.each do |n|
+    s = n.ts
+    unless s
+      puts "------------>>> NONEXIST #{n}"
+      next
+    end
+    puts "DOING #{n}"
+    sids.push s.id
+    s.enabled_data_sources.each do |ld|
+      ld.set_reload_nightly(false)
+      ld.delete_data_points
+    end
+    newld = DataSource.create(eval: '"%s".tsn.load_from "rparsed/sa_tax.csv"' % n)
+    s.data_sources << newld
+    newld.setup
+    ## newld.reload_source   ### reloading this way won't include deps
+  end
+  puts sids.join(',')
+end
+
+
 task :bls_wages_load_stmts => :environment do
   DataSource.where(%q{ universe <> 'FC' and eval regexp 'load_sa_from.*sadata/bls_wages.xls' }).each do |ld|
     puts "Doing => #{ld.eval}"
