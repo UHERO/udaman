@@ -703,17 +703,6 @@ class Series < ApplicationRecord
     Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def scaled_data_no_pseudo_history_DELETEME(round_to = 3)
-    data_hash = {}
-    self.units ||= 1
-    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    xseries.data_points.each do |dp|
-      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
-    end
-    data_hash
-  end
-  
   def scaled_data(prec = 3)
     data_hash = {}
     self.units ||= 1
@@ -772,7 +761,7 @@ class Series < ApplicationRecord
       update_spreadsheet.default_sheet = sheet
     end
     self.frequency = update_spreadsheet.frequency
-    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
+    new_transformation("loaded SA from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
