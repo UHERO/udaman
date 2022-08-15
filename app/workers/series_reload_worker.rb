@@ -69,6 +69,7 @@ class SeriesReloadWorker
   end
 
 private
+
   def mylogger(level, message)
     Sidekiq.logger.send(level) { "batch=#{@batch} depth=#{@depth} series=#{@series}: #{message}" }
   end
