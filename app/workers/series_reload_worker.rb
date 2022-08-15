@@ -59,7 +59,8 @@ class SeriesReloadWorker
   end
 
   def cancelled?
-    Sidekiq.redis {|c| c.exists("cancelled-#{jid}") }
+    ## Sidekiq.redis {|c| c.exists("cancelled-#{jid}") }
+    false  ## need to reexamine this implementation
   end
 
   def self.cancel!(jid)

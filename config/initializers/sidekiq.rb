@@ -10,7 +10,7 @@ Sidekiq.configure_server do |config|
   ## All Rails logging should go to the Sidekiq logger when code is running in Sidekiq.
   ## But it turns out this only works when logger is invoked as Rails.logger, but cases
   ## where it is invoked only as logger, output goes to <environment>.log file.
-  Rails.logger = Sidekiq::Logging.logger
+  #### Rails.logger = Sidekiq::Logging.logger
 end
 
 # https://github.com/mperham/sidekiq/wiki/Using-Redis
