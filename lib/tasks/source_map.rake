@@ -125,16 +125,16 @@ task :update_public_data_points => :environment do
 end
 
 API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
+CAT_URL = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
+PKG_URL = %q{https://api.uhero.hawaii.edu/v1/package/series?id=%d\&u=%s\&cat=%d\&nocache}
 
 def pull_cat_series_from_api(univ, cat_id, geo, freq)
-  cat_url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
-  pkg_url = %q{https://api.uhero.hawaii.edu/v1/package/series?id=%d\&u=%s\&cat=%d\&nocache}
   cmd = %q{curl --silent -H "Authorization: Bearer %s" } % API_TOKEN
   delay = 13
   try = 0
 
   Rails.logger.debug { "Encachitize: #{univ} category run => id #{cat_id}, #{geo}, #{freq}" }
-  full_url = cat_url % [cat_id, geo, freq]
+  full_url = CAT_URL % [cat_id, geo, freq]
   begin
     content = %x{#{cmd + full_url}}
     json = JSON.parse content
@@ -155,7 +155,7 @@ def pull_cat_series_from_api(univ, cat_id, geo, freq)
   ##Rails.logger.debug { ">>>>>>> Number of series #{json['data'].count}" }
   json['data'].each do |series|
     sid = series['id'].to_i
-    full_url = pkg_url % [sid, univ, cat_id]
+    full_url = PKG_URL % [sid, univ, cat_id]
     Rails.logger.debug { "Encachitize: package run => series #{sid}, #{univ}, cat=#{cat_id}" }
     %x{#{cmd + '--output /dev/null ' + full_url}}
   end
@@ -181,7 +181,7 @@ task :encachitize_rest_api => :environment do
     %w{HI HAW}.each do |geo|
       try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = cat_url % [cat.id, geo, freq]
+        full_url = CAT_URL % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: coh category run => #{cat.id}, #{geo}, #{freq}" }
         begin
           content = %x{#{cmd + full_url}}
@@ -202,7 +202,7 @@ task :encachitize_rest_api => :environment do
         next unless json && json['data']   ### maybe no D series in this category
         json['data'].each do |series|
           sid = series['id'].to_i
-          full_url = pkg_url % [sid, 'coh', cat.id]
+          full_url = PKG_URL % [sid, 'coh', cat.id]
           Rails.logger.debug { "Encachitize: package run => #{sid}, coh, cat=#{cat.id}" }
           %x{#{cmd + '--output /dev/null ' + full_url}}
         end
@@ -216,7 +216,7 @@ task :encachitize_rest_api => :environment do
     %w{HI HAW HON KAU MAU}.each do |geo|
       try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = cat_url % [cat.id, geo, freq]
+        full_url = CAT_URL % [cat.id, geo, freq]
         Rails.logger.debug { "Encachitize: ccom category run => #{cat.id}, #{geo}, #{freq}" }
         begin
           content = %x{#{cmd + full_url}}
@@ -237,7 +237,7 @@ task :encachitize_rest_api => :environment do
         next unless json && json['data']   ### maybe no D series in this category
         json['data'].each do |series|
           sid = series['id'].to_i
-          full_url = pkg_url % [sid, 'ccom', cat.id]
+          full_url = PKG_URL % [sid, 'ccom', cat.id]
           Rails.logger.debug { "Encachitize: package run => #{sid}, ccom, cat=#{cat.id}" }
           %x{#{cmd + '--output /dev/null ' + full_url}}
         end
