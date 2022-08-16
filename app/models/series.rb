@@ -1063,18 +1063,6 @@ class Series < ApplicationRecord
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def refresh_all_datapoints_DELETEME?
-    unique_ds = {} #this is actually used ds
-    current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
-    eval_statements = []
-    self.data_sources_by_last_run.each do |ds| 
-      eval_statements.push(ds.get_eval_statement) unless unique_ds.keys.index(ds.id).nil?
-      ds.delete
-    end
-    eval_statements.each {|es| eval(es)}
-  end
-
   ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
   ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
