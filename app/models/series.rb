@@ -1063,18 +1063,6 @@ class Series < ApplicationRecord
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def refresh_all_datapoints_DELETEME?
-    unique_ds = {} #this is actually used ds
-    current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
-    eval_statements = []
-    self.data_sources_by_last_run.each do |ds| 
-      eval_statements.push(ds.get_eval_statement) unless unique_ds.keys.index(ds.id).nil?
-      ds.delete
-    end
-    eval_statements.each {|es| eval(es)}
-  end
-
   ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
   ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
@@ -1400,7 +1388,7 @@ private
       ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
       ## as a result I've decided to use raise instead. It seems to work just as well.
     end
-    unless who_depends_on_me.empty? || destroy_forced
+    unless who_depends_on_me.empty? || destroy_forced?
       message = "ERROR: Cannot destroy series #{self} with dependent series. Delete dependencies first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
@@ -1429,7 +1417,7 @@ private
     Rails.logger.info { "DESTROY series #{self}: done" }
   end
 
-  def destroy_forced
+  def destroy_forced?
     scratch == 44444
   end
 
