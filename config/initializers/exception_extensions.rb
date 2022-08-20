@@ -19,6 +19,9 @@ end
 class SeriesReloadException < StandardError
 end
 
+class SeriesMissingFieldException < StandardError
+end
+
 class SeriesDestroyException < StandardError
 end
 

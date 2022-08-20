@@ -1,7 +1,295 @@
 =begin
-    ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future does not
-    need to worry about any of this - it can be left alone, because it's not part of the production codebase.
+    ATTENZIONE! ALL OF THE CODE IN THIS FILE WAS USED FOR ONE-OFF JOBS. As such, anyone refactoring udaman code in the future
+    need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
+
+task :convert_sa_tax_loaders => :environment do
+  sids = []
+  names = %w{
+      TDCT@HI.M TDCTFU@HI.M TDCTTT@HI.M TDGF@HI.M TDHW@HI.M TDTS@HI.M TGB@HI.M TGBCT@HI.M TGBHT@HI.M TGBRT@HI.M TGBSV@HI.M
+      TGR@HI.M TGRCT@HI.M TGRHT@HI.M TGRRT@HI.M TGRSV@HI.M TR@HI.M TRCO@HI.M TRCOES@HI.M TRCOPR@HI.M TRCORF@HI.M TRFU@HI.M
+      TRGT@HI.M TRIN@HI.M TRINES@HI.M TRINPR@HI.M TRINRF@HI.M TRINWH@HI.M TRTT@HI.M
+  }
+  names.each do |n|
+    s = n.ts
+    unless s
+      puts "------------>>> NONEXIST #{n}"
+      next
+    end
+    puts "DOING #{n}"
+    sids.push s.id
+    s.enabled_data_sources.each do |ld|
+      ld.set_reload_nightly(false)
+      ld.delete_data_points
+    end
+    newld = DataSource.create(eval: '"%s".tsn.load_from "rparsed/sa_tax.csv"' % n)
+    s.data_sources << newld
+    newld.setup
+    ## newld.reload_source   ### reloading this way won't include deps
+  end
+  puts sids.join(',')
+end
+
+
+task :bls_wages_load_stmts => :environment do
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'load_sa_from.*sadata/bls_wages.xls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(%r{load_sa_from.*"rawdata/sadata/bls_wages.xls"}, 'load_from "rparsed/bls_weekly_wages_sa.csv"'))
+  end
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'load_sa_from.*sadata/bls_hourly_wages.xls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(%r{load_sa_from.*"rawdata/sadata/bls_hourly_wages.xls"}, 'load_from "rparsed/bls_hourly_wages_sa.csv"'))
+  end
+end
+
+task :change_api_bls_statements => :environment do
+  DataSource.where(%q{ universe <> 'FC' and eval regexp 'tsn.*api_bls' }).each do |ld|
+    puts "Doing => #{ld.eval}"
+    ld.update_attributes(eval: ld.eval.sub(/^.*\.tsn/, 'Series'))
+  end
+end
+
+task :turn_on_clear_for_vlos => :environment do
+  Series.search_box('^vlos').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ %r{\.ts */ *".+"\.ts}
+      ld.update_attributes(clear_before_load: true)
+      puts "--------------> updated"
+    end
+  end
+end
+
+task :convert_sa_tours_loaders => :environment do
+  sids = []
+  names = %w{
+      OCUP%@HI.M PRM@HI.M RMRV@HI.M VAP@HI.M VAPDM@HI.M VAPITJP@HI.M VAPITOT@HI.M VDAY@HI.M VDAYCAN@HI.M VDAYDM@HI.M VDAYIT@HI.M VDAYJP@HI.M VDAYRES@HI.M
+      VDAYUS@HI.M VDAYUSE@HI.M VDAYUSW@HI.M VIS@HI.M VISCAN@HI.M VISCR@HI.M VISCRAIR@HI.M VISDM@HI.M VISIT@HI.M VISJP@HI.M VISRES@HI.M VISUS@HI.M VISUSE@HI.M
+      VISUSW@HI.M VLOSCRAIR@HI.M VS@HI.M VSDM@HI.M VSO@HI.M VSODM@HI.M OCUP%@HAW.M OCUP%@HON.M OCUP%@MAU.M OCUP%@KAU.M PRM@HAW.M PRM@HON.M PRM@MAU.M PRM@KAU.M
+      RMRV@HAW.M RMRV@HON.M RMRV@MAU.M RMRV@KAU.M VAPDM@HAW.M VAPDM@HON.M VAPDM@MAU.M VAPDM@KAU.M VDAY@HAW.M VDAY@HON.M VDAY@MAU.M VDAY@KAU.M VDAYCAN@HAW.M
+      VDAYCAN@HON.M VDAYCAN@MAU.M VDAYCAN@KAU.M VDAYDM@HAW.M VDAYDM@HON.M VDAYDM@MAU.M VDAYDM@KAU.M VDAYIT@HAW.M VDAYIT@HON.M VDAYIT@MAU.M VDAYIT@KAU.M
+      VDAYJP@HAW.M VDAYJP@HON.M VDAYJP@MAU.M VDAYJP@KAU.M VDAYRES@HAW.M VDAYRES@HON.M VDAYRES@MAU.M VDAYRES@KAU.M VDAYUS@HAW.M VDAYUS@HON.M VDAYUS@MAU.M
+      VDAYUS@KAU.M VDAYUSE@HAW.M VDAYUSE@HON.M VDAYUSE@MAU.M VDAYUSE@KAU.M VDAYUSW@HAW.M VDAYUSW@HON.M VDAYUSW@MAU.M VDAYUSW@KAU.M VIS@HAW.M VIS@HON.M VIS@MAU.M
+      VIS@KAU.M VISCAN@HAW.M VISCAN@HON.M VISCAN@MAU.M VISCAN@KAU.M VISCR@HAW.M VISCR@HON.M VISCR@MAU.M VISCR@KAU.M VISCRAIR@HAW.M VISCRAIR@HON.M VISCRAIR@MAU.M
+      VISCRAIR@KAU.M VISDM@HAW.M VISDM@HON.M VISDM@MAU.M VISDM@KAU.M VISIT@HAW.M VISIT@HON.M VISIT@MAU.M VISIT@KAU.M VISJP@HAW.M VISJP@HON.M VISJP@MAU.M
+      VISJP@KAU.M VISRES@HAW.M VISRES@HON.M VISRES@MAU.M VISRES@KAU.M VISUS@HAW.M VISUS@HON.M VISUS@MAU.M VISUS@KAU.M VISUSE@HAW.M VISUSE@HON.M VISUSE@MAU.M
+      VISUSE@KAU.M VISUSW@HAW.M VISUSW@HON.M VISUSW@MAU.M VISUSW@KAU.M VS@HAW.M VS@HON.M VS@MAU.M VS@KAU.M VSDM@HAW.M VSDM@HON.M VSDM@MAU.M VSDM@KAU.M VSO@HAW.M
+      VSO@HON.M VSO@MAU.M VSO@KAU.M VSODM@HAW.M VSODM@HON.M VSODM@MAU.M VSODM@KAU.M VEXP@HAW.M VEXP@HI.M VEXP@HON.M VEXP@KAU.M VEXP@MAU.M VEXPCAN@HI.M
+      VEXPJP@HI.M VEXPOT@HI.M VEXPPD@HAW.M VEXPPD@HI.M VEXPPD@HON.M VEXPPD@KAU.M VEXPPD@MAU.M VEXPPDCAN@HI.M VEXPPDJP@HI.M VEXPPDOT@HI.M VEXPPDUS@HI.M
+      VEXPPDUSE@HI.M VEXPPDUSW@HI.M VEXPPT@HAW.M VEXPPT@HI.M VEXPPT@HON.M VEXPPT@KAU.M VEXPPT@MAU.M VEXPPTCAN@HI.M VEXPPTJP@HI.M VEXPPTOT@HI.M VEXPPTUS@HI.M
+      VEXPPTUSE@HI.M VEXPPTUSW@HI.M VEXPUS@HI.M VEXPUSE@HI.M VEXPUSW@HI.M
+  }
+  names.each do |n|
+    s = n.ts || raise(">>>>>>> oops #{n} doesnt exist")
+    unless s
+      puts "------------>>> NONEXIST #{n}"
+      next
+    end
+    puts "DOING #{n}"
+    breakit = false
+    s.enabled_data_sources.each do |ld|
+      if ld.eval =~ %r{rparsed/sa_tour\.csv}
+        puts "------------>>> CHECK #{s.id}"
+        breakit = true
+        break
+      end
+    end
+    next if breakit
+    sids.push s.id
+    s.enabled_data_sources.each do |ld|
+      ld.set_reload_nightly(false)
+      ld.delete_data_points
+    end
+    newld = DataSource.create(eval: '"%s".tsn.load_from "rparsed/sa_tour.csv"' % n)
+    s.data_sources << newld
+    newld.setup
+    newld.reload_source
+  end
+  puts sids.join(',')
+end
+
+task :deploy_convert_to_real => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "cpi(_b)?@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100
+                              \s*$}xi
+    base_series = $1
+    _b = $2.upcase.to_s
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.convert_to_real' + _b)
+  end
+end
+
+task :deploy_daily_census => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              \1\.days_in_period
+                              \s*$}xi
+    base_series = $1
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.daily_census')
+  end
+end
+
+task :undo_ns_growth_rate_temp_hack => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next if ld.loader_type == :history
+      if ld.eval =~ /apply_ns_growth_rate_sa.*plete_year/
+        ld.update!(eval: ld.eval.sub(/\("2020-01-01"\)\s*$/, ''))   ## remove date parameter from last method call
+      else
+        ld.set_reload_nightly(true)
+      end
+    end
+    s.reload_sources
+  end
+end
+
+task :ua_1456_emergency_reload_ns_growth_rate => :environment do
+  Series.search_box('#apply_ns_growth_rate_sa +9999').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each do |ld|
+      next if ld.eval =~ /apply_ns_growth_rate_sa/
+      ld.set_reload_nightly(true)
+      if ld.eval =~ /county_share_for/
+        ld.update!(eval: ld.eval.strip + '.trim(after: "2019-12-31")')
+      else
+        Rails.logger.info ">>>>!!!>>>>> #{s} has unexpected loaders"
+      end
+    end
+  end
+end
+
+task :ua_1473_fill_blank_DPNs => :environment do
+  dict = {}
+  Series.get_all_uhero.each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    dpn = s.dataPortalName || next
+    if dict[indicator] && dict[indicator] != dpn
+      puts ">> DPN mismatch for indicator #{indicator}"
+      next
+    end
+    dict[indicator] = dpn
+  end
+  puts "Finished building dictionary"
+  Series.search_box('&nodpn +9999').each do |s|
+    indicator = s.parse_name[:prefix].sub(/NS$/i,'')
+    if dict[indicator]
+      puts "Updating #{s.name}"
+      s.update!(dataPortalName: dict[indicator])
+    end
+  end
+end
+
+task :ua_1473_fix_VSO_agg_methods => :environment do
+  Series.search_box('^vso #aggregate #average +9999').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.eval =~ /aggregate.*:average/i
+      puts "Updating #{s.name}"
+      ld.update(eval: ld.eval.sub(':average', ':sum'))
+    end
+  end
+end
+
+task :ua_1473_turn_off_YC_series => :environment do
+  Series.search_box('^yc +9999').each do |s|
+    s.update!(restricted: true) unless s.restricted?
+    s.data_sources.each do |ld|
+      next unless ld.reload_nightly?
+      ld.update(reload_nightly: false)
+    end
+  end
+end
+
+task :ua_1472_fix_backward_shifts => :environment do
+  Series.search_box('#shift_backward_months').each do |s|
+    s.data_sources.each do |ld|
+      while ld.eval =~ /shift_backward_months\((-?\d+)\)/
+        num = $1.to_i
+        ld.update!(eval: ld.eval.sub(/shift_backward_months\((-?\d+)\)/,
+                                      'shift_by(%s%d.months)' % [num < 0 ? '+' : '-', num.abs] ))
+        ld.reload
+      end
+    end
+  end
+end
+
+task :ua_1468 => :environment do
+  Measurement.where(universe: 'UHERO').order(:prefix).each do |m|
+    next if m.data_lists.empty?  ## not in UHERO DP
+    dl_next = true
+    m.data_lists.each do |dl|
+      if Category.find_by(universe: 'UHERO', data_list_id: dl.id)
+        dl_next = false
+        break
+      end
+    end
+    next if dl_next
+    series = m.series.to_a
+    s0 = series.pop || next
+    result = ""
+    print m.prefix, ": "
+    series.each do |s|
+      if (s0.source_link && s.source_link.nil?) || (s0.source_link.nil? && s.source_link)
+        result = "mixed"
+        break
+      end
+    end
+    puts result
+  end
+end
+
+task :find_bad_aggregations => :environment do
+  dict = {}
+  Series.search_box('#aggreg').each do |s|
+    find_method_for_prefix(s, dict)
+    s.other_frequencies.each {|otfreq| find_method_for_prefix(otfreq, dict) }
+  end
+  dict.reject! {|_, v| v.count < 2 }
+  dict.each do |k, v|
+    puts "#{k} => #{v}"
+  end
+end
+
+def find_method_for_prefix(series, dict)
+  prefix = series.parse_name[:prefix].sub(/NS$/i, '')
+  series.enabled_data_sources('aggreg').map(&:eval).each do |ldeval|
+    method = (ldeval =~ /aggregate\(:\w+, *:(\w+)/) ? $1 : nil
+    unless method
+      Rails.logger.warn { "find_method_for_prefix: #{series}: unexpected aggregation calling convention #{ldeval}" }
+      next
+    end
+    dict[prefix] ||= []
+    dict[prefix] |= [method.downcase]
+  end
+end
+
+task :vexp_loader_job => :environment do
+  ss = Series.search_box('vexp &sa .m')
+  ss.each do |s|
+    next if s.name == 'VEXP@HI.M'
+    puts "Doing #{s}"
+    s.enabled_data_sources.each {|ld| ld.disable! }
+    ld = DataSource.create(priority: 100, eval: %q{"%s".tsn.load_from "rawdata/sadata/tour_vexp.csv"} % s.ns_series_name)
+    s.data_sources << ld
+    ld.setup
+    s.reload_sources
+  end
+  puts "done"
+end
 
 task :ua_1099 => :environment do
   ss = Series.search_box('^v .m')

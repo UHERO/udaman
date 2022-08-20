@@ -92,7 +92,8 @@ class CategoriesController < ApplicationController
     redirect_to categories_url
   end
 
-  private
+private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_category
       @category = Category.find params[:id]
@@ -100,6 +101,6 @@ class CategoriesController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def category_params
-      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_geo_id, :default_freq, :hidden, :header)
+      params.require(:category).permit(:name, :parent_id, :data_list_id, :default_geo_id, :default_freq, :hidden, :header, :description)
     end
 end

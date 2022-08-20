@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025773) do
+ActiveRecord::Schema.define(version: 220170413025779) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -47,10 +47,14 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.index ["user_id"], name: "fk_rails_4ecef5b8c5"
   end
 
+  create_table "branch_code", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+    t.integer "last_branch_code_number", default: 0, null: false
+  end
+
   create_table "categories", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
-    t.string "name"
     t.integer "data_list_id"
+    t.integer "default_geo_id"
+    t.string "universe", limit: 5, default: "UHERO", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "hidden", default: false
@@ -58,11 +62,12 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.boolean "header", default: false
     t.integer "list_order"
     t.integer "order"
+    t.string "name"
     t.string "ancestry"
-    t.integer "default_geo_id"
     t.string "default_handle"
     t.string "default_freq", limit: 1
     t.string "meta"
+    t.string "description", limit: 500
     t.index ["ancestry"], name: "index_categories_on_ancestry"
     t.index ["data_list_id"], name: "fk_rails_cats_data_list_id"
     t.index ["default_geo_id"], name: "fk_rails_c390c9a75e"
@@ -83,7 +88,6 @@ ActiveRecord::Schema.define(version: 220170413025773) do
   create_table "data_lists", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.string "name"
-    t.text "list"
     t.integer "startyear"
     t.integer "endyear"
     t.datetime "created_at"
@@ -100,49 +104,31 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.index ["data_list_id"], name: "index_data_lists_series_on_data_list_id"
   end
 
-  create_table "data_load_patterns", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.string "start_date"
-    t.string "frequency"
-    t.string "path"
-    t.string "worksheet"
-    t.string "row"
-    t.string "col"
-    t.string "last_date_read"
-    t.string "last_read_status"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-    t.boolean "reverse", default: false
-  end
-
   create_table "data_points", primary_key: ["xseries_id", "date", "created_at", "data_source_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.integer "xseries_id", null: false
     t.date "date", null: false
+    t.datetime "created_at", null: false
+    t.integer "data_source_id", null: false
     t.boolean "current"
     t.float "value", limit: 53
-    t.integer "data_source_id", null: false
+    t.integer "pseudo_history", default: 0
     t.datetime "history"
-    t.datetime "created_at", null: false
     t.datetime "updated_at"
-    t.boolean "pseudo_history", default: false
     t.float "change", limit: 53
     t.float "yoy", limit: 53
     t.float "ytd", limit: 53
-  end
-
-  create_table "data_portal_names", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "prefix"
-    t.string "units"
-    t.string "data_portal_name"
+    t.index ["data_source_id"], name: "index_on_data_source_id"
+    t.index ["xseries_id"], name: "index_on_xseries_id"
   end
 
   create_table "data_source_actions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+    t.integer "data_source_id"
     t.integer "series_id"
     t.integer "user_id"
     t.string "user_email"
-    t.integer "data_source_id"
     t.string "action"
-    t.text "eval"
     t.integer "priority"
+    t.string "eval", limit: 500
     t.datetime "created_at"
     t.datetime "updated_at"
     t.index ["series_id"], name: "fk_rails_cbe5366b13"
@@ -157,28 +143,27 @@ ActiveRecord::Schema.define(version: 220170413025773) do
   end
 
   create_table "data_sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
     t.integer "series_id"
+    t.boolean "disabled", default: false, null: false
+    t.string "universe", limit: 5, default: "UHERO", null: false
     t.integer "priority", default: 100
-    t.text "description"
-    t.text "eval"
-    t.text "dependencies"
-    t.string "color"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.boolean "reload_nightly", default: true
     t.boolean "pseudo_history", default: false, null: false
     t.boolean "clear_before_load", default: false, null: false
-    t.boolean "disabled", default: false, null: false
+    t.string "eval", limit: 500
     t.string "presave_hook"
+    t.string "color"
     t.float "runtime"
     t.datetime "last_run_at"
     t.decimal "last_run_in_seconds", precision: 17, scale: 3
     t.string "last_error"
     t.datetime "last_error_at"
+    t.text "dependencies"
+    t.text "description"
     t.index ["dependencies"], name: "index_data_sources_on_dependencies", type: :fulltext
     t.index ["description"], name: "index_data_sources_on_description", type: :fulltext
-    t.index ["eval"], name: "index_data_sources_on_eval", type: :fulltext
     t.index ["series_id"], name: "index_data_sources_on_series_id"
     t.index ["universe"], name: "index_data_sources_on_universe"
   end
@@ -287,10 +272,10 @@ ActiveRecord::Schema.define(version: 220170413025773) do
 
   create_table "geographies", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
-    t.string "fips"
     t.string "handle"
     t.string "display_name"
     t.string "display_name_short"
+    t.string "fips"
     t.integer "list_order"
     t.string "geotype"
     t.datetime "created_at", null: false
@@ -307,32 +292,33 @@ ActiveRecord::Schema.define(version: 220170413025773) do
   end
 
   create_table "measurements", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+    t.integer "unit_id"
+    t.integer "source_id"
+    t.integer "source_detail_id"
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.string "prefix", null: false
     t.string "data_portal_name"
     t.string "table_prefix"
     t.string "table_postfix"
     t.string "frequency_transform"
-    t.integer "unit_id"
     t.boolean "percent"
     t.boolean "real"
     t.integer "decimals", default: 1, null: false
     t.boolean "restricted", default: false, null: false
     t.boolean "seasonally_adjusted"
     t.string "seasonal_adjustment", limit: 23
-    t.integer "source_detail_id"
-    t.integer "source_id"
     t.string "source_link"
-    t.text "notes"
+    t.string "notes", limit: 500
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["source_detail_id"], name: "fk_rails_f4c727584e"
     t.index ["source_id"], name: "fk_rails_e96addabdb"
     t.index ["unit_id"], name: "fk_rails_c5bad45aff"
+    t.index ["universe", "prefix"], name: "index_measurements_on_universe_and_prefix", unique: true
     t.index ["universe"], name: "index_measurements_on_universe"
   end
 
-  create_table "new_dbedt_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "new_dbedt_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.datetime "upload_at"
     t.boolean "active"
     t.string "status", limit: 10
@@ -367,7 +353,7 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "reload_job_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "reload_job_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.bigint "reload_job_id"
     t.bigint "series_id"
     t.index ["reload_job_id", "series_id"], name: "index_reload_job_series_on_reload_job_id_and_series_id", unique: true
@@ -375,7 +361,7 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.index ["series_id"], name: "index_reload_job_series_on_series_id"
   end
 
-  create_table "reload_jobs", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "reload_jobs", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.bigint "user_id"
     t.datetime "created_at", null: false
     t.string "status", limit: 10
@@ -387,24 +373,24 @@ ActiveRecord::Schema.define(version: 220170413025773) do
   end
 
   create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.integer "geography_id"
     t.integer "xseries_id", null: false
+    t.integer "geography_id"
+    t.integer "unit_id"
+    t.integer "source_id"
+    t.integer "source_detail_id"
     t.string "universe", limit: 5, default: "UHERO", null: false
+    t.integer "decimals", default: 1, null: false
     t.string "name"
     t.string "dataPortalName"
-    t.text "description"
+    t.string "description", limit: 500
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.text "investigation_notes"
     t.integer "dependency_depth", default: 0
-    t.integer "unit_id"
-    t.integer "decimals", default: 1, null: false
-    t.integer "source_id"
     t.string "source_link"
-    t.integer "source_detail_id"
+    t.string "investigation_notes", limit: 500
     t.integer "scratch", default: 0, null: false
     t.index ["geography_id"], name: "fk_rails_963076a967"
-    t.index ["name", "dataPortalName", "description"], name: "name_data_portal_name_description", type: :fulltext
+    t.index ["name", "dataPortalName"], name: "name_data_portal_name_description", type: :fulltext
     t.index ["name"], name: "index_series_on_name"
     t.index ["source_detail_id"], name: "fk_rails_36c9ba7209"
     t.index ["source_id"], name: "fk_rails_6f2f66e327"
@@ -427,9 +413,9 @@ ActiveRecord::Schema.define(version: 220170413025773) do
 
   create_table "source_details", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
-    t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "description", limit: 1000
     t.index ["universe"], name: "index_source_details_on_universe"
   end
 
@@ -459,7 +445,7 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.index ["universe", "short_label", "long_label"], name: "index_units_on_universe_and_short_label_and_long_label", unique: true
   end
 
-  create_table "user_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "user_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.bigint "user_id"
     t.bigint "series_id"
     t.index ["series_id"], name: "index_user_series_on_series_id"
@@ -491,13 +477,11 @@ ActiveRecord::Schema.define(version: 220170413025773) do
 
   create_table "xseries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.integer "primary_series_id"
+    t.boolean "restricted", default: false, null: false
+    t.boolean "quarantined", default: false
     t.string "frequency"
     t.boolean "seasonally_adjusted"
     t.string "seasonal_adjustment", limit: 23
-    t.string "last_demetra_datestring"
-    t.date "last_demetra_date"
-    t.text "factors"
-    t.string "factor_application"
     t.integer "aremos_missing"
     t.float "aremos_diff"
     t.integer "mult"
@@ -508,8 +492,10 @@ ActiveRecord::Schema.define(version: 220170413025773) do
     t.boolean "real"
     t.integer "base_year"
     t.string "frequency_transform"
-    t.boolean "restricted", default: false, null: false
-    t.boolean "quarantined", default: false
+    t.date "last_demetra_date"
+    t.string "last_demetra_datestring"
+    t.string "factor_application"
+    t.text "factors"
     t.index ["primary_series_id"], name: "fk_rails_4d09425f97"
   end
 
