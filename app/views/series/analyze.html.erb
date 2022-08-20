@@ -1,18 +1,10 @@
-<%
-@chg = @series.annualized_percentage_change
-@as = AremosSeries.get @series.name 
-@desc = @as.nil? ? "No Aremos Series" : @as.description
-@lvl_chg = @series.absolute_change
-@ytd = @series.ytd_percentage_change
-%>
-
 <%= render :partial => 'calculate_form' %>
 <h1><%= @series.name %></h1>
 <h3><%= @desc %></h3>
 <h3>
-<%= link_to 'Details', @series %> |  
-<% @series.other_frequencies.each do |other_freq| %>
-	<%= link_to other_freq,  action: "analyze", id: other_freq.ts %> |
+<%= link_to 'Details', @series %>
+<% @series.other_frequencies.each do |sibling| %>
+	| <%= link_to sibling.to_s, action: :analyze, id: sibling %>
 <% end %>
 
 </h3>
@@ -34,13 +26,13 @@
 
 <script>
 
-<% sort = params[:sort]
-   dates = @series.data.keys.sort %>
+<% sort = params[:sort] %>
+<% dates = @series.data.keys.sort %>
 <% data = @series.data %>
 <% lvl_chg = @lvl_chg.data %>
 <% chg = @chg.data %>
 <% ytd = @ytd.data %>
-<% units = @series.units.nil? ? 1 : @series.units %>
+<% units = @series.units || 1 %>
 
 var jsonData = [
 	<% dates.each do |date_string|  %>

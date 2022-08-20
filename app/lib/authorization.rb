@@ -44,10 +44,6 @@ module Authorization
       redirect_back fallback_location: '/', flash: { error: 'Edit not authorized' }
       return
     end
-    if params[:action] == 'destroy' && !current_user.dev_user?
-      redirect_back fallback_location: '/', flash: { error: 'Destroy not authorized' }
-      return
-    end
     true
   end
 

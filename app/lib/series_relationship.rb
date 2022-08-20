@@ -1,20 +1,20 @@
 module SeriesRelationship
-  def all_frequencies
-    ### Ugh.... rewrite this with parse_name, etc
-    s_root = self.name[0..-3]
-    f_array = []
-    
-    %w(A S Q M W D).each do |suffix|
-      f_array.push(s_root + '.' + suffix) unless (s_root + '.' + suffix).ts.nil?
+  def all_frequencies(exclude_self: false)
+    sibs = []
+    mycode = Series.code_from_frequency(self.frequency)
+    %w(A S Q M W D).each do |code|
+      next if exclude_self && code == mycode
+      sib_series = find_sibling_for_freq(code)
+      sibs.push(sib_series) if sib_series
     end
-    f_array
+    sibs
   end
   
   def other_frequencies
-    all_frequencies.reject { |element| self.name == element }
+    all_frequencies(exclude_self: true)
   end
   
-  def current_data_points
+  def current_data_points(return_type = :array)
     cdp_hash = {}
     cdp_array = []
     xseries.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
@@ -25,16 +25,9 @@ module SeriesRelationship
         cdp_array.push cdp
       end
     end
-    cdp_array
+    return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
   end
-  
-  #does this return ascending or descending
-  #pretty sure it's ascending... [0] = low. Not sure if this is the desired behavior
-  #probably something to watch out for. but might be locked into some of the front end
-  #stuff
-  
-  #Also need to add in priority
-  
+
   def data_sources_by_last_run
     enabled_data_sources.sort_by {|d| [d.priority, d.last_run ] }
   end

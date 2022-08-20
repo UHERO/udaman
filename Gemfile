@@ -17,11 +17,11 @@ gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
-gem 'sidekiq', '~> 5.2.0'
-gem 'sidekiq-status', '>= 1.0.1'
-gem 'sinatra', '~> 2.0', require: false
+gem 'sidekiq', '~> 6.4.2'
+gem 'sidekiq-status', '>= 2.1.3'
+gem 'sinatra', '~> 2.2', require: false
 gem 'sinatra_auth_github', '~> 2.0', require: false
-gem 'rack-protection', '~> 2.0.1'
+gem 'rack-protection', '~> 2.2.0'
 gem 'rubyzip', '~> 1.3.0'
 gem 'capybara', '~> 2.18', '>= 2.18.0'
 gem 'selenium-webdriver', '>= 3.13.0'
@@ -30,7 +30,7 @@ gem 'whenever'
 gem 'mechanize', '>= 2.7.5'
 gem 'net-sftp'
 gem 'dalli', '~> 2.7'
-gem 'rails-assets-select2', '~> 4.0.5', source: 'https://rails-assets.org'
+gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.org'
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1.1', '>= 3.1.5'
 gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
@@ -44,7 +44,7 @@ gem 'jquery-ui-rails', '~> 6.0.1'
 gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
-gem 'nokogiri', '~> 1.11'
+gem 'nokogiri', '~> 1.13'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'

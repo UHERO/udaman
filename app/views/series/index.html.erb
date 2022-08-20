@@ -3,7 +3,7 @@
 <div id="summary_area">
  	<h1>Data Series</h1>
   <% if @all_series && @all_series.count > 0 %>
-      <h2>Total: <%= @all_series.count %></h2>
+      <h2>Total: <%= search_count_display(@all_series.count) %></h2>
   <% end %>
       <br />
     <div>
