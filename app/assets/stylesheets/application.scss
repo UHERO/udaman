@@ -48,7 +48,13 @@ div.field, div.actions {
 }
 
 #notice {
-  color: green;
+  color: red;
+  font-weight: bold;
+}
+
+.notice {
+  color: red;
+  font-weight: bold;
 }
 
 .field_with_errors {
@@ -152,3 +158,8 @@ div#top-level-nav a:link { text-decoration: none; }
 div#navigation a:link { text-decoration: none; }
 div#chart-board-nav a:link { text-decoration: none; }
 div#series-deps a:link { text-decoration: none; }
+
+select.wrappable {
+  width: 500px;
+  white-space:pre-wrap;
+}

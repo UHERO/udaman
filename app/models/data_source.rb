@@ -27,55 +27,26 @@ class DataSource < ApplicationRecord
   ## here will break it.
   OPTIONS_MATCHER = %r/({(\s*(:\w+\s*=>|\w+:)\s*((['"]).*?\5|\d+)\s*,?)+\s*})/
 
-    ## This method appears to be vestigial - confirm and delete later
-    def DataSource.type_buckets_DELETEME
-      type_buckets = {:arithmetic => 0, :aggregation => 0, :share => 0, :seasonal_factors => 0, :mean_corrected_load => 0, :interpolation => 0, :sa_load => 0, :other_mathemetical => 0, :load => 0}
-      all_evals = DataSource.all_evals
-      all_evals.each do |eval|
-        next if eval.nil?
-        type_buckets[:arithmetic] += 1 unless eval.index(' + ').nil? and eval.index(' - ').nil? and eval.index(' / ').nil? and eval.index(' * ').nil? and eval.index(' ** ').nil? and eval.index('zero_add').nil? 
-        type_buckets[:aggregation] += 1 unless eval.index('aggregate').nil?
-        type_buckets[:share] += 1 unless eval.index('share').nil?
-        type_buckets[:seasonal_factors] += 1 unless eval.index('seasonal_adjustment').nil?
-        type_buckets[:mean_corrected_load] += 1 unless eval.index('load_mean_corrected_sa_from').nil?
-        type_buckets[:sa_load] += 1 unless eval.index('load_sa_from').nil?
-        type_buckets[:interpolation] += 1 unless eval.index('interpolate').nil?
-        type_buckets[:other_mathemetical] += 1 unless eval.index('rebase').nil? and eval.index('annual').nil?
-        type_buckets[:load] += 1 unless eval.index('load_from').nil?
-      end
-      type_buckets
-    end
-
     def DataSource.get_all_uhero
       DataSource.where(universe: 'UHERO')
     end
 
-    #technically, this will not check for duplicate series
-    #that are loading two seasonally adjusted source spreadsheets
-    #but this should not happen, so not worried
-    def DataSource.all_evals
+  ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_evals_DELETEME?
       DataSource.get_all_uhero.pluck(:eval)
     end
 
-    def DataSource.handle_hash
-      handle_hash = {}
-      DataSource.where("eval LIKE '%load_from_download%'").select([:eval, :series_id]).all.each do |ds|
-        handle = ds.eval.split('load_from_download')[1].split("\"")[1]
-        handle_hash[ds.series_id] = handle
-      end
-      handle_hash
-    end
-
-    def DataSource.all_load_from_file_series_names
+  ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_load_from_file_series_names_DELETEME?
       series_names = []
       DataSource.where("eval LIKE '%load_from %'").all.each do |ds|
         series_names.push ds.series.name
       end
       series_names.uniq
     end
-    
-    #const is not there yet
-    def DataSource.all_history_and_manual_series_names
+
+    ## This method appears to be vestigial - confirm and delete later
+    def DataSource.all_history_and_manual_series_names_DELETEME?
       series_names = []
       %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
         DataSource.where("eval LIKE '%load_from %#{type}%'").each do |ds|
@@ -93,26 +64,25 @@ class DataSource < ApplicationRecord
       series_names.push 'NTTOURNS@HI.M'
       series_names.uniq
     end
-    
-    def DataSource.pattern_only_series_names
+
+    ## These methods ALL appear to be vestigial - confirm and delete later
+    def DataSource.pattern_only_series_names_DELETEME?
       DataSource.all_pattern_series_names - DataSource.all_load_from_file_series_names
     end
-    def DataSource.load_only_series_names
+    def DataSource.load_only_series_names_DELETEME?
       DataSource.all_load_from_file_series_names - DataSource.all_pattern_series_names
     end
-    def DataSource.pattern_and_load_series_names
+    def DataSource.pattern_and_load_series_names_DELETEME?
       DataSource.all_pattern_series_names & DataSource.all_load_from_file_series_names
     end
-    def DataSource.load_and_pattern_series_names
+    def DataSource.load_and_pattern_series_names_DELETEME?
       DataSource.pattern_and_load_series_names
     end
-    
-    def DataSource.series_sources
-      sa_series_sources = [] 
+    def DataSource.series_sources_DELETEME?
+      sa_series_sources = []
       DataSource.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
       sa_series_sources
     end
-
 
     def DataSource.set_all_dependencies
       Rails.logger.info { 'DataSource set_all_dependencies: start' }
@@ -209,7 +179,7 @@ class DataSource < ApplicationRecord
       set_dependencies!
     end
 
-    def reload_source(clear_first = false)
+    def reload_source(clear_first = clear_before_load?)
       return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
@@ -217,6 +187,9 @@ class DataSource < ApplicationRecord
 
       eval_stmt = self['eval'].dup
       begin
+        if clear_first
+          delete_data_points
+        end
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
@@ -226,21 +199,18 @@ class DataSource < ApplicationRecord
                                                 ## if more keys are added to this merge, add them to Series.display_options()
         end
         s = Kernel::eval eval_stmt
-        if clear_first || clear_before_load?
-          delete_data_points
-        end
         s = self.send(presave_hook, s) if presave_hook
 
         base_year = base_year_from_eval_string(eval_stmt)
         if base_year && base_year != series.base_year
-          series.update!(base_year: base_year)
+          series.xseries.update_columns(base_year: base_year)
         end
         series.update_data(s.data, self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
         Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
         update_props.merge!(last_error: e.message[0..253], last_error_at: t)
-        return false
+        return false  ## Note! ensure block runs despite this early return!
       ensure
         self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will end up saved below
         self.update!(update_props)
@@ -251,7 +221,7 @@ class DataSource < ApplicationRecord
 
     def base_year_from_eval_string(eval_string)
       if eval_string =~ /rebase/
-        base_year = eval_string[/rebase\("(\d*)/, 1]
+        base_year = eval_string[/rebase\(["']?(\d*)/, 1]
         return base_year.to_i if base_year
 
         series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
@@ -338,7 +308,11 @@ class DataSource < ApplicationRecord
       self.update_attributes!(reload_nightly: !self.reload_nightly)
     end
 
-    #### Do we really need this method? Test to find out
+    def set_reload_nightly(value = true)
+      self.update!(reload_nightly: value)
+    end
+
+  #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
     end

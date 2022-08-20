@@ -22,12 +22,14 @@ module SeriesSharing
     new_transformation("Moving Average of #{self} edge-padded with Annual Average", ann_avg_data.series_merge(cma_data))
   end
 
-  def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: nil)
-    new_transformation("Backward Looking Moving Average of #{self}", ma_series_data('backward_ma', start_date, end_date, window: window))
+  def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: standard_window_size)
+    new_transformation("Backward-looking moving average of #{self} using window size #{window}",
+                       ma_series_data('backward_ma', start_date, end_date, window: window))
   end
   
-  def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: nil)
-    new_transformation("Forward Looking Moving Average of #{self}", ma_series_data('forward_ma', start_date, end_date, window: window))
+  def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: standard_window_size)
+    new_transformation("Forward-looking moving average of #{self} using window size #{window}",
+                       ma_series_data('forward_ma', start_date, end_date, window: window))
   end
   
   def offset_forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date)
@@ -167,7 +169,7 @@ private
     case frequency.to_sym
       when :day   then 7
       when :month then 12
-      when :quarter, :year then 4
+      when :week, :quarter, :year then 4
       else raise "no window size defined for frequency #{frequency}"
     end
   end

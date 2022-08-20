@@ -3,19 +3,17 @@ module SeriesHelper
   require 'csv'
 
   def csv_helper
-    CSV.generate do |csv| 
-      # series_data = @data_list.series_data
-      # sorted_names = series_data.keys.sort
-      # dates_array = @data_list.data_dates
-      dates = @series.data.keys
-      val = @series.data
-      lvls = @lvl_chg.data
-      yoy = @chg.data
-      ytd = @ytd_chg.data
-       
-      csv << ["Date", "Values", "LVL","YOY", "YTD"]
+    series = @vintage ? @series.vintage_as_of(@vintage): @series
+    values = series.data
+    lvl = @vintage ? {} : @lvl_chg.data  ## disable lvl, yoy, ytd in case of vintage request
+    yoy = @vintage ? {} : @chg.data
+    ytd = @vintage ? {} : @ytd_chg.data
+    dates = series.data.keys
+    headers =  @vintage ? %w[Date Values] : %w[Date Values LVL YOY YTD]
+    CSV.generate do |csv|
+      csv << headers
       dates.sort.each do |date|
-        csv << [date, val[date], lvls[date], yoy[date], ytd[date]]
+        csv << [date, values[date], lvl[date], yoy[date], ytd[date]]
       end
     end
   end
@@ -24,6 +22,7 @@ module SeriesHelper
     case type
       when 'metacsv' then series_meta_csv_gen(series)
       when 'datacsv' then series_data_csv_gen(series)
+      when 'datatsd' then series_data_tsd_gen(series)
       else raise("series_group_export: unknown type #{type}")
     end
   end
@@ -51,6 +50,18 @@ module SeriesHelper
         csv << [date] + series_set.map {|s| s.at(date) }
       end
     end
+  end
+
+  def series_data_tsd_gen(series_set)
+    output = ''
+    series_set.each do |s|
+      begin
+        output += s.tsd_string
+      rescue => e
+        Rails.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
+      end
+    end
+    output
   end
 
   def google_charts_data_table
@@ -160,11 +171,11 @@ module SeriesHelper
       links.push link_to(universe_label(s), { controller: :series, action: :show, id: s.id }, title: s.name)
       seen[s.universe] = true
     end
-    if current_user.admin_user? && series.is_primary? && alt_univs[series.universe]
+    if series.is_primary? && alt_univs[series.universe] && current_user.admin_user?
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to(univ_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
+        links.push link_to(univ_gray_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
       end
     end
     links.join(' ')
@@ -174,7 +185,12 @@ module SeriesHelper
     series.is_primary? ? "<span class='primary_series'>#{series.universe}</span>".html_safe : series.universe
   end
 
-  def univ_create_label(text)
+  def univ_gray_create_label(text)
     "<span class='grayedout'>[#{text}]</span>".html_safe
+  end
+
+  def search_count_display(count)
+    return count unless count == ENV['SEARCH_DEFAULT_LIMIT'].to_i
+    "<span style='color:red;' title='Search results likely truncated because default limit reached. Use + to override'>#{count}</span>".html_safe
   end
 end

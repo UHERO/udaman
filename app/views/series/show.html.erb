@@ -36,7 +36,10 @@ google.visualization.events.addListener(chart, 'select', function() {
 <p class="notice"><%= notice %></p>
 
 <div id="summary_area">
-	<h3><%= @series.name %></h3>
+	<h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
+  <% if @vintage %>
+     <h4 style="color:#B81104;">Vintage as of <%= @vintage %> at 00:00h</h4>
+  <% end %>
 	<h3><%= @series.dataPortalName %></h3>
 
   <table>
@@ -73,7 +76,10 @@ google.visualization.events.addListener(chart, 'select', function() {
     <% end %>
     <tr><td>Created at</td><td><%= @series.created_at %></td></tr>
     <tr><td>Updated at</td><td><%= @series.updated_at %></td></tr>
-    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to('permalink', action: :show, id: @series.id) %>)</td></tr>
+    <% if current_user.dev_user? %>
+      <tr><td>XID (devs only)</td><td><%= @series.xseries_id %></td></tr>
+    <% end %>
+    <tr><td>Internal ID</td><td><%= @series.id %> (<%= link_to('permalink', action: :show, id: @series) %>)</td></tr>
   </table>
 
   <div id="notes">
@@ -82,13 +88,15 @@ google.visualization.events.addListener(chart, 'select', function() {
       <% end %>
   </div>
 
+  <% url_options = @vintage ? { vintage: @vintage } : {} %>
 	<div id="navigation">
     <% if current_user.admin_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
 		  <%= link_to 'Rename', action: :rename, id: @series %> |
+		  <%= link_to 'Duplicate', action: :duplicate, id: @series %> |
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
-		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> |
+		<%= link_to 'CSV', series_path({ id: @series, format: :csv }.merge(url_options)) %> |
     <% if current_user.dev_user? %>
       <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
     <% end %>
@@ -113,11 +121,11 @@ google.visualization.events.addListener(chart, 'select', function() {
 	<table>
     <% if @series.is_primary? %>
       <tr>
-        <td style="font-weight:bold;">Definitions (
+        <td style="font-weight:bold;">Loaders (
           <% if current_user.admin_user? %>
-              <%= link_to 'add', controller: :data_sources, action: :new, series_id: @series %> |
-              <%= link_to 'load all', controller: :series, action: :reload_all, id: @series %>
+              <%= link_to 'new', controller: :data_sources, action: :new, series_id: @series %> |
           <% end %>
+              <%= link_to 'load all', controller: :series, action: :reload_all, id: @series %>
           )
         </td></tr>
     <% end %>

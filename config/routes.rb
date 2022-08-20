@@ -61,9 +61,10 @@ Rails.application.routes.draw do
   get 'series/forecast_upload', to: 'series#forecast_upload'
   post 'series/forecast_upload', to: 'series#forecast_do_upload'
   get 'series/quarantine', to: 'series#quarantine'
-  get 'series/old_bea_download', to: 'series#old_bea_download'
+  get 'series/meta_update', to: 'series#meta_update'
+  post 'series/meta_store', to: 'series#meta_store'
 
-  get 'clip' => 'series#clipboard'
+  get 'series/clip' => 'series#clipboard'
   get 'series/add_clip', to: 'series#add_clip'
   get 'series/clear_clip', to: 'series#clear_clip'
   get 'series/group_export', to: 'series#group_export'
@@ -96,8 +97,7 @@ Rails.application.routes.draw do
   post 'downloads/test_post_params' => 'downloads#test_post_params'
   resources :downloads
 
-  get 'help/index' => 'help#index'
-  get 'help/data_sources' => 'help#data_sources'
+  get 'misc/get_branch_code' => 'misc#get_branch_code'
 
   # See how all your routes lay out with "rake routes"
 
