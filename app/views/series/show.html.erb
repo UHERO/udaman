@@ -37,6 +37,9 @@ google.visualization.events.addListener(chart, 'select', function() {
 
 <div id="summary_area">
 	<h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
+  <% if @vintage %>
+     <h4 style="color:#B81104;">Vintage as of <%= @vintage %> at 00:00h</h4>
+  <% end %>
 	<h3><%= @series.dataPortalName %></h3>
 
   <table>
@@ -85,6 +88,7 @@ google.visualization.events.addListener(chart, 'select', function() {
       <% end %>
   </div>
 
+  <% url_options = @vintage ? { vintage: @vintage } : {} %>
 	<div id="navigation">
     <% if current_user.admin_user? %>
 		  <%= link_to 'Edit', edit_series_path(@series) %> |
@@ -92,7 +96,7 @@ google.visualization.events.addListener(chart, 'select', function() {
 		  <%= link_to 'Duplicate', action: :duplicate, id: @series %> |
     <% end %>
 		<%= link_to 'Analyze', :action => 'analyze', :id => @series %> |
-		<%= link_to 'CSV', :action => 'show', :format => :csv, :id => @series %> |
+		<%= link_to 'CSV', series_path({ id: @series, format: :csv }.merge(url_options)) %> |
     <% if current_user.dev_user? %>
       <%= link_to 'Destroy', @series, method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
     <% end %>

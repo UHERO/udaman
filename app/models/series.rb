@@ -703,17 +703,6 @@ class Series < ApplicationRecord
     Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
   end
 
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def scaled_data_no_pseudo_history_DELETEME(round_to = 3)
-    data_hash = {}
-    self.units ||= 1
-    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    xseries.data_points.each do |dp|
-      data_hash[dp.date] = (dp.value / self.units).round(round_to) if dp.current and !dp.pseudo_history?
-    end
-    data_hash
-  end
-  
   def scaled_data(prec = 3)
     data_hash = {}
     self.units ||= 1
@@ -772,7 +761,7 @@ class Series < ApplicationRecord
       update_spreadsheet.default_sheet = sheet
     end
     self.frequency = update_spreadsheet.frequency
-    new_transformation("loaded sa from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
+    new_transformation("loaded SA from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
   end
   
   def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
@@ -836,7 +825,6 @@ class Series < ApplicationRecord
 
   def Series.load_from_file(path, options)
     date_sens = path.include? '%'
-    #%x(chmod 766 #{path}) unless date_sens
     dp = DownloadProcessor.new(:manual, options.merge(path: path))
     descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
     Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
@@ -854,10 +842,6 @@ class Series < ApplicationRecord
   end
   
   def Series.load_api_bls(code, frequency)
-    Series.new.load_api_bls(code, frequency) ##### look into this method: what happens if frequency.nil? and self.data.empty? (CAN it be?)
-  end
-  
-  def load_api_bls(code, frequency = nil)
     series_data = DataHtmlParser.new.get_bls_series(code, frequency)
     name = "loaded series code: #{code} from BLS API"
     if series_data && series_data.empty?
@@ -937,6 +921,9 @@ class Series < ApplicationRecord
   end
 
   def at(date, error: nil)  ## if error is set to true, method will raise exception on nil value
+    if date === :last
+      date = last_observation
+    end
     unless date.class == Date
       date = Date.parse(date) rescue Date.new(date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
     end
@@ -1074,18 +1061,6 @@ class Series < ApplicationRecord
     end    
     space_padding = 80 - data_string.split("\r\n")[-1].length
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
-  end
-
-  ## this appears to be vestigial. Renaming now; if nothing breaks, delete later
-  def refresh_all_datapoints_DELETEME?
-    unique_ds = {} #this is actually used ds
-    current_data_points.each {|dp| unique_ds[dp.data_source_id] = 1}
-    eval_statements = []
-    self.loaders_by_last_run.each do |ds|
-      eval_statements.push(ds.get_eval_statement) unless unique_ds.keys.index(ds.id).nil?
-      ds.delete
-    end
-    eval_statements.each {|es| eval(es)}
   end
 
   ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
@@ -1413,7 +1388,7 @@ private
       ## I found that it is not possible for throw to be accompanied by an informative error message for the user, and
       ## as a result I've decided to use raise instead. It seems to work just as well.
     end
-    unless who_depends_on_me.empty? || destroy_forced
+    unless who_depends_on_me.empty? || destroy_forced?
       message = "ERROR: Cannot destroy series #{self} with dependent series. Delete dependencies first."
       Rails.logger.error { message }
       raise SeriesDestroyException, message
@@ -1442,7 +1417,7 @@ private
     Rails.logger.info { "DESTROY series #{self}: done" }
   end
 
-  def destroy_forced
+  def destroy_forced?
     scratch == 44444
   end
 
