@@ -1089,10 +1089,7 @@ class Series < ApplicationRecord
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly.
-        #success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && (ds.is_history? && !tuitati)
-        hist_load_night = ds.is_history? && is_tuitati
-        success = ds.reload_source(*clear_param) unless nightly && ( !ds.reload_nightly? || !hist_load_night )
-        ## Please be sure you understand before changing.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && Date.today.day == 1)   ## Please be sure you understand before changing.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
