@@ -1088,8 +1088,8 @@ class Series < ApplicationRecord
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly.
-        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && Date.today.day == 1)   ## Please be sure you understand before changing.
+        clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && Date.today.day == 1) ## History loaders only nightly reload on the first of month.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
