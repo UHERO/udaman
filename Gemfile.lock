@@ -379,7 +379,7 @@ DEPENDENCIES
   nokogiri (~> 1.13)
   passenger (~> 6.0.0)
   rack-protection (~> 2.2.0)
-  rails (~> 5.2, >= 5.2.6)
+  rails (~> 5.2, >= 5.2.8.1)
   rails-assets-select2 (~> 4.0.5)!
   rake
   rest-client (~> 2.0)
