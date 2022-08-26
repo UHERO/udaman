@@ -3,6 +3,13 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :denightlify_safe_travels => :environment do
+  Series.search_box(';src=2430').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each {|ld| ld.set_reload_nightly(false) }
+  end
+end
+
 task :convert_sa_tax_loaders => :environment do
   sids = []
   names = %w{
