@@ -3,11 +3,22 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :turn_off_all_pseudo_history => :environment do
+  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+    puts "DOING #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.loader_type == :pseudo_history
+      puts "---> clear one"
+      ld.delete_data_points
+    end
+  end;0
+end
+
 task :denightlify_safe_travels => :environment do
   Series.search_box(';src=2430').each do |s|
     puts "Doing #{s}"
     s.enabled_data_sources.each {|ld| ld.set_reload_nightly(false) }
-  end
+  end;0
 end
 
 task :convert_sa_tax_loaders => :environment do
