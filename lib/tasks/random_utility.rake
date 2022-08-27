@@ -9,8 +9,8 @@ task :turn_off_all_pseudo_history => :environment do
     s.enabled_data_sources.each do |ld|
       next unless ld.loader_type == :pseudo_history
       puts "---> hit one"
-      ld.delete_data_points
       ld.set_reload_nightly(false)
+      ld.delete_data_points
     end
   end;0
 end
