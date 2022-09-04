@@ -884,6 +884,17 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
+  def Series.load_api_clusters(cluster_id, geo)
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_cluster_series(cluster_id, geo)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, 'A')
+  end
+
   def Series.load_api_eia(parameter)
     parameter.upcase!  # Series ID in the EIA API is case sensitive
     dhp = DataHtmlParser.new

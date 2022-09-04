@@ -126,6 +126,24 @@ class DataHtmlParser
     (split_dates[0]..split_dates[1]).to_a.join(',')
   end
 
+  def get_cluster_series(cluster_id, geo)
+    geocode = 'state/15'
+    @url = 'https://clustermapping.us/data/region/%s' % [geocode, 'all', cluster_id.to_s].join('/')
+    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
+    @doc = self.download
+    raise 'Clustermapping API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('Clustermapping API: JSON parse failure')
+    new_data = {}
+    response.each do |data_point|
+      time_period = data_point['year_t']
+      value = data_point['emp_tl']
+      if value
+        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
+      end
+    end
+    new_data
+  end
+
   def get_eia_series(parameter)
     api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
     @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
@@ -216,7 +234,23 @@ class DataHtmlParser
   def data
     @data_hash ||= get_data
   end
-  
+
+  def download(verifyssl: true)
+    begin
+      @content = get_by_http(verifyssl: verifyssl)
+    rescue => e
+      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
+      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
+      unless $?.success?
+        msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
+        raise "curl command failed: #{msg}"
+      end
+    end
+    Nokogiri::HTML(@content)
+  end
+
+private
+
   def get_freq(other_string)
     return 'A' if other_string == 'M13'
     return 'M' if other_string[0] == 'M'
@@ -263,22 +297,6 @@ class DataHtmlParser
     end
     true
   end
-
-  def download(verifyssl: true)
-    begin
-      @content = get_by_http(verifyssl: verifyssl)
-    rescue => e
-      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
-      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
-      unless $?.success?
-        msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
-        raise "curl command failed: #{msg}"
-      end
-    end
-    Nokogiri::HTML(@content)
-  end
-
-private
 
   def get_by_http(verifyssl: true)
     require 'uri'
