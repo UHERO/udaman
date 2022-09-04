@@ -78,7 +78,8 @@ class String
     end
   end
 
-  ## Convert commas to pipes for use by the search engine (Series.search_box). Literal commas can be preserved verbatim if doubled
+  ## Convert commas to pipes for use by the search engine (Series.search_box). Literal commas are preserved verbatim if
+  ## escaped by doubling them.
   def convert_commas
     self.gsub(',,', '#FOO#').gsub(',', '|').gsub('#FOO#', ',')
   end
