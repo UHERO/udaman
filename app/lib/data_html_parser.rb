@@ -126,6 +126,7 @@ class DataHtmlParser
     (split_dates[0]..split_dates[1]).to_a.join(',')
   end
 
+  ## This is a replacement for get_clustermapping_series, waiting to be deployed
   def get_cluster_series(cluster_id, geo)
     geocodes = { HI: 'state/15', HAW: 'county/1500', HON: 'county/1500', KAU: 'county/1500', MAU: 'county/1500' }
     geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
