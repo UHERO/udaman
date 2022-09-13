@@ -3,6 +3,16 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :extend_cluster_loaders => :environment do
+  Series.search_box('^ct_ -total').each do |s|
+    puts "DOING #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /api/
+      ld.update!(eval: ld.eval.sub(':2018', ':2019'))
+    end
+  end;0
+end
+
 task :turn_off_all_pseudo_history => :environment do
   Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
     puts "DOING #{s}"
