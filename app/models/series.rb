@@ -884,6 +884,18 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
+  ## This is a replacement for Series.load_api_clustermapping, waiting to be deployed
+  def Series.load_api_clusters(cluster_id, geo)
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_cluster_series(cluster_id, geo)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, 'A')
+  end
+
   def Series.load_api_eia(parameter)
     parameter.upcase!  # Series ID in the EIA API is case sensitive
     dhp = DataHtmlParser.new
@@ -1088,8 +1100,8 @@ class Series < ApplicationRecord
     self.data_sources_by_last_run.each do |ds|
       success = true
       begin
-        clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly.
-        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly?              ## Please be sure you understand before changing.
+        clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && Date.today.day == 1) ## History loaders only nightly reload on the first of month.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
@@ -1125,18 +1137,18 @@ class Series < ApplicationRecord
           bindvars.push tane
         when /^\^/
           conditions.push %Q{substring_index(series.name,'@',1) #{negated}regexp ?}
-          bindvars.push '^(%s)' % tane.gsub(',', '|')
+          bindvars.push '^(%s)' % tane.convert_commas
         when /^[~]/  ## tilde
           conditions.push %Q{substring_index(series.name,'@',1) #{negated}regexp ?}
-          bindvars.push tane.gsub(',', '|')   ## handle alternatives separated by comma
+          bindvars.push tane.convert_commas
         when /^[:]/
           if term =~ /^::/
             all = all.joins('left outer join sources on sources.id = series.source_id')
             conditions.push %Q{concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) #{negated}regexp ?}
-            bindvars.push tane[1..].gsub(',', '|')
+            bindvars.push tane[1..].convert_commas
           else
             conditions.push %Q{source_link #{negated}regexp ?}
-            bindvars.push tane.gsub(',', '|')
+            bindvars.push tane.convert_commas
           end
         when /^[@]/
           all = all.joins(:geography)
@@ -1152,11 +1164,11 @@ class Series < ApplicationRecord
         when /^[#]/
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
-          bindvars.push tane.gsub(',', '|')   ## handle alternatives separated by comma
+          bindvars.push tane.convert_commas
         when /^[!]/
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
-          bindvars.push tane.gsub(',', '|')
+          bindvars.push tane.convert_commas
         when /^[;]/
           (res, id_list) = tane.split('=')
           rescol = { unit: 'unit_id', src: 'source_id', det: 'source_detail_id' }[res.to_sym] || raise("Unknown resource type #{res}")
@@ -1193,10 +1205,10 @@ class Series < ApplicationRecord
           break
         when /^[{]/
           conditions.push %Q{dataPortalName #{negated}regexp ?}
-          bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+          bindvars.push tane.convert_commas
         when /^[}]/
           conditions.push %Q{series.description #{negated}regexp ?}
-          bindvars.push tane.gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+          bindvars.push tane.convert_commas
         when /^[,]/
           raise 'Spaces cannot occur in comma-separated search lists'
         else
@@ -1209,7 +1221,7 @@ class Series < ApplicationRecord
           end
           conditions.push %Q{concat(substring_index(series.name,'@',1),'|',coalesce(dataPortalName,''),'|',coalesce(series.description,'')) #{negated}regexp ?}
           ## remove any quoting operator, handle doubled commas, and handle alternatives separated by comma
-          bindvars.push term.sub(/^["']/, '').gsub(',,', '###').gsub(',', '|').gsub('###', ',')
+          bindvars.push term.sub(/^["']/, '').convert_commas
       end
     end
     if univ

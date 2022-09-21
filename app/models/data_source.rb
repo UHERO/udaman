@@ -153,6 +153,11 @@ class DataSource < ApplicationRecord
       my_color
     end
 
+    def is_history?
+      type = loader_type
+      type == :history ## || type == :pseudo_history
+    end
+
     def set_color!(color = find_my_color)
       self.update_attributes!(color: color)
       self
