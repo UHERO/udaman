@@ -103,7 +103,7 @@ class DataHtmlParser
   end
 
   def get_clustermapping_series(dataset, parameters)
-    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
+    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include?(':')
     query_params = parameters.map(&:to_s).join('/')
     @url = "https://clustermapping.us/data/region/#{query_params}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
@@ -122,8 +122,28 @@ class DataHtmlParser
   end
 
   def expand_date_range(date_range)
-    split_dates = date_range.split(":")
+    split_dates = date_range.split(':')
     (split_dates[0]..split_dates[1]).to_a.join(',')
+  end
+
+  ## This is a replacement for get_clustermapping_series, waiting to be deployed
+  def get_cluster_series(cluster_id, geo)
+    geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
+    geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
+    @url = "https://clustermapping.us/data/region/#{geoinfo}/all/#{cluster_id}"
+    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
+    @doc = self.download
+    raise 'Clustermapping API: empty response returned' if self.content.blank?
+    response = JSON.parse(self.content) rescue raise('Clustermapping API: JSON parse failure')
+    new_data = {}
+    response.each do |data_point|
+      time_period = data_point['year_t']
+      value = data_point['emp_tl']
+      if value
+        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
+      end
+    end
+    new_data
   end
 
   def get_eia_series(parameter)
@@ -216,7 +236,23 @@ class DataHtmlParser
   def data
     @data_hash ||= get_data
   end
-  
+
+  def download(verifyssl: true)
+    begin
+      @content = get_by_http(verifyssl: verifyssl)
+    rescue => e
+      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
+      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
+      unless $?.success?
+        msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
+        raise "curl command failed: #{msg}"
+      end
+    end
+    Nokogiri::HTML(@content)
+  end
+
+private
+
   def get_freq(other_string)
     return 'A' if other_string == 'M13'
     return 'M' if other_string[0] == 'M'
@@ -263,22 +299,6 @@ class DataHtmlParser
     end
     true
   end
-
-  def download(verifyssl: true)
-    begin
-      @content = get_by_http(verifyssl: verifyssl)
-    rescue => e
-      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
-      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
-      unless $?.success?
-        msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
-        raise "curl command failed: #{msg}"
-      end
-    end
-    Nokogiri::HTML(@content)
-  end
-
-private
 
   def get_by_http(verifyssl: true)
     require 'uri'

@@ -82,10 +82,10 @@ class User < ApplicationRecord
       series.each {|s| s.delete_data_points }
       'Data points cleared'
     when 'restrict'
-      series.each {|s| s.update(restricted: true) }  ## AR update_all() method can't be used bec Series overrides its update()
+      series.each {|s| s.xseries.update_columns(restricted: true) }   ## update_columns is used to circumvent model validations, which would
       nil
     when 'unrestrict'
-      series.each {|s| s.update(restricted: false) }
+      series.each {|s| s.xseries.update_columns(restricted: false) }  ## be troublesome to have enforced for this operation
       nil
     when 'destroy'
       failed = []

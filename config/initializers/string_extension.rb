@@ -78,6 +78,12 @@ class String
     end
   end
 
+  ## Convert commas to pipes for use by the search engine (Series.search_box). Literal commas are preserved verbatim if
+  ## escaped by doubling them.
+  def convert_commas
+    self.gsub(',,', '#FOO#').gsub(',', '|').gsub('#FOO#', ',')
+  end
+
   def change_file_extension(ext)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
     File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
