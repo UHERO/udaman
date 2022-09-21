@@ -128,7 +128,7 @@ class DataHtmlParser
 
   ## This is a replacement for get_clustermapping_series, waiting to be deployed
   def get_cluster_series(cluster_id, geo)
-    geocodes = { HI: 'state/15', HAW: 'county/1500', HON: 'county/1500', KAU: 'county/1500', MAU: 'county/1500' }
+    geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
     geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
     @url = "https://clustermapping.us/data/region/#{geoinfo}/all/#{cluster_id}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
