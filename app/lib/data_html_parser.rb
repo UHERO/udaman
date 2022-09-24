@@ -130,7 +130,8 @@ class DataHtmlParser
   def get_cluster_series(cluster_id, geo)
     geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
     geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
-    @url = "https://clustermapping.us/data/region/#{geoinfo}/all/#{cluster_id}"
+    years = (2008..2019).to_a.join(',')   ## should be replaced with "all" as soon as that returns proper results
+    @url = "https://clustermapping.us/data/region/#{geoinfo}/#{years}/#{cluster_id}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     raise 'Clustermapping API: empty response returned' if self.content.blank?
