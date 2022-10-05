@@ -127,7 +127,7 @@ class DataHtmlParser
   end
 
   ## This is a replacement for get_clustermapping_series, waiting to be deployed
-  def get_cluster_series(cluster_id, geo)
+  def get_cluster_series(cluster_id, geo, value_in: 'emp_tl')
     geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
     geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
     years = (2008..2019).to_a.join(',')   ## should be replaced with "all" as soon as that returns proper results
@@ -139,7 +139,7 @@ class DataHtmlParser
     new_data = {}
     response.each do |data_point|
       time_period = data_point['year_t']
-      value = data_point['emp_tl']
+      value = data_point[value_in]
       if value
         new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
       end
