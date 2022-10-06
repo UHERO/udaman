@@ -170,6 +170,15 @@ class DataHtmlParser
     new_data
   end
 
+  ## This is a replacement for get_eia_series, which implements the newer v2 syntax. Waiting to be deployed
+  def get_eia_series_v2()
+    api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
+    @url = "https://api.eia.gov/v2/FOOroute?api_key=#{api_key}"
+    Rails.logger.info { "Getting data from EIA APIv2: #{@url}" }
+    @doc = self.download
+    raise('EIA APIv2: empty response returned') if self.content.blank?
+  end
+
   def get_dvw_series(mod, freq, indicator, dimension_hash)
     dims = dimension_hash.map {|k, v| '%s=%s' % [k.to_s[0].downcase, v] }.join('&')
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
