@@ -242,11 +242,13 @@ class SeriesController < ApplicationController
   end
 
   def csv2tsd
-    filename = params[:filename]
+    filepath = csv2tsd_params[:filepath]
+    ### write filepath out to a temp file on the filesystem first
+    tmpfile = nil  ### set this to the new temp file path
+    csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile)
     series_set = []
-    csv = UpdateSpreadsheet.new_xls_or_csv(filename)
     csv.headers.keys.each do |name|
-      s = name.ts.load_from(filename)
+      s = name.ts.load_from(tmpfile)
       series_set.push s
     end
     series_data_tsd_gen(series_set)
@@ -419,6 +421,10 @@ private
 
   def forecast_upload_params
     params.require(:forecast_upload).permit(:fcid, :version, :freq, :filepath)
+  end
+
+  def csv2tsd_params
+    params.require(:csv2tsd).permit(:filepath)
   end
 
   def set_series
