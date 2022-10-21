@@ -223,17 +223,6 @@ class SeriesController < ApplicationController
     end
   end
 
-  def csv2tsd
-    filename = params[:filename]
-    series_set = []
-    csv = UpdateSpreadsheet.new_xls_or_csv(filename)
-    csv.headers.keys.each do |name|
-      s = name.ts.load_from(filename)
-      series_set.push s
-    end
-    series_data_tsd_gen(series_set)
-  end
-
   def no_source
     @series = Series.get_all_uhero.where('source_id is null')
                     .order(:name).paginate(page: params[:page], per_page: 50)
@@ -247,6 +236,20 @@ class SeriesController < ApplicationController
   def quarantine
     @series = Series.get_all_uhero.where('quarantined = true and restricted = false')
                     .order(:name).paginate(page: params[:page], per_page: 50)
+  end
+
+  def csv2tsd_upload
+  end
+
+  def csv2tsd
+    filename = params[:filename]
+    series_set = []
+    csv = UpdateSpreadsheet.new_xls_or_csv(filename)
+    csv.headers.keys.each do |name|
+      s = name.ts.load_from(filename)
+      series_set.push s
+    end
+    series_data_tsd_gen(series_set)
   end
 
   def forecast_upload
