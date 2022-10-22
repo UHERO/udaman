@@ -8,7 +8,7 @@ task :rewrite_clustermap_load_stmts => :environment do
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /api_clustermap/
       puts "Doing #{s}"
-      unless ld.eval =~ /2019", *"(\d+)"/
+      unless ld.eval =~ /:2019", *"(\d+)"/
         puts "---------------->> FAIL: #{s} #{s.id}"
         next
       end
