@@ -242,16 +242,7 @@ class SeriesController < ApplicationController
   end
 
   def csv2tsd
-    filepath = csv2tsd_params[:filepath]
-    ### write filepath out to a temp file on the filesystem first
-    tmpfile = nil  ### set this to the new temp file path
-    csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile)
-    series_set = []
-    csv.header_strings.each do |name|
-      s = name.ts.load_from(tmpfile)  ## deliberately not catching errors here - let it blow up is ok
-      series_set.push s
-    end
-    series_data_tsd_gen(series_set)
+    @filepath = csv2tsd_params[:filepath]
   end
 
   def forecast_upload

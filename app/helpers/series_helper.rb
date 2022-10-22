@@ -64,6 +64,18 @@ module SeriesHelper
     output
   end
 
+  def do_csv2tsd_convert(filepath)
+    ### write filepath out to a temp file on the filesystem first
+    tmpfile = nil  ### set this to the new temp file path
+    csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile)
+    series_set = []
+    csv.header_strings.each do |name|
+      s = name.ts.load_from(tmpfile)  ## deliberately not catching errors here - let it blow up is ok
+      series_set.push s
+    end
+    series_data_tsd_gen(series_set)
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []
