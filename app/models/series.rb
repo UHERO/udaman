@@ -421,7 +421,7 @@ class Series < ApplicationRecord
     Series.frequency_from_name(self.name)
   end
 
-  ## I suspect this is obsolete - renaming now, delete later
+  ## I suspect this is obsolete - renaming now, delete later. Also delete headers_with_frequency_code() in UpdateCore
   def Series.each_spreadsheet_header_DELETEME?(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?

@@ -247,8 +247,8 @@ class SeriesController < ApplicationController
     tmpfile = nil  ### set this to the new temp file path
     csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile)
     series_set = []
-    csv.headers.keys.each do |name|
-      s = name.ts.load_from(tmpfile)
+    csv.header_strings.each do |name|
+      s = name.ts.load_from(tmpfile)  ## deliberately not catching errors here - let it blow up is ok
       series_set.push s
     end
     series_data_tsd_gen(series_set)
