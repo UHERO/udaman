@@ -64,14 +64,21 @@ module SeriesHelper
     output
   end
 
-  def do_csv2tsd_convert(filepath)
-    ### write filepath out to a temp file on the filesystem first
-    tmpfile = nil  ### set this to the new temp file path
-    csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile)
+  def do_csv2tsd_convert(upfilepath)
+    tmpfile_rel = "tmp/csv2tsd$$.csv"
     series_set = []
-    csv.header_strings.each do |name|
-      s = name.ts.load_from(tmpfile)  ## deliberately not catching errors here - let it blow up is ok
-      series_set.push s
+    begin
+      File.open(File.join(ENV['DATA_PATH'], tmpfile_rel), 'wb') {|f| f.write(upfilepath.read) }
+      csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile_rel)
+      csv.header_strings.each do |name|
+        s = name.ts.load_from(tmpfile_rel)
+        series_set.push(s)
+      end
+    rescue StandardError => e
+      Rails.logger.error e.message
+      raise e.message
+    ensure
+      File.unlink(tmpfile_rel)
     end
     series_data_tsd_gen(series_set)
   end

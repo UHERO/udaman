@@ -3,7 +3,7 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
-task :rewrite_clustermap_load_stmts => :environment do
+task :rewrite_clustermap_loaders => :environment do
   Series.search_box('#api_clustermap').each do |s|
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /api_clustermap/
@@ -17,7 +17,7 @@ task :rewrite_clustermap_load_stmts => :environment do
   end
 end
 
-task :extend_cluster_loaders => :environment do
+task :extend_clustermap_loaders => :environment do
   Series.search_box('^ct_ -total').each do |s|
     puts "DOING #{s}"
     s.enabled_data_sources.each do |ld|

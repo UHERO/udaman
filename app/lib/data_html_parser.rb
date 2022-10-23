@@ -102,6 +102,7 @@ class DataHtmlParser
     new_data
   end
 
+  ## Soon to be replaced by get_cluster_series(). Also delete expand_date_range() along with it
   def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include?(':')
     query_params = parameters.map(&:to_s).join('/')
