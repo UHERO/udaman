@@ -299,21 +299,6 @@ class SeriesController < ApplicationController
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
   end
 
-  ## IS THIS ACTION REALLY USED by users? If not, it and the model method get_tsd_series_data() it calls can be 86-ed.
-  def show_forecast
-    tsd_file = params[:tsd_file]
-    if tsd_file.nil?
-      render inline: 'WRITE AN ERROR TEMPLATE: You need a tsd_file parameter'
-    else
-      @series = @series.get_tsd_series_data(tsd_file)
-  
-      respond_to do |format|
-        format.html {render 'analyze'}
-        format.json {render :json => { :series => @series, :chg => @series.annualized_percentage_change} }
-      end
-    end
-  end
-  
   def refresh_aremos
     @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
