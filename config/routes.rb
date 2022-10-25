@@ -69,7 +69,6 @@ Rails.application.routes.draw do
   get 'series/clear_clip', to: 'series#clear_clip'
   get 'series/group_export', to: 'series#group_export'
   post 'series/do_clip_action', to: 'series#do_clip_action'
-  post 'series/csv2tsd_upload', to: 'series#csv2tsd_upload'
 
   resources :data_sources
   resources :dashboards
@@ -85,6 +84,7 @@ Rails.application.routes.draw do
   post 'restart_restapi' => 'dashboards#restart_restapi'
   post 'restart_dvwapi' => 'dashboards#restart_dvwapi'
   get 'export_tsd' => 'dashboards#export_tsd'
+  get 'csv2tsd_upload', to: 'series#csv2tsd_upload'
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
 
