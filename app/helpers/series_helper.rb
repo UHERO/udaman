@@ -65,7 +65,7 @@ module SeriesHelper
   end
 
   def do_csv2tsd_convert(upfilepath)
-    tmpfile_rel = "tmp/csv2tsd$$.csv"
+    tmpfile_rel = 'tmp/csv2tsd_%d.csv' % current_user.id
     series_set = []
     begin
       File.open(File.join(ENV['DATA_PATH'], tmpfile_rel), 'wb') {|f| f.write(upfilepath.read) }
