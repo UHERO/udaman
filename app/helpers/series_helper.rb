@@ -72,7 +72,8 @@ module SeriesHelper
       File.open(tmpfile_full, 'wb') {|f| f.write(upfilepath.read) }
       csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile_rel)
       csv.header_strings.each do |name|
-        s = name.ts.load_from(tmpfile_rel)
+        s = name.tsn.load_from(tmpfile_rel)
+        s.name = name
         series_set.push(s)
       end
     rescue StandardError => e

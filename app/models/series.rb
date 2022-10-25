@@ -957,10 +957,13 @@ class Series < ApplicationRecord
   end
 
   def month_mult
-    return 1 if frequency == 'month'
-    return 3 if frequency == 'quarter'
-    return 6 if frequency == 'semi'
-    12 if frequency == 'year'
+    case frequency.to_sym
+      when :year then 12
+      when :semi then 6
+      when :quarter then 3
+      when :month then 1
+      else raise("month_mult: no value defined for frequency #{frequency}")
+    end
   end
   
   def date_range
@@ -1026,9 +1029,9 @@ class Series < ApplicationRecord
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
-  def tsd_string
+  def tsd_string(lm: nil)
+    lm ||= xseries.data_points.order(:updated_at).last.updated_at
     data_string = ''
-    lm = xseries.data_points.order(:updated_at).last.updated_at
 
     as = AremosSeries.get name
     as_description = as.nil? ? '' : as.description
