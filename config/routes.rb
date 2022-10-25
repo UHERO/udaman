@@ -69,6 +69,7 @@ Rails.application.routes.draw do
   get 'series/clear_clip', to: 'series#clear_clip'
   get 'series/group_export', to: 'series#group_export'
   post 'series/do_clip_action', to: 'series#do_clip_action'
+  post 'series/csv2tsd_upload', to: 'series#csv2tsd_upload'
 
   resources :data_sources
   resources :dashboards
