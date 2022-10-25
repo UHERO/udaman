@@ -66,9 +66,10 @@ module SeriesHelper
 
   def do_csv2tsd_convert(upfilepath)
     tmpfile_rel = 'tmp/csv2tsd_%d.csv' % current_user.id
+    tmpfile_full = File.join(ENV['DATA_PATH'], tmpfile_rel)
     series_set = []
     begin
-      File.open(File.join(ENV['DATA_PATH'], tmpfile_rel), 'wb') {|f| f.write(upfilepath.read) }
+      File.open(tmpfile_full, 'wb') {|f| f.write(upfilepath.read) }
       csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile_rel)
       csv.header_strings.each do |name|
         s = name.ts.load_from(tmpfile_rel)
@@ -78,7 +79,7 @@ module SeriesHelper
       Rails.logger.error e.message
       raise e.message
     ensure
-      File.unlink(tmpfile_rel)
+      File.unlink(tmpfile_full)
     end
     series_data_tsd_gen(series_set)
   end
