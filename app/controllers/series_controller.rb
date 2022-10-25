@@ -243,6 +243,10 @@ class SeriesController < ApplicationController
 
   def csv2tsd
     @filepath = csv2tsd_params[:filepath]
+
+    respond_to do |format|
+      format.tsd { render layout: false }
+    end
   end
 
   def forecast_upload
