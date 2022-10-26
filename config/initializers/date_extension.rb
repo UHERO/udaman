@@ -67,7 +67,7 @@ class Date
     return quarter_i.to_s+"00"                        if f == "quarter"
     return month_i.to_s+"00"                          if f == "month"
     return (self - self.wday).to_s.gsub("-","")       if f == "week"
-    return self.to_s.gsub("-","")                     if f == "day"
+    self.to_s.gsub("-","")                            if f == "day"
   end
   
   def tsd_end(f)

@@ -1052,7 +1052,6 @@ class Series < ApplicationRecord
     
     dates = date_range
     dates.each_index do |i|
-    # sci_data.each_index do |i|
       date = dates[i]
       dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].to_s.rjust(15, ' ')
       data_string += dp_string
