@@ -64,6 +64,27 @@ module SeriesHelper
     output
   end
 
+  def do_csv2tsd_convert(upfilepath)
+    tmpfile_rel = 'tmp/csv2tsd_%d.csv' % current_user.id
+    tmpfile_full = File.join(ENV['DATA_PATH'], tmpfile_rel)
+    series_set = []
+    begin
+      File.open(tmpfile_full, 'wb') {|f| f.write(upfilepath.read) }
+      csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile_rel)
+      csv.header_strings.each do |name|
+        s = name.tsn.load_from(tmpfile_rel)
+        s.name = name
+        series_set.push(s)
+      end
+    rescue StandardError => e
+      Rails.logger.error e.message
+      raise e.message
+    ensure
+      File.unlink(tmpfile_full)
+    end
+    series_data_tsd_gen(series_set)
+  end
+
   def google_charts_data_table
     sorted_names = @all_series_to_chart.map {|s| s.name }
     dates_array = []

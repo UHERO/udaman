@@ -421,7 +421,7 @@ class Series < ApplicationRecord
     Series.frequency_from_name(self.name)
   end
 
-  ## I suspect this is obsolete - renaming now, delete later
+  ## I suspect this is obsolete - renaming now, delete later. Also delete headers_with_frequency_code() in UpdateCore
   def Series.each_spreadsheet_header_DELETEME?(spreadsheet_path, sheet_to_load = nil, sa = false)
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     if update_spreadsheet.load_error?
@@ -957,10 +957,13 @@ class Series < ApplicationRecord
   end
 
   def month_mult
-    return 1 if frequency == 'month'
-    return 3 if frequency == 'quarter'
-    return 6 if frequency == 'semi'
-    12 if frequency == 'year'
+    case frequency.to_sym
+      when :year then 12
+      when :semi then 6
+      when :quarter then 3
+      when :month then 1
+      else raise("month_mult: no value defined for frequency #{frequency}")
+    end
   end
   
   def date_range
@@ -1026,25 +1029,8 @@ class Series < ApplicationRecord
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
-  def get_tsd_series_data(tsd_file)
-    url = URI.parse("http://readtsd.herokuapp.com/open/#{tsd_file}/search/#{name.split('.')[0].gsub('%', '%25')}/json")
-    res = Net::HTTP.new(url.host, url.port).request_get(url.path)
-    tsd_data = res.code == '500' ? nil : JSON.parse(res.body)
-    
-    return nil if tsd_data.nil?
-    clean_tsd_data = {}
-    tsd_data['data'].each {|date_string, value| clean_tsd_data[Date.strptime(date_string, '%Y-%m-%d')] = value}
-    tsd_data['data'] = clean_tsd_data
-    new_transformation(tsd_data['name']+'.'+tsd_data['frequency'],  tsd_data['data'], Series.frequency_from_code(tsd_data['frequency']))
-  end
-  
   def tsd_string
-    data_string = ''
-    lm = xseries.data_points.order(:updated_at).last.updated_at
-
-    as = AremosSeries.get name
-    as_description = as.nil? ? '' : as.description
-
+    lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
     dps = data
     dates = dps.keys.sort
     
@@ -1053,23 +1039,22 @@ class Series < ApplicationRecord
     day_switches = '0         0000000'     if frequency == 'week'
     day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
     day_switches = '0         1111111'     if frequency == 'day'
-    
-    data_string+= "#{name.split('.')[0].to_s.ljust(16, ' ')}#{as_description.to_s.ljust(64, ' ')}\r\n"
-    data_string+= "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
+
+    aremos_desc = AremosSeries.get(name).description rescue ''
+    data_string = "#{name.split('.')[0].to_s.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
+    data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
     dps.each do |date, _|
       sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
-    
-    
+
     dates = date_range
     dates.each_index do |i|
-    # sci_data.each_index do |i|
       date = dates[i]
       dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].to_s.rjust(15, ' ')
       data_string += dp_string
-      data_string += "     \r\n" if (i+1)%5==0
+      data_string += "     \r\n" if (i + 1) % 5 == 0
     end    
     space_padding = 80 - data_string.split("\r\n")[-1].length
     space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"

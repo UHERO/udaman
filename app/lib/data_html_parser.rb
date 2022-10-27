@@ -102,6 +102,7 @@ class DataHtmlParser
     new_data
   end
 
+  ## Soon to be replaced by get_cluster_series(). Also delete expand_date_range() along with it
   def get_clustermapping_series(dataset, parameters)
     parameters[2] = expand_date_range(parameters[2]) if parameters[2].include?(':')
     query_params = parameters.map(&:to_s).join('/')
@@ -127,10 +128,11 @@ class DataHtmlParser
   end
 
   ## This is a replacement for get_clustermapping_series, waiting to be deployed
-  def get_cluster_series(cluster_id, geo)
+  def get_cluster_series(cluster_id, geo, value_in: 'emp_tl')
     geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
     geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
-    @url = "https://clustermapping.us/data/region/#{geoinfo}/all/#{cluster_id}"
+    years = (2008..2019).to_a.join(',')   ## should be replaced with "all" as soon as that returns proper results
+    @url = "https://clustermapping.us/data/region/#{geoinfo}/#{years}/#{cluster_id}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     raise 'Clustermapping API: empty response returned' if self.content.blank?
@@ -138,7 +140,7 @@ class DataHtmlParser
     new_data = {}
     response.each do |data_point|
       time_period = data_point['year_t']
-      value = data_point['emp_tl']
+      value = data_point[value_in]
       if value
         new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
       end
@@ -169,8 +171,16 @@ class DataHtmlParser
     new_data
   end
 
+  ## This is a replacement for get_eia_series, which implements the newer v2 syntax. Waiting to be deployed
+  def get_eia_series_v2()
+    api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
+    @url = "https://api.eia.gov/v2/FOOroute?api_key=#{api_key}"
+    Rails.logger.info { "Getting data from EIA APIv2: #{@url}" }
+    @doc = self.download
+    raise('EIA APIv2: empty response returned') if self.content.blank?
+  end
+
   def get_dvw_series(mod, freq, indicator, dimension_hash)
-    ##api_key = ENV['API_KEY_DVW'] || raise('No API key defined for DVW')
     dims = dimension_hash.map {|k, v| '%s=%s' % [k.to_s[0].downcase, v] }.join('&')
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
     Rails.logger.debug { 'Getting data from DVW API: ' + @url }

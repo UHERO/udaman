@@ -247,6 +247,17 @@ class SeriesController < ApplicationController
                     .order(:name).paginate(page: params[:page], per_page: 50)
   end
 
+  def csv2tsd_upload
+  end
+
+  def csv2tsd
+    @filepath = csv2tsd_params[:filepath]
+
+    respond_to do |format|
+      format.tsd { render layout: false }
+    end
+  end
+
   def forecast_upload
     @fcid = 'none'
     @version = 'none'
@@ -301,21 +312,6 @@ class SeriesController < ApplicationController
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
   end
 
-  ## IS THIS ACTION REALLY USED by users? If not, it and the model method get_tsd_series_data() it calls can be 86-ed.
-  def show_forecast
-    tsd_file = params[:tsd_file]
-    if tsd_file.nil?
-      render inline: 'WRITE AN ERROR TEMPLATE: You need a tsd_file parameter'
-    else
-      @series = @series.get_tsd_series_data(tsd_file)
-  
-      respond_to do |format|
-        format.html {render 'analyze'}
-        format.json {render :json => { :series => @series, :chg => @series.annualized_percentage_change} }
-      end
-    end
-  end
-  
   def refresh_aremos
     @series.aremos_comparison
     redirect_to :action => 'show', id: params[:id]
@@ -414,6 +410,10 @@ private
 
   def forecast_upload_params
     params.require(:forecast_upload).permit(:fcid, :version, :freq, :filepath)
+  end
+
+  def csv2tsd_params
+    params.require(:csv2tsd).permit(:filepath)
   end
 
   def set_series
