@@ -249,11 +249,12 @@ class Series < ApplicationRecord
     Series.parse_name(self.name)
   end
 
-  def Series.build_name(prefix, geo, freq)
-    if prefix.blank? || geo.blank? || freq.blank?
-      raise 'Null members not allowed in series name! (got %s + %s + %s)' % [prefix, geo, freq]
+  def Series.build_name(prefix, geo, freq = nil)
+    if prefix.blank? || geo.blank?
+      raise 'Empty prefix and/or geo not allowed in series name! (got %s + %s)' % [prefix, geo]
     end
-    name = prefix.strip.upcase + '@' + geo.strip.upcase + '.' + freq.strip.upcase
+    name = prefix.strip.upcase + '@' + geo.strip.upcase
+    name +=  '.' + freq.strip.upcase unless freq.blank?
     Series.parse_name(name) && name
   end
 
@@ -264,6 +265,10 @@ class Series < ApplicationRecord
   def Series.build_name_two(prefixgeo, freq)
     (prefix, geo) = prefixgeo.split('@')
     Series.build_name(prefix, geo, freq)
+  end
+
+  def name_no_freq
+    build_name(freq: nil)
   end
 
   ## Build a new name starting from mine, and replacing whatever parts are passed in
@@ -935,7 +940,7 @@ class Series < ApplicationRecord
     day_switches = '0         1111111'     if frequency == 'day'
 
     aremos_desc = AremosSeries.get(name).description rescue ''
-    data_string = "#{name.split('.')[0].to_s.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
+    data_string = "#{name.name_no_freq.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
     data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
