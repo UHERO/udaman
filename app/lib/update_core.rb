@@ -13,16 +13,16 @@ module UpdateCore
     @headers ||= read_headers
   end
 
+  def header_strings
+    headers.keys
+  end
+
+  ### This method should be obsolete and deleted soon.
   def headers_with_frequency_code
     return self.headers.keys if self.headers.keys[0].split('.').count == 2
-    return_array = Array.new
-    frequency_code = ''
-    frequency_code = '.A' if self.frequency == :year
-    frequency_code = '.M' if self.frequency == :month
-    frequency_code = '.Q' if self.frequency == :quarter
-    frequency_code = '.S' if self.frequency == :semi
-    frequency_code = '.W' if self.frequency == :week
-    
+    return_array = []
+    frequency_code = '.' + Series.code_from_frequency(self.frequency)
+
     arr = self.headers.sort {|a,b| a[1]<=>b[1]}
     arr.each do |elem|
       header_name = elem[0]
