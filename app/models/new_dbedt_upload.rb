@@ -317,7 +317,7 @@ private
       ##   raise "Could not get xlsx file ((#{xls_path}) #{id}) from $OTHER_WORKER: #{other_worker} (#{$?})"
       ## end
     end
-    unless system "xlsx2csv.py -a -d tab -c utf-8  #{xls_path} #{csv_path}"
+    unless system "xlsx2csv.py -a -d tab #{xls_path} #{csv_path}"
       raise "Could not transform xlsx to csv (#{id}:#{$?})"
     end
 
