@@ -940,7 +940,7 @@ class Series < ApplicationRecord
     day_switches = '0         1111111'     if frequency == 'day'
 
     aremos_desc = AremosSeries.get(name).description rescue ''
-    data_string = "#{name.name_no_freq.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
+    data_string = "#{name_no_freq.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
     data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
