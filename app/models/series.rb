@@ -359,41 +359,6 @@ class Series < ApplicationRecord
     {:last_observations => obs_buckets, :last_modifications => mod_buckets}
   end
 
-  ## Appears vestigial - renaming for now, delete later
-  def Series.region_hash_DELETEME
-    region_hash = {}
-    all_names = Series.get_all_uhero.all_names
-    all_names.each do |name|
-      next if name.nil?
-      suffix = name.split('@')[1]
-      region = suffix.nil? ? '' : suffix.split('.')[0]
-      region_hash[region] ||= []
-      region_hash[region].push(name)
-    end
-    region_hash
-  end
-
-  ## Appears vestigial - renaming for now, delete later
-  def Series.region_counts_DELETEME
-    region_hash.map {|key, value| [key, value.count] }.to_h
-  end
-
-  ## Appears vestigial - renaming for now, delete later
-  def Series.frequency_hash_DELETEME
-    frequency_hash = {}
-    all_names = Series.get_all_uhero.select('name, frequency')
-    all_names.each do |s|
-      frequency_hash[s.frequency] ||= []
-      frequency_hash[s.frequency].push(s.name)
-    end
-    frequency_hash
-  end
-
-  ## Appears vestigial - renaming for now, delete later
-  def Series.frequency_counts_DELETEME
-    frequency_hash.map {|key, value| [key, value.count] }.to_h
-  end
-
   def Series.code_from_frequency(frequency)
     frequency = frequency.to_s.downcase.sub(/ly$/,'')  ## handle words like annually, monthly, daily, etc
     frequency = 'semi' if frequency =~ /^semi/  ## just in case
@@ -419,60 +384,6 @@ class Series < ApplicationRecord
 
   def frequency_from_name
     Series.frequency_from_name(self.name)
-  end
-
-  ## I suspect this is obsolete - renaming now, delete later. Also delete headers_with_frequency_code() in UpdateCore
-  def Series.each_spreadsheet_header_DELETEME?(spreadsheet_path, sheet_to_load = nil, sa = false)
-    update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
-    if update_spreadsheet.load_error?
-      return {:message => 'The spreadsheet could not be found', :headers => []}
-    end
-
-    unless update_spreadsheet.class == UpdateCSV
-      default_sheet = sa ? 'sadata' : update_spreadsheet.sheets.first
-      update_spreadsheet.default_sheet = sheet_to_load.nil? ? default_sheet : sheet_to_load 
-    end
-    unless update_spreadsheet.update_formatted?
-      return {:message=>'The spreadsheet was not formatted properly', :headers=>[]}
-    end
-
-    header_names = Array.new    
-     
-    update_spreadsheet_headers = sa ? update_spreadsheet.headers.keys : update_spreadsheet.headers_with_frequency_code 
-    update_spreadsheet_headers.each do |series_name|
-      header_names.push(yield series_name, update_spreadsheet)
-    end
-    
-    sheets = update_spreadsheet.class == UpdateCSV ? [] : update_spreadsheet.sheets
-    return {:message=>'success', :headers=>header_names, :sheets => sheets}
-  end
-
-  ## I suspect this is obsolete - renaming now, delete later
-  def Series.load_all_sa_series_from_DELETEME?(spreadsheet_path, sheet_to_load = nil)
-    each_spreadsheet_header(spreadsheet_path, sheet_to_load, true) do |series_name, update_spreadsheet|
-      frequency_code = code_from_frequency update_spreadsheet.frequency  
-      sa_base_name = series_name.sub('NS@','@')
-      sa_series_name = sa_base_name+'.'+frequency_code
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q{"#{sa_series_name}".tsn.load_sa_from("#{spreadsheet_path}", "#{sheet_to_load}")}) unless sheet_to_load.nil?
-      Series.store(sa_series_name, Series.new(:frequency => update_spreadsheet.frequency, :data => update_spreadsheet.series(series_name)), spreadsheet_path, %Q{"#{sa_series_name}".tsn.load_sa_from("#{spreadsheet_path}")}) if sheet_to_load.nil?
-      sa_series_name
-    end
-  end
-
-  ## I suspect this is obsolete - renaming now, delete later
-  def Series.load_all_series_from_DELETEME?(spreadsheet_path, sheet_to_load = nil, priority = 100)
-    t = Time.now
-    each_spreadsheet_header(spreadsheet_path, sheet_to_load, false) do |series_name, update_spreadsheet|
-      eval_format = sheet_to_load ? '"%s".tsn.load_from("%s", "%s")' : '"%s".tsn.load_from("%s")'
-      @data_source = Series.store(series_name,
-                                  Series.new(frequency: update_spreadsheet.frequency, data: update_spreadsheet.series(series_name)),
-                                  spreadsheet_path,
-                                  eval_format % [series_name, spreadsheet_path, sheet_to_load])
-
-      @data_source.update_attributes(:priority => priority)
-      series_name
-    end
-    puts "#{'%.2f' % (Time.now - t)} : #{spreadsheet_path}"
   end
 
   def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
