@@ -342,23 +342,6 @@ class Series < ApplicationRecord
     new
   end
 
-  #takes about 8 seconds to run for month, but not bad
-  #chart both last updated and last observed (rebucket?)
-  def Series.last_observation_buckets(frequency)
-    obs_buckets = {}
-    mod_buckets = {}
-    results = Series.get_all_uhero.where('frequency = ?', frequency).select('data, updated_at')
-    results.each do |s|
-      last_date = s.last_observation.nil? ? 'no data' : s.last_observation[0..6]
-      last_update = s.updated_at.nil? ? 'never' : s.updated_at.to_date.to_s[0..6] #.last_updated.nil?
-      obs_buckets[last_date] ||= 0
-      obs_buckets[last_date] += 1
-      mod_buckets[last_update] ||= 0
-      mod_buckets[last_update] += 1      
-    end
-    {:last_observations => obs_buckets, :last_modifications => mod_buckets}
-  end
-
   def Series.code_from_frequency(frequency)
     frequency = frequency.to_s.downcase.sub(/ly$/,'')  ## handle words like annually, monthly, daily, etc
     frequency = 'semi' if frequency =~ /^semi/  ## just in case
