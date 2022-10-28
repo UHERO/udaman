@@ -52,7 +52,11 @@ class DataHtmlParser
     raise 'BEA API: no results included' unless beaapi['Results'] || beaapi['Error']
     err = beaapi['Error'] || beaapi['Results'] && beaapi['Results']['Error']
     if err
-      raise 'BEA API Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
+      raise 'BEA API Error: %s %s (code=%s)' % [
+        err['APIErrorDescription'],
+        err['ErrorDetail'] && err['ErrorDetail']['Description'],
+        err['APIErrorCode']
+      ]
     end
     results_data = beaapi['Results']['Data']
     raise 'BEA API: results, but no data' unless results_data
