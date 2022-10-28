@@ -234,15 +234,19 @@ class Series < ApplicationRecord
   alias update_attributes! update!
 
   ## Enforce metadata integrity in the form of implicational relationships between/among attributes
-  def Series.meta_integrity_check(props, obj = nil)
-    if props[:frequency] && props[:frequency].to_sym == :year
-      props[:seasonal_adjustment] = 'not_applicable'
-    elsif props[:name] && Series.parse_name(props[:name])[:prefix] =~ /NS$/i
-      props[:seasonal_adjustment] = 'not_seasonally_adjusted'
+  def Series.meta_integrity_check(attrs, obj = nil)
+    if attrs[:frequency] && attrs[:frequency].to_sym == :year
+      attrs[:seasonal_adjustment] = 'not_applicable'
+    elsif attrs[:name] && Series.parse_name(attrs[:name])[:prefix] =~ /NS$/i
+      attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
+    elsif obj && obj.frequency.to_sym == :year
+      attrs[:seasonal_adjustment] = 'not_applicable'
+    elsif obj && obj.parse_name[:prefix] =~ /NS$/i
+      attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
     end
-    #unit = props[:unit_id] && Unit.find(props[:unit_id]) rescue nil
-    #if props[:percent] && unit.short_label != '%'
-    #  props[:unit_id] = Unit.find_by(long_label: 'Percent')
+    #unit = attrs[:unit_id] && Unit.find(attrs[:unit_id]) rescue nil
+    #if attrs[:percent] && unit.short_label != '%'
+    #  attrs[:unit_id] = Unit.find_by(long_label: 'Percent')
     #end
   end
 
@@ -296,7 +300,7 @@ class Series < ApplicationRecord
 
   def ns_series_name
     prefix = self.parse_name[:prefix]
-    raise "Trying to add NS to prefix of #{self} that already has NS" if prefix =~ /NS$/
+    raise "Trying to add NS to prefix of #{self} that already has NS" if prefix =~ /NS$/i
     build_name(prefix:  prefix + 'NS')
   end
 
