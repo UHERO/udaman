@@ -928,7 +928,7 @@ class Series < ApplicationRecord
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
-  def tsd_string
+  def to_tsd
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
     dps = data
     dates = dps.keys.sort

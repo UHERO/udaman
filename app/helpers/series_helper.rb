@@ -56,9 +56,9 @@ module SeriesHelper
     output = ''
     series_set.each do |s|
       begin
-        output += s.tsd_string
+        output += s.to_tsd
       rescue => e
-        Rails.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
+        Rails.logger.error { "series_data_tsd_gen: to_tsd conversion failure for #{s}: #{e.message}" }
       end
     end
     output
