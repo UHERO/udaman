@@ -297,31 +297,31 @@ class Series < ApplicationRecord
   def ns_series_name
     prefix = self.parse_name[:prefix]
     raise "Trying to add NS to prefix of #{self} that already has NS" if prefix =~ /NS$/
-    self.build_name(prefix:  prefix + 'NS')
+    build_name(prefix:  prefix + 'NS')
   end
 
   def non_ns_series_name
-    self.build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,''))
+    build_name(prefix: self.parse_name[:prefix].sub(/NS$/i,''))
   end
 
   ## Find non-seasonally-adjusted correspondent series based on name
   def find_ns_series
-    self.ns_series_name.ts
+    ns_series_name.ts
   end
 
   ## Find seasonally-adjusted correspondent series based on name
   def find_non_ns_series
-    self.non_ns_series_name.ts
+    non_ns_series_name.ts
   end
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
-    self.build_name(geo: geo.to_s.upcase).ts
+    build_name(geo: geo.to_s.upcase).ts
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
-    self.build_name(freq: freq.to_s.upcase).ts
+    build_name(freq: freq.to_s.upcase).ts
   end
 
   def is_primary?
