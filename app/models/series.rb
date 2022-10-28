@@ -103,7 +103,7 @@ class Series < ApplicationRecord
     geo = Geography.find_by(universe: universe, handle: parts[:geo]) || raise("No #{universe} Geography found, handle=#{parts[:geo]}")
     self.update!(name: newname, geography_id: geo.id, frequency: parts[:freq_long])
     if geo_freq_change
-      data_sources.each {|ld| ld.delete_data_points }  ## clear all data points
+      delete_data_points  ## clear all data points
     end
     dependents.each do |series_name|
       s = series_name.ts || next
@@ -167,6 +167,7 @@ class Series < ApplicationRecord
     properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
     properties[:geography_id] ||= geo.id
     properties[:frequency] ||= name_parts[:freq_long]
+    Series.meta_integrity_check(properties)
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
     series_props = properties.select{|k, _| series_attrs.include? k.to_s }
@@ -192,6 +193,8 @@ class Series < ApplicationRecord
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
+    Series.meta_integrity_check(attributes, self)
+
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
@@ -213,6 +216,8 @@ class Series < ApplicationRecord
     if xs_attrs
       attributes.merge!(xs_attrs)
     end
+    Series.meta_integrity_check(attributes, self)
+
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a == 'universe' || a =~ /ted_at$/ } ## no direct update of Rails timestamps
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
     begin
@@ -227,6 +232,19 @@ class Series < ApplicationRecord
   end
 
   alias update_attributes! update!
+
+  ## Enforce metadata integrity in the form of implicational relationships between/among attributes
+  def Series.meta_integrity_check(props, obj = nil)
+    if props[:frequency] && props[:frequency].to_sym == :year
+      props[:seasonal_adjustment] = 'not_applicable'
+    elsif props[:name] && Series.parse_name(props[:name])[:prefix] =~ /NS$/i
+      props[:seasonal_adjustment] = 'not_seasonally_adjusted'
+    end
+    #unit = props[:unit_id] && Unit.find(props[:unit_id]) rescue nil
+    #if props[:percent] && unit.short_label != '%'
+    #  props[:unit_id] = Unit.find_by(long_label: 'Percent')
+    #end
+  end
 
   def Series.parse_name(string)
     if string =~ /^(([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)(\.([ASQMWD]))?$/i
