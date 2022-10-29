@@ -145,34 +145,34 @@ class Series < ApplicationRecord
     Series.create_new(s_attrs.merge(x_attrs).merge(new_attrs))
   end
 
-  def Series.create_new(properties)
+  def Series.create_new(attributes)
     ## :xseries_attributes and :name_parts only present when called from SeriesController#create
-    xs_attrs = properties.delete(:xseries_attributes)
+    xs_attrs = attributes.delete(:xseries_attributes)
     if xs_attrs
-      properties.merge!(xs_attrs)
+      attributes.merge!(xs_attrs)
     end
-    name_parts = properties.delete(:name_parts)
+    name_parts = attributes.delete(:name_parts)
     if name_parts
-      properties.merge!(name_parts)
+      attributes.merge!(name_parts)
     else
-      name_parts = Series.parse_name(properties[:name])
+      name_parts = Series.parse_name(attributes[:name])
     end
 
-    if properties[:geography_id]
-      geo = Geography.find(properties[:geography_id]) rescue raise("No Geography with id=#{properties[:geography_id]} found")
+    if attributes[:geography_id]
+      geo = Geography.find(attributes[:geography_id]) rescue raise("No Geography with id=#{attributes[:geography_id]} found")
     else
-      uni = properties[:universe] || 'UHERO'
+      uni = attributes[:universe] || 'UHERO'
       geo = Geography.find_by(universe: uni, handle: name_parts[:geo]) || raise("No #{uni} Geography found, handle=#{name_parts[:geo]}")
     end
-    properties[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
-    properties[:geography_id] ||= geo.id
-    properties[:frequency] ||= name_parts[:freq_long]
-    Series.meta_integrity_check(properties)
+    attributes[:name] ||= Series.build_name(name_parts[:prefix], geo.handle, name_parts[:freq])
+    attributes[:geography_id] ||= geo.id
+    attributes[:frequency] ||= name_parts[:freq_long]
+    Series.meta_integrity_check(attributes)
 
     series_attrs = Series.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }  ## no direct creation of Rails timestamps
-    series_props = properties.select{|k, _| series_attrs.include? k.to_s }
+    series_props = attributes.select{|k, _| series_attrs.include? k.to_s }
     xseries_attrs = Xseries.attribute_names.reject{|a| a == 'id' || a =~ /ted_at$/ }
-    xseries_props = properties.select{|k, _| xseries_attrs.include? k.to_s }
+    xseries_props = attributes.select{|k, _| xseries_attrs.include? k.to_s }
     s = nil
     begin
       self.transaction do
@@ -182,7 +182,7 @@ class Series < ApplicationRecord
         s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
       end
     rescue => e
-      raise "Model object creation failed for name #{properties[:name]} in universe #{properties[:universe]}: #{e.message}"
+      raise "Model object creation failed for name #{attributes[:name]} in universe #{attributes[:universe]}: #{e.message}"
     end
     s
   end
@@ -239,15 +239,15 @@ class Series < ApplicationRecord
       attrs[:seasonal_adjustment] = 'not_applicable'
     elsif attrs[:name] && Series.parse_name(attrs[:name])[:prefix] =~ /NS$/i
       attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
-    elsif obj && obj.frequency.to_sym == :year
-      attrs[:seasonal_adjustment] = 'not_applicable'
-    elsif obj && obj.parse_name[:prefix] =~ /NS$/i
-      attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
+    #elsif obj && obj.frequency.to_sym == :year
+    #  attrs[:seasonal_adjustment] = 'not_applicable'
+    #elsif obj && obj.parse_name[:prefix] =~ /NS$/i
+    #  attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
     end
-    #unit = attrs[:unit_id] && Unit.find(attrs[:unit_id]) rescue nil
-    #if attrs[:percent] && unit.short_label != '%'
-    #  attrs[:unit_id] = Unit.find_by(long_label: 'Percent')
-    #end
+    unit = attrs[:unit_id] && Unit.find(attrs[:unit_id].to_i) rescue nil
+    if unit
+      attrs[:percent] = (unit.short_label == '%')
+    end
   end
 
   def Series.parse_name(string)
