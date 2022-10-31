@@ -247,6 +247,8 @@ class Series < ApplicationRecord
     unit = attrs[:unit_id] && Unit.find(attrs[:unit_id].to_i) rescue nil
     if unit
       attrs[:percent] = (unit.short_label == '%')
+    else
+      attrs[:percent] = (self.unit.short_label == '%')
     end
   end
 
