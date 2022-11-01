@@ -244,7 +244,7 @@ class Series < ApplicationRecord
     if unit
       attrs[:percent] = (unit.short_label == '%')
     elsif obj
-      attrs[:percent] = (obj.unit.short_label == '%')
+      attrs[:percent] = (obj.unit.short_label == '%') rescue false
     end
   end
 
