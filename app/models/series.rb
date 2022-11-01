@@ -239,10 +239,6 @@ class Series < ApplicationRecord
       attrs[:seasonal_adjustment] = 'not_applicable'
     elsif attrs[:name] && Series.parse_name(attrs[:name])[:prefix] =~ /NS$/i
       attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
-    #elsif obj && obj.frequency.to_sym == :year
-    #  attrs[:seasonal_adjustment] = 'not_applicable'
-    #elsif obj && obj.parse_name[:prefix] =~ /NS$/i
-    #  attrs[:seasonal_adjustment] = 'not_seasonally_adjusted'
     end
     unit = attrs[:unit_id] && Unit.find(attrs[:unit_id].to_i) rescue nil
     if unit
