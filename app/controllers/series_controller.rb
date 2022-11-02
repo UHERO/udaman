@@ -243,9 +243,13 @@ class SeriesController < ApplicationController
 
   def csv2tsd
     @filepath = csv2tsd_params[:filepath]
+    redirect_to action: :csv2tsd_upload
 
     respond_to do |format|
-      format.tsd { render layout: false }
+      format.tsd { send_data do_csv2tsd_convert(@filepath),
+                             filename: @filepath.original_filename.change_file_extension('tsd', nopath: true),
+                             type: 'application/tsd',
+                             disposition: 'attachment' }
     end
   end
 
