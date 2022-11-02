@@ -65,7 +65,7 @@ module SeriesHelper
   end
 
   def do_csv2tsd_convert(upfilepath)
-    tmpfile_rel = 'tmp/csv2tsd_%d.csv' % current_user.id
+    tmpfile_rel = File.join('tmp', upfilepath.original_filename)
     tmpfile_full = File.join(ENV['DATA_PATH'], tmpfile_rel)
     series_set = []
     begin
