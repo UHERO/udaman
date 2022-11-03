@@ -912,10 +912,38 @@ class Series < ApplicationRecord
     dates
   end
 
+  def to_tsd
+    lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
+    dates = data.keys.sort
+    
+    #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
+    day_switches = '0                '
+    day_switches = '0         0000000'     if frequency == 'week'
+    day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
+    day_switches = '0         1111111'     if frequency == 'day'
+
+    aremos_desc = AremosSeries.get(name).description rescue ''
+    data_string = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
+    data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
+    sci_data = {}
+    
+    data.each do |date, _|
+      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
+    end
+
+    date_range.each_with_index do |date, i|
+      value = sci_data[date] || '1.000000E+0015'
+      data_string += value.to_s.rjust(15, ' ')
+      data_string += "     \r\n" if (i + 1) % 5 == 0
+    end    
+    space_padding = 80 - data_string.split("\r\n")[-1].length
+    space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
+  end
+
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
-     in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+    in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
     ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
     nas_path = 'udaman@uheronas:/volume1/UHEROroot/work/udamandata'
 
@@ -947,34 +975,6 @@ class Series < ApplicationRecord
       Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to NAS" }
     end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
-  end
-
-  def to_tsd
-    lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
-    dates = data.keys.sort
-    
-    #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
-    day_switches = '0                '
-    day_switches = '0         0000000'     if frequency == 'week'
-    day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
-    day_switches = '0         1111111'     if frequency == 'day'
-
-    aremos_desc = AremosSeries.get(name).description rescue ''
-    data_string = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
-    data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
-    sci_data = {}
-    
-    data.each do |date, _|
-      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
-    end
-
-    date_range.each_with_index do |date, i|
-      value = sci_data[date] || '1.000000E+0015'
-      data_string += value.to_s.rjust(15, ' ')
-      data_string += "     \r\n" if (i + 1) % 5 == 0
-    end    
-    space_padding = 80 - data_string.split("\r\n")[-1].length
-    space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
   end
 
   ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
