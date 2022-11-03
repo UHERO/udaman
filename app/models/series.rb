@@ -969,11 +969,9 @@ class Series < ApplicationRecord
       sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
 
-    dates = date_range
-    dates.each_index do |i|
-      date = dates[i]
-      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].to_s.rjust(15, ' ')
-      data_string += dp_string
+    date_range.each_with_index do |date, i|
+      value = sci_data[date] || '1.000000E+0015'
+      data_string += value.to_s.rjust(15, ' ')
       data_string += "     \r\n" if (i + 1) % 5 == 0
     end    
     space_padding = 80 - data_string.split("\r\n")[-1].length
