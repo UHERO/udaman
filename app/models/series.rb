@@ -272,7 +272,7 @@ class Series < ApplicationRecord
 
   def Series.build_name(prefix, geo, freq = nil)
     if prefix.blank? || geo.blank?
-      raise 'Empty prefix and/or geo not allowed in series name! (got %s + %s)' % [prefix, geo]
+      raise 'Empty prefix (got "%s") and/or geography (got "%s") not allowed in series name!' % [prefix, geo]
     end
     name = prefix.strip.upcase + '@' + geo.strip.upcase
     name +=  '.' + freq.strip.upcase unless freq.blank?
