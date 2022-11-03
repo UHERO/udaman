@@ -3,7 +3,21 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
-task :extend_cluster_loaders => :environment do
+task :rewrite_clustermap_loaders => :environment do
+  Series.search_box('#api_clustermap').each do |s|
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /api_clustermap/
+      puts "Doing #{s}"
+      unless ld.eval =~ /:2019", *"(\d+)"/
+        puts "---------------->> FAIL: #{s} #{s.id}"
+        next
+      end
+      ld.update!(eval: 'Series.load_api_clusters(%d, "%s")' % [$1.to_i, s.geography.handle.upcase])
+    end
+  end
+end
+
+task :extend_clustermap_loaders => :environment do
   Series.search_box('^ct_ -total').each do |s|
     puts "DOING #{s}"
     s.enabled_data_sources.each do |ld|
