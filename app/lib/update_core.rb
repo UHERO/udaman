@@ -17,20 +17,6 @@ module UpdateCore
     headers.keys
   end
 
-  ### This method should be obsolete and deleted soon.
-  def headers_with_frequency_code
-    return self.headers.keys if self.headers.keys[0].split('.').count == 2
-    return_array = []
-    frequency_code = '.' + Series.code_from_frequency(self.frequency)
-
-    arr = self.headers.sort {|a,b| a[1]<=>b[1]}
-    arr.each do |elem|
-      header_name = elem[0]
-      return_array.push(header_name + frequency_code) unless header_name.nil?
-    end
-    return_array
-  end
-  
   def frequency
     @frequency ||= date_frequency
   end

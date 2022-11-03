@@ -84,9 +84,10 @@ class String
     self.gsub(',,', '#FOO#').gsub(',', '|').gsub('#FOO#', ',')
   end
 
-  def change_file_extension(ext)
+  def change_file_extension(ext, nopath: false)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
-    File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
+    nameonly = File.basename(self, File.extname(self)) + ext
+    nopath ? nameonly : File.join(File.dirname(self), nameonly)
   end
 
   ## convert frequency string values to numeric ones that can be compared for >, <, etc
