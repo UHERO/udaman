@@ -951,8 +951,7 @@ class Series < ApplicationRecord
 
   def to_tsd
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
-    dps = data
-    dates = dps.keys.sort
+    dates = data.keys.sort
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = '0                '
@@ -961,11 +960,11 @@ class Series < ApplicationRecord
     day_switches = '0         1111111'     if frequency == 'day'
 
     aremos_desc = AremosSeries.get(name).description rescue ''
-    data_string = "#{name_no_freq.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
+    data_string = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
     data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
-    dps.each do |date, _|
+    data.each do |date, _|
       sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
 
