@@ -399,6 +399,10 @@ class Series < ApplicationRecord
     Series.frequency_from_name(self.name)
   end
 
+  def frequency_code
+    Series.code_from_frequency(self.frequency)
+  end
+
   def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
     begin
       new_series = Kernel::eval eval_statement
@@ -922,9 +926,15 @@ class Series < ApplicationRecord
 
     aremos_desc = AremosSeries.get(name).description rescue ''
     output = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
-    output += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
+    output += lm.month.to_s.rjust(34, ' ') + '/' + lm.day.to_s.rjust(2, ' ') + '/'  + lm.year.to_s[2..4]  ## should this be 2..4 or 2..3?
+    output += '0800'
+    output += dates[0].tsd_start(frequency)
+    output += dates[-1].tsd_end(frequency)
+    output += frequency_code + '  '
+    output += day_switches
+    output += "\r\n"
+
     sci_data = {}
-    
     data.each do |date, _|
       sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
