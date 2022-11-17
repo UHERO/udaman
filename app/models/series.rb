@@ -913,10 +913,12 @@ class Series < ApplicationRecord
     dates = data.keys.sort
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
-    day_switches = '0                '
-    day_switches = '0         0000000'     if frequency == 'week'
+    day_switches = case frequency
+                   when 'week' then '0         0000000'
+                   when 'day'  then '0         1111111'
+                   else             '0                '
+                   end
     day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
-    day_switches = '0         1111111'     if frequency == 'day'
 
     aremos_desc = AremosSeries.get(name).description rescue ''
     data_string = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
