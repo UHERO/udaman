@@ -921,8 +921,8 @@ class Series < ApplicationRecord
     day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
 
     aremos_desc = AremosSeries.get(name).description rescue ''
-    data_string = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
-    data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
+    output = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
+    output += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
     sci_data = {}
     
     data.each do |date, _|
@@ -931,11 +931,11 @@ class Series < ApplicationRecord
 
     date_range.each_with_index do |date, i|
       value = sci_data[date] || '1.000000E+0015'
-      data_string += value.to_s.rjust(15, ' ')
-      data_string += "     \r\n" if (i + 1) % 5 == 0
+      output += value.to_s.rjust(15, ' ')
+      output += "     \r\n" if (i + 1) % 5 == 0
     end    
-    space_padding = 80 - data_string.split("\r\n")[-1].length
-    space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
+    space_padding = 80 - output.split("\r\n")[-1].length
+    space_padding == 0 ? output : output + ' ' * space_padding + "\r\n"
   end
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
