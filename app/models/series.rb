@@ -935,7 +935,7 @@ class Series < ApplicationRecord
       output += "     \r\n" if (i + 1) % 5 == 0
     end    
     space_padding = 80 - output.split("\r\n")[-1].length
-    space_padding == 0 ? output : output + ' ' * space_padding + "\r\n"
+    space_padding == 0 ? output : output + (' ' * space_padding) + "\r\n"
   end
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
