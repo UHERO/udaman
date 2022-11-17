@@ -65,6 +65,10 @@ class Series < ApplicationRecord
     data.reject {|_,val| val.nil? }.keys.sort[-1] rescue nil
   end
 
+  def observation_count
+    data.reject {|_,val| val.nil? }.count
+  end
+
   def Series.get_all_uhero
     Series.get_all_universe('UHERO')
   end
@@ -868,14 +872,6 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  def observation_count
-    observations = 0
-    data.each do |_, value|
-      observations += 1 unless value.nil?
-    end
-    observations
-  end
-
   def month_mult
     case frequency.to_sym
       when :year then 12
@@ -887,7 +883,7 @@ class Series < ApplicationRecord
   end
   
   def date_range
-    data_dates = self.data.keys.sort
+    data_dates = data.keys.sort
     start_date = data_dates[0]
     end_date = data_dates[-1]
     curr_date = start_date
@@ -904,7 +900,7 @@ class Series < ApplicationRecord
     else
       month_multiplier = month_mult
       begin
-        curr_date = start_date>>offset*month_multiplier
+        curr_date = start_date >> offset * month_multiplier
         dates.push(curr_date)
         offset += 1
       end while curr_date < end_date
@@ -999,7 +995,7 @@ class Series < ApplicationRecord
 
   def reload_sources(nightly: false, clear_first: false)
     series_success = true
-    self.data_sources_by_last_run.each do |ds|
+    data_sources_by_last_run.each do |ds|
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
