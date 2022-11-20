@@ -167,20 +167,21 @@ module SeriesInterpolation
   end
 
   ## not deployed yet
-  def daves_linear_interpolate_refactor(frequency)
-    raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
-                                      (frequency == :month and self.frequency == 'quarter') or
-                                      (frequency == :day and self.frequency == 'month')
+  def daves_linear_interpolate_refactor(new_freq)
+    src_freq = frequency.to_sym
+    raise AggregationException unless (src_freq == :year && new_freq == :quarter) ||
+                                      (src_freq == :quarter && new_freq == :month) ||
+                                      (src_freq == :month && new_freq == :day)
     last_date = first_observation
     last_val = at(last_date)
 
-    interpol_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency.to_sym, frequency)
+    interpol_data = last_date.linear_path_to_previous_period(last_val, 0, src_freq, new_freq)
     data.sort.each do |date, val|
-      next if date == last_date  ## skip first iteration, we already did it?
-      interpol_data.merge! date.linear_path_to_previous_period(val, (val - last_val), self.frequency.to_sym, frequency)
+      next if date == last_date  ## skip first iteration? we already did it?
+      interpol_data.merge! date.linear_path_to_previous_period(val, (val - last_val), src_freq, new_freq)
       last_val = val
     end
-    new_transformation("Interpolated (linear match last) from #{self}", interpol_data, frequency)
+    new_transformation("Interpolated (linear match last) from #{self}", interpol_data, new_freq)
   end
 
   def census_interpolate(frequency)
