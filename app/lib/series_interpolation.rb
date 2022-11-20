@@ -9,8 +9,8 @@ module SeriesInterpolation
   end
   
   def extend_first_back_to(date)
-    first_data_point_date = self.first_observation
-    first_data_point_val = self.at(first_data_point_date)
+    first_data_point_date = first_observation
+    first_data_point_val = at(first_data_point_date)
 
     offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = first_data_point_date - offset.months
@@ -25,8 +25,8 @@ module SeriesInterpolation
   
   def extend_last_fwd_to_match(series_name)
     last_data_point_date = series_name.ts.last_observation rescue raise("Series #{series_name} does not exist")
-    current_last_data_point = self.last_observation
-    last_data_point_val = self.at(current_last_data_point)
+    current_last_data_point = last_observation
+    last_data_point_val = at(current_last_data_point)
 
     offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = current_last_data_point + offset.months
