@@ -2,7 +2,7 @@ class Date
   include HelperUtilities
 
   def linear_path_to_previous_period(start_val, diff, source_frequency, target_frequency)
-    if (source_frequency == 'year' or source_frequency == :year) and target_frequency == :quarter
+    if source_frequency.to_sym == :year && target_frequency == :quarter
       return {
         self             => start_val - (diff / 4 * 3),
         self + 3.months  => start_val - (diff / 4 * 2),
@@ -10,15 +10,14 @@ class Date
         self + 9.months  => start_val
       }
     end
-
-    if (source_frequency == 'quarter' or source_frequency == :quarter) and target_frequency == :month
+    if source_frequency.to_sym == :quarter && target_frequency == :month
       return {
         self             => start_val - (diff / 3 * 2),
         self + 1.month   => start_val - (diff / 3),
         self + 1.months  => start_val
       }
     end
-    if (source_frequency == 'month' or source_frequency == :month) and target_frequency == :day
+    if source_frequency.to_sym == :month && target_frequency == :day
       num_days = self.days_in_month
       data = {}
       (1..num_days).each do |days_back|

@@ -78,7 +78,7 @@ module SeriesInterpolation
         raise InterpolationException
       end
 
-      self.data.each do |date, val|
+      data.each do |date, val|
         month_vals.each {|month| new_series_data[Date.new(date.year, month)] = val }
       end
     else
@@ -124,7 +124,7 @@ module SeriesInterpolation
               else raise("pseudo_centered_spline_interpolation from #{self.frequency} to #{frequency} not supported")
               end
 
-    self.data.sort.each do |date, val|
+    data.sort.each do |date, val|
       #first period only
       if last_date.nil?
         last_date = date
@@ -162,10 +162,9 @@ module SeriesInterpolation
       last_val = val
       last_date = date
     end
-    new_transformation("Interpolated (linear match last) from #{self.name}", new_series_data, frequency)
+    new_transformation("Interpolated (linear match last) from #{self}", new_series_data, frequency)
   end
-  
-  
+
   def census_interpolate(frequency)
     raise AggregationException if frequency != :quarter and self.frequency != 'year'
     quarterly_data = {}
@@ -242,7 +241,7 @@ module SeriesInterpolation
     previous_data_val = nil
     previous_year = nil
     last_diff = nil
-    self.data.sort.each do |key,val|
+    data.sort.each do |key, val|
       if previous_data_val.nil?
         previous_data_val = val
         previous_year = key
