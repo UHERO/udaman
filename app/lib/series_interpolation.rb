@@ -156,13 +156,31 @@ module SeriesInterpolation
     
     new_series_data = nil
     data_copy.each do |date, val|
-      diff = val - last_val
-      new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency, frequency) if new_series_data.nil?
-      new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency, frequency)
+      if new_series_data.nil?
+        new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency.to_sym, frequency)
+      end
+      new_series_data.merge! date.linear_path_to_previous_period(val, (val - last_val), self.frequency.to_sym, frequency)
       last_val = val
       last_date = date
     end
     new_transformation("Interpolated (linear match last) from #{self}", new_series_data, frequency)
+  end
+
+  ## not deployed yet
+  def daves_linear_interpolate_refactor(frequency)
+    raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
+                                      (frequency == :month and self.frequency == 'quarter') or
+                                      (frequency == :day and self.frequency == 'month')
+    last_date = first_observation
+    last_val = at(last_date)
+
+    interpol_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency.to_sym, frequency)
+    data.sort.each do |date, val|
+      next if date == last_date  ## skip first iteration, we already did it?
+      interpol_data.merge! date.linear_path_to_previous_period(val, (val - last_val), self.frequency.to_sym, frequency)
+      last_val = val
+    end
+    new_transformation("Interpolated (linear match last) from #{self}", interpol_data, frequency)
   end
 
   def census_interpolate(frequency)
