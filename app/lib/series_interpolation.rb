@@ -172,13 +172,12 @@ module SeriesInterpolation
     raise AggregationException unless (src_freq == :year && new_freq == :quarter) ||
                                       (src_freq == :quarter && new_freq == :month) ||
                                       (src_freq == :month && new_freq == :day)
-    last_date = first_observation
-    last_val = at(last_date)
-
-    interpol_data = last_date.linear_path_to_previous_period(last_val, 0, src_freq, new_freq)
+    last_val = nil
+    first_obs = first_observation  ## keep this call out of the loop
+    interpol_data = {}
     data.sort.each do |date, val|
-      next if date == last_date  ## skip first iteration? we already did it?
-      interpol_data.merge! date.linear_path_to_previous_period(val, (val - last_val), src_freq, new_freq)
+      diff = date == first_obs ? 0 : val - last_val
+      interpol_data.merge! date.linear_path_to_previous_period(val, diff, src_freq, new_freq)
       last_val = val
     end
     new_transformation("Interpolated (linear match last) from #{self}", interpol_data, new_freq)
