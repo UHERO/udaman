@@ -926,7 +926,7 @@ class Series < ApplicationRecord
 
     aremos_desc = AremosSeries.get(name).description rescue ''
     output = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
-    output += lm.month.to_s.rjust(34, ' ') + '/' + lm.day.to_s.rjust(2, ' ') + '/'  + lm.year.to_s[2..4]  ## should this be 2..4 or 2..3?
+    output += '%s/%s/%s' % [lm.month.to_s.rjust(34, ' '), lm.day.to_s.rjust(2, ' '), lm.year.to_s[2..3]]
     output += '0800'
     output += dates[0].tsd_start(frequency)
     output += dates[-1].tsd_end(frequency)
