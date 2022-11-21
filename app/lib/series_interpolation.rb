@@ -156,10 +156,9 @@ module SeriesInterpolation
     
     new_series_data = nil
     data_copy.each do |date, val|
-      if new_series_data.nil?
-        new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency.to_sym, frequency)
-      end
-      new_series_data.merge! date.linear_path_to_previous_period(val, (val - last_val), self.frequency.to_sym, frequency)
+      diff = val - last_val
+      new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency.to_sym, frequency) if new_series_data.nil?
+      new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency.to_sym, frequency)
       last_val = val
       last_date = date
     end
