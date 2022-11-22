@@ -183,16 +183,16 @@ module SeriesInterpolation
   end
 
   def linear_path_to_previous_period(date, start_val, diff, source_frequency, target_frequency)
-    data = {}
+    dpoints = {}
     if source_frequency == :year && target_frequency == :quarter
-      data = {
+      dpoints = {
         date             => start_val - (diff / 4 * 3),
         date + 3.months  => start_val - (diff / 4 * 2),
         date + 6.months  => start_val - (diff / 4),
         date + 9.months  => start_val
       }
     elsif source_frequency == :quarter && target_frequency == :month
-      data = {
+      dpoints = {
         date             => start_val - (diff / 3 * 2),
         date + 1.month   => start_val - (diff / 3),
         date + 1.months  => start_val
@@ -200,10 +200,10 @@ module SeriesInterpolation
     elsif source_frequency == :month && target_frequency == :day
       num_days = date.days_in_month
       (1..num_days).each do |days_back|
-        data[date + (days_back - 1).days] =  start_val - (diff / num_days * (num_days - days_back))
+        dpoints[date + (days_back - 1).days] =  start_val - (diff / num_days * (num_days - days_back))
       end
     end
-    data
+    dpoints
   end
 
   def census_interpolate(frequency)
