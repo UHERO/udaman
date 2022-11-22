@@ -168,18 +168,42 @@ module SeriesInterpolation
   ## not deployed yet
   def daves_linear_interpolate_refactor(new_freq)
     src_freq = frequency.to_sym
-    raise AggregationException unless (src_freq == :year && new_freq == :quarter) ||
-                                      (src_freq == :quarter && new_freq == :month) ||
-                                      (src_freq == :month && new_freq == :day)
+    raise "Cannot interpolate #{src_freq} to #{new_freq}" unless (src_freq == :year && new_freq == :quarter) ||
+                                                                 (src_freq == :quarter && new_freq == :month) ||
+                                                                 (src_freq == :month && new_freq == :day)
     last_val = nil
     first_obs = first_observation  ## keep this call out of the loop
     interpol_data = {}
     data.sort.each do |date, val|
       diff = date == first_obs ? 0 : val - last_val
-      interpol_data.merge! date.linear_path_to_previous_period(val, diff, src_freq, new_freq)
+      interpol_data.merge! linear_path_to_previous_period(date, val, diff, src_freq, new_freq)
       last_val = val
     end
     new_transformation("Interpolated (linear match last) from #{self}", interpol_data, new_freq)
+  end
+
+  def linear_path_to_previous_period(date, start_val, diff, source_frequency, target_frequency)
+    data = {}
+    if source_frequency == :year && target_frequency == :quarter
+      data = {
+        date             => start_val - (diff / 4 * 3),
+        date + 3.months  => start_val - (diff / 4 * 2),
+        date + 6.months  => start_val - (diff / 4),
+        date + 9.months  => start_val
+      }
+    elsif source_frequency == :quarter && target_frequency == :month
+      data = {
+        date             => start_val - (diff / 3 * 2),
+        date + 1.month   => start_val - (diff / 3),
+        date + 1.months  => start_val
+      }
+    elsif source_frequency == :month && target_frequency == :day
+      num_days = date.days_in_month
+      (1..num_days).each do |days_back|
+        data[date + (days_back - 1).days] =  start_val - (diff / num_days * (num_days - days_back))
+      end
+    end
+    data
   end
 
   def census_interpolate(frequency)
