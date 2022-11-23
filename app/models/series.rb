@@ -876,18 +876,16 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  def tsd_date_range
+  def tsd_date_range(start_date, end_date)
     freq = frequency
     multiplier = 1
     if freq == 'quarter' || freq == 'semi'
       multiplier = freq_per_freq(:month, freq)
-      freq = 'month'  ## this assignment must come after, eh?
+      freq = 'month'  ## this assignment must come second, eh?
     end
 
     offset = 0
     dates = []
-    start_date = first_observation
-    end_date = last_observation
     begin
       next_date = start_date + (offset * multiplier).send(freq)
       dates.push(next_date)
@@ -898,7 +896,8 @@ class Series < ApplicationRecord
 
   def to_tsd
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
-    dates = data.keys.sort
+    start_date = first_observation
+    end_date = last_observation
     
     #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = case frequency
@@ -906,14 +905,14 @@ class Series < ApplicationRecord
                    when 'day'  then '0         1111111'
                    else             '0                '
                    end
-    day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
+    day_switches[10 + start_date.wday] = '1' if frequency == 'week'
 
     aremos_desc = AremosSeries.get(name).description rescue ''
     output = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
     output += '%s/%s/%s' % [lm.month.to_s.rjust(34, ' '), lm.day.to_s.rjust(2, ' '), lm.year.to_s[2..3]]
     output += '0800'
-    output += dates[0].tsd_start(frequency)
-    output += dates[-1].tsd_end(frequency)
+    output += start_date.tsd_start(frequency)
+    output += end_date.tsd_end(frequency)
     output += frequency_code + '  '
     output += day_switches
     output += "\r\n"
@@ -923,7 +922,7 @@ class Series < ApplicationRecord
       sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
 
-    tsd_date_range.each_with_index do |date, i|
+    tsd_date_range(start_date, end_date).each_with_index do |date, i|
       value = sci_data[date] || '1.000000E+0015'
       output += value.to_s.rjust(15, ' ')
       output += "     \r\n" if (i + 1) % 5 == 0
