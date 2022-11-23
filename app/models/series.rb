@@ -881,7 +881,7 @@ class Series < ApplicationRecord
     multiplier = 1
     if freq == 'quarter' || freq == 'semi'
       freq = 'month'
-      multiplier = freq_per_freq(freq, :month)
+      multiplier = freq_per_freq(:month, freq)
     end
 
     offset = 0
