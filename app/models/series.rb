@@ -876,7 +876,7 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  def date_range
+  def tsd_date_range
     freq = frequency
     multiplier = 1
     if freq == 'quarter' || freq == 'semi'
@@ -923,7 +923,7 @@ class Series < ApplicationRecord
       sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
 
-    date_range.each_with_index do |date, i|
+    tsd_date_range.each_with_index do |date, i|
       value = sci_data[date] || '1.000000E+0015'
       output += value.to_s.rjust(15, ' ')
       output += "     \r\n" if (i + 1) % 5 == 0
