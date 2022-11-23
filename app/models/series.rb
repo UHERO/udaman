@@ -877,8 +877,6 @@ class Series < ApplicationRecord
   end
 
   def date_range
-    start_date = first_observation
-    end_date = last_observation
     freq = frequency
     multiplier = 1
     if freq == 'quarter' || freq == 'semi'
@@ -886,8 +884,10 @@ class Series < ApplicationRecord
       multiplier = freq_per_freq(freq, :month)
     end
 
-    dates = []
     offset = 0
+    dates = []
+    start_date = first_observation
+    end_date = last_observation
     begin
       next_date = start_date + (offset * multiplier).send(freq)
       dates.push(next_date)
