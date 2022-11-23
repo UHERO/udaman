@@ -876,39 +876,23 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  def month_mult
-    case frequency.to_sym
-      when :year then 12
-      when :semi then 6
-      when :quarter then 3
-      when :month then 1
-      else raise("month_mult: no value defined for frequency #{frequency}")
-    end
-  end
-  
   def date_range
-    data_dates = data.keys.sort
-    start_date = data_dates[0]
-    end_date = data_dates[-1]
-    curr_date = start_date
+    start_date = first_observation
+    end_date = last_observation
+    freq = frequency
+    multiplier = 1
+    if freq == 'quarter' || freq == 'semi'
+      freq = 'month'
+      multiplier = freq_per_freq(freq, :month)
+    end
+
     dates = []
     offset = 0
-    
-    if frequency == 'day' or frequency == 'week'
-      day_multiplier = frequency == 'day' ? 1 : 7
-      begin
-        curr_date = start_date + offset * day_multiplier
-        dates.push(curr_date)
-        offset += 1
-      end while curr_date < end_date
-    else
-      month_multiplier = month_mult
-      begin
-        curr_date = start_date >> offset * month_multiplier
-        dates.push(curr_date)
-        offset += 1
-      end while curr_date < end_date
-    end
+    begin
+      next_date = start_date + (offset * multiplier).send(freq)
+      dates.push(next_date)
+      offset += 1
+    end while next_date < end_date
     dates
   end
 
