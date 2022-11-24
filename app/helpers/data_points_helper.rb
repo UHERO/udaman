@@ -10,15 +10,14 @@ module DataPointsHelper
   def dp_age_code(dp)
     days = (Time.now.to_date - dp.created_at.to_date).to_i
     months = (days / 30.0).round
-    age = case
-          when  days < 100 then '%02d' % days
-          when months < 10 then "#{months}m"
-          else
-            years = days / 365.0
-            years = (years % 1) < 0.80 ? years.to_i : years.to_i + 1
-            years = 1 if years == 0
-            "#{years}y"
-          end
-    age + ('(ph)' if dp.pseudo_history?).to_s
+    case
+    when  days < 100 then '%02d' % days
+    when months < 10 then "#{months}m"
+    else
+      years = days / 365.0
+      years = (years % 1) < 0.80 ? years.to_i : years.to_i + 1
+      years = 1 if years == 0
+      "#{years}y"
+    end
   end
 end
