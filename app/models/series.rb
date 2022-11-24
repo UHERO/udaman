@@ -926,7 +926,7 @@ class Series < ApplicationRecord
       value = sci_data[date] || '1.000000E+0015'
       output += value.to_s.rjust(15, ' ')
       output += "     \r\n" if (i + 1) % 5 == 0
-    end    
+    end
     space_padding = 80 - output.split("\r\n")[-1].length
     space_padding == 0 ? output : output + (' ' * space_padding) + "\r\n"
   end
