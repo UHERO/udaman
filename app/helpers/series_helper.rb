@@ -159,19 +159,6 @@ module SeriesHelper
     words.join(' ')
   end
   
-  def aremos_color(diff)
-#    diff = (val - aremos_val).abs
-    mult = 5000
-    gray = "99"
-    red = (gray.hex + diff * mult).to_i
-    green = (gray.hex - diff * mult).to_i
-    blue = (gray.hex - diff * mult).to_i
-    red = 255 if red > 255
-    green = 20 if green < 20 
-    blue = 20 if blue < 20
-    "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
-  end
-
   def make_hyperlink(url, text = url)
     return text if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
