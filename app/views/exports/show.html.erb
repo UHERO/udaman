@@ -20,6 +20,7 @@
   <table class="list_table">
     <thead>
     <tr>
+      <th><%= link_to sorthead('Order'), { action: :show, id: @export.id, sortby: 'order', dir: sortdir('order') } %></th>
       <th><%= link_to sorthead('Name'), { action: :show, id: @export.id, sortby: 'name', dir: sortdir('name') } %></th>
       <th>SA</th>
       <th>Portal Name</th>
@@ -36,6 +37,7 @@
       <% series = exp_s[:series] %>
       <% row += 1 %>
       <tr class="row<%= row % 2 %>">
+        <td><%= exp_s[:order] %></td>
         <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fas fa-ban redban" title="restricted"></i><% end %></td>
         <td><%= sa_indicator(series.seasonal_adjustment) %></td>
         <td><%= series.dataPortalName %></td>
