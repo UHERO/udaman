@@ -65,6 +65,10 @@ class Series < ApplicationRecord
     data.reject {|_,val| val.nil? }.keys.sort[-1] rescue nil
   end
 
+  def observation_count
+    data.reject {|_,val| val.nil? }.count
+  end
+
   def Series.get_all_uhero
     Series.get_all_universe('UHERO')
   end
@@ -393,6 +397,10 @@ class Series < ApplicationRecord
 
   def frequency_from_name
     Series.frequency_from_name(self.name)
+  end
+
+  def frequency_code
+    Series.code_from_frequency(self.frequency)
   end
 
   def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
@@ -868,54 +876,65 @@ class Series < ApplicationRecord
     dd / (units || 1.0)
   end
 
-  def observation_count
-    observations = 0
-    data.each do |_, value|
-      observations += 1 unless value.nil?
+  def tsd_date_range(start_date, end_date)
+    freq = frequency
+    multiplier = 1
+    if freq == 'quarter' || freq == 'semi'
+      multiplier = freq_per_freq(:month, freq)
+      freq = 'month'  ## this assignment must come second, eh?
     end
-    observations
+
+    offset = 0
+    dates = []
+    begin
+      next_date = start_date + (offset * multiplier).send(freq)
+      dates.push(next_date)
+      offset += 1
+    end while next_date < end_date
+    dates
   end
 
-  def month_mult
-    case frequency.to_sym
-      when :year then 12
-      when :semi then 6
-      when :quarter then 3
-      when :month then 1
-      else raise("month_mult: no value defined for frequency #{frequency}")
-    end
-  end
-  
-  def date_range
-    data_dates = self.data.keys.sort
-    start_date = data_dates[0]
-    end_date = data_dates[-1]
-    curr_date = start_date
-    dates = []
-    offset = 0
+  def to_tsd
+    lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
+    start_date = first_observation
+    end_date = last_observation
     
-    if frequency == 'day' or frequency == 'week'
-      day_multiplier = frequency == 'day' ? 1 : 7
-      begin
-        curr_date = start_date + offset * day_multiplier
-        dates.push(curr_date)
-        offset += 1
-      end while curr_date < end_date
-    else
-      month_multiplier = month_mult
-      begin
-        curr_date = start_date>>offset*month_multiplier
-        dates.push(curr_date)
-        offset += 1
-      end while curr_date < end_date
+    #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
+    day_switches = case frequency
+                   when 'week' then '0         0000000'
+                   when 'day'  then '0         1111111'
+                   else             '0                '
+                   end
+    day_switches[10 + start_date.wday] = '1' if frequency == 'week'
+
+    aremos_desc = AremosSeries.get(name).description rescue ''
+    output = name_no_freq.ljust(16, ' ') + aremos_desc.ljust(64, ' ') + "\r\n"
+    output += '%s/%s/%s' % [lm.month.to_s.rjust(34, ' '), lm.day.to_s.rjust(2, ' '), lm.year.to_s[2..3]]
+    output += '0800'
+    output += start_date.tsd_start(frequency)
+    output += end_date.tsd_end(frequency)
+    output += frequency_code + '  '
+    output += day_switches
+    output += "\r\n"
+
+    sci_data = {}
+    data.each do |date, _|
+      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
     end
-    dates
+
+    tsd_date_range(start_date, end_date).each_with_index do |date, i|
+      value = sci_data[date] || '1.000000E+0015'
+      output += value.to_s.rjust(15, ' ')
+      output += "     \r\n" if (i + 1) % 5 == 0
+    end
+    space_padding = 80 - output.split("\r\n")[-1].length
+    space_padding == 0 ? output : output + (' ' * space_padding) + "\r\n"
   end
 
   def Series.run_tsd_exports(files = nil, out_path = nil, in_path = nil)
     ## This routine assumes DATA_PATH is the same on both prod and worker, but this is probly a safe bet
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
-     in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
+    in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
     ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
     nas_path = 'udaman@uheronas:/volume1/UHEROroot/work/udamandata'
 
@@ -949,37 +968,6 @@ class Series < ApplicationRecord
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
-  def to_tsd
-    lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
-    dps = data
-    dates = dps.keys.sort
-    
-    #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
-    day_switches = '0                '
-    day_switches = '0         0000000'     if frequency == 'week'
-    day_switches[10 + dates[0].wday] = '1' if frequency == 'week'
-    day_switches = '0         1111111'     if frequency == 'day'
-
-    aremos_desc = AremosSeries.get(name).description rescue ''
-    data_string = "#{name_no_freq.ljust(16, ' ')}#{aremos_desc.to_s.ljust(64, ' ')}\r\n"
-    data_string += "#{lm.month.to_s.rjust(34, ' ')}/#{lm.day.to_s.rjust(2, ' ')}/#{lm.year.to_s[2..4]}0800#{dates[0].tsd_start(frequency)}#{dates[-1].tsd_end(frequency)}#{Series.code_from_frequency frequency}  #{day_switches}\r\n"
-    sci_data = {}
-    
-    dps.each do |date, _|
-      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
-    end
-
-    dates = date_range
-    dates.each_index do |i|
-      date = dates[i]
-      dp_string = sci_data[date].nil? ? '1.000000E+0015'.rjust(15, ' ') : sci_data[date].to_s.rjust(15, ' ')
-      data_string += dp_string
-      data_string += "     \r\n" if (i + 1) % 5 == 0
-    end    
-    space_padding = 80 - data_string.split("\r\n")[-1].length
-    space_padding == 0 ? data_string : data_string + ' ' * space_padding + "\r\n"
-  end
-
   ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
   ### Or not.... maybe just leave it because it might be useful again, who knows.
   def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
@@ -1002,7 +990,7 @@ class Series < ApplicationRecord
 
   def reload_sources(nightly: false, clear_first: false)
     series_success = true
-    self.data_sources_by_last_run.each do |ds|
+    data_sources_by_last_run.each do |ds|
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
