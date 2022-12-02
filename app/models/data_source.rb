@@ -155,6 +155,11 @@ class Loader < ApplicationRecord
       my_color
     end
 
+    def is_history?
+      type = loader_type
+      type == :history || type == :pseudo_history
+    end
+
     def set_color!(color = find_my_color)
       self.update_attributes!(color: color)
       self
@@ -241,6 +246,7 @@ class Loader < ApplicationRecord
     end
 
     def reset(clear_cache = true)
+      self.update_attributes!(last_error: nil, last_error_at: nil)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
             last_file_vers_used: DateTime.new(1970), ## the column default value, 1 Jan 1970
