@@ -9,8 +9,8 @@ module SeriesInterpolation
   end
   
   def extend_first_back_to(date)
-    first_data_point_date = self.first_observation
-    first_data_point_val = self.at(first_data_point_date)
+    first_data_point_date = first_observation
+    first_data_point_val = at(first_data_point_date)
 
     offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = first_data_point_date - offset.months
@@ -25,8 +25,8 @@ module SeriesInterpolation
   
   def extend_last_fwd_to_match(series_name)
     last_data_point_date = series_name.ts.last_observation rescue raise("Series #{series_name} does not exist")
-    current_last_data_point = self.last_observation
-    last_data_point_val = self.at(current_last_data_point)
+    current_last_data_point = last_observation
+    last_data_point_val = at(current_last_data_point)
 
     offset = freq_per_freq(:month, frequency) || raise("Cannot handle frequency #{frequency}")
     new_date = current_last_data_point + offset.months
@@ -78,7 +78,7 @@ module SeriesInterpolation
         raise InterpolationException
       end
 
-      self.data.each do |date, val|
+      data.each do |date, val|
         month_vals.each {|month| new_series_data[Date.new(date.year, month)] = val }
       end
     else
@@ -124,7 +124,7 @@ module SeriesInterpolation
               else raise("pseudo_centered_spline_interpolation from #{self.frequency} to #{frequency} not supported")
               end
 
-    self.data.sort.each do |date, val|
+    data.sort.each do |date, val|
       #first period only
       if last_date.nil?
         last_date = date
@@ -157,15 +157,55 @@ module SeriesInterpolation
     new_series_data = nil
     data_copy.each do |date, val|
       diff = val - last_val
-      new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency, frequency) if new_series_data.nil?
-      new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency, frequency)
+      new_series_data = last_date.linear_path_to_previous_period(last_val, 0, self.frequency.to_sym, frequency) if new_series_data.nil?
+      new_series_data.merge! date.linear_path_to_previous_period(val, diff, self.frequency.to_sym, frequency)
       last_val = val
       last_date = date
     end
-    new_transformation("Interpolated (linear match last) from #{self.name}", new_series_data, frequency)
+    new_transformation("Interpolated (linear match last) from #{self}", new_series_data, frequency)
   end
-  
-  
+
+  ## not deployed yet
+  def daves_linear_interpolate_refactor(new_freq)
+    src_freq = frequency.to_sym
+    raise "Cannot interpolate #{src_freq} to #{new_freq}" unless (src_freq == :year && new_freq == :quarter) ||
+                                                                 (src_freq == :quarter && new_freq == :month) ||
+                                                                 (src_freq == :month && new_freq == :day)
+    last_val = nil
+    first_obs = first_observation  ## keep this call out of the loop
+    interpol_data = {}
+    data.sort.each do |date, val|
+      diff = date == first_obs ? 0 : val - last_val
+      interpol_data.merge! linear_path_to_previous_period(date, val, diff, src_freq, new_freq)
+      last_val = val
+    end
+    new_transformation("Interpolated (linear match last) from #{self}", interpol_data, new_freq)
+  end
+
+  def linear_path_to_previous_period(date, start_val, diff, source_frequency, target_frequency)
+    dpoints = {}
+    if source_frequency == :year && target_frequency == :quarter
+      dpoints = {
+        date             => start_val - (diff / 4 * 3),
+        date + 3.months  => start_val - (diff / 4 * 2),
+        date + 6.months  => start_val - (diff / 4),
+        date + 9.months  => start_val
+      }
+    elsif source_frequency == :quarter && target_frequency == :month
+      dpoints = {
+        date             => start_val - (diff / 3 * 2),
+        date + 1.month   => start_val - (diff / 3),
+        date + 1.months  => start_val
+      }
+    elsif source_frequency == :month && target_frequency == :day
+      num_days = date.days_in_month
+      (1..num_days).each do |days_back|
+        dpoints[date + (days_back - 1).days] =  start_val - (diff / num_days * (num_days - days_back))
+      end
+    end
+    dpoints
+  end
+
   def census_interpolate(frequency)
     raise AggregationException if frequency != :quarter and self.frequency != 'year'
     quarterly_data = {}
@@ -242,7 +282,7 @@ module SeriesInterpolation
     previous_data_val = nil
     previous_year = nil
     last_diff = nil
-    self.data.sort.each do |key,val|
+    data.sort.each do |key, val|
       if previous_data_val.nil?
         previous_data_val = val
         previous_year = key

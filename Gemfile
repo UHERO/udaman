@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'rails', '~> 5.2', '>= 5.2.6'
+gem 'rails', '~> 5.2', '>= 5.2.8.1'
 gem 'bundler', '>= 1.8.4'
 
 # Application Monitoring
@@ -29,7 +29,7 @@ gem 'watir', '~> 6.11', '>= 6.11.0'
 gem 'whenever'
 gem 'mechanize', '>= 2.7.5'
 gem 'net-sftp'
-gem 'dalli', '~> 2.7'
+gem 'dalli', '~> 3.2'
 gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.org'
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1.1', '>= 3.1.5'

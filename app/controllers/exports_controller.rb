@@ -11,14 +11,15 @@ class ExportsController < ApplicationController
   end
 
   def show
-    @export_series = @export.series.map do |s|
+    @export_series = @export.export_series.map do |es|
+      s = es.series
       data_points = DataPoint.where(xseries_id: s.xseries_id)
       first = data_points.minimum(:date)
        last = data_points.maximum(:date)
       source = s.source.description rescue ''
-      { series: s, name: s.name, first: first, last: last, source: source }
+      { series: s, name: s.name, first: first, last: last, source: source, order: es.list_order + 1 }
     end
-    sortby = (params[:sortby] || 'last').to_sym
+    sortby = (params[:sortby] || 'order').to_sym
     @dir = params[:dir] || 'up'
     @export_series.sort! do |a, b|
       a_sort = a[sortby] || Date.new(1000, 1, 1)  ## this assumes that :first and :last are the only fields that would
@@ -35,7 +36,7 @@ class ExportsController < ApplicationController
   end
 
   def show_table
-    @series_to_chart = @export.series.pluck(:name)
+    @series_to_chart = @export.export_series.sort_by {|es| es.list_order }.map {|es| es.series }.pluck(:name)
     if @series_to_chart.length > 0
       @start_date = 0
       @end_date = 9999

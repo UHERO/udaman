@@ -13,24 +13,10 @@ module UpdateCore
     @headers ||= read_headers
   end
 
-  def headers_with_frequency_code
-    return self.headers.keys if self.headers.keys[0].split('.').count == 2
-    return_array = Array.new
-    frequency_code = ''
-    frequency_code = '.A' if self.frequency == :year
-    frequency_code = '.M' if self.frequency == :month
-    frequency_code = '.Q' if self.frequency == :quarter
-    frequency_code = '.S' if self.frequency == :semi
-    frequency_code = '.W' if self.frequency == :week
-    
-    arr = self.headers.sort {|a,b| a[1]<=>b[1]}
-    arr.each do |elem|
-      header_name = elem[0]
-      return_array.push(header_name + frequency_code) unless header_name.nil?
-    end
-    return_array
+  def header_strings
+    headers.keys
   end
-  
+
   def frequency
     @frequency ||= date_frequency
   end

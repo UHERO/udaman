@@ -56,12 +56,33 @@ module SeriesHelper
     output = ''
     series_set.each do |s|
       begin
-        output += s.tsd_string
+        output += s.to_tsd
       rescue => e
-        Rails.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
+        Rails.logger.error { "series_data_tsd_gen: to_tsd conversion failure for #{s}: #{e.message}" }
       end
     end
     output
+  end
+
+  def do_csv2tsd_convert(upfilepath)
+    tmpfile_rel = File.join('tmp', upfilepath.original_filename)
+    tmpfile_full = File.join(ENV['DATA_PATH'], tmpfile_rel)
+    series_set = []
+    begin
+      File.open(tmpfile_full, 'wb') {|f| f.write(upfilepath.read) }
+      csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile_rel)
+      csv.header_strings.each do |name|
+        s = name.tsn.load_from(tmpfile_rel)
+        s.name = name
+        series_set.push(s)
+      end
+    rescue StandardError => e
+      Rails.logger.error e.message
+      raise e.message
+    ensure
+      File.unlink(tmpfile_full)
+    end
+    series_data_tsd_gen(series_set)
   end
 
   def google_charts_data_table
