@@ -52,6 +52,7 @@ class DataSourcesController < ApplicationController
 
   def update
     ph_changed = (@data_source.pseudo_history? != data_source_params[:pseudo_history].to_bool)
+
     if @data_source.update!(data_source_params)
       @data_source.setup  ## in case the eval was changed
       if ph_changed
