@@ -3,6 +3,15 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :set_pseudo_history_field => :environment do
+  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.loader_type == :pseudo_history
+      ld.update!(pseudo_history: true)
+    end
+  end
+end
+
 task :rewrite_clustermap_loaders => :environment do
   Series.search_box('#api_clustermap').each do |s|
     s.enabled_data_sources.each do |ld|
