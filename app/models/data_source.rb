@@ -114,7 +114,6 @@ class DataSource < ApplicationRecord
       when /load_api/ then :api
       when /forecast/i then :forecast
       when /load_from_download/ then :download
-      when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this asap!
       when /load_[a-z_]*from.*history/i then :history
       when /load_[a-z_]*from/i then :manual
       else :other  ## this includes calculations/method calls
@@ -255,22 +254,6 @@ class DataSource < ApplicationRecord
         ResetWorker.perform_async  ## clear file cache on the worker Rails
         Rails.logger.warn { 'Rails file cache CLEARED' }
       end
-    end
-
-    def mark_as_pseudo_history
-      data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
-    end
-    
-    def mark_as_pseudo_history_before(date)
-      data_points.where("date < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
-    end
-
-    def unmark_as_pseudo_history
-      data_points.each {|dp| dp.update_attributes(:pseudo_history => false) }
-    end
-    
-    def unmark_as_pseudo_history_before(date)
-      data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
     end
 
     def current?
