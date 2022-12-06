@@ -484,10 +484,12 @@ class Series < ApplicationRecord
         :value => data[date],
         :created_at => now,
         :current => true,
+        :pseudo_history => source.pseudo_history,
         :data_source_id => source.id
       )
     end
-    aremos_comparison #if we can take out this save, might speed things up a little
+    ### I've decided to comment out following line bec I think we don't do this/care about this any more
+    ##aremos_comparison #if we can take out this save, might speed things up a little
     true
   end
 

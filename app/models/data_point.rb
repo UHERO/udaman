@@ -46,6 +46,7 @@ class DataPoint < ApplicationRecord
         date: self.date,
         data_source_id: upd_source.id,
         value: upd_value,
+        pseudo_history: upd_source.pseudo_history,
         current: false  ## will be set to true just below
       #  :created_at => now,
        # :updated_at => now
