@@ -261,7 +261,8 @@ class DataSource < ApplicationRecord
     end
 
     def mark_data_as_pseudo_history(value = true)
-      data_points.each {|dp| dp.update_attributes(pseudo_history: value) }
+      #data_points.each {|dp| dp.update_attributes(pseudo_history: value) }
+      data_points.update_all(pseudo_history: value)
     end
 
     def current?
