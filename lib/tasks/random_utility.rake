@@ -4,10 +4,12 @@
 =end
 
 task :set_pseudo_history_field => :environment do
+  color = DataSource.type_colors(:pseudo_history).shift
   Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
     s.data_sources.each do |ld|
       next unless ld.loader_type == :pseudo_history
-      ld.update_attributes!(pseudo_history: true)
+      puts "DOING >>> #{s}: #{ld.id} : #{ld.eval}"
+      ld.update_attributes!(pseudo_history: true, color: color)
     end
   end
 end
