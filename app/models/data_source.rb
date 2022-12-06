@@ -260,6 +260,10 @@ class DataSource < ApplicationRecord
       end
     end
 
+    def mark_data_as_pseudo_history(value = true)
+      data_points.each {|dp| dp.update_attributes(pseudo_history: value) }
+    end
+
     def current?
       self.series.current_data_points.each { |dp| return true if dp.data_source_id == self.id }
       return false
