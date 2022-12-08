@@ -5,8 +5,8 @@ class SeriesController < ApplicationController
   before_action :check_authorization, except: [:index]
   before_action :set_series,
         only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
-               :reload_all, :rename, :save_rename, :duplicate, :save_duplicate, :json_with_change, :show_forecast, :refresh_aremos,
-               :all_tsd_chart, :render_data_points, :update_notes]
+               :reload_all, :rename, :save_rename, :duplicate, :save_duplicate, :json_with_change, :show_forecast, :all_tsd_chart,
+               :render_data_points, :update_notes]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -304,11 +304,6 @@ class SeriesController < ApplicationController
 
   def json_with_change
     render :json => { :series => @series, :chg => @series.annualized_percentage_change}
-  end
-
-  def refresh_aremos
-    @series.aremos_comparison
-    redirect_to :action => 'show', id: params[:id]
   end
 
   def destroy
