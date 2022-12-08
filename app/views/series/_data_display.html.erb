@@ -1,7 +1,7 @@
 	<table>
-	<tr <%= 'style="background-color:red"' if @series.units > 1 %>>
+	<tr>
 		<td class="label">Units:</td>
-		<td><%= @series.units.to_s + '(s)' %></td>
+		<td <%= 'style="background-color:pink"'.html_safe if @series.units > 1 %>><%= @series.units.to_s + '(s)' %></td>
 	</tr>
 	<tr>
 		<td class="label">Data: </td>
