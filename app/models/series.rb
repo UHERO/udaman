@@ -900,8 +900,6 @@ class Series < ApplicationRecord
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
     start_date = first_observation
     end_date = last_observation
-    
-    #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = case frequency
                    when 'week' then '0         0000000'
                    when 'day'  then '0         1111111'
