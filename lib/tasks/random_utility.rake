@@ -9,6 +9,7 @@ task :set_pseudo_history_field => :environment do
   Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
     s.data_sources.each do |ld|
       next unless ld.loader_type == :pseudo_history
+      next if ld.pseudo_history?
       puts "DOING >>> #{s}: #{ld.id} : #{ld.eval}"
       ld.update_attributes!(pseudo_history: true, color: color)
       i += 1
