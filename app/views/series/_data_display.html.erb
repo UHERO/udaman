@@ -1,6 +1,7 @@
 	<table>
-	<tr>
-		<td class="label">Units:</td><td><%= @series.units.to_s + '(s)' %></td>
+	<tr <%= 'style="background-color:red"' if @series.units > 1 %>>
+		<td class="label">Units:</td>
+		<td><%= @series.units.to_s + '(s)' %></td>
 	</tr>
 	<tr>
 		<td class="label">Data: </td>
@@ -11,4 +12,3 @@
 		</td>
 	</tr>
 	</table>
-	
