@@ -3,6 +3,21 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :set_pseudo_history_field => :environment do
+  color = DataSource.type_colors(:pseudo_history).shift
+  i = 0
+  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.loader_type == :pseudo_history
+      next if ld.pseudo_history?
+      puts "DOING >>> #{s}: #{ld.id} : #{ld.eval}"
+      ld.update_attributes!(pseudo_history: true, color: color)
+      i += 1
+    end
+  end
+  puts "DONE #{i} CHANGES"
+end
+
 task :rewrite_clustermap_loaders => :environment do
   Series.search_box('#api_clustermap').each do |s|
     s.enabled_data_sources.each do |ld|
