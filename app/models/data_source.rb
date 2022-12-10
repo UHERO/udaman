@@ -116,14 +116,14 @@ class Loader < ApplicationRecord
       when /load_api/ then :api
       when /forecast/i then :forecast
       when /load_from_download/ then :download
-      when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this asap!
+      when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this after transition
       when /load_[a-z_]*from.*history/i then :history
       when /load_[a-z_]*from/i then :manual
       else :other  ## this includes calculations/method calls
       end
     end
 
-    def type_colors(type = loader_type)
+    def DataSource.type_colors(type)
       case type
       when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
       when :forecast then %w{FFA94E FFA500}    ## Oranges
@@ -136,11 +136,14 @@ class Loader < ApplicationRecord
       end
     end
 
+    def type_colors
+      DataSource.type_colors(loader_type)
+    end
+
     def find_my_color
-      my_type = loader_type
-      color_set = type_colors(my_type)
+      color_set = type_colors
       my_color = color_set[0]
-      same_type = colleagues.select {|l| l.loader_type == my_type }
+      same_type = colleagues.select {|l| l.loader_type == self.loader_type }
       unless same_type.empty?
         counts = color_set.map {|c| [c, same_type.select {|l| l.color == c }.count] }
         ### Cycle through the color_set as loaders of the same type are added
@@ -259,20 +262,8 @@ class Loader < ApplicationRecord
       end
     end
 
-    def mark_as_pseudo_history
-      data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
-    end
-    
-    def mark_as_pseudo_history_before(date)
-      data_points.where("date < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
-    end
-
-    def unmark_as_pseudo_history
-      data_points.each {|dp| dp.update_attributes(:pseudo_history => false) }
-    end
-    
-    def unmark_as_pseudo_history_before(date)
-      data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
+    def mark_data_as_pseudo_history(value = true)
+      data_points.update_all(pseudo_history: value)
     end
 
     def current?
@@ -281,7 +272,7 @@ class Loader < ApplicationRecord
     rescue
       return false
     end
-        
+
     def delete_data_points(from: nil)
       query = <<~MYSQL
         delete from data_points where data_source_id = ?

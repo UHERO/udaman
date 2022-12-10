@@ -51,8 +51,13 @@ class LoadersController < ApplicationController
   end
 
   def update
+    ph_changed = (@loader.pseudo_history? != loader_params[:pseudo_history].to_bool)
+
     if @loader.update!(loader_params)
       @loader.setup  ## in case the eval was changed
+      if ph_changed
+        @loader.mark_data_as_pseudo_history(@loader.pseudo_history?)
+      end
       create_action @loader, 'UPDATE'
       redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id
     else
