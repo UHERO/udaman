@@ -32,7 +32,7 @@ class Download < ApplicationRecord
     orphans = {}
     dl_set.each do |dl|
       next if dl.date_sensitive?  ## these Downloads will never be considered orphaned
-      next if DataSource.where('eval regexp ?', dl.handle).count > 0
+      next if Loader.where('eval regexp ?', dl.handle).count > 0
       orphans[dl.id] = 'orphaned'
     end
     orphans

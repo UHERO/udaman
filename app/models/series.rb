@@ -1159,7 +1159,7 @@ class Series < ApplicationRecord
           SELECT id, `name`, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
-      CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
+      CREATE TEMPORARY TABLE IF NOT EXISTS t_loaders (INDEX idx_series_id (series_id))
           SELECT id, series_id, dependencies FROM loaders WHERE universe = 'UHERO'
     SQL
     ActiveRecord::Base.connection.execute(<<~SQL)
@@ -1174,7 +1174,7 @@ class Series < ApplicationRecord
     Rails.logger.debug { "Assign_dependency_depth: at #{Time.now}: previous_depth=0 previous_depth_count=#{previous_depth_count}" }
     first_level_sql = <<~SQL
       UPDATE t_series s SET dependency_depth = 1
-      WHERE EXISTS (SELECT 1 FROM t_datasources WHERE `dependencies` LIKE CONCAT('% ', s.`name`, '%'));
+      WHERE EXISTS (SELECT 1 FROM t_loaders WHERE `dependencies` LIKE CONCAT('% ', s.`name`, '%'));
     SQL
     ActiveRecord::Base.connection.execute(first_level_sql)
     current_depth_count = Series.count_by_sql('SELECT count(*) FROM t_series WHERE dependency_depth = 1')
@@ -1191,7 +1191,7 @@ class Series < ApplicationRecord
       next_level_sql = <<~SQL
         UPDATE t_series s SET dependency_depth = #{previous_depth + 1}
         WHERE EXISTS (
-          SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
+          SELECT 1 FROM t_loaders ds JOIN t2_series ON ds.series_id = t2_series.id
           WHERE t2_series.dependency_depth = #{previous_depth}
           AND ds.`dependencies` LIKE CONCAT('% ', REPLACE(s.`name`, '%', '\\%'), '%')
         );
