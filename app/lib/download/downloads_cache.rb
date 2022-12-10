@@ -5,14 +5,14 @@ class DownloadsCache
     @dload = nil
     @data_source = nil
     @evalhash = nil
-    ds_id = nil
+    ld_id = nil
     if options
-      ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
+      ld_id = options.delete(:loader)  ## get Loader id (if any) and also remove from options hash
       @evalhash = options.delete(:eval_hash)
       @skip_override = options.delete(:dont_skip) == 'true'
     end
-    if ds_id
-      @data_source = DataSource.find(ds_id) || raise("No definition with id='#{ds_id}' found")
+    if ld_id
+      @data_source = Loader.find(ld_id) || raise("No definition with id='#{ld_id}' found")
     end
   end
 

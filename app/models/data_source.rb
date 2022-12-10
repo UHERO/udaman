@@ -1,11 +1,11 @@
 class Loader < ApplicationRecord
   include Cleaning
-  include DataSourceHooks
+  include LoaderHooks
   include Validators
   require 'digest/md5'
   serialize :dependencies, Array
   
-  belongs_to :series, inverse_of: :data_sources
+  belongs_to :series, inverse_of: :loaders
   has_many :data_points, dependent: :delete_all
   has_many :loader_downloads, dependent: :delete_all
   has_many :downloads, -> {distinct}, through: :loader_downloads
@@ -87,12 +87,12 @@ class Loader < ApplicationRecord
 
 
     def Loader.set_all_dependencies
-      Rails.logger.info { 'DataSource set_all_dependencies: start' }
+      Rails.logger.info { 'Loader set_all_dependencies: start' }
       Loader.get_all_uhero.find_each(batch_size: 50) do |ds|
-        Rails.logger.debug { "DataSource set_all_dependencies: for #{ds.description}" }
+        Rails.logger.debug { "Loader set_all_dependencies: for #{ds.description}" }
         ds.set_dependencies!
       end
-      Rails.logger.info { 'DataSource set_all_dependencies: done' }
+      Rails.logger.info { 'Loader set_all_dependencies: done' }
       return 0
     end
 
@@ -107,7 +107,7 @@ class Loader < ApplicationRecord
 
     ## Other loaders for my series, not including me
     def colleagues
-      series.enabled_data_sources.reject {|d| d.id == self.id }
+      series.enabled_loaders.reject {|d| d.id == self.id }
     end
 
     def loader_type
@@ -123,7 +123,7 @@ class Loader < ApplicationRecord
       end
     end
 
-    def DataSource.type_colors(type)
+    def Loader.type_colors(type)
       case type
       when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
       when :forecast then %w{FFA94E FFA500}    ## Oranges
@@ -137,7 +137,7 @@ class Loader < ApplicationRecord
     end
 
     def type_colors
-      DataSource.type_colors(loader_type)
+      Loader.type_colors(loader_type)
     end
 
     def find_my_color
@@ -203,7 +203,7 @@ class Loader < ApplicationRecord
         if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
-          eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
+          eval_stmt.sub!(OPTIONS_MATCHER, options.merge(loader: id,
                                                       eval_hash: hash.to_s,
                                                       dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
                                                 ## if more keys are added to this merge, add them to Series.display_options()
@@ -250,7 +250,7 @@ class Loader < ApplicationRecord
 
     def reset(clear_cache = true)
       self.update_attributes!(last_error: nil, last_error_at: nil)
-      self.data_source_downloads.each do |dsd|
+      self.loader_downloads.each do |dsd|
         dsd.update_attributes(
             last_file_vers_used: DateTime.new(1970), ## the column default value, 1 Jan 1970
             last_eval_options_used: nil)
@@ -267,7 +267,7 @@ class Loader < ApplicationRecord
     end
 
     def current?
-      self.series.current_data_points.each { |dp| return true if dp.data_source_id == self.id }
+      self.series.current_data_points.each { |dp| return true if dp.loader_id == self.id }
       return false
     rescue
       return false
@@ -275,7 +275,7 @@ class Loader < ApplicationRecord
 
     def delete_data_points(from: nil)
       query = <<~MYSQL
-        delete from data_points where data_source_id = ?
+        delete from data_points where loader_id = ?
       MYSQL
       bindvars = [id]
       if from
@@ -324,7 +324,7 @@ class Loader < ApplicationRecord
     ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
     Loader.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query
     results = Loader.connection.execute(<<~MYSQL)
-      select last_error, series_id, count(*) from data_sources
+      select last_error, series_id, count(*) from loaders
       where universe = 'UHERO'
       and not disabled
       and last_error is not null
@@ -338,10 +338,10 @@ class Loader < ApplicationRecord
   # The mass_update_eval_options method is not called from within the codebase, because it is mainly intended
   # to be called from the Rails command line, by a developer doing mass updates to the database.
   #
-  # The +change_set+ parameter is a collection or array of DataSource objects to be changed.
+  # The +change_set+ parameter is a collection or array of Loader objects to be changed.
   #
   # The +replace_options+ parameter is a hash representing the changes that should be made to the
-  #   options hash in each DataSource (DS) in the change_set. The members of the replace_options hash
+  #   options hash in each Loader in the change_set. The members of the replace_options hash
   #   may be one of the following three kinds. A key in +replace_options+ which:
   #     * Also EXISTS in the current options hash of the DS, will cause that entry in the DS hash to be replaced.
   #     * DOES NOT yet exist in the current options hash of the DS, will cause that entry to be added to the DS hash.
@@ -396,11 +396,11 @@ class Loader < ApplicationRecord
   # BE CAREFUL! Always check changes carefully by doing dry runs before committing to the database!
   #
   def Loader.mass_update_eval_options(change_set, replace_options, commit = false)
-    change_set.each do |ds|
+    change_set.each do |ldr|
       begin
-        options = (ds.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
+        options = (ldr.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
         unless options
-          raise "Definition id=#{ds.id} eval string does not contain a valid options hash"
+          raise "Definition id=#{ldr.id} eval string does not contain a valid options hash"
         end
         replace_options.each do |key, value|
           if value.nil?
@@ -412,9 +412,9 @@ class Loader < ApplicationRecord
         end
         opt_string = options.to_s
         if commit
-          ds.update_attributes(
-              eval: ds.eval.sub(OPTIONS_MATCHER, opt_string),
-              description: ds.description.sub(OPTIONS_MATCHER, opt_string))
+          ldr.update_attributes(
+              eval: ldr.eval.sub(OPTIONS_MATCHER, opt_string),
+              description: ldr.description.sub(OPTIONS_MATCHER, opt_string))
         end
         puts opt_string
       rescue

@@ -78,8 +78,8 @@ module SeriesRelationship
   # explicitly given in the load statement itself.
   def Series.who_depends_on(name, attrs = [:name], universe = 'UHERO')
     name_match = '[[:<:]]' + name.gsub('%','\%') + '[[:>:]]'
-    DataSource
-      .where('data_sources.universe = ? and data_sources.description RLIKE ?', universe, name_match)
+    Loader
+      .where('loaders.universe = ? and loaders.description RLIKE ?', universe, name_match)
       .joins(:series)
       .pluck(*attrs)
       .uniq
