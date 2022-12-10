@@ -1,5 +1,5 @@
-class DataSourceAction < ApplicationRecord
+class LoaderAction < ApplicationRecord
   belongs_to :series
   belongs_to :user
-  belongs_to :data_source
+  belongs_to :loader
 end

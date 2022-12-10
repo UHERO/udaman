@@ -1,10 +1,9 @@
-class DataSourceDownload < ApplicationRecord
-  belongs_to :data_source
+class LoaderDownload < ApplicationRecord
+  belongs_to :loader
   belongs_to :download
 
-  def DataSourceDownload.get_or_new(ds_id, dl_id)
-    DataSourceDownload.find_by(data_source_id: ds_id, download_id: dl_id) ||
-    DataSourceDownload.create(data_source_id: ds_id, download_id: dl_id)
+  def LoaderDownload.get_or_new(ldr_id, dl_id)
+    LoaderDownload.find_by(loader_id: ldr_id, download_id: dl_id) || LoaderDownload.create(loader_id: ldr_id, download_id: dl_id)
   end
 
 end

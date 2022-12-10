@@ -1,2 +1,2 @@
-module DataSourcesHelper
+module LoadersHelper
 end

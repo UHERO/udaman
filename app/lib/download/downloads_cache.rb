@@ -32,7 +32,7 @@ class DownloadsCache
       ## Now, figure out if we can skip over this source entirely because it hasn't changed.
       if @data_source && skip_proc && !@skip_override
         bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
-        dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
+        dsd = @cache[:dsds][bridge_key] || LoaderDownload.get_or_new(@data_source.id, @dload.id)
         @cache[:dsds][bridge_key] = dsd
 
         skip = @dload.last_change_at <= dsd.last_file_vers_used && @evalhash == dsd.last_eval_options_used
