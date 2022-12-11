@@ -187,6 +187,22 @@ class DataSource < ApplicationRecord
       set_dependencies!
     end
 
+    def debug_reload_source(clear_first = clear_before_load?)
+      t = Time.now
+      eval_stmt = self['eval'].dup
+      if clear_first
+        delete_data_points
+      end
+      if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
+        options = Kernel::eval $1    ## reconstitute
+        hash = Digest::MD5.new << eval_stmt
+        eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
+                                                      eval_hash: hash.to_s,
+                                                      dont_skip: clear_first.to_s).to_s)
+      end
+      Kernel::eval eval_stmt
+    end
+
     def reload_source(clear_first = clear_before_load?)
       return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
