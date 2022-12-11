@@ -38,11 +38,6 @@ every 1.day, :at => '8:00 pm' do
   rake :reload_aremos
 end
 
-every 1.day, :at => '1:00 am' do
-  rake :update_seats_links
-  rake :update_vis_history_links
-end
-
 every 1.day, at: '7:40 pm' do
   rake :purge_old_stuff
 end
@@ -54,10 +49,6 @@ end
 
 every 1.day, :at => '3:00 am' do
   rake :reload_tour_ocup_series_only
-end
-
-every 1.day, :at => '5:30 am' do
-  rake :update_bea_links
 end
 
 every 1.day, :at => '6:00 am' do
