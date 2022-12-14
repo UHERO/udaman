@@ -114,7 +114,6 @@ class DataSource < ApplicationRecord
       when /load_api/ then :api
       when /forecast/i then :forecast
       when /load_from_download/ then :download
-      when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this after transition
       when /load_[a-z_]*from.*history/i then :history
       when /load_[a-z_]*from/i then :manual
       else :other  ## this includes calculations/method calls

@@ -3,6 +3,17 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :rewrite_clustermapping_method => :environment do
+  Series.search_box('#api_clustermap').each do |s|
+    ld = s.enabled_data_sources[0]
+    unless ld.eval =~ /:2019", *"(\d+)"/
+      raise "Failed to match load stmt for #{s}"
+    end
+    ld.update_attributes!(eval: 'Series.load_api_clusters(%d, "%s")' % [$1.to_i, s.geography.handle])
+    puts "DONE >>>> #{s}"
+  end
+end
+
 task :set_pseudo_history_field => :environment do
   color = DataSource.type_colors(:pseudo_history).shift
   i = 0
@@ -16,20 +27,6 @@ task :set_pseudo_history_field => :environment do
     end
   end
   puts "DONE #{i} CHANGES"
-end
-
-task :rewrite_clustermap_loaders => :environment do
-  Series.search_box('#api_clustermap').each do |s|
-    s.enabled_data_sources.each do |ld|
-      next unless ld.eval =~ /api_clustermap/
-      puts "Doing #{s}"
-      unless ld.eval =~ /:2019", *"(\d+)"/
-        puts "---------------->> FAIL: #{s} #{s.id}"
-        next
-      end
-      ld.update!(eval: 'Series.load_api_clusters(%d, "%s")' % [$1.to_i, s.geography.handle.upcase])
-    end
-  end
 end
 
 task :extend_clustermap_loaders => :environment do
