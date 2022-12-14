@@ -203,6 +203,12 @@ class SeriesController < ApplicationController
       return
     end
     @b64_search_str = helpers.url_encode(@search_string)
+    if params[:sortby]
+      # @sortby = params[:sortby] || 'name'
+      # @dir = params[:dir] || 'up'
+      # @all_series.sort! do |a, b|
+      # end
+    end
     render :index
   end
 
