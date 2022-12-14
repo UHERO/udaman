@@ -95,10 +95,6 @@ every :day, at: ['11:01 am', '12:01 pm', '1:01 pm', '2:01 pm', '3:01 pm', '4:01 
   rake :update_public_data_points
 end
 
-every :saturday, :at => '5:00 pm' do
-  rake :mark_pseudo_history
-end
-
 every :saturday, :at => '1:00 pm' do
   rake :export_kauai_dashboard
 end

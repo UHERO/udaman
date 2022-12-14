@@ -484,10 +484,12 @@ class Series < ApplicationRecord
         :value => data[date],
         :created_at => now,
         :current => true,
+        :pseudo_history => source.pseudo_history,
         :data_source_id => source.id
       )
     end
-    aremos_comparison #if we can take out this save, might speed things up a little
+    ### I've decided to comment out following line bec I think we don't do this/care about this any more
+    ##aremos_comparison #if we can take out this save, might speed things up a little
     true
   end
 
@@ -801,18 +803,6 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'M')
   end
 
-  def Series.load_api_clustermapping(dataset, parameters)
-    dhp = DataHtmlParser.new
-    series_data = dhp.get_clustermapping_series(dataset, parameters)
-    link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set from #{link} with parameters shown"
-    if series_data.empty?
-      name = "No data collected from #{link} - possibly redacted"
-    end
-    Series.new_transformation(name, series_data, 'A')
-  end
-
-  ## This is a replacement for Series.load_api_clustermapping, waiting to be deployed
   def Series.load_api_clusters(cluster_id, geo)
     dhp = DataHtmlParser.new
     series_data = dhp.get_cluster_series(cluster_id, geo)
@@ -898,8 +888,6 @@ class Series < ApplicationRecord
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
     start_date = first_observation
     end_date = last_observation
-    
-    #this could stand to be much more sophisticated and actually look at the dates. I think this will suffice, though - BT
     day_switches = case frequency
                    when 'week' then '0         0000000'
                    when 'day'  then '0         1111111'
@@ -1077,6 +1065,9 @@ class Series < ApplicationRecord
                           when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
                           when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
+                          when 'hasph'
+                            all = all.joins('inner join data_sources as l3 on l3.series_id = series.id and not(l3.disabled)')
+                            %q{l3.pseudo_history is true}  ## this cannot be negated for same reason '#' operator cannot
                           when 'noclip'
                             raise 'No user identified for clipboard access' if user.nil?
                             bindvars.push user.id.to_i

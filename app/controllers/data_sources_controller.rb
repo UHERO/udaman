@@ -51,8 +51,13 @@ class DataSourcesController < ApplicationController
   end
 
   def update
+    ph_changed = (@data_source.pseudo_history? != data_source_params[:pseudo_history].to_bool)
+
     if @data_source.update!(data_source_params)
       @data_source.setup  ## in case the eval was changed
+      if ph_changed
+        @data_source.mark_data_as_pseudo_history(@data_source.pseudo_history?)
+      end
       create_action @data_source, 'UPDATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     else
@@ -85,6 +90,7 @@ class DataSourcesController < ApplicationController
   end
 
 private
+
   def set_data_source
     @data_source = DataSource.find params[:id]
   end
@@ -93,15 +99,15 @@ private
       params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
-    def create_action(data_source, action)
-      DataSourceAction.create do |dsa|
-        dsa.data_source_id = data_source.id
-        dsa.series_id = data_source.series.id
-        dsa.user_id = current_user.id
-        dsa.user_email = current_user.email
-        dsa.eval = data_source.eval
-        dsa.priority = data_source.priority
-        dsa.action = action
-      end
+  def create_action(data_source, action)
+    DataSourceAction.create do |dsa|
+      dsa.data_source_id = data_source.id
+      dsa.series_id = data_source.series.id
+      dsa.user_id = current_user.id
+      dsa.user_email = current_user.email
+      dsa.eval = data_source.eval
+      dsa.priority = data_source.priority
+      dsa.action = action
     end
+  end
 end
