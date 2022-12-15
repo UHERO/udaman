@@ -1,7 +1,11 @@
 <table class="list_table">
   <thead>
   <tr>
-    <th><%= link_to sorthead('Name'), index_header_get_params('name') %></th>
+    <th>
+      <%= link_to sorthead('Name'), index_header_get_params('name') %> &middot;
+      <%= link_to sorthead('Geo'),  index_header_get_params('geo') %> &middot;
+      <%= link_to sorthead('Freq'), index_header_get_params('freq') %>
+    </th>
     <th><%= link_to sorthead('SA'), index_header_get_params('sa') %></th>
     <th><%= link_to sorthead('Portal Name'), index_header_get_params('portalname') %></th>
     <th>Units</th>
