@@ -5,7 +5,6 @@
 
 task :list_of_annual_aggs_from_sa => :environment do
   Series.search_box('.a #aggregate').each do |s|
-    puts "DOING >>>> #{s}"
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /aggregate/
       unless ld.eval =~ /^"(.+?)".ts/
@@ -14,7 +13,7 @@ task :list_of_annual_aggs_from_sa => :environment do
       end
       name = $1
       series = name.ts || raise("Series #{name} doesn't exist!")
-      if series.parse_name[:prefix] =~ /SA$/i || series.seasonal_adjustment == 'seasonally_adjusted'
+      if series.parse_name[:prefix] !~ /NS$/i || series.seasonal_adjustment == 'seasonally_adjusted'
         puts "FOUND #{s.id} #{s}"
       end
     end
