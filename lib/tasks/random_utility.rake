@@ -3,6 +3,22 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :list_of_annual_aggs_from_sa => :environment do
+  Series.search_box('.a #aggregate').each do |s|
+    puts "DOING >>>> #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /aggregate/
+      unless ld.eval =~ /^"(.+)".ts/
+        puts "--------------> unexpected load stmt #{ld.eval}"
+        next
+      end
+      series = $1.ts
+      next if series.name =~ /NS@/i || series.seasonal_adjustment == 'not_seasonally_adjusted'
+      puts "FOUND #{s}"
+    end
+  end
+end
+
 task :rewrite_clustermapping_method => :environment do
   Series.search_box('#api_clustermap').each do |s|
     ld = s.enabled_data_sources[0]
