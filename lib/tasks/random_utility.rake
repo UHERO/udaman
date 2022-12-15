@@ -9,13 +9,13 @@ task :list_of_annual_aggs_from_sa => :environment do
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /aggregate/
       unless ld.eval =~ /^"(.+?)".ts/
-        puts "--------------> unexpected load stmt #{ld.eval}"
+        puts "unexpected #{s.id} #{s} #{ld.eval}"
         next
       end
       name = $1
       series = name.ts || raise("Series #{name} doesn't exist!")
-      unless series.parse_name[:prefix] =~ /NS$/i && series.seasonal_adjustment == 'not_seasonally_adjusted'
-        puts "FOUND #{s}"
+      if series.parse_name[:prefix] =~ /SA$/i || series.seasonal_adjustment == 'seasonally_adjusted'
+        puts "FOUND #{s.id} #{s}"
       end
     end
   end
