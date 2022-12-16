@@ -186,7 +186,7 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
+    @all_series = create_index_structure( Series.get_all_uhero.order(created_at: :desc).limit(40) )
   end
 
   def autocomplete_search
@@ -196,37 +196,23 @@ class SeriesController < ApplicationController
 
   def new_search(search_string = nil)
     @search_string = search_string || helpers.url_decode(params[:search_string])
-    Rails.logger.info { "SEARCHLOG: user #{current_user.email} searched #{@search_string}" }
+    Rails.logger.info { "SEARCHLOG: user #{current_user.username} searched #{@search_string}" }
     all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if all_series.count == 1 && @search_string !~ /[+]1\b/
       redirect_to action: :show, id: all_series[0]
       return
     end
-    @all_series = all_series.map do |s|
-      name_parts = s.parse_name
-      { name: s.name,
-        geo: name_parts[:geo],
-        freq: name_parts[:freq_long].freqn,
-        sa: s.seasonal_adjustment,
-        portalname: s.dataPortalName,
-        unit_short: s.unit && s.unit.short_label,
-        long_short: s.unit && s.unit.long_label,
-        first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
-         last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
-        source_id: s.source && s.source.id,
-        source_desc: s.source && s.source.description
-      }
-    end
+    @all_series = create_index_structure(all_series)
     @b64_search_str = helpers.url_encode(@search_string)
     @sortby = params[:sortby]
     @dir = params[:dir] || 'up'
-    ## only bother sorting if not on 'name', as search_box() already sorts on name
+    ## Only bother sorting if other than 'name', as search_box() already sorts on name
     unless @sortby.blank? || @sortby == 'name'
       sortby = params[:sortby].to_sym
       @all_series.sort! do |a, b|
-        a_sort = a[sortby]
-        b_sort = b[sortby]
-        cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
+        #a_sort = a[sortby]
+        #b_sort = b[sortby]
+        cmp = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
         next cmp if cmp != 0  ## early return from yielded block
         @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
       end
@@ -436,6 +422,25 @@ private
 
   def set_series
     @series = Series.find params[:id]
+  end
+
+  def create_index_structure(series_list)
+    series_list.map do |s|
+      name_parts = s.parse_name
+      { series_obj: s,
+        name: s.name,
+        geo: name_parts[:geo],
+        freq: name_parts[:freq_long].freqn,
+        sa: s.seasonal_adjustment,
+        portalname: s.dataPortalName,
+        unit_short: s.unit && s.unit.short_label,
+        long_short: s.unit && s.unit.long_label,
+        first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
+        last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
+        source_id: s.source && s.source.id,
+        source_desc: s.source && s.source.description
+      }
+    end
   end
 
   def set_attrib_resource_values(series)
