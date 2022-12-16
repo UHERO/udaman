@@ -197,18 +197,37 @@ class SeriesController < ApplicationController
   def new_search(search_string = nil)
     @search_string = search_string || helpers.url_decode(params[:search_string])
     Rails.logger.info { "SEARCHLOG: user #{current_user.email} searched #{@search_string}" }
-    @all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
-    if @all_series.count == 1 && @search_string !~ /[+]1\b/
-      redirect_to action: :show, id: @all_series[0]
+    all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
+    if all_series.count == 1 && @search_string !~ /[+]1\b/
+      redirect_to action: :show, id: all_series[0]
       return
     end
-    @b64_search_str = helpers.url_encode(@search_string)
-    if params[:sortby]
-      # @sortby = params[:sortby]
-      # @dir = params[:dir] || 'up'
-      # @all_series.sort! do |a, b|
-      # end
+    @all_series = all_series.map do |s|
+      name_parts = s.parse_name
+      { name: s.name,
+        geo: name_parts[:geo],
+        freq: name_parts[:freq_long].freqn,
+        sa: s.seasonal_adjustment,
+        portalname: s.dataPortalName,
+        unit_short: s.unit && s.unit.short_label,
+        long_short: s.unit && s.unit.long_label,
+        first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
+         last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
+        source_id: s.source && s.source.id,
+        source_desc: s.source && s.source.description
+      }
     end
+    sortby = (params[:sortby] || 'name').to_sym
+    @dir = params[:dir] || 'up'
+    @all_series.sort! do |a, b|
+      a_sort = a[sortby]
+      b_sort = b[sortby]
+      cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
+      next cmp if cmp != 0  ## early return from yielded block
+      @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
+    end
+    @b64_search_str = helpers.url_encode(@search_string)
+    @sortby = sortby.to_s
     render :index
   end
 
