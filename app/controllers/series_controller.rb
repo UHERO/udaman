@@ -186,7 +186,8 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    @all_series = create_index_structure( Series.get_all_uhero.order(created_at: :desc).limit(40) )
+    all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
+    @all_series = create_index_structure(all_series)
   end
 
   def autocomplete_search
@@ -436,7 +437,7 @@ private
         unit_short: s.unit && s.unit.short_label,
         long_short: s.unit && s.unit.long_label,
         first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
-        last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
+         last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
         source_id: s.source && s.source.id,
         source_desc: s.source && s.source.description
       }
