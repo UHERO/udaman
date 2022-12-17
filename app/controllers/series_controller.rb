@@ -188,6 +188,8 @@ class SeriesController < ApplicationController
     end
     all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
     @all_series = create_index_structure(all_series)
+    @sortby = ''
+    @dir = 'up'
   end
 
   def autocomplete_search
@@ -434,8 +436,9 @@ private
         freq: name_parts[:freq_long].freqn,
         sa: s.seasonal_adjustment,
         portalname: s.dataPortalName,
+        restricted: s.restricted?,
         unit_short: s.unit && s.unit.short_label,
-        long_short: s.unit && s.unit.long_label,
+        unit_long:  s.unit && s.unit.long_label,
         first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
          last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
         source_id: s.source && s.source.id,

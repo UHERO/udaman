@@ -17,17 +17,17 @@
 
   <tbody>
   <% row = -1 %>
-  <% all_series.each do |series| %>
+  <% all_series.each do |s| %>
     <% row += 1 %>
     <tr class="row<%= row % 2 %>">
-      <td><%= link_to series.name, series %><% if series.restricted? %> <i class="fas fa-ban redban" title="restricted"></i><% end %></td>
-      <td><%= sa_indicator(series.seasonal_adjustment) %></td>
-      <td><%= series.dataPortalName %></td>
-      <td title="<%= series.unit && series.unit.long_label %>"><%= series.unit && series.unit.short_label %></td>
-      <td><%= DataPoint.where(xseries_id: series.xseries_id).minimum(:date) %></td>
-      <td><%= DataPoint.where(xseries_id: series.xseries_id).maximum(:date) %></td>
-      <td><%= series.source && link_to(series.source.description,
-                                       '/series/search?search_string=' + url_encode(';src=%d' % series.source.id)) %></td>
+      <td><%= link_to(s[:name], s[:series_obj]) %><% if s[:restricted] %> <i class="fas fa-ban redban" title="restricted"></i><% end %></td>
+      <td><%= sa_indicator(s[:sa]) %></td>
+      <td><%= s[:portalname] %></td>
+      <td title="<%= s[:unit_long] %>"><%= s[:unit_short] %></td>
+      <td><%= s[:first] %></td>
+      <td><%= s[:last] %></td>
+      <td><%= s[:source_desc] && link_to(s[:source_desc],
+                                       '/series/search?search_string=' + url_encode(';src=%d' % s[:source_id])) %></td>
     </tr>
   <% end %>
   </tbody>
