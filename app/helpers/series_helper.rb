@@ -13,7 +13,11 @@ module SeriesHelper
   end
 
   def index_header_get_params(header)
-    { action: :index, search_string: @b64_search_str, sortby: header, dir: sortdir(header) }
+    if @b64_search_str
+      { action: :search, search_string: @b64_search_str, sortby: header, dir: sortdir(header) }
+    else
+      { action: :index, sortby: header, dir: sortdir(header) }
+    end
   end
 
   def csv_helper
