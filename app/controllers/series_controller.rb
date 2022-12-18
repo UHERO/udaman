@@ -442,7 +442,7 @@ private
         first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
          last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
         source_id: s.source && s.source.id,
-        source_desc: s.source && s.source.description
+        source: s.source && s.source.description
       }
     end
   end

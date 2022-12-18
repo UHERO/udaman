@@ -16,7 +16,7 @@ module SeriesHelper
     if @b64_search_str
       { action: :search, search_string: @b64_search_str, sortby: header, dir: sortdir(header) }
     else
-      { action: :index, sortby: header, dir: sortdir(header) }
+      { action: :index }
     end
   end
 

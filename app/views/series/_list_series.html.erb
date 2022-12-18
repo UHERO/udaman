@@ -7,11 +7,11 @@
       <%= link_to sorthead('Freq'), index_header_get_params('freq') %>
     </th>
     <th><%= link_to sorthead('SA'), index_header_get_params('sa') %></th>
-    <th><%= link_to sorthead('Portal Name'), index_header_get_params('portalname') %></th>
+    <th><%= link_to sorthead('PortalName'), index_header_get_params('portalname') %></th>
     <th>Units</th>
     <th><%= link_to sorthead('First'), index_header_get_params('first') %></th>
     <th><%= link_to sorthead('Last'), index_header_get_params('last') %></th>
-    <th><%= link_to sorthead('Source'), index_header_get_params('source_desc') %></th>
+    <th><%= link_to sorthead('Source'), index_header_get_params('source') %></th>
   </tr>
   </thead>
 
@@ -26,7 +26,7 @@
       <td title="<%= s[:unit_long] %>"><%= s[:unit_short] %></td>
       <td><%= s[:first] %></td>
       <td><%= s[:last] %></td>
-      <td><%= s[:source_desc] && link_to(s[:source_desc], { action: :search, search_string: url_encode(';src=%d' % s[:source_id]) }) %></td>
+      <td><%= s[:source] && link_to(s[:source], { action: :search, search_string: url_encode(';src=%d' % s[:source_id]) }) %></td>
     </tr>
   <% end %>
   </tbody>
