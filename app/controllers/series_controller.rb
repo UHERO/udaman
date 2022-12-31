@@ -207,10 +207,9 @@ class SeriesController < ApplicationController
     end
     @all_series = create_index_structure(all_series)
     @b64_search_str = helpers.url_encode(@search_string)
-    @sortby = params[:sortby] || 'name'
-    @dir = params[:dir] || 'up'
-    ## Only bother sorting if other than 'name', as search_box() already sorts on name
-    unless @sortby.blank? || @sortby == 'name'
+    @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
+    @dir = params[:dir].blank? ? 'up' : params[:dir]
+    unless @sortby == 'name'  ## Only bother sorting if other than 'name', as search_box() already sorts on name
       sortby = params[:sortby].to_sym
       @all_series.sort! do |a, b|
         #a_sort = a[sortby]
