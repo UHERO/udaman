@@ -106,37 +106,11 @@ class DataHtmlParser
     new_data
   end
 
-  ## Soon to be replaced by get_cluster_series(). Also delete expand_date_range() along with it
-  def get_clustermapping_series(dataset, parameters)
-    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include?(':')
-    query_params = parameters.map(&:to_s).join('/')
-    @url = "https://clustermapping.us/data/region/#{query_params}"
-    Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
-    @doc = self.download
-    raise 'Clustermapping API: empty response returned' if self.content.blank?
-    response = JSON.parse(self.content) rescue raise('Clustermapping API: JSON parse failure')
-    new_data = {}
-    response.each do |data_point|
-      time_period = data_point['year_t']
-      value = data_point[dataset]
-      if value
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
-      end
-    end
-    new_data
-  end
-
-  def expand_date_range(date_range)
-    split_dates = date_range.split(':')
-    (split_dates[0]..split_dates[1]).to_a.join(',')
-  end
-
-  ## This is a replacement for get_clustermapping_series, waiting to be deployed
   def get_cluster_series(cluster_id, geo, value_in: 'emp_tl')
     geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
     geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
-    years = (2008..2019).to_a.join(',')   ## should be replaced with "all" as soon as that returns proper results
-    @url = "https://clustermapping.us/data/region/#{geoinfo}/#{years}/#{cluster_id}"
+    ##years = (2008..2020).to_a.join(',')   ## should be replaced with "all" as soon as that returns proper results
+    @url = "https://clustermapping.us/data/region/#{geoinfo}/all/#{cluster_id}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     raise 'Clustermapping API: empty response returned' if self.content.blank?
@@ -146,7 +120,7 @@ class DataHtmlParser
       time_period = data_point['year_t']
       value = data_point[value_in]
       if value
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
+        new_data[ get_date(time_period[0..3], time_period[4..]) ] = value
       end
     end
     new_data
