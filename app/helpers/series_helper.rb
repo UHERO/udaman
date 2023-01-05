@@ -56,16 +56,16 @@ module SeriesHelper
     output = ''
     series_set.each do |s|
       begin
-        output += s.tsd_string
+        output += s.to_tsd
       rescue => e
-        Rails.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
+        Rails.logger.error { "series_data_tsd_gen: to_tsd conversion failure for #{s}: #{e.message}" }
       end
     end
     output
   end
 
   def do_csv2tsd_convert(upfilepath)
-    tmpfile_rel = 'tmp/csv2tsd_%d.csv' % current_user.id
+    tmpfile_rel = File.join('tmp', upfilepath.original_filename)
     tmpfile_full = File.join(ENV['DATA_PATH'], tmpfile_rel)
     series_set = []
     begin
@@ -159,19 +159,6 @@ module SeriesHelper
     words.join(' ')
   end
   
-  def aremos_color(diff)
-#    diff = (val - aremos_val).abs
-    mult = 5000
-    gray = "99"
-    red = (gray.hex + diff * mult).to_i
-    green = (gray.hex - diff * mult).to_i
-    blue = (gray.hex - diff * mult).to_i
-    red = 255 if red > 255
-    green = 20 if green < 20 
-    blue = 20 if blue < 20
-    "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
-  end
-
   def make_hyperlink(url, text = url)
     return text if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
