@@ -122,6 +122,7 @@ class SeriesController < ApplicationController
       next cmp if cmp != 0  ## early return from yielded block
       @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
     end
+    @index_action = :clip
     render :clipboard
   end
 
@@ -202,6 +203,7 @@ class SeriesController < ApplicationController
     @all_series = create_index_structure(all_series)
     @sortby = ''
     @dir = 'up'
+    @index_action = :index
   end
 
   def autocomplete_search
@@ -232,6 +234,7 @@ class SeriesController < ApplicationController
         @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
       end
     end
+    @index_action = :search
     render :index
   end
 
