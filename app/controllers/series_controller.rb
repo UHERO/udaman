@@ -210,11 +210,11 @@ class SeriesController < ApplicationController
     @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
     @dir = params[:dir].blank? ? 'up' : params[:dir]
     unless @sortby == 'name' && @dir == 'up'  ## Only bother sorting if other than name/up, as search_box() already does that
-      sortby = params[:sortby].to_sym
+      sortby = @sortby.to_sym
       @all_series.sort! do |a, b|
-        a[sortby] ||= Date.new(1000)  ## Default to very old date, because First & Last should be the only
-        b[sortby] ||= Date.new(1000)  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
-        cmp = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
+        a_sort = a[sortby] || Date.new(1000)  ## Default to very old date, because First & Last should be the only
+        b_sort = b[sortby] || Date.new(1000)  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
+        cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
         next cmp if cmp != 0  ## early return from yielded block
         @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
       end
