@@ -113,9 +113,11 @@ class SeriesController < ApplicationController
     @all_series = create_index_structure(all_series)
     @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
     @dir = params[:dir].blank? ? 'up' : params[:dir]
+    sortby = @sortby.to_sym
+    beg_of_time = Date.new(1000)
     @all_series.sort! do |a, b|
-      a_sort = a[@sortby.to_sym] || Date.new(1000)  ## Default to very old date, because First & Last should be the only
-      b_sort = b[@sortby.to_sym] || Date.new(1000)  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
+      a_sort = a[sortby] || beg_of_time  ## Default to very old date, because First & Last should be the only
+      b_sort = b[sortby] || beg_of_time  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
       cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
       next cmp if cmp != 0  ## early return from yielded block
       @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
@@ -220,9 +222,11 @@ class SeriesController < ApplicationController
     @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
     @dir = params[:dir].blank? ? 'up' : params[:dir]
     unless @sortby == 'name' && @dir == 'up'  ## Only bother sorting if other than name/up, as search_box() already does that
+      sortby = @sortby.to_sym
+      beg_of_time = Date.new(1000)
       @all_series.sort! do |a, b|
-        a_sort = a[@sortby.to_sym] || Date.new(1000)  ## Default to very old date, because First & Last should be the only
-        b_sort = b[@sortby.to_sym] || Date.new(1000)  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
+        a_sort = a[sortby] || beg_of_time  ## Default to very old date, because First & Last should be the only
+        b_sort = b[sortby] || beg_of_time  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
         cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
         next cmp if cmp != 0  ## early return from yielded block
         @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
