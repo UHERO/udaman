@@ -108,11 +108,9 @@ class SeriesController < ApplicationController
   end
 
   def clipboard
-    @clip_empty = @all_series.nil? || @all_series.empty?
     all_series = current_user.series.reload.sort_by(&:name)
+    @clip_empty = all_series.nil? || all_series.empty?
     @all_series = create_index_structure(all_series)
-    @sortby = ''
-    @dir = 'up'
     render :clipboard
   end
 
