@@ -212,6 +212,8 @@ class SeriesController < ApplicationController
     unless @sortby == 'name' && @dir == 'up'  ## Only bother sorting if other than name/up, as search_box() already does that
       sortby = params[:sortby].to_sym
       @all_series.sort! do |a, b|
+        a[sortby] ||= Date.new(1000)  ## Default to very old date, because First & Last should be the only
+        b[sortby] ||= Date.new(1000)  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
         cmp = @dir == 'up' ? a[sortby] <=> b[sortby] : b[sortby] <=> a[sortby]
         next cmp if cmp != 0  ## early return from yielded block
         @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
@@ -436,10 +438,10 @@ private
         restricted: s.restricted?,
         unit_short: s.unit && s.unit.short_label,
         unit_long:  s.unit && s.unit.long_label,
-        first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date) || Date.new(1000),
-         last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date) || Date.new(1000),
+        first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
+         last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
         source_id: s.source && s.source.id,
-        source: (s.source.description rescue '')  ## need rescue because it's a sort field and could be nil
+        source: (s.source.description rescue '')  ## need rescue because it's a sort column and could be nil
       }
     end
   end

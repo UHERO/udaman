@@ -26,7 +26,7 @@
       <td title="<%= s[:unit_long] %>"><%= s[:unit_short] %></td>
       <td><%= s[:first] %></td>
       <td><%= s[:last] %></td>
-      <td><%= s[:source] && link_to(s[:source], { action: :search, search_string: url_encode(';src=%d' % s[:source_id]) }) %></td>
+      <td><%= s[:source_id] && link_to(s[:source], { action: :search, search_string: url_encode(';src=%d' % s[:source_id]) }) %></td>
     </tr>
   <% end %>
   </tbody>
