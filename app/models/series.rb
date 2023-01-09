@@ -239,7 +239,6 @@ class Series < ApplicationRecord
 
   ## Enforce metadata integrity in the form of implicational relationships between/among attributes
   def Series.meta_integrity_check(attrs, obj = nil)
-    return true  #### GET RID OF THIS FOR DEPLOY!
     if attrs[:frequency] && attrs[:frequency].to_sym == :year
       attrs[:seasonal_adjustment] = 'not_applicable'
     elsif attrs[:name] && Series.parse_name(attrs[:name])[:prefix] =~ /NS$/i

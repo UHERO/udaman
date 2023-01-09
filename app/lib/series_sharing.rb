@@ -23,12 +23,12 @@ module SeriesSharing
   end
 
   def backward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: standard_window_size)
-    new_transformation("Backward-looking moving average of #{self} using window size #{window}",
+    new_transformation("Backward-looking moving average using window size #{window} of #{self}",
                        ma_series_data('backward_ma', start_date, end_date, window: window))
   end
   
   def forward_looking_moving_average(start_date = first_observation, end_date = Time.now.to_date, window: standard_window_size)
-    new_transformation("Forward-looking moving average of #{self} using window size #{window}",
+    new_transformation("Forward-looking moving average using window size #{window} of #{self}",
                        ma_series_data('forward_ma', start_date, end_date, window: window))
   end
   
