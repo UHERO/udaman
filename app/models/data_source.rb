@@ -91,7 +91,6 @@ class DataSource < ApplicationRecord
         ds.set_dependencies!
       end
       Rails.logger.info { 'DataSource set_all_dependencies: done' }
-      return 0
     end
 
     def current_data_points
