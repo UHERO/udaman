@@ -120,11 +120,6 @@ module SeriesArithmetic
     end
   end
 
-  ## Temporary aliases - get rid later as possible
-  def level_change
-    diff
-  end
-
   def absolute_change(id = nil)
     return faster_change(id) if id
     diff
