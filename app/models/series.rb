@@ -462,10 +462,10 @@ class Series < ApplicationRecord
     ## to integer - I am mystified by this.
   end
 
-  def update_data(data, source)
+  def update_data(data, loader)
     #removing nil dates because they incur a cost but no benefit.
     #have to do this here because there are some direct calls to update data that could include nils
-    #instead of calling in save_source
+    #instead of calling in save_loader
     data.delete_if {|_,value| value.nil?}
 
     # make sure data keys are in Date format
@@ -474,7 +474,7 @@ class Series < ApplicationRecord
     data = formatted_data
     observation_dates = data.keys
     current_data_points.each do |dp|
-      dp.upd(data[dp.date], source)
+      dp.upd(data[dp.date], loader)
     end
     observation_dates -= current_data_points.map(&:date)
     now = Time.now
@@ -484,8 +484,8 @@ class Series < ApplicationRecord
         :value => data[date],
         :created_at => now,
         :current => true,
-        :pseudo_history => source.pseudo_history,
-        :data_source_id => source.id
+        :pseudo_history => loader.pseudo_history,
+        :loader_id => loader.id
       )
     end
     ### I've decided to comment out following line bec I think we don't do this/care about this any more
@@ -1066,7 +1066,7 @@ class Series < ApplicationRecord
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
                           when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
                           when 'hasph'
-                            all = all.joins('inner join data_sources as l3 on l3.series_id = series.id and not(l3.disabled)')
+                            all = all.joins('inner join loaders as l3 on l3.series_id = series.id and not(l3.disabled)')
                             %q{l3.pseudo_history is true}  ## this cannot be negated for same reason '#' operator cannot
                           when 'noclip'
                             raise 'No user identified for clipboard access' if user.nil?
@@ -1318,7 +1318,7 @@ private
   end
 
   def Series.display_options(options)
-    options.select{|k,_| ![:data_source, :eval_hash, :dont_skip].include?(k) }
+    options.select{|k,_| ![:loader, :eval_hash, :dont_skip].include?(k) }
   end
 
 end

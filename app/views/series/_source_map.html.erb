@@ -2,7 +2,7 @@
 <% colors = ["FFCC99", "CCFFFF", "99CCFF", "CC99FF", "FFFF99", "CCFFCC", "FF99CC", "CCCCFF", "9999FF", "99FFCC"] %>
 
 <table class = "operations-table">
-	<% series.data_sources_by_last_run.each do |ds| %>
+	<% series.loaders_by_last_run.each do |ds| %>
     <tr> <%= render :partial => 'source_map_recursive', :locals => {
 															:source => ds, 
 															:color => "AAAAAA",

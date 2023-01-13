@@ -28,24 +28,8 @@ module SeriesRelationship
     return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
   end
 
-  def data_sources_by_last_run
-    enabled_data_sources.sort_by {|d| [d.priority, d.last_run ] }
-  end
-
-  def clean_data_sources
-    sources_in_use = {}
-    
-    self.current_data_points.each do |dp|
-      sources_in_use[dp.data_source_id] ||= 1
-    end
-    
-    self.enabled_data_sources.each do |ds|
-      if sources_in_use[ds.id].nil?
-        ds.delete
-      end
-    end
-    
-    self.enabled_data_sources.count
+  def loaders_by_last_run
+    enabled_loaders.sort_by {|d| [d.priority, d.last_run ] }
   end
 
   ## full recursive tree of dependents
@@ -94,7 +78,7 @@ module SeriesRelationship
 
   def who_i_depend_on(direct_only = false)
     direct_deps = []
-    self.enabled_data_sources.each do |ds|
+    enabled_loaders.each do |ds|
       direct_deps |= ds.dependencies
     end
     return direct_deps if direct_only
