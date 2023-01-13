@@ -49,7 +49,7 @@ class Series < ApplicationRecord
   ## columns/attributes based on heuristics over other attributes in the model.
   after_create do
     unless frequency
-      self.update(frequency: self.frequency_from_name)
+      self.update(frequency: frequency_from_name)
     end
   end
 
