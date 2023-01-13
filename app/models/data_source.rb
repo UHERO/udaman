@@ -93,7 +93,6 @@ class Loader < ApplicationRecord
         ds.set_dependencies!
       end
       Rails.logger.info { 'Loader set_all_dependencies: done' }
-      return 0
     end
 
     def current_data_points
