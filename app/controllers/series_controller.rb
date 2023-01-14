@@ -213,7 +213,7 @@ class SeriesController < ApplicationController
 
   def new_search(search_string = nil)
     @search_string = search_string || helpers.url_decode(params[:search_string])
-    Rails.logger.info { "SEARCHLOG: user #{current_user.username.ljust(10, ' ')} searched #{@search_string}" }
+    Rails.logger.info { "SEARCHLOG: user #{current_user.username.ljust(9, ' ')} searched #{@search_string}" }
     all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if all_series.count == 1 && @search_string !~ /[+]1\b/
       redirect_to action: :show, id: all_series[0]
