@@ -30,7 +30,7 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 #     rake "test_case"
 # end
 
-every 1.day, :at => '6:24 pm' do
+every 1.day, :at => '6:09 pm' do
   rake :reset_dependency_depth
 end
 
@@ -93,10 +93,6 @@ end
 
 every :day, at: ['11:01 am', '12:01 pm', '1:01 pm', '2:01 pm', '3:01 pm', '4:01 pm', '5:01 pm'] do
   rake :update_public_data_points
-end
-
-every :saturday, :at => '5:00 pm' do
-  rake :mark_pseudo_history
 end
 
 every :saturday, :at => '1:00 pm' do
