@@ -108,8 +108,21 @@ class SeriesController < ApplicationController
   end
 
   def clipboard
-    @all_series = current_user.series.reload.sort_by(&:name)
-    @clip_empty = @all_series.nil? || @all_series.empty?
+    all_series = current_user.series.reload
+    @clip_empty = all_series.nil? || all_series.empty?
+    @all_series = create_index_structure(all_series)
+    @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
+    @dir = params[:dir].blank? ? 'up' : params[:dir]
+    sortby = @sortby.to_sym
+    beg_of_time = Date.new(1000)
+    @all_series.sort! do |a, b|
+      a_sort = a[sortby] || beg_of_time  ## Default to very old date, because First & Last should be the only
+      b_sort = b[sortby] || beg_of_time  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
+      cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
+      next cmp if cmp != 0  ## early return from yielded block
+      @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
+    end
+    @index_action = :clip
     render :clipboard
   end
 
@@ -195,7 +208,11 @@ class SeriesController < ApplicationController
       render text: 'Your current role only gets to see this page.', layout: true
       return
     end
-    @all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
+    all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
+    @all_series = create_index_structure(all_series)
+    @sortby = ''
+    @dir = 'up'
+    @index_action = :index
   end
 
   def autocomplete_search
@@ -204,13 +221,29 @@ class SeriesController < ApplicationController
   end
 
   def new_search(search_string = nil)
-    @search_string = search_string || params[:search_string]
-    Rails.logger.info { "SEARCHLOG: user #{current_user.email} searched #{@search_string}" }
-    @all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
-    if @all_series.count == 1 && @search_string !~ /[+]1\b/
-      redirect_to action: :show, id: @all_series[0]
+    @search_string = search_string || helpers.url_decode(params[:search_string])
+    Rails.logger.info { "SEARCHLOG: user #{current_user.username} searched #{@search_string}" }
+    all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
+    if all_series.count == 1 && @search_string !~ /[+]1\b/
+      redirect_to action: :show, id: all_series[0]
       return
     end
+    @all_series = create_index_structure(all_series)
+    @b64_search_str = helpers.url_encode(@search_string)
+    @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
+    @dir = params[:dir].blank? ? 'up' : params[:dir]
+    unless @sortby == 'name' && @dir == 'up'  ## Only bother sorting if other than name/up, as search_box() already does that
+      sortby = @sortby.to_sym
+      beg_of_time = Date.new(1000)
+      @all_series.sort! do |a, b|
+        a_sort = a[sortby] || beg_of_time  ## Default to very old date, because First & Last should be the only
+        b_sort = b[sortby] || beg_of_time  ## sortable columns that can be nil in the index structure. Kinda yuck but whatever
+        cmp = @dir == 'up' ? a_sort <=> b_sort : b_sort <=> a_sort
+        next cmp if cmp != 0  ## early return from yielded block
+        @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
+      end
+    end
+    @index_action = :search
     render :index
   end
 
@@ -416,6 +449,26 @@ private
 
   def set_series
     @series = Series.find params[:id]
+  end
+
+  def create_index_structure(series_list)
+    series_list.map do |s|
+      name_parts = s.parse_name
+      { series_obj: s,
+        name: s.name,
+        geo: name_parts[:geo],
+        freq: name_parts[:freq_long].freqn,
+        sa: s.seasonal_adjustment,
+        portalname: s.dataPortalName.to_s,  ## need to_s because it could be nil
+        restricted: s.restricted?,
+        unit_short: s.unit && s.unit.short_label,
+        unit_long:  s.unit && s.unit.long_label,
+        first: DataPoint.where(xseries_id: s.xseries_id).minimum(:date),
+         last: DataPoint.where(xseries_id: s.xseries_id).maximum(:date),
+        source_id: s.source && s.source.id,
+        source: (s.source.description rescue '')  ## need rescue because it's a sort column and could be nil
+      }
+    end
   end
 
   def set_attrib_resource_values(series)
