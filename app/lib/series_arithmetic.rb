@@ -126,7 +126,6 @@ module SeriesArithmetic
   end
 
   def absolute_change(id = nil)
-    return faster_change(id) if id
     diff
   end
 
@@ -154,35 +153,6 @@ module SeriesArithmetic
     new_transformation("Difference of #{self} w/lag of #{lag_desc}", new_series)
   end
 
-  def faster_change(id)
-    new_series_data = {}
-    sql = <<~MYSQL
-    SELECT t1.date, t1.value, ((t1.value - t2.last_value) /
-      (select coalesce(units, 1) from series_v where id = ? limit 1)) AS value_change
-      FROM (
-        SELECT `date`, `value`, (@rrow := @rrow + 1) AS row
-		    FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-          CROSS JOIN (SELECT @rrow := 0) AS init
-		    WHERE x.primary_series_id = ? AND `current` = 1 ORDER BY `date`
-      ) AS t1
-      LEFT JOIN (
-        SELECT `date`, `value` AS last_value, (@other_row := @other_row + 1) AS row
-		    FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-		      CROSS JOIN (SELECT @other_row := 1) AS init
-		    WHERE x.primary_series_id = ? AND `current` = 1 ORDER BY `date`
-      ) AS t2
-      ON (t1.row = t2.row);
-    MYSQL
-    stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
-    stmt.execute(id, id, id).each do |row|
-      date = row[0]
-      val_chg = row[2]
-      new_series_data[date] = val_chg if val_chg
-    end
-    stmt.close
-    new_transformation("Absolute Change of #{name}", new_series_data)
-  end
-
   def all_nil
     new_transformation("All nil for dates in #{self}", data.map {|date, _| [date, nil] })
   end
@@ -194,7 +164,6 @@ module SeriesArithmetic
   #just going to leave out the 29th on leap years for now
   def annualized_percentage_change(id = nil)
     return all_nil if frequency == 'week'
-    return faster_yoy(id) if id
 
     new_series_data = {}
     data.each do |date, value|
@@ -204,32 +173,6 @@ module SeriesArithmetic
     new_transformation("Annualized percentage change of #{self}", new_series_data)
   end
 
-  def faster_yoy(id)
-    new_series_data = {}
-    sql = <<~MYSQL
-      SELECT t1.date, t1.value, (t1.value / t2.last_value - 1) * 100 AS yoy
-      FROM (
-        SELECT `value`, `date`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
-        FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = ? AND `current` = 1
-      ) AS t1
-      LEFT JOIN (
-        SELECT `value` AS last_value, `date`
-        FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = ? and `current` = 1
-      ) AS t2
-      ON (t1.last_year = t2.date);
-    MYSQL
-    stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
-    stmt.execute(id, id).each do |row|
-      date = row[0]
-      yoy = row[2]
-      new_series_data[date] = yoy if yoy
-    end
-    stmt.close
-    new_transformation("Annualized percentage change of #{name}", new_series_data)
-  end
-  
   def mtd_sum
     return all_nil unless frequency == 'day'
     sum_series = {}
@@ -297,6 +240,8 @@ module SeriesArithmetic
     ytd_sum.yoy
   end
 
+  ## I really want to get rid of this, but need to make sure it is operationally equal to the "slower"
+  ## version, which is not obvious to me right now. Some day.
   def faster_ytd(id)
     new_series_data = {}
     sql = <<~MYSQL
