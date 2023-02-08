@@ -98,14 +98,18 @@ module SeriesArithmetic
     self / idx_series * 100
   end
 
-  def per_cap(den_series_name = nil, denom: 'NR')
-    den_series_name ||= self.build_name(prefix: denom, geo: geography.handle)
-    den_series = Series.find_by(name: den_series_name, universe: universe) || raise("No denominator series #{den_series_name} found in #{universe}")
-    self / den_series * 100
+  def per_cap(pop_series_name = nil, pop: 'NR', multiplier: 100)
+    pop_series_name ||= self.build_name(prefix: pop, geo: geography.handle)
+    pop_series = Series.find_by(name: pop_series_name, universe: universe) || raise("No population series #{pop_series_name} found in #{universe}")
+    self / pop_series * multiplier
+  end
+
+  def per_1kcap(pop: 'NR')
+    per_cap(pop: pop, multiplier: 1000)
   end
 
   def per_cap_civilian
-    per_cap(denom: 'NRC')
+    per_cap(pop: 'NRC')
   end
 
   def percentage_change
