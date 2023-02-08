@@ -10,21 +10,21 @@ task :deploy_per_cap => :environment do
                               \s*
                               [/]
                               \s*
-                              "nr(c)?@\w+\.[asqmwd]"\.ts
+                              "(nr\w+)@\w+\.[asqmwd]"\.ts
                               \s*
                               [*]
                               \s*
                               100(0)?
                               \s*$}xi
     base_series = $1
-    method_code = 'per_cap'
-    if $2.upcase.to_s == 'C'
-      method_code = 'per_cap_civilian'
-    elsif $3.to_s == '0'
+    nr_type = $2.to_s.upcase
+    if $3.to_s == '0'
       method_code = 'per_1kcap'
+    else
+      method_code = 'per_cap'
     end
     puts "DOING #{base_series}"
-    ld.update!(eval: base_series + '.%s' + method_code)
+    ld.update!(eval: base_series + '.%s' + method_code + nr_type)
   end
 end
 
