@@ -98,6 +98,16 @@ module SeriesArithmetic
     self / idx_series * 100
   end
 
+  def per_cap(den_series_name = nil, denom: 'NR')
+    den_series_name ||= self.build_name(prefix: denom, geo: geography.handle)
+    den_series = Series.find_by(name: den_series_name, universe: universe) || raise("No denominator series #{den_series_name} found in #{universe}")
+    self / den_series * 100
+  end
+
+  def per_cap_civilian
+    per_cap(denom: 'NRC')
+  end
+
   def percentage_change
     new_series_data = {}
     last = nil
@@ -108,7 +118,7 @@ module SeriesArithmetic
       end
       last = value
     end
-    new_transformation("Percentage change of #{name}", new_series_data)
+    new_transformation("Percentage change of #{self}", new_series_data)
   end
 
   def compute_percentage_change(current, last)

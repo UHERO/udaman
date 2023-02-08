@@ -186,7 +186,6 @@ class DataSource < ApplicationRecord
     end
 
     def debug_reload_source(clear_first = clear_before_load?)
-      t = Time.now
       eval_stmt = self['eval'].dup
       if clear_first
         delete_data_points
