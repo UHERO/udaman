@@ -2,7 +2,7 @@ module SeriesDataLists
   def Series.grab_data(list, start_date = Date.new(1900))
     series_data = {}
     list.each do |s|
-      series = s.ts
+      series = s.tsnil
       series_data[s] = series.nil? ? {} : series.get_values_after_including(start_date)
     end
     series_data

@@ -19,8 +19,7 @@ span.lighten {color:#AAA;}
 	all_series_ytd = []	
 	
 	@series_to_chart.each do |s|
-		series = s.ts
-		next if series.nil?
+		series = s.tsnil || next
 		plot_data = series.get_values_after(@start_date)
 		ytd = series.ytd_percentage_change.get_values_after(@start_date).sort[-1][1] rescue nil
  		dates = plot_data.keys.sort

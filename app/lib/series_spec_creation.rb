@@ -16,7 +16,7 @@ module SeriesSpecCreation
       xseries: Xseries.new(frequency: Series.frequency_from_name(name))
     )
     Series.store(name, new_series, "direct load (desc)", "direct_load (eval)")
-    name.ts
+    name.tsnil
   end
   
   #for testing in Cucumber and rspec

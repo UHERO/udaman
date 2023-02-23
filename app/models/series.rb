@@ -312,22 +312,22 @@ class Series < ApplicationRecord
 
   ## Find non-seasonally-adjusted correspondent series based on name
   def find_ns_series
-    ns_series_name.ts
+    ns_series_name.tsnil
   end
 
   ## Find seasonally-adjusted correspondent series based on name
   def find_non_ns_series
-    non_ns_series_name.ts
+    non_ns_series_name.tsnil
   end
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
-    build_name(geo: geo.to_s.upcase).ts
+    build_name(geo: geo.to_s.upcase).tsnil
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
-    build_name(freq: freq.to_s.upcase).ts
+    build_name(freq: freq.to_s.upcase).tsnil
   end
 
   def is_primary?
@@ -1132,7 +1132,7 @@ class Series < ApplicationRecord
       search_terms = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
       conditions = [%q{coalesce(description,'') regexp ?}] * search_terms.count
       AremosSeries.where(conditions.join(' and '), *search_terms).limit(10).each do |as|
-        s = as.name.ts
+        s = as.name.tsnil
         results.push({ name: as.name, series_id: (s.nil? ? 'no series' : s.id), description: as.description })
       end
     end
