@@ -4,10 +4,6 @@ module SeriesInterpolation
     self
   end
 
-  def interpolate_to (frequency, operation, series_to_store_name)
-    series_to_store_name.ts = interpolate(frequency, operation)
-  end
-  
   def extend_first_back_to(date)
     first_data_point_date = first_observation
     first_data_point_val = at(first_data_point_date)

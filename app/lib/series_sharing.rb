@@ -41,11 +41,11 @@ module SeriesSharing
     county_names = %w{HON HAW MAU KAU}.map{|cty| Series.build_name(prefix + 'NS', cty, 'M') } ## list of names like FOONS@HAW.M
     county_sum = 0
     county_names.each do |name|
-      county_sum = name.ts + county_sum rescue raise("series #{name} does not exist")
+      county_sum = name.ts + county_sum
       ## after first iteration, county_sum becomes a Series
     end
     c_name = Series.build_name(prefix + 'NS', county_code, 'M')
-    county = c_name.ts || raise("series #{c_name} does not exist")
+    county = c_name.ts
 
     historical = county.annual_average / county_sum.annual_average * self
     incomplete_year = county.backward_looking_moving_average.get_last_incomplete_year / county_sum.backward_looking_moving_average.get_last_incomplete_year * self
@@ -54,7 +54,7 @@ module SeriesSharing
   end
 
   def aa_state_based_county_share_for(county_code, prefix = self.parse_name[:prefix])
-    state = Series.build_name(prefix + 'NS', 'HI', 'M').ts || raise("no HI.M series found for #{prefix + 'NS'}")
+    state = Series.build_name(prefix + 'NS', 'HI', 'M').ts
     county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state}")
 
     historical = county.annual_average / state.annual_average * self
@@ -65,7 +65,7 @@ module SeriesSharing
 
   def mc_ma_county_share_for(county_code, prefix = self.parse_name[:prefix])
     freq = self.parse_name[:freq]
-    state = Series.build_name(prefix + 'NS', 'HI', freq).ts || raise("no HI.#{freq} series found for #{prefix + 'NS'}")
+    state = Series.build_name(prefix + 'NS', 'HI', freq).ts
     county = state.find_sibling_for_geo(county_code) || raise("no #{county_code} sibling found for #{state}")
     start_date = county.first_value_date
     end_date =   county.get_last_complete_december
