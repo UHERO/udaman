@@ -1,10 +1,10 @@
 class String
   def tsnil
-    Series.get(self)
+    Series.get(self)  ## return nil if named Series does not exist
   end
 
   def ts
-    tsnil || raise("Series #{self} does not exist")
+    tsnil || raise("Series #{self} does not exist")  ## blow up if named Series does not exist
   end
 
   def tsn
