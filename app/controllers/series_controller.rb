@@ -171,7 +171,11 @@ class SeriesController < ApplicationController
 
   def meta_update
     @meta_update = true
-    @all_series = current_user.series.reload.sort_by(&:name)
+    all_series = current_user.series.reload.sort_by(&:name)
+    @all_series = create_index_structure(all_series)
+    @sortby = ''
+    @dir = 'up'
+    @index_action = :meta_update
     @series = Series.new(universe: 'UHERO', name: 'Metadata update', xseries: Xseries.new)
     set_attrib_resource_values(@series)
   end
