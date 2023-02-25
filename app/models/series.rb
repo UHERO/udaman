@@ -110,7 +110,7 @@ class Series < ApplicationRecord
       delete_data_points  ## clear all data points
     end
     dependents.each do |series_name|
-      s = series_name.ts || next
+      s = series_name.tsnil || next
       s.enabled_data_sources.each do |ds|
         new_eval = ds.eval.gsub(old_name, newname)
         ds.update_attributes!(eval: new_eval) if new_eval != ds.eval
@@ -419,7 +419,7 @@ class Series < ApplicationRecord
     end
     properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
     properties[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
-    new_series = series_name.ts || Series.create_new(properties)
+    new_series = series_name.tsnil || Series.create_new(properties)
     new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag
     new_series.save_source(desc, eval_statement, series.data, priority)
   end
