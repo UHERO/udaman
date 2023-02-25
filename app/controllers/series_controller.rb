@@ -166,7 +166,7 @@ class SeriesController < ApplicationController
 
   def group_export
     @type = params[:type]
-    @all_series = current_user.series.sort_by(&:name)
+    @all_series = current_user.series.reload.sort_by(&:name)
   end
 
   def meta_update
