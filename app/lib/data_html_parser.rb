@@ -163,11 +163,11 @@ class DataHtmlParser
     if response['error']
       raise 'EIA API error: %s' % response['error']
     end
-    new_data = {}
     api_data = response['response']['data']
     if api_data.empty?
       raise 'EIA API: Response contains no data; check parameters'
     end
+    new_data = {}
     api_data.each do |data_point|
       period = data_point['period']
       date = Date.new(period.to_i) rescue Date.parse(period) rescue raise("Unknown time period format: #{period}")
