@@ -152,39 +152,28 @@ class DataHtmlParser
   def get_eia_v2_series(route, scenario, seriesId, frequency, value_in)
     api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
     @url = 'https://api.eia.gov/v2/%s/data?api_key=%s' % [route, api_key]
-    @url += '&facets[scenario][]=%s' % scenario if scenario
-    @url += '&facets[seriesId][]=%s' % seriesId if seriesId
-    @url += '&frequency=%s' % frequency if frequency
-    @url += '&data[]=%s' % value_in if value_in
-    end
+    @url += '&facets[scenario][]=%s' % scenario
+    @url += '&facets[seriesId][]=%s' % seriesId
+    @url += '&frequency=%s' % frequency
+    @url += '&data[]=%s' % value_in
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
-    raise 'EIA API: empty response returned' if self.content.blank?
+    raise 'EIA API: Null response returned' if self.content.blank?
     response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
-  #### big change from here
-    err = response['data'] && response['data']['error']
-    if err
-      raise 'EIA API error: %s' % response['data']['error']
+    if response['error']
+      raise 'EIA API error: %s' % response['error']
     end
     new_data = {}
-    series_data = response['series'][0]['data']
-    series_data.each do |data_point|
-      time_period = data_point[0]
-      value = data_point[1]
-      if value
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
-      end
+    api_data = response['response']['data']
+    if api_data.empty?
+      raise 'EIA API: Response contains no data; check parameters'
+    end
+    api_data.each do |data_point|
+      period = data_point['period']
+      date = Date.new(period.to_i) rescue Date.parse(period) rescue raise("Unknown time period format: #{period}")
+      new_data[date] = data_point[value_in].to_f
     end
     new_data
-  end
-
-  ## This is a replacement for get_eia_series, which implements the newer v2 syntax. Waiting to be deployed
-  def get_eia_series_v2()
-    api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
-    @url = "https://api.eia.gov/v2/FOOroute?api_key=#{api_key}"
-    Rails.logger.info { "Getting data from EIA APIv2: #{@url}" }
-    @doc = self.download
-    raise('EIA APIv2: empty response returned') if self.content.blank?
   end
 
   def get_dvw_series(mod, freq, indicator, dimension_hash)

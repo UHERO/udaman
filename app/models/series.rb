@@ -827,7 +827,7 @@ class Series < ApplicationRecord
 
   def Series.load_api_eia_aeo(route: nil, scenario: nil, seriesId: nil, frequency: 'annual', value_in: 'value')
     dhp = DataHtmlParser.new
-    raise 'These parameters are required: route, scenario, and seriesId' unless route && scenario && seriesId
+    raise 'route, scenario, and seriesId are all required parameters' unless route && scenario && seriesId
     series_data = dhp.get_eia_v2_series(route, scenario, seriesId, frequency, value_in)
     link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set from #{link} with parameters shown"
