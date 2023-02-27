@@ -813,16 +813,27 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
-  def Series.load_api_eia(parameter)
+  def Series.load_api_eia_DELETEME(parameter)
     parameter.upcase!  # Series ID in the EIA API is case sensitive
     dhp = DataHtmlParser.new
-    series_data = dhp.get_eia_series(parameter)
+    series_data = dhp.get_eia_series_DELETEME(parameter)
     link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, parameter[-1])
+  end
+
+  def Series.load_api_eia_aeo(route: nil, scenario: nil, seriesId: nil, frequency: 'annual', value_in: 'value')
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_eia_v2_series(route, scenario, seriesId, frequency, value_in)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, code_from_frequency(frequency))
   end
 
   def Series.load_api_dvw(mod, freq, indicator, dimensions)
