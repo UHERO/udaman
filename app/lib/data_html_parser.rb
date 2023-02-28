@@ -1,4 +1,5 @@
 class DataHtmlParser
+  include HelperUtilities
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED'] || raise('No API key defined for FRED')
