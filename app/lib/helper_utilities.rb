@@ -31,15 +31,8 @@ module HelperUtilities
   end
 
   def grok_date(str)
-      Date.strptime(str, '%Y-%m-%d')
-    rescue
-      Date.strptime(str, '%Y-%m')
-    rescue
-      Date.new(Integer str)
-    rescue
-      qspec_to_date(str).to_date
-    rescue
-      raise("Unknown date string format: #{str}")
+    ## I don't understand why this all needs to be on one physical line, but there it is
+    Date.strptime(str, '%Y-%m-%d') rescue Date.strptime(str, '%Y-%m') rescue Date.new(Integer str) rescue qspec_to_date(str).to_date rescue raise("Unknown date string format: #{str}")
   end
 
   ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.
