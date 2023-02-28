@@ -152,20 +152,20 @@ class DataHtmlParser
   def get_eia_v2_series(route, scenario, seriesId, frequency, value_in)
     api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
     @url = 'https://api.eia.gov/v2/%s/data?api_key=%s' % [route, api_key]
-    @url += '&facets[scenario][]=%s' % scenario
-    @url += '&facets[seriesId][]=%s' % seriesId
-    @url += '&frequency=%s' % frequency
-    @url += '&data[]=%s' % value_in
+    @url += '&facets[scenario][]=%s' % scenario if scenario
+    @url += '&facets[seriesId][]=%s' % seriesId if seriesId
+    @url += '&frequency=%s' % frequency if frequency
+    @url += '&data[]=%s' % value_in if value_in
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
-    raise 'EIA API: Null response returned; check parameters' if self.content.blank?
+    raise 'EIA API: Null response returned; check parameters, they are case-sensitive' if self.content.blank?
     response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
     if response['error']
       raise 'EIA API error: %s' % response['error']
     end
     api_data = response['response']['data']
     if api_data.empty?
-      raise 'EIA API: Response contains no data; check parameters'
+      raise 'EIA API: Response is empty; check parameters, they are case-sensitive'
     end
     new_data = {}
     api_data.each do |data_point|

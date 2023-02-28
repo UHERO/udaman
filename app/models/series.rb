@@ -837,6 +837,18 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, code_from_frequency(frequency))
   end
 
+  def Series.load_api_eia_steo(seriesId: nil, frequency: 'monthly', value_in: 'value')
+    dhp = DataHtmlParser.new
+    raise 'seriesId is a required parameter' unless seriesId
+    series_data = dhp.get_eia_v2_series('steo', nil, seriesId, frequency, value_in)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
+    end
+    Series.new_transformation(name, series_data, code_from_frequency(frequency))
+  end
+
   def Series.load_api_dvw(mod, freq, indicator, dimensions)
     dhp = DataHtmlParser.new
     series_data = dhp.get_dvw_series(mod, freq, indicator, dimensions)
