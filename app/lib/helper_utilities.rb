@@ -35,7 +35,7 @@ module HelperUtilities
     rescue
       Date.strptime(str, '%Y-%m')
     rescue
-      Date.new(str.to_i)
+      Date.new(Integer str)
     rescue
       qspec_to_date(str).to_date
     rescue
