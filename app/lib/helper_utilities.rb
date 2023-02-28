@@ -30,6 +30,18 @@ module HelperUtilities
     '%s%sQ%d' % [date.year, delim, quarter_by_month(date.mon)]
   end
 
+  def grok_date(str)
+      Date.strptime(str, '%Y-%m-%d')
+    rescue
+      Date.strptime(str, '%Y-%m')
+    rescue
+      Date.new(str.to_i)
+    rescue
+      qspec_to_date(str).to_date
+    rescue
+      raise("Unknown date string format: #{str}")
+  end
+
   ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.
   def freq_per_freq(higher, lower)
     higher = higher.to_sym

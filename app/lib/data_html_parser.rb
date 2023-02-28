@@ -169,8 +169,7 @@ class DataHtmlParser
     end
     new_data = {}
     api_data.each do |data_point|
-      period = data_point['period']
-      date = Date.new(period.to_i) rescue Date.parse(period) rescue raise("Unknown time period format: #{period}")
+      date = grok_date(data_point['period'])
       new_data[date] = data_point[value_in].to_f
     end
     new_data
