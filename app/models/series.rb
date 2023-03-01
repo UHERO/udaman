@@ -770,11 +770,11 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
   
-  def Series.load_api_bls(code, frequency)
-    series_data = DataHtmlParser.new.get_bls_series(code, frequency)
-    name = "loaded series code: #{code} from BLS API"
+  def Series.load_api_bls(series_id, frequency)
+    series_data = DataHtmlParser.new.get_bls_series(series_id, frequency)
+    name = "loaded series code: #{series_id} from BLS API"
     if series_data && series_data.empty?
-      name = "No data collected from BLS API for #{code} freq=#{frequency} - possibly redacted"
+      name = "No data collected from BLS API for #{series_id} freq=#{frequency} - possibly redacted"
     end
     new_transformation(name, series_data, frequency)
   end

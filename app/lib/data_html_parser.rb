@@ -18,7 +18,15 @@ class DataHtmlParser
     data
   end
   
-  def get_bls_series(code, frequency = nil)
+  def get_bls_series(series_id, frequency = nil)
+    api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
+    @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s' % [series_id, api_key]
+    Rails.logger.debug { "Getting data from BLS API: #{@url}" }
+    @doc = self.download
+    raise 'BLS API: empty response returned' if self.content.blank?
+  end
+
+  def get_bls_series_old_DELETEME(code, frequency = nil)
     @code = code
     @url = 'https://data.bls.gov/pdq/SurveyOutputServlet'
     @post_parameters = {
