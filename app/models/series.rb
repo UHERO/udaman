@@ -771,12 +771,14 @@ class Series < ApplicationRecord
   end
   
   def Series.load_api_bls(series_id, frequency)
+    dhp = DataHtmlParser.new
     series_data = DataHtmlParser.new.get_bls_series(series_id, frequency)
-    name = "loaded series code: #{series_id} from BLS API"
-    if series_data && series_data.empty?
-      name = "No data collected from BLS API for #{series_id} freq=#{frequency} - possibly redacted"
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
+    if series_data.empty?
+      name = "No data collected from #{link} - possibly redacted"
     end
-    new_transformation(name, series_data, frequency)
+    Series.new_transformation(name, series_data, frequency)
   end
 
   def Series.load_api_fred(code, frequency = nil, aggregation_method = nil)
