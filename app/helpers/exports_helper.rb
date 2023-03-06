@@ -30,12 +30,12 @@ module ExportsHelper
   end
 
   def sorthead(head)
-    return head unless @sortby.downcase == head.downcase
+   return head if @sortby.nil? || @sortby.downcase != head.downcase
     "#{head} <i class='fas fa-angle-#{@dir}' aria-hidden='true'></i>".html_safe
   end
 
   def sortdir(head)
-    return 'up' unless @sortby.downcase == head.downcase
+    return 'up' if @sortby.nil? || @sortby.downcase != head.downcase
     @dir == 'up' ? 'down' : 'up'
   end
 end
