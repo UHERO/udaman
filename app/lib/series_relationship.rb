@@ -101,7 +101,7 @@ module SeriesRelationship
 
     second_order_deps = []
     direct_deps.each do |s|
-      second_order_deps |= s.ts.who_i_depend_on rescue Rails.logger.warn("Nonexisting dependency found: #{s}") ## recursion
+      second_order_deps |= s.tsnil.who_i_depend_on rescue Rails.logger.warn("Nonexisting dependency found: #{s}") ## recursion
     end
     direct_deps | second_order_deps
   end

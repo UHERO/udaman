@@ -51,7 +51,7 @@ span.lighten {color:#AAA;}
 	</tr>
 <% @series_to_chart.each do |s| %>
 	<%
-		next if s.ts.nil?
+		next if s.tsnil.nil?
 		#highest_level = summary_series.ts.data[date_keys[-1]]
 		max_ytd = all_series_ytd.sort[-1]
 		min_ytd = all_series_ytd.sort[0]

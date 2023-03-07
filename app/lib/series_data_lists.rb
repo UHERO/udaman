@@ -29,7 +29,7 @@ module SeriesDataLists
         # or if the series doesn't exist, then NOTHING at all gets output. Be
         # careful if you try to change it. If puts outputs even just a newline, it
         # will break Aremos import.
-        f.puts name.ts.to_tsd rescue ''
+        f.puts name.tsnil.to_tsd rescue ''
       end
     end
   end

@@ -251,7 +251,7 @@ class DataSource < ApplicationRecord
         return base_series && base_series.last_observation.year
       end
       dependencies.each do |series_name|
-        ds = series_name.ts || next
+        ds = series_name.tsnil || next
         if ds.base_year && ds.base_year > 0
           return ds.base_year
         end
