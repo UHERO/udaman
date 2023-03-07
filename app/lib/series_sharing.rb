@@ -44,8 +44,7 @@ module SeriesSharing
       county_sum = name.ts + county_sum
       ## after first iteration, county_sum becomes a Series
     end
-    c_name = Series.build_name(prefix + 'NS', county_code, 'M')
-    county = c_name.ts
+    county = Series.build_name(prefix + 'NS', county_code, 'M').ts
 
     historical = county.annual_average / county_sum.annual_average * self
     incomplete_year = county.backward_looking_moving_average.get_last_incomplete_year / county_sum.backward_looking_moving_average.get_last_incomplete_year * self
@@ -78,8 +77,7 @@ module SeriesSharing
   end
 
   def mc_price_share_for(county_code)
-    c_name = build_name(prefix: self.parse_name[:prefix] + 'NS', geo: county_code)
-    county = c_name.ts || raise("series #{c_name} does not exist")
+    county = build_name(prefix: self.parse_name[:prefix] + 'NS', geo: county_code).ts
     my_ns_series = self.find_ns_series || raise("No NS series corresponds to #{self}")
     start_date = county.first_value_date
     end_date = get_last_complete_4th_quarter
