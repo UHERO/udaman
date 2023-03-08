@@ -159,7 +159,7 @@ module SeriesHelper
     words = text.split(' ')
     words.each_with_index do |word, index|
       if valid_series_name(word)
-        series = word.ts
+        series = word.tsnil
         words[index] = link_to(word, { action: action, id: series }) if series
         next
       end
