@@ -247,11 +247,11 @@ class DataSource < ApplicationRecord
 
         series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
         sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
-        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
+        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').tsnil
         return base_series && base_series.last_observation.year
       end
       dependencies.each do |series_name|
-        ds = series_name.ts || next
+        ds = series_name.tsnil || next
         if ds.base_year && ds.base_year > 0
           return ds.base_year
         end

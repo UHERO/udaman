@@ -110,7 +110,7 @@ class Series < ApplicationRecord
       delete_data_points  ## clear all data points
     end
     dependents.each do |series_name|
-      s = series_name.ts || next
+      s = series_name.tsnil || next
       s.enabled_data_sources.each do |ds|
         new_eval = ds.eval.gsub(old_name, newname)
         ds.update_attributes!(eval: new_eval) if new_eval != ds.eval
@@ -312,22 +312,22 @@ class Series < ApplicationRecord
 
   ## Find non-seasonally-adjusted correspondent series based on name
   def find_ns_series
-    ns_series_name.ts
+    ns_series_name.tsnil
   end
 
   ## Find seasonally-adjusted correspondent series based on name
   def find_non_ns_series
-    non_ns_series_name.ts
+    non_ns_series_name.tsnil
   end
 
   ## Find "sibling" series for a different geography
   def find_sibling_for_geo(geo)
-    build_name(geo: geo.to_s.upcase).ts
+    build_name(geo: geo.to_s.upcase).tsnil
   end
 
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
-    build_name(freq: freq.to_s.upcase).ts
+    build_name(freq: freq.to_s.upcase).tsnil
   end
 
   def is_primary?
@@ -419,7 +419,7 @@ class Series < ApplicationRecord
     end
     properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
     properties[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
-    new_series = series_name.ts || Series.create_new(properties)
+    new_series = series_name.tsnil || Series.create_new(properties)
     new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag
     new_series.save_source(desc, eval_statement, series.data, priority)
   end
@@ -815,18 +815,6 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, 'A')
   end
 
-  def Series.load_api_eia_DELETEME(parameter)
-    parameter.upcase!  # Series ID in the EIA API is case sensitive
-    dhp = DataHtmlParser.new
-    series_data = dhp.get_eia_series_DELETEME(parameter)
-    link = '<a href="%s">API URL</a>' % dhp.url
-    name = "loaded data set from #{link} with parameters shown"
-    if series_data.empty?
-      name = "No data collected from #{link} - possibly redacted"
-    end
-    Series.new_transformation(name, series_data, parameter[-1])
-  end
-
   def Series.load_api_eia_aeo(route: nil, scenario: nil, seriesId: nil, frequency: 'annual', value_in: 'value')
     dhp = DataHtmlParser.new
     raise 'route, scenario, and seriesId are all required parameters' unless route && scenario && seriesId
@@ -880,7 +868,7 @@ class Series < ApplicationRecord
       date = last_observation
     end
     unless date.class == Date
-      date = Date.parse(date) rescue Date.new(date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
+      date = Date.parse(date) rescue Date.new(Integer date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
     end
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
@@ -1158,7 +1146,7 @@ class Series < ApplicationRecord
       search_terms = (search_string.scan(regex).map {|s| s[0] }) + search_string.gsub(regex, '').split(' ')
       conditions = [%q{coalesce(description,'') regexp ?}] * search_terms.count
       AremosSeries.where(conditions.join(' and '), *search_terms).limit(10).each do |as|
-        s = as.name.ts
+        s = as.name.tsnil
         results.push({ name: as.name, series_id: (s.nil? ? 'no series' : s.id), description: as.description })
       end
     end

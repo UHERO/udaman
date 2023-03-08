@@ -9,7 +9,7 @@ module ForecastSnapshotsHelper
 
   def data_portal_link(series)
     unless series.class == Series
-      series = series.ts or return "Not an existing series name: #{series}"
+      series = series.tsnil or return "Not an existing series name: #{series}"
     end
     '<a href="https://data.uhero.hawaii.edu/#/series?id=%d" title="Data portal">%s</a>' % [series.id, series.name]
   end

@@ -4,10 +4,6 @@ module SeriesInterpolation
     self
   end
 
-  def interpolate_to (frequency, operation, series_to_store_name)
-    series_to_store_name.ts = interpolate(frequency, operation)
-  end
-  
   def extend_first_back_to(date)
     first_data_point_date = first_observation
     first_data_point_val = at(first_data_point_date)
@@ -24,7 +20,7 @@ module SeriesInterpolation
   end
   
   def extend_last_fwd_to_match(series_name)
-    last_data_point_date = series_name.ts.last_observation rescue raise("Series #{series_name} does not exist")
+    last_data_point_date = series_name.ts.last_observation
     current_last_data_point = last_observation
     last_data_point_val = at(current_last_data_point)
 
