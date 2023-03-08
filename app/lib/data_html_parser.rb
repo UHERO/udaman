@@ -1,4 +1,5 @@
 class DataHtmlParser
+  include HelperUtilities
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED'] || raise('No API key defined for FRED')
@@ -126,36 +127,30 @@ class DataHtmlParser
     new_data
   end
 
-  def get_eia_series(parameter)
+  def get_eia_v2_series(route, scenario, seriesId, frequency, value_in)
     api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
-    @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
+    @url = 'https://api.eia.gov/v2/%s/data?api_key=%s' % [route, api_key]
+    @url += '&facets[scenario][]=%s' % scenario if scenario
+    @url += '&facets[seriesId][]=%s' % seriesId if seriesId
+    @url += '&frequency=%s' % frequency if frequency
+    @url += '&data[]=%s' % value_in if value_in
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
-    raise 'EIA API: empty response returned' if self.content.blank?
+    raise 'EIA API: Null response returned; check parameters, they are case-sensitive' if self.content.blank?
     response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
-    err = response['data'] && response['data']['error']
-    if err
-      raise 'EIA API error: %s' % response['data']['error']
+    if response['error']
+      raise 'EIA API error: %s' % response['error']
+    end
+    api_data = response['response']['data']
+    if api_data.empty?
+      raise 'EIA API: Response is empty; check parameters, they are case-sensitive'
     end
     new_data = {}
-    series_data = response['series'][0]['data']
-    series_data.each do |data_point|
-      time_period = data_point[0]
-      value = data_point[1]
-      if value
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
-      end
+    api_data.each do |data_point|
+      date = grok_date(data_point['period'])
+      new_data[date] = data_point[value_in].to_f
     end
     new_data
-  end
-
-  ## This is a replacement for get_eia_series, which implements the newer v2 syntax. Waiting to be deployed
-  def get_eia_series_v2()
-    api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
-    @url = "https://api.eia.gov/v2/FOOroute?api_key=#{api_key}"
-    Rails.logger.info { "Getting data from EIA APIv2: #{@url}" }
-    @doc = self.download
-    raise('EIA APIv2: empty response returned') if self.content.blank?
   end
 
   def get_dvw_series(mod, freq, indicator, dimension_hash)
@@ -230,7 +225,7 @@ class DataHtmlParser
       @content = get_by_http(verifyssl: verifyssl)
     rescue => e
       Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
-      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
+      @content = %x{curl --insecure --globoff '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
       unless $?.success?
         msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
         raise "curl command failed: #{msg}"

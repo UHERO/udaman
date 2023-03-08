@@ -66,15 +66,6 @@ class DataList < ApplicationRecord
     series_data    
   end
   
-  def get_series_ids
-    series_data = {}
-    series_names.each do |s| 
-      series = s.ts
-      series_data[s] = series.nil? ? nil : series.id
-    end
-    series_data    
-  end
-
   def get_sibling_series_ids
     sibling_ids = []
     series_names.each do |s|
@@ -89,7 +80,7 @@ class DataList < ApplicationRecord
     series_data = {}
     series_names.each do |s| 
       s_name = (s.split('.')[0] + '.' + frequency)
-      series = s_name.ts
+      series = s_name.tsnil
       series_data[s_name] = series.id unless series.nil?
     end
     series_data    
@@ -98,7 +89,7 @@ class DataList < ApplicationRecord
   def get_series_data
     series_data = {}
     series_names.each do |s| 
-      series = s.ts
+      series = s.tsnil
       series_data[s] = series.nil? ? {} : series.get_values_after_including(Date.new(startyear))
     end
     series_data
