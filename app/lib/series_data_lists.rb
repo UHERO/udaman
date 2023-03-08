@@ -2,7 +2,7 @@ module SeriesDataLists
   def Series.grab_data(list, start_date = Date.new(1900))
     series_data = {}
     list.each do |s|
-      series = s.ts
+      series = s.tsnil
       series_data[s] = series.nil? ? {} : series.get_values_after_including(start_date)
     end
     series_data
@@ -29,7 +29,7 @@ module SeriesDataLists
         # or if the series doesn't exist, then NOTHING at all gets output. Be
         # careful if you try to change it. If puts outputs even just a newline, it
         # will break Aremos import.
-        f.puts name.ts.to_tsd rescue ''
+        f.puts name.tsnil.to_tsd rescue ''
       end
     end
   end
