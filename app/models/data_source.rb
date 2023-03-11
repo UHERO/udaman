@@ -327,10 +327,6 @@ class DataSource < ApplicationRecord
       Series.find_by id: self.series_id
     end
 
-    def get_eval_statement
-      "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
-    end
-
   def DataSource.load_error_summary
     ## Extra session acrobatics used to prevent error based on sql_mode=ONLY_FULL_GROUP_BY
     DataSource.connection.execute(%q{set SESSION sql_mode = ''})        ## clear it out to prepare for query

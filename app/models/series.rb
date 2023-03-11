@@ -970,26 +970,6 @@ class Series < ApplicationRecord
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
 
-  ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
-  ### Or not.... maybe just leave it because it might be useful again, who knows.
-  def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
-    series_list.each do |s_name|
-      next unless already_run[s_name].nil?
-      s = s_name.ts
-      begin
-        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements) ## recursion
-      rescue
-        puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
-        puts s.id
-        puts s.name
-      end
-      errors.concat s.reload_sources(nightly: false, clear_first: clear_first)  ## hardcoding as NOT the series worker, because expecting to use
-                                                          ## this code only for ad-hoc jobs from now on
-      eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
-      already_run[s_name] = true
-    end
-  end
-
   def reload_sources(nightly: false, clear_first: false)
     series_success = true
     data_sources_by_last_run.each do |ds|
