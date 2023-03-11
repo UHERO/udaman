@@ -876,7 +876,7 @@ class Series < ApplicationRecord
     return nil if dd.nil?
     ## Next line is very inefficient, but this method is currently only used in production in one operation,
     ## where performance is not really a concern, and refactoring code to make this method faster makes no sense.
-    div_by = data_points.find_by(date: date).data_source.div_by rescue 1.0
+    div_by = data_points.find_by(date: date, current: true).data_source.div_by rescue 1.0
     dd / div_by
   end
 
