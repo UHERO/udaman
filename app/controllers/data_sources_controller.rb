@@ -95,7 +95,7 @@ private
   end
 
   def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
+      params.require(:data_source).permit(:series_id, :eval, :priority, :div_by, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
   def create_action(data_source, action)

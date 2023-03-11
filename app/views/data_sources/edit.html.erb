@@ -15,6 +15,10 @@
 			<%= ds.label :priority %>
 			<%= ds.number_field :priority, size: 5, disabled: @disab %>
     </div>
+		<div class="field">
+			<%= ds.label :div_by, 'Units (1, 10, 1000, etc)' %>
+			<%= ds.text_field :div_by %>
+		</div>
     <div class="field">
       <%= ds.check_box :clear_before_load %> Always clear existing data points before loading
     </div>

@@ -12,6 +12,10 @@
       <%= ds.label :priority %>
       <%= ds.number_field :priority, size: 5 %>
 		</div>
+		<div class="field">
+			<%= ds.label :div_by, 'Units (1, 10, 1000, etc)' %>
+			<%= ds.text_field :div_by %>
+		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
       <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true } %>

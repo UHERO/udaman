@@ -874,7 +874,10 @@ class Series < ApplicationRecord
   def units_at(date)
     dd = at(date)
     return nil if dd.nil?
-    dd / (units || 1.0)
+    ## Next line is very inefficient, but this method is currently only used in production in one operation,
+    ## where performance is not really a concern, and refactoring code to make this method faster makes no sense.
+    div_by = data_points.find_by(date: date).data_source.div_by rescue 1.0
+    dd / div_by
   end
 
   def tsd_date_range(start_date, end_date)
