@@ -50,8 +50,6 @@ Series.all.each {|s| dps = s.current_data_points.count; puts "#{s.name}, #{dps}"
 ```
 This command will spit out a list of series mnemonics with their number of current data points.
 
-If you don't have any series with a decent number of data points (i.e., more than 50), go ahead and run `rake rebuild` a little longer this time to download some more series.
-
 Navigate to Udaman in your browser. The default location is [http://localhost:3000/](http://localhost:3000/).
 
 Type the name of the series (i.e., the series mnemonic) you've chosen into the search bar in the top right of Udaman. For example, "BRENT@US.M"
