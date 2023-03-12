@@ -582,6 +582,10 @@ class Series < ApplicationRecord
     @data = data_hash
   end
 
+  def scaled_data(prec: 3)
+    @scaled_data ||= extract_from_datapoints('value', scaled: true, prec: prec)
+  end
+
   def yoy_hash
     @yoy_hash ||= extract_from_datapoints('yoy')
   end
@@ -610,9 +614,9 @@ class Series < ApplicationRecord
     @trim_period_end = date
   end
 
-  def extract_from_datapoints(column)
+  def extract_from_datapoints(column, scaled: false, prec: nil)
     return {} unless xseries
-    current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
+    current_data_points(scaled: scaled, prec: prec).map {|dp| [dp.date, dp[column]] }.to_h
   end
 
   def delete_data_points(from: nil)
@@ -632,7 +636,7 @@ class Series < ApplicationRecord
     Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
   end
 
-  def scaled_data(prec = 3)
+  def old_scaled_data(prec = 3)
     data_hash = {}
     self.units ||= 1
     self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units

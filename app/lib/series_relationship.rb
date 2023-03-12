@@ -14,15 +14,26 @@ module SeriesRelationship
     all_frequencies(exclude_self: true)
   end
   
-  def current_data_points(return_type = :array)
+  def current_data_points(return_type = :array, scaled: false, prec: nil)
     cdp_hash = {}
     cdp_array = []
-    xseries.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
+    all_points = xseries.data_points
+    if scaled
+      ## foo
+    end
+    all_points.where(current: true).order(:date, updated_at: :desc).all.each do |cdp|
       if cdp_hash[cdp.date]
-        cdp.update_attributes!(:current => false)
+        cdp.update_attributes!(current: false)
       else
         cdp_hash[cdp.date] = true
-        cdp_array.push cdp
+        pt = cdp.dup
+        if scaled
+          # foo
+        end
+        if prec
+          # foo
+        end
+        cdp_array.push(pt)
       end
     end
     return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
