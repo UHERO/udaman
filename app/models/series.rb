@@ -617,27 +617,27 @@ class Series < ApplicationRecord
   def extract_from_datapoints(column, scaled: false, prec: nil)
     return {} unless xseries
     current_data_points(scaled: scaled).map do |dp|
-      value = dp[column]
-      value.round_to(prec) if prec
+      value = dp[column]   ## could be dp.send(column) - which is better?
+      value = (value.round(prec).to_f rescue nil) if prec
       [dp.date, value]
     end.to_h
   end
 
   def current_data_points(return_type = :array, scaled: false)
-    cdp_hash = {}
     cdp_array = []
-    all_points = xseries.data_points
+    all_points = xseries.data_points rescue raise("Cannot find data points for #{self}")
     if scaled
       all_points = all_points.joins(:data_source)
     end
-    all_points.where(current: true).order(:date, updated_at: :desc).all.each do |cdp|
-      if cdp_hash[cdp.date]
-        cdp.update_attributes!(current: false)
-      else
-        cdp_hash[cdp.date] = true
-        cdp.value /= cdp.div_by if scaled
-        cdp_array.push(cdp)
+    seen = {}
+    all_points.where(current: true).order(:date, updated_at: :desc).all.each do |dp|
+      if seen[dp.date]
+        dp.update_attributes!(current: false)
+        next
       end
+      seen[dp.date] = true
+      dp.value /= dp.div_by if scaled
+      cdp_array.push(dp)
     end
     return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
   end
