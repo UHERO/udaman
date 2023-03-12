@@ -619,6 +619,31 @@ class Series < ApplicationRecord
     current_data_points(scaled: scaled, prec: prec).map {|dp| [dp.date, dp[column]] }.to_h
   end
 
+  def current_data_points(return_type = :array, scaled: false, prec: nil)
+    cdp_hash = {}
+    cdp_array = []
+    all_points = xseries.data_points
+    if scaled
+      ## foo
+    end
+    all_points.where(current: true).order(:date, updated_at: :desc).all.each do |cdp|
+      if cdp_hash[cdp.date]
+        cdp.update_attributes!(current: false)
+      else
+        cdp_hash[cdp.date] = true
+        pt = cdp.dup
+        if scaled
+          # foo
+        end
+        if prec
+          # foo
+        end
+        cdp_array.push(pt)
+      end
+    end
+    return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
+  end
+
   def delete_data_points(from: nil)
     query = <<~MYSQL
       delete from data_points where xseries_id = ?
@@ -636,6 +661,7 @@ class Series < ApplicationRecord
     Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
   end
 
+  ### OBSOLETE - DELETE SOON
   def old_scaled_data(prec = 3)
     data_hash = {}
     self.units ||= 1
