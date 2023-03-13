@@ -231,8 +231,7 @@ class NewDbedtUpload < ApplicationRecord
             dataPortalName: ind_meta['indicatorfortable'],
             unit_id: unit_id,
             source_id: source_id,
-            decimals: ind_meta['decimal'].to_i,
-            units: 1
+            decimals: ind_meta['decimal'].to_i
           )
         end
         current_data_source ||= DataSource.create(

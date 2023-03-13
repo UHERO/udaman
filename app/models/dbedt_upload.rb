@@ -313,8 +313,7 @@ class DbedtUpload < ApplicationRecord
               dataPortalName: row[1],
               unit_id: unit && unit.id,
               source_id: source && source.id,
-              decimals: row[10],
-              units: 1
+              decimals: row[10]
           )
           current_data_source = DataSource.create(
               universe: 'DBEDT',
