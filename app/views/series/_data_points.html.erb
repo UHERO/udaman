@@ -13,7 +13,6 @@
 <%
   ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
     def display_data_points(data_hash, env = {})
-      units = @series.units
       chg_data = @chg.data.clone rescue {}
       ytd_data = @ytd_chg.data.clone rescue {}
       lvl_data = @lvl_chg.data.clone rescue {}
@@ -25,8 +24,7 @@
       data_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
           cdp = element
-          date_string = cdp.date.to_s
-          cdp_val = cdp.value / units
+          cdp_val = cdp.value / cdp.data_source.div_by rescue raise("Scaling error occurred at date #{cdp.date}")
           chg_value = (chg_data[cdp.date].round(1).to_s + '%') rescue '-'
           chg_align = chg_value == '-' ? 'center' : 'right'
           ytd_chg_value = (ytd_data[cdp.date].round(1).to_s + '%') rescue '-'

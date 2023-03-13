@@ -617,7 +617,7 @@ class Series < ApplicationRecord
   def extract_from_datapoints(column, scaled: false, prec: nil)
     return {} unless xseries
     current_data_points(scaled: scaled).map do |dp|
-      value = dp[column]   ## could be dp.send(column) - which is better?
+      value = dp[column]   ## or could be dp.send(column) - which is better?
       value = (value.round(prec).to_f rescue nil) if prec
       [dp.date, value]
     end.to_h
