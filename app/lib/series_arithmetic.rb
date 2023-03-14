@@ -304,12 +304,14 @@ module SeriesArithmetic
         FROM data_points d
           JOIN data_sources ld on ld.id = d.data_source_id
           JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = ? AND `current` = true
+        WHERE x.primary_series_id = ?
+        AND d.current = true
       ) AS t1
       LEFT JOIN (
         SELECT `value` AS last_value, `date`
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = ? and `current` = true
+        WHERE x.primary_series_id = ?
+        AND d.current = true
       ) AS t2
       ON (t1.last_year = t2.date);
     MYSQL
@@ -329,7 +331,7 @@ module SeriesArithmetic
     data.sort.each do |date, value|
       month = date.month
       new_series_data[date] = (value-last[month]) unless last[month].nil?
-      last[date.month] = value
+      last[month] = value
     end
     new_transformation("Year over year diff of #{name}", new_series_data)
   end
