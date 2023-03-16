@@ -94,18 +94,6 @@ module SeriesDataAdjustment
     data.reject {|date, value| date < start_date or value.nil? or date > end_date}
   end
 
-  ## Obsolete? Track it down.
-  def compressed_date_range_data(compressed_dates = Date.compressed_date_range)
-    compressed_date_range_data = {}
-    compressed_dates.each { |date| compressed_date_range_data[date] = data[date] }
-    compressed_date_range_data
-  end
-  
-  def get_data_for_month(month_num)
-    return {} if month_num > 12 or month_num < 1
-    data.reject {|date_string, _| date_string.month != month_num}
-  end
-
   def shift_by(laglead)  ## laglead is expected to be a time duration, like 7.days, -1.month, 4.years, etc.
     raise 'shift_by: parameter must be a valid duration' unless laglead.class == ActiveSupport::Duration
     dir = laglead < 0 ? 'backward' : 'forward'
