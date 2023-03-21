@@ -9,7 +9,7 @@ Current<br/>
 <div style="float:left;">
 <% [current_dp, other_dps].flatten.each do |dp| %>
   <% loader = dp.data_source %>
-  <%= dp_display(dp.value / loader.div_by, '#%s' % loader.color,
+  <%= dp_display(dp.value / loader.div_by, '#' + loader.color,
                     age: dp_age_code(dp), title: loader.description) %>
 <% end %>
 </div>
