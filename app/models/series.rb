@@ -632,7 +632,7 @@ class Series < ApplicationRecord
     seen = {}
     all_points.where(current: true).order(:date, updated_at: :desc).all.each do |dp|
       if seen[dp.date]
-        dp.update_attributes!(current: false)
+        dp.update_columns(current: false)
         next
       end
       seen[dp.date] = true
