@@ -636,7 +636,7 @@ class Series < ApplicationRecord
         next
       end
       seen[dp.date] = true
-      dp.value /= dp.div_by if scaled
+      dp.value /= dp.scale if scaled
       cdp_array.push(dp)
     end
     return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
@@ -904,8 +904,8 @@ class Series < ApplicationRecord
     return nil if dd.nil?
     ## Next line is very inefficient, but this method is currently only used in production in one operation,
     ## where performance is not really a concern, and refactoring code to make this method faster makes no sense.
-    div_by = data_points.find_by(date: date, current: true).data_source.div_by rescue 1.0
-    dd / div_by
+    scale = data_points.find_by(date: date, current: true).data_source.scale rescue 1.0
+    dd / scale
   end
 
   def tsd_date_range(start_date, end_date)
