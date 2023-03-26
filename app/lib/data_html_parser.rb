@@ -139,7 +139,7 @@ class DataHtmlParser
     raise 'EIA API: Null response returned; check parameters, they are case-sensitive' if self.content.blank?
     response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
     if response['error']
-      raise 'EIA API error: %s' % (response['error']['message'] rescue response['error'])
+      raise 'EIA API error: %s' % (response['error']['message'] || response['error'])
     end
     api_data = response['response']['data']
     if api_data.empty?
