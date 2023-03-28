@@ -1049,7 +1049,7 @@ class Series < ApplicationRecord
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos
         when /^[.]/
-          freqs = tane.split(//)  ## split to individual characters
+          freqs = tane.gsub(',', '').split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
