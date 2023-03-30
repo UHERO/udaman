@@ -45,6 +45,8 @@ class Series < ApplicationRecord
                               seasonally_adjusted: 'seasonally_adjusted',
                               not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
+  HISTORY_LOAD_DATES = [1]  ## the date(s) of the month when brown history loaders with clock icon OFF are loaded
+
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
   ## columns/attributes based on heuristics over other attributes in the model.
   after_create do
@@ -993,7 +995,7 @@ class Series < ApplicationRecord
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
-        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && Date.today.day == 1) ## History loaders only nightly reload on the first of month.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && HISTORY_LOAD_DATES.include?(Date.today.day)) ## History loaders only reload on certain days.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
