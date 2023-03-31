@@ -3,6 +3,16 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :convert_units_to_scale => :environment do
+  Series.joins(:xseries).where("universe = 'UHERO' AND units != 1").each do |s|
+    puts "DOING #{s}: units = #{s.units}"
+    next
+    s.data_sources.each do |ld|
+      ld.update!(scale: s.units)
+    end
+  end
+end
+
 task :deploy_per_cap => :environment do
   DataSource.get_all_uhero.each do |ld|
     next unless ld.eval =~ %r{^\s*
