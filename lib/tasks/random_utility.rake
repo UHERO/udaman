@@ -5,8 +5,7 @@
 
 task :convert_units_to_scale => :environment do
   Series.joins(:xseries).where("universe = 'UHERO' AND units != 1").each do |s|
-    puts "DOING #{s}: units = #{s.units}"
-    next
+    puts "DOING #{s}: units = #{s.units}, lds=#{s.data_sources.count}"
     s.data_sources.each do |ld|
       ld.update!(scale: s.units)
     end
