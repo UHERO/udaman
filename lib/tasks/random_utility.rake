@@ -3,6 +3,34 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :deploy_per_cap => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "nr(\w+)@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100(0)?
+                              \s*$}xi
+    base_series = $1
+    nr_type = $2.to_s.upcase
+    if $3.to_s == '0'
+      method_code = 'per_1kcap'
+    else
+      method_code = 'per_cap'
+    end
+    if nr_type != ''
+      #foo
+    end
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.%s' + method_code + nr_type)
+  end
+end
+
 task :rewrite_clustermapping_method => :environment do
   Series.search_box('#api_clustermap').each do |s|
     ld = s.enabled_data_sources[0]
