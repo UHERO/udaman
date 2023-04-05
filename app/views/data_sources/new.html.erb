@@ -13,8 +13,8 @@
       <%= ds.number_field :priority, size: 5 %>
 		</div>
 		<div class="field">
-			<%= ds.label :scale, 'Scale (number to divide by: 1, 10, 1000, etc)' %>
-			<%= ds.text_field :scale %>
+			<%= ds.label :scale %>
+			<%= ds.text_field :scale, size: 12 %> (number to divide by: 1, 10, 1000, etc)
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
