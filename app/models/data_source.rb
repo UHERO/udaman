@@ -91,7 +91,6 @@ class DataSource < ApplicationRecord
         ds.set_dependencies!
       end
       Rails.logger.info { 'DataSource set_all_dependencies: done' }
-      return 0
     end
 
     def current_data_points
@@ -186,6 +185,21 @@ class DataSource < ApplicationRecord
       set_dependencies!
     end
 
+    def debug_reload_source(clear_first = clear_before_load?)
+      eval_stmt = self['eval'].dup
+      if clear_first
+        delete_data_points
+      end
+      if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
+        options = Kernel::eval $1    ## reconstitute
+        hash = Digest::MD5.new << eval_stmt
+        eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
+                                                      eval_hash: hash.to_s,
+                                                      dont_skip: clear_first.to_s).to_s)
+      end
+      Kernel::eval eval_stmt
+    end
+
     def reload_source(clear_first = clear_before_load?)
       return false if disabled?
       Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
@@ -233,11 +247,11 @@ class DataSource < ApplicationRecord
 
         series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
         sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
-        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
+        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').tsnil
         return base_series && base_series.last_observation.year
       end
       dependencies.each do |series_name|
-        ds = series_name.ts || next
+        ds = series_name.tsnil || next
         if ds.base_year && ds.base_year > 0
           return ds.base_year
         end

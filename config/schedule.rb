@@ -30,12 +30,8 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 #     rake "test_case"
 # end
 
-every 1.day, :at => '6:24 pm' do
+every 1.day, :at => '6:09 pm' do
   rake :reset_dependency_depth
-end
-
-every 1.day, :at => '8:00 pm' do
-  rake :reload_aremos
 end
 
 every 1.day, :at => '1:00 am' do
@@ -81,10 +77,6 @@ end
 
 every :day, at: '6:30 am' do
   rake :gen_investigate_csv
-end
-
-every :day, at: '6:50 am' do
-  rake :aremos_exports
 end
 
 every :day, at: '8:50 am' do

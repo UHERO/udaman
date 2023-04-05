@@ -20,7 +20,7 @@ class AremosSeries < ApplicationRecord
     
     def AremosSeries.web_search(search)
       search(search).map do |as|
-        series = as.name.ts
+        series = as.name.tsnil
         { name: as.name, description: as.description, series_id: series && series.id }
       end
       
