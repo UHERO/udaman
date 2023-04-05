@@ -1,0 +1,16 @@
+<div id="summary_area">
+	<h2>Clear</h2>
+</div>
+<div id="details_mask"></div>
+<div id="details_area">
+	<%= form_with url: { action: :do_clear, id: @data_source } do |ld| %>
+		<div class="field">
+			Clear data points after and including the following date (YYYY-MM-DD). Leave blank for all.
+      <%= ld.text_field :from, size: 12 %>
+    </div>
+		<div class="actions">
+			<%= ld.submit 'Clear data points' %>
+			<%= link_to 'Cancel', :back %>
+		</div>
+	<% end %>
+</div>
