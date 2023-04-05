@@ -6,7 +6,7 @@
 	<%= form_with url: { action: :do_clear, id: @data_source } do |ld| %>
 		<div class="field">
 			Clear data points after and including the following date (YYYY-MM-DD). Leave blank for all.<br/>
-      <%= ld.text_field :from, size: 12 %>
+      <%= ld.text_field_tag 'clear_which[from]', size: 12 %>
     </div>
 		<div class="actions">
 			<%= ld.submit 'Clear data points' %>
