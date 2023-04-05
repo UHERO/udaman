@@ -91,7 +91,6 @@ class DataSource < ApplicationRecord
         ds.set_dependencies!
       end
       Rails.logger.info { 'DataSource set_all_dependencies: done' }
-      return 0
     end
 
     def current_data_points
@@ -114,14 +113,13 @@ class DataSource < ApplicationRecord
       when /load_api/ then :api
       when /forecast/i then :forecast
       when /load_from_download/ then :download
-      when /(bls_histextend_date_format_correct|inc_hist|bls_sa_history|SQ5NHistory)\.xls/i then :pseudo_history  ## get rid of this asap!
       when /load_[a-z_]*from.*history/i then :history
       when /load_[a-z_]*from/i then :manual
       else :other  ## this includes calculations/method calls
       end
     end
 
-    def type_colors(type = loader_type)
+    def DataSource.type_colors(type)
       case type
       when :api then %w{B2A1EA CDC8FE A885EF}  ## Purples
       when :forecast then %w{FFA94E FFA500}    ## Oranges
@@ -134,11 +132,14 @@ class DataSource < ApplicationRecord
       end
     end
 
+    def type_colors
+      DataSource.type_colors(loader_type)
+    end
+
     def find_my_color
-      my_type = loader_type
-      color_set = type_colors(my_type)
+      color_set = type_colors
       my_color = color_set[0]
-      same_type = colleagues.select {|l| l.loader_type == my_type }
+      same_type = colleagues.select {|l| l.loader_type == self.loader_type }
       unless same_type.empty?
         counts = color_set.map {|c| [c, same_type.select {|l| l.color == c }.count] }
         ### Cycle through the color_set as loaders of the same type are added
@@ -151,6 +152,11 @@ class DataSource < ApplicationRecord
         end
       end
       my_color
+    end
+
+    def is_history?
+      type = loader_type
+      type == :history || type == :pseudo_history
     end
 
     def set_color!(color = find_my_color)
@@ -177,6 +183,21 @@ class DataSource < ApplicationRecord
     def setup
       set_color!
       set_dependencies!
+    end
+
+    def debug_reload_source(clear_first = clear_before_load?)
+      eval_stmt = self['eval'].dup
+      if clear_first
+        delete_data_points
+      end
+      if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
+        options = Kernel::eval $1    ## reconstitute
+        hash = Digest::MD5.new << eval_stmt
+        eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
+                                                      eval_hash: hash.to_s,
+                                                      dont_skip: clear_first.to_s).to_s)
+      end
+      Kernel::eval eval_stmt
     end
 
     def reload_source(clear_first = clear_before_load?)
@@ -226,11 +247,11 @@ class DataSource < ApplicationRecord
 
         series_name = eval_string[/(["'])(.+?)\1\.ts\.rebase/, 2]
         sn = Series.parse_name(series_name) rescue raise('No valid series name found in load statement')
-        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').ts
+        base_series = Series.build_name(sn[:prefix], sn[:geo], 'A').tsnil
         return base_series && base_series.last_observation.year
       end
       dependencies.each do |series_name|
-        ds = series_name.ts || next
+        ds = series_name.tsnil || next
         if ds.base_year && ds.base_year > 0
           return ds.base_year
         end
@@ -239,6 +260,7 @@ class DataSource < ApplicationRecord
     end
 
     def reset(clear_cache = true)
+      self.update_attributes!(last_error: nil, last_error_at: nil)
       self.data_source_downloads.each do |dsd|
         dsd.update_attributes(
             last_file_vers_used: DateTime.new(1970), ## the column default value, 1 Jan 1970
@@ -251,20 +273,8 @@ class DataSource < ApplicationRecord
       end
     end
 
-    def mark_as_pseudo_history
-      data_points.each {|dp| dp.update_attributes(:pseudo_history => true) }
-    end
-    
-    def mark_as_pseudo_history_before(date)
-      data_points.where("date < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => true) }
-    end
-
-    def unmark_as_pseudo_history
-      data_points.each {|dp| dp.update_attributes(:pseudo_history => false) }
-    end
-    
-    def unmark_as_pseudo_history_before(date)
-      data_points.where("date_string < '#{date}'" ).each {|dp| dp.update_attributes(:pseudo_history => false) }
+    def mark_data_as_pseudo_history(value = true)
+      data_points.update_all(pseudo_history: value)
     end
 
     def current?
@@ -273,7 +283,7 @@ class DataSource < ApplicationRecord
     rescue
       return false
     end
-        
+
     def delete_data_points(from: nil)
       query = <<~MYSQL
         delete from data_points where data_source_id = ?

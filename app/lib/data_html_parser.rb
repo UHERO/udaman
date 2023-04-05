@@ -1,4 +1,5 @@
 class DataHtmlParser
+  include HelperUtilities
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED'] || raise('No API key defined for FRED')
@@ -52,7 +53,11 @@ class DataHtmlParser
     raise 'BEA API: no results included' unless beaapi['Results'] || beaapi['Error']
     err = beaapi['Error'] || beaapi['Results'] && beaapi['Results']['Error']
     if err
-      raise 'BEA API Error: %s%s (code=%s)' % [err['APIErrorDescription'], err['AdditionalDetail'], err['APIErrorCode']]
+      raise 'BEA API Error: %s %s (code=%s)' % [
+        err['APIErrorDescription'],
+        err['ErrorDetail'] && err['ErrorDetail']['Description'],
+        err['APIErrorCode']
+      ]
     end
     results_data = beaapi['Results']['Data']
     raise 'BEA API: results, but no data' unless results_data
@@ -102,10 +107,11 @@ class DataHtmlParser
     new_data
   end
 
-  def get_clustermapping_series(dataset, parameters)
-    parameters[2] = expand_date_range(parameters[2]) if parameters[2].include? ':'
-    query_params = parameters.map(&:to_s).join('/')
-    @url = "https://clustermapping.us/data/region/#{query_params}"
+  def get_cluster_series(cluster_id, geo, value_in: 'emp_tl')
+    geocodes = { HI: 'state/15', HAW: 'county/15001', HON: 'county/15003', KAU: 'county/15007', MAU: 'county/15009' }
+    geoinfo = geocodes[geo.upcase.to_sym] || raise("Invalid geography #{geo}")
+    ##years = (2008..2020).to_a.join(',')   ## should be replaced with "all" as soon as that returns proper results
+    @url = "https://clustermapping.us/data/region/#{geoinfo}/all/#{cluster_id}"
     Rails.logger.debug { "Getting data from Clustermapping API: #{@url}" }
     @doc = self.download
     raise 'Clustermapping API: empty response returned' if self.content.blank?
@@ -113,44 +119,41 @@ class DataHtmlParser
     new_data = {}
     response.each do |data_point|
       time_period = data_point['year_t']
-      value = data_point[dataset]
+      value = data_point[value_in]
       if value
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
+        new_data[ get_date(time_period[0..3], time_period[4..]) ] = value
       end
     end
     new_data
   end
 
-  def expand_date_range(date_range)
-    split_dates = date_range.split(":")
-    (split_dates[0]..split_dates[1]).to_a.join(',')
-  end
-
-  def get_eia_series(parameter)
+  def get_eia_v2_series(route, scenario, seriesId, frequency, value_in)
     api_key = ENV['API_KEY_EIA'] || raise('No API key defined for EIA')
-    @url = "https://api.eia.gov/series/?series_id=#{parameter}&api_key=#{api_key}"
+    @url = 'https://api.eia.gov/v2/%s/data?api_key=%s' % [route, api_key]
+    @url += '&facets[scenario][]=%s' % scenario if scenario
+    @url += '&facets[seriesId][]=%s' % seriesId if seriesId
+    @url += '&frequency=%s' % frequency if frequency
+    @url += '&data[]=%s' % value_in if value_in
     Rails.logger.info { "Getting data from EIA API: #{@url}" }
     @doc = self.download
-    raise 'EIA API: empty response returned' if self.content.blank?
+    raise 'EIA API: Null response returned; check parameters, they are case-sensitive' if self.content.blank?
     response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
-    err = response['data'] && response['data']['error']
-    if err
-      raise 'EIA API error: %s' % response['data']['error']
+    if response['error']
+      raise 'EIA API error: %s' % response['error']
+    end
+    api_data = response['response']['data']
+    if api_data.empty?
+      raise 'EIA API: Response is empty; check parameters, they are case-sensitive'
     end
     new_data = {}
-    series_data = response['series'][0]['data']
-    series_data.each do |data_point|
-      time_period = data_point[0]
-      value = data_point[1]
-      if value
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value
-      end
+    api_data.each do |data_point|
+      date = grok_date(data_point['period'])
+      new_data[date] = data_point[value_in].to_f
     end
     new_data
   end
 
   def get_dvw_series(mod, freq, indicator, dimension_hash)
-    ##api_key = ENV['API_KEY_DVW'] || raise('No API key defined for DVW')
     dims = dimension_hash.map {|k, v| '%s=%s' % [k.to_s[0].downcase, v] }.join('&')
     @url = "https://api.uhero.hawaii.edu/dvw/series/#{mod.downcase}?f=#{freq}&i=#{indicator}&#{dims}"
     Rails.logger.debug { 'Getting data from DVW API: ' + @url }
@@ -216,7 +219,23 @@ class DataHtmlParser
   def data
     @data_hash ||= get_data
   end
-  
+
+  def download(verifyssl: true)
+    begin
+      @content = get_by_http(verifyssl: verifyssl)
+    rescue => e
+      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
+      @content = %x{curl --insecure --globoff '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
+      unless $?.success?
+        msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
+        raise "curl command failed: #{msg}"
+      end
+    end
+    Nokogiri::HTML(@content)
+  end
+
+private
+
   def get_freq(other_string)
     return 'A' if other_string == 'M13'
     return 'M' if other_string[0] == 'M'
@@ -263,22 +282,6 @@ class DataHtmlParser
     end
     true
   end
-
-  def download(verifyssl: true)
-    begin
-      @content = get_by_http(verifyssl: verifyssl)
-    rescue => e
-      Rails.logger.warn { "API http download failure, backing off to curl, url=#{self.url} [error: #{e.message}]" }
-      @content = %x{curl --insecure '#{self.url}' 2>/dev/null}  ### assumes that get_by_http failed because of SSL/TLS problem
-      unless $?.success?
-        msg = $?.to_s.sub(/pid \d+\s*/, '')  ## delete pid number, so error messages will not be all distinct, for reporting
-        raise "curl command failed: #{msg}"
-      end
-    end
-    Nokogiri::HTML(@content)
-  end
-
-private
 
   def get_by_http(verifyssl: true)
     require 'uri'

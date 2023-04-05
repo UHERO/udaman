@@ -47,7 +47,7 @@ class TsdFile < ApplicationRecord
     series_hash[:data_hash] = parse_data(series_hash[:data], series_hash[:start], series_hash[:frequency], nils: nils)
     unless data_only
       series_hash[:yoy_hash] = yoy(series_hash[:data_hash])
-      series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).ts
+      series_hash[:udaman_series] = Series.build_name_two(series_hash[:name], series_hash[:frequency]).tsnil
     end
     series_hash
   end

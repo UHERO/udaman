@@ -25,7 +25,7 @@ class ReloadJob < ApplicationRecord
 
   def ReloadJob.busy?
     return 'System busy - Please try again after 9:00 AM' if daily_batch_running?
-    return 'System busy - Please try again in 1 hour'     if ReloadJob.find_by(status: 'processing')
+    return 'System busy - Please try again in 30 min'     if ReloadJob.find_by(status: 'processing')
     false
   end
 end

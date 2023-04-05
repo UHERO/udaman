@@ -1,6 +1,21 @@
 module SeriesHelper
   include Validators
   require 'csv'
+  require 'base64'
+
+  def url_encode(str)
+    'b64:' + Base64.urlsafe_encode64(str)
+  end
+
+  def url_decode(str)
+    return str unless str =~ /^b64:/
+    Base64.urlsafe_decode64(str.sub(/^b64:/, ''))
+  end
+
+  def index_header_get_params(header)
+    { action: @index_action, sortby: header, dir: sortdir(header) }
+      .merge(@b64_search_str ? { search_string: @b64_search_str } : {})
+  end
 
   def csv_helper
     series = @vintage ? @series.vintage_as_of(@vintage): @series
@@ -56,12 +71,33 @@ module SeriesHelper
     output = ''
     series_set.each do |s|
       begin
-        output += s.tsd_string
+        output += s.to_tsd
       rescue => e
-        Rails.logger.error { "series_data_tsd_gen: tsd_string conversion failure for #{s}: #{e.message}" }
+        Rails.logger.error { "series_data_tsd_gen: to_tsd conversion failure for #{s}: #{e.message}" }
       end
     end
     output
+  end
+
+  def do_csv2tsd_convert(upfilepath)
+    tmpfile_rel = File.join('tmp', upfilepath.original_filename)
+    tmpfile_full = File.join(ENV['DATA_PATH'], tmpfile_rel)
+    series_set = []
+    begin
+      File.open(tmpfile_full, 'wb') {|f| f.write(upfilepath.read) }
+      csv = UpdateSpreadsheet.new_xls_or_csv(tmpfile_rel)
+      csv.header_strings.each do |name|
+        s = name.tsn.load_from(tmpfile_rel)
+        s.name = name
+        series_set.push(s)
+      end
+    rescue StandardError => e
+      Rails.logger.error e.message
+      raise e.message
+    ensure
+      File.unlink(tmpfile_full)
+    end
+    series_data_tsd_gen(series_set)
   end
 
   def google_charts_data_table
@@ -123,7 +159,7 @@ module SeriesHelper
     words = text.split(' ')
     words.each_with_index do |word, index|
       if valid_series_name(word)
-        series = word.ts
+        series = word.tsnil
         words[index] = link_to(word, { action: action, id: series }) if series
         next
       end
@@ -138,19 +174,6 @@ module SeriesHelper
     words.join(' ')
   end
   
-  def aremos_color(diff)
-#    diff = (val - aremos_val).abs
-    mult = 5000
-    gray = "99"
-    red = (gray.hex + diff * mult).to_i
-    green = (gray.hex - diff * mult).to_i
-    blue = (gray.hex - diff * mult).to_i
-    red = 255 if red > 255
-    green = 20 if green < 20 
-    blue = 20 if blue < 20
-    "##{red.to_s(16)}#{green.to_s(16)}#{blue.to_s(16)}"
-  end
-
   def make_hyperlink(url, text = url)
     return text if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)

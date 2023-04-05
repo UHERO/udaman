@@ -1,40 +1,8 @@
-task :reload_aremos => :environment do
-  puts ENV
-  puts ENV['DATA_PATH']
-  #evenaully move this to a standalone task
-  CSV.open('public/rake_time.csv', 'wb') {|csv| csv << %w(name duration start end) }
-  
-  #this currently runs in 5 minutes even with the complete delete
-  AremosSeries.delete_all
-   t = Time.now
-  AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/A_DATA.TSD")
-  at = Time.now
-  AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/S_DATA.TSD")
-  st = Time.now
-  AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/Q_DATA.TSD")
-  qt = Time.now 
-  AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/M_DATA.TSD")
-  mt = Time.now
-   AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/W_DATA.TSD")
-   wt = Time.now
-   AremosSeries.load_tsd("#{ENV['DATA_PATH']}/EXPORT/D_DATA.TSD")
-   dt = Time.now
-   
-  puts "#{'%.2f' % (dt - t)} | to write all"
-  puts "#{'%.2f' % (dt-wt)} | days"
-  puts "#{'%.2f' % (wt-mt)} | weeks"
-  puts "#{'%.2f' % (mt-qt)} | months"
-  puts "#{'%.2f' % (qt-st)} | quarters"
-  puts "#{'%.2f' % (st-at)} | half-years"
-  puts "#{'%.2f' % (at-t)} | years"
-  
-  CSV.open('public/rake_time.csv', 'a') {|csv| csv << ['reload_aremos', '%.2f' % (Time.now - t) , t.to_s, Time.now.to_s] }
-end
-
-
 task :reset_dependency_depth => :environment do
+  Rails.logger.info { 'reset_dependency_depth: Start' }
   DataSource.set_all_dependencies
   Series.assign_dependency_depth
+  Rails.logger.info { 'reset_dependency_depth: Done' }
 end
 
 desc 'Switch rails logger to stdout'
@@ -53,7 +21,6 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search_box('#load_api_bls').pluck(:id)
   full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
-  full_set_ids -= Series.search_box('^vispns .d').pluck(:id)
   full_set_ids -= Series.search_box('^vap ~ns$ @hi .d').pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
@@ -102,10 +69,6 @@ task :reload_tour_ocup_series_only => :environment do
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
 end
 
-task :reload_vispns_daily => :environment do
-  ReloadJobDaemon.enqueue('vispns', '^vispns .d')
-end
-
 task :reload_vap_hi_daily => :environment do
   ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
 end
@@ -152,7 +115,6 @@ def pull_cat_series_from_api(univ, cat_id, geo, freq)
   end
   return unless freq == 'D'   ### only cache daily series packages for now
   return unless json && json['data']   ### maybe no D series in this category
-  ##Rails.logger.debug { ">>>>>>> Number of series #{json['data'].count}" }
   json['data'].each do |series|
     sid = series['id'].to_i
     full_url = pkg_url % [sid, univ, cat_id]
@@ -179,33 +141,8 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing COH, #{coh_cats.count} cats" }
   coh_cats.each do |cat|
     %w{HI HAW}.each do |geo|
-      try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = cat_url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: coh category run => #{cat.id}, #{geo}, #{freq}" }
-        begin
-          content = %x{#{cmd + full_url}}
-          json = JSON.parse content
-        rescue => e
-          if try < 4  ## only try 4 times
-            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
-            sleep 19
-            try += 1
-            retry
-          end
-          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
-          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
-          try = 0
-          next
-        end
-        next unless freq == 'D'   ### only cache daily series packages for now
-        next unless json && json['data']   ### maybe no D series in this category
-        json['data'].each do |series|
-          sid = series['id'].to_i
-          full_url = pkg_url % [sid, 'coh', cat.id]
-          Rails.logger.debug { "Encachitize: package run => #{sid}, coh, cat=#{cat.id}" }
-          %x{#{cmd + '--output /dev/null ' + full_url}}
-        end
+        pull_cat_series_from_api('coh', cat.id, geo, freq)
       end
     end
   end
@@ -214,33 +151,8 @@ task :encachitize_rest_api => :environment do
   Rails.logger.info { "Encachitize: Doing CCOM, #{ccom_cats.count} cats" }
   ccom_cats.each do |cat|
     %w{HI HAW HON KAU MAU}.each do |geo|
-      try = 0
       %w{A S Q M W D}.each do |freq|
-        full_url = cat_url % [cat.id, geo, freq]
-        Rails.logger.debug { "Encachitize: ccom category run => #{cat.id}, #{geo}, #{freq}" }
-        begin
-          content = %x{#{cmd + full_url}}
-          json = JSON.parse content
-        rescue => e
-          if try < 4  ## only try 4 times
-            Rails.logger.warn { "Encachitize: retrying #{cat.id}, #{geo}, #{freq}: #{e.message}" }
-            sleep 19
-            try += 1
-            retry
-          end
-          Rails.logger.error { "Encachitize: #{cat.id}, #{geo}, #{freq}: #{e.message}" }
-          puts ">>> FAIL: #{e.message}"   ## should go to the encache log file
-          try = 0
-          next
-        end
-        next unless freq == 'D'   ### only cache daily series packages for now
-        next unless json && json['data']   ### maybe no D series in this category
-        json['data'].each do |series|
-          sid = series['id'].to_i
-          full_url = pkg_url % [sid, 'ccom', cat.id]
-          Rails.logger.debug { "Encachitize: package run => #{sid}, ccom, cat=#{cat.id}" }
-          %x{#{cmd + '--output /dev/null ' + full_url}}
-        end
+        pull_cat_series_from_api('ccom', cat.id, geo, freq)
       end
     end
   end

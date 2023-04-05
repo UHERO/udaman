@@ -1,11 +1,10 @@
 <table>
 	<tr>
-		<th style="width:80px;">Date</th>
-		<th style="width:80px;">AREMOS</th>
-		<th style="width:20px;">LVL</th>
+		<th style="width:100px;">Date</th>
+    <th>Value</th>
 		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YOY</th>
 		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YTD</th>
-		<th>Values</th>
+    <th style="width:20px;">LVL</th>
     <th>Age</th>
     <% if loader_count > 1 %>
       <th>Loader</th>
@@ -13,14 +12,7 @@
 	</tr>
 <%
   ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
-    as = @as && @as.data
-
-    def process_missing_dates(as)
-      data = as.clone || {}
-      data.merge(@vintage ? @series.get_vintage_as_data_points(@vintage) : @series.current_data_points(:hash))
-    end
-
-    def display_data_points(data_hash, as, env = {})
+    def display_data_points(data_hash, env = {})
       units = @series.units
       chg_data = @chg.data.clone rescue {}
       ytd_data = @ytd_chg.data.clone rescue {}
@@ -35,24 +27,18 @@
           cdp = element
           date_string = cdp.date.to_s
           cdp_val = cdp.value / units
-          a_value = as[cdp.date].round(3) rescue '-'
           chg_value = (chg_data[cdp.date].round(1).to_s + '%') rescue '-'
           chg_align = chg_value == '-' ? 'center' : 'right'
           ytd_chg_value = (ytd_data[cdp.date].round(1).to_s + '%') rescue '-'
           ytd_align = ytd_chg_value == '-' ? 'center' : 'right'
           lvl_chg_value = lvl_data[cdp.date].round(3) rescue '-'
-          unless a_value.nil? or a_value.class == String
-            diff = @series.a_diff(a_value, cdp_val.round(3))
-            a_color = diff == 0 ? '#999999' : aremos_color(diff)
-          end
 %>
       <tr>
         <td><%= link_to cdp.date, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: cdp.date %></td>
-        <td><span style='color:<%= a_color %>'><%= a_value %></span></td>
-        <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
+        <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.data_source_id]) %></span></td>
         <td style="text-align:<%= chg_align %>;"><span class="per-chg"><%= chg_value %></span></td>
         <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
-        <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.data_source_id]) %></span></td>
+        <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td><span style="float:right;"><%= dp_age_code(cdp) %></span></td>
         <% if env[:loader_count] > 1 %>
           <td><span style="float:right;"><%= cdp.data_source_id %></span></td>
@@ -73,16 +59,15 @@
       end
     end
 
-    data_hash = process_missing_dates as
-    display_data_points(data_hash, as, { loader_count: loader_count })
+    data_hash = @vintage ? @series.get_vintage_as_data_points(@vintage) : @series.current_data_points(:hash)
+    display_data_points(data_hash, { loader_count: loader_count })
 %>
 	<tr>
 		<th>Date</th>
-		<th>AREMOS</th>
-		<th>LVL</th>
+    <th>Value</th>
 		<th>YOY</th>
 		<th>YTD</th>
-		<th>Values</th>
+    <th>LVL</th>
     <th>Age</th>
     <% if loader_count > 1 %>
       <th>Loader</th>

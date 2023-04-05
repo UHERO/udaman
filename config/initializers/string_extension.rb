@@ -1,20 +1,20 @@
 class String
-  def ts
-    Series.get self
+  def tsnil
+    Series.get(self)  ## return nil if named Series does not exist
   end
-  
+
+  def ts
+    tsnil || raise("Series #{self} does not exist")  ## blow up if named Series does not exist
+  end
+
   def tsn
-    Series.get_or_new self
+    Series.get_or_new(self)
   end
 
   def dbts
     Series.get(self, 'DBEDT')
   end
 
-  def ts=(series)
-    Series.store self, series
-  end
-  
   def ts_eval=(eval_statement)
       Series.eval(self, eval_statement, no_enforce_fields: true)
   end
@@ -78,9 +78,16 @@ class String
     end
   end
 
-  def change_file_extension(ext)
+  ## Convert commas to pipes for use by the search engine (Series.search_box). Literal commas are preserved verbatim if
+  ## escaped by doubling them.
+  def convert_commas
+    self.gsub(',,', '#FOO#').gsub(',', '|').gsub('#FOO#', ',')
+  end
+
+  def change_file_extension(ext, nopath: false)
     ext = '.' + ext unless ext.empty? || ext =~ /^[.]/
-    File.join(File.dirname(self), File.basename(self, File.extname(self)) + ext)
+    nameonly = File.basename(self, File.extname(self)) + ext
+    nopath ? nameonly : File.join(File.dirname(self), nameonly)
   end
 
   ## convert frequency string values to numeric ones that can be compared for >, <, etc

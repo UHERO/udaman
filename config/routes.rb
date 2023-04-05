@@ -84,6 +84,8 @@ Rails.application.routes.draw do
   post 'restart_restapi' => 'dashboards#restart_restapi'
   post 'restart_dvwapi' => 'dashboards#restart_dvwapi'
   get 'export_tsd' => 'dashboards#export_tsd'
+  get 'csv2tsd_upload', to: 'series#csv2tsd_upload'
+  post 'csv2tsd', to: 'series#csv2tsd'
   get 'autocomplete' => 'series#autocomplete_search'
   get 'series/search' => 'series#new_search'
 

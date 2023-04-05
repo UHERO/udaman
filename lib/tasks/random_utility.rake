@@ -3,6 +3,89 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :deploy_per_cap => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "nr(\w+)@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100(0)?
+                              \s*$}xi
+    base_series = $1
+    nr_type = $2.to_s.upcase
+    if $3.to_s == '0'
+      method_code = 'per_1kcap'
+    else
+      method_code = 'per_cap'
+    end
+    if nr_type != ''
+      #foo
+    end
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.%s' + method_code + nr_type)
+  end
+end
+
+task :rewrite_clustermapping_method => :environment do
+  Series.search_box('#api_clustermap').each do |s|
+    ld = s.enabled_data_sources[0]
+    unless ld.eval =~ /:2019", *"(\d+)"/
+      raise "Failed to match load stmt for #{s}"
+    end
+    ld.update_attributes!(eval: 'Series.load_api_clusters(%d, "%s")' % [$1.to_i, s.geography.handle])
+    puts "DONE >>>> #{s}"
+  end
+end
+
+task :set_pseudo_history_field => :environment do
+  color = DataSource.type_colors(:pseudo_history).shift
+  i = 0
+  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+    s.data_sources.each do |ld|
+      next unless ld.loader_type == :pseudo_history
+      next if ld.pseudo_history?
+      puts "DOING >>> #{s}: #{ld.id} : #{ld.eval}"
+      ld.update_attributes!(pseudo_history: true, color: color)
+      i += 1
+    end
+  end
+  puts "DONE #{i} CHANGES"
+end
+
+task :extend_clustermap_loaders => :environment do
+  Series.search_box('^ct_ -total').each do |s|
+    puts "DOING #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /api/
+      ld.update!(eval: ld.eval.sub(':2018', ':2019'))
+    end
+  end;0
+end
+
+task :turn_off_all_pseudo_history => :environment do
+  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+    puts "DOING #{s}"
+    s.enabled_data_sources.each do |ld|
+      next unless ld.loader_type == :pseudo_history
+      puts "---> hit one"
+      ld.set_reload_nightly(false)
+      ld.delete_data_points
+    end
+  end;0
+end
+
+task :denightlify_safe_travels => :environment do
+  Series.search_box(';src=2430').each do |s|
+    puts "Doing #{s}"
+    s.enabled_data_sources.each {|ld| ld.set_reload_nightly(false) }
+  end;0
+end
+
 task :convert_sa_tax_loaders => :environment do
   sids = []
   names = %w{
