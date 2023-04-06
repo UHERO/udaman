@@ -293,12 +293,12 @@ class DataSource < ApplicationRecord
         query += <<~MYSQL
           and date >= ?
         MYSQL
-        bindvars.push from
+        bindvars.push(from.to_date) rescue raise("Invalid date: #{from}")
       end
       stmt = Series.connection.raw_connection.prepare(query)
       stmt.execute(*bindvars)
       stmt.close
-      Rails.logger.info { "Deleted all data points for definition #{id}" }
+      Rails.logger.info { "Deleted data points for definition #{id}" }
     end
 
     ## this method not really needed, eh?
