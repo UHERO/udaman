@@ -293,7 +293,7 @@ class DataSource < ApplicationRecord
         query += <<~MYSQL
           and date >= ?
         MYSQL
-        bindvars.push(from.to_date) rescue raise("Invalid date: #{from}")
+        bindvars.push(from.to_date) rescue raise("Invalid or nonexistent date: #{from}")
       end
       stmt = Series.connection.raw_connection.prepare(query)
       stmt.execute(*bindvars)
