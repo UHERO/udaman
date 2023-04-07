@@ -118,11 +118,27 @@ module SeriesDataAdjustment
                        get_vintage_as_data_points(date).map {|dat, dp| [dat, dp.value] })
   end
 
+
   def get_vintage_as_data_points(date)
     vintage_data = {}                        ## entries for same :date overwrite, leaving only the one with latest created_at
     data_points.where('created_at < ?', date).order(:date, :created_at).each do |dp|
       vintage_data[dp.date] = dp
     end
     vintage_data
+  end
+
+  def rewind_to_vintage!(date)
+    cutoff_date = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
+    self.transaction do
+      data_points.where('created_at >= ?', cutoff_date).delete_all
+      data_points.update_all(current: false)
+      current_date = nil
+      data_points.order(:date, created_at: :desc).each do |dp|
+        if dp.date != current_date
+          dp.update(current: true)
+          current_date = dp.date
+        end
+      end
+    end
   end
 end
