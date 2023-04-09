@@ -772,7 +772,7 @@ class Series < ApplicationRecord
   
   def Series.load_api_bls(series_id, frequency)
     dhp = DataHtmlParser.new
-    series_data = DataHtmlParser.new.get_bls_series(series_id, frequency)
+    series_data = dhp.get_bls_series(series_id, frequency)
     link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set from #{link} with parameters shown"
     if series_data.empty?
