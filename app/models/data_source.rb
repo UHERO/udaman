@@ -307,6 +307,10 @@ class DataSource < ApplicationRecord
       super
     end
 
+    def rewind_to_vintage!(date)
+      cutoff_date = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
+    end
+
     def disable!
       self.transaction do
         delete_data_points

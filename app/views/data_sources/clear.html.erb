@@ -5,8 +5,12 @@
 <div id="details_area">
 	<%= form_with url: { action: :do_clear, id: @data_source } do |ld| %>
 		<div class="field">
-			Clear data points after and including the following date (YYYY-MM-DD). Leave blank for all.<br/>
-      <%= text_field_tag 'clear_which[from]' %>
+			Clear data points relative to the following date (YYYY-MM-DD). Leave blank to delete all.<br/>
+      <%= text_field_tag 'clear_op[date]' %>
+			<p>
+			<%= radio_button_tag 'clear_op[type]', 'obs' %> Delete all data with <strong>observation date</strong> on or after the given date.
+			<%= radio_button_tag 'clear_op[type]', 'rewind' %> Rewind Loader to <strong>the state it had</strong> on the given date.
+			</p>
     </div>
 		<div class="actions">
 			<%= ld.submit 'Clear data points' %>

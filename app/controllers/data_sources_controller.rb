@@ -13,8 +13,15 @@ class DataSourcesController < ApplicationController
   end
 
   def do_clear
-    cutoff_date = clear_params[:from].nil_blank  ## will be nil when all points are to be cleared
-    @data_source.delete_data_points(from: cutoff_date)
+    cutoff_date = clear_params[:date].nil_blank  ## will be nil when all points are to be cleared
+    if cutoff_date && clear_params[:type].blank?
+      redirect_to :clear
+    end
+    if cutoff_date.nil? || clear_params[:type] == 'obs'
+      @data_source.delete_data_points(from: cutoff_date)
+    else
+      @data_source.rewind_to_vintage!(clear_params[:date])
+    end
     @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
@@ -103,7 +110,7 @@ private
   end
 
   def clear_params
-    params.require(:clear_which).permit(:from)
+    params.require(:clear_op).permit(:date, :type)
   end
 
   def create_action(data_source, action)
