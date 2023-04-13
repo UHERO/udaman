@@ -94,7 +94,7 @@ class DataSource < ApplicationRecord
     end
 
     def current_data_points
-      self.data_points.where(:current => true).order(:date).all
+      data_points.where(current: true).order(:date).all
     end
     
     def create_from_form
@@ -309,6 +309,12 @@ class DataSource < ApplicationRecord
 
     def rewind_to_vintage!(date)
       cutoff_date = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
+      self.transaction do
+        data_points.where('created_at >= ?', cutoff_date).delete_all
+        current_data_points.each do |cdp|
+
+        end
+      end
     end
 
     def disable!
