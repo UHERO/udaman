@@ -37,7 +37,7 @@ class DataHtmlParser
 
     new_data = {}
     results_data.each do |dp|
-      ##
+      new_data[ get_date(dp['year'], dp['period']) ] = dp['value'].gsub(',','').to_f
     end
     new_data
   end
