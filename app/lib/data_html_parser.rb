@@ -27,7 +27,7 @@ class DataHtmlParser
     @doc = self.download
     raise 'BLS API: empty response returned' if self.content.blank?
     json = JSON.parse(self.content) rescue raise('BLS API: JSON parse failure')
-    if json['status'] !~ /succeeded/i
+    unless json['status'] =~ /succeeded/i
       raise 'BLS API error: %s' % json['message'].join(' ')
     end
     results_data = json['Results']['series'][0]['data']  ## :eyeroll
@@ -35,7 +35,8 @@ class DataHtmlParser
 
     new_data = {}
     results_data.each do |dp|
-      new_data[ get_date(dp['year'], dp['period']) ] = dp['value'].gsub(',','').to_f
+      obs_date = get_date(dp['year'], dp['period'])
+      new_data[obs_date] = dp['value'].gsub(',','').to_f
     end
     new_data
   end
