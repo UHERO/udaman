@@ -31,9 +31,7 @@ class DataHtmlParser
       raise 'BLS API error: %s' % json['message'].join(' ')
     end
     results_data = json['Results']['series'][0]['data']  ## :eyeroll
-    if results_data.empty?
-      raise 'BLS API error: %s' % json['message'].join(' ')
-    end
+    raise 'BLS API error: %s' % json['message'].join(' ') if results_data.empty?
 
     new_data = {}
     results_data.each do |dp|
