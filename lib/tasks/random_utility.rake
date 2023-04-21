@@ -48,11 +48,13 @@ task :change_annual_aggregations_to_base_off_NS => :environment do
     s = n.ts
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /aggreg/
-      if ld.eval =~ /^(["'])(.+)\1\.ts/
-        aggname = $2
+      if ld.eval =~ /^\s*(["'])(.+)\1\.ts/
+        aggname = $2.to_s
         aggparts = Series.parse_name(aggname)
+        agg_s = aggname.ts
+        next if aggparts[:prefix] =~ /NS$/i || agg_s.seasonal_adjustment == 'not_seasonally_adjusted'
       else
-        puts "----------------> EVAL FORMAT for #{n}"
+        puts "----------------> EVAL FORMAT for #{n}, #{s.id}"
         next
       end
     end
