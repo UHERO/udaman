@@ -13,7 +13,7 @@ task :change_annual_aggs_to_base_off_NS => :environment do
     E_GVSL@MAU.A E_GVSL@NBI.A E@HAW.A EHC@HAW.A EHC@HI.A EHC@HON.A EHC@KAU.A EHC@MAU.A EHC@NBI.A E@HI.A E@HON.A E@KAU.A E@MAU.A EMN@HAW.A
     EMN@HI.A EMN@HON.A EMN@KAU.A EMN@MAU.A EMN@NBI.A EMPL@HI.A EMPL@HON.A EMPL@NBI.A E@NBI.A E_NF@HAW.A E_NF@HI.A E_NF@HON.A E_NF@KAU.A
     E_NF@MAU.A E_NF@NBI.A E_SV@HAW.A E_SV@HI.A E_SV@HON.A E_SV@KAU.A E_SV@MAU.A E_SV@NBI.A E_TRADE@HAW.A E_TRADE@HI.A E_TRADE@HON.A
-    E_TRADE@KAU.A E_TRADE@MAU.A E_TRADE@NBI.A E_TU@HAW.A E_TU@HI.A E_TU@HON.A E_TU@KAU.A E_TU@MAU.A E_TU@NBI.A GDP_R@JP.A GDP_R@US.A LF@HI.A
+    E_TRADE@KAU.A E_TRADE@MAU.A E_TRADE@NBI.A E_TU@HAW.A E_TU@HI.A E_TU@HON.A E_TU@KAU.A E_TU@MAU.A E_TU@NBI.A LF@HI.A
     LF@HON.A LF@NBI.A N@JP.A NRCMD@HI.A NRCNM@HI.A NRCNM@HON.A NR@HAW.A NR@HI.A NR@HON.A NR@KAU.A NR@MAU.A NRM@HI.A NR@NBI.A N@US.A OCUPP@HAW.A
     OCUPP@HI.A OCUPP@HON.A OCUPP@KAU.A OCUPP@MAU.A PRM@HI.A SH_JP@HAW.A SH_JP@HI.A SH_JP@HON.A SH_JP@KAU.A SH_JP@MAU.A SH_RES@HAW.A SH_RES@HI.A
     SH_RES@HON.A SH_RES@KAU.A SH_RES@MAU.A SH_US@HAW.A SH_US@HI.A SH_US@HON.A SH_US@KAU.A SH_US@MAU.A TRMS@HAW.A TRMS@HI.A TRMS@HON.A TRMS@KAU.A
@@ -60,6 +60,7 @@ task :change_annual_aggs_to_base_off_NS => :environment do
         if new_s
           puts "......... CHANGING #{n}, s= #{s.id}, ld= #{ld.id} to #{new_s.name}"
           ld.update!(eval: ld.eval.sub(aggname, new_s.name))
+          sids.push(s.id)
         end
       else
         puts "------------------------------> EVAL FORMAT for #{n}, #{s.id} : #{ld.eval}"
@@ -67,6 +68,7 @@ task :change_annual_aggs_to_base_off_NS => :environment do
       end
     end
   end
+  puts 'DONE: %s' % sids.join(',')
 end
 
 task :deploy_per_cap => :environment do
