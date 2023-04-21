@@ -3,7 +3,7 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
-task :change_annual_aggregations_to_base_off_NS => :environment do
+task :change_annual_aggs_to_base_off_NS => :environment do
   sids = []
   names = %w{
     CPI@HON.A CPI@JP.A CPI@US.A EAF@HAW.A EAF@HI.A EAF@HON.A EAF@KAU.A EAF@MAU.A EAF@NBI.A EAG@HAW.A EAG@HI.A EAG@HON.A EAG@KAU.A EAG@MAU.A
@@ -58,9 +58,8 @@ task :change_annual_aggregations_to_base_off_NS => :environment do
         try_q_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'Q')
         new_s = try_m_name.tsnil || try_q_name.tsnil  ### M is better than Q if we have it
         if new_s
-          new_name = ld.eval.sub(aggname, new_s.name)
-          puts "......... CHANGING #{n}, #{s.id} : #{new_name}"
-          ld.update!(eval: new_name)
+          puts "......... CHANGING #{n}, s= #{s.id}, ld= #{ld.id} to #{new_s.name}"
+          ld.update!(eval: ld.eval.sub(aggname, new_s.name))
         end
       else
         puts "------------------------------> EVAL FORMAT for #{n}, #{s.id} : #{ld.eval}"
