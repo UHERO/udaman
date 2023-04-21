@@ -54,12 +54,13 @@ task :change_annual_aggregations_to_base_off_NS => :environment do
         aggparts = Series.parse_name(aggname)
         agg_s = aggname.ts
         next if aggparts[:prefix] =~ /NS$/i || agg_s.seasonal_adjustment == 'not_seasonally_adjusted'
-        try_q_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'Q')
         try_m_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'M')
-        new_s = try_q_name.tsnil || try_m_name.tsnil
+        try_q_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'Q')
+        new_s = try_m_name.tsnil || try_q_name.tsnil  ### M is better than Q if we have it
         if new_s
-          puts "......... CHANGING #{n}, #{s.id}"
-          ld.update!(eval: ld.eval.sub(aggname, new_s.name))
+          new_name = ld.eval.sub(aggname, new_s.name)
+          puts "......... CHANGING #{n}, #{s.id}: #{new_name}"
+          ld.update!(eval: new_name)
         end
       else
         puts "------------------------------> EVAL FORMAT for #{n}, #{s.id}: #{ld.eval}"
