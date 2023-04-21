@@ -4,6 +4,7 @@
 =end
 
 task :change_annual_aggregations_to_base_off_NS => :environment do
+  sids = []
   names = %w{
     CPI@HON.A CPI@JP.A CPI@US.A EAF@HAW.A EAF@HI.A EAF@HON.A EAF@KAU.A EAF@MAU.A EAF@NBI.A EAG@HAW.A EAG@HI.A EAG@HON.A EAG@KAU.A EAG@MAU.A
     EAG@NBI.A ECT@HAW.A ECT@HI.A ECT@HON.A ECT@KAU.A ECT@MAU.A ECT@NBI.A E_ELSE@HAW.A E_ELSE@HI.A E_ELSE@HON.A E_ELSE@KAU.A E_ELSE@MAU.A
@@ -53,8 +54,15 @@ task :change_annual_aggregations_to_base_off_NS => :environment do
         aggparts = Series.parse_name(aggname)
         agg_s = aggname.ts
         next if aggparts[:prefix] =~ /NS$/i || agg_s.seasonal_adjustment == 'not_seasonally_adjusted'
+        try_q_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'Q')
+        try_m_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'M')
+        new_s = try_q_name.tsnil || try_m_name.tsnil
+        if new_s
+          puts "......... CHANGING #{n}, #{s.id}"
+          ld.update!(eval: ld.eval.sub(aggname, new_s.name))
+        end
       else
-        puts "----------------> EVAL FORMAT for #{n}, #{s.id}"
+        puts "------------------------------> EVAL FORMAT for #{n}, #{s.id}: #{ld.eval}"
         next
       end
     end
