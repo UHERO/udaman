@@ -59,11 +59,11 @@ task :change_annual_aggregations_to_base_off_NS => :environment do
         new_s = try_m_name.tsnil || try_q_name.tsnil  ### M is better than Q if we have it
         if new_s
           new_name = ld.eval.sub(aggname, new_s.name)
-          puts "......... CHANGING #{n}, #{s.id}: #{new_name}"
+          puts "......... CHANGING #{n}, #{s.id} : #{new_name}"
           ld.update!(eval: new_name)
         end
       else
-        puts "------------------------------> EVAL FORMAT for #{n}, #{s.id}: #{ld.eval}"
+        puts "------------------------------> EVAL FORMAT for #{n}, #{s.id} : #{ld.eval}"
         next
       end
     end
