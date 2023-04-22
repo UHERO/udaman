@@ -332,6 +332,20 @@ class Series < ApplicationRecord
     build_name(freq: freq.to_s.upcase).tsnil
   end
 
+  def is_SA?(fuzzy: true)
+    return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
+    return  true if seasonal_adjustment == 'seasonally_adjusted'
+    return false if !fuzzy
+    parse_name[:prefix] =~ /SA$/i
+  end
+
+  def is_NS?(fuzzy: true)
+    return false if frequency.freqn <= :year.freqn
+    return  true if seasonal_adjustment == 'not_seasonally_adjusted'
+    return false if !fuzzy
+    parse_name[:prefix] =~ /NS$/i
+  end
+
   def is_primary?
     xseries.primary_series === self
   end
