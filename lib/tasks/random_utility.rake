@@ -53,7 +53,7 @@ task :change_annual_aggs_to_base_off_NS => :environment do
         aggname = $2.to_s
         aggparts = Series.parse_name(aggname)
         agg_s = aggname.ts
-        next if aggparts[:prefix] =~ /NS$/i || agg_s.seasonal_adjustment == 'not_seasonally_adjusted'
+        next if agg_s.is_NS?
         try_m_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'M')
         try_q_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'Q')
         new_s = try_m_name.tsnil || try_q_name.tsnil  ### M is better than Q if we have it
