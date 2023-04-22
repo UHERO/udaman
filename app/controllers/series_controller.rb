@@ -170,12 +170,16 @@ class SeriesController < ApplicationController
 
   def group_export
     @type = params[:type]
-    @all_series = current_user.series.sort_by(&:name)
+    @all_series = current_user.series.reload.sort_by(&:name)
   end
 
   def meta_update
     @meta_update = true
-    @all_series = current_user.series.reload.sort_by(&:name)
+    all_series = current_user.series.reload.sort_by(&:name)
+    @all_series = create_index_structure(all_series)
+    @sortby = ''
+    @dir = 'up'
+    @index_action = :meta_update
     @series = Series.new(universe: 'UHERO', name: 'Metadata update', xseries: Xseries.new)
     set_attrib_resource_values(@series)
   end
@@ -222,7 +226,7 @@ class SeriesController < ApplicationController
 
   def new_search(search_string = nil)
     @search_string = search_string || helpers.url_decode(params[:search_string])
-    Rails.logger.info { "SEARCHLOG: user #{current_user.username} searched #{@search_string}" }
+    Rails.logger.info { "SEARCHLOG: user #{current_user.username.ljust(9, ' ')} searched #{@search_string}" }
     all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if all_series.count == 1 && @search_string !~ /[+]1\b/
       redirect_to action: :show, id: all_series[0]

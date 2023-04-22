@@ -3,6 +3,102 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :change_annual_aggs_to_base_off_NS => :environment do
+  sids = []
+  names = %w{
+    CPI@HON.A CPI@JP.A CPI@US.A EAF@HAW.A EAF@HI.A EAF@HON.A EAF@KAU.A EAF@MAU.A EAF@NBI.A EAG@HAW.A EAG@HI.A EAG@HON.A EAG@KAU.A EAG@MAU.A
+    EAG@NBI.A ECT@HAW.A ECT@HI.A ECT@HON.A ECT@KAU.A ECT@MAU.A ECT@NBI.A E_ELSE@HAW.A E_ELSE@HI.A E_ELSE@HON.A E_ELSE@KAU.A E_ELSE@MAU.A
+    E_ELSE@NBI.A E_FIR@HAW.A E_FIR@HI.A E_FIR@HON.A E_FIR@KAU.A E_FIR@MAU.A E_FIR@NBI.A EGVFD@HAW.A EGVFD@HI.A EGVFD@HON.A EGVFD@KAU.A
+    EGVFD@MAU.A EGVFD@NBI.A EGV@HAW.A EGV@HI.A EGV@HON.A EGV@KAU.A EGV@MAU.A EGV@NBI.A E_GVSL@HAW.A E_GVSL@HI.A E_GVSL@HON.A E_GVSL@KAU.A
+    E_GVSL@MAU.A E_GVSL@NBI.A E@HAW.A EHC@HAW.A EHC@HI.A EHC@HON.A EHC@KAU.A EHC@MAU.A EHC@NBI.A E@HI.A E@HON.A E@KAU.A E@MAU.A EMN@HAW.A
+    EMN@HI.A EMN@HON.A EMN@KAU.A EMN@MAU.A EMN@NBI.A EMPL@HI.A EMPL@HON.A EMPL@NBI.A E@NBI.A E_NF@HAW.A E_NF@HI.A E_NF@HON.A E_NF@KAU.A
+    E_NF@MAU.A E_NF@NBI.A E_SV@HAW.A E_SV@HI.A E_SV@HON.A E_SV@KAU.A E_SV@MAU.A E_SV@NBI.A E_TRADE@HAW.A E_TRADE@HI.A E_TRADE@HON.A
+    E_TRADE@KAU.A E_TRADE@MAU.A E_TRADE@NBI.A E_TU@HAW.A E_TU@HI.A E_TU@HON.A E_TU@KAU.A E_TU@MAU.A E_TU@NBI.A LF@HI.A
+    LF@HON.A LF@NBI.A N@JP.A NRCMD@HI.A NRCNM@HI.A NRCNM@HON.A NR@HAW.A NR@HI.A NR@HON.A NR@KAU.A NR@MAU.A NRM@HI.A NR@NBI.A N@US.A OCUPP@HAW.A
+    OCUPP@HI.A OCUPP@HON.A OCUPP@KAU.A OCUPP@MAU.A PRM@HI.A SH_JP@HAW.A SH_JP@HI.A SH_JP@HON.A SH_JP@KAU.A SH_JP@MAU.A SH_RES@HAW.A SH_RES@HI.A
+    SH_RES@HON.A SH_RES@KAU.A SH_RES@MAU.A SH_US@HAW.A SH_US@HI.A SH_US@HON.A SH_US@KAU.A SH_US@MAU.A TRMS@HAW.A TRMS@HI.A TRMS@HON.A TRMS@KAU.A
+    TRMS@MAU.A UR@HI.A UR@HON.A UR@NBI.A VADC@HAW.A VADC@HI.A VADC@HON.A VADC@KAU.A VADC@MAU.A VISCRAIR@HI.A VIS@HAW.A VIS@HI.A VIS@HON.A VISJP@HAW.A
+    VISJP@HI.A VISJP@HON.A VISJP@KAU.A VISJP@MAU.A VIS@KAU.A VIS@MAU.A VIS@NBI.A VISRES@HAW.A VISRES@HI.A VISRES@HON.A VISRES@KAU.A VISRES@MAU.A
+    VISUS@HAW.A VISUS@HI.A VISUS@HON.A VISUS@KAU.A VISUS@MAU.A VLOS@HI.A VLOSJP@HAW.A VLOSJP@HON.A VLOSJP@KAU.A VLOSJP@MAU.A VLOSRES@HAW.A
+    VLOSRES@HON.A VLOSRES@KAU.A VLOSRES@MAU.A VLOSUS@HAW.A VLOSUS@HON.A VLOSUS@KAU.A VLOSUS@MAU.A}
+  ynames = %w{YDIV@HAW.A YDIV@HI.A YDIV@HON.A YDIV@KAU.A
+    YDIV@MAU.A YDIV@NBI.A YDIV_R@HAW.A YDIV_R@HI.A YDIV_R@HON.A YDIV_R@KAU.A YDIV_R@MAU.A YDIV_R@NBI.A Y@HAW.A Y@HI.A Y@HON.A Y@KAU.A YLAF@HAW.A
+    YLAF@HI.A YLAF@HON.A YLAF@KAU.A YLAF@MAU.A YLAF@NBI.A YLAF_R@HAW.A YLAF_R@HI.A YLAF_R@HON.A YLAF_R@KAU.A YLAF_R@MAU.A YLAF_R@NBI.A YLAG@HAW.A
+    YLAG@HI.A YLAG@HON.A YLAG@KAU.A YLAG@MAU.A YLAG@NBI.A YLAG_R@HAW.A YLAG_R@HI.A YLAG_R@HON.A YLAG_R@KAU.A YLAG_R@MAU.A YLAG_R@NBI.A YLCT@HAW.A
+    YLCT@KAU.A YLCT@MAU.A YL_CTMI@HI.A YL_CTMI@HON.A YL_CTMI@NBI.A YL_CTMI_R@HI.A YL_CTMI_R@HON.A YL_CTMI_R@NBI.A YLCT_R@HAW.A YLCT_R@KAU.A YLCT_R@MAU.A
+    YL_ELSE@HAW.A YL_ELSE@HI.A YL_ELSE@HON.A YL_ELSE@KAU.A YL_ELSE@MAU.A YL_ELSE@NBI.A YL_ELSE_R@HAW.A YL_ELSE_R@HI.A YL_ELSE_R@HON.A YL_ELSE_R@KAU.A
+    YL_ELSE_R@MAU.A YL_ELSE_R@NBI.A YL_FIR@HAW.A YL_FIR@HI.A YL_FIR@HON.A YL_FIR@KAU.A YL_FIR@MAU.A YL_FIR@NBI.A YL_FIR_R@HAW.A YL_FIR_R@HI.A
+    YL_FIR_R@HON.A YL_FIR_R@KAU.A YL_FIR_R@MAU.A YL_FIR_R@NBI.A YLGVFD@HAW.A YLGVFD@HI.A YLGVFD@HON.A YLGVFD@KAU.A YLGVFD@MAU.A YLGVFD@NBI.A
+    YLGVFD_R@HAW.A YLGVFD_R@HI.A YLGVFD_R@HON.A YLGVFD_R@KAU.A YLGVFD_R@MAU.A YLGVFD_R@NBI.A YLGV@HAW.A YLGV@HI.A YLGV@HON.A YLGV@KAU.A YLGV@MAU.A
+    YLGVML@HAW.A YLGVML@HI.A YLGVML@HON.A YLGVML@KAU.A YLGVML@MAU.A YLGVML@NBI.A YLGVML_R@HAW.A YLGVML_R@HI.A YLGVML_R@HON.A YLGVML_R@KAU.A
+    YLGVML_R@MAU.A YLGVML_R@NBI.A YLGV@NBI.A YLGV_R@HAW.A YLGV_R@HI.A YLGV_R@HON.A YLGV_R@KAU.A YLGV_R@MAU.A YLGV_R@NBI.A YL_GVSL@HAW.A YL_GVSL@HI.A
+    YL_GVSL@HON.A YL_GVSL@KAU.A YL_GVSL@MAU.A YL_GVSL@NBI.A YL_GVSL_R@HAW.A YL_GVSL_R@HI.A YL_GVSL_R@HON.A YL_GVSL_R@KAU.A YL_GVSL_R@MAU.A
+    YL_GVSL_R@NBI.A YL@HAW.A YLHC@HAW.A YLHC@HI.A YLHC@HON.A YLHC@KAU.A YLHC@MAU.A YLHC@NBI.A YLHC_R@HAW.A YLHC_R@HI.A YLHC_R@HON.A YLHC_R@KAU.A
+    YLHC_R@MAU.A YLHC_R@NBI.A YL@HI.A YL@HON.A YL@KAU.A YL@MAU.A YLMN@HAW.A YLMN@HI.A YLMN@HON.A YLMN@KAU.A YLMN@MAU.A YLMN@NBI.A YLMN_R@HAW.A
+    YLMN_R@HI.A YLMN_R@HON.A YLMN_R@KAU.A YLMN_R@MAU.A YLMN_R@NBI.A YL@NBI.A YL_R@HAW.A YL_R@HI.A YL_R@HON.A YL_R@KAU.A YL_R@MAU.A YL_R@NBI.A
+    YL_SV@HAW.A YL_SV@HI.A YL_SV@HON.A YL_SV@KAU.A YL_SV@MAU.A YL_SV@NBI.A YL_SV_R@HAW.A YL_SV_R@HI.A YL_SV_R@HON.A YL_SV_R@KAU.A YL_SV_R@MAU.A
+    YL_SV_R@NBI.A YL_TRADE@HAW.A YL_TRADE@HI.A YL_TRADE@HON.A YL_TRADE@KAU.A YL_TRADE@MAU.A YL_TRADE@NBI.A YL_TRADE_R@HAW.A YL_TRADE_R@HI.A
+    YL_TRADE_R@HON.A YL_TRADE_R@KAU.A YL_TRADE_R@MAU.A YL_TRADE_R@NBI.A YL_TU@HAW.A YL_TU@HI.A YL_TU@HON.A YL_TU@KAU.A YL_TU@MAU.A YL_TU@NBI.A
+    YL_TU_R@HAW.A YL_TU_R@HI.A YL_TU_R@HON.A YL_TU_R@KAU.A YL_TU_R@MAU.A YL_TU_R@NBI.A Y@MAU.A Y@NBI.A YPC@HAW.A YPC@HI.A YPC@HON.A YPC@KAU.A
+    YPC@MAU.A YPC@NBI.A YPC_R@HAW.A YPC_R@HI.A YPC_R@HON.A YPC_R@KAU.A YPC_R@MAU.A YPC_R@NBI.A Y_R@HAW.A Y_R@HI.A Y_R@HON.A Y_R@KAU.A Y_R@MAU.A
+    Y_R@NBI.A YS@HI.A YS@HON.A YSOCSEC@HAW.A YSOCSEC@HI.A YSOCSEC@HON.A YSOCSEC@KAU.A YSOCSEC@MAU.A YSOCSEC@NBI.A YSOCSEC_R@HAW.A YSOCSEC_R@HI.A
+    YSOCSEC_R@HON.A YSOCSEC_R@KAU.A YSOCSEC_R@MAU.A YSOCSEC_R@NBI.A YS_R@HI.A YS_R@HON.A YTRNSF@HAW.A YTRNSF@HI.A YTRNSF@HON.A YTRNSF@KAU.A
+    YTRNSF@MAU.A YTRNSF@NBI.A YTRNSF_R@HAW.A YTRNSF_R@HI.A YTRNSF_R@HON.A YTRNSF_R@KAU.A YTRNSF_R@MAU.A YTRNSF_R@NBI.A YXR@JP.A}
+  names.each do |n|
+    puts ">>>> DOING #{n}"
+    s = n.ts
+    s.enabled_data_sources.each do |ld|
+      next unless ld.eval =~ /aggreg/
+      if ld.eval =~ /^\s*(["'])(.+)\1\.ts/
+        aggname = $2.to_s
+        aggparts = Series.parse_name(aggname)
+        agg_s = aggname.ts
+        next if agg_s.is_NS?
+        try_m_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'M')
+        try_q_name = agg_s.build_name(prefix: aggparts[:prefix] + 'NS', freq: 'Q')
+        new_s = try_m_name.tsnil || try_q_name.tsnil  ### M is better than Q if we have it
+        if new_s
+          puts "......... CHANGING #{n}, s= #{s.id}, ld= #{ld.id} to #{new_s.name}"
+          ld.update!(eval: ld.eval.sub(aggname, new_s.name))
+          sids.push(s.id)
+        end
+      else
+        puts "------------------------------> EVAL FORMAT for #{n}, #{s.id} : #{ld.eval}"
+        next
+      end
+    end
+  end
+  puts 'DONE: %s' % sids.join(',')
+end
+
+task :deploy_per_cap => :environment do
+  DataSource.get_all_uhero.each do |ld|
+    next unless ld.eval =~ %r{^\s*
+                              ("\w+@\w+\.[asqmwd]"\.ts)
+                              \s*
+                              [/]
+                              \s*
+                              "nr(\w+)@\w+\.[asqmwd]"\.ts
+                              \s*
+                              [*]
+                              \s*
+                              100(0)?
+                              \s*$}xi
+    base_series = $1
+    nr_type = $2.to_s.upcase
+    if $3.to_s == '0'
+      method_code = 'per_1kcap'
+    else
+      method_code = 'per_cap'
+    end
+    if nr_type != ''
+      #foo
+    end
+    puts "DOING #{base_series}"
+    ld.update!(eval: base_series + '.%s' + method_code + nr_type)
+  end
+end
+
 task :rewrite_clustermapping_method => :environment do
   Series.search_box('#api_clustermap').each do |s|
     ld = s.enabled_data_sources[0]
