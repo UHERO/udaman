@@ -244,7 +244,7 @@ private
   end
 
   def get_date(year_string, other_string)
-    month = case other_string
+    month = case other_string.to_s
               when /^M?(0[1-9]|1[0-2])\b/ then $1.to_i
               when /^(M13|S0?1)\b/        then 1
               when /^S0?2\b/              then 7

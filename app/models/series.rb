@@ -45,7 +45,7 @@ class Series < ApplicationRecord
                               seasonally_adjusted: 'seasonally_adjusted',
                               not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
-  HISTORY_LOAD_DATES = [1]  ## the date(s) of the month when brown history loaders with clock icon OFF are loaded
+  HISTORY_LOAD_DATES = [1]  ## the date(s) of the month when History loaders with clock icon OFF are loaded
 
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
   ## columns/attributes based on heuristics over other attributes in the model.
