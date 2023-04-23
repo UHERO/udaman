@@ -31,7 +31,7 @@ module HelperUtilities
   end
 
   def grok_date(str, other_str = nil)
-    raise 'grok_date expects String parameters' unless str.class == String
+    raise 'grok_date expects String parameters, got %s' % str.class unless str.class == String
     if other_str
       month = case other_str
               when /^M?(0[1-9]|1[0-2])\b/ then $1.to_i
@@ -39,7 +39,7 @@ module HelperUtilities
               when /^S0?2\b/              then 7
               when /^Q0?([1-4])\b/        then first_month_of_quarter($1)
               when ''                     then 1
-              else raise('Error: invalid date %s-%s' % [str, other_str])
+              else raise('grok_date: ungrokkable second parameter: %s' % other_str)
               end
       return Date.new(str.to_i, month)
     end
@@ -47,7 +47,7 @@ module HelperUtilities
     Date.strptime(str, '%Y-%m-%d') rescue \
        Date.strptime(str, '%Y-%m') rescue \
              Date.new(Integer str) rescue \
-                qspec_to_date(str).to_date rescue raise("Unknown date string format: #{str}")
+                qspec_to_date(str).to_date rescue raise('grok_date: ungrokkable date format: %s' % str)
   end
 
   ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.
