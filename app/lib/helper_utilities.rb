@@ -30,13 +30,24 @@ module HelperUtilities
     '%s%sQ%d' % [date.year, delim, quarter_by_month(date.mon)]
   end
 
-  def grok_date(str)
+  def grok_date(str, other_str = nil)
+    raise 'grok_date expects String parameters' unless str.class == String
+    if other_str
+      month = case other_str
+              when /^M?(0[1-9]|1[0-2])\b/ then $1.to_i
+              when /^(M13|S0?1)\b/        then 1
+              when /^S0?2\b/              then 7
+              when /^Q0?([1-4])\b/        then first_month_of_quarter($1)
+              when ''                     then 1
+              else raise('Error: invalid date %s-%s' % [str, other_str])
+              end
+      return Date.new(str.to_i, month)
+    end
     ## A slightly more readable? way of doing cascading rescue
     Date.strptime(str, '%Y-%m-%d') rescue \
-    Date.strptime(str, '%Y-%m') rescue \
-    Date.new(Integer str) rescue \
-    qspec_to_date(str).to_date rescue \
-    raise("Unknown date string format: #{str}")
+       Date.strptime(str, '%Y-%m') rescue \
+             Date.new(Integer str) rescue \
+                qspec_to_date(str).to_date rescue raise("Unknown date string format: #{str}")
   end
 
   ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.

@@ -68,7 +68,7 @@ class DataHtmlParser
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.gsub(',','').is_numeric?
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value.gsub(',','').to_f
+        new_data[ get_date(time_period[0..3], time_period[4..]) ] = value.gsub(',','').to_f
       end
     end
     new_data
