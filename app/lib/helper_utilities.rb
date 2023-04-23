@@ -25,14 +25,16 @@ module HelperUtilities
   ## e.g. date_to_qspec("2018-03-01") => "2018Q1"; date_to_qspec("2018-10-01", "-") => "2018-Q4"
   def date_to_qspec(date, delim = nil)
     unless date.class == Date
-      date = Date.parse(date) rescue raise("date_to_qspec: #{date} not a valid date string")
+      date = grok_date(date) rescue raise("date_to_qspec: #{date} not a valid date string")
     end
     '%s%sQ%d' % [date.year, delim, quarter_by_month(date.mon)]
   end
 
+  ## Parse a wide variety of date string formats and produce a Date object
   def grok_date(str, other_str = nil)
     raise 'grok_date expects String parameters, got %s' % str.class unless str.class == String
     if other_str
+      year = Integer(str) rescue raise('grok_date: expected 4-digit year as first parameter, got %s' % str)
       month = case other_str
               when /^M?(0[1-9]|1[0-2])\b/ then $1.to_i
               when /^(M13|S0?1)\b/        then 1
@@ -41,13 +43,14 @@ module HelperUtilities
               when ''                     then 1
               else raise('grok_date: ungrokkable second parameter: %s' % other_str)
               end
-      return Date.new(str.to_i, month)
+      return Date.new(year, month)
     end
     ## A slightly more readable? way of doing cascading rescue
     Date.strptime(str, '%Y-%m-%d') rescue \
-       Date.strptime(str, '%Y-%m') rescue \
-             Date.new(Integer str) rescue \
-                qspec_to_date(str).to_date rescue raise('grok_date: ungrokkable date format: %s' % str)
+      Date.strptime(str, '%Y-%m')  rescue \
+        Date.strptime(str, '%Y%m') rescue \
+          Date.new(Integer str)    rescue \
+            qspec_to_date(str).to_date rescue raise('grok_date: ungrokkable date format: %s' % str)
   end
 
   ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.
