@@ -68,7 +68,7 @@ class DataHtmlParser
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.gsub(',','').is_numeric?
-        new_data[ get_date(time_period[0..3], time_period[4..]) ] = value.gsub(',','').to_f
+        new_data[ grok_date(time_period[0..3], time_period[4..]) ] = value.gsub(',','').to_f
       end
     end
     new_data
@@ -121,7 +121,7 @@ class DataHtmlParser
       time_period = data_point['year_t']
       value = data_point[value_in]
       if value
-        new_data[ get_date(time_period[0..3], time_period[4..]) ] = value
+        new_data[ grok_date(time_period[0..3], time_period[4..]) ] = value
       end
     end
     new_data
@@ -209,7 +209,7 @@ class DataHtmlParser
      ## this should be uncommented sometime... next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
-      date = get_date(cols[1], cols[2])
+      date = grok_date(cols[1], cols[2])
       data_hash[freq] ||= {}
       data_hash[freq][date] = cols[3].to_f
     end
@@ -241,18 +241,6 @@ private
     return 'M' if other_string[0] == 'M'
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
-  end
-
-  def get_date(year_string, other_string)
-    month = case other_string.to_s
-              when /^M?(0[1-9]|1[0-2])\b/ then $1.to_i
-              when /^(M13|S0?1)\b/        then 1
-              when /^S0?2\b/              then 7
-              when /^Q0?([1-4])\b/        then first_month_of_quarter($1)
-              when ''                     then 1
-              else raise('Error: invalid date %s-%s' % [year_string, other_string])
-            end
-    Date.new(year_string.to_i, month)
   end
 
   def estatjp_convert_date(datecode)
