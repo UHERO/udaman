@@ -155,8 +155,8 @@ private
         ending_month = 12
       end
 
-      default_from = Date.new(Date.today.year - years_past).to_s
-      default_to   = Date.new(Date.today.year + years_fut, ending_month).to_s
+      default_from = @forecast_snapshot.disp_from || Date.new(Date.today.year - years_past).to_s
+      default_to   = @forecast_snapshot.disp_to   || Date.new(Date.today.year + years_fut, ending_month).to_s
       user_from = params[:sample_from]
       user_to   = params[:sample_to]
       @sampl_fr = [user_from, default_from].select {|x| @all_dates.include? x }[0] || @all_dates[0]
