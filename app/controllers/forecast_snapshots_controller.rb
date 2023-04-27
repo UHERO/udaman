@@ -3,7 +3,7 @@ class ForecastSnapshotsController < ApplicationController
   include HelperUtilities
 
   before_action :check_forecast_snapshot_authorization
-  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy, :pull_file]
+  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :choose_dates, :save_dates, :duplicate, :update, :destroy, :pull_file]
   before_action :set_tsd_files, only: [:show, :table]
 
   def index
@@ -58,10 +58,15 @@ class ForecastSnapshotsController < ApplicationController
     end
 
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
-      redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
+      redirect_to action: :choose_dates, id: @forecast_snapshot
     else
       render :new
     end
+  end
+
+  def save_dates
+    @forecast_snapshot.update!(disp_from: params[:disp_from], disp_to: params[:disp_to])
+    redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
   end
 
   def update
