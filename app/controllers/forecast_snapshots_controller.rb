@@ -64,8 +64,13 @@ class ForecastSnapshotsController < ApplicationController
     end
   end
 
+  def choose_dates
+    var_setup
+  end
+
   def save_dates
-    @forecast_snapshot.update!(disp_from: params[:disp_from], disp_to: params[:disp_to])
+    var_setup
+    @forecast_snapshot.update!(disp_from: @sampl_fr, disp_to: @sampl_to)
     redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
   end
 

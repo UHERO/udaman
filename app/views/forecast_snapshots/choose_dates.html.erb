@@ -1,7 +1,6 @@
 <h1>Default/Initial Forecast Snapshot Date Range</h1>
 
-<%= form_with url: { action: :save_dates, id: @forecast_snapshot } do |f| %>
-  <%= form_with model: @forecast_snapshot, url: { action: :show }, method: :post, html: { style: 'display:inline;' } %>
-  <%= generate_date_range_controls.html_safe %>
-  <%= submit_tag 'Show' %>
-<% end %>
+<%= form_with model: @forecast_snapshot, url: { action: :save_dates }, method: :post, html: { style: 'display:inline;' } %>
+<%= generate_date_range_controls.html_safe %>
+<%= submit_tag 'Save' %>
+</form>
