@@ -311,8 +311,8 @@ class DataSource < ApplicationRecord
       cutoff_date = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
       self.transaction do
         data_points.where('created_at >= ?', cutoff_date).delete_all
-        current_data_points.each do |cdp|
-
+        data_points.each do |dp|
+          #### should I be looping over self.series.data_points?
         end
       end
     end
