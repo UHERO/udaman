@@ -128,16 +128,9 @@ module SeriesDataAdjustment
   end
 
   def rewind_to_vintage!(date)
-    cutoff_date = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
+    cutoff = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
     self.transaction do
-      data_points.where('created_at >= ?', cutoff_date).delete_all
-      data_points.update_all(current: false)
-      current_date = nil
-      data_points.order(:date, created_at: :desc).each do |dp|
-        if dp.date != current_date
-          dp.update(current: true)
-          current_date = dp.date
-        end
+      data_points.where('created_at >= ?', cutoff).order(:date, :created_at).each do |dp|
       end
     end
   end

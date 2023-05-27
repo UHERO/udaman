@@ -17,11 +17,8 @@ class DataSourcesController < ApplicationController
     if cutoff_date && clear_params[:type].blank?
       redirect_to :clear
     end
-    if cutoff_date.nil? || clear_params[:type] == 'obs'
-      @data_source.delete_data_points(from: cutoff_date)
-    else
-      @data_source.rewind_to_vintage!(clear_params[:date])
-    end
+    delete_method_param = cutoff_date ? { clear_params[:type] => cutoff_date } : {}
+    @data_source.delete_data_points(*delete_method_param)
     @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end

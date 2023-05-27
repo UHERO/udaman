@@ -284,16 +284,22 @@ class DataSource < ApplicationRecord
       return false
     end
 
-    def delete_data_points(from: nil)
+    def delete_data_points(date_from: nil, create_from: nil)
       query = <<~MYSQL
         delete from data_points where data_source_id = ?
       MYSQL
       bindvars = [id]
-      if from
+      if date_from
         query += <<~MYSQL
           and date >= ?
         MYSQL
-        bindvars.push(from.to_date) rescue raise("Invalid or nonexistent date: #{from}")
+        bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
+      end
+      if create_from
+        query += <<~MYSQL
+          and created_at >= ?
+        MYSQL
+        bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
       end
       stmt = Series.connection.raw_connection.prepare(query)
       stmt.execute(*bindvars)
@@ -305,16 +311,6 @@ class DataSource < ApplicationRecord
     def delete
       delete_data_points
       super
-    end
-
-    def rewind_to_vintage!(date)
-      cutoff_date = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
-      self.transaction do
-        data_points.where('created_at >= ?', cutoff_date).delete_all
-        data_points.each do |dp|
-          #### should I be looping over self.series.data_points?
-        end
-      end
     end
 
     def disable!
