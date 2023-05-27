@@ -1,9 +1,9 @@
 <div id="summary_area">
-	<h2>Clear Loader Data</h2>
+	<h2>Clear Series Data</h2>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<%= form_with url: { action: :do_clear, id: @data_source } do |ld| %>
+	<%= form_with url: { action: :do_clear, id: @series } do |ld| %>
 		<div class="field">
 			Clear data points relative to the following date (YYYY-MM-DD). Leave blank to delete all.<br/>
       <%= text_field_tag 'clear_op[date]' %>

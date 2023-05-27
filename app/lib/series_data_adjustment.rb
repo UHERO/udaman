@@ -131,6 +131,7 @@ module SeriesDataAdjustment
     cutoff = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
     self.transaction do
       data_points.where('created_at >= ?', cutoff).order(:date, :created_at).each do |dp|
+        ## something
       end
     end
   end
