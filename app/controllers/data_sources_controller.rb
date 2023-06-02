@@ -2,7 +2,7 @@ class DataSourcesController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_data_source, except: [:new, :create]
+  before_action :set_data_source, except: [:new, :create, :do_clear]
 
   def source
     @data_source.reload_source
