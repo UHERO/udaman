@@ -198,6 +198,7 @@ class SeriesController < ApplicationController
     cutoff_date = clear_params[:date].nil_blank  ## will be nil when all points are to be cleared
     if cutoff_date && clear_params[:type].blank?
       redirect_to action: :clear
+      return
     end
     delete_method_param = cutoff_date ? { clear_params[:type].to_sym => cutoff_date } : {}
     @series.delete_data_points(**delete_method_param)  ## double splat for hash
