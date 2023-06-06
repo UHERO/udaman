@@ -8,7 +8,7 @@
 			Clear data points relative to the following date (YYYY-MM-DD). Leave blank to delete all.<br/>
       <%= text_field_tag 'clear_op[date]' %>
 			<p>
-			<%= radio_button_tag 'clear_op[type]', 'date_from' %> Delete all data with <strong>observation date</strong> on or after the given date.
+			<%= radio_button_tag 'clear_op[type]', 'date_from' %> Delete all data with <strong>observation date</strong> on or after the given date.<br/>
 			<%= radio_button_tag 'clear_op[type]', 'create_from' %> Delete all data points <strong>created</strong> on or after the given date.
 			</p>
     </div>

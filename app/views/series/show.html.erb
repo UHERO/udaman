@@ -124,7 +124,7 @@ google.visualization.events.addListener(chart, 'select', function() {
         <td style="font-weight:bold;">Loaders (
           <% if current_user.admin_user? %>
               <%= link_to 'new', controller: :data_sources, action: :new, series_id: @series %> |
-              <%= link_to 'clear data', controller: :series, action: :clear, series_id: @series %> |
+              <%= link_to 'clear all', controller: :series, action: :clear, series_id: @series %> |
           <% end %>
               <%= link_to 'load all', controller: :series, action: :reload_all, id: @series %>
           )
