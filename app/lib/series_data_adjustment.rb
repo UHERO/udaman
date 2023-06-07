@@ -130,10 +130,13 @@ module SeriesDataAdjustment
   def repair_currents!
     self.transaction do
       data_points.pluck(:date).uniq.sort.each do |date|
-        points = data_points.where(date: date)
-        next unless points.where(current: true).empty?
-        points.order(:created_at).each do |dp|
-
+        points = data_points.where(date: date).order(created_at: :desc)
+        next unless points.where(current: true).empty?  ## if there's a current value, skip to next date
+        ## Make the last created data point "vintage" current
+        val = true
+        points.each do |dp|
+          dp.update_columns(current: val)
+          val = false
         end
       end
     end
