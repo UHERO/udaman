@@ -641,8 +641,9 @@ class Series < ApplicationRecord
       bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
     end
     if create_from
+      ## NOTE: This is > instead of >= because it's gonna be called mostly (only?) from the UI's clear-to-vintage function
       query += <<~MYSQL
-          and created_at >= ?
+          and created_at > ?
       MYSQL
       bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
     end
