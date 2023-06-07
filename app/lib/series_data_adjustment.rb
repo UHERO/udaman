@@ -127,11 +127,14 @@ module SeriesDataAdjustment
     vintage_data
   end
 
-  def rewind_to_vintage!(date)
-    cutoff = date.to_date + 1 rescue raise("Invalid or nonexistent date: #{date}")
+  def repair_currents!
     self.transaction do
-      data_points.where('created_at >= ?', cutoff).order(:date, :created_at).each do |dp|
-        ## something
+      data_points.pluck(:date).uniq.sort.each do |date|
+        points = data_points.where(date: date)
+        next unless points.where(current: true).empty?
+        points.order(:created_at).each do |dp|
+
+        end
       end
     end
   end

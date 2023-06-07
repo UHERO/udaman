@@ -23,6 +23,7 @@ class DataSourcesController < ApplicationController
       delete_method_param = { clear_params[:type].to_sym => cutoff_date }
     end
     @data_source.delete_data_points(**delete_method_param)  ## double splat for hash
+    @data_source.series.repair_currents!
     @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end

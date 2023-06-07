@@ -205,6 +205,7 @@ class SeriesController < ApplicationController
       delete_method_param = { clear_params[:type].to_sym => cutoff_date }
     end
     @series.delete_data_points(**delete_method_param)  ## double splat for hash
+    @series.repair_currents!
     redirect_to controller: :series, action: :show, id: @series
   end
 

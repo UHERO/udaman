@@ -9,8 +9,7 @@
       <%= text_field_tag 'clear_op[date]' %>
 			<p>
 			<%= radio_button_tag 'clear_op[type]', 'date_from' %> Delete all data with <strong>observation date</strong> on or after the given date.<br/>
-			<%= radio_button_tag 'clear_op[type]', 'create_from' %> Delete all data points <strong>created</strong> on or after the given date.<br/>
-			<%= radio_button_tag 'clear_op[type]', 'vintage', false, disabled: true %> Vintage: Reset series to <strong>state current</strong> on the given date. (not implemented yet)
+			<%= radio_button_tag 'clear_op[type]', 'create_from' %> Vintage: Reset series to <strong>state current</strong> on the given date.
 			</p>
     </div>
 		<div class="actions">
