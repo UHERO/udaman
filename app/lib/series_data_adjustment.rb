@@ -127,18 +127,18 @@ module SeriesDataAdjustment
     vintage_data
   end
 
+  ## After deleting some data points using one of the 'clear' buttons in the UI, the series may be left in a "broken"
+  ## state in the sense of some observation dates not having a 'current' value. Scan through the series by date looking
+  ## for these dates whose data points are all current = false, and assign current = true to the one with the latest
+  ## created_at date.
   def repair_currents!
     self.transaction do
       data_points.pluck(:date).uniq.sort.each do |date|
         points = data_points.where(date: date).order(created_at: :desc)
-        next unless points.where(current: true).empty?  ## if there's a current value, skip to next date
-        ## Make the last created data point "vintage" current
-        val = true
-        points.each do |dp|
-          dp.update_columns(current: val)
-          val = false
-        end
+        next unless points.where(current: true).empty?  ## Skip to next date if there is a current value
+        points[0].update_columns(current: true)  ## Else make the last created data point "vintage" current
       end
     end
   end
+
 end
