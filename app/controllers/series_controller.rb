@@ -6,7 +6,7 @@ class SeriesController < ApplicationController
   before_action :set_series,
         only: [:show, :edit, :update, :destroy, :new_alias, :alias_create, :analyze, :add_to_quarantine, :remove_from_quarantine,
                :reload_all, :rename, :save_rename, :duplicate, :save_duplicate, :json_with_change, :show_forecast, :all_tsd_chart,
-               :render_data_points, :update_notes]
+               :render_data_points, :update_notes, :clear, :do_clear]
 
   def new
     @universe = params[:u].upcase rescue 'UHERO'
@@ -189,6 +189,24 @@ class SeriesController < ApplicationController
     new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
     current_user.meta_update(new_properties)
     redirect_to action: :clipboard
+  end
+
+  def clear
+  end
+
+  def do_clear
+    cutoff_date = clear_params[:date].nil_blank  ## will be nil when all points are to be cleared
+    delete_method_param = {}
+    if cutoff_date
+      if clear_params[:type].blank?
+        redirect_to action: :clear, id: @series
+        return
+      end
+      delete_method_param = { clear_params[:type].to_sym => cutoff_date }
+    end
+    @series.delete_data_points(**delete_method_param)  ## double splat for hash
+    @series.repair_currents!
+    redirect_to controller: :series, action: :show, id: @series
   end
 
   def index
@@ -440,6 +458,10 @@ private
 
   def csv2tsd_params
     params.require(:csv2tsd).permit(:filepath)
+  end
+
+  def clear_params
+    params.require(:clear_op).permit(:date, :type)
   end
 
   def set_series
