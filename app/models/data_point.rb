@@ -5,11 +5,11 @@ class DataPoint < ApplicationRecord
   
   def upd(value, loader)
     return nil if trying_to_replace_with_nil?(value)
-    return nil unless value_or_loader_has_changed?(value, loader)
-    restore_prior_dp(value, loader) || create_new_dp(value, loader)
+    return nil unless value_or_loader_changed?(value, loader)
+    create_new_dp(value, loader)
   end
   
-  def value_or_loader_has_changed?(value, loader)
+  def value_or_loader_changed?(value, loader)
     unless self.value_equal_to? value
       series_auto_quarantine_check
       return true
@@ -36,11 +36,7 @@ class DataPoint < ApplicationRecord
   end
   
   def create_new_dp(upd_value, upd_loader)
-    #create a new datapoint because value or loader changed
-    #need to understand how to control the rounding...not sure what sets this
-    #rounding doesnt work, looks like there's some kind of truncation too.
     return nil if upd_loader.priority < self.loader.priority
-    ##now = Time.now
     new_dp = DataPoint.create(
         xseries_id: self.xseries_id,
         date: self.date,
@@ -48,13 +44,12 @@ class DataPoint < ApplicationRecord
         value: upd_value,
         pseudo_history: upd_source.pseudo_history,
         current: false  ## will be set to true just below
-      #  :created_at => now,
-       # :updated_at => now
     )
     make_current(new_dp)
     new_dp
   end
 
+    ## Should be obsolete now. But leave it around for historical consideration. Removed from production use June 2023
   def restore_prior_dp(upd_value, upd_loader)
     prior_dp = DataPoint.where(xseries_id: xseries_id,
                                date: date,

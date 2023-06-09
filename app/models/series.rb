@@ -330,6 +330,20 @@ class Series < ApplicationRecord
     build_name(freq: freq.to_s.upcase).tsnil
   end
 
+  def is_SA?(fuzzy: true)
+    return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
+    return  true if seasonal_adjustment == 'seasonally_adjusted'
+    return false if !fuzzy
+    parse_name[:prefix] =~ /SA$/i
+  end
+
+  def is_NS?(fuzzy: true)
+    return false if frequency.freqn <= :year.freqn
+    return  true if seasonal_adjustment == 'not_seasonally_adjusted'
+    return false if !fuzzy
+    parse_name[:prefix] =~ /NS$/i
+  end
+
   def is_primary?
     xseries.primary_series === self
   end
@@ -615,16 +629,23 @@ class Series < ApplicationRecord
     current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
   end
 
-  def delete_data_points(from: nil)
+  def delete_data_points(date_from: nil, create_from: nil)
     query = <<~MYSQL
       delete from data_points where xseries_id = ?
     MYSQL
     bindvars = [xseries_id]
-    if from
+    if date_from
       query += <<~MYSQL
-        and date >= ?
+          and date >= ?
       MYSQL
-      bindvars.push from
+      bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
+    end
+    if create_from
+      ## NOTE: This is > instead of >= because it's gonna be called mostly (only?) from the UI's clear-to-vintage function
+      query += <<~MYSQL
+          and created_at > ?
+      MYSQL
+      bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
     end
     stmt = Series.connection.raw_connection.prepare(query)
     stmt.execute(*bindvars)

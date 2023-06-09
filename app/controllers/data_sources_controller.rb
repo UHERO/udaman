@@ -8,11 +8,24 @@ class LoadersController < ApplicationController
     @loader.reload_source
     redirect_to controller: :series, action: :show, id: @loader.series_id
   end
-  
+
   def clear
-    @loader.delete_data_points
-    @loader.reset
-    redirect_to controller: :series, action: :show, id: @loader.series_id
+  end
+
+  def do_clear
+    cutoff_date = clear_params[:date].nil_blank  ## will be nil when all points are to be cleared
+    delete_method_param = {}
+    if cutoff_date
+      if clear_params[:type].blank?
+        redirect_to action: :clear, id: @data_source
+        return
+      end
+      delete_method_param = { clear_params[:type].to_sym => cutoff_date }
+    end
+    @data_source.delete_data_points(**delete_method_param)  ## double splat for hash
+    @data_source.series.repair_currents!
+    @data_source.reset
+    redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
   
   def delete
@@ -98,10 +111,21 @@ private
       params.require(:loader).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
+<<<<<<< HEAD
   def create_action(loader, action)
     LoaderAction.create do |dsa|
       dsa.loader_id = loader.id
       dsa.series_id = loader.series.id
+=======
+  def clear_params
+    params.require(:clear_op).permit(:date, :type)
+  end
+
+  def create_action(data_source, action)
+    DataSourceAction.create do |dsa|
+      dsa.data_source_id = data_source.id
+      dsa.series_id = data_source.series.id
+>>>>>>> master
       dsa.user_id = current_user.id
       dsa.user_email = current_user.email
       dsa.eval = loader.eval

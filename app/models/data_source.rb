@@ -96,7 +96,7 @@ class Loader < ApplicationRecord
     end
 
     def current_data_points
-      self.data_points.where(:current => true).order(:date).all
+      data_points.where(current: true).order(:date).all
     end
     
     def create_from_form
@@ -286,21 +286,27 @@ class Loader < ApplicationRecord
       return false
     end
 
-    def delete_data_points(from: nil)
+    def delete_data_points(date_from: nil, create_from: nil)
       query = <<~MYSQL
         delete from data_points where loader_id = ?
       MYSQL
       bindvars = [id]
-      if from
+      if date_from
         query += <<~MYSQL
           and date >= ?
         MYSQL
-        bindvars.push from
+        bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
+      end
+      if create_from
+        query += <<~MYSQL
+          and created_at >= ?
+        MYSQL
+        bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
       end
       stmt = Series.connection.raw_connection.prepare(query)
       stmt.execute(*bindvars)
       stmt.close
-      Rails.logger.info { "Deleted all data points for definition #{id}" }
+      Rails.logger.info { "Deleted data points for definition #{id}" }
     end
 
     ## this method not really needed, eh?
