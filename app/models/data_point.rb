@@ -49,7 +49,7 @@ class DataPoint < ApplicationRecord
     new_dp
   end
 
-  ## Should be obsolete now. But leave it around for historical consideration. Removed from production use Apr 2023
+  ## Should be obsolete now. But leave it around for historical consideration. Removed from production use June 2023
   def restore_prior_dp(upd_value, upd_source)
     prior_dp = DataPoint.where(xseries_id: xseries_id,
                                date: date,
