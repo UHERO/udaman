@@ -92,7 +92,6 @@ class String
 
   ## Convert frequency string values to numeric ones that can be compared for >, <, etc. These values should ONLY
   ## be used for comparison purposes; do not write code that expects or makes use of absolute values.
-  ## Returns nil for strings not included
   def freqn
     %w[year semi quarter month week day].index(self.downcase) || %w[A S Q M W D].index(self.upcase) || raise("Unknown frequency #{self}")
   end
