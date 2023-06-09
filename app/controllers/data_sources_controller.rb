@@ -8,9 +8,22 @@ class DataSourcesController < ApplicationController
     @data_source.reload_source
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
-  
+
   def clear
-    @data_source.delete_data_points
+  end
+
+  def do_clear
+    cutoff_date = clear_params[:date].nil_blank  ## will be nil when all points are to be cleared
+    delete_method_param = {}
+    if cutoff_date
+      if clear_params[:type].blank?
+        redirect_to action: :clear, id: @data_source
+        return
+      end
+      delete_method_param = { clear_params[:type].to_sym => cutoff_date }
+    end
+    @data_source.delete_data_points(**delete_method_param)  ## double splat for hash
+    @data_source.series.repair_currents!
     @data_source.reset
     redirect_to controller: :series, action: :show, id: @data_source.series_id
   end
@@ -96,6 +109,10 @@ private
 
   def data_source_params
       params.require(:data_source).permit(:series_id, :eval, :priority, :scale, :color, :presave_hook, :pseudo_history, :clear_before_load)
+  end
+
+  def clear_params
+    params.require(:clear_op).permit(:date, :type)
   end
 
   def create_action(data_source, action)
