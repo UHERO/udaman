@@ -889,7 +889,7 @@ class Series < ApplicationRecord
       date = last_observation
     end
     unless date.class == Date
-      date = Date.parse(date) rescue Date.new(Integer date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
+      date = grok_date(date)
     end
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
