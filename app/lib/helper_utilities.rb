@@ -31,8 +31,8 @@ module HelperUtilities
   end
 
   ## Parse a wide variety of date string formats and produce a Date object
-  def grok_date(str, other_str = nil)
-    raise 'grok_date expects String parameters, got %s' % str.class unless str.class == String
+  def grok_date(parm, other_str = nil)
+    str = parm.to_s rescue raise('grok_date expects a parameter that can be converted to String, got %s' % parm.class)
     if other_str
       year = Integer(str) rescue raise('grok_date: expected 4-digit year as first parameter, got %s' % str)
       month = case other_str
