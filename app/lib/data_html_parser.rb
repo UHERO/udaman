@@ -14,8 +14,7 @@ class DataHtmlParser
     data = {}
     doc.css('observation').each do |obs|
       next if obs[:value] == '.'
-      obs_date = grok_date(obs[:date])
-      data[obs_date] = obs[:value].to_f
+      data[ grok_date(obs[:date]) ] = obs[:value].to_f
     end
     data
   end
