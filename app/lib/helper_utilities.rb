@@ -32,6 +32,7 @@ module HelperUtilities
 
   ## Parse a wide variety of date string formats and produce a Date object
   def grok_date(parm, other_str = nil)
+    return parm if parm.class == Date
     str = parm.to_s rescue raise('grok_date expects a parameter that can be converted to String, got %s' % parm.class)
     if other_str
       year = Integer(str) rescue raise('grok_date: expected 4-digit year as first parameter, got %s' % str)
@@ -45,7 +46,7 @@ module HelperUtilities
               end
       return Date.new(year, month)
     end
-    ## A slightly more readable? way of doing cascading rescue
+    ## Somewhat readable? way of doing cascading rescue
     Date.strptime(str, '%Y-%m-%d') rescue \
       Date.strptime(str, '%Y-%m')  rescue \
         Date.strptime(str, '%Y%m') rescue \
