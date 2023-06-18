@@ -19,7 +19,31 @@ class DataHtmlParser
     data
   end
   
-  def get_bls_series(code, frequency = nil)
+  def get_bls_series(series_id, _ = nil)
+    api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
+    thisyear = Date.today.year
+    @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s&startyear=%d&endyear=%d' %
+      [series_id, api_key, thisyear - 9, thisyear]
+    Rails.logger.debug { "Getting data from BLS API: #{@url}" }
+    @doc = self.download
+    raise 'BLS API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('BLS API: JSON parse failure')
+    unless json['status'] =~ /succeeded/i
+      raise 'BLS API error: %s' % json['message'].join(' ')
+    end
+    results_data = json['Results']['series'][0]['data']  ## :eyeroll
+    raise 'BLS API error: %s' % json['message'].join(' ') if results_data.empty?
+
+    new_data = {}
+    results_data.each do |dp|
+      new_data[ grok_date(dp['year'], dp['period']) ] = dp['value'].gsub(',','').to_f
+    end
+    new_data
+  end
+
+  ## Should be obsolete now, but let's keep it around a while longer just in case a problem arises
+  ## with the new routine above
+  def get_bls_series_DELETEME(code, frequency = nil)
     @code = code
     @url = 'https://data.bls.gov/pdq/SurveyOutputServlet'
     @post_parameters = {
