@@ -19,7 +19,7 @@ class DataHtmlParser
     data
   end
   
-  def get_bls_series(series_id, frequency = nil)
+  def get_bls_series(series_id, _ = nil)
     api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
     thisyear = Date.today.year
     @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s&startyear=%d&endyear=%d' %
