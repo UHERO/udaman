@@ -13,12 +13,37 @@ class DataHtmlParser
     doc = self.download
     data = {}
     doc.css('observation').each do |obs|
-      data[obs[:date]] = obs[:value].to_f unless obs[:value] == '.'
+      next if obs[:value] == '.'
+      data[ grok_date(obs[:date]) ] = obs[:value].to_f
     end
     data
   end
   
-  def get_bls_series(code, frequency = nil)
+  def get_bls_series(series_id, _ = nil)
+    api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
+    thisyear = Date.today.year
+    @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s&startyear=%d&endyear=%d' %
+      [series_id, api_key, thisyear - 9, thisyear]
+    Rails.logger.debug { "Getting data from BLS API: #{@url}" }
+    @doc = self.download
+    raise 'BLS API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('BLS API: JSON parse failure')
+    unless json['status'] =~ /succeeded/i
+      raise 'BLS API error: %s' % json['message'].join(' ')
+    end
+    results_data = json['Results']['series'][0]['data']  ## :eyeroll
+    raise 'BLS API error: %s' % json['message'].join(' ') if results_data.empty?
+
+    new_data = {}
+    results_data.each do |dp|
+      new_data[ grok_date(dp['year'], dp['period']) ] = dp['value'].gsub(',','').to_f
+    end
+    new_data
+  end
+
+  ## Should be obsolete now, but let's keep it around a while longer just in case a problem arises
+  ## with the new routine above
+  def get_bls_series_DELETEME(code, frequency = nil)
     @code = code
     @url = 'https://data.bls.gov/pdq/SurveyOutputServlet'
     @post_parameters = {
@@ -68,7 +93,7 @@ class DataHtmlParser
       time_period = data_point['TimePeriod']
       value = data_point['DataValue']
       if value && value.gsub(',','').is_numeric?
-        new_data[ get_date(time_period[0..3], time_period[4..-1]) ] = value.gsub(',','').to_f
+        new_data[ grok_date(time_period[0..3], time_period[4..]) ] = value.gsub(',','').to_f
       end
     end
     new_data
@@ -98,10 +123,10 @@ class DataHtmlParser
     new_data = {}
     results.each do |data_point|
       next unless estatjp_filter_match(filters, data_point)
-      time_period = estatjp_convert_date(data_point['@time']) || next
+      time_period = data_point['@time']
       value = data_point['$']  ## apparently all values are money, even when they're not ;)
       if value && value.gsub(',','').is_numeric?
-        new_data[time_period] = value.gsub(',','').to_f
+        new_data[ grok_date(time_period[0..3], time_period[-2..]) ] = value.gsub(',','').to_f
       end
     end
     new_data
@@ -121,7 +146,7 @@ class DataHtmlParser
       time_period = data_point['year_t']
       value = data_point[value_in]
       if value
-        new_data[ get_date(time_period[0..3], time_period[4..]) ] = value
+        new_data[ grok_date(time_period[0..3], time_period[4..]) ] = value
       end
     end
     new_data
@@ -139,7 +164,7 @@ class DataHtmlParser
     raise 'EIA API: Null response returned; check parameters, they are case-sensitive' if self.content.blank?
     response = JSON.parse(self.content) rescue raise('EIA API: JSON parse failure')
     if response['error']
-      raise 'EIA API error: %s' % response['error']
+      raise 'EIA API error: %s' % (response['error']['message'] || response['error'])
     end
     api_data = response['response']['data']
     if api_data.empty?
@@ -209,7 +234,7 @@ class DataHtmlParser
      ## this should be uncommented sometime... next if cols[3].blank?
       cols = dl.split(',')
       freq = get_freq(cols[2])
-      date = get_date(cols[1], cols[2])
+      date = grok_date(cols[1], cols[2])
       data_hash[freq] ||= {}
       data_hash[freq][date] = cols[3].to_f
     end
@@ -241,38 +266,6 @@ private
     return 'M' if other_string[0] == 'M'
     return 'S' if other_string[0] == 'S'
     'Q' if other_string[0] == 'Q'
-  end
-
-  def get_date(year_string, other_string)
-    case other_string
-    # Monthly observations
-    when /^((M0[1-9])|(M1[0-2]))\b/
-      Date.new(year_string.to_i, other_string[1..2].to_i)
-    when /^((0[1-9])|(1[0-2]))\b/
-      Date.new(year_string.to_i, other_string.to_i)
-    # Observations that should evaluate to January of year_string (including other_string === '')
-    when /^$|^((M13)|(Q|S)(1|01))\b/
-      Date.new(year_string.to_i)
-    # (Quarterly) Observations that should evaluate to April of year_string
-    when /^Q(2|02)\b/
-      Date.new(year_string.to_i, 4)
-    # (Quarterly/Semi-Annual) Observations that should evaluate to July of year_string
-    when /^(S02|Q(3|03))\b/
-      Date.new(year_string.to_i, 7)
-    # (Quarterly) Observations that should evaluate to October of year_string
-    when /^Q(4|04)\b/
-      Date.new(year_string.to_i, 10)
-    else
-      raise 'DataHtmlParser::get_date: invalid params "%s-%s"' % [year_string, other_string]
-    end
-  end
-
-  def estatjp_convert_date(datecode)
-    year = datecode[0..3]
-    m1 = datecode[-4..-3].to_i
-    m2 = datecode[-2..-1].to_i
-    return nil unless m1 == m2 && m2 > 0 && m2 <= 12
-    '%s-%02d-01' % [year, m2]
   end
 
   def estatjp_filter_match(filters, dp)
