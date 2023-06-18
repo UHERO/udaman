@@ -36,7 +36,7 @@ class DataHtmlParser
 
     new_data = {}
     results_data.each do |dp|
-      obs_date = get_date(dp['year'], dp['period'])
+      obs_date = grok_date(dp['year'], dp['period'])
       new_data[obs_date] = dp['value'].gsub(',','').to_f
     end
     new_data
