@@ -826,7 +826,7 @@ class Series < ApplicationRecord
     series_data = dhp.get_bls_series(series_id, frequency)
     link = '<a href="%s">API URL</a>' % dhp.url
     name = "loaded data set from #{link} with parameters shown"
-    if series_data.empty?
+    if series_data && series_data.empty?
       name = "No data collected from #{link} - possibly redacted"
     end
     Series.new_transformation(name, series_data, frequency)

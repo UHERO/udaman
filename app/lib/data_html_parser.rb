@@ -19,7 +19,7 @@ class DataHtmlParser
     data
   end
   
-  def get_bls_series(series_id, _ = nil)
+  def get_bls_series_ONHOLD(series_id, _ = nil)
     api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
     thisyear = Date.today.year
     @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s&startyear=%d&endyear=%d' %
@@ -43,7 +43,7 @@ class DataHtmlParser
 
   ## Should be obsolete now, but let's keep it around a while longer just in case a problem arises
   ## with the new routine above
-  def get_bls_series_DELETEME(code, frequency = nil)
+  def get_bls_series(code, frequency = nil)
     @code = code
     @url = 'https://data.bls.gov/pdq/SurveyOutputServlet'
     @post_parameters = {
