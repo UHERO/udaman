@@ -1,5 +1,6 @@
 module SeriesArithmetic
   include ActionView::Helpers::DateHelper
+  include HelperUtilities
 
   def round(prec = 0)
     new_transformation("Rounded #{self}", data.map {|date, value| [date, value && (value.round(prec).to_f rescue nil)] })
@@ -72,7 +73,7 @@ module SeriesArithmetic
 
   def rebase(date = nil)
     if date
-      date = Date.parse(date) rescue Date.new(Integer date) rescue raise('rebase: Argument can be, e.g. 2000 or "2000-01-01"')
+      date = grok_date(date) rescue raise('rebase: Argument can be, e.g. 2000 or "2000-01-01"')
     end
     ## We need an annual series. If I am annual, this'll find me, otherwise my .A sibling
     ann_series = find_sibling_for_freq('A') || raise("No annual series found corresponding to #{self}")
