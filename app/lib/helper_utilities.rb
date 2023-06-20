@@ -15,10 +15,10 @@ module HelperUtilities
   end
 
   ## Put in quarter spec like YYYYQ1, YYYY-Q1, YYYY/Q1, YYYY-Q01, "YYYY Q1", "YYYY Q01", etc
-  ## get out date form, e.g. qspec_to_date("2012Q2") => "2012-04-01"
+  ## get out Date object, e.g. qspec_to_date("2012Q2") => #<Date year: 2012, month: 4, day: 1>
   def qspec_to_date(qstr)
     return nil unless qstr =~ /([12]\d\d\d)[-.\/ ]?Q0?([1234])/i
-    '%s-%02d-01' % [$1, first_month_of_quarter($2)]
+    Date.new($1.to_i, first_month_of_quarter($2))
   end
 
   ## Put in date (either string or Date object), get out quarter spec; opt. second param is delimiter string
@@ -51,7 +51,7 @@ module HelperUtilities
       Date.strptime(str, '%Y-%m')  rescue \
         Date.strptime(str, '%Y%m') rescue \
           Date.new(Integer str)    rescue \
-            qspec_to_date(str).to_date rescue raise('grok_date: ungrokkable date format: %s' % str)
+            qspec_to_date(str)     rescue raise('grok_date: ungrokkable date format: %s' % str)
   end
 
   ## Return how many higher frequency units there are in a lower (or =) frequency unit. Nil if not defined.
