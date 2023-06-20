@@ -15,5 +15,10 @@
   <%= @api_application.api_key %>
 </p>
 
+<p>
+  <strong>Github Nickname (why do we need this?):</strong>
+  <%= @api_application.github_nickname %>
+</p>
+
 <%= link_to 'Edit', edit_api_application_path(@api_application) %> |
 <%= link_to 'Back', api_applications_path %>

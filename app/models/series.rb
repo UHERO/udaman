@@ -45,6 +45,8 @@ class Series < ApplicationRecord
                               seasonally_adjusted: 'seasonally_adjusted',
                               not_seasonally_adjusted: 'not_seasonally_adjusted' }
 
+  HISTORY_LOAD_DATES = [1]  ## the date(s) of the month when History loaders with clock icon OFF are loaded
+
   ## this action can probably be eliminated after implementing a more comprehensive way of updating neglected
   ## columns/attributes based on heuristics over other attributes in the model.
   after_create do
@@ -328,6 +330,20 @@ class Series < ApplicationRecord
   ## Find "sibling" series for a different frequency
   def find_sibling_for_freq(freq)
     build_name(freq: freq.to_s.upcase).tsnil
+  end
+
+  def is_SA?(fuzzy: true)
+    return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
+    return  true if seasonal_adjustment == 'seasonally_adjusted'
+    return false if !fuzzy
+    parse_name[:prefix] =~ /SA$/i
+  end
+
+  def is_NS?(fuzzy: true)
+    return false if frequency.freqn <= :year.freqn
+    return  true if seasonal_adjustment == 'not_seasonally_adjusted'
+    return false if !fuzzy
+    parse_name[:prefix] =~ /NS$/i
   end
 
   def is_primary?
@@ -615,16 +631,23 @@ class Series < ApplicationRecord
     current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
   end
 
-  def delete_data_points(from: nil)
+  def delete_data_points(date_from: nil, create_from: nil)
     query = <<~MYSQL
       delete from data_points where xseries_id = ?
     MYSQL
     bindvars = [xseries_id]
-    if from
+    if date_from
       query += <<~MYSQL
-        and date >= ?
+          and date >= ?
       MYSQL
-      bindvars.push from
+      bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
+    end
+    if create_from
+      ## NOTE: This is > instead of >= because it's gonna be called mostly (only?) from the UI's clear-to-vintage function
+      query += <<~MYSQL
+          and created_at > ?
+      MYSQL
+      bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
     end
     stmt = Series.connection.raw_connection.prepare(query)
     stmt.execute(*bindvars)
@@ -770,13 +793,15 @@ class Series < ApplicationRecord
     Series.new_transformation(name, series_data, frequency)
   end
   
-  def Series.load_api_bls(code, frequency)
-    series_data = DataHtmlParser.new.get_bls_series(code, frequency)
-    name = "loaded series code: #{code} from BLS API"
+  def Series.load_api_bls(series_id, frequency)
+    dhp = DataHtmlParser.new
+    series_data = dhp.get_bls_series(series_id, frequency)
+    link = '<a href="%s">API URL</a>' % dhp.url
+    name = "loaded data set from #{link} with parameters shown"
     if series_data && series_data.empty?
-      name = "No data collected from BLS API for #{code} freq=#{frequency} - possibly redacted"
+      name = "No data collected from #{link} - possibly redacted"
     end
-    new_transformation(name, series_data, frequency)
+    Series.new_transformation(name, series_data, frequency)
   end
 
   def Series.load_api_fred(code, frequency = nil, aggregation_method = nil)
@@ -866,7 +891,7 @@ class Series < ApplicationRecord
       date = last_observation
     end
     unless date.class == Date
-      date = Date.parse(date) rescue Date.new(Integer date) rescue raise('at: Date argument can be, e.g. 2000 or "2000-04-01"')
+      date = grok_date(date)
     end
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
@@ -993,7 +1018,7 @@ class Series < ApplicationRecord
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
-        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && Date.today.day == 1) ## History loaders only nightly reload on the first of month.
+        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && HISTORY_LOAD_DATES.include?(Date.today.day)) ## History loaders only reload on certain days.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
@@ -1049,7 +1074,7 @@ class Series < ApplicationRecord
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos
         when /^[.]/
-          freqs = tane.split(//)  ## split to individual characters
+          freqs = tane.gsub(',', '').split(//)  ## split to individual characters
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
