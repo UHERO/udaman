@@ -52,10 +52,6 @@ every 1.day, :at => '3:00 am' do
   rake :reload_tour_ocup_series_only
 end
 
-every 1.day, :at => '5:30 am' do
-  rake :update_bea_links
-end
-
 every 1.day, :at => '6:00 am' do
   rake :reload_bea_series_only
   rake :reload_bls_series_only
