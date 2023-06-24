@@ -55,6 +55,14 @@ class Series < ApplicationRecord
     end
   end
 
+  def ts
+    self
+  end
+
+  def tsnil
+    self
+  end
+
   def to_s
     self.name || 'UNNAMED_SERIES'
   end
