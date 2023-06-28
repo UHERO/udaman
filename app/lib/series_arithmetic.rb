@@ -96,7 +96,11 @@ module SeriesArithmetic
   def convert_to_real(idx_series = nil, index: 'CPI')
     idx_series ||= self.build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
     if idx_series.class == String
-      idx_series = Series.find_by(name: idx_series, universe: universe) || raise("No series #{idx_series} found in #{universe}")
+      idx_series = Series.find_by(name: idx_series, universe: universe)
+      if idx_series.nil? && geography.is_in_hawaii?
+        idx_series = Series.find_by(name: self.build_name(prefix: index, geo: 'HI'), universe: universe)
+      end
+      raise "No appropriate index series found in #{universe}" if idx_series.nil?
     end
     self / idx_series * 100
   end
