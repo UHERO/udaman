@@ -100,10 +100,10 @@ module SeriesArithmetic
       end
       ## otherwise it's a Series object, so just pass thru
     else
-      idx_series = self.build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
+      idx_series = build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
       idx_series = Series.find_by(name: idx_series, universe: universe)
       if idx_series.nil? && geography.is_in_hawaii?
-        idx_series = Series.find_by(name: self.build_name(prefix: index, geo: 'HI'), universe: universe)
+        idx_series = Series.find_by(name: build_name(prefix: index, geo: 'HI'), universe: universe)
       end
       raise "No corresponding index series found in #{universe}" if idx_series.nil?
     end
