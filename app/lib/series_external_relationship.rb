@@ -1,15 +1,4 @@
 module SeriesExternalRelationship
-   def set_output_series(multiplier)
-     self.update_attributes(:mult => multiplier)
-   end
-  
-  def toggle_mult
-    self.mult ||= 1
-    return set_output_series(1000) if self.mult == 1
-    return set_output_series(10) if self.mult == 1000
-    set_output_series(1) if self.mult == 10
-  end
-  
   def a_diff(value, series_value)
     diff_trunc = (value - series_value.aremos_trunc).abs.round(3)
     diff_sig_5 = (value.sig_digits(5).round(3) - series_value.sig_digits(5).round(3)).abs
