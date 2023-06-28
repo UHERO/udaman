@@ -340,6 +340,7 @@ class Series < ApplicationRecord
     build_name(freq: freq.to_s.upcase).tsnil
   end
 
+  ## Make a best guess at whether this Series is seasonally-adjusted, based on metadata available
   def is_SA?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
     return  true if seasonal_adjustment == 'seasonally_adjusted'
@@ -347,6 +348,7 @@ class Series < ApplicationRecord
     parse_name[:prefix] =~ /SA$/i
   end
 
+  ## Make a best guess at whether this Series is non-seasonally-adjusted, based on metadata available
   def is_NS?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn
     return  true if seasonal_adjustment == 'not_seasonally_adjusted'
