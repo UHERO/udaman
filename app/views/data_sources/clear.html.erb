@@ -1,0 +1,20 @@
+<div id="summary_area">
+	<h2>Clear Loader Data</h2>
+</div>
+<div id="details_mask"></div>
+<div id="details_area">
+	<%= form_with url: { action: :do_clear, id: @data_source } do |ld| %>
+		<div class="field">
+			Clear data points <strong>for this loader</strong> relative to the following date (YYYY-MM-DD). Leave blank to delete all.<br/>
+      <%= text_field_tag 'clear_op[date]' %>
+			<p>
+			<%= radio_button_tag 'clear_op[type]', 'date_from' %> Delete all loader data with <strong>observation date</strong> on or after the given date.<br/>
+			<%= radio_button_tag 'clear_op[type]', 'create_from' %> Delete all loader data points <strong>created</strong> on or after the given date.
+			</p>
+    </div>
+		<div class="actions">
+			<%= ld.submit 'Clear data points' %>
+			<%= link_to 'Cancel', :back %>
+		</div>
+	<% end %>
+</div>
