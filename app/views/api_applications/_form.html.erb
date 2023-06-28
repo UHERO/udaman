@@ -1,4 +1,4 @@
-<%= form_for(@api_application) do |f| %>
+<%= form_with(model: @api_application) do |f| %>
   <% if @api_application.errors.any? %>
     <div id="error_explanation">
       <h2><%= pluralize(@api_application.errors.count, "error") %> prohibited this api_application from being saved:</h2>
@@ -18,6 +18,14 @@
   <div class="field">
     <%= f.label :hostname %><br>
     <%= f.text_field :hostname %>
+  </div>
+  <div class="field">
+    <%= f.label :api_key %><br>
+    <%= f.text_field :api_key, size: 60 %>
+  </div>
+  <div class="field">
+    <%= f.label :github_nickname %> (why do we need this?)<br>
+    <%= f.text_field :github_nickname %>
   </div>
   <div class="actions">
     <%= f.submit %>

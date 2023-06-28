@@ -331,7 +331,7 @@ class DbedtUpload < ApplicationRecord
       end
       data_points.push({xs_id: current_series.xseries_id,
                         ds_id: current_data_source.id,
-                        date: get_date(row[5], row[6]),
+                        date: get_date(row[5], row[6]).to_s,
                         value: row[7]})
     end
     Rails.logger.info { 'load_series_csv: insert data points' }
@@ -425,14 +425,15 @@ private
   end
 
   def get_date(year, qm)
+    year = year.to_i
     if qm =~ /^M(\d+)/i
-      '%s-%02d-01' % [year, $1.to_i]
+      Date.new(year, $1.to_i)
     elsif qm =~ /^Q(\d+)/i
       qspec_to_date("#{year}#{qm}") || raise("Bad QM value: |#{qm}|")
     elsif qm.nil? || qm.empty? || qm =~ /A/i
-      "#{year}-01-01"
+      Date.new(year)
     else
-      "#{year}-12-31"  ## use this as an error code? :=}
+      Date.new(year, 12, 31)  ## use this as an error code? :=}
     end
   end
 

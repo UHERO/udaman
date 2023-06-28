@@ -48,7 +48,8 @@ class ApiApplicationsController < ApplicationController
     redirect_to api_applications_url, notice: 'Api application was successfully destroyed.'
   end
 
-  private
+private
+
     # Use callbacks to share common setup or constraints between actions.
     def set_api_application
       @api_application = ApiApplication.find(params[:id])
@@ -56,6 +57,6 @@ class ApiApplicationsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def api_application_params
-      params.require(:api_application).permit(:name, :hostname, :key)
+      params.require(:api_application).permit(:name, :hostname, :api_key, :github_nickname)
     end
 end
