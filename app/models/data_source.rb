@@ -226,7 +226,7 @@ class DataSource < ApplicationRecord
         if base_year && base_year != series.base_year
           series.xseries.update_columns(base_year: base_year)
         end
-        series.update_data(s.data, self)
+        series.update_data(s.scaled_data, self)  ##### IS THIS WHAT WE WANT? Scale data here, at load time, and nowhere else, right?
         update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
         Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }

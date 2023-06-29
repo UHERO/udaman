@@ -961,7 +961,7 @@ class Series < ApplicationRecord
     dates
   end
 
-  def to_tsd
+  def to_tsd(scaled: true)
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
     start_date = first_observation
     end_date = last_observation
@@ -984,7 +984,7 @@ class Series < ApplicationRecord
 
     sci_data = {}
     data.each do |date, _|
-      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
+      sci_data[date] = ('%.6E' % scaled ? units_at(date) : at(date)).insert(-3, '00')
     end
 
     tsd_date_range(start_date, end_date).each_with_index do |date, i|
