@@ -662,7 +662,7 @@ class Series < ApplicationRecord
         next
       end
       seen[dp.date] = true
-      dp.value /= dp.scale if scaled
+      dp.value /= dp.data_source.scale if scaled
       cdp_array.push(dp)
     end
     return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
