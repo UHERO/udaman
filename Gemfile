@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 gem 'rails', '~> 5.2', '>= 5.2.8.1'
-gem 'bundler', '>= 1.8.4'
+gem 'bundler', '>= 2.1.4'
 
 # Application Monitoring
 
