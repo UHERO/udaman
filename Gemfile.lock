@@ -353,7 +353,7 @@ PLATFORMS
 
 DEPENDENCIES
   ancestry
-  bundler (>= 1.8.4)
+  bundler (>= 2.1.4)
   capistrano (~> 3.0)
   capistrano-bundler (~> 1.0)
   capistrano-rails

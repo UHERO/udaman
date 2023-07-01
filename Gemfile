@@ -50,7 +50,7 @@ gem 'nokogiri', '~> 1.14'
 gem 'highcharts-rails', '>= 6.0.3'
 
 # Gems for Passenger
-gem 'passenger', '~> 6.0.0'
+gem 'passenger', '>= 6.0.18'
 gem 'sqlite3'
 
 group :development do
