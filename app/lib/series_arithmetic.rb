@@ -93,15 +93,19 @@ module SeriesArithmetic
     convert_to_real(index: index + '_B')
   end
 
-  def convert_to_real(idx_series_name = nil, index: 'CPI')
-    idx_series_name ||= self.build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
-    idx_series = Series.find_by(name: idx_series_name, universe: universe) || raise("No index series #{idx_series_name} found in #{universe}")
+  def convert_to_real(idx_series = nil, index: 'CPI')
+    idx_series ||= self.build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
+    if idx_series.class == String
+      idx_series = Series.find_by(name: idx_series, universe: universe) || raise("No series #{idx_series} found in #{universe}")
+    end
     self / idx_series * 100
   end
 
-  def per_cap(pop_series_name = nil, pop: 'NR', multiplier: 100)
-    pop_series_name ||= self.build_name(prefix: pop, geo: geography.handle)
-    pop_series = Series.find_by(name: pop_series_name, universe: universe) || raise("No population series #{pop_series_name} found in #{universe}")
+  def per_cap(pop_series = nil, pop: 'NR', multiplier: 100)
+    pop_series ||= self.build_name(prefix: pop, geo: geography.handle)
+    if pop_series.class == String
+      pop_series = Series.find_by(name: pop_series, universe: universe) || raise("No series #{pop_series} found in #{universe}")
+    end
     self / pop_series * multiplier
   end
 

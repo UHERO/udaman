@@ -124,6 +124,7 @@ class DataHtmlParser
     results.each do |data_point|
       next unless estatjp_filter_match(filters, data_point)
       time_period = data_point['@time']
+      next if time_period[-2..] == '00'
       value = data_point['$']  ## apparently all values are money, even when they're not ;)
       if value && value.gsub(',','').is_numeric?
         new_data[ grok_date(time_period[0..3], time_period[-2..]) ] = value.gsub(',','').to_f

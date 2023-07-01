@@ -138,42 +138,4 @@ class Date
     (end_date.year - start_date.year) * 12 + end_date.month - start_date.month
   end
 
-  def Date.last_7_days
-    last_7 = []
-    (0..6).each { |index| last_7[index] = (today - index).to_s }
-    last_7.reverse
-  end
-  
-  def Date.last_4_weeks
-    last_sunday = today - today.cwday
-    last_4 = []
-    (0..3).each { |index| last_4[index] = (last_sunday - 7 * index).to_s }
-    last_4.reverse
-  end
-  
-  def Date.last_12_months
-    last_12 = []
-    (0..11).each { |index| last_12[index] = (today << index).month_s }
-    last_12.reverse
-  end
-  
-  def Date.last_10_years
-    this_year = today.year
-    last_10 = []
-    (0..9).each { |index| last_10[index] = "#{this_year - index}-01-01" }
-    last_10.reverse
-  end
-  
-  def Date.last_10_decades
-    this_decade = today.year / 10 * 10
-    last_10 = []
-    (0..9).each { |index| last_10[index] = "#{this_decade - index*10}-01-01" }
-    last_10.reverse
-  end
-  
-  def Date.compressed_date_range
-    (last_7_days + last_4_weeks + last_12_months + last_10_years + last_10_decades).uniq.sort
-  end
-  
 end
-
