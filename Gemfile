@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 gem 'rails', '~> 5.2', '>= 5.2.8.1'
-gem 'bundler', '>= 1.8.4'
+gem 'bundler', '>= 2.1.4'
 
 # Application Monitoring
 
@@ -17,7 +17,7 @@ gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
-gem 'sidekiq', '~> 7.0.8'
+gem 'sidekiq', '<7'
 gem 'sidekiq-status', '>= 2.1.3'
 gem 'sinatra', '~> 2.2', require: false
 gem 'sinatra_auth_github', '~> 2.0', require: false
