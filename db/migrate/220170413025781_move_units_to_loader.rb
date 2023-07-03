@@ -1,6 +1,8 @@
 class MoveUnitsToLoader < ActiveRecord::Migration[5.2]
-  def change
+  def self.up
     add_column :data_sources, :scale, :float, null: false, default: 1, after: :priority
-    remove_column :xseries, :units
+  end
+  def self.down
+    remove_column :data_sources, :scale
   end
 end
