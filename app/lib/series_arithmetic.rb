@@ -287,9 +287,12 @@ module SeriesArithmetic
   end
   
   def scaled_yoy_diff(id = nil)
-    return faster_scaled_yoy_diff(id) unless id.nil?
-    ### currently the code below is never executed, because this method is only
-    ### called once in the codebase, and in that call the id is passed in
+    return faster_scaled_yoy_diff(id) if id
+    ### NOTE: Currently the code below is never executed, because this method is only
+    ### called once in the codebase, and in that call the id is passed in. But if the
+    ### code below is revived, the call to #scaled_data will not work without further
+    ### refactoring, because the scaling factor is no longer stored at Series level,
+    ### but at Loader level.
     new_series_data = {}
     last = {}
     scaled_data.sort.each do |date, value|

@@ -608,8 +608,8 @@ class Series < ApplicationRecord
     @data = data_hash
   end
 
-  def scaled_data(prec: 3)
-    @scaled_data ||= extract_from_datapoints('value', scaled: true, prec: prec)
+  def scaled_data(scale = 1.0)
+    @scaled_data ||= data.map {|date, val| [date, val / scale] }.to_h
   end
 
   def yoy_hash

@@ -113,7 +113,7 @@ class DataList < ApplicationRecord
         yoy = s.yoy(s.id).data
         ytd = s.ytd(s.id).data
         yoy_diff = s.scaled_yoy_diff(s.id).data
-        data = s.scaled_data
+        data = s.data  ## this used to call scaled_data, but I changed it to just as-is data. What effect?
         data.keys.sort.each do |date|
           all_changes[date] = {:value => data[date], :yoy => yoy[date], :ytd => ytd[date], :yoy_diff => yoy_diff[date]}
         end
