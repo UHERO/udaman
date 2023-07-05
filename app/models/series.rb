@@ -640,14 +640,9 @@ class Series < ApplicationRecord
     @trim_period_end = date
   end
 
-  def extract_from_datapoints(column, scaled: false, prec: nil)
+  def extract_from_datapoints(column)
     return {} unless xseries
-    current_data_points.map do |dp|
-      value = dp[column]   ## or could be dp.send(column) - which is better?
-      value /= dp.data_source.scale if scaled
-      value = (value.round(prec).to_f rescue nil) if prec
-      [dp.date, value]
-    end.to_h
+    current_data_points.map {|dp| [dp.date, dp[column]] }.to_h  ## dp[column] vs dp.send(column) - which is better?
   end
 
   def current_data_points(return_type = :array)#, scaled: false)
@@ -677,14 +672,14 @@ class Series < ApplicationRecord
     bindvars = [xseries_id]
     if date_from
       query += <<~MYSQL
-          and date >= ?
+        and date >= ?
       MYSQL
       bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
     end
     if create_from
       ## NOTE: This is > instead of >= because it's gonna be called mostly (only?) from the UI's clear-to-vintage function
       query += <<~MYSQL
-          and created_at > ?
+        and created_at > ?
       MYSQL
       bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
     end
@@ -941,7 +936,7 @@ class Series < ApplicationRecord
     return nil if dd.nil?
     ## Next line is very inefficient, but this method is currently only used in production in one operation,
     ## where performance is not really a concern, and refactoring code to make this method faster makes no sense.
-    scale = data_points.find_by(date: date, current: true).data_source.scale rescue 1.0
+    scale = data_points.find_by(date: date, current: true).data_source.scale rescue raise("units_at: cannot find scale for loader at #{date}")
     dd / scale
   end
 
@@ -1350,7 +1345,7 @@ private
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
-          delete from public_data_points where series_id = ?
+        delete from public_data_points where series_id = ?
       MYSQL
       stmt.execute(id)
       stmt.close
