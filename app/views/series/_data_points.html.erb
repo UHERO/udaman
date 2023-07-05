@@ -24,7 +24,7 @@
       data_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
           cdp = element
-          cdp_val = cdp.value / cdp.data_source.scale rescue raise("Scaling error occurred at date #{cdp.date}")
+          cdp_val = cdp.value
           chg_value = (chg_data[cdp.date].round(1).to_s + '%') rescue '-'
           chg_align = chg_value == '-' ? 'center' : 'right'
           ytd_chg_value = (ytd_data[cdp.date].round(1).to_s + '%') rescue '-'
