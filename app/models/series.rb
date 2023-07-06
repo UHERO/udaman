@@ -1099,11 +1099,10 @@ class Series < ApplicationRecord
         when /^[#]/
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
-          pat = tane.convert_commas
-          if pat =~ /([*\/])(\d+)$/  ## The need for this special handling should be temporary; soon these should be gone.
-            pat = '\s*\%s\s*%s\s*$' % [$1, $2]  ## Find load statments that END with * or / of an integer, whitespace ignored
+          if tane =~ /([*\/])(\d+)$/  ## The need for this special handling should be temporary; soon these should be gone.
+            tane = '\s*\%s\s*%s\s*$' % [$1, $2]  ## Find load statments that END with * or / of an integer, whitespace ignored
           end
-          bindvars.push pat
+          bindvars.push tane.convert_commas
         when /^[!]/
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
