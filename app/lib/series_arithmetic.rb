@@ -98,7 +98,7 @@ module SeriesArithmetic
       if idx_series.class == String
         idx_series = Series.find_by(name: idx_series, universe: universe) || raise("No series #{idx_series} found in #{universe}")
       end
-      ## otherwise it's a Series object, so just pass thru
+      raise 'convert_to_real: Parameter must be String or Series, got %s' % idx_series.class unless idx_series.class == Series
     else
       idx_series = build_name(prefix: index, geo: geography.is_in_hawaii? ? 'HON' : geography.handle)
       idx_series = Series.find_by(name: idx_series, universe: universe)
