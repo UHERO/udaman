@@ -3,6 +3,13 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :conversion_of_units_to_loader_scale => :environment do
+  seen = {}
+  Series.joins(:xseries).where("universe = 'UHERO' AND units > 1").each do |s|
+
+  end
+end
+
 task :change_annual_aggs_to_base_off_NS => :environment do
   sids = []
   names = %w{
@@ -69,15 +76,6 @@ task :change_annual_aggs_to_base_off_NS => :environment do
     end
   end
   puts 'DONE: %s' % sids.join(',')
-end
-
-task :convert_units_to_scale => :environment do
-  Series.joins(:xseries).where("universe = 'UHERO' AND units != 1").each do |s|
-    puts "DOING #{s}: units = #{s.units}, lds=#{s.data_sources.count}"
-    s.data_sources.each do |ld|
-      ld.update!(scale: s.units)
-    end
-  end
 end
 
 task :deploy_per_cap => :environment do
