@@ -6,7 +6,16 @@
 task :conversion_of_units_to_loader_scale => :environment do
   seen = {}
   Series.joins(:xseries).where("universe = 'UHERO' AND units > 1").each do |s|
-
+    loaders = s.enabled_data_sources
+    ldtypes = loaders.map {|ld| ld.loader_type }.uniq
+    next if ldtypes.count == 1 && ldtypes[0] == :other
+    if ldtypes.count > 1 && ldtypes.include?(:other)
+      #then what?
+      next
+    end
+    loaders.each do |ld|
+      ld.update_columns(scale: s.xseries.units)
+    end
   end
 end
 
