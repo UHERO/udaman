@@ -648,7 +648,6 @@ class Series < ApplicationRecord
   def current_data_points(return_type = :array)#, scaled: false)
     cdp_array = []
     all_points = xseries.data_points
-    raise "Cannot find data points for #{self}" if all_points.empty?
     # if scaled
     #  all_points = all_points.joins(:data_source)
     # end
