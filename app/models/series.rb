@@ -688,21 +688,6 @@ class Series < ApplicationRecord
     Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
   end
 
-  ### OBSOLETE - DELETE SOON
-  def old_scaled_data(prec = 3)
-    data_hash = {}
-    self.units ||= 1
-    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    sql = <<~SQL
-      SELECT round(value/#{self.units}, #{prec}) AS value, date
-      FROM data_points WHERE xseries_id = #{self.xseries.id} AND current = 1;
-    SQL
-    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
-      data_hash[row['date']] = row['value']
-    end
-    data_hash
-  end
-
   def Series.new_transformation(name, data, frequency)
     ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
     Series.new.new_transformation(name, data, frequency)
