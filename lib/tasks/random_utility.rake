@@ -6,10 +6,20 @@
 task :conversion_of_units_to_loader_scale => :environment do
   Series.joins(:xseries).where("universe = 'UHERO' AND units <> 1").each do |s|
     puts ">>> DOING #{s}"
+    units = s.xseries.units
     s.enabled_data_sources.each do |ld|
-      unless ld.loader_type == :other
-        ld.update_columns(scale: (1.0 / s.xseries.units).to_s)
+      next if ld.loader_type == :other
+      eval = ld.eval
+      if units == 1000 && eval =~ /^(.*?)\s*\*\s*1000\s*$/
+        code = $1.strip
+        if code =~ /^\((.*)\)$/
+          code = $1.strip
+        end
+        ld.update_columns(eval: code)
+        puts "----------------> changed eval |#{eval}|#{code}|s= #{s.id}"
+        next
       end
+      ld.update_columns(scale: (1.0 / units).to_s)
     end
   end
 end
