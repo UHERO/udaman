@@ -609,7 +609,7 @@ class Series < ApplicationRecord
   end
 
   def scaled_data(scale = 1.0)
-    data.map {|date, value| [date, value / scale] }.to_h
+    data.map {|date, value| [date, value * scale] }.to_h
   end
 
   def yoy_hash

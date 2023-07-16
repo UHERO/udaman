@@ -4,11 +4,11 @@
 =end
 
 task :conversion_of_units_to_loader_scale => :environment do
-  Series.joins(:xseries).where("universe = 'UHERO' AND units > 1").each do |s|
+  Series.joins(:xseries).where("universe = 'UHERO' AND units <> 1").each do |s|
     puts ">>> DOING #{s}"
     s.enabled_data_sources.each do |ld|
       unless ld.loader_type == :other
-        ld.update_columns(scale: s.xseries.units)
+        ld.update_columns(scale: (1.0 / s.xseries.units).to_s)
       end
     end
   end
