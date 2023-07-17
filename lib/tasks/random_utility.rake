@@ -5,45 +5,29 @@
 
 task :conversion_of_units_to_loader_scale => :environment do
   ### THIS TASK CODE IS STILL IN PROGRESS - NOT READY TO RUN ON DB YET
-  Series.joins(:xseries).where("universe = 'UHERO' AND units <> 1").each do |s|
+  Series.joins(:xseries).where(universe: 'UHERO').each do |s|
     puts ">>> DOING #{s}"
     s.enabled_data_sources.each do |ld|
       next if ld.loader_type == :other
       units = s.xseries.units
+      scale = 1.0 / units.to_f
       eval = ld.eval
-      if units == 1000 && eval =~ /^(.*?)\s*\*\s*1000\s*$/
-        code = $1.strip
-        if code =~ /^\((.*)\)$/
-          code = $1.strip
-        end
-        ld.update_columns(eval: code)
-        puts "----------------> changed eval |#{eval}|#{code}|s= #{s.id}"
-        next
-      end
-      ld.update_columns(scale: (1.0 / units).to_s)
-    end
-  end
-
-  Series.where(universe: 'UHERO').each do |s|
-    puts ">>> DOING #{s}"
-    s.enabled_data_sources.each do |ld|
-      next if ld.loader_type == :other
-      if ld.eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
+      updates = {}
+      if eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
         code = $1.strip
         op = $2
-        scale = $3
+        baked = $3.to_f
+        if op == '/'
+          baked = 1.0 / baked
+        end
         if code =~ /^\((.*)\)$/
           code = $1.strip
         end
-        if op == '/'
-          scale = scale.to_i == 1 ? 1 : (1.0 / scale.to_f)
-        end
-        if ld.scale != '1'
-          ld.update_columns(eval: code)
-        else
-          ld.update_columns(eval: code, scale: scale.to_s)
-        end
+        scale *= baked
+        updates.merge!(eval: code)
+        puts "----------------> changed eval |#{eval}|#{code}|s= #{s.id}"
       end
+      ld.update_columns(updates.merge(scale: scale.to_s))
     end
   end
 end

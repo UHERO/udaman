@@ -62,7 +62,7 @@
            <% if ds.reload_nightly? %> <i class="fas fa-clock" aria-hidden="true"></i><% end %>
        </h3>
       <p>
-			<% if ds.scale != 1 %>
+			<% if ds.scale != '1.0' %>
 				<span style="background-color:pink;"> <strong>Scale:</strong> <%= ds.scale %> </span><br/>
 			<% end %>
       <% if ds.presave_hook %>
