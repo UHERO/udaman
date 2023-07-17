@@ -9,8 +9,7 @@ task :conversion_of_units_to_loader_scale => :environment do
     puts ">>> DOING #{s}"
     s.enabled_data_sources.each do |ld|
       next if ld.loader_type == :other
-      units = s.xseries.units
-      scale = 1.0 / units.to_f
+      scale = 1.0 / s.xseries.units.to_f
       eval = ld.eval
       updates = {}
       if eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
