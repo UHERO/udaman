@@ -66,6 +66,7 @@ class DataSourcesController < ApplicationController
   def update
     eval_changed = (@data_source.eval != data_source_params[:eval].strip)
     ph_changed = (@data_source.pseudo_history? != data_source_params[:pseudo_history].to_bool)
+    data_source_params[:scale] = data_source_params[:scale].to_f.to_s  ## normalize the scaling factor representation
 
     if @data_source.update!(data_source_params)
       @data_source.setup if eval_changed
@@ -91,6 +92,8 @@ class DataSourcesController < ApplicationController
   end
   
   def create
+    data_source_params[:scale] = data_source_params[:scale].to_f.to_s  ## normalize the scaling factor representation
+
     @data_source = DataSource.new(data_source_params)
     if @data_source.create_from_form
       create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'

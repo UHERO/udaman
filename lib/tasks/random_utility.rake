@@ -10,9 +10,8 @@ task :conversion_of_units_to_loader_scale => :environment do
     s.enabled_data_sources.each do |ld|
       next if ld.loader_type == :other
       scale = 1.0 / s.xseries.units.to_f
-      eval = ld.eval
       updates = {}
-      if eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
+      if ld.eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
         code = $1.strip
         op = $2
         baked = $3.to_f
@@ -24,7 +23,7 @@ task :conversion_of_units_to_loader_scale => :environment do
         end
         scale *= baked
         updates.merge!(eval: code)
-        puts "----------------> changed eval |#{eval}|#{code}|s= #{s.id}"
+        puts "----------------> changed eval |#{ld.eval}|#{code}|s= #{s.id}"
       end
       ld.update_columns(updates.merge(scale: scale.to_s))
     end
