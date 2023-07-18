@@ -64,9 +64,9 @@ class DataSourcesController < ApplicationController
   end
 
   def update
-    eval_changed = (@data_source.eval != data_source_params[:eval].strip)
-    ph_changed = (@data_source.pseudo_history? != data_source_params[:pseudo_history].to_bool)
     update_attrs = data_source_params
+    eval_changed = (@data_source.eval != update_attrs[:eval].strip)
+    ph_changed = (@data_source.pseudo_history? != update_attrs[:pseudo_history].to_bool)
     update_attrs[:scale] = update_attrs[:scale].to_f.to_s  ## normalize the scaling factor format
 
     if @data_source.update!(update_attrs)
