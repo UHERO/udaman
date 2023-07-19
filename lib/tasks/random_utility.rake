@@ -4,12 +4,11 @@
 =end
 
 task :conversion_of_units_to_loader_scale => :environment do
-  ### THIS TASK CODE IS STILL IN PROGRESS - NOT READY TO RUN ON DB YET
   Series.joins(:xseries).where(universe: 'UHERO').each do |s|
-    puts ">>> DOING #{s}"
     s.enabled_data_sources.each do |ld|
       next if ld.loader_type == :other
-      scale = 1.0 / s.xseries.units.to_f
+      units = s.xseries.units.to_f
+      scale = 1.0 / units
       updates = {}
       if ld.eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
         code = $1.strip
@@ -23,7 +22,9 @@ task :conversion_of_units_to_loader_scale => :environment do
         end
         scale *= baked
         updates.merge!(eval: code)
-        puts "----------------> changed eval |#{ld.eval}|#{code}|s= #{s.id}"
+        puts units > 1 ? "BOTH #{s.id}" : "BAKED #{s.id}"
+      else
+        puts "UNITSONLY #{s.id}"
       end
       ld.update_columns(updates.merge(scale: scale.to_s))
     end
