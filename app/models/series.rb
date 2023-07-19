@@ -921,7 +921,7 @@ class Series < ApplicationRecord
     ## Next line is very inefficient, but this method is currently only used in production in one operation,
     ## where performance is not really a concern, and refactoring code to make this method faster makes no sense.
     scale = data_points.find_by(date: date, current: true).data_source.scale rescue raise("units_at: cannot find scale for loader at #{date}")
-    dd / scale
+    dd * scale.to_f
   end
 
   def tsd_date_range(start_date, end_date)
