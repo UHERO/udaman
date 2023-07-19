@@ -315,7 +315,7 @@ module SeriesArithmetic
   def faster_scaled_yoy_diff(id)
     new_series_data = {}
     sql = <<~MYSQL
-      SELECT t1.date, t1.value, (t1.value - t2.last_value) / t1.scale AS yoy_diff
+      SELECT t1.date, t1.value, (t1.value - t2.last_value) * t1.scale AS yoy_diff
       FROM (
         SELECT `value`, `date`, `scale`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d
