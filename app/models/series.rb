@@ -915,15 +915,6 @@ class Series < ApplicationRecord
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
 
-  def units_at(date)
-    dd = at(date)
-    return nil if dd.nil?
-    ## Next line is very inefficient, but this method is currently only used in production in one operation,
-    ## where performance is not really a concern, and refactoring code to make this method faster makes no sense.
-    scale = data_points.find_by(date: date, current: true).data_source.scale rescue raise("units_at: cannot find scale for loader at #{date}")
-    dd * scale.to_f
-  end
-
   def tsd_date_range(start_date, end_date)
     freq = frequency
     multiplier = 1
@@ -942,7 +933,7 @@ class Series < ApplicationRecord
     dates
   end
 
-  def to_tsd(scaled: true)
+  def to_tsd
     lm = xseries.data_points.order(:updated_at).last.updated_at rescue Time.now
     start_date = first_observation
     end_date = last_observation
@@ -965,7 +956,7 @@ class Series < ApplicationRecord
 
     sci_data = {}
     data.each do |date, _|
-      sci_data[date] = ('%.6E' % scaled ? units_at(date) : at(date)).insert(-3, '00')
+      sci_data[date] = ('%.6E' % at(date)).insert(-3, '00')
     end
 
     tsd_date_range(start_date, end_date).each_with_index do |date, i|
