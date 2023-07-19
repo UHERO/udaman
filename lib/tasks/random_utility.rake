@@ -23,7 +23,7 @@ task :conversion_of_units_to_loader_scale => :environment do
         scale *= baked
         updates.merge!(eval: code)
         puts units > 1 ? "BOTH #{s.id}" : "BAKED #{s.id}"
-      else
+      elsif units > 1
         puts "UNITSONLY #{s.id}"
       end
       ld.update_columns(updates.merge(scale: scale.to_s))
