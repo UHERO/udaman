@@ -645,12 +645,9 @@ class Series < ApplicationRecord
     current_data_points.map {|dp| [dp.date, dp[column]] }.to_h  ## dp[column] vs dp.send(column) - which is better?
   end
 
-  def current_data_points(return_type = :array)#, scaled: false)
+  def current_data_points(return_type = :array)
     cdp_array = []
     all_points = xseries.data_points
-    # if scaled
-    #  all_points = all_points.joins(:data_source)
-    # end
     seen = {}
     all_points.where(current: true).order(:date, updated_at: :desc).all.each do |dp|
       if seen[dp.date]
@@ -658,7 +655,6 @@ class Series < ApplicationRecord
         next
       end
       seen[dp.date] = true
-      ##dp.value /= dp.data_source.scale if scaled
       cdp_array.push(dp)
     end
     return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
