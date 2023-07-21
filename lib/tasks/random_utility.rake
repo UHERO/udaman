@@ -6,7 +6,12 @@
 task :conversion_of_units_to_loader_scale => :environment do
   Series.joins(:xseries).where(universe: 'UHERO').each do |s|
     s.enabled_data_sources.each do |ld|
-      next if ld.loader_type == :other
+      if ld.loader_type == :other
+        if ld.eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
+
+        end
+        next
+      end
       units = s.xseries.units.to_f
       scale = 1.0 / units
       updates = {}

@@ -18,6 +18,10 @@
 		<div class="field">
 			<%= ds.label :scale %>
 			<%= ds.text_field :scale, size: 12 %> (multiply original data by: 0.001, 1, 1000, etc)
+			<% if @data_source.loader_type == :other && @data_source.scale != '1.0' %>
+				<br/><span style="color:red">Be sure you really want a scale other than 1.0 for this loader.
+									Normally loaders that do a computation based on internal data should not be scaled.<span>
+			<% end %>
 		</div>
     <div class="field">
       <%= ds.check_box :clear_before_load %> Always clear existing data points before loading
