@@ -193,7 +193,7 @@ class Series < ApplicationRecord
         x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is also saved & linked to Xseries via xseries_id
         s = x.primary_series
         x.update_columns(primary_series_id: s.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
-        s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
+        s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.eval(), clear this out
       end
     rescue => e
       raise "Model object creation failed for name #{attributes[:name]} in universe #{attributes[:universe]}: #{e.message}"
@@ -428,52 +428,49 @@ class Series < ApplicationRecord
     Series.code_from_frequency(self.frequency)
   end
 
-  def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
+  def Series.eval(series_name, loader_attrs, no_enforce_fields: false)
     begin
-      new_series = Kernel::eval eval_statement
+      series = Kernel::eval loader_attrs[:eval]
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
-  end
+#    Series.store(series_name, series, series.name, loader_attrs, no_enforce_fields: no_enforce_fields)
+#  end
 
-  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
-    desc = series.name if desc.nil?
-    desc = 'Source Series Name is blank' if desc.blank?
+#  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
+#    desc = series.name #if desc.nil?
+#    desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
-    properties[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
-    new_series = series_name.tsnil || Series.create_new(properties)
-    new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag
-    new_series.save_source(desc, eval_statement, series.data, priority)
+    loader_attrs[:description] = series.name.blank? ? 'Source Series Name is blank' : series.name
+    series_attrs = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
+    series_attrs[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
+    new_series = series_name.tsnil || Series.create_new(series_attrs)
+    new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag after find/create
+    new_series.save_loader(loader_attrs, series.data)
   end
 
-  def save_source(source_desc, eval_statement, data, priority = 100)
-    source = nil
+  def save_loader(attrs, data)
+    loader = nil
     now = Time.now
-    if eval_statement
-      eval_statement.strip!
-      data_sources.each do |ds|
-        if ds.eval && ds.eval.strip == eval_statement
-          ds.update_attributes(last_run: now)
-          source = ds
+    if attrs[:eval]
+      attrs[:eval].strip!
+      data_sources.each do |ld|
+        if ld.eval && ld.eval.strip == attrs[:eval]
+          ld.update_attributes(last_run: now)
+          loader = ld
+          ## probably should be a 'break' here, but I can't guarantee it won't cause a bug :(
         end
       end
     end
 
-    if source.nil?
-      source = data_sources.create(
-        :description => source_desc,
-        :eval => eval_statement,
-        :priority => priority,
-        :last_run => now
-      )
-      source.setup
+    if loader.nil?
+      loader = data_sources.create(attrs.merge(last_run: now))
+      loader.setup
     end
-    update_data(data, source)
-    source
+    update_data(data, loader)
+    loader
   end
 
   def enabled_data_sources(match = '.')
@@ -488,9 +485,6 @@ class Series < ApplicationRecord
   end
 
   def update_data(data, source)
-    #removing nil dates because they incur a cost but no benefit.
-    #have to do this here because there are some direct calls to update data that could include nils
-    #instead of calling in save_source
     data.delete_if {|_,value| value.nil?}
 
     # make sure data keys are in Date format
