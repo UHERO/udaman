@@ -98,7 +98,7 @@ class DataSource < ApplicationRecord
     end
     
     def create_from_form
-      Series.eval self.series.name, self.eval, self.priority
+      Series.eval(series.name, { eval: eval, priority: priority })
       true
     end
 
