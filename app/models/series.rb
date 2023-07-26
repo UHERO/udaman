@@ -434,11 +434,11 @@ class Series < ApplicationRecord
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-#    Series.store(series_name, series, series.name, loader_attrs, no_enforce_fields: no_enforce_fields)
+#    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
 #  end
-
+#
 #  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
-#    desc = series.name #if desc.nil?
+#    desc = series.name if desc.nil?
 #    desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
