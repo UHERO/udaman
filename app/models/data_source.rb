@@ -98,7 +98,14 @@ class DataSource < ApplicationRecord
     end
     
     def create_from_form
-      Series.eval(series.name, { eval: eval, priority: priority })
+      Series.eval(series.name,
+                  { eval: eval,           ## if/when any new user-settable fields are added to Loader,
+                    priority: priority,   ## they will need to be added to this hash by hand
+                    scale: scale,
+                    presave_hook: presave_hook,
+                    clear_before_load: clear_before_load,
+                    pseudo_history: pseudo_history
+                  })
       true
     end
 

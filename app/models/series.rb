@@ -443,7 +443,7 @@ class Series < ApplicationRecord
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    loader_attrs[:description] = series.name.blank? ? 'Source Series Name is blank' : series.name
+    loader_attrs[:description] = series.name.blank? ? 'Loader Series Name is blank' : series.name
     series_attrs = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
     series_attrs[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
     new_series = series_name.tsnil || Series.create_new(series_attrs)
@@ -464,7 +464,6 @@ class Series < ApplicationRecord
         end
       end
     end
-
     if loader.nil?
       loader = data_sources.create(attrs.merge(last_run: now))
       loader.setup
