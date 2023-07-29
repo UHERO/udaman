@@ -19,8 +19,8 @@ class String
     Series.eval(self, { eval: load_stmt }, no_enforce_fields: true)
   end
 
-  def ts_append_eval(eval_statement)
-    self.ts_eval= eval_statement
+  def ts_append_eval(load_stmt)
+    self.ts_eval= load_stmt
   end
 
   ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact. Also defaults to causing
