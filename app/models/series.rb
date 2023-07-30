@@ -193,7 +193,7 @@ class Series < ApplicationRecord
         x = Xseries.create!(xseries_props.merge(primary_series: Series.new(series_props)))  ## Series is also saved & linked to Xseries via xseries_id
         s = x.primary_series
         x.update_columns(primary_series_id: s.id)  ## But why is this necessary? Shouldn't Rails have done this already? But it doesn't.
-        s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.store(), clear this out
+        s.update_columns(scratch: 0)  ## in case no_enforce_fields had been used in Series.eval(), clear this out
       end
     rescue => e
       raise "Model object creation failed for name #{attributes[:name]} in universe #{attributes[:universe]}: #{e.message}"
@@ -340,6 +340,7 @@ class Series < ApplicationRecord
     build_name(freq: freq.to_s.upcase).tsnil
   end
 
+  ## Make a best guess at whether this Series is seasonally-adjusted, based on metadata available
   def is_SA?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
     return  true if seasonal_adjustment == 'seasonally_adjusted'
@@ -347,6 +348,7 @@ class Series < ApplicationRecord
     parse_name[:prefix] =~ /SA$/i
   end
 
+  ## Make a best guess at whether this Series is non-seasonally-adjusted, based on metadata available
   def is_NS?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn
     return  true if seasonal_adjustment == 'not_seasonally_adjusted'
@@ -426,52 +428,48 @@ class Series < ApplicationRecord
     Series.code_from_frequency(self.frequency)
   end
 
-  def Series.eval(series_name, eval_statement, priority = 100, no_enforce_fields: false)
+  def Series.eval(series_name, loader_attrs, no_enforce_fields: false)
     begin
-      new_series = Kernel::eval eval_statement
+      series = Kernel::eval loader_attrs[:eval]
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
-  end
-
-  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
-    desc = series.name if desc.nil?
-    desc = 'Source Series Name is blank' if desc.blank?
+#    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
+#  end
+#
+#  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
+#    desc = series.name if desc.nil?
+#    desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
-    properties = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
-    properties[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
-    new_series = series_name.tsnil || Series.create_new(properties)
-    new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag
-    new_series.save_source(desc, eval_statement, series.data, priority)
+    loader_attrs[:description] ||= series.name.blank? ? 'Loader Series name is blank' : series.name
+    series_attrs = { universe: 'UHERO', name: series_name.upcase, frequency: series.frequency }
+    series_attrs[:scratch] = 11011 if no_enforce_fields  ## set flag saying "don't validate fields"
+    new_series = series_name.tsnil || Series.create_new(series_attrs)
+    new_series.update_columns(scratch: 0) if no_enforce_fields  ## clear the flag after find/create
+    new_series.save_loader(loader_attrs, series.data)
   end
 
-  def save_source(source_desc, eval_statement, data, priority = 100)
-    source = nil
+  def save_loader(attrs, data)
+    loader = nil
     now = Time.now
-    if eval_statement
-      eval_statement.strip!
-      data_sources.each do |ds|
-        if ds.eval && ds.eval.strip == eval_statement
-          ds.update_attributes(last_run: now)
-          source = ds
+    if attrs[:eval]
+      attrs[:eval].strip!
+      data_sources.each do |ld|
+        if ld.eval && ld.eval.strip == attrs[:eval]
+          ld.update_attributes(last_run: now)
+          loader = ld
+          ## probably should be a 'break' here, but I can't guarantee it won't cause a bug :(
         end
       end
     end
-
-    if source.nil?
-      source = data_sources.create(
-        :description => source_desc,
-        :eval => eval_statement,
-        :priority => priority,
-        :last_run => now
-      )
-      source.setup
+    if loader.nil?
+      loader = data_sources.create(attrs.merge(last_run: now))
+      loader.setup
     end
-    update_data(data, source)
-    source
+    update_data(data, loader)
+    loader
   end
 
   def enabled_data_sources(match = '.')
@@ -486,9 +484,6 @@ class Series < ApplicationRecord
   end
 
   def update_data(data, source)
-    #removing nil dates because they incur a cost but no benefit.
-    #have to do this here because there are some direct calls to update data that could include nils
-    #instead of calling in save_source
     data.delete_if {|_,value| value.nil?}
 
     # make sure data keys are in Date format
@@ -606,6 +601,10 @@ class Series < ApplicationRecord
     @data = data_hash
   end
 
+  def scaled_data(scale = 1.0)
+    data.map {|date, value| [date, value * scale] }.to_h
+  end
+
   def yoy_hash
     @yoy_hash ||= extract_from_datapoints('yoy')
   end
@@ -636,7 +635,22 @@ class Series < ApplicationRecord
 
   def extract_from_datapoints(column)
     return {} unless xseries
-    current_data_points.map {|dp| [dp.date, dp[column]] }.to_h
+    current_data_points.map {|dp| [dp.date, dp[column]] }.to_h  ## dp[column] vs dp.send(column) - which is better?
+  end
+
+  def current_data_points(return_type = :array)
+    cdp_array = []
+    all_points = xseries.data_points
+    seen = {}
+    all_points.where(current: true).order(:date, updated_at: :desc).all.each do |dp|
+      if seen[dp.date]
+        dp.update_columns(current: false)
+        next
+      end
+      seen[dp.date] = true
+      cdp_array.push(dp)
+    end
+    return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
   end
 
   def delete_data_points(date_from: nil, create_from: nil)
@@ -646,14 +660,14 @@ class Series < ApplicationRecord
     bindvars = [xseries_id]
     if date_from
       query += <<~MYSQL
-          and date >= ?
+        and date >= ?
       MYSQL
       bindvars.push(date_from.to_date) rescue raise("Invalid or nonexistent date: #{date_from}")
     end
     if create_from
       ## NOTE: This is > instead of >= because it's gonna be called mostly (only?) from the UI's clear-to-vintage function
       query += <<~MYSQL
-          and created_at > ?
+        and created_at > ?
       MYSQL
       bindvars.push(create_from.to_date) rescue raise("Invalid or nonexistent date: #{create_from}")
     end
@@ -661,20 +675,6 @@ class Series < ApplicationRecord
     stmt.execute(*bindvars)
     stmt.close
     Rails.logger.info { "Deleted all data points for series <#{self}> (#{id})" }
-  end
-
-  def scaled_data(prec = 3)
-    data_hash = {}
-    self.units ||= 1
-    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    sql = <<~SQL
-      SELECT round(value/#{self.units}, #{prec}) AS value, date
-      FROM data_points WHERE xseries_id = #{self.xseries.id} AND current = 1;
-    SQL
-    ActiveRecord::Base.connection.execute(sql).each(:as => :hash) do |row|
-      data_hash[row['date']] = row['value']
-    end
-    data_hash
   end
 
   def Series.new_transformation(name, data, frequency)
@@ -904,12 +904,6 @@ class Series < ApplicationRecord
     data[date] || error && raise("Series #{self} has no value at #{date}")
   end
 
-  def units_at(date)
-    dd = at(date)
-    return nil if dd.nil?
-    dd / (units || 1.0)
-  end
-
   def tsd_date_range(start_date, end_date)
     freq = frequency
     multiplier = 1
@@ -951,7 +945,7 @@ class Series < ApplicationRecord
 
     sci_data = {}
     data.each do |date, _|
-      sci_data[date] = ('%.6E' % units_at(date)).insert(-3, '00')
+      sci_data[date] = ('%.6E' % at(date)).insert(-3, '00')
     end
 
     tsd_date_range(start_date, end_date).each_with_index do |date, i|
@@ -998,26 +992,6 @@ class Series < ApplicationRecord
       Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to NAS" }
     end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
-  end
-
-  ### This method doesn't really seem to be used for anything any more, so it can probably be 86ed at some point.
-  ### Or not.... maybe just leave it because it might be useful again, who knows.
-  def Series.run_all_dependencies(series_list, already_run, errors, eval_statements, clear_first = false)
-    series_list.each do |s_name|
-      next unless already_run[s_name].nil?
-      s = s_name.ts
-      begin
-        Series.run_all_dependencies(s.who_i_depend_on, already_run, errors, eval_statements) ## recursion
-      rescue
-        puts '-------------------THIS IS THE ONE THAT BROKE--------------------'
-        puts s.id
-        puts s.name
-      end
-      errors.concat s.reload_sources(nightly: false, clear_first: clear_first)  ## hardcoding as NOT the series worker, because expecting to use
-                                                          ## this code only for ad-hoc jobs from now on
-      eval_statements.concat(s.data_sources_by_last_run.map {|ds| ds.get_eval_statement})
-      already_run[s_name] = true
-    end
   end
 
   def reload_sources(nightly: false, clear_first: false)
@@ -1089,6 +1063,9 @@ class Series < ApplicationRecord
         when /^[#]/
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
+          if tane =~ /([*\/])(\d+)$/  ## The need for this special handling should be temporary; soon these should be gone.
+            tane = '\s*\%s\s*%s\s*$' % [$1, $2]  ## Find load statments that END with * or / of an integer, whitespace ignored
+          end
           bindvars.push tane.convert_commas
         when /^[!]/
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
@@ -1335,7 +1312,7 @@ private
     end
     begin
       stmt = ActiveRecord::Base.connection.raw_connection.prepare(<<~MYSQL)
-          delete from public_data_points where series_id = ?
+        delete from public_data_points where series_id = ?
       MYSQL
       stmt.execute(id)
       stmt.close
