@@ -434,7 +434,7 @@ private
           :decimals,
           :fields_selected,
           xseries_attributes: [
-              :percent, :real, :units, :restricted, :seasonal_adjustment, :frequency_transform
+              :percent, :real, :restricted, :seasonal_adjustment, :frequency_transform
           ]
       )
     end

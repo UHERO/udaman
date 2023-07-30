@@ -98,7 +98,14 @@ class DataSource < ApplicationRecord
     end
     
     def create_from_form
-      Series.eval self.series.name, self.eval, self.priority
+      Series.eval(series.name,
+                  { eval: eval,           ## if/when any new user-settable fields are added to Loader,
+                    priority: priority,   ## they will need to be added to this hash by hand. Bleagh.
+                    scale: scale,
+                    presave_hook: presave_hook,
+                    clear_before_load: clear_before_load,
+                    pseudo_history: pseudo_history
+                  })
       true
     end
 
@@ -226,7 +233,7 @@ class DataSource < ApplicationRecord
         if base_year && base_year != series.base_year
           series.xseries.update_columns(base_year: base_year)
         end
-        series.update_data(s.data, self)
+        series.update_data(s.scaled_data(scale.to_f), self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
         Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
@@ -331,10 +338,6 @@ class DataSource < ApplicationRecord
   #### Do we really need this method? Test to find out
     def series
       Series.find_by id: self.series_id
-    end
-
-    def get_eval_statement
-      "\"#{self.series.name}\".ts_eval= %Q|#{self.eval}|"
     end
 
   def DataSource.load_error_summary

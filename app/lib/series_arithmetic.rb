@@ -33,23 +33,19 @@ module SeriesArithmetic
   def +(other_series)
     if other_series.class == Series
       validate_additive_arithmetic(other_series)
-      new_series = perform_arithmetic_operation('+',other_series)
+      perform_arithmetic_operation('+', other_series)
     else
-      new_series = perform_const_arithmetic_op('+', other_series)
+      perform_const_arithmetic_op('+', other_series)
     end
-    new_series.units = self.units
-    new_series
   end
   
   def -(other_series)
     if other_series.class == Series
       validate_additive_arithmetic(other_series)
-      new_series = perform_arithmetic_operation('-',other_series)
+      perform_arithmetic_operation('-', other_series)
     else
-      new_series = perform_const_arithmetic_op('-', other_series)
+      perform_const_arithmetic_op('-', other_series)
     end    
-    new_series.units = self.units
-    new_series
   end
 
   def **(other_series)
@@ -146,11 +142,6 @@ module SeriesArithmetic
       when last == 0 && current == 0 then 0
       else (current - last) / last * 100
     end
-  end
-
-  ## Temporary aliases - get rid later as possible
-  def level_change
-    diff
   end
 
   def absolute_change(id = nil)
@@ -305,7 +296,12 @@ module SeriesArithmetic
   end
   
   def scaled_yoy_diff(id = nil)
-    return faster_scaled_yoy_diff(id) unless id.nil?
+    return faster_scaled_yoy_diff(id) if id
+    ### NOTE: Currently the code below is never executed, because this method is only
+    ### called once in the codebase, and in that call the id is passed in. But if the
+    ### code below is revived, the call to #scaled_data will not work without further
+    ### refactoring, because the scaling factor is no longer stored at Series level,
+    ### but at Loader level.
     new_series_data = {}
     last = {}
     scaled_data.sort.each do |date, value|
@@ -319,28 +315,31 @@ module SeriesArithmetic
   def faster_scaled_yoy_diff(id)
     new_series_data = {}
     sql = <<~MYSQL
-      SELECT t1.date, t1.value, ((t1.value - t2.last_value) /
-        (select coalesce(units, 1) from series_v where id = ? limit 1)) AS yoy_diff
+      SELECT t1.date, t1.value, (t1.value - t2.last_value) * t1.scale AS yoy_diff
       FROM (
-        SELECT `value`, `date`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
-        FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = ? AND `current` = 1
+        SELECT `value`, `date`, `scale`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
+        FROM data_points d
+          JOIN data_sources ld on ld.id = d.data_source_id
+          JOIN xseries x ON x.id = d.xseries_id
+        WHERE x.primary_series_id = ?
+        AND d.current = true
       ) AS t1
       LEFT JOIN (
         SELECT `value` AS last_value, `date`
         FROM data_points d JOIN xseries x ON x.id = d.xseries_id
-        WHERE x.primary_series_id = ? and `current` = 1
+        WHERE x.primary_series_id = ?
+        AND d.current = true
       ) AS t2
       ON (t1.last_year = t2.date);
     MYSQL
     stmt = ApplicationRecord.connection.raw_connection.prepare(sql)
-    stmt.execute(id, id, id).each do |row|
+    stmt.execute(id, id).each do |row|
       date = row[0]
       yoy_diff = row[2]
       new_series_data[date] = yoy_diff if yoy_diff
     end
     stmt.close
-    new_transformation("Scaled year over year diff of #{name}", new_series_data)
+    new_transformation("Scaled yoy diff of #{self}", new_series_data)
   end
   
   def annual_diff
@@ -349,7 +348,7 @@ module SeriesArithmetic
     data.sort.each do |date, value|
       month = date.month
       new_series_data[date] = (value-last[month]) unless last[month].nil?
-      last[date.month] = value
+      last[month] = value
     end
     new_transformation("Year over year diff of #{name}", new_series_data)
   end
