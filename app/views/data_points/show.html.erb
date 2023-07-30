@@ -3,13 +3,12 @@
 <%
   current_dp = @data_points.select {|p| p.current }.first
   other_dps = @data_points.reject {|p| p === current_dp }.sort {|p1, p2| p2.created_at <=> p1.created_at }
-  units = current_dp.xseries.units
 %>
 <h2><%= current_dp.date %></h2>
 Current<br/>
 <div style="float:left;">
 <% [current_dp, other_dps].flatten.each do |dp| %>
-  <%= dp_display(dp.value / units, '#%s' % dp.data_source.color,
-                    age: dp_age_code(dp), title: dp.data_source.description) %>
+  <% loader = dp.data_source %>
+  <%= dp_display(dp.value, '#' + loader.color, age: dp_age_code(dp), title: loader.description) %>
 <% end %>
 </div>
