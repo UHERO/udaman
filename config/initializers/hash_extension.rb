@@ -14,10 +14,6 @@ class Hash
     self.merge single_source_hash
   end
   
-  def cs(series_name)
-    Series.create_from_data_hash(series_name, self)
-  end
-  
   def ns(series_name)
     Series.new_from_data_hash(series_name, self)
   end

@@ -84,11 +84,6 @@
             <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, { include_blank: true } %>
           </div>
           <div class="field">
-            <% if @meta_update %><%= check_box_tag('fields_selected[units]') %><% end %>
-           *<%= xf.label :units, 'Units (1, 10, 1000, etc)' %>
-            <%= xf.text_field :units %>
-          </div>
-          <div class="field">
             <% if @meta_update %><%= check_box_tag('fields_selected[frequency_transform]') %><% end %>
            *<%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
             <%= xf.select :frequency_transform, %w(average sum first last min max).collect {|x| [x, x] }, { include_blank: true } %>

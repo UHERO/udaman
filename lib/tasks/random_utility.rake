@@ -3,6 +3,34 @@
     need not worry about any of this - it can be left alone, because it's history - not part of the production codebase.
 =end
 
+task :conversion_of_units_to_loader_scale => :environment do
+  Series.joins(:xseries).where(universe: 'UHERO').each do |s|
+    s.enabled_data_sources.each do |ld|
+      next if ld.loader_type == :other
+      units = s.xseries.units.to_f
+      scale = 1.0 / units
+      updates = {}
+      if ld.eval =~ /^(.*?)\s*([*\/])\s*(10*)\s*$/
+        code = $1.strip
+        op = $2
+        baked = $3.to_f
+        if op == '/'
+          baked = 1.0 / baked
+        end
+        if code =~ /^\((.*)\)$/
+          code = $1.strip
+        end
+        scale *= baked
+        updates.merge!(eval: code)
+        puts units > 1 ? "BOTH #{s.id}" : "BAKED #{s.id}"
+      elsif units > 1
+        puts "UNITSONLY #{s.id}"
+      end
+      ld.update_columns(updates.merge(scale: scale.to_s))
+    end
+  end
+end
+
 task :change_annual_aggs_to_base_off_NS => :environment do
   sids = []
   names = %w{

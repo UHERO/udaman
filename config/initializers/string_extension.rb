@@ -15,20 +15,12 @@ class String
     Series.get(self, 'DBEDT')
   end
 
-  def ts_eval=(eval_statement)
-      Series.eval(self, eval_statement, no_enforce_fields: true)
+  def ts_eval=(load_stmt)
+    Series.eval(self, { eval: load_stmt }, no_enforce_fields: true)
   end
 
-  def ts_append(series)
-    Series.store self, series
-  end
-
-  def ts_append_eval(eval_statement)
-    self.ts_eval= eval_statement
-    # t = Time.now
-    # new_series = eval eval_statement
-    # Series.store self, new_series, new_series.name, eval_statement
-    # puts "#{"%.2f" % (Time.now - t)} | #{new_series.data.count} | #{self} | #{eval_statement}"
+  def ts_append_eval(load_stmt)
+    self.ts_eval= load_stmt
   end
 
   ## Just a bit of syntactic sugar to make "SERIES".ts.at("date") a little more compact. Also defaults to causing
