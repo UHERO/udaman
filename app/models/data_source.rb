@@ -85,12 +85,11 @@ class Loader < ApplicationRecord
       sa_series_sources
     end
 
-
     def Loader.set_all_dependencies
       Rails.logger.info { 'Loader set_all_dependencies: start' }
-      Loader.get_all_uhero.find_each(batch_size: 50) do |ds|
-        Rails.logger.debug { "Loader set_all_dependencies: for #{ds.description}" }
-        ds.set_dependencies!
+      Loader.get_all_uhero.find_each(batch_size: 50) do |ld|
+        Rails.logger.debug { 'Loader set_all_dependencies: for %s' % ld.description }
+        ld.set_dependencies!
       end
       Rails.logger.info { 'Loader set_all_dependencies: done' }
     end
