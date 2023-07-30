@@ -3,7 +3,7 @@ class ForecastSnapshotsController < ApplicationController
   include HelperUtilities
 
   before_action :check_forecast_snapshot_authorization
-  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :duplicate, :update, :destroy, :pull_file]
+  before_action :set_forecast_snapshot, only: [:show, :table, :edit, :choose_dates, :save_dates, :duplicate, :update, :destroy, :pull_file]
   before_action :set_tsd_files, only: [:show, :table]
 
   def index
@@ -58,10 +58,20 @@ class ForecastSnapshotsController < ApplicationController
     end
 
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
-      redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
+      redirect_to action: :choose_dates, id: @forecast_snapshot
     else
       render :new
     end
+  end
+
+  def choose_dates
+    var_setup
+  end
+
+  def save_dates
+    var_setup
+    @forecast_snapshot.update!(disp_from: @sampl_fr, disp_to: @sampl_to)
+    redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
   end
 
   def update
@@ -155,8 +165,8 @@ private
         ending_month = 12
       end
 
-      default_from = Date.new(Date.today.year - years_past).to_s
-      default_to   = Date.new(Date.today.year + years_fut, ending_month).to_s
+      default_from = @forecast_snapshot.disp_from || Date.new(Date.today.year - years_past).to_s
+      default_to   = @forecast_snapshot.disp_to   || Date.new(Date.today.year + years_fut, ending_month).to_s
       user_from = params[:sample_from]
       user_to   = params[:sample_to]
       @sampl_fr = [user_from, default_from].select {|x| @all_dates.include? x }[0] || @all_dates[0]
