@@ -218,7 +218,7 @@ class NewDbedtUpload < ApplicationRecord
             dataPortalName: ind_meta['indicatorfortable'],
             unit_id: unit_id,
             source_id: source_id,
-            decimals: ind_meta['decimal'].to_i,
+            decimals: ind_meta['decimal'].to_i
           )
           current_data_source = DataSource.find_by(universe: 'DBEDT', series_id: current_series.id)
         else
@@ -231,8 +231,7 @@ class NewDbedtUpload < ApplicationRecord
             dataPortalName: ind_meta['indicatorfortable'],
             unit_id: unit_id,
             source_id: source_id,
-            decimals: ind_meta['decimal'].to_i,
-            units: 1
+            decimals: ind_meta['decimal'].to_i
           )
         end
         current_data_source ||= DataSource.create(
