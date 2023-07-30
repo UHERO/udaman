@@ -34,14 +34,6 @@ task :purge_old_stuff => :environment do
   DsdLogEntry.purge_old_logs(6.weeks)
 end
 
-task :build_rebuild => :environment do
-  File.open('lib/tasks/REBUILD.rb', 'w') do |file|
-    DataSource.order(:last_run_in_seconds).each do |ds|
-      file.puts(ds.get_eval_statement) unless ds.series.nil?
-    end
-  end
-end
-
 task :reload_hiwi_series_only => :environment do
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
   hiwi_series = Series.search_box('#hiwi.org')
