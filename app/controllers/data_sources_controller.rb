@@ -64,10 +64,12 @@ class DataSourcesController < ApplicationController
   end
 
   def update
-    eval_changed = (@data_source.eval != data_source_params[:eval].strip)
-    ph_changed = (@data_source.pseudo_history? != data_source_params[:pseudo_history].to_bool)
+    update_attrs = data_source_params
+    eval_changed = (@data_source.eval != update_attrs[:eval].strip)
+    ph_changed = (@data_source.pseudo_history? != update_attrs[:pseudo_history].to_bool)
+    update_attrs[:scale] = update_attrs[:scale].to_f.to_s  ## normalize the scaling factor format
 
-    if @data_source.update!(data_source_params)
+    if @data_source.update!(update_attrs)
       @data_source.setup if eval_changed
       @data_source.mark_data_as_pseudo_history(@data_source.pseudo_history?) if ph_changed
       create_action @data_source, 'UPDATE'
@@ -91,7 +93,10 @@ class DataSourcesController < ApplicationController
   end
   
   def create
-    @data_source = DataSource.new(data_source_params)
+    create_attrs = data_source_params
+    create_attrs[:scale] = create_attrs[:scale].to_f.to_s  ## normalize the scaling factor format
+
+    @data_source = DataSource.new(create_attrs)
     if @data_source.create_from_form
       create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'Definition processed successfully'
@@ -108,7 +113,7 @@ private
   end
 
   def data_source_params
-      params.require(:data_source).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
+      params.require(:data_source).permit(:series_id, :eval, :priority, :scale, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
   def clear_params

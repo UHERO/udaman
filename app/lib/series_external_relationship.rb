@@ -45,9 +45,8 @@ module SeriesExternalRelationship
       as.data.each do |date, value|
         unless self.data[date].nil?
           #have to do all the rounding because it still seems to suffer some precision errors after initial rounding
-          diff = a_diff(value, self.units_at(date))
+          diff = a_diff(value, self.at(date))
           self.aremos_diff +=  diff
-          #Rails.logger.debug { "aremos_comparison: #{self.name}: #{date}: #{value}, #{self.units_at(date)} diff:#{diff}" } if diff != 0
         end
       end
       self.save if save_series
@@ -78,77 +77,4 @@ module SeriesExternalRelationship
     AremosSeries.get self.name
   end
   
-  def data_diff(comparison_data, digits_to_round)
-    self.units = 1000 if name[0..2] == 'TGB' #hack for the tax scaling. Should not save units
-    cdp = current_data_points.to_a
-    diff_hash = {}
-    results = []
-    comparison_data.each do |date_string, value|      
-      # dp = cdp.reject! {|dp| dp.date_string == date_string} # only used for pseudo_history_check
-      # dp = dp[0] if dp.class == Array
-      dp_val = units_at(date_string)
-      
-      if dp_val.nil?
-        if value.nil?         #no data in series - no data in spreadsheet
-          results.push 0
-          next
-        else                  #data in spreadsheet, but not in series
-          results.push 3
-          diff_hash[date_string] = nil
-          next
-        end
-      end
-            
-      dp_idx = cdp.index {|dp| dp.date == date_string }
-      dp = dp_idx.nil? ? nil : cdp.delete_at(dp_idx)
-      
-      if !dp_val.nil? and value.nil? #data in series, no data in spreadsheet
-        if dp.pseudo_history?
-          results.push 0
-        else
-          results.push 4
-        end
-        next
-      end
-      
-      diff = dp_val - value
-      
-      if diff < 10**-digits_to_round #same data in series and spreadsheet
-        results.push 1
-      elsif diff <= 0.05 * value #small difference in data in series and spreadsheet 
-        results.push 2
-        diff_hash[date_string] = diff
-      else #large data difference in data in series and spreadsheet | 
-        results.push 3
-        diff_hash[date_string] = diff
-      end
-    end
-    {:diffs => diff_hash, :display_array => results}
-  end
-  
-  
-  
-  def find_units
-    begin
-      unit_options = [1,10,100,1000]
-      lowest_diff = nil
-      best_unit = nil
-    
-      unit_options.each do |u|
-        self.units = u
-        diff = aremos_comparison[:diff]
-        if lowest_diff.nil? or diff.abs < lowest_diff
-          lowest_diff = diff.abs
-          best_unit = u
-        end
-      end
-    
-      #puts "#{self.name}: SETTING units = #{best_unit}"
-      self.units = best_unit
-      self.aremos_comparison  
-    rescue
-      #puts "#{self.name}: SETTING DEFAULT"
-      self.update_attributes(:units => 1)
-    end
-  end
 end

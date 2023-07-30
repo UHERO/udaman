@@ -9,16 +9,6 @@ module SeriesSpecCreation
     )
   end
   
-  def Series.create_from_data_hash(name, data_hash)
-    new_series = Series.new(
-      :name => name,
-      :data => data_hash[name],
-      xseries: Xseries.new(frequency: Series.frequency_from_name(name))
-    )
-    Series.store(name, new_series, "direct load (desc)", "direct_load (eval)")
-    name.tsnil
-  end
-  
   #for testing in Cucumber and rspec
   def Series.create_dummy(series_name, frequency, start_date_string, start_offset = 1, end_offset = 12)
     month_multiplier = 1 if frequency == :month
