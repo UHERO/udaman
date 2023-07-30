@@ -113,7 +113,7 @@ private
   end
 
   def loader_params
-      params.require(:loader).permit(:series_id, :eval, :priority, :scale, :color, :presave_hook, :pseudo_history, :clear_before_load)
+    params.require(:loader).permit(:series_id, :eval, :priority, :scale, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
   def clear_params
