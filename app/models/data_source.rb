@@ -202,7 +202,7 @@ class Loader < ApplicationRecord
       if eval_stmt =~ OPTIONS_MATCHER  ## extract the options hash
         options = Kernel::eval $1    ## reconstitute
         hash = Digest::MD5.new << eval_stmt
-        eval_stmt.sub!(OPTIONS_MATCHER, options.merge(data_source: id,
+        eval_stmt.sub!(OPTIONS_MATCHER, options.merge(loader: id,
                                                       eval_hash: hash.to_s,
                                                       dont_skip: clear_first.to_s).to_s)
       end
@@ -224,10 +224,10 @@ class Loader < ApplicationRecord
           options = Kernel::eval $1    ## reconstitute
           hash = Digest::MD5.new << eval_stmt
           eval_stmt.sub!(OPTIONS_MATCHER, options.merge(loader: id,
-                                                      eval_hash: hash.to_s,
-                                                      dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
-                                                ## if more keys are added to this merge, add them to Series.display_options()
-        end
+                                                        eval_hash: hash.to_s,
+                                                        dont_skip: clear_first.to_s).to_s) ## injection hack :=P -dji
+                                                  ## if more keys are added to this merge, add them to Series.display_options()
+          end
         s = Kernel::eval eval_stmt
         s = self.send(presave_hook, s) if presave_hook
 
