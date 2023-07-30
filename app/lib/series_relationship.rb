@@ -14,20 +14,6 @@ module SeriesRelationship
     all_frequencies(exclude_self: true)
   end
   
-  def current_data_points(return_type = :array)
-    cdp_hash = {}
-    cdp_array = []
-    xseries.data_points.where(:current => true).order(:date, updated_at: :desc).all.each do |cdp|
-      if cdp_hash[cdp.date]
-        cdp.update_attributes!(:current => false)
-      else
-        cdp_hash[cdp.date] = true
-        cdp_array.push cdp
-      end
-    end
-    return_type == :hash ? cdp_array.map {|dp| [dp.date, dp] }.to_h : cdp_array
-  end
-
   def loaders_by_last_run
     enabled_loaders.sort_by {|d| [d.priority, d.last_run ] }
   end

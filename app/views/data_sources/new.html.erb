@@ -12,6 +12,10 @@
       <%= ds.label :priority %>
       <%= ds.number_field :priority, size: 5 %>
 		</div>
+		<div class="field">
+			<%= ds.label :scale %>
+			<%= ds.text_field :scale, size: 12 %> (multiply original data by: 0.001, 1, 1000, etc)
+		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
       <%= ds.select :presave_hook, LoaderHooks.instance_methods, { include_blank: true } %>

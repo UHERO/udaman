@@ -17,15 +17,15 @@ class LoadersController < ApplicationController
     delete_method_param = {}
     if cutoff_date
       if clear_params[:type].blank?
-        redirect_to action: :clear, id: @data_source
+        redirect_to action: :clear, id: @loader
         return
       end
       delete_method_param = { clear_params[:type].to_sym => cutoff_date }
     end
-    @data_source.delete_data_points(**delete_method_param)  ## double splat for hash
-    @data_source.series.repair_currents!
-    @data_source.reset
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    @loader.delete_data_points(**delete_method_param)  ## double splat for hash
+    @loader.series.repair_currents!
+    @loader.reset
+    redirect_to controller: :series, action: :show, id: @loader.series_id
   end
   
   def delete
@@ -64,11 +64,13 @@ class LoadersController < ApplicationController
   end
 
   def update
-    eval_changed = (@loader.eval != loader_params[:eval].strip)
-    ph_changed = (@loader.pseudo_history? != loader_params[:pseudo_history].to_bool)
+    update_attrs = loader_params
+    eval_changed = (@loader.eval != update_attrs[:eval].strip)
+    ph_changed = (@loader.pseudo_history? != update_attrs[:pseudo_history].to_bool)
+    update_attrs[:scale] = update_attrs[:scale].to_f.to_s  ## normalize the scaling factor format
 
-    if @loader.update!(loader_params)
-      @loader.setup  if eval_changed
+    if @loader.update!(update_attrs)
+      @loader.setup if eval_changed
       @loader.mark_data_as_pseudo_history(@loader.pseudo_history?) if ph_changed
       create_action @loader, 'UPDATE'
       redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id
@@ -91,10 +93,13 @@ class LoadersController < ApplicationController
   end
   
   def create
-    @loader = Loader.new(loader_params)
+    create_attrs = loader_params
+    create_attrs[:scale] = create_attrs[:scale].to_f.to_s  ## normalize the scaling factor format
+
+    @loader = Loader.new(create_attrs)
     if @loader.create_from_form
       create_action @loader.series.loaders_by_last_run.first, 'CREATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id, :notice => 'Definition processed successfully'
+      redirect_to :controller => 'series', :action => 'show', :id => @loader.series_id, :notice => 'Loader saved successfully'
     else
       @series = Series.find_by id: @loader.series_id
       render :action => 'new', :series_id => @loader.series_id
@@ -108,29 +113,22 @@ private
   end
 
   def loader_params
-      params.require(:loader).permit(:series_id, :eval, :priority, :color, :presave_hook, :pseudo_history, :clear_before_load)
+      params.require(:loader).permit(:series_id, :eval, :priority, :scale, :color, :presave_hook, :pseudo_history, :clear_before_load)
   end
 
-<<<<<<< HEAD
-  def create_action(loader, action)
-    LoaderAction.create do |dsa|
-      dsa.loader_id = loader.id
-      dsa.series_id = loader.series.id
-=======
   def clear_params
     params.require(:clear_op).permit(:date, :type)
   end
 
-  def create_action(data_source, action)
-    DataSourceAction.create do |dsa|
-      dsa.data_source_id = data_source.id
-      dsa.series_id = data_source.series.id
->>>>>>> master
-      dsa.user_id = current_user.id
-      dsa.user_email = current_user.email
-      dsa.eval = loader.eval
-      dsa.priority = loader.priority
-      dsa.action = action
+  def create_action(loader, action)
+    LoaderAction.create do |lac|
+      lac.loader_id = loader.id
+      lac.series_id = loader.series.id
+      lac.user_id = current_user.id
+      lac.user_email = current_user.email
+      lac.eval = loader.eval
+      lac.priority = loader.priority
+      lac.action = action
     end
   end
 end
