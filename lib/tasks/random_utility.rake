@@ -7,8 +7,9 @@ task :conversion_of_units_to_loader_scale => :environment do
   Series.joins(:xseries).where(universe: 'UHERO').each do |s|
     s.enabled_data_sources.each do |ld|
       if ld.eval =~ /^\(\s*(Series\.load_from.*?)\s*\/\s*1000\s*\)(\..*?)\s*$/
-        puts "eval #{$1 + $2}, scale: #{ld.scale.to_f * 0.001}"
-        #ld.update_columns(eval: $1 + $2, scale: ld.scale.to_f * 0.001)
+        ##puts "eval #{$1 + $2}, scale: #{ld.scale.to_f * 0.001}"
+        ld.update_columns(eval: $1 + $2, scale: ld.scale.to_f * 0.001)
+        puts s.id.to_s
       end
       next ##if ld.loader_type == :other
       units = s.xseries.units.to_f
