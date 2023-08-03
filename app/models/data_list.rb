@@ -112,7 +112,7 @@ class DataList < ApplicationRecord
         all_changes = {}
         yoy = s.yoy(s.id).data
         ytd = s.ytd(s.id).data
-        yoy_diff = s.yoy_diff(s.id).data
+        yoy_diff = s.yoy_diff.data
         data = s.data
         data.keys.sort.each do |date|
           all_changes[date] = {:value => data[date], :yoy => yoy[date], :ytd => ytd[date], :yoy_diff => yoy_diff[date]}
