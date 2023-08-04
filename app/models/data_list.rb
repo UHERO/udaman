@@ -77,13 +77,14 @@ class DataList < ApplicationRecord
   end
   
   def get_series_ids_for_frequency(frequency)
-    series_data = {}
-    series_names.each do |s| 
-      s_name = (s.split('.')[0] + '.' + frequency)
-      series = s_name.tsnil
-      series_data[s_name] = series.id unless series.nil?
+    ids = {}
+    series_names.each do |name|
+      ph = Series.parse_name(name)
+      name = Series.build_name(ph[:prefix], ph[:geo], frequency)
+      series = name.tsnil
+      ids[name] = series.id if series
     end
-    series_data    
+    ids
   end
   
   def get_series_data
