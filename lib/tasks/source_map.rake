@@ -61,10 +61,6 @@ task :reload_tour_ocup_series_only => :environment do
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
 end
 
-task :reload_vap_hi_daily => :environment do
-  ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
-end
-
 task :reload_covid_series => :environment do
   ReloadJobDaemon.enqueue('covid', '~cv_,covcase,covhosp,covid')
 end
