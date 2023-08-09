@@ -8,9 +8,7 @@
 	#table_adjuster {width:500px; float:left; margin:0 20px 0 20px; position:relative; height:50px;}
 	td.calc,
 	td.inner {font-size:10px; line-height:13px}
-	tr#header_row th, tr#header_row_clone th {font-size:10px; font-weight:bold; border-bottom:1px solid gray}
-	tr#header_row_clone th.header_col {min-width: 175px;}
-	tr#header_row_clone th.spark_col {min-width: 120px;}
+	tr#header_row th {font-size:10px; font-weight:bold; border-bottom:1px solid gray}
 
 	span.level {font-size:11px}
 	span.yoy { color: gray}
@@ -27,31 +25,20 @@
 	span#start_date, span#end_date {color: black}
 	td span.s_desc {font-size:9px; line-height:12px; color:gray;}
 	td div {line-height:12px}
-	table#data_table {clear:both; table-layout:fixed; width:0px;}
+	table#data_table {clear:both;}
 	table#data_table th.header_col {width: 175px;}
 	table#data_table th.date_col {width: 60px;}
 	table#data_table th.spark_col {width: 120px;}
 	table#data_table th.range_col {width: 120px;}
-	table#data_table th {width:85px}
+	table#data_table th {min-width: 110px;}
 	
-	tr#header_row_clone th.header_col {min-width: 175px;}
-	tr#header_row_clone th.spark_col {min-width: 120px;}
-	tr#header_row_clone th.calc {min-width:85px}
-	tr#header_row_clone th.range_col {width: 120px; min-width: 120px}
-	tr#header_row_clone th.date_col {width: 60px; min-width: 60px;}
-
 	#data_table tr#header_row th {background-color: transparent; padding: 0;}
-	tr#header_row_clone th {background-color: transparent; padding: 0;}
-	table#data_table th.calc, table#header_table th.calc {line-height:13px;}
+	table#data_table th.calc {line-height:13px;}
 	div#frequency_selector {padding-bottom:19px;}
 
-	div#table_wrapper {width:auto;}
-	table#header_table, table#column_table {background-color: #fff;}
-	table#header_table {position:absolute;top:203px;left:8px;z-index: 10;}
-	table#column_table {position:absolute;top:204px;left:8px;z-index:9;width: 179px;padding-top: 41px;}
-	table#column_table td {height:40px;min-height: 40px;border-collapse: separate;border-spacing: 2px;}
+	div#table_wrapper {width:auto; margin-top: 5rem;}
 
-	table#data_table td.header_col {height:40px;min-height: 40px;}
+	table#data_table td.header_col {height:40px; min-height: 40px; position: sticky; left: 0; background-color: rgb(238, 238, 238);}
 
   .fixed-height {height: 40px; overflow: auto}
 
@@ -59,6 +46,10 @@
 	div#top-level-nav, div#chart-board-nav {width:1064px;}
 
 	ul#ui-id-1 {font-size:10px; z-index: 11 !important;}
+
+	@media print {
+		table#data_table td.header_col {position: unset;}
+	}
 
 </style>
 <span id="data_list_name"><%= @data_list.name %></span>:
@@ -102,10 +93,7 @@
 </div>
 
 <div id="table_wrapper"> <!--dt-->
-	<table id = "header_table"></table>
-	<table id = "column_table"></table>
-	<table id="data_table">
-	</table>
+	<table id="data_table"></table>
 </div>
 
 <script>
@@ -166,8 +154,6 @@
 	var test_area = d3.select("#test_area");
 	var data_table = d3.select("#data_table");
 	var table_wrapper = d3.select("#table_wrapper"); //dt
-	var header_table = d3.select("#header_table"); //dt
-	var column_table = d3.select("#column_table"); //dt
 
 	var header = data_table.append("tr")	
 		.attr("id", "header_row");
@@ -196,9 +182,6 @@
 			return date_h(d,frequency);
 		});
 		
-	$('#header_row').clone().appendTo('#header_table');
-	$('#header_table #header_row').attr("id","header_row_clone");
-
 	var series_rows = data_table.selectAll("tr.series")
 		.data(d3.entries(all_data));
 		
@@ -520,96 +503,5 @@
 	 * does not stay pushed down (initially faded it out but hiding is prob better)
 	 */
 	$("p.notice").css("display","none");
-
-	/*************************************************************************/
-	/********************* FIXED HEADER AND LEFT COLUMN **********************/
-	/*************************************************************************/
-
-	// ------------ /
-	// HEADER       /
-	// ------------ /
-
-	// 1. Prev. grabbed top offset of #header_row (151px - 03/25/15)
-	// 2. Check if window is lower than this offset
-	// 3. Once the offset is less than the top of the page, header should stick
-	//    to top of window. Do this by setting "top" of header element to 
-	//    the window's current scrollTop()
-	//    - this fixes the horizontal scroll problem.
-
-	// STEP 1
-
-	header_table = $('#header_table');
-	column_table = $('#column_table');
-
-	// STEP 2 & 3
-
-    var fixedHeaderColumn = function() {
-      $(window).scroll(function () {
-        wi_top = $(window).scrollTop(); // how far down window is scrolled
-        wi_left = $(window).scrollLeft(); // how far to the right window is scrolled
-
-        th_top = 203; // absolute. based on #header_row (offset from top)
-
-        // HEADER ROW MOTION
-        if (wi_top >= th_top) {
-          header_table.css("top", $(window).scrollTop());
-          header_table.css("background-color", "#eee");
-        } else {
-          header_table.css("top", "");
-          header_table.css("background-color", "");
-        }
-
-        // LEFT COLUMN MOTION
-        if (wi_left > 8) {
-          column_table.css("left", $(window).scrollLeft());
-          column_table.css("background-color", "#eee");
-        } else {
-          column_table.css("left", "");
-          column_table.css("background-color", "");
-        }
-
-      });
-    };
-
-	// ------------ /
-	// LEFT COLUMN  /
-	// ------------ /
-
-	// 1. Generate a copy of the left column
-	//    - Must loop through all the series on the page (in #data_table) and
-	//      grab all .series .header_col elements
-
-	$('#data_table tr.series td.header_col').each(function() {
-		//$('tr.series_clone').appendTo("#column_table");
-		// create tr in #column_table how?
-		new_td = $(this).clone().appendTo('#column_table');
-		new_td.wrap("<tr></tr>");
-	});
-
-  fixedHeaderColumn();
-
-  //Reset header and left column positions when page is printed
-
-  var beforePrint = function() {
-    header_table.css('top', 185);
-    column_table.css('left', 8);
-  };
-  var afterPrint = function() {
-    fixedHeaderColumn();
-  };
-
-  if (window.matchMedia) {
-    var mediaQueryList = window.matchMedia('print');
-    mediaQueryList.addListener(function(mql) {
-      if (mql.matches) {
-        beforePrint();
-      } else {
-        afterPrint();
-      }
-    });
-  }
-
-  window.onbeforeprint = beforePrint;
-  window.onafterprint = afterPrint;
 
 </script>
