@@ -37,6 +37,8 @@ module SeriesSeasonalAdjustment
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series)
   end
 
+private
+
   def set_factors(factor_application)
     self.factor_application = factor_application
     ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
