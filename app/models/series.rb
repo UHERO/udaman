@@ -1060,7 +1060,8 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
-        when /^[#]/
+      when /^[#]/
+          raise 'Cannot negate # searches' if negated
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
           if tane =~ /([*\/])(\d+)$/  ## The need for this special handling should be temporary; soon these should be gone.
@@ -1068,6 +1069,7 @@ class Series < ApplicationRecord
           end
           bindvars.push tane.convert_commas
         when /^[!]/
+          raise 'Cannot negate ! searches' if negated
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane.convert_commas
@@ -1082,15 +1084,27 @@ class Series < ApplicationRecord
           conditions.push case tane.downcase
                           when 'pub' then %Q{restricted is #{negated}false}
                           when 'pct' then %Q{percent is #{negated}true}
-                          when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
-                          when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
-                          when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
-                          when 'hasph'
+                          when 'sa'
+                            raise 'Cannot negate &sa search term' if negated
+                            %q{seasonal_adjustment = 'seasonally_adjusted'}
+                          when 'ns'
+                            raise 'Cannot negate &ns search term' if negated
+                            %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                          when 'nodata'
+                            raise 'Cannot negate &nodata search term' if negated
+                            %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
+                          when 'noclock'
+                            raise 'Cannot negate &noclock search term' if negated
                             all = all.joins('inner join data_sources as l3 on l3.series_id = series.id and not(l3.disabled)')
-                            %q{l3.pseudo_history is true}  ## this cannot be negated for same reason '#' operator cannot
+                            %q{l3.reload_nightly is false}
+                          when 'hasph'
+                            raise 'Cannot negate &hasph search term' if negated
+                            all = all.joins('inner join data_sources as l4 on l4.series_id = series.id and not(l4.disabled)')
+                            %q{l4.pseudo_history is true}
                           when 'noclip'
                             raise 'No user identified for clipboard access' if user.nil?
+                            raise 'Cannot negate &noclip search term' if negated
                             bindvars.push user.id.to_i
                             %q{(series.id not in (select series_id from user_series where user_id = ?))}
                           else raise("Unknown fixed term #{term}")
