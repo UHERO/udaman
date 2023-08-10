@@ -71,7 +71,7 @@ class DataSourcesController < ApplicationController
 
     if @data_source.update!(update_attrs)
       @data_source.setup if eval_changed
-      @data_source.mark_data_as_pseudo_history(@data_source.pseudo_history?) if ph_changed
+      @data_source.set_pseudo_history_status(@data_source.pseudo_history?) if ph_changed
       create_action @data_source, 'UPDATE'
       redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
     else

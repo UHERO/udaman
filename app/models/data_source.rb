@@ -280,8 +280,9 @@ class DataSource < ApplicationRecord
       end
     end
 
-    def mark_data_as_pseudo_history(value = true)
+    def set_pseudo_history_status(value = true)
       data_points.update_all(pseudo_history: value)
+      set_color!   ######### TEST THIS FUNCTIONALITY BEFORE RELEASE AND THEN REMOVE THIS COMMENT #######
     end
 
     def current?
