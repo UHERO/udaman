@@ -1061,7 +1061,7 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
       when /^[#]/
-          raise 'Cannot negate # searches' if negated
+          raise 'Cannot negate # search terms' if negated
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
           if tane =~ /([*\/])(\d+)$/  ## The need for this special handling should be temporary; soon these should be gone.
@@ -1069,7 +1069,7 @@ class Series < ApplicationRecord
           end
           bindvars.push tane.convert_commas
         when /^[!]/
-          raise 'Cannot negate ! searches' if negated
+          raise 'Cannot negate ! search terms' if negated
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane.convert_commas
