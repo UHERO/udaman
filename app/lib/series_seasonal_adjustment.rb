@@ -1,6 +1,7 @@
 module SeriesSeasonalAdjustment
-  #may need to spec a test for this in terms of adding the correct source
-  def apply_seasonal_adjustment(factor_application)
+
+  def apply_seasonal_adjustment(factor_application = nil)
+    raise "apply_seasonal_adjustment needs an argument of :additive or :multiplicative" unless factor_application
     ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
     set_factors(factor_application, ns_series)
     new_ns_values = ns_series.get_values_after(last_demetra_date.to_date)
