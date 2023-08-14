@@ -1012,7 +1012,7 @@ class Series < ApplicationRecord
     series_success
   end
 
-  def Series.search_box(input_string, limit: 10000, user: nil)
+  def Series.search(input_string, limit: 10000, user: nil)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1158,7 +1158,7 @@ class Series < ApplicationRecord
   def Series.web_search(search_string, universe)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
-    series_results = Series.search_box("/#{universe} " + search_string, limit: 10)
+    series_results = Series.search("/#{universe} " + search_string, limit: 10)
 
     results = []
     series_results.each do |s|
