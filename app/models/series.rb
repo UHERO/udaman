@@ -344,6 +344,7 @@ class Series < ApplicationRecord
   def is_SA?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
     return  true if seasonal_adjustment == 'seasonally_adjusted'
+    return false if seasonal_adjustment == 'not_seasonally_adjusted'
     return false if !fuzzy
     parse_name[:prefix] =~ /SA$/i
   end
@@ -352,6 +353,7 @@ class Series < ApplicationRecord
   def is_NS?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn
     return  true if seasonal_adjustment == 'not_seasonally_adjusted'
+    return false if seasonal_adjustment == 'seasonally_adjusted'
     return false if !fuzzy
     parse_name[:prefix] =~ /NS$/i
   end
@@ -883,7 +885,7 @@ class Series < ApplicationRecord
 
   def daily_census
     raise 'Cannot compute avg daily census on daily series' if frequency == 'day'
-    self / days_in_period
+    self / (is_SA? ? 30.42 : days_in_period)   ## 30.42 is 365/12, the average number of days/month
   end
 
   def days_in_period
@@ -1054,8 +1056,7 @@ class Series < ApplicationRecord
           geos = tane.split(',').
             map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.
             map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.
-            map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.
-            flatten
+            map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
           Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
