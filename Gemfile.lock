@@ -1,6 +1,10 @@
 GEM
-  remote: https://rubygems.org/
   remote: http://insecure.rails-assets.org/
+  specs:
+    rails-assets-select2 (4.0.5)
+
+GEM
+  remote: https://rubygems.org/
   specs:
     actioncable (5.2.8.1)
       actionpack (= 5.2.8.1)
@@ -197,7 +201,7 @@ GEM
       rake (>= 0.8.1)
     public_suffix (4.0.6)
     racc (1.6.2)
-    rack (2.2.7)
+    rack (2.2.8)
     rack-protection (2.2.3)
       rack
     rack-test (2.1.0)
@@ -215,7 +219,6 @@ GEM
       bundler (>= 1.3.0)
       railties (= 5.2.8.1)
       sprockets-rails (>= 2.0.0)
-    rails-assets-select2 (4.0.5)
     rails-dom-testing (2.0.3)
       activesupport (>= 4.2.0)
       nokogiri (>= 1.6)
@@ -231,7 +234,8 @@ GEM
     rb-fsevent (0.10.3)
     rb-inotify (0.10.0)
       ffi (~> 1.0)
-    redis (4.8.1)
+    redis-client (0.17.0)
+      connection_pool
     regexp_parser (1.6.0)
     responders (3.0.0)
       actionpack (>= 5.0)
@@ -288,10 +292,11 @@ GEM
     selenium-webdriver (3.142.4)
       childprocess (>= 0.5, < 3.0)
       rubyzip (~> 1.2, >= 1.2.2)
-    sidekiq (6.5.9)
-      connection_pool (>= 2.2.5, < 3)
-      rack (~> 2.0)
-      redis (>= 4.5.0, < 5)
+    sidekiq (7.1.3)
+      concurrent-ruby (< 2)
+      connection_pool (>= 2.3.0)
+      rack (>= 2.2.4)
+      redis-client (>= 0.14.0)
     sidekiq-status (2.1.3)
       chronic_duration
       sidekiq (>= 5.0)
@@ -391,7 +396,7 @@ DEPENDENCIES
   rvm-capistrano
   sassc-rails (>= 2.1.0)
   selenium-webdriver (>= 3.13.0)
-  sidekiq (< 7)
+  sidekiq (< 8)
   sidekiq-status (>= 2.1.3)
   sinatra (~> 2.2)
   sinatra_auth_github (~> 2.0)
