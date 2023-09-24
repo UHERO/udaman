@@ -37,7 +37,8 @@
 &pct   percent field is set to true (-)
 &sa   seasonally adjusted only
 &ns   non-seasonally adjusted only
-&nodata   only series having no data
+&nodata    series having no data
+&noclock   series having a clockless Loader
 &noclip   exclude series that are on the clipboard
 /       change universe (/fc, /db, /coh, /ccom, /nta)
 =      dynamic predictive search, or find series by name
@@ -47,7 +48,7 @@ Useful formulas and hints:
 ^vap$    Match name prefix 'vap' exactly
 ^yl,yc  Separate alternatives with commas
 ~ns$      Match NS series based on name
-@hi5     Match any of geographies HI, HAW, HON, KAU, MAU
+Meta-geographies: @cnty, @hi5 (HI + @cnty), @hiall
 145746  Find series by ID number (or comma-sep list of 'em!)
 !bad !date !format    Match multiple words (same for #)"><span style="font-size:larger;"><i class="load-status fas fa-question-circle" aria-hidden="true"></i></span></a>
   	<div id="search" style="display:inline">
