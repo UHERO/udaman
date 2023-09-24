@@ -1066,7 +1066,7 @@ class Series < ApplicationRecord
           qmarks = (['?'] * freqs.count).join(',')
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
-      when /^[#]/
+        when /^[#]/
           raise 'Cannot negate # search terms' if negated
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
