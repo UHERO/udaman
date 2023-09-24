@@ -18,10 +18,9 @@ end
 ## The (in)famous "Nightly Reload"
 task :batch_reload_uhero => :environment do
   full_set_ids = Series.get_all_uhero.pluck(:id)
-  full_set_ids -= Series.search_box('#load_api_bls').pluck(:id)
-  full_set_ids -= Series.search_box('#load_api_bea').pluck(:id)
-  full_set_ids -= Series.search_box('#tour_ocup%Y').pluck(:id)
-  full_set_ids -= Series.search_box('^vap ~ns$ @hi .d').pluck(:id)
+  full_set_ids -= Series.search('#load_api_bls').pluck(:id)
+  full_set_ids -= Series.search('#load_api_bea').pluck(:id)
+  full_set_ids -= Series.search('#tour_ocup%Y').pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
@@ -36,28 +35,28 @@ end
 
 task :reload_hiwi_series_only => :environment do
   Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
-  hiwi_series = Series.search_box('#hiwi.org')
+  hiwi_series = Series.search('#hiwi.org')
   Series.reload_with_dependencies(hiwi_series.pluck(:id), 'hiwi', nightly: true)
   DataPoint.update_public_all_universes
 end
 
 task :reload_bls_series_only => :environment do
   Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
-  bls_series = Series.search_box('#load_api_bls')
+  bls_series = Series.search('#load_api_bls')
   Series.reload_with_dependencies(bls_series.pluck(:id), 'bls', nightly: true)
   DataPoint.update_public_all_universes
 end
 
 task :reload_bea_series_only => :environment do
   Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
-  bea_series = Series.search_box('#load_api_bea')
+  bea_series = Series.search('#load_api_bea')
   Series.reload_with_dependencies(bea_series.pluck(:id), 'bea', nightly: true, group_size: 10) ### reduce group size, bec we are blowing out BEA's req/min quota
   DataPoint.update_public_all_universes
 end
 
 task :reload_tour_ocup_series_only => :environment do
   Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
-  tour_ocup = Series.search_box('#tour_ocup%Y')
+  tour_ocup = Series.search('#tour_ocup%Y')
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
 end
 
