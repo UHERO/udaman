@@ -38,6 +38,7 @@
       <% @all_dates.each do |date| %>
         <% next if date < @sampl_fr || date > @sampl_to %>
         <% value = s[:data_hash][date] %>
+        <% decimals += 1 if value < 10 %>
         <td class="series-data"><%= value == 1.00E+15 ? '-' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
@@ -46,6 +47,7 @@
       <% @all_dates.each do |date| %>
           <% next if date < @sampl_fr || date > @sampl_to %>
           <% value = s[:yoy_hash][date] %>
+          <% decimals += 1 if value < 10 %>
           <td class="change-data"><%= (value.nil? || value.abs > 10000) ? '-' : number_with_precision(value, precision: decimals, delimiter: ',') %></td>
       <% end %>
     </tr>
