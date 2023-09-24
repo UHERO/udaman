@@ -6,7 +6,12 @@
 task :conversion_of_units_to_loader_scale => :environment do
   Series.joins(:xseries).where(universe: 'UHERO').each do |s|
     s.enabled_data_sources.each do |ld|
-      next if ld.loader_type == :other
+      if ld.eval =~ /^\(\s*(Series\.load_from.*?)\s*\/\s*1000\s*\)(\..*?)\s*$/
+        ##puts "eval #{$1 + $2}, scale: #{ld.scale.to_f * 0.001}"
+        ld.update_columns(eval: $1 + $2, scale: ld.scale.to_f * 0.001)
+        puts s.id.to_s
+      end
+      next ##if ld.loader_type == :other
       units = s.xseries.units.to_f
       scale = 1.0 / units
       updates = {}
@@ -128,7 +133,7 @@ task :deploy_per_cap => :environment do
 end
 
 task :rewrite_clustermapping_method => :environment do
-  Series.search_box('#api_clustermap').each do |s|
+  Series.search('#api_clustermap').each do |s|
     ld = s.enabled_data_sources[0]
     unless ld.eval =~ /:2019", *"(\d+)"/
       raise "Failed to match load stmt for #{s}"
@@ -141,7 +146,7 @@ end
 task :set_pseudo_history_field => :environment do
   color = DataSource.type_colors(:pseudo_history).shift
   i = 0
-  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+  Series.search('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
     s.data_sources.each do |ld|
       next unless ld.loader_type == :pseudo_history
       next if ld.pseudo_history?
@@ -154,7 +159,7 @@ task :set_pseudo_history_field => :environment do
 end
 
 task :extend_clustermap_loaders => :environment do
-  Series.search_box('^ct_ -total').each do |s|
+  Series.search('^ct_ -total').each do |s|
     puts "DOING #{s}"
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /api/
@@ -164,7 +169,7 @@ task :extend_clustermap_loaders => :environment do
 end
 
 task :turn_off_all_pseudo_history => :environment do
-  Series.search_box('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
+  Series.search('#bls_histextend_date_format_correct,inc_hist.xls,bls_sa_history.xls,SQ5NHistory.xls').each do |s|
     puts "DOING #{s}"
     s.enabled_data_sources.each do |ld|
       next unless ld.loader_type == :pseudo_history
@@ -176,7 +181,7 @@ task :turn_off_all_pseudo_history => :environment do
 end
 
 task :denightlify_safe_travels => :environment do
-  Series.search_box(';src=2430').each do |s|
+  Series.search(';src=2430').each do |s|
     puts "Doing #{s}"
     s.enabled_data_sources.each {|ld| ld.set_reload_nightly(false) }
   end;0
@@ -229,7 +234,7 @@ task :change_api_bls_statements => :environment do
 end
 
 task :turn_on_clear_for_vlos => :environment do
-  Series.search_box('^vlos').each do |s|
+  Series.search('^vlos').each do |s|
     puts "Doing #{s}"
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ %r{\.ts */ *".+"\.ts}
@@ -323,7 +328,7 @@ task :deploy_daily_census => :environment do
 end
 
 task :undo_ns_growth_rate_temp_hack => :environment do
-  Series.search_box('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
+  Series.search('#apply_ns_growth_rate_sa #incomplete_year\("2020-01-01 +9999').each do |s|
     puts "Doing #{s}"
     s.enabled_data_sources.each do |ld|
       next if ld.loader_type == :history
@@ -338,7 +343,7 @@ task :undo_ns_growth_rate_temp_hack => :environment do
 end
 
 task :ua_1456_emergency_reload_ns_growth_rate => :environment do
-  Series.search_box('#apply_ns_growth_rate_sa +9999').each do |s|
+  Series.search('#apply_ns_growth_rate_sa +9999').each do |s|
     puts "Doing #{s}"
     s.enabled_data_sources.each do |ld|
       next if ld.eval =~ /apply_ns_growth_rate_sa/
@@ -364,7 +369,7 @@ task :ua_1473_fill_blank_DPNs => :environment do
     dict[indicator] = dpn
   end
   puts "Finished building dictionary"
-  Series.search_box('&nodpn +9999').each do |s|
+  Series.search('&nodpn +9999').each do |s|
     indicator = s.parse_name[:prefix].sub(/NS$/i,'')
     if dict[indicator]
       puts "Updating #{s.name}"
@@ -374,7 +379,7 @@ task :ua_1473_fill_blank_DPNs => :environment do
 end
 
 task :ua_1473_fix_VSO_agg_methods => :environment do
-  Series.search_box('^vso #aggregate #average +9999').each do |s|
+  Series.search('^vso #aggregate #average +9999').each do |s|
     s.data_sources.each do |ld|
       next unless ld.eval =~ /aggregate.*:average/i
       puts "Updating #{s.name}"
@@ -384,7 +389,7 @@ task :ua_1473_fix_VSO_agg_methods => :environment do
 end
 
 task :ua_1473_turn_off_YC_series => :environment do
-  Series.search_box('^yc +9999').each do |s|
+  Series.search('^yc +9999').each do |s|
     s.update!(restricted: true) unless s.restricted?
     s.data_sources.each do |ld|
       next unless ld.reload_nightly?
@@ -394,7 +399,7 @@ task :ua_1473_turn_off_YC_series => :environment do
 end
 
 task :ua_1472_fix_backward_shifts => :environment do
-  Series.search_box('#shift_backward_months').each do |s|
+  Series.search('#shift_backward_months').each do |s|
     s.data_sources.each do |ld|
       while ld.eval =~ /shift_backward_months\((-?\d+)\)/
         num = $1.to_i
@@ -433,7 +438,7 @@ end
 
 task :find_bad_aggregations => :environment do
   dict = {}
-  Series.search_box('#aggreg').each do |s|
+  Series.search('#aggreg').each do |s|
     find_method_for_prefix(s, dict)
     s.other_frequencies.each {|otfreq| find_method_for_prefix(otfreq, dict) }
   end
@@ -457,7 +462,7 @@ def find_method_for_prefix(series, dict)
 end
 
 task :vexp_loader_job => :environment do
-  ss = Series.search_box('vexp &sa .m')
+  ss = Series.search('vexp &sa .m')
   ss.each do |s|
     next if s.name == 'VEXP@HI.M'
     puts "Doing #{s}"
@@ -471,7 +476,7 @@ task :vexp_loader_job => :environment do
 end
 
 task :ua_1099 => :environment do
-  ss = Series.search_box('^v .m')
+  ss = Series.search('^v .m')
   ss.each do |s|
     puts "-------------------- #{s} ------------------------"
     t = s.moving_average
@@ -526,7 +531,7 @@ task :ua_1428 => :environment do
 end
 
 task :growth_rate_temp_fix => :environment do
-  all = Series.search_box('^v #last_incomplete_year')
+  all = Series.search('^v #last_incomplete_year')
   all.each do |s|
     s.enabled_data_sources.each do |ld|
       next unless ld.eval =~ /last_incomplete_year/
@@ -567,7 +572,7 @@ end
 
 ## JIRA UA-1213
 task :ua_1213 => :environment do
-  all = Series.search_box('^pc .q #interpol')
+  all = Series.search('^pc .q #interpol')
   all.each do |s|
     dss = s.enabled_data_sources
     if dss.count > 2
@@ -588,7 +593,7 @@ end
 
 ## JIRA UA-1259
 task :ua_1259 => :environment do
-  ss = Series.search_box('#load_from_bea')
+  ss = Series.search('#load_from_bea')
   ss.each do |s|
     dss = s.enabled_data_sources
     next if dss.count < 2
@@ -604,7 +609,7 @@ task :ua_1259 => :environment do
     end
   end
 
-  ss = Series.search_box('#load_from_bls !invalid')
+  ss = Series.search('#load_from_bls !invalid')
   ss.each do |s|
     dss = s.enabled_data_sources.select {|x| x.eval =~ /load_from_bls/ }
     dss.each do |ds|
@@ -839,7 +844,7 @@ task :ua_1376 => :environment do
       unit_id = 41
     end
     m.update_attributes!(unit_id: unit_id, source_id: 2, seasonal_adjustment: 'not_seasonally_adjusted')
-    ss = Series.search_box("^#{pref}$")
+    ss = Series.search("^#{pref}$")
     ss.each do |s|
       ns_name = s.build_name(prefix: s.parse_name[:prefix] + 'NS')
       d = s.data_sources.first
@@ -862,7 +867,7 @@ end
 
 ## JIRA UA-1342
 task :ua_1342 => :environment do
-  all = Series.search_box('#apply_ns_growth_rate_sa')
+  all = Series.search('#apply_ns_growth_rate_sa')
   all.each do |s|
     dss = s.enabled_data_sources
     if dss.count > 2
@@ -898,7 +903,7 @@ end
 
 ## JIRA UA-1350
 task :ua_1350 => :environment do
-  all = Series.search_box('^E ~_B$ -NS .Q') + Series.search_box('^E ~_B$ -NS .A')   ### Qs need to come first, then As
+  all = Series.search('^E ~_B$ -NS .Q') + Series.search('^E ~_B$ -NS .A')   ### Qs need to come first, then As
   all.each do |qa|
     puts "**** 1 Doing #{qa}"
     q_nonb_name = qa.build_name(prefix: qa.parse_name[:prefix].sub(/_B$/,''))
