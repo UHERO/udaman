@@ -344,6 +344,7 @@ class Series < ApplicationRecord
   def is_SA?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
     return  true if seasonal_adjustment == 'seasonally_adjusted'
+    return false if seasonal_adjustment == 'not_seasonally_adjusted'
     return false if !fuzzy
     parse_name[:prefix] =~ /SA$/i
   end
@@ -352,6 +353,7 @@ class Series < ApplicationRecord
   def is_NS?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn
     return  true if seasonal_adjustment == 'not_seasonally_adjusted'
+    return false if seasonal_adjustment == 'seasonally_adjusted'
     return false if !fuzzy
     parse_name[:prefix] =~ /NS$/i
   end
@@ -883,7 +885,7 @@ class Series < ApplicationRecord
 
   def daily_census
     raise 'Cannot compute avg daily census on daily series' if frequency == 'day'
-    self / days_in_period
+    self / (is_SA? ? 30.42 : days_in_period)   ## 30.42 is 365/12, the average number of days/month
   end
 
   def days_in_period
@@ -1012,7 +1014,7 @@ class Series < ApplicationRecord
     series_success
   end
 
-  def Series.search_box(input_string, limit: 10000, user: nil)
+  def Series.search(input_string, limit: 10000, user: nil)
     all = Series.joins(:xseries)
     univ = 'UHERO'
     conditions = []
@@ -1051,7 +1053,11 @@ class Series < ApplicationRecord
           end
         when /^[@]/
           all = all.joins(:geography)
-          geos = tane.split(',').map {|g| g.upcase == 'HI5' ? %w{HI HAW HON KAU MAU} : g }.flatten
+          geos = tane.split(',').
+            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.
+            map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.
+            map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
+          Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos
@@ -1061,6 +1067,7 @@ class Series < ApplicationRecord
           conditions.push %Q{xseries.frequency #{negated}in (#{qmarks})}
           bindvars.concat freqs.map {|f| frequency_from_code(f) }
         when /^[#]/
+          raise 'Cannot negate # search terms' if negated
           all = all.joins('inner join data_sources as l1 on l1.series_id = series.id and not(l1.disabled)')
           conditions.push %q{l1.eval regexp ?}
           if tane =~ /([*\/])(\d+)$/  ## The need for this special handling should be temporary; soon these should be gone.
@@ -1068,6 +1075,7 @@ class Series < ApplicationRecord
           end
           bindvars.push tane.convert_commas
         when /^[!]/
+          raise 'Cannot negate ! search terms' if negated
           all = all.joins('inner join data_sources as l2 on l2.series_id = series.id and not(l2.disabled)')
           conditions.push %q{l2.last_error regexp ?}
           bindvars.push tane.convert_commas
@@ -1082,15 +1090,27 @@ class Series < ApplicationRecord
           conditions.push case tane.downcase
                           when 'pub' then %Q{restricted is #{negated}false}
                           when 'pct' then %Q{percent is #{negated}true}
-                          when 'sa'  then %q{seasonal_adjustment = 'seasonally_adjusted'}
-                          when 'ns'  then %q{seasonal_adjustment = 'not_seasonally_adjusted'}
                           when 'nodpn'  then %Q{dataPortalName is #{negated}null}
-                          when 'nodata' then %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
-                          when 'hasph'
+                          when 'sa'
+                            raise 'Cannot negate &sa search term' if negated
+                            %q{seasonal_adjustment = 'seasonally_adjusted'}
+                          when 'ns'
+                            raise 'Cannot negate &ns search term' if negated
+                            %q{seasonal_adjustment = 'not_seasonally_adjusted'}
+                          when 'nodata'
+                            raise 'Cannot negate &nodata search term' if negated
+                            %q{(not exists(select * from data_points where xseries_id = xseries.id and current))}
+                          when 'noclock'
+                            raise 'Cannot negate &noclock search term' if negated
                             all = all.joins('inner join data_sources as l3 on l3.series_id = series.id and not(l3.disabled)')
-                            %q{l3.pseudo_history is true}  ## this cannot be negated for same reason '#' operator cannot
+                            %q{l3.reload_nightly is false}
+                          when 'hasph'
+                            raise 'Cannot negate &hasph search term' if negated
+                            all = all.joins('inner join data_sources as l4 on l4.series_id = series.id and not(l4.disabled)')
+                            %q{l4.pseudo_history is true}
                           when 'noclip'
                             raise 'No user identified for clipboard access' if user.nil?
+                            raise 'Cannot negate &noclip search term' if negated
                             bindvars.push user.id.to_i
                             %q{(series.id not in (select series_id from user_series where user_id = ?))}
                           else raise("Unknown fixed term #{term}")
@@ -1139,7 +1159,7 @@ class Series < ApplicationRecord
   def Series.web_search(search_string, universe)
     universe = 'UHERO' if universe.blank? ## cannot make this a param default because it is often == ''
     Rails.logger.debug { ">>>>>>>> Web searching for string |#{search_string}| in universe #{universe}" }
-    series_results = Series.search_box("/#{universe} " + search_string, limit: 10)
+    series_results = Series.search("/#{universe} " + search_string, limit: 10)
 
     results = []
     series_results.each do |s|
