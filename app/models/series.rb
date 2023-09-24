@@ -1054,8 +1054,8 @@ class Series < ApplicationRecord
         when /^[@]/
           all = all.joins(:geography)
           geos = tane.split(',').
-            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.
-            map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.
+            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.flatten.
+            map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.flatten.
             map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
           Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
