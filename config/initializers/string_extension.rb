@@ -70,7 +70,7 @@ class String
     end
   end
 
-  ## Convert commas to pipes for use by the search engine (Series.search_box). Literal commas are preserved verbatim if
+  ## Convert commas to pipes for use by the search engine (Series.search). Literal commas are preserved verbatim if
   ## escaped by doubling them.
   def convert_commas
     self.gsub(',,', '#FOO#').gsub(',', '|').gsub('#FOO#', ',')
