@@ -243,7 +243,7 @@ class DataSource < ApplicationRecord
         self.reload if presave_hook  ## it sucks to have to do this, but presave_hook might change something, that will end up saved below
         self.update!(update_props)
       end
-      Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series}> [#{description}]" }
+      Rails.logger.info { "Completed reload of definition #{id} for series #{series.id} <#{series}> [#{description}]" }
       true
     end
 
