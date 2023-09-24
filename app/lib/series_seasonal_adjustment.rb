@@ -1,14 +1,15 @@
 module SeriesSeasonalAdjustment
-  #may need to spec a test for this in terms of adding the correct source
-  def apply_seasonal_adjustment(factor_application)
-    ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
-    set_factors factor_application 
-    new_ns_values = ns_series.get_values_after(Date.parse last_demetra_date.to_s)
+
+  def apply_seasonal_adjustment(factor_application = nil)
+    raise "apply_seasonal_adjustment needs an argument of :additive or :multiplicative" unless factor_application
+    ns_series = find_ns_series || raise("No NS series corresponds to #{self}")
+    set_factors(factor_application, ns_series)
+    new_ns_values = ns_series.get_values_after(last_demetra_date.to_date)
     adjusted_data = {}
     new_ns_values.each do |date, value|
-      factor_month = date.month
-      adjusted_data[date] = value - factors[factor_month.to_s] if factor_application == :additive
-      adjusted_data[date] = value / factors[factor_month.to_s] if factor_application == :multiplicative
+      factor_month = date.month.to_s
+      adjusted_data[date] = value - factors[factor_month] if factor_application == :additive
+      adjusted_data[date] = value / factors[factor_month] if factor_application == :multiplicative
     end
     #still valuable to run as the current series because it sets the seasonal factors
     new_transformation("Applied #{factor_application} Seasonal Adjustment against #{ns_series}", adjusted_data)
@@ -37,19 +38,21 @@ module SeriesSeasonalAdjustment
     new_transformation("Applied Growth Rate Based Seasonal Adjustment against #{ns_series}", adjusted_series)
   end
 
-  def set_factors(factor_application)
-    self.factor_application = factor_application
-    ns_series = find_ns_series || raise(SeasonalAdjustmentException, "No NS series corresponds to #{self}")
-    self.factors ||= {}
+private
 
+  def set_factors(factor_app, ns_series)
+    factor_app = factor_app.to_sym
+    raise "Unknown factor application #{factor_app}" unless [:additive, :multiplicative].include? factor_app
+    self.factor_application = factor_app
+    self.factors ||= {}
     last_demetra_date = (frequency == 'quarter') ? get_last_complete_4th_quarter : get_last_complete_december
     self.last_demetra_date = last_demetra_date
     last_year_of_sa_values = get_values_after(last_demetra_date - 1.year, last_demetra_date)
     last_year_of_sa_values.sort.each do |date,sa_value|
       ns_value = ns_series.at(date)
-      factor_month = date.month
-      self.factors[factor_month.to_s] = ns_value - sa_value if factor_application == :additive
-      self.factors[factor_month.to_s] = ns_value / sa_value if factor_application == :multiplicative
+      factor_month = date.month.to_s
+      self.factors[factor_month] = ns_value - sa_value if factor_app == :additive
+      self.factors[factor_month] = ns_value / sa_value if factor_app == :multiplicative
     end
     self.save
   end
