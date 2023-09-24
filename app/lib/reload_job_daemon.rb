@@ -23,7 +23,7 @@ class ReloadJobDaemon
   end
 
   def ReloadJobDaemon.enqueue(short_name, search, nightly: true, update_public: true)
-    series = Series.search_box(search)
+    series = Series.search(search)
     params = [short_name, {nightly: nightly}]  ## extra parameters for Series.reload_with_dependencies call
     if series.empty?
       Rails.logger.warn { "ReloadJobDaemon.enqueue #{short_name}: No series found, no job queued" }

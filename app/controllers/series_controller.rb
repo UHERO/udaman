@@ -140,7 +140,7 @@ class SeriesController < ApplicationController
     if params[:id]
       current_user.add_series Series.find(params[:id].to_i)
     elsif params[:search]
-      results = Series.search_box(params[:search], limit: 500, user: current_user)
+      results = Series.search(params[:search], limit: 500, user: current_user)
       current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
@@ -236,7 +236,7 @@ class SeriesController < ApplicationController
   def new_search(search_string = nil)
     @search_string = search_string || helpers.url_decode(params[:search_string])
     Rails.logger.info { "SEARCHLOG: user #{current_user.username.ljust(9, ' ')} searched #{@search_string}" }
-    all_series = Series.search_box(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
+    all_series = Series.search(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if all_series.count == 1 && @search_string !~ /[+]1\b/
       redirect_to action: :show, id: all_series[0]
       return
@@ -245,7 +245,7 @@ class SeriesController < ApplicationController
     @b64_search_str = helpers.url_encode(@search_string)
     @sortby = params[:sortby].blank? ? 'name' : params[:sortby]
     @dir = params[:dir].blank? ? 'up' : params[:dir]
-    unless @sortby == 'name' && @dir == 'up'  ## Only bother sorting if other than name/up, as search_box() already does that
+    unless @sortby == 'name' && @dir == 'up'  ## Only bother sorting if other than name/up, as search() already does that
       sortby = @sortby.to_sym
       beg_of_time = Date.new(1000)
       @all_series.sort! do |a, b|
