@@ -91,10 +91,12 @@ class DataHtmlParser
     results_data.each do |data_point|
       next unless request_match(filters, data_point)
       time_period = data_point['TimePeriod']
-      value = data_point['DataValue']
-      if value && value.gsub(',','').is_numeric?
-        new_data[ grok_date(time_period[0..3], time_period[4..]) ] = value.gsub(',','').to_f
+      date = grok_date(time_period[0..3], time_period[4..])
+      value = data_point['DataValue'].strip.gsub(',', '') rescue nil  ## nil if DataValue field is entirely missing
+      if data_point['NoteRef'].strip =~ /^\(\w+\)$/i || value.nil?
+        value = 1.00E+0015  ## marks non-existent data point
       end
+      new_data[date] = value.to_f rescue raise("Problem with value at #{date}")
     end
     new_data
   end
