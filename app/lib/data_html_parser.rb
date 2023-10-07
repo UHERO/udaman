@@ -12,7 +12,7 @@ class DataHtmlParser
     end
     doc = self.download
     err = doc.css('error')
-    raise '%s (code=%s)' % [err[:message], err[:code]] if err
+    raise 'FRED API Error: %s (code=%s)' % [err[:message], err[:code]] if err
 
     data = {}
     doc.css('observation').each do |obs|
