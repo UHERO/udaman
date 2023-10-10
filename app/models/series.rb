@@ -891,8 +891,13 @@ class Series < ApplicationRecord
   end
 
   def daily_census
-    raise 'Cannot compute avg daily census on daily series' if frequency == 'day'
-    self / (is_SA? ? 30.42 : days_in_period)   ## 30.42 is 365/12, the average number of days/month
+    if is_SA?
+      fpf = freq_per_freq(frequency, :year) || raise("Cannot compute ADC on SA series of frequency #{frequency}")
+      denom = (365 / fpf.to_f).round(2)
+    else
+      denom = days_in_period
+    end
+    self / denom
   end
 
   def days_in_period
@@ -1061,8 +1066,8 @@ class Series < ApplicationRecord
         when /^[@]/
           all = all.joins(:geography)
           geos = tane.split(',').
-            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.
-            map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.
+            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.flatten.
+            map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.flatten.
             map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
           Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
