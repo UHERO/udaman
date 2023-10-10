@@ -345,7 +345,7 @@ class Series < ApplicationRecord
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
     return  true if seasonal_adjustment == 'seasonally_adjusted'
     return false if seasonal_adjustment == 'not_seasonally_adjusted'
-    return false if !fuzzy
+    return false unless fuzzy
     parse_name[:prefix] =~ /SA$/i
   end
 
@@ -354,7 +354,7 @@ class Series < ApplicationRecord
     return false if frequency.freqn <= :year.freqn
     return  true if seasonal_adjustment == 'not_seasonally_adjusted'
     return false if seasonal_adjustment == 'seasonally_adjusted'
-    return false if !fuzzy
+    return false unless fuzzy
     parse_name[:prefix] =~ /NS$/i
   end
 
@@ -436,12 +436,6 @@ class Series < ApplicationRecord
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-#    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
-#  end
-#
-#  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
-#    desc = series.name if desc.nil?
-#    desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
@@ -499,6 +493,7 @@ class Series < ApplicationRecord
     observation_dates -= current_data_points.map(&:date)
     now = Time.now
     observation_dates.each do |date|
+      next if data[date] == 1.00E+0015
       xseries.data_points.create(
         :date => date,
         :value => data[date],
