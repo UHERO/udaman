@@ -7,7 +7,7 @@ class DataHtmlParser
     if frequency ## d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
       @url += "&frequency=#{frequency.downcase.sub(/^s$/, 'sa')}"
     end
-    if aggregation_method ## avg, sum, eop
+    if aggregation_method ## avg, sum, eop   ### NOTE: this option seems to be ignored by the API now. Review load stmts that use it.
       @url += "&aggregation_method=#{aggregation_method.downcase}"
     end
     doc = self.download
