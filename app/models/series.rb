@@ -345,7 +345,7 @@ class Series < ApplicationRecord
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
     return  true if seasonal_adjustment == 'seasonally_adjusted'
     return false if seasonal_adjustment == 'not_seasonally_adjusted'
-    return false if !fuzzy
+    return false unless fuzzy
     parse_name[:prefix] =~ /SA$/i
   end
 
@@ -354,7 +354,7 @@ class Series < ApplicationRecord
     return false if frequency.freqn <= :year.freqn
     return  true if seasonal_adjustment == 'not_seasonally_adjusted'
     return false if seasonal_adjustment == 'seasonally_adjusted'
-    return false if !fuzzy
+    return false unless fuzzy
     parse_name[:prefix] =~ /NS$/i
   end
 
