@@ -3,7 +3,7 @@ class DataHtmlParser
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED'] || raise('No API key defined for FRED')
-    @url = "http://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
+    @url = "https://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
     if frequency ## d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
       @url += "&frequency=#{frequency.downcase.sub(/^s$/, 'sa')}"
     end
@@ -11,7 +11,7 @@ class DataHtmlParser
       @url += "&aggregation_method=#{aggregation_method.downcase}"
     end
     doc = self.download
-    err = doc.css('error')
+    err = doc.at_css('error')
     raise 'FRED API Error: %s (code=%s)' % [err[:message], err[:code]] if err
 
     data = {}
