@@ -99,7 +99,7 @@ class DataHtmlParser
       if value.nil? || data_point['NoteRef'] && data_point['NoteRef'].strip =~ /^\(\w+\)$/i
         value = 1.00E+0015  ## marks non-existent data point
       end
-      new_data[date] = value.to_f rescue raise("Problem with value at #{date}")
+      new_data[date] = value.to_f rescue raise("BEA API: Problem with value at #{date}")
     end
     new_data
   end
