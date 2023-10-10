@@ -3,14 +3,17 @@ class DataHtmlParser
 
   def get_fred_series(code, frequency = nil, aggregation_method = nil)
     api_key = ENV['API_KEY_FRED'] || raise('No API key defined for FRED')
-    @url = "http://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
+    @url = "https://api.stlouisfed.org/fred/series/observations?api_key=#{api_key}&series_id=#{code}"
     if frequency ## d, w, bw, m, q, sa, a (udaman represents semiannual frequency with S)
       @url += "&frequency=#{frequency.downcase.sub(/^s$/, 'sa')}"
     end
-    if aggregation_method ## avg, sum, eop
+    if aggregation_method ## avg, sum, eop   ### NOTE: this option seems to be ignored by the API now. Review load stmts that use it.
       @url += "&aggregation_method=#{aggregation_method.downcase}"
     end
     doc = self.download
+    err = doc.at_css('error')
+    raise 'FRED API Error: %s (code=%s)' % [err[:message], err[:code]] if err
+
     data = {}
     doc.css('observation').each do |obs|
       next if obs[:value] == '.'
@@ -90,11 +93,13 @@ class DataHtmlParser
     new_data = {}
     results_data.each do |data_point|
       next unless request_match(filters, data_point)
-      time_period = data_point['TimePeriod']
-      value = data_point['DataValue']
-      if value && value.gsub(',','').is_numeric?
-        new_data[ grok_date(time_period[0..3], time_period[4..]) ] = value.gsub(',','').to_f
+      tp = data_point['TimePeriod']
+      date = grok_date(tp[0..3], tp[4..])
+      value = data_point['DataValue'].strip.gsub(',', '') rescue nil  ## nil if DataValue field is entirely missing
+      if value.nil? || data_point['NoteRef'] && data_point['NoteRef'].strip =~ /^\(\w+\)$/i
+        value = 1.00E+0015  ## marks non-existent data point
       end
+      new_data[date] = value.to_f rescue raise("BEA API: Problem with value at #{date}")
     end
     new_data
   end
