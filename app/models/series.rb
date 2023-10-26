@@ -1069,7 +1069,6 @@ class Series < ApplicationRecord
             map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK HIONLY} : g }.flatten.
             map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.flatten.
             map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
-          Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos
