@@ -209,7 +209,7 @@ class NtaUpload < ApplicationRecord
         group = row_data['group'].downcase
         next unless ['region','income group','country'].include? group
         next if row_data['name'] =~ /develop/i         ## temp row restriction to allow load of new data before code can be adapted
-        next if row_data['name'] =~ /^middle-income/i  ## temp row restriction to allow load of new data before code can be adapted
+        next if row_data['name'] =~ /^\s*middle-income/i  ## temp row restriction to allow load of new data before code can be adapted
         ## Income group string adaptations to older format
         row_data['incgrp'].gsub!('-', ' ')
         if row_data['group'].downcase == 'income group'
