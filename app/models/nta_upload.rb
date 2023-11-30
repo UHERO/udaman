@@ -210,6 +210,11 @@ class NtaUpload < ApplicationRecord
         next unless ['region','income group','country'].include? group
         next if row_data['name'] =~ /develop/i         ## temp row restriction to allow load of new data before code can be adapted
         next if row_data['name'] =~ /^middle-income/i  ## temp row restriction to allow load of new data before code can be adapted
+        ## Income group string adaptations to older format
+        row_data['incgrp'].gsub!('-', ' ')
+        if row_data['group'].downcase == 'income group'
+          row_data['incgrp'] = row_data['name'][0] + row_data['name'].sub(/\s*countries.*$/i, '').gsub('-', ' ')[1..].downcase  ## yuck
+        end
 
         geo_part = row_data['iso3166a'] || row_data['name'].titlecase
         geo_part.sub!(/\s*countries.*$/i, '')     ## Clean up for income group names
