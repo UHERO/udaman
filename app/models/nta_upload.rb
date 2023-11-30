@@ -83,7 +83,7 @@ class NtaUpload < ApplicationRecord
       raise 'load_cats_csv: no series_filename'
     end
     csv_path = path(series_filename).change_file_extension('')
-    unless Dir.exists?(csv_path) || ENV['OTHER_WORKER'] && system("rsync -rt #{ENV['OTHER_WORKER'] + ':' + csv_path} #{absolute_path}")
+    unless Dir.exists?(csv_path)
       raise "load_cats_csv: couldn't find csv dir #{csv_path}"
     end
     cats_path = File.join(csv_path, 'description.csv')
@@ -160,7 +160,7 @@ class NtaUpload < ApplicationRecord
       raise 'load_series_csv: no series_filename'
     end
     csv_path = path(series_filename).change_file_extension('')
-    unless Dir.exists?(csv_path) || ENV['OTHER_WORKER'] && system("rsync -rt #{ENV['OTHER_WORKER'] + ':' + csv_path} #{absolute_path}")
+    unless Dir.exists?(csv_path)
       raise "load_series_csv: couldn't find csv dir #{csv_path}"
     end
     series_path = File.join(csv_path, 'database.csv')
@@ -208,6 +208,8 @@ class NtaUpload < ApplicationRecord
 
         group = row_data['group'].downcase
         next unless ['region','income group','country'].include? group
+        next if row_data['name'] =~ /develop/i         ## temp row restriction to allow load of new data before code can be adapted
+        next if row_data['name'] =~ /^middle-income/i  ## temp row restriction to allow load of new data before code can be adapted
 
         geo_part = row_data['iso3166a'] || row_data['name'].titlecase
         geo_part.sub!(/\s*countries.*$/i, '')     ## Clean up for income group names
