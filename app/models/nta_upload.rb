@@ -207,6 +207,7 @@ class NtaUpload < ApplicationRecord
           next if header.blank?
           row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
         end
+        break unless row_data['name'] && row_data['year']
 
         group = row_data['group'].downcase rescue raise("ERROR on database row #{rcount}: #{row_data}")
         next unless ['region','income group','country'].include? group
