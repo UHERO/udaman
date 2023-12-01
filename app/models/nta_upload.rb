@@ -199,19 +199,21 @@ class NtaUpload < ApplicationRecord
       indicator_name = cat.meta.sub(/^NTA_/,'')
       indicator_title = cat.name
 
+      rcount = 0
       CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
         row_data = {}
+        rcount += 1
         row_pairs.to_a.each do |header, data|  ## convert row data to a hash keyed on column header. force blank/empty to nil.
           next if header.blank?
           row_data[header.to_ascii.strip] = data.blank? ? nil : data.to_ascii.strip
         end
 
-        group = row_data['group'].downcase
+        group = row_data['group'].downcase rescue raise("ERROR on database row #{rcount}: #{row_data}")
         next unless ['region','income group','country'].include? group
         next if row_data['name'] =~ /develop/i         ## temp row restriction to allow load of new data before code can be adapted
         next if row_data['name'] =~ /^\s*middle-income/i  ## temp row restriction to allow load of new data before code can be adapted
         ## Income group string adaptations to older format
-        row_data['incgrp'].gsub!('-', ' ')
+        row_data['incgrp'].gsub!('-', ' ') if row_data['incgrp']
         if row_data['group'].downcase == 'income group'
           row_data['incgrp'] = row_data['name'][0] + row_data['name'].sub(/\s*countries.*$/i, '').gsub('-', ' ')[1..].downcase  ## yuck
         end
