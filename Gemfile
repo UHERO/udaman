@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 # gem 'rails', '~> 7.0', '>= 7.0.1'
-gem 'rails', '~> 5.3'
+gem 'rails', '~> 6.0.1'
 gem 'bundler', '>= 2.1.4'
 
 # Application Monitoring
@@ -13,7 +13,7 @@ gem 'capistrano-bundler', '~> 1.0'
 gem 'capistrano', '~> 3.0'
 gem 'highline', '~> 1.6.0'
 gem 'mysql2', '~> 0.5', '>= 0.5.3'
-gem 'composite_primary_keys', '~> 11.0'
+gem 'composite_primary_keys'
 gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
 gem 'httpclient'
