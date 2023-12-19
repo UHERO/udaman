@@ -1,4 +1,4 @@
-class CreateDataSourceActions < ActiveRecord::Migration
+class CreateDataSourceActions < ActiveRecord::Migration[5.2]
   def change
     create_table :data_source_actions do |t|
       t.integer :series_id, limit: 4

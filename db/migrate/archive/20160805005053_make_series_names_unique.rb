@@ -1,4 +1,4 @@
-class MakeSeriesNamesUnique < ActiveRecord::Migration
+class MakeSeriesNamesUnique < ActiveRecord::Migration[5.2]
   def up
     remove_index :series, :name if index_exists? :series, :name
     add_index :series, :name, unique: true, using: 'btree'

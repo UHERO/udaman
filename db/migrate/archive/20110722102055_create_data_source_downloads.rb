@@ -1,4 +1,4 @@
-class CreateDataSourceDownloads < ActiveRecord::Migration
+class CreateDataSourceDownloads < ActiveRecord::Migration[5.2]
   def self.up
     create_table :data_source_downloads unless table_exists? :data_source_downloads do |t|
       t.string :url

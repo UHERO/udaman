@@ -1,4 +1,4 @@
-class CreateGeographies < ActiveRecord::Migration
+class CreateGeographies < ActiveRecord::Migration[5.2]
   def change
     create_table :geographies do |t|
       t.string :fips

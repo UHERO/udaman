@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+# gem 'rails', '~> 7.0', '>= 7.0.1'
 gem 'rails', '~> 5.2', '>= 5.2.8.1'
 gem 'bundler', '>= 2.1.4'
 

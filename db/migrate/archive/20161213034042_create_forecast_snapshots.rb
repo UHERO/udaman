@@ -1,4 +1,4 @@
-class CreateForecastSnapshots < ActiveRecord::Migration
+class CreateForecastSnapshots < ActiveRecord::Migration[5.2]
   def change
     create_table :forecast_snapshots do |t|
       t.string :name

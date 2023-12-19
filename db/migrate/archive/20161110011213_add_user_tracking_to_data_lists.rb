@@ -1,4 +1,4 @@
-class AddUserTrackingToDataLists < ActiveRecord::Migration
+class AddUserTrackingToDataLists < ActiveRecord::Migration[5.2]
   def change
     change_table :data_lists do |t|
       t.integer :created_by

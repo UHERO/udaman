@@ -1,4 +1,4 @@
-class RemoveDataField < ActiveRecord::Migration
+class RemoveDataField < ActiveRecord::Migration[5.2]
   def self.up
     remove_column :series, :data if column_exists? :series, :data
     remove_column :data_sources, :data if column_exists? :data_sources, :data

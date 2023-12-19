@@ -1,4 +1,4 @@
-class ChangeCategoriesDefaultGeoFreq < ActiveRecord::Migration
+class ChangeCategoriesDefaultGeoFreq < ActiveRecord::Migration[5.2]
   def self.up
     change_column :categories, :default_freq, "ENUM('A','S','Q','M','W','D')"
     add_column :categories, :default_geo_id, :integer, after: :ancestry

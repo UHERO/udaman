@@ -1,4 +1,4 @@
-class CreateDsdLogEntries < ActiveRecord::Migration
+class CreateDsdLogEntries < ActiveRecord::Migration[5.2]
   def self.up
     create_table :dsd_log_entries unless table_exists? :dsd_log_entries do |t|
       t.integer :data_source_download_id

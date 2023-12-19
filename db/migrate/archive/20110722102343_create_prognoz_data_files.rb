@@ -1,4 +1,4 @@
-class CreatePrognozDataFiles < ActiveRecord::Migration
+class CreatePrognozDataFiles < ActiveRecord::Migration[5.2]
   def self.up
     create_table :prognoz_data_files unless table_exists? :prognoz_data_files do |t|
       t.string :name

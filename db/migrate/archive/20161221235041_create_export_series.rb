@@ -1,4 +1,4 @@
-class CreateExportSeries < ActiveRecord::Migration
+class CreateExportSeries < ActiveRecord::Migration[5.2]
   def change
     create_table :export_series do |t|
       t.belongs_to :export, index: true

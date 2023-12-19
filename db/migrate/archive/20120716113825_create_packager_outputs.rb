@@ -1,4 +1,4 @@
-class CreatePackagerOutputs < ActiveRecord::Migration
+class CreatePackagerOutputs < ActiveRecord::Migration[5.2]
   def self.up
     create_table :packager_outputs unless table_exists? :packager_outputs do |t|
       t.string :path

@@ -1,4 +1,4 @@
-class CreateDbedtUploads < ActiveRecord::Migration
+class CreateDbedtUploads < ActiveRecord::Migration[5.2]
   def change
     create_table :dbedt_uploads do |t|
       t.datetime :upload_at

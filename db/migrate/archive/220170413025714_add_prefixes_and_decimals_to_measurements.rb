@@ -1,4 +1,4 @@
-class AddPrefixesAndDecimalsToMeasurements < ActiveRecord::Migration
+class AddPrefixesAndDecimalsToMeasurements < ActiveRecord::Migration[5.2]
   def change
     add_column :measurements, :decimals, :integer, default: 2, after: :real
     change_column :series, :decimals, :integer, default: 2, after: :real

@@ -1,4 +1,4 @@
-class DeviseCreateUsers < ActiveRecord::Migration
+class DeviseCreateUsers < ActiveRecord::Migration[5.2]
   def self.up
     create_table(:users) unless table_exists? :users do |t|
       t.database_authenticatable :null => false

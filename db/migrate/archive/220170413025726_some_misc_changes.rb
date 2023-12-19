@@ -1,4 +1,4 @@
-class SomeMiscChanges < ActiveRecord::Migration
+class SomeMiscChanges < ActiveRecord::Migration[5.2]
   def change
     add_column :api_applications, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id
     add_index :api_applications, [:universe, :name], :unique => true

@@ -1,4 +1,4 @@
-class CreateMeasurementSeries < ActiveRecord::Migration
+class CreateMeasurementSeries < ActiveRecord::Migration[5.2]
   def change
     create_table :measurement_series do |t|
       t.belongs_to :measurement, index: true

@@ -1,4 +1,4 @@
-class CopyAremosDescriptionToSeriesDataPortalName < ActiveRecord::Migration
+class CopyAremosDescriptionToSeriesDataPortalName < ActiveRecord::Migration[5.2]
   def up
     execute <<-SQL
       UPDATE series JOIN aremos_series ON series.name = aremos_series.name

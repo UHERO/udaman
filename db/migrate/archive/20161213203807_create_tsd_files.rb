@@ -1,4 +1,4 @@
-class CreateTsdFiles < ActiveRecord::Migration
+class CreateTsdFiles < ActiveRecord::Migration[5.2]
   def change
     create_table :tsd_files do |t|
       t.integer :forecast_snapshot_id

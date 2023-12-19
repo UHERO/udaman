@@ -1,4 +1,4 @@
-class CleanUpApiUsers < ActiveRecord::Migration
+class CleanUpApiUsers < ActiveRecord::Migration[5.2]
   def change
     remove_reference :api_applications, :api_user, index: true, foreign_key: true if column_exists? :api_applications, :api_user_id
     drop_table :api_users if table_exists? :api_users

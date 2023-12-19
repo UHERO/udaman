@@ -1,4 +1,4 @@
-class CreateDataLoadPatterns < ActiveRecord::Migration
+class CreateDataLoadPatterns < ActiveRecord::Migration[5.2]
   def self.up
     create_table :data_load_patterns unless table_exists? :data_load_patterns do |t|
       t.string :start_date

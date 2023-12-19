@@ -1,4 +1,4 @@
-class AddReverse < ActiveRecord::Migration
+class AddReverse < ActiveRecord::Migration[5.2]
   def self.up
     add_column :data_load_patterns, :reverse, :boolean, :default => 0 unless column_exists? :data_load_patterns, :reverse
   end

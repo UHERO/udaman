@@ -1,4 +1,4 @@
-class DuplicateOrderColumnInCategories < ActiveRecord::Migration
+class DuplicateOrderColumnInCategories < ActiveRecord::Migration[5.2]
   def self.up
     add_column :categories, :order, :integer, after: :list_order
     Category.update_all('categories.order = list_order')

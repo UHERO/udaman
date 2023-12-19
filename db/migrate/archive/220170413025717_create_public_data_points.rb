@@ -1,4 +1,4 @@
-class CreatePublicDataPoints < ActiveRecord::Migration
+class CreatePublicDataPoints < ActiveRecord::Migration[5.2]
   def change
     create_table :public_data_points, id: false do |t|
       t.belongs_to :series

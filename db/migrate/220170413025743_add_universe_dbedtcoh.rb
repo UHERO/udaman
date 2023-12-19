@@ -1,4 +1,4 @@
-class AddUniverseDbedtcoh < ActiveRecord::Migration
+class AddUniverseDbedtcoh < ActiveRecord::Migration[5.2]
   def self.up
     change_column :series, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH','UHEROCOH','DBEDTCOH')), null: false, default: 'UHERO'
     change_column :measurements, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH','UHEROCOH','DBEDTCOH')), null: false, default: 'UHERO'

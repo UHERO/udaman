@@ -1,4 +1,4 @@
-class CreateCategoryFrequencies < ActiveRecord::Migration
+class CreateCategoryFrequencies < ActiveRecord::Migration[5.2]
   def change
       create_table :category_frequencies, id: false do |t|
       t.belongs_to :category, index: true
