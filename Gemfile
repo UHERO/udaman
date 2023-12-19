@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 # gem 'rails', '~> 7.0', '>= 7.0.1'
-gem 'rails', '~> 5.2', '>= 5.2.8.1'
+gem 'rails', '~> 5.3'
 gem 'bundler', '>= 2.1.4'
 
 # Application Monitoring
@@ -46,6 +46,9 @@ gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
 gem 'nokogiri', '~> 1.14'
+
+# Dependencies related to upgrate Ruby 2.5 to 3.0
+gem 'bootsnap', '~> 1.17'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'
