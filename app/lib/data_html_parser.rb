@@ -96,7 +96,7 @@ class DataHtmlParser
       tp = data_point['TimePeriod']
       date = grok_date(tp[0..3], tp[4..])
       value = data_point['DataValue'].strip.gsub(',', '') rescue nil  ## nil if DataValue field is entirely missing
-      if value.nil? || data_point['NoteRef'] && data_point['NoteRef'].strip =~ /^\(\w+\)$/i
+      if value.nil? || data_point['NoteRef'] && data_point['NoteRef'].strip =~ /^\(\w+\)/i  ## there can be stuff after the ()
         value = 1.00E+0015  ## marks non-existent data point
       end
       new_data[date] = value.to_f rescue raise("BEA API: Problem with value at #{date}")

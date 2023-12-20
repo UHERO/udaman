@@ -611,7 +611,7 @@ class Series < ApplicationRecord
   end
 
   def scaled_data(scale = 1.0)
-    data.map {|date, value| [date, value * scale] }.to_h
+    data.map {|date, value| [date, value == 1.00E+0015 ? value : value * scale] }.to_h
   end
 
   def yoy_hash
@@ -1066,10 +1066,9 @@ class Series < ApplicationRecord
         when /^[@]/
           all = all.joins(:geography)
           geos = tane.split(',').
-            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.flatten.
+            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK HIONLY} : g }.flatten.
             map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.flatten.
             map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
-          Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos
