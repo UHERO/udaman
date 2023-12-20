@@ -343,18 +343,30 @@ class Series < ApplicationRecord
   ## Make a best guess at whether this Series is seasonally-adjusted, based on metadata available
   def is_SA?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn   ## If freq is annual (or lower), SA makes no sense
-    return  true if seasonal_adjustment == 'seasonally_adjusted'
-    return false if seasonal_adjustment == 'not_seasonally_adjusted'
-    return false if !fuzzy
+    if seasonal_adjustment == 'seasonally_adjusted'
+      raise "#{self}: Set to &sa but name ends in 'NS'. Please fix apparent discrepancy." if parse_name[:prefix] =~ /NS$/i
+      return true
+    end
+    if seasonal_adjustment == 'not_seasonally_adjusted'
+      raise "#{self}: Set to &ns but name ends in 'SA'. Please fix apparent discrepancy." if parse_name[:prefix] =~ /SA$/i
+      return false
+    end
+    return false unless fuzzy
     parse_name[:prefix] =~ /SA$/i
   end
 
   ## Make a best guess at whether this Series is non-seasonally-adjusted, based on metadata available
   def is_NS?(fuzzy: true)
     return false if frequency.freqn <= :year.freqn
-    return  true if seasonal_adjustment == 'not_seasonally_adjusted'
-    return false if seasonal_adjustment == 'seasonally_adjusted'
-    return false if !fuzzy
+    if seasonal_adjustment == 'not_seasonally_adjusted'
+      raise "#{self}: Set to &ns but name ends in 'SA'. Please fix apparent discrepancy." if parse_name[:prefix] =~ /SA$/i
+      return true
+    end
+    if seasonal_adjustment == 'seasonally_adjusted'
+      raise "#{self}: Set to &sa but name ends in 'NS'. Please fix apparent discrepancy." if parse_name[:prefix] =~ /NS$/i
+      return false
+    end
+    return false unless fuzzy
     parse_name[:prefix] =~ /NS$/i
   end
 
@@ -436,12 +448,6 @@ class Series < ApplicationRecord
     rescue => e
       raise "Series.eval for #{series_name} failed: #{e.message}"
     end
-#    Series.store(series_name, new_series, new_series.name, eval_statement, priority, no_enforce_fields: no_enforce_fields)
-#  end
-#
-#  def Series.store(series_name, series, desc = nil, eval_statement = nil, priority = 100, no_enforce_fields: false)
-#    desc = series.name if desc.nil?
-#    desc = 'Source Series Name is blank' if desc.blank?
     unless series.frequency == Series.frequency_from_name(series_name)
       raise "Frequency mismatch: attempt to assign name #{series_name} to data with frequency #{series.frequency}"
     end
@@ -499,6 +505,7 @@ class Series < ApplicationRecord
     observation_dates -= current_data_points.map(&:date)
     now = Time.now
     observation_dates.each do |date|
+      next if data[date] == 1.00E+0015
       xseries.data_points.create(
         :date => date,
         :value => data[date],
@@ -604,7 +611,7 @@ class Series < ApplicationRecord
   end
 
   def scaled_data(scale = 1.0)
-    data.map {|date, value| [date, value * scale] }.to_h
+    data.map {|date, value| [date, value == 1.00E+0015 ? value : value * scale] }.to_h
   end
 
   def yoy_hash
@@ -1059,10 +1066,9 @@ class Series < ApplicationRecord
         when /^[@]/
           all = all.joins(:geography)
           geos = tane.split(',').
-            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK} : g }.flatten.
+            map {|g| g.upcase == 'HIALL' ? %w{HI5 NBI MOL MAUI LAN HAWH HAWK HIONLY} : g }.flatten.
             map {|g| g.upcase == 'HI5' ? %w{HI CNTY} : g }.flatten.
             map {|g| g.upcase == 'CNTY' ? %w{HAW HON KAU MAU} : g }.flatten
-          Rails.logger.info "-------------------> geos = #{geos.join(',')}"
           qmarks = (['?'] * geos.count).join(',')
           conditions.push %Q{geographies.handle #{negated}in (#{qmarks})}
           bindvars.concat geos

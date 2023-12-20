@@ -427,8 +427,8 @@ private
     year = year.to_i
     if qm =~ /^M(\d+)/i
       Date.new(year, $1.to_i)
-    elsif qm =~ /^Q(\d+)/i
-      qspec_to_date("#{year}#{qm}") || raise("Bad QM value: |#{qm}|")
+    elsif qm =~ /^Q0?(\d+)/i
+      qspec_to_date("#{year}#{qm}")
     elsif qm.nil? || qm.empty? || qm =~ /A/i
       Date.new(year)
     else
