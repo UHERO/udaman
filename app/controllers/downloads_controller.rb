@@ -1,5 +1,6 @@
 class DownloadsController < ApplicationController
   include Authorization
+  include HelperUtilities
 
   before_action :check_authorization
   before_action :set_download, only: [:show, :edit, :duplicate, :update, :destroy, :download]
@@ -92,7 +93,7 @@ class DownloadsController < ApplicationController
   end
 
   def test_url
-    @test_url_status = Download.test_url(URI.encode(params[:change_to]))
+    @test_url_status = Download.test_url(URIescaper(params[:change_to]))
     render :partial => 'download_test_results'
   end
 

@@ -1,5 +1,6 @@
 class Download < ApplicationRecord
   include Cleaning
+  include HelperUtilities
   extend Validators
   has_many :data_source_downloads, dependent: :delete_all
   has_many :data_sources, -> {distinct}, through: :data_source_downloads
@@ -116,10 +117,10 @@ class Download < ApplicationRecord
     end
     if post_parameters.blank?
       Rails.logger.debug { "... Calling RestClient to get #{url.strip}" }
-      resp = RestClient.get URI.encode(url.strip)
+      resp = RestClient.get URIescaper(url.strip)
     else
       Rails.logger.debug { "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters.strip}" }
-      resp = RestClient.post URI.encode(url.strip), post_parameters.strip
+      resp = RestClient.post URIescaper(url.strip), post_parameters.strip
     end
     status = resp.code
     data_changed = false

@@ -74,4 +74,9 @@ module HelperUtilities
     return :morning if Time.now.hour >= 6  && Time.now.hour <= 8   ## the usual period of the morning part of the Nightly Load
     false
   end
+
+  ## Drop-in replacement to respond to deprecation of URI.encode
+  def URIescaper(uri)
+    URI::Parser.new.escape(uri)
+  end
 end
