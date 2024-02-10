@@ -287,7 +287,7 @@ class NewDbedtUpload < ApplicationRecord
     mylogger :info, 'worker_tasks: starting DataPoint.update_public_data_points'
     DataPoint.update_public_data_points('DBEDT') || raise('FAILED to update public data points')
 
-    output = %x{ssh uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
+    output = %x{ssh uhero12.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
     if $?.success?
       mylogger :info, "worker_tasks: API /v1/ cache clear: SUCCESS, #{output.to_i} entries cleared"
     else

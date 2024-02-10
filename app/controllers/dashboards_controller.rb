@@ -50,13 +50,13 @@ class DashboardsController < ApplicationController
 
   def force_sync_files
     Rails.logger.info { 'Performing NAS file sync' }
-    %x{ssh uhero@file.uhero.hawaii.edu "/home/uhero/filesync.sh"}
+    %x{ssh uhero@uhero13.colo.uhero.hawaii.edu "/home/uhero/filesync.sh"}
     render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
   end
 
   def clear_api_cache
     Rails.logger.info { 'Performing clear of API cache' }
-    %x{ssh uhero@uhero2.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
+    %x{ssh uhero@uhero12.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
     render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
   end
 end
