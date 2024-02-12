@@ -14,9 +14,9 @@ class ReloadJobDaemon
         xtra_params = Kernel::eval(job.params.to_s) || []
         param1 = xtra_params.shift
         param2 = xtra_params.shift || {}
-        if param1 && param1.class == String
+        if param1.class == String
           Series.reload_with_dependencies(job.series.pluck(:id), param1, **param2)
-        elsif param1 && param1.class == Hash
+        elsif param1.class == Hash
           Series.reload_with_dependencies(job.series.pluck(:id), **param1)
         else
           Series.reload_with_dependencies(job.series.pluck(:id))
