@@ -86,9 +86,9 @@ class NewDbedtUpload < ApplicationRecord
     category = nil
     allmeta = {}
     cats_ances = {}
-    root_cat = Category.find_by(universe: 'DBEDT', ancestry: nil).id rescue raise('No DBEDT root category found')
+    root_cat = Category.find_by(universe: 'DBEDT', ancestry: nil).id.to_s rescue raise('No DBEDT root category found')
 
-    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: false }) do |pairs|
+    CSV.foreach(csv_path, 'r', **{ col_sep: "\t", headers: true, return_headers: false }) do |pairs|
       row = {}
       pairs.to_a.each do |header, data|   ## convert row to hash keyed on column header, force blank/empty to nil
         break if header.blank?
@@ -164,7 +164,7 @@ class NewDbedtUpload < ApplicationRecord
     allunits = {}
     data_points = []
 
-    CSV.foreach(csv_path, { col_sep: "\t", headers: true, return_headers: false }) do |pairs|
+    CSV.foreach(csv_path, 'r', **{ col_sep: "\t", headers: true, return_headers: false }) do |pairs|
       row = {}
       pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         break if header.blank?
