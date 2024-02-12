@@ -1291,7 +1291,7 @@ class Series < ApplicationRecord
     load_params.merge!(group_size: group_size) if group_size
     load_params.merge!(cycle_time: cycle_time) if cycle_time
     Rails.logger.info { "Series.reload_with_dependencies: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
-    mgr.batch_reload(load_params)
+    mgr.batch_reload(**load_params)
   end
 
   def source_link_is_valid
