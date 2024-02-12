@@ -45,7 +45,7 @@ class DownloadsController < ApplicationController
       render :action => 'new'
     end
   end
-  
+
   def update
     myparams = download_params
     myparams[:freeze_file] = nil unless myparams[:freeze_file] == '1'  ## convert false to null in db
@@ -68,11 +68,11 @@ class DownloadsController < ApplicationController
     @output_file.destroy
     redirect_to :action => 'index'
   end
-  
+
   def download
     respond_to do |format|
       begin
-        @output_file.download 
+        @output_file.download
         flash[:notice] = 'Download successfully updated.'
         format.html { redirect_to( :action => 'index') }
       rescue Exception => e
@@ -92,7 +92,7 @@ class DownloadsController < ApplicationController
   end
 
   def test_url
-    @test_url_status = Download.test_url(URI.encode(params[:change_to]))
+    @test_url_status = Download.test_url(Addressable::URI.encode(params[:change_to]))
     render :partial => 'download_test_results'
   end
 
@@ -100,7 +100,7 @@ class DownloadsController < ApplicationController
     @test_save_path = Download.test_save_path(params[:change_to])
     render :partial => 'save_location_test_results'
   end
-  
+
   def test_post_params
     @test_post_params = Download.test_post_params(params[:change_to])
     render :partial => 'parameter_formatting_test_results'
