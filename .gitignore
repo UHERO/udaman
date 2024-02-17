@@ -21,3 +21,4 @@ config/deploy/*
 Capfile
 spec/datafiles/specs_output
 NOTES
+.env
