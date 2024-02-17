@@ -4,27 +4,63 @@ Udaman: UHERO Data Manager
 
 Udaman is [UHERO](https://uhero.hawaii.edu)'s data management system.
 
-To set up your development environment,
+# Setup for Local Development
 
-1. [Install Vagrant](https://www.vagrantup.com/downloads.html).
-2. [Install Virtual Box](https://www.virtualbox.org/wiki/Downloads).
-3. Clone this project.
-4. Install the following Vagrant plugins:
-    1. `vagrant plugin install vagrant-reload`
-    2. `vagrant plugin install vagrant-vbguest`
-5. `vagrant up` in the porject directory.
-6. `vagrant ssh` to log into the Udaman VM.
-7. In the Udaman VM, run the following commands to start the server, which you can access at localhost:3000:
+<br>
 
+## 1. Get Database Data
+### Option A: Clone Test DB
+
+### Notes
+- Do this after hours, when no one is using udaman. It can take several minutes, during which time you may slow down or interfere with other network traffic.
+- Guide assumes you've set up an alias for each server. If not, enter the full server name rather than "uhero12".
+- Guide assumes you have a user account with ssh access to uhero12. If not, check with lead dev.
+- Guide assumes you've installed mysql on your computer
+
+    ### As uhero user on uhero12
+    Run this from zsh or bash, not from inside mysql.
+    ```bash
+    $ mysqldump -u uhero -p test > dump.sql
     ```
-    cd /vagrant
-    rails s -b 0.0.0.0
+    ### As yourself on your computer
+    Move file from uhero12 to udaman's root directory
+    ```bash
+    $ scp username@uhero12:/path/to/dump.sql /path/to/local/udaman/dir
+    ```
+    Load copied data file into test db on your computer
+    ```bash
+    $ mysql -u uhero -p test < ./dump.sql
     ```
 
-### Add a user
+    Voila! Doublecheck your database.yml file to confirm your databse name, and access info.
+
+### Option B: request copy of of development db
+- If there is a lead dev, ask them to send you a copy to use locally. If you are the lead dev, rtfm.
+
+### Option C: Connect to "test" database on uhero12
+- This will be the quickest option to get up and running. Under no circumstances should you connect to the prod database named "uhero_dev_db". 
+<br>
+<br>
+<br>
+
+## 2. Initiate Rails App
+### Notes
+- Guide assumes you've installed Ruby version listed in `.ruby-version` and Rails version listed in `Gemfile`. 
+- Guide assumes you've already cloned the Udaman repo from GitHub.
+
+### Install Gems
+```bash
+$ bundle install
+```
+
+<br>
+<br>
+<br>
+
+## 3. Add a User Acct
 From the Udaman application folder, open the rails console:
 ```bash
-rails console
+$ rails console
 ```
 
 Add a user:
@@ -41,7 +77,7 @@ quit
 ### Take Udaman for a spin
 Start the rails server in the console
 ```bash
-rails s -b 0.0.0.0
+$ rails s -b 0.0.0.0
 ```
 
 In another terminal window enter the rails console in the project folder (`rails console`). And find the name of a series with data in it using the following command:

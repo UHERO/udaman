@@ -1,4 +1,4 @@
-# CW change- removed alias due to err with psych in newer ruby versions
+
 production:
     adapter: mysql2
     host: <%= ENV['DB_HOST'] || 'localhost' %>
