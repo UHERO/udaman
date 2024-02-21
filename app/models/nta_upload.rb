@@ -97,7 +97,7 @@ class NtaUpload < ApplicationRecord
 
     root_cat = Category.find_by(universe: 'NTA', ancestry: nil) || raise('No NTA root category found')
 
-    CSV.foreach(cats_path, {col_sep: "\t", headers: true, return_headers: false}) do |row|
+    CSV.foreach(cats_path, 'r', **{col_sep: "\t", headers: true, return_headers: false}) do |row|
       next unless row[2] =~ /indicator/i
 
       data_list_name = 'NTA_%s' % row[0].to_ascii.strip
@@ -199,7 +199,7 @@ class NtaUpload < ApplicationRecord
       indicator_name = cat.meta.sub(/^NTA_/,'')
       indicator_title = cat.name
 
-      CSV.foreach(series_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+      CSV.foreach(series_path, 'r', **{col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
         row_data = {}
         row_pairs.to_a.each do |header, data|  ## convert row data to a hash keyed on column header. force blank/empty to nil.
           next if header.blank?

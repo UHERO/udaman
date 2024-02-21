@@ -149,7 +149,7 @@ class DvwUpload < ApplicationRecord
     columns = nil
     ordering = {}
 
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
+    CSV.foreach(csv_path, 'r', **{col_sep: "\t", headers: true, return_headers: true}) do |row_pairs|
       unless columns
         columns = row_pairs.to_a.reject {|x,_| x.blank? || x =~ /^\s*[lo]_/i }.map {|x,_| x.strip.downcase }  ## leave out L_* and O_*
         columns.push('level', 'order')  ## add renamed/computed columns
@@ -220,7 +220,7 @@ class DvwUpload < ApplicationRecord
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     dp_data_set = []
-    CSV.foreach(csv_path, {col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
+    CSV.foreach(csv_path, 'r', **{col_sep: "\t", headers: true, return_headers: false}) do |row_pairs|
       row = {}
       row_pairs.to_a.each do |header, data|  ## convert row to hash keyed on column header, force blank/empty to nil
         break if header.blank?
