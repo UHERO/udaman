@@ -319,7 +319,7 @@ module SeriesArithmetic
       FROM (
         SELECT `value`, `date`, `scale`, DATE_SUB(`date`, INTERVAL 1 YEAR) AS last_year
         FROM data_points d
-          JOIN data_sources ld on ld.id = d.data_source_id
+          JOIN loaders ld on ld.id = d.loader_id
           JOIN xseries x ON x.id = d.xseries_id
         WHERE x.primary_series_id = ?
         AND d.current = true
