@@ -1,4 +1,4 @@
-class CreateDataListMeasurements < ActiveRecord::Migration
+class CreateDataListMeasurements < ActiveRecord::Migration[5.2]
   def change
     create_table :data_list_measurements do |t|
       t.belongs_to :data_list, index: true

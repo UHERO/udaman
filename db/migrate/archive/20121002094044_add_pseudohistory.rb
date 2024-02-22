@@ -1,4 +1,4 @@
-class AddPseudohistory < ActiveRecord::Migration
+class AddPseudohistory < ActiveRecord::Migration[5.2]
   def self.up
     add_column :data_points, :pseudo_history, :boolean, :default => false unless column_exists? :data_points, :pseudo_history
   end
@@ -6,5 +6,5 @@ class AddPseudohistory < ActiveRecord::Migration
   def self.down
     remove_column :data_points, :pseudo_history if column_exists? :data_points, :pseudo_history
   end
-  
+
 end

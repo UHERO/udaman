@@ -12,7 +12,7 @@ class Geography < ApplicationRecord
   end
 
   def is_in_hawaii?
-    %w[HI HAW HON KAU MAU NBI MAUI LAN MOL HAWH HAWK].include?(handle.upcase)
+    %w[HI HAW HON KAU MAU NBI MAUI LAN MOL HAWH HAWK HIONLY].include?(handle.upcase)
   end
 
   def Geography.get(attrs)

@@ -1,4 +1,4 @@
-class CreateGeoTree < ActiveRecord::Migration
+class CreateGeoTree < ActiveRecord::Migration[5.2]
   def change
     create_table :geo_trees, id: false  do |t|
       t.integer :parent_id, null: false

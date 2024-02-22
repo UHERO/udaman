@@ -1,4 +1,4 @@
-class AddDataSourceDownloadHandles < ActiveRecord::Migration
+class AddDataSourceDownloadHandles < ActiveRecord::Migration[5.2]
   def self.up
     add_column :data_source_downloads, :handle, :string unless column_exists? :data_source_downloads, :handle
   end

@@ -1,4 +1,4 @@
-class CreateApiApplications < ActiveRecord::Migration
+class CreateApiApplications < ActiveRecord::Migration[5.2]
   def change
     create_table :api_applications do |t|
       t.string :name

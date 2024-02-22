@@ -1,4 +1,4 @@
-class ChangeUserRoleTypes < ActiveRecord::Migration
+class ChangeUserRoleTypes < ActiveRecord::Migration[5.2]
   def self.up
     change_column :users, :role, "ENUM('external', 'heco', 'internal', 'admin', 'dev')", null: false, default: 'external', after: :universe
   end

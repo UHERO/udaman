@@ -1,4 +1,4 @@
-class AddTitleCaseFunction < ActiveRecord::Migration
+class AddTitleCaseFunction < ActiveRecord::Migration[5.2]
   def up
     execute 'DROP FUNCTION IF EXISTS lowerword;'
     execute 'SET GLOBAL log_bin_trust_function_creators=TRUE;'

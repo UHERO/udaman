@@ -1,4 +1,4 @@
-class AddStatisticsToDataPoints < ActiveRecord::Migration
+class AddStatisticsToDataPoints < ActiveRecord::Migration[5.2]
   def self.up
     add_column :data_points, :change, :float, :limit => 53 unless column_exists? :data_points, :change
     add_column :data_points, :yoy, :float, :limit => 53 unless column_exists? :data_points, :yoy

@@ -3,7 +3,7 @@
   form_spec.merge!(url: { action: :meta_store }) if @meta_update
 %>
 <p>* Required fields</p>
-<%= form_with(form_spec) do |f| %>
+<%= form_with(**form_spec) do |f| %>
     <% if @series.errors.any? %>
         <div id="error_explanation">
           <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>

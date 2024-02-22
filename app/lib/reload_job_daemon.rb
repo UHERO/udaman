@@ -12,7 +12,15 @@ class ReloadJobDaemon
       job.update!(status: 'processing')
       begin
         xtra_params = Kernel::eval(job.params.to_s) || []
-        Series.reload_with_dependencies(job.series.pluck(:id), *xtra_params)
+        param1 = xtra_params.shift
+        param2 = xtra_params.shift || {}
+        if param1.class == String
+          Series.reload_with_dependencies(job.series.pluck(:id), param1, **param2)
+        elsif param1.class == Hash
+          Series.reload_with_dependencies(job.series.pluck(:id), **param1)
+        else
+          Series.reload_with_dependencies(job.series.pluck(:id))
+        end
         DataPoint.update_public_all_universes if job.update_public
         job.update!(status: 'done', finished_at: Time.now)
       rescue => e

@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'rails', '~> 5.2', '>= 5.2.8.1'
+gem 'rails', '~> 6.0.1'
 gem 'bundler', '>= 2.1.4'
 
 # Application Monitoring
@@ -12,9 +12,10 @@ gem 'capistrano-bundler', '~> 1.0'
 gem 'capistrano', '~> 3.0'
 gem 'highline', '~> 1.6.0'
 gem 'mysql2', '~> 0.5', '>= 0.5.3'
-gem 'composite_primary_keys', '~> 11.0'
+gem 'composite_primary_keys'
 gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
+gem 'matrix', '~> 0.4.2'
 gem 'httpclient'
 gem 'rest-client', '~> 2.0'
 gem 'sidekiq', '<7'
@@ -32,7 +33,7 @@ gem 'net-sftp'
 gem 'dalli', '~> 3.2'
 gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.org'
 gem 'ancestry'
-gem 'will_paginate', '~> 3.1.1', '>= 3.1.5'
+gem 'will_paginate', '~> 3.1', '>= 3.3.1'
 gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2

@@ -1,4 +1,4 @@
-class CreateNtaUploads < ActiveRecord::Migration
+class CreateNtaUploads < ActiveRecord::Migration[5.2]
   def change
     create_table :nta_uploads do |t|
       t.datetime :upload_at

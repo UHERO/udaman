@@ -1,4 +1,4 @@
-class ChangeCatsDataListIdToForeignKey < ActiveRecord::Migration
+class ChangeCatsDataListIdToForeignKey < ActiveRecord::Migration[5.2]
   def self.up
     execute <<~SQL
      ALTER TABLE categories

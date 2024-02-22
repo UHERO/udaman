@@ -1,4 +1,4 @@
-class CreateDataSources < ActiveRecord::Migration
+class CreateDataSources < ActiveRecord::Migration[5.2]
   def self.up
     create_table :data_sources unless table_exists? :data_sources do |t|
       t.integer :series_id

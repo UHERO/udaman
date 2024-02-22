@@ -1,4 +1,4 @@
-class CreateAremosSeries < ActiveRecord::Migration
+class CreateAremosSeries < ActiveRecord::Migration[5.2]
   def self.up
     create_table :aremos_series unless table_exists? :aremos_series do |t|
       t.string :name

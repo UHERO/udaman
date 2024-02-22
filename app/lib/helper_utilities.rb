@@ -17,7 +17,7 @@ module HelperUtilities
   ## Put in quarter spec like YYYYQ1, YYYY-Q1, YYYY/Q1, YYYY-Q01, "YYYY Q1", "YYYY Q01", etc
   ## get out Date object, e.g. qspec_to_date("2012Q2") => #<Date year: 2012, month: 4, day: 1>
   def qspec_to_date(qstr)
-    return nil unless qstr =~ /([12]\d\d\d)[-.\/ ]?Q0?([1234])/i
+    raise 'qspec_to_date: Invalid quarter spec %s' % qstr unless qstr =~ /([12]\d\d\d)[-.\/ ]?Q0?([1234])\b/i
     Date.new($1.to_i, first_month_of_quarter($2))
   end
 

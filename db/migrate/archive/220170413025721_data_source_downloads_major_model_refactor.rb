@@ -1,4 +1,4 @@
-class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration
+class DataSourceDownloadsMajorModelRefactor < ActiveRecord::Migration[5.2]
   def self.up
     drop_table :downloads if table_exists? :downloads
     rename_table :data_source_downloads, :downloads

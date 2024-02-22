@@ -1,4 +1,4 @@
-class AddNewUniverseHawaiiCounty < ActiveRecord::Migration
+class AddNewUniverseHawaiiCounty < ActiveRecord::Migration[5.2]
   def self.up
     change_column :api_applications, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'
     change_column :categories, :universe, %q(ENUM('UHERO','DBEDT','NTA','COH')), null: false, default: 'UHERO'

@@ -1,4 +1,4 @@
-class CreateCompositeKeyForDataPoint < ActiveRecord::Migration
+class CreateCompositeKeyForDataPoint < ActiveRecord::Migration[5.2]
   # This causes errors without first manually removing the autoincrement from `id`
   # `ALTER TABLE data_points MODIFY id INT(11) NOT NULL;`
 
@@ -6,7 +6,7 @@ class CreateCompositeKeyForDataPoint < ActiveRecord::Migration
     execute <<-SQL
       DELETE FROM data_points WHERE `date` IS NULL;
     SQL
-    
+
     change_column_null :data_points, :series_id, false
     change_column_null :data_points, :date, false
     change_column_null :data_points, :created_at, false
@@ -25,9 +25,9 @@ class CreateCompositeKeyForDataPoint < ActiveRecord::Migration
     SQL
 
     add_index(:data_points, :series_id) unless index_exists? :data_points, :series_id
-    
+
     change_column_null :data_points, :series_id, true
-    change_column_null :data_points, :date, true 
+    change_column_null :data_points, :date, true
     change_column_null :data_points, :created_at, true
     change_column_null :data_points, :data_source_id, true
   end

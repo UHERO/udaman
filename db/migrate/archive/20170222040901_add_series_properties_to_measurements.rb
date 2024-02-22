@@ -1,4 +1,4 @@
-class AddSeriesPropertiesToMeasurements < ActiveRecord::Migration
+class AddSeriesPropertiesToMeasurements < ActiveRecord::Migration[5.2]
   def change
     add_column :measurements, :source_link, :string, after: :real
     add_reference :measurements, :source, after: :real, foreign_key: true

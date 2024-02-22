@@ -6,6 +6,10 @@ class DataPoint < ApplicationRecord
   def upd(value, loader)
     return nil if trying_to_replace_with_nil?(value)
     return nil unless value_or_loader_changed?(value, loader)
+    if value == 1.00E+0015
+      xseries.data_points.where(date: date, current: true).update_all(current: false)
+      return nil
+    end
     create_new_dp(value, loader)
   end
   

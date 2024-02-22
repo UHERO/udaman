@@ -1,4 +1,4 @@
-class CreateSeries < ActiveRecord::Migration
+class CreateSeries < ActiveRecord::Migration[5.2]
   def self.up
     create_table :series unless table_exists? :series do |t|
       t.string :name

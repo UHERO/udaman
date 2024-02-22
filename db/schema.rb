@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025779) do
+ActiveRecord::Schema.define(version: 220170413025781) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -23,7 +23,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["universe", "name"], name: "index_api_applications_on_universe_and_name", unique: true
   end
 
-  create_table "aremos_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "aremos_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.string "name"
     t.string "frequency"
     t.string "description"
@@ -51,7 +51,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.integer "last_branch_code_number", default: 0, null: false
   end
 
-  create_table "categories", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "categories", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.integer "data_list_id"
     t.integer "default_geo_id"
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -104,7 +104,10 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["data_list_id"], name: "index_data_lists_series_on_data_list_id"
   end
 
-  create_table "data_points", primary_key: ["xseries_id", "date", "created_at", "data_source_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "data_load_patterns", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  end
+
+  create_table "data_points", primary_key: ["xseries_id", "date", "created_at", "data_source_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.integer "xseries_id", null: false
     t.date "date", null: false
     t.datetime "created_at", null: false
@@ -142,7 +145,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["data_source_id", "download_id"], name: "index_data_source_downloads_on_data_source_id_and_download_id", unique: true
   end
 
-  create_table "data_sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "data_sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.integer "series_id"
     t.boolean "disabled", default: false, null: false
     t.string "universe", limit: 5, default: "UHERO", null: false
@@ -153,6 +156,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.boolean "pseudo_history", default: false, null: false
     t.boolean "clear_before_load", default: false, null: false
     t.string "eval", limit: 500
+    t.string "scale", default: "1.0", null: false
     t.string "presave_hook"
     t.string "color"
     t.float "runtime"
@@ -198,7 +202,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["handle"], name: "index_downloads_on_handle", unique: true
   end
 
-  create_table "dsd_log_entries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "dsd_log_entries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.integer "download_id"
     t.datetime "time"
     t.string "url"
@@ -270,7 +274,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["parent_id"], name: "fk_rails_20ee9a0990"
   end
 
-  create_table "geographies", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "geographies", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.string "handle"
     t.string "display_name"
@@ -337,11 +341,14 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.datetime "last_error_at"
   end
 
-  create_table "packager_outputs", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "packager_outputs", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.string "path"
     t.date "last_new_data"
     t.datetime "created_at"
     t.datetime "updated_at"
+  end
+
+  create_table "prognoz_data_files", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
   end
 
   create_table "public_data_points", primary_key: ["series_id", "date"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
@@ -372,7 +379,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["user_id"], name: "index_reload_jobs_on_user_id"
   end
 
-  create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.integer "xseries_id", null: false
     t.integer "geography_id"
     t.integer "unit_id"
@@ -456,6 +463,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
   create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
     t.string "universe", limit: 5, default: "UHERO", null: false
     t.string "role", limit: 8, default: "external", null: false
+    t.boolean "mnemo_search", default: false, null: false
     t.string "email", default: "", null: false
     t.string "encrypted_password", limit: 128, default: "", null: false
     t.string "password_salt", default: ""
@@ -475,7 +483,7 @@ ActiveRecord::Schema.define(version: 220170413025779) do
     t.index ["universe"], name: "index_users_on_universe"
   end
 
-  create_table "xseries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+  create_table "xseries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
     t.integer "primary_series_id"
     t.boolean "restricted", default: false, null: false
     t.boolean "quarantined", default: false

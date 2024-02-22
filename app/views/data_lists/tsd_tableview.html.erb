@@ -1,7 +1,15 @@
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <script type="text/javascript">
-	google.load("visualization", "1", {packages: ["table"]});
-	google.load("visualization", "1", {packages:["corechart"]});
+		function LoadGoogle() {
+        if(typeof google != 'undefined' && google && google.load) {
+            google.load("visualization", "1", {packages: ["table"]});
+			google.load("visualization", "1", {packages:["corechart"]});
+        } else {
+            // Retry later...
+            setTimeout(LoadGoogle, 30);
+        }
+    }
+    LoadGoogle();
 </script>
 
 <style>

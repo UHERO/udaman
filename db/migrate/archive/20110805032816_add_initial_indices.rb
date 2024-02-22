@@ -1,4 +1,4 @@
-class AddInitialIndices < ActiveRecord::Migration
+class AddInitialIndices < ActiveRecord::Migration[5.2]
   def self.up
     add_index(:series, :name) unless index_exists? :series, :name
     add_index(:aremos_series, :name) unless index_exists? :aremos_series, :name

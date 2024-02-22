@@ -1,4 +1,4 @@
-class CreateTransformations < ActiveRecord::Migration
+class CreateTransformations < ActiveRecord::Migration[5.2]
   def change
     create_table :transformations do |t|
       t.string :key

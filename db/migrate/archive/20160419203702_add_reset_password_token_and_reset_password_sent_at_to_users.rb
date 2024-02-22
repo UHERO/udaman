@@ -1,4 +1,4 @@
-class AddResetPasswordTokenAndResetPasswordSentAtToUsers < ActiveRecord::Migration
+class AddResetPasswordTokenAndResetPasswordSentAtToUsers < ActiveRecord::Migration[5.2]
   def self.up
     add_column :users, :reset_password_sent_at, :datetime unless column_exists? :users, :reset_password_sent_at
   end

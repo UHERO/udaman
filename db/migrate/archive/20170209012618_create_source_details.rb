@@ -1,4 +1,4 @@
-class CreateSourceDetails < ActiveRecord::Migration
+class CreateSourceDetails < ActiveRecord::Migration[5.2]
   def change
     create_table :source_details do |t|
       t.text :description

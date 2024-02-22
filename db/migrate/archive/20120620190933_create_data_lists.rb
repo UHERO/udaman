@@ -1,4 +1,4 @@
-class CreateDataLists < ActiveRecord::Migration
+class CreateDataLists < ActiveRecord::Migration[5.2]
   def self.up
     create_table :data_lists unless table_exists? :data_lists do |t|
       t.string :name

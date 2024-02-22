@@ -1,4 +1,4 @@
-class AddUniverseToManyTables < ActiveRecord::Migration
+class AddUniverseToManyTables < ActiveRecord::Migration[5.2]
   def self.up
     change_column :categories, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), default: 'UHERO', after: :id
     add_column :data_lists, :universe, %q(ENUM('UHERO', 'DBEDT', 'NTA')), null: false, default: 'UHERO', after: :id

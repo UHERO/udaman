@@ -116,10 +116,10 @@ class Download < ApplicationRecord
     end
     if post_parameters.blank?
       Rails.logger.debug { "... Calling RestClient to get #{url.strip}" }
-      resp = RestClient.get URI.encode(url.strip)
+      resp = RestClient.get Addressable::URI.encode(url.strip)
     else
       Rails.logger.debug { "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters.strip}" }
-      resp = RestClient.post URI.encode(url.strip), post_parameters.strip
+      resp = RestClient.post Addressable::URI.encode(url.strip), post_parameters.strip
     end
     status = resp.code
     data_changed = false
