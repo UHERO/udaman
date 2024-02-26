@@ -3,7 +3,7 @@
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<%= form_with(model: @data_source) do |ds| %>
+	<%= form_with(model: @loader) do |ds| %>
 		<div class="field">
 			Code
 			<%= ds.text_field :eval, size: 120 %>
