@@ -31,60 +31,6 @@ class Loader < ApplicationRecord
       Loader.where(universe: 'UHERO')
     end
 
-    ## This method appears to be vestigial - confirm and delete later
-    def Loader.all_evals_DELETEME?
-      Loader.get_all_uhero.pluck(:eval)
-    end
-
-    ## This method appears to be vestigial - confirm and delete later
-    def Loader.all_load_from_file_series_names_DELETEME?
-      series_names = []
-      Loader.where("eval LIKE '%load_from %'").all.each do |ds|
-        series_names.push ds.series.name
-      end
-      series_names.uniq
-    end
-
-    ## This method appears to be vestigial - confirm and delete later
-    def Loader.all_history_and_manual_series_names_DELETEME?
-      series_names = []
-      %w(sic permits agriculture Kauai HBR prud census trms vexp hud hiwi_upd const_hist tax_hist tke).each do |type|
-        Loader.where("eval LIKE '%load_from %#{type}%'").each do |ds|
-          series_names.push ds.series.name
-        end
-      end
-      %w(visusns vrlsns tke tkb vrdc gffot yl_o yl_tu yl_trade).each do |type|
-        Loader.where("eval LIKE '%#{type}%load_from %'").each do |ds|
-          series_names.push ds.series.name
-        end
-      end
-
-      series_names.push 'PC_ANNUAL@HON.M'
-      series_names.push 'PCTRGSMD@HON.M'
-      series_names.push 'NTTOURNS@HI.M'
-      series_names.uniq
-    end
-
-  ## These methods ALL appear to be vestigial - confirm and delete later
-    def Loader.pattern_only_series_names_DELETEME?
-      Loader.all_pattern_series_names - Loader.all_load_from_file_series_names
-    end
-    def Loader.load_only_series_names_DELETEME?
-      Loader.all_load_from_file_series_names - Loader.all_pattern_series_names
-    end
-    def Loader.pattern_and_load_series_names_DELETEME?
-      Loader.all_pattern_series_names & Loader.all_load_from_file_series_names
-    end
-    def Loader.load_and_pattern_series_names_DELETEME?
-      Loader.pattern_and_load_series_names
-    end
-    
-    def Loader.series_sources_DELETEME?
-      sa_series_sources = [] 
-      Loader.all_evals.each {|eval| sa_series_sources.push(eval) unless eval.index('load_sa_from').nil?}
-      sa_series_sources
-    end
-
     def Loader.set_all_dependencies
       Rails.logger.info { 'Loader set_all_dependencies: start' }
       Loader.get_all_uhero.find_each(batch_size: 50) do |ld|
