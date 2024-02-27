@@ -1,6 +1,6 @@
 module LoaderHooks
 
-##  Methods to be called immediately prior to storing data points during a Definition load operation. Each must be
+##  Methods to be called immediately prior to storing data points during a Loader load operation. Each must be
 ##  an instance method defined in THIS FILE, and must take a single parameter (the new series) and return that
 ##  series with any mods.
 

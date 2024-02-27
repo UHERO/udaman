@@ -9,7 +9,7 @@
              <%= link_to 'clear', { controller: :loaders, action: :clear, id: ld.id } %> |
              <%= link_to 'edit', { controller: :loaders, action: :edit, id: ld.id } %> |
              <%= link_to 'delete', { controller: :loaders, action: :delete, id: ld.id },
-                                  data: { :confirm => "Permanently delete disabled definition #{ld.id}: Are you sure??" } %>
+                                  data: { :confirm => "Permanently delete disabled loader #{ld.id}: Are you sure??" } %>
           <% end %>
         </td>
       </tr>
@@ -36,9 +36,9 @@
                     :controller => 'loaders',
                     :action => 'delete',
                     :id => ld.id },
-                    data: { :confirm => "Delete definition #{ld.id}: Are you sure??" } %>
+                    data: { :confirm => "Delete loader #{ld.id}: Are you sure??" } %>
                | <%= link_to 'disable', { controller: :loaders, action: :disable, id: ld.id },
-                         data: { confirm: "Disable definition #{ld.id}: Can only be restored by system admin. Are you sure??" } %> |
+                         data: { confirm: "Disable loader #{ld.id}: Can only be restored by system admin. Are you sure??" } %> |
               <% if myeval =~ /load_from_download|load_from_file/ %>
                  <%= link_to 'reset', { controller: :loaders, action: :reset, id: ld.id }%>&nbsp;|
               <% end %>

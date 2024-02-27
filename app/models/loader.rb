@@ -156,7 +156,7 @@ class Loader < ApplicationRecord
 
     def reload_source(clear_first = clear_before_load?)
       return false if disabled?
-      Rails.logger.info { "Begin reload of definition #{id} for series <#{self.series}> [#{description}]" }
+      Rails.logger.info { "Begin reload of loader #{id} for series <#{self.series}> [#{description}]" }
       t = Time.now
       update_props = { last_run: t, last_run_at: t, last_error: nil, last_error_at: nil, runtime: nil }
 
@@ -183,14 +183,14 @@ class Loader < ApplicationRecord
         series.update_data(s.scaled_data(scale.to_f), self)
         update_props.merge!(description: s.name, runtime: Time.now - t)
       rescue => e
-        Rails.logger.error { "Reload definition #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
+        Rails.logger.error { "Reload loader #{id} for series <#{self.series}> [#{description}]: Error: #{e.message}" }
         update_props.merge!(last_error: e.message[0..253], last_error_at: t)
         return false  ## Note! ensure block runs despite this early return!
       ensure
         self.reload if presave_hook  ## ORM reload: It sucks to have to do this, but presave_hook might change something, that will end up saved below
         self.update!(update_props)
       end
-      Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series}> [#{description}]" }
+      Rails.logger.info { "Completed reload of loader #{id} for series <#{self.series}> [#{description}]" }
       true
     end
 
@@ -258,7 +258,7 @@ class Loader < ApplicationRecord
       stmt = Series.connection.raw_connection.prepare(query)
       stmt.execute(*bindvars)
       stmt.close
-      Rails.logger.info { "Deleted data points for definition #{id}" }
+      Rails.logger.info { "Deleted data points for loader #{id}" }
     end
 
     ## this method not really needed, eh?
@@ -367,7 +367,7 @@ class Loader < ApplicationRecord
       begin
         options = (ldr.eval =~ OPTIONS_MATCHER) ? Kernel::eval($1) : nil
         unless options
-          raise "Definition id=#{ldr.id} eval string does not contain a valid options hash"
+          raise "Loader id=#{ldr.id} eval string does not contain a valid options hash"
         end
         replace_options.each do |key, value|
           if value.nil?
