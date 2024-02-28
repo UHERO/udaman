@@ -400,12 +400,12 @@ class Series < ApplicationRecord
     ## future/next time: the dataPortalName also needs to be copied over (with mods?)
     )
     new.save!
-    self.enabled_loaders.each do |ds|
-      new_ds = ds.dup
-      if new_ds.save!
-        new_ds.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
-        new.loaders << new_ds
-        new_ds.reload_source
+    self.enabled_loaders.each do |ld|
+      new_ld = ld.dup
+      if new_ld.save!
+        new_ld.update!(last_run_at: nil, last_run_in_seconds: nil, last_error: nil, last_error_at: nil)
+        new.loaders << new_ld
+        new_ld.reload_source
       end
     end
     new
@@ -486,7 +486,7 @@ class Series < ApplicationRecord
 
   def loaders_sort_for_display
     ## Disabled at the top, then non-nightlies, then by priority, then by id within priority groups.
-    loaders.sort_by {|ds| [(ds.disabled? ? 0 : 1), (ds.reload_nightly? ? 1 : 0), ds.priority, ds.id] }
+    loaders.sort_by {|ld| [(ld.disabled? ? 0 : 1), (ld.reload_nightly? ? 1 : 0), ld.priority, ld.id] }
     ## For some reason, sort_by does not take the boolean attributes as-is, but they need to be "reconverted"
     ## to integer - I am mystified by this.
   end
@@ -1010,17 +1010,17 @@ class Series < ApplicationRecord
 
   def reload_sources(nightly: false, clear_first: false)
     series_success = true
-    loaders_by_last_run.each do |ds|
+    loaders_by_last_run.each do |ld|
       success = true
       begin
         clear_param = clear_first ? [true] : []  ## this is a hack required so that the parameter default for reload_source() can work correctly. Please be sure you understand before changing.
-        success = ds.reload_source(*clear_param) unless nightly && !ds.reload_nightly? && !(ds.is_history? && HISTORY_LOAD_DATES.include?(Date.today.day)) ## History loaders only reload on certain days.
+        success = ld.reload_source(*clear_param) unless nightly && !ld.reload_nightly? && !(ld.is_history? && HISTORY_LOAD_DATES.include?(Date.today.day)) ## History loaders only reload on certain days.
         unless success
           raise 'error in reload_source method, should be logged above'
         end
       rescue => e
         series_success = false
-        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ds.id} in series <#{self.name}> (#{self.id})" }
+        Rails.logger.error { "SOMETHING BROKE (#{e.message}) with source #{ld.id} in series <#{self.name}> (#{self.id})" }
       end
     end
     series_success
