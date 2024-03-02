@@ -2,7 +2,7 @@ class DataPoint < ApplicationRecord
   self.primary_key = :xseries_id, :date, :created_at, :loader_id
   belongs_to :xseries, inverse_of: :data_points
   belongs_to :loader
-  
+
   def upd(value, loader)
     return nil if trying_to_replace_with_nil?(value)
     return nil unless value_or_loader_changed?(value, loader)
@@ -12,7 +12,7 @@ class DataPoint < ApplicationRecord
     end
     create_new_dp(value, loader)
   end
-  
+
   def value_or_loader_changed?(value, loader)
     unless self.value_equal_to? value
       series_auto_quarantine_check
@@ -36,7 +36,7 @@ class DataPoint < ApplicationRecord
   def trying_to_replace_with_nil?(value)
      value.nil? && !self.value.nil?
   end
-  
+
   def create_new_dp(upd_value, upd_loader)
     return nil if upd_loader.priority < self.loader.priority
     new_dp = DataPoint.create(
@@ -44,7 +44,7 @@ class DataPoint < ApplicationRecord
         date: self.date,
         loader_id: upd_loader.id,
         value: upd_value,
-        pseudo_history: upd_source.pseudo_history,
+        pseudo_history: upd_loader.pseudo_history,
         current: false  ## will be set to true just below
     )
     make_current(new_dp)
