@@ -40,9 +40,9 @@ class SeriesController < ApplicationController
     new_name = params[:new_name].strip
     dup_series = @series.duplicate(new_name)
     if params[:copy_loaders] == 'yes'
-      @series.enabled_data_sources.each do |ld|
+      @series.enabled_loaders.each do |ld|
         new_ld = ld.dup
-        dup_series.data_sources << new_ld
+        dup_series.loaders << new_ld
       end
     end
     redirect_to edit_series_path(dup_series)
@@ -266,7 +266,7 @@ class SeriesController < ApplicationController
     @chg = @series.annualized_percentage_change params[:id]
     @ytd_chg = @series.ytd_percentage_change params[:id]
     @lvl_chg = @series.absolute_change params[:id]
-    @dsas = @series.enabled_data_sources.map {|ds| ds.data_source_actions }.flatten
+    @dsas = @series.enabled_loaders.map {|ld| ld.loader_actions }.flatten
     @clipboarded = current_user.clipboard.include?(@series)
     @dependencies = @series.who_depends_on_me(['series.name', 'series.id']).sort_by {|a| a[0] }
     return if no_render

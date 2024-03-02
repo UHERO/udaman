@@ -25,7 +25,7 @@
 					</td>
 					<td>
 						<table>
-      						<% series.data_sources_by_last_run.each do |ds| %>
+      						<% series.loaders_by_last_run.each do |ds| %>
        						<tr>
 								<%= render  :partial => 'source_map_recursive', 
 											:locals => {

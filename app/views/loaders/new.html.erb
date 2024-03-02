@@ -3,7 +3,7 @@
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<%= form_with(model: @data_source) do |ds| %>
+	<%= form_with(model: @loader) do |ds| %>
 		<div class="field">
 			Code
 			<%= ds.text_field :eval, size: 120 %>
@@ -18,7 +18,7 @@
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
-      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true } %>
+      <%= ds.select :presave_hook, LoaderHooks.instance_methods, { include_blank: true } %>
     </div>
     <div class="field">
       <%= ds.check_box :clear_before_load %> Always clear existing data points before loading

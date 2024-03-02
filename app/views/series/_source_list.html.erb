@@ -1,15 +1,15 @@
 <table style="border-collapse:collapse;">
-	<% series.data_sources_sort_for_display.each do |ds| %>
-    <% myeval = ds.eval.to_s %>
-    <% if ds.disabled?  ## I dislike having this as a separate code path, but... it's just cleaner %>
+	<% series.loaders_sort_for_display.each do |ld| %>
+    <% myeval = ld.eval.to_s %>
+    <% if ld.disabled?  ## I dislike having this as a separate code path, but... it's just cleaner %>
       <tr style="border:none;background-color:lightgrey;" >
         <td style="border:none;">
-          <strong><%= ds.id %></strong>
+          <strong><%= ld.id %></strong>
           <% if current_user.admin_user? %>
-             <%= link_to 'clear', { controller: :data_sources, action: :clear, id: ds.id } %> |
-             <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %> |
-             <%= link_to 'delete', { controller: :data_sources, action: :delete, id: ds.id },
-                                  data: { :confirm => "Permanently delete disabled definition #{ds.id}: Are you sure??" } %>
+             <%= link_to 'clear', { controller: :loaders, action: :clear, id: ld.id } %> |
+             <%= link_to 'edit', { controller: :loaders, action: :edit, id: ld.id } %> |
+             <%= link_to 'delete', { controller: :loaders, action: :delete, id: ld.id },
+                                  data: { :confirm => "Permanently delete disabled loader #{ld.id}: Are you sure??" } %>
           <% end %>
         </td>
       </tr>
@@ -18,57 +18,57 @@
       <% next %>
     <% end %>
 
-  	<tr style="border:none;background-color:#<%= ds.color %>;" >
+  	<tr style="border:none;background-color:#<%= ld.color %>;" >
   		<td style="border:none;">
-      <%= ds.last_run ? ds.last_run.strftime("%m/%d/%y") : '-' %>
-      <span style="color:gray"><%= ds.last_run ? ds.last_run.strftime("%H:%M") : '-' %></span>&nbsp;(<%= ds.priority %>)
+      <%= ld.last_run ? ld.last_run.strftime("%m/%d/%y") : '-' %>
+      <span style="color:gray"><%= ld.last_run ? ld.last_run.strftime("%H:%M") : '-' %></span>&nbsp;(<%= ld.priority %>)
  					<%= 
 						link_to 'load', {
-							:controller => 'data_sources',
+							:controller => 'loaders',
 							:action => 'source', 
-							:id => ds.id} unless myeval.blank?
+							:id => ld.id} unless myeval.blank?
 					%><% if current_user.admin_user? %>&nbsp;|&nbsp;<%=
                 link_to 'clear', {
-                  :controller => 'data_sources',
+                  :controller => 'loaders',
                   :action => 'clear',
-                  :id => ds.id} unless myeval.blank?
+                  :id => ld.id} unless myeval.blank?
               %> |&nbsp;<%= link_to 'delete', {
-                    :controller => 'data_sources',
+                    :controller => 'loaders',
                     :action => 'delete',
-                    :id => ds.id },
-                    data: { :confirm => "Delete definition #{ds.id}: Are you sure??" } %>
-               | <%= link_to 'disable', { controller: :data_sources, action: :disable, id: ds.id },
-                         data: { confirm: "Disable definition #{ds.id}: Can only be restored by system admin. Are you sure??" } %> |
+                    :id => ld.id },
+                    data: { :confirm => "Delete loader #{ld.id}: Are you sure??" } %>
+               | <%= link_to 'disable', { controller: :loaders, action: :disable, id: ld.id },
+                         data: { confirm: "Disable loader #{ld.id}: Can only be restored by system admin. Are you sure??" } %> |
               <% if myeval =~ /load_from_download|load_from_file/ %>
-                 <%= link_to 'reset', { controller: :data_sources, action: :reset, id: ds.id }%>&nbsp;|
+                 <%= link_to 'reset', { controller: :loaders, action: :reset, id: ld.id }%>&nbsp;|
               <% end %>
-              <%= link_to 'edit', { controller: :data_sources, action: :edit, id: ds.id } %> |
-              <%= link_to 'toggle nightly load', {controller: :data_sources, action: :toggle_reload_nightly, id: ds.id} %>
+              <%= link_to 'edit', { controller: :loaders, action: :edit, id: ld.id } %> |
+              <%= link_to 'toggle nightly load', { controller: :loaders, action: :toggle_reload_nightly, id: ld.id} %>
             <% else %>
               <span style="color:gray"> | clear | delete | disable | edit | toggle nightly load</span> <!-- fake controls to maintain uniform appearance -->
             <% end %>
-          <% if ds.runtime %>
-              <span style="color:gray">(<%= "#{ds.runtime.round(2)}s" %>)</span>
+          <% if ld.runtime %>
+              <span style="color:gray">(<%= "#{ld.runtime.round(2)}s" %>)</span>
           <% end %>
-        <% if ds.last_error %>
-          <br/><span class='error_message'><%= raw text_with_linked_download(ds.last_error) %></span>
+        <% if ld.last_error %>
+          <br/><span class='error_message'><%= raw text_with_linked_download(ld.last_error) %></span>
         <% end %>
   		</td>
     </tr>
-    <tr style="border:none;background-color:#<%= ds.color %>;" >
+    <tr style="border:none;background-color:#<%= ld.color %>;" >
     <td style="border:none;">
-       <h3><%= ds.id %>
-           <% if ds.loader_type == :pseudo_history %> (pseudo-history*)<% end %>
-           <% if ds.reload_nightly? %> <i class="fas fa-clock" aria-hidden="true"></i><% end %>
+       <h3><%= ld.id %>
+           <% if ld.loader_type == :pseudo_history %> (pseudo-history*)<% end %>
+           <% if ld.reload_nightly? %> <i class="fas fa-clock" aria-hidden="true"></i><% end %>
        </h3>
       <p>
-			<% if ds.scale != '1.0' %>
-				<span style="background-color:white;"> <strong>Scale:</strong> <%= ds.scale %><% if ds.loader_type == :other %>&Dagger;<% end %>&nbsp;</span><br/>
+			<% if ld.scale != '1.0' %>
+				<span style="background-color:white;"> <strong>Scale:</strong> <%= ld.scale %><% if ld.loader_type == :other %>&Dagger;<% end %>&nbsp;</span><br/>
 			<% end %>
-      <% if ds.presave_hook %>
-           <strong>Presave hook:</strong> <%= ds.presave_hook %><br/>
+      <% if ld.presave_hook %>
+           <strong>Presave hook:</strong> <%= ld.presave_hook %><br/>
       <% end %>
-			<%= raw text_with_linked_words(ds.description) %><br/>
+			<%= raw text_with_linked_words(ld.description) %><br/>
       <%= raw text_with_linked_download(myeval) %>
       </p>
 		</td>
