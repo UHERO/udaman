@@ -168,17 +168,17 @@ class NtaUpload < ApplicationRecord
       raise "load_series_csv: couldn't find file #{series_path}"
     end
 
-    # if loaders exist => set their current flag to true
-    if Loader.where("eval LIKE 'NtaUpload.load(#{id},%)'").count > 0
+    # if data_sources exist => set their current flag to true
+    if DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").count > 0
       Rails.logger.debug { 'NTA data already loaded; Resetting current column values' }
       NtaUpload.connection.execute <<~SQL
         UPDATE data_points SET current = 0
-        WHERE data_points.loader_id IN (SELECT id FROM loaders WHERE eval LIKE 'NtaUpload.load(%)');
+        WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(%)');
       SQL
       Rails.logger.debug { 'Reset all to current = false' }
       NtaUpload.connection.execute <<~SQL
         UPDATE data_points SET current = 1
-        WHERE data_points.loader_id IN (SELECT id FROM loaders WHERE eval LIKE 'NtaUpload.load(#{id},%)');
+        WHERE data_points.data_source_id IN (SELECT id FROM data_sources WHERE eval LIKE 'NtaUpload.load(#{id},%)');
       SQL
       Rails.logger.debug { 'Reset this upload to current = true' }
       return true
@@ -186,7 +186,7 @@ class NtaUpload < ApplicationRecord
 
     Rails.logger.debug { 'start loading NTA data' }
     current_series = nil
-    current_loader = nil
+    current_data_source = nil
     data_points = []
     the_geo = Geography.new  ## Singleton to allow caching of Geography objects from db
 
@@ -243,9 +243,9 @@ class NtaUpload < ApplicationRecord
                                source_id: measurement.source_id
                            )
             eval_str = "NtaUpload.load(#{id}, #{current_series.id})"
-            current_loader = Loader.find_by(universe: 'NTA', eval: eval_str)
-            if current_loader.nil?
-              current_loader = Loader.create(
+            current_data_source = DataSource.find_by(universe: 'NTA', eval: eval_str)
+            if current_data_source.nil?
+              current_data_source = DataSource.create(
                 universe: 'NTA',
                 eval: eval_str,
                 description: "NTA Upload #{id} for #{series_name} (#{current_series.id})",
@@ -255,11 +255,11 @@ class NtaUpload < ApplicationRecord
                 last_run_in_seconds: Time.now.to_i
               )
             else
-              current_loader.update last_run_in_seconds: Time.now.to_i
+              current_data_source.update last_run_in_seconds: Time.now.to_i
             end
         end
         data_points.push({xs_id: current_series.xseries_id,
-                          ds_id: current_loader.id,
+                          ds_id: current_data_source.id,
                           date: row_data['year'] + '-01-01',
                           value: row_data[indicator_name]}) if row_data[indicator_name]
       end
@@ -272,15 +272,15 @@ class NtaUpload < ApplicationRecord
                     .map {|dp| %q|(%s, %s, STR_TO_DATE('%s','%%Y-%%m-%%d'), %s, true, NOW())| % [dp[:xs_id], dp[:ds_id], dp[:date], dp[:value]] }
                     .join(',')
         NtaUpload.connection.execute <<~MYSQL
-          REPLACE INTO data_points (xseries_id,loader_id,`date`,`value`,`current`,created_at) VALUES #{values};
+          REPLACE INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES #{values};
         MYSQL
       end
     end
-    Rails.logger.debug { 'DEBUG: Final loader updating' }
-    nta_loaders = Loader.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
-    DataPoint.where(loader_id: nta_loaders).update_all(current: false)
-    new_nta_loaders = Loader.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
-    DataPoint.where(loader_id: new_nta_loaders).update_all(current: true)
+    Rails.logger.debug { 'DEBUG: Final data source updating' }
+    nta_data_sources = DataSource.where('eval LIKE "NtaUpload.load(%)"').pluck(:id)
+    DataPoint.where(data_source_id: nta_data_sources).update_all(current: false)
+    new_nta_data_sources = DataSource.where("eval LIKE 'NtaUpload.load(#{id},%)'").pluck(:id)
+    DataPoint.where(data_source_id: new_nta_data_sources).update_all(current: true)
   end
 
   def make_country_geos(the_geo, row_data)
@@ -337,7 +337,7 @@ class NtaUpload < ApplicationRecord
       delete dm from data_list_measurements dm join data_lists d on d.id = dm.data_list_id where d.universe = 'NTA' ;
     SQL
     NtaUpload.connection.execute <<~SQL
-      delete from loaders where universe = 'NTA' ;
+      delete from data_sources where universe = 'NTA' ;
     SQL
     NtaUpload.connection.execute <<~SQL
       delete x

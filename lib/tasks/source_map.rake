@@ -1,6 +1,6 @@
 task :reset_dependency_depth => :environment do
   Rails.logger.info { 'reset_dependency_depth: Start' }
-  Loader.set_all_dependencies
+  DataSource.set_all_dependencies
   Series.assign_dependency_depth
   Rails.logger.info { 'reset_dependency_depth: Done' }
 end

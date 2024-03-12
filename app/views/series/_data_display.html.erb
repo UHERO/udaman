@@ -4,7 +4,7 @@
 		<td><div id="data-points">
 			<%= render :partial => 'data_points',
 								  :locals => { :series => @series, :as => @as, :chg => @chg, :ytd_chg => @ytd_chg, :lvl_chg => @lvl_chg,
-                                loader_count: @series.enabled_loaders.count }%></div>
+                                loader_count: @series.enabled_data_sources.count }%></div>
 		</td>
 	</tr>
 	</table>

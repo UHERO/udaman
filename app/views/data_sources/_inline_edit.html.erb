@@ -1,4 +1,4 @@
-<%= form_for ds, :remote=> true, :url => { :controller => "loaders", :id => ds.id, :action => "inline_update"} do |f| %>
+<%= form_for ds, :remote=> true, :url => { :controller => "data_sources", :id => ds.id, :action => "inline_update"} do |f| %>
 <%= f.text_field :eval, :class => "textbox", :size => 170 %>
 
  
@@ -9,7 +9,7 @@
 <% end %>
 
 <%= javascript_tag do %>
-  $('#edit_loader_<%= ds.id %>').bind("ajax:complete", function(et, e){
+  $('#edit_data_source_<%= ds.id %>').bind("ajax:complete", function(et, e){
     $("#tr_ds_<%= ds.id%>").html(e.responseText); // insert content
   });
 <% end %>

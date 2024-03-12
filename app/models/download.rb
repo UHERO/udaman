@@ -1,8 +1,8 @@
 class Download < ApplicationRecord
   include Cleaning
   extend Validators
-  has_many :loader_downloads, dependent: :delete_all
-  has_many :loaders, -> {distinct}, through: :loader_downloads
+  has_many :data_source_downloads, dependent: :delete_all
+  has_many :data_sources, -> {distinct}, through: :data_source_downloads
   has_many :dsd_log_entries
 
   require 'rest-client'
@@ -32,7 +32,7 @@ class Download < ApplicationRecord
     orphans = {}
     dl_set.each do |dl|
       next if dl.date_sensitive?  ## these Downloads will never be considered orphaned
-      next if Loader.where('eval regexp ?', dl.handle).count > 0
+      next if DataSource.where('eval regexp ?', dl.handle).count > 0
       orphans[dl.id] = 'orphaned'
     end
     orphans
@@ -104,8 +104,8 @@ class Download < ApplicationRecord
     handle ? handle.gsub('@','_') : 'NO_HANDLE_DEFINED'
   end
 
-  def enabled_loaders
-    loaders.reject {|ld| ld.disabled? }
+  def enabled_data_sources
+    data_sources.reject {|ld| ld.disabled? }
   end
 
   def download

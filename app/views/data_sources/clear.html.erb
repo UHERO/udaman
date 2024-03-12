@@ -3,7 +3,7 @@
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-	<%= form_with url: { action: :do_clear, id: @loader } do |ld| %>
+	<%= form_with url: { action: :do_clear, id: @data_source } do |ld| %>
 		<div class="field">
 			Clear data points <strong>for this loader</strong> relative to the following date (YYYY-MM-DD). Leave blank to delete all.<br/>
       <%= text_field_tag 'clear_op[date]' %>
