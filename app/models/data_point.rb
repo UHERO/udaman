@@ -1,24 +1,24 @@
 class DataPoint < ApplicationRecord
-  self.primary_key = :xseries_id, :date, :created_at, :loader_id
+  self.primary_key = :xseries_id, :date, :created_at, :data_source_id
   belongs_to :xseries, inverse_of: :data_points
-  belongs_to :loader
+  belongs_to :data_source
   
-  def upd(value, loader)
+  def upd(value, data_source)
     return nil if trying_to_replace_with_nil?(value)
-    return nil unless value_or_loader_changed?(value, loader)
+    return nil unless value_or_source_changed?(value, data_source)
     if value == 1.00E+0015
       xseries.data_points.where(date: date, current: true).update_all(current: false)
       return nil
     end
-    create_new_dp(value, loader)
+    create_new_dp(value, data_source)
   end
   
-  def value_or_loader_changed?(value, loader)
+  def value_or_source_changed?(value, data_source)
     unless self.value_equal_to? value
       series_auto_quarantine_check
       return true
     end
-    self.loader_id != loader.id
+    self.data_source_id != data_source.id
   end
 
   def series_auto_quarantine_check
@@ -37,12 +37,12 @@ class DataPoint < ApplicationRecord
      value.nil? && !self.value.nil?
   end
   
-  def create_new_dp(upd_value, upd_loader)
-    return nil if upd_loader.priority < self.loader.priority
+  def create_new_dp(upd_value, upd_source)
+    return nil if upd_source.priority < self.data_source.priority
     new_dp = DataPoint.create(
         xseries_id: self.xseries_id,
         date: self.date,
-        loader_id: upd_loader.id,
+        data_source_id: upd_source.id,
         value: upd_value,
         pseudo_history: upd_source.pseudo_history,
         current: false  ## will be set to true just below
@@ -51,14 +51,14 @@ class DataPoint < ApplicationRecord
     new_dp
   end
 
-    ## Should be obsolete now. But leave it around for historical consideration. Removed from production use June 2023
-  def restore_prior_dp(upd_value, upd_loader)
+  ## Should be obsolete now. But leave it around for historical consideration. Removed from production use June 2023
+  def restore_prior_dp(upd_value, upd_source)
     prior_dp = DataPoint.where(xseries_id: xseries_id,
                                date: date,
-                               loader_id: upd_loader.id,
+                               data_source_id: upd_source.id,
                                value: upd_value).first
     return nil if prior_dp.nil?
-    unless upd_loader.priority < self.loader.priority
+    unless upd_source.priority < self.data_source.priority
       make_current(prior_dp)
     end
     prior_dp

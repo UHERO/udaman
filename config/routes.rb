@@ -70,7 +70,7 @@ Rails.application.routes.draw do
   get 'series/group_export', to: 'series#group_export'
   post 'series/do_clip_action', to: 'series#do_clip_action'
 
-  resources :loaders
+  resources :data_sources
   resources :dashboards
   resources :data_lists do
     member do

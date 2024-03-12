@@ -4,7 +4,7 @@ class DashboardsController < ApplicationController
   before_action :check_authorization
 
   def investigate_visual
-    @err_summary = Loader.load_error_summary
+    @err_summary = DataSource.load_error_summary
     @all_reload_jobs = ReloadJob.where('user_id > 1').order(created_at: :desc)  ## User id 1 is the system/cron user, don't show those
   end
 

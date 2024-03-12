@@ -3,16 +3,16 @@ class DownloadsCache
   def initialize(options = nil)
     @cache = { dloads: {}, dsds: {}, used_dloads: {} }
     @dload = nil
-    @loader = nil
+    @data_source = nil
     @evalhash = nil
-    ld_id = nil
+    ds_id = nil
     if options
-      ld_id = options.delete(:loader)  ## get Loader id (if any) and also remove from options hash
+      ds_id = options.delete(:data_source)  ## get DS id (if any) and also remove from options hash
       @evalhash = options.delete(:eval_hash)
       @skip_override = options.delete(:dont_skip) == 'true'
     end
-    if ld_id
-      @loader = Loader.find(ld_id) || raise("No loader with id='#{ld_id}' found")
+    if ds_id
+      @data_source = DataSource.find(ds_id) || raise("No definition with id='#{ds_id}' found")
     end
   end
 
@@ -30,9 +30,9 @@ class DownloadsCache
         set_files_cache(cache_key, 1) if type == 'xls' ## Marker to show that xls file is downloaded
       end
       ## Now, figure out if we can skip over this source entirely because it hasn't changed.
-      if @loader && skip_proc && !@skip_override
-        bridge_key = @loader.id.to_s + '_' + @dload.id.to_s
-        dsd = @cache[:dsds][bridge_key] || LoaderDownload.get_or_new(@loader.id, @dload.id)
+      if @data_source && skip_proc && !@skip_override
+        bridge_key = @data_source.id.to_s + '_' + @dload.id.to_s
+        dsd = @cache[:dsds][bridge_key] || DataSourceDownload.get_or_new(@data_source.id, @dload.id)
         @cache[:dsds][bridge_key] = dsd
 
         skip = @dload.last_change_at <= dsd.last_file_vers_used && @evalhash == dsd.last_eval_options_used
@@ -50,7 +50,7 @@ class DownloadsCache
   def update_last_used
     return if @cache[:dsds].empty?
     @cache[:used_dloads].values.each do |dload|
-      bridge_key = @loader.id.to_s + '_' + dload.id.to_s
+      bridge_key = @data_source.id.to_s + '_' + dload.id.to_s
       dsd = @cache[:dsds][bridge_key] || raise("No bridge key #{bridge_key}")
       dsd.update last_file_vers_used: dload.last_change_at, last_eval_options_used: @evalhash
     end

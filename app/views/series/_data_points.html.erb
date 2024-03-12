@@ -19,7 +19,7 @@
       bgcolors = {}
       ## Note that disabled loaders' data points will normally have been deleted already, but just in case there are some,
       ## we should show them with the correct background color.
-      @series.primary_series.loaders.each {|ds| bgcolors[ds.id] = ds.disabled? ? 'lightgray' : '#%s' % ds.color }
+      @series.primary_series.data_sources.each {|ds| bgcolors[ds.id] = ds.disabled? ? 'lightgray' : '#%s' % ds.color }
 
       data_hash.sort.reverse.each do |date_string, element|
         if element.class == DataPoint
@@ -33,13 +33,13 @@
 %>
       <tr>
         <td><%= link_to cdp.date, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: cdp.date %></td>
-        <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.loader_id]) %></span></td>
+        <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.data_source_id]) %></span></td>
         <td style="text-align:<%= chg_align %>;"><span class="per-chg"><%= chg_value %></span></td>
         <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td><span style="float:right;"><%= dp_age_code(cdp) %></span></td>
         <% if env[:loader_count] > 1 %>
-          <td><span style="float:right;"><%= cdp.loader_id %></span></td>
+          <td><span style="float:right;"><%= cdp.data_source_id %></span></td>
         <% end %>
       </tr>
 <%

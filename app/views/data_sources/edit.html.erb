@@ -6,7 +6,7 @@
   <% if @disab %>
      <h3>DISABLED - can only be reenabled by system admin</h3>
   <% end %>
-	<%= form_with(model: @loader) do |ds| %>
+	<%= form_with(model: @data_source) do |ds| %>
 		<div class="field">
 			Code
       <%= ds.text_field :eval, size: 120, disabled: @disab %>
@@ -18,7 +18,7 @@
 		<div class="field">
 			<%= ds.label :scale %>
 			<%= ds.text_field :scale, size: 12 %> (multiply original data by: 0.001, 1, 1000, etc)
-			<% if @loader.loader_type == :other && @loader.scale != '1.0' %>
+			<% if @data_source.loader_type == :other && @data_source.scale != '1.0' %>
 				<br/><span style="color:red">&Dagger; Be sure you really want a scale other than 1.0 for this loader.
 									Normally loaders that do a computation based on internal data should not be scaled.<span>
 			<% end %>
@@ -31,12 +31,12 @@
 		</div>
     <div class="field">
       <%= ds.label :presave_hook %>
-      <%= ds.select :presave_hook, LoaderHooks.instance_methods, { include_blank: true }, disabled: @disab %>
+      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true }, disabled: @disab %>
     </div>
     <div class="field" style="padding:18px;">
-      <% @loader.type_colors.each do |color| %>
+      <% @data_source.type_colors.each do |color| %>
         <span style="padding:16px; background-color:#<%= color %>;">
-          <input type="radio" name="loader[color]" id="color_<%= color %>" value="<%= color %>" <%= 'checked' if @loader.color == color %>>
+          <input type="radio" name="data_source[color]" id="color_<%= color %>" value="<%= color %>" <%= 'checked' if @data_source.color == color %>>
               <label for="color_<%= color %>"><%= color %></label>
         </span>
       <% end %>

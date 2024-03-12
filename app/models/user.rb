@@ -1,6 +1,6 @@
 class User < ApplicationRecord
   include Cleaning
-  has_many :loader_actions
+  has_many :data_source_actions
   has_many :user_series, dependent: :delete_all
   has_many :series, -> {distinct}, through: :user_series
 
@@ -73,7 +73,7 @@ class User < ApplicationRecord
       job.series << series
       "Reload job #{job.id} queued"
     when 'reset'
-      series.each {|s| s.enabled_loaders.each {|ld| ld.reset(false) } }
+      series.each {|s| s.enabled_data_sources.each {|ld| ld.reset(false) } }
       Rails.cache.clear          ## clear file cache on local (prod) Rails
       ResetWorker.perform_async  ## clear file cache on the worker Rails
       Rails.logger.warn { 'Rails file cache CLEARED' }

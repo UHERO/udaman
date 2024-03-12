@@ -32,7 +32,7 @@ class NewDbedtUpload < ApplicationRecord
   end
 
   def delete_universe_dbedt
-    ## Series, Xseries, and Loaders are NOT deleted, but updated as necessary.
+    ## Series, Xseries, and DataSources are NOT deleted, but updated as necessary.
     ## Geographies also not deleted, but handled in hardcoded fashion.
     Category.where('universe = "DBEDT" and ancestry is not null').delete_all
     DataList.where(universe: 'DBEDT').destroy_all
@@ -157,7 +157,7 @@ class NewDbedtUpload < ApplicationRecord
     raise "File #{csv_path} not found" unless File.exists? csv_path
 
     current_series = nil
-    current_loader = nil
+    current_data_source = nil
     current_measurement = nil
     allgeos = {}
     allsources = {}
@@ -211,7 +211,7 @@ class NewDbedtUpload < ApplicationRecord
         end
 
         current_series = Series.find_by(universe: 'DBEDT', name: name)
-        current_loader = nil
+        current_data_source = nil
         if current_series
           current_series.update!(
             description: ind_meta['indicatorfortable'],
@@ -220,7 +220,7 @@ class NewDbedtUpload < ApplicationRecord
             source_id: source_id,
             decimals: ind_meta['decimal'].to_i
           )
-          current_loader = Loader.find_by(universe: 'DBEDT', series_id: current_series.id)
+          current_data_source = DataSource.find_by(universe: 'DBEDT', series_id: current_series.id)
         else
           current_series = Series.create_new(
             universe: 'DBEDT',
@@ -234,7 +234,7 @@ class NewDbedtUpload < ApplicationRecord
             decimals: ind_meta['decimal'].to_i
           )
         end
-        current_loader ||= Loader.create(
+        current_data_source ||= DataSource.create(
             universe: 'DBEDT',
             eval: 'DbedtUpload.load(%d)' % current_series.id,
             description: 'Dummy loader for %s' % current_series.name,
@@ -245,14 +245,14 @@ class NewDbedtUpload < ApplicationRecord
         current_measurement.series << current_series
       end
       data_points.push({ xs_id: current_series.xseries_id,
-                         ds_id: current_loader.id,
+                         ds_id: current_data_source.id,
                          date: make_date(row['year'], row['qm']),
                          value: row['value'] })
     end
     mylogger :info, 'load_series_csv: insert data points'
     if current_series && data_points.length > 0
       sql_stmt = NewDbedtUpload.connection.raw_connection.prepare(<<~MYSQL)
-        INSERT INTO data_points (xseries_id,loader_id,`date`,`value`,`current`,created_at) VALUES (?, ?, ?, ?, true, NOW());
+        INSERT INTO data_points (xseries_id,data_source_id,`date`,`value`,`current`,created_at) VALUES (?, ?, ?, ?, true, NOW());
       MYSQL
       data_points.in_groups_of(1000, false) do |dps|
         values = dps.compact.uniq {|dp| '%s %s %s' % [dp[:xs_id], dp[:ds_id], dp[:date]] }
