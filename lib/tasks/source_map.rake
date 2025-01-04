@@ -60,6 +60,16 @@ task :reload_tour_ocup_series_only => :environment do
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
 end
 
+task :reload_sa_series_only => :environment do
+  # sa_series consists of series that are in the UHERO universe,
+  # are seasonally adjusted, and do not end with NS
+
+  Rails.logger.info { 'reload_sa_series_only: starting task, gathering series' }
+#  sa_series = Series.search("&sa").select { |series| series.is_SA? rescue false }
+  sa_series = Series.search("#sa_jobs.csv")
+  Series.reload_with_dependencies(sa_series.pluck(:id), 'sa', nightly: false)
+end
+
 task :reload_vap_hi_daily => :environment do
   ReloadJobDaemon.enqueue('vaphid', '^vap ~ns$ @hi .d')
 end
