@@ -21,6 +21,7 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search('#load_api_bls').pluck(:id)
   full_set_ids -= Series.search('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search('#tour_ocup%Y').pluck(:id)
+  full_set_ids -= Series.search("#sa_jobs.csv").pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
@@ -58,6 +59,16 @@ task :reload_tour_ocup_series_only => :environment do
   Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
   tour_ocup = Series.search('#tour_ocup%Y')
   Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
+end
+
+task :reload_sa_series_only => :environment do
+  # sa_series consists of series that are in the UHERO universe,
+  # are seasonally adjusted, and do not end with NS
+
+  Rails.logger.info { 'reload_sa_series_only: starting task, gathering series' }
+#  sa_series = Series.search("&sa").select { |series| series.is_SA? rescue false }
+  sa_series = Series.search("#sa_jobs.csv")
+  Series.reload_with_dependencies(sa_series.pluck(:id), 'sa', nightly: false)
 end
 
 task :reload_vap_hi_daily => :environment do
