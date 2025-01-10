@@ -21,6 +21,7 @@ task :batch_reload_uhero => :environment do
   full_set_ids -= Series.search('#load_api_bls').pluck(:id)
   full_set_ids -= Series.search('#load_api_bea').pluck(:id)
   full_set_ids -= Series.search('#tour_ocup%Y').pluck(:id)
+  full_set_ids -= Series.search("#sa_jobs.csv").pluck(:id)
   mgr = SeriesReloadManager.new(Series.where(id: full_set_ids), 'full', nightly: true)
   Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
   mgr.batch_reload
