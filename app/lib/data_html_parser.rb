@@ -69,6 +69,27 @@ class DataHtmlParser
     data[frequency]
   end
 
+  def get_bls_api_series(series_id, _ = nil)
+    api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
+    @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s' %
+      [series_id, api_key]
+    Rails.logger.debug { "Getting data from BLS API: #{@url}" }
+    @doc = self.download
+    raise 'BLS API: empty response returned' if self.content.blank?
+    json = JSON.parse(self.content) rescue raise('BLS API: JSON parse failure')
+    unless json['status'] =~ /succeeded/i
+      raise 'BLS API error: %s' % json['message'].join(' ')
+    end
+    results_data = json['Results']['series'][0]['data']  ## :eyeroll
+    raise 'BLS API error: %s' % json['message'].join(' ') if results_data.empty?
+
+    new_data = {}
+    results_data.each do |dp|
+      new_data[ grok_date(dp['year'], dp['period']) ] = dp['value'].gsub(',','').to_f
+    end
+    new_data
+  end
+
   def get_bea_series(dataset, filters)
     api_key = ENV['API_KEY_BEA'] || raise('No API key defined for BEA')
     query_pars = filters.map {|k,v| "#{k}=#{v}" }.join('&')
