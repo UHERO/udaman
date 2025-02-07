@@ -25,7 +25,7 @@ class DataHtmlParser
   def get_bls_series_ONHOLD(series_id, _ = nil)
     api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
     thisyear = Date.today.year
-    @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registration_key=%s&startyear=%d&endyear=%d' %
+    @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registrationkey=%s&startyear=%d&endyear=%d' %
       [series_id, api_key, thisyear - 9, thisyear]
     Rails.logger.debug { "Getting data from BLS API: #{@url}" }
     @doc = self.download
