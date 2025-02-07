@@ -22,3 +22,5 @@ Capfile
 spec/datafiles/specs_output
 NOTES
 .env
+script.rb
+vendor/bundle
