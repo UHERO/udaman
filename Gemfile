@@ -13,6 +13,7 @@ gem 'capistrano', '~> 3.0'
 gem 'highline', '~> 1.6.0'
 gem 'mysql2', '~> 0.5', '>= 0.5.3'
 gem 'composite_primary_keys'
+gem 'concurrent-ruby', '1.3.4'
 gem 'roo', '~> 2.8', '>= 2.8.2'
 gem 'roo-xls', '~> 1.2', '>= 1.2.0'
 gem 'matrix', '~> 0.4.2'
@@ -54,14 +55,15 @@ gem 'highcharts-rails', '>= 6.0.3'
 gem 'passenger', '>= 6.0.18'
 gem 'sqlite3'
 
+
 group :development do
   gem 'listen'
-  gem 'rspec-rails', '~> 3.8.2'
+  gem 'rspec-rails', '~> 4.0'
   gem 'factory_bot_rails', '~> 5.0', '>= 5.0.1'
   gem 'faker', '~> 1.6'
   gem 'watchr'
-  gem 'database_cleaner'
-  end
+  gem 'database_cleaner-active_record'
+end
 
 group :test do
   gem 'rake'
