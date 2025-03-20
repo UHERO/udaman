@@ -39,7 +39,6 @@ gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 gem 'sassc-rails', '>= 2.1.0'
-gem 'coffee-rails', '~> 4.2', '>= 4.2.2'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.4'
 gem 'jquery-ui-rails', '~> 6.0.1'

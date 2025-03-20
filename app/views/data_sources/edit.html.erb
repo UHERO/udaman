@@ -1,51 +1,51 @@
 <div id="summary_area">
-	<h2>Edit<br/>Loader</h2>
+    <h2>Edit<br />Loader</h2>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
-  <% if @disab %>
-     <h3>DISABLED - can only be reenabled by system admin</h3>
-  <% end %>
-	<%= form_with(model: @data_source) do |ds| %>
-		<div class="field">
-			Code
-      <%= ds.text_field :eval, size: 120, disabled: @disab %>
+    <% if @disab %>
+    <h3>DISABLED - can only be reenabled by system admin</h3>
+    <% end %>
+    <%= form_with(model: @data_source, local: true) do |ds| %>
+    <div class="field">
+        Code
+        <%= ds.text_field :eval, size: 120, disabled: @disab %>
     </div>
     <div class="field">
-			<%= ds.label :priority %>
-			<%= ds.number_field :priority, size: 5, disabled: @disab %>
-    </div>
-		<div class="field">
-			<%= ds.label :scale %>
-			<%= ds.text_field :scale, size: 12 %> (multiply original data by: 0.001, 1, 1000, etc)
-			<% if @data_source.loader_type == :other && @data_source.scale != '1.0' %>
-				<br/><span style="color:red">&Dagger; Be sure you really want a scale other than 1.0 for this loader.
-									Normally loaders that do a computation based on internal data should not be scaled.<span>
-			<% end %>
-		</div>
-    <div class="field">
-      <%= ds.check_box :clear_before_load %> Always clear existing data points before loading
+        <%= ds.label :priority %>
+        <%= ds.number_field :priority, size: 5, disabled: @disab %>
     </div>
     <div class="field">
-      <%= ds.check_box :pseudo_history %> This load is pseudo-history
-		</div>
+        <%= ds.label :scale %>
+        <%= ds.text_field :scale, size: 12 %> (multiply original data by: 0.001, 1, 1000, etc)
+        <% if @data_source.loader_type == :other && @data_source.scale != '1.0' %>
+        <br /><span style="color:red">&Dagger; Be sure you really want a scale other than 1.0 for this loader.
+            Normally loaders that do a computation based on internal data should not be scaled.<span>
+                <% end %>
+    </div>
     <div class="field">
-      <%= ds.label :presave_hook %>
-      <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true }, disabled: @disab %>
+        <%= ds.check_box :clear_before_load %> Always clear existing data points before loading
+    </div>
+    <div class="field">
+        <%= ds.check_box :pseudo_history %> This load is pseudo-history
+    </div>
+    <div class="field">
+        <%= ds.label :presave_hook %>
+        <%= ds.select :presave_hook, DataSourceHooks.instance_methods, { include_blank: true }, disabled: @disab %>
     </div>
     <div class="field" style="padding:18px;">
-      <% @data_source.type_colors.each do |color| %>
+        <% @data_source.type_colors.each do |color| %>
         <span style="padding:16px; background-color:#<%= color %>;">
-          <input type="radio" name="data_source[color]" id="color_<%= color %>" value="<%= color %>" <%= 'checked' if @data_source.color == color %>>
-              <label for="color_<%= color %>"><%= color %></label>
+            <input type="radio" name="data_source[color]" id="color_<%= color %>" value="<%= color %>" <%= 'checked' if @data_source.color == color %>>
+            <label for="color_<%= color %>"><%= color %></label>
         </span>
-      <% end %>
+        <% end %>
     </div>
-      <div class="actions">
+    <div class="actions">
         <% unless @disab %>
-          <%= ds.submit 'Update Loader' %>
+        <%= ds.submit 'Update Loader' %>
         <% end %>
         <%= link_to 'Cancel', :back %>
-      </div>
-	<% end %>
+    </div>
+    <% end %>
 </div>

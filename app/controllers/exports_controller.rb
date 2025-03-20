@@ -15,7 +15,7 @@ class ExportsController < ApplicationController
       s = es.series
       data_points = DataPoint.where(xseries_id: s.xseries_id)
       first = data_points.minimum(:date)
-       last = data_points.maximum(:date)
+      last = data_points.maximum(:date)
       source = s.source.description rescue ''
       { series: s, name: s.name, first: first, last: last, source: source, order: es.list_order + 1 }
     end
@@ -30,7 +30,7 @@ class ExportsController < ApplicationController
     end
     @sortby = sortby.to_s
     respond_to do |format|
-      format.csv { render layout: false }
+      format.csv { render(layout: false )}
       format.html # show.html.erb
     end
   end
@@ -41,7 +41,7 @@ class ExportsController < ApplicationController
       @start_date = 0
       @end_date = 9999
     end
-    render 'table'
+    render('table')
   end
 
   def new
@@ -55,23 +55,23 @@ class ExportsController < ApplicationController
     @export = Export.new(export_params)
 
     if @export.save
-      redirect_to @export, notice: 'Export was successfully created.'
+      redirect_to(@export, notice: 'Export was successfully created.')
     else
-      render :new
+      render(:new)
     end
   end
 
   def update
     if @export.update(export_params)
-      redirect_to @export, notice: 'Export was successfully updated.'
+      redirect_to(@export, notice: 'Export was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 
   def destroy
     @export.destroy
-    redirect_to exports_url, notice: 'Export was successfully destroyed.'
+    redirect_to(exports_url, notice: 'Export was successfully destroyed.')
   end
 
   def edit_as_text
@@ -81,7 +81,7 @@ class ExportsController < ApplicationController
   def save_as_text
     box_content = params[:edit_box].split(' ')
     @export.replace_all_series(box_content)
-    redirect_to edit_export_url(@export)
+    redirect_to(edit_export_url(@export))
   end
 
   def import_clip
@@ -90,18 +90,18 @@ class ExportsController < ApplicationController
       @export.series.push(s) rescue next   ## rescue to cover cases where the series is already linked
       ExportSeries.find_by(export_id: @export.id, series_id: s.id).update(list_order: order += 1)
     end
-    redirect_to action: :edit_as_text, id: @export
+    redirect_to(edit_as_text_export_path(@export))
   end
 
   def add_clip
     count = current_user.add_series(@export.series)
-    redirect_to edit_export_url(@export), notice: "#{count} series added to clipboard"
+    redirect_to(edit_export_url(@export), notice: "#{count} series added to clipboard")
   end
 
   def add_series
     series = Series.find_by id: params[:series_id].to_i
     if @export.series.include?(series)
-      redirect_to edit_export_url(@export.id), notice: 'This series is already in the list!'
+      redirect_to(edit_export_url(@export.id), notice: 'This series is already in the list!')
       return
     end
     list_order = ExportSeries.where(export_id: @export.id).maximum(:list_order)
@@ -109,7 +109,7 @@ class ExportsController < ApplicationController
     @export.series<< series
     ExportSeries.find_by(export_id: @export.id, series_id: series.id).update(list_order: list_order + 1)
     respond_to do |format|
-      format.html { redirect_to edit_export_url(@export.id) }
+      format.html { redirect_to(edit_export_url(@export.id)) }
       format.js {}
     end
   end

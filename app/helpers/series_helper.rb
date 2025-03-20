@@ -13,8 +13,27 @@ module SeriesHelper
   end
 
   def index_header_get_params(header)
-    { action: @index_action, sortby: header, dir: sortdir(header) }
-      .merge(@b64_search_str ? { search_string: @b64_search_str } : {})
+    # First, determine which route helper to use based on @index_action
+    path_params = { sortby: header, dir: sortdir(header) }
+    path_params[:search_string] = @b64_search_str if @b64_search_str
+
+    # Map the action to the appropriate path helper
+    case @index_action
+    when 'index'
+      series_index_path(path_params)
+    when 'clipboard'
+      clip_series_index_path(path_params)
+    when 'quarantine'
+      quarantine_series_index_path(path_params)
+    when 'no_source'
+      no_source_series_index_path(path_params)
+    when 'no_source_no_restrict'
+      no_source_no_restrict_series_index_path(path_params)
+    # Add other actions as needed
+    else
+      # Default fallback
+      series_index_path(path_params)
+    end
   end
 
   def csv_helper
@@ -108,21 +127,21 @@ module SeriesHelper
     series_data = {}
     @all_series_to_chart.each do |s|
       s_dates = {}
-      dates_array.each {|date| s_dates[date] = s.data[date].to_s} 
-      series_data[s.name] = s_dates 
+      dates_array.each {|date| s_dates[date] = s.data[date].to_s}
+      series_data[s.name] = s_dates
     end
     rs = "data = new google.visualization.DataTable();\n"
     rs += "data.addColumn('string', 'date');\ndata.addColumn('number','"
     rs += sorted_names.join("');\n data.addColumn('number','")
-    
+
     rs += "');\ndata.addRows(["
-    dates_array.each do |date| 
+    dates_array.each do |date|
       rs += "['"+ date +"',"
       rs += sorted_names.map {|s| series_data[s][date] == "" ? "0" : series_data[s][date] }.join(", ") +"],\n"
     end
     rs += "]);\n"
   end
-  
+
   def gct_datapoints(series)
     arr = series.data.keys.sort
     html =''
@@ -132,7 +151,7 @@ module SeriesHelper
     #html += "['hi',10.0], ['bye', 30.0],"
     html.chop
   end
-  
+
   def text_with_linked_download(text)
     return '' if text.blank?
     parts = text.split(DOWNLOAD_HANDLE)
@@ -173,7 +192,7 @@ module SeriesHelper
    end
     words.join(' ')
   end
-  
+
   def make_hyperlink(url, text = url)
     return text if url.blank?
     return "<a href='#{url}'>#{text}</a>".html_safe if valid_url(url)
@@ -198,7 +217,8 @@ module SeriesHelper
       ## Add creation links
       alt_univs[series.universe].each do |univ|
         next if seen[univ]
-        links.push link_to(univ_gray_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
+        # links.push link_to(univ_gray_create_label(univ), { controller: :series, action: :new_alias, id: series, new_univ: univ }, title: 'Create new')
+        links.push link_to(univ_gray_create_label(univ), new_alias_series_path(series, new_univ: univ), title: 'Create new')
       end
     end
     links.join(' ')

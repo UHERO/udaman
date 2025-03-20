@@ -18,7 +18,7 @@ class ForecastSnapshotsController < ApplicationController
   def show
     var_setup
     respond_to do |format|
-      format.csv { render layout: false }
+      format.csv { render(layout: false) }
       format.html # show.html.erb
     end
   end
@@ -34,7 +34,7 @@ class ForecastSnapshotsController < ApplicationController
   def duplicate
     @forecast_snapshot = @forecast_snapshot.make_copy
     @isa_dup = true if current_user.admin_user?
-    render :edit
+    render(:edit)
   end
 
   def edit
@@ -58,9 +58,9 @@ class ForecastSnapshotsController < ApplicationController
     end
 
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
-      redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully stored.'
+      redirect_to(@forecast_snapshot, notice: 'Forecast snapshot was successfully stored.')
     else
-      render :new
+      render(:new)
     end
   end
 
@@ -76,7 +76,7 @@ class ForecastSnapshotsController < ApplicationController
     end
 
     unless @forecast_snapshot.update!(forecast_snapshot_params)
-      render :edit
+      render(:edit)
       return
     end
     newfile = oldfile = histfile = nil
@@ -95,15 +95,15 @@ class ForecastSnapshotsController < ApplicationController
     end
 
     if @forecast_snapshot.store_fs(newfile, oldfile, histfile)
-      redirect_to @forecast_snapshot, notice: 'Forecast snapshot was successfully updated.'
+      redirect_to(@forecast_snapshot, notice: 'Forecast snapshot was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 
   def destroy
     @forecast_snapshot.destroy
-    redirect_to forecast_snapshots_url
+    redirect_to(forecast_snapshots_path)
   end
 
   def pull_file

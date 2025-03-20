@@ -25,9 +25,9 @@ class SourceDetailsController < ApplicationController
     @source_detail = SourceDetail.new(source_detail_params)
 
     if @source_detail.save
-      redirect_to source_details_path(u: @source_detail.universe), notice: 'Source detail was successfully created.'
+      redirect_to(source_details_path(u: @source_detail.universe), notice: 'Source detail was successfully created.')
     else
-      render :new
+      render(:new)
     end
   end
 
@@ -36,15 +36,15 @@ class SourceDetailsController < ApplicationController
     properties = source_detail_params.to_h
     properties.delete(:universe)  ## don't allow update of universe
     if @source_detail.update(properties)
-      redirect_to source_details_path(u: @source_detail.universe), notice: 'Source detail was successfully updated.'
+      redirect_to(source_details_path(u: @source_detail.universe), notice: 'Source detail was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 
   def destroy
     @source_detail.destroy
-    redirect_to source_details_url, notice: 'Source Detail was successfully destroyed.'
+    redirect_to(source_details_path, notice: 'Source Detail was successfully destroyed.')
   end
 
 private

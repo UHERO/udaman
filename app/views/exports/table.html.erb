@@ -1,9 +1,13 @@
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <script type="text/javascript">
-	function LoadGoogle() {
-        if(typeof google != 'undefined' && google && google.load) {
-            google.load("visualization", "1", {packages: ["table"]});
-			google.load("visualization", "1", {packages:["corechart"]});
+    function LoadGoogle() {
+        if (typeof google != 'undefined' && google && google.load) {
+            google.load("visualization", "1", {
+                packages: ["table"]
+            });
+            google.load("visualization", "1", {
+                packages: ["corechart"]
+            });
         } else {
             // Retry later...
             setTimeout(LoadGoogle, 30);
@@ -13,8 +17,10 @@
 </script>
 
 <style>
-/*#chart-board div.tile {float:left; width:400px; height:275px;}*/
-span.lighten {color:#AAA;}
+    /*#chart-board div.tile {float:left; width:400px; height:275px;}*/
+    span.lighten {
+        color: #AAA;
+    }
 </style>
 
 <%
@@ -49,33 +55,33 @@ span.lighten {color:#AAA;}
 %>
 <h1>Export <%= @export.name %></h1>
 <p>
-  <% if current_user.admin_user? || @export.owned_by == current_user.id %>
+    <% if current_user.admin_user? || @export.owned_by == current_user.id %>
     <%= link_to 'Edit', edit_export_path(@export) %> |
-  <% end %>
-  <%= link_to 'Index', exports_path %> |
-  <%= link_to 'Show', action: :show, id: @export %> |
-  <%= link_to 'CSV', action: :show, id: @export, format: :csv %>
-  <% if current_user.admin_user? || @export.owned_by == current_user.id %>
-    | <%= link_to 'Destroy', @export, method: :delete, data: { confirm: "Destroy export #{@export.name}\nAre you sure??" } %>
-  <% end %>
+    <% end %>
+    <%= link_to 'Index', exports_path %> |
+    <%= link_to 'Show', export_path(@export) %> |
+    <%= link_to 'CSV', export_path(@export, format: :csv) %>
+    <% if current_user.admin_user? || @export.owned_by == current_user.id %>
+    | <%= link_to 'Destroy', export_path(@export), method: :delete, data: { confirm: "Destroy export #{@export.name}\nAre you sure??" } %>
+    <% end %>
 </p>
 <div id="chart-board">
-<table>
-	<tr>
-		<th></th>
-		<th><%= date_keys[-3] %></th>
-		<th><%= date_keys[-2] %></th>
-		<th><%= date_keys[-1] %></th>
-		<th>YTD</th>
-	</tr>
-<% @series_to_chart.each do |s| %>
-	<%
+    <table>
+        <tr>
+            <th></th>
+            <th><%= date_keys[-3] %></th>
+            <th><%= date_keys[-2] %></th>
+            <th><%= date_keys[-1] %></th>
+            <th>YTD</th>
+        </tr>
+        <% @series_to_chart.each do |s| %>
+        <%
 		next if s.tsnil.nil?
 		#highest_level = summary_series.ts.data[date_keys[-1]]
 		max_ytd = all_series_ytd.sort[-1]
 		min_ytd = all_series_ytd.sort[0]
 	%>
-	<%= render :partial => 'tableview_row', :locals => {
+        <%= render :partial => 'tableview_row', :locals => {
 		:series_table_data => series_table_data[s], 
 		:series_name => s, 
 		:date_keys => date_keys,
@@ -83,7 +89,7 @@ span.lighten {color:#AAA;}
 		:max_ytd => max_ytd,
 		:min_ytd => min_ytd,
 	} %>
-	
-<% end %>
-</table>
+
+        <% end %>
+    </table>
 </div>

@@ -2,28 +2,27 @@
 <h1><%= @series.name %></h1>
 <h3><%= @desc %></h3>
 <h3>
-<%= link_to 'Details', @series %>
-<% @series.other_frequencies.each do |sibling| %>
-	| <%= link_to sibling.to_s, action: :analyze, id: sibling %>
-<% end %>
+    <%= link_to 'Details', @series %>
+    <% @series.other_frequencies.each do |sibling| %>
+    | <%= link_to sibling.to_s, analyze_series_path(sibling) %>
+    <% end %>
 
 </h3>
 <div id="finance" style="width:800px;">
-  <div id="labels">
+    <div id="labels">
 
-    <div id="financeTitle">Levels and YOY% Change</div>
-    <div id="time">
-      <a onclick="HumbleFinance.zoom(5);">last 5</a>
-      <a onclick="HumbleFinance.zoom(20);">last 20</a>
-      <a onclick="HumbleFinance.zoom(60);">last 60</a>
-      <a onclick="HumbleFinance.zoom(120);">last 120</a>
-      <a onclick="HumbleFinance.zoom(250);">last 250</a>
+        <div id="financeTitle">Levels and YOY% Change</div>
+        <div id="time">
+            <a onclick="HumbleFinance.zoom(5);">last 5</a>
+            <a onclick="HumbleFinance.zoom(20);">last 20</a>
+            <a onclick="HumbleFinance.zoom(60);">last 60</a>
+            <a onclick="HumbleFinance.zoom(120);">last 120</a>
+            <a onclick="HumbleFinance.zoom(250);">last 250</a>
+        </div>
+        <div id="dateRange"></div>
+
     </div>
-    <div id="dateRange"></div>
-
-  </div>
 </div>
-
 <script>
 
 <% sort = params[:sort] %>
@@ -72,33 +71,33 @@ end
 <%= javascript_include_tag 'humblefinance/demo' %>
 
 <table style="margin-top: 50px;">
-  <tr>
-    <th>Mean</th>
-    <th>Median</th>
-    <th>Std. Dev.</th>
-  </tr>
-  <tr>
-    <td><%=  "%.3f" % @series.average %></td>
-    <td><%= "%.3f" % @series.median %></td>
-    <td><%= "%.3f" % @series.standard_deviation %></td>
-  </tr>
+    <tr>
+        <th>Mean</th>
+        <th>Median</th>
+        <th>Std. Dev.</th>
+    </tr>
+    <tr>
+        <td><%=  "%.3f" % @series.average %></td>
+        <td><%= "%.3f" % @series.median %></td>
+        <td><%= "%.3f" % @series.standard_deviation %></td>
+    </tr>
 </table>
 
 <table style="margin-top: 50px;">
-	<tr>
-		<th><a href="?sort=<%= sort == 'desc' ? 'asc' : 'desc' %>">Date &#8597;</a></th>
-		<th>Level</th>
-		<th>Level Change</th>
-		<th>YOY</th>
-		<th>YTD</th>
-	</tr>
-	<% dates.sort { |a,b| sort == 'desc' ? b <=> a : a <=> b }.each do |date_string|  %>
-	<tr>	
-		<td><%= date_string %></td>
-		<td><%= data[date_string].nil? ? "" : "%.3f" % data[date_string] %></td>
-		<td><%= lvl_chg[date_string].nil? ? "" : "%.3f" % lvl_chg[date_string] %></td>
-		<td><%= chg[date_string].nil? ? "" : "%.1f" % chg[date_string] %></td>
-		<td><%= ytd[date_string].nil? ? "" : "%.1f" % ytd[date_string] %></td>
-	</tr>
-	<% end %>
-</table>	 
+    <tr>
+        <th><a href="?sort=<%= sort == 'desc' ? 'asc' : 'desc' %>">Date &#8597;</a></th>
+        <th>Level</th>
+        <th>Level Change</th>
+        <th>YOY</th>
+        <th>YTD</th>
+    </tr>
+    <% dates.sort { |a,b| sort == 'desc' ? b <=> a : a <=> b }.each do |date_string|  %>
+    <tr>
+        <td><%= date_string %></td>
+        <td><%= data[date_string].nil? ? "" : "%.3f" % data[date_string] %></td>
+        <td><%= lvl_chg[date_string].nil? ? "" : "%.3f" % lvl_chg[date_string] %></td>
+        <td><%= chg[date_string].nil? ? "" : "%.1f" % chg[date_string] %></td>
+        <td><%= ytd[date_string].nil? ? "" : "%.1f" % ytd[date_string] %></td>
+    </tr>
+    <% end %>
+</table>

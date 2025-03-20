@@ -30,18 +30,18 @@ class GeographiesController < ApplicationController
 
     if @geography.save
       @geography.reload
-      redirect_to geographies_path(u: @geography.universe), notice: 'Geography was successfully created.'
+      redirect_to(geographies_path(u: @geography.universe), notice: 'Geography was successfully created.')
     else
-      render :new
+      render(:new)
     end
   end
 
   # PATCH/PUT /geographies/1
   def update
     if @geography.update(geography_params)
-      redirect_to geographies_path(u: @geography.universe), notice: 'Geography was successfully updated.'
+      redirect_to(geographies_path(u: @geography.universe), notice: 'Geography was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 

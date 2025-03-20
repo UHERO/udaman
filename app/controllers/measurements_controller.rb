@@ -51,30 +51,30 @@ class MeasurementsController < ApplicationController
       data_list = DataList.find(params[:data_list_id]) rescue nil
       if data_list
         data_list.add_measurement(@measurement)
-        redirect_to edit_data_list_path(data_list)
+        redirect_to(edit_data_list_path(data_list))
       else
-        redirect_to @measurement, notice: 'Measurement was successfully created.'
+        redirect_to(@measurement, notice: 'Measurement was successfully created.')
       end
     else
-      render :new
+      render(:new)
     end
   end
-  
+
   def duplicate
     new_measurement = @measurement.dup
     new_measurement.prefix = @measurement.prefix + ' (copy)'
     new_measurement.series = @measurement.series
     new_measurement.save
     set_resource_values(@measurement.universe)
-    redirect_to edit_measurement_url(new_measurement.id)
+    redirect_to(edit_measurement_path(new_measurement.id))
   end
 
   # PATCH/PUT /measurements/1
   def update
     if @measurement.update(measurement_params)
-      redirect_to @measurement, notice: 'Measurement was successfully updated.'
+      redirect_to(@measurement, notice: 'Measurement was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 
@@ -85,35 +85,35 @@ class MeasurementsController < ApplicationController
   def save_as_text
     box_content = params[:edit_box].split(' ')
     @measurement.replace_all_series(box_content)
-    redirect_to edit_measurement_url(@measurement)
+    redirect_to(edit_measurement_path(@measurement))
   end
 
   def import_clip
     current_user.series.sort_by(&:name).each do |s|
       @measurement.series.push(s) rescue next   ## rescue to cover cases where the series is already linked
     end
-    redirect_to action: :edit_as_text, id: @measurement
+    redirect_to(edit_as_text_measurement_path(@measurement))
   end
 
   def add_clip
     count = current_user.add_series(@measurement.series)
-    redirect_to edit_measurement_url(@measurement), notice: "#{count} series added to clipboard"
+    redirect_to(edit_measurement_path(@measurement), notice: "#{count} series added to clipboard")
   end
 
   def add_series
     series = Series.find(params[:series_id])
     unless series.universe == @measurement.universe
-      redirect_to controller: :series, action: :new_alias, id: series, new_univ: @measurement.universe, add_to_meas: @measurement.id
+      redirect_to(new_alias_series_path(series, new_univ: @measurement.universe, add_to_meas: @measurement.id))
       return
     end
     set_resource_values(@measurement.universe)
     if @measurement.series.include? series
-      redirect_to edit_measurement_url(@measurement.id), notice: 'This series is already included!'
+      redirect_to(edit_measurement_path(@measurement.id), notice: 'This series is already included!')
       return
     end
     @measurement.series << series
     respond_to do |format|
-      format.html { redirect_to edit_measurement_url(@measurement.id) }
+      format.html { redirect_to(edit_measurement_path(@measurement.id)) }
       format.js {}
     end
   end
@@ -130,13 +130,13 @@ class MeasurementsController < ApplicationController
     fields = params[:field_boxes]
     series = params[:series_boxes]
     unless fields && series
-      redirect_to({action: :show, id: @measurement}, notice: 'Please select at least one field and one series')
+      redirect_to(measurement_path(@measurement), notice: 'Please select at least one field and one series')
       return
     end
     allowed_fields = ALL_PROPAGATE_FIELDS.map{|f| f[1].to_s }
     fields_to_update = fields.keys.select{|f| allowed_fields.include?(f) }
     if fields_to_update.empty?
-      redirect_to({action: :show, id: @measurement}, notice: 'No fields to update were found.')
+      redirect_to(measurement_path(@measurement), notice: 'No fields to update were found.')
       return
     end
     new_vals_hash = fields_to_update.map{|f| [translate(f), @measurement.read_attribute(f)] }.to_h

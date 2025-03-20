@@ -12,21 +12,21 @@ class DataListsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.erb
-      format.xml  { render :xml => @data_lists }
+      format.xml  { render(xml: @data_lists) }
     end
   end
 
   def show
     super_table
-    render :super_table
+    render(:super_table)
   end
-  
+
   def super_table
     @freq = params[:freq] || 'A'
     @geo = params[:geography] || 'HI'
     @seasonally_adjusted = params[:seasonally_adjusted] || 'all'
   end
-  
+
   def show_table
     @series_to_chart = @data_list.series_names
     unless @series_to_chart.empty?
@@ -35,15 +35,15 @@ class DataListsController < ApplicationController
       @start_date = dates[:start_date]
       @end_date = dates[:end_date]
     end
-    render :tableview
+    render(:tableview)
   end
 
   def show_tsd_super_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file] || @all_tsd_files[0]
-    render :tsd_super_tableview
+    render(:tsd_super_tableview)
   end
-  
+
   def show_tsd_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file] || @all_tsd_files[0]
@@ -52,9 +52,9 @@ class DataListsController < ApplicationController
     dates = set_dates(frequency, params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render :tsd_tableview
+    render(:tsd_tableview)
   end
-  
+
   def analyze_view
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file] || @all_tsd_files[0]
@@ -63,37 +63,12 @@ class DataListsController < ApplicationController
     @data = json_from_heroku_tsd(@series_name,@tsd_file)
 		@series = @data && Series.new_transformation(@data['name']+'.'+@data['frequency'], @data['data'], Series.frequency_from_code(@data['frequency']))
 		@chg = @series.annualized_percentage_change
-    #@as = AremosSeries.get @series.name 
+    #@as = AremosSeries.get @series.name
     @desc = 'None yet' #@as.nil? ? 'No Aremos Series' : @as.description
     @lvl_chg = @series.absolute_change
     @ytd = @series.ytd_percentage_change
   end
 
-  # is this method obsolete? can't find where it is being used
-  def compare_forecasts
-    @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
-  end
-
-  ### Method most likely obsolete. Eventually remove it.
-  def compare_view
-    @tsd_file1 = 'heco14.TSD'
-    @tsd_file2 = '13Q4.TSD'
-    @series_name = params[:list_index].nil? ? params[:series_name] : @data_list.series_names[params[:list_index].to_i]
-
-    @data1 = json_from_heroku_tsd(@series_name,@tsd_file1)
-		@series1 = @data1 && Series.new_transformation(@data1['name']+'.'+@data1['frequency'], @data1['data'],
-                                                   Series.frequency_from_code(@data1['frequency'])).trim('2006-01-01','2017-10-01')
-		@chg1 = @series1.annualized_percentage_change
-    
-    @data2 = json_from_heroku_tsd(@series_name,@tsd_file2)
-		@series2 = @data2 && Series.new_transformation(@data2['name']+'.'+@data2['frequency'], @data2['data'],
-                                                   Series.frequency_from_code(@data2['frequency'])).trim('2006-01-01','2017-10-01')
-		@chg2 = @series2.annualized_percentage_change
-
-    @history_series = @series_name.ts.trim('2006-01-01','2017-10-01')
-    @history_chg = @history_series.annualized_percentage_change
-  end
-  
   def new
     category = Category.find(params[:category_id].to_i) rescue nil
     @category_id = category && category.id
@@ -102,7 +77,7 @@ class DataListsController < ApplicationController
 
     respond_to do |format|
       format.html # new.html.erb
-      format.xml  { render :xml => @data_list }
+      format.xml  { render(xml: @data_list) }
     end
   end
 
@@ -111,7 +86,7 @@ class DataListsController < ApplicationController
     new_data_list.name = @data_list.name + ' (copy)'
     new_data_list.measurements = @data_list.measurements
     new_data_list.save!
-    redirect_to edit_data_list_url(new_data_list.id)
+    redirect_to(edit_data_list_path(new_data_list), notice: 'Successfully Duplicated Data List')
   end
 
   def edit
@@ -140,11 +115,11 @@ class DataListsController < ApplicationController
         if category
           category.update_attributes(data_list_id: @data_list.id)
         end
-        format.html { redirect_to edit_data_list_path(@data_list) }
-        format.xml  { render :xml => @data_list, :status => :created, :location => @data_list }
+        format.html { redirect_to(edit_data_list_path(@data_list)) }
+        format.xml  { render(xml: @data_list), status: :created, :location => @data_list }
       else
-        format.html { render :action => 'new' }
-        format.xml  { render :xml => @data_list.errors, :status => :unprocessable_entity }
+        format.html { render(action: 'new') }
+        format.xml  { render(xml: @data_list).errors, status: :unprocessable_entity }
       end
     end
   end
@@ -152,11 +127,11 @@ class DataListsController < ApplicationController
   def update
     respond_to do |format|
       if @data_list.update! data_list_params.merge(updated_by: current_user.id)
-        format.html { redirect_to(@data_list, :notice => 'Data list was successfully updated.') }
+        format.html { redirect_to(@data_list, notice: 'Data list was successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @data_list.errors, :status => :unprocessable_entity }
+        format.html { render(action: 'edit') }
+        format.xml  { render(xml: @data_list).errors, status: :unprocessable_entity }
       end
     end
   end
@@ -166,7 +141,7 @@ class DataListsController < ApplicationController
     @data_list.destroy
 
     respond_to do |format|
-      format.html { redirect_to data_lists_path(u: univ) }
+      format.html { redirect_to(data_lists_path(u: univ)) }
       format.xml  { head :ok }
     end
   end
@@ -178,7 +153,7 @@ class DataListsController < ApplicationController
   def save_as_text
     box_content = params[:edit_box].split(' ')
     @data_list.replace_all_measurements(box_content)
-    redirect_to edit_data_list_url(@data_list)
+    redirect_to(edit_data_list_url(@data_list))
   end
 
   def add_clip
@@ -186,16 +161,16 @@ class DataListsController < ApplicationController
     @data_list.measurements.each do |m|
       count += current_user.add_series(m.series)
     end
-    redirect_to edit_data_list_url(@data_list), notice: "#{count} series added to clipboard"
+    redirect_to(edit_data_list_url(@data_list), notice: "#{count} series added to clipboard")
   end
 
   def add_measurement
     unless @data_list.add_measurement(Measurement.find params[:data_list][:meas_id].to_i)
-      redirect_to edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!'
+      redirect_to(edit_data_list_url(@data_list.id), notice: 'This Measurement is already in the list!')
       return
     end
     respond_to do |format|
-      format.html { redirect_to edit_data_list_url(@data_list.id) }
+      format.html { redirect_to(edit_data_list_url(@data_list.id)) }
       format.js {}
     end
   end
@@ -313,7 +288,7 @@ private
         start_date = (Time.now.to_date << (12 * params[:num_years].to_i + offset))
         end_date = nil
       end
-      {:start_date => start_date, :end_date => end_date}
+      {start_date: start_date, end_date: end_date}
     end
 
     def json_from_heroku_tsd(series_name, tsd_file)

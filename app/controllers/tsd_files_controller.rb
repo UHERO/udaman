@@ -17,7 +17,7 @@ class TsdFilesController < ApplicationController
   # GET /tsd_files/new
   def new
     @fs = ForecastSnapshot.find_by id: tsd_file_params[:forecast_snapshot_id]
-    @tsd_file = TsdFile.new(:forecast_snapshot_id => @fs.id)
+    @tsd_file = TsdFile.new(forecast_snapshot_id: @fs.id)
   end
 
   # POST /tsd_files
@@ -32,22 +32,22 @@ class TsdFilesController < ApplicationController
     else
       notice = 'TSD file was not successfully created.'
     end
-    redirect_to edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: notice
+    redirect_to(edit_forecast_snapshot_path(@tsd_file.forecast_snapshot), notice: notice)
   end
 
   # PATCH/PUT /tsd_files/1
   def update
     if @tsd_file.update(tsd_file_params)
-      redirect_to @tsd_file, notice: 'TSD file was successfully updated.'
+      redirect_to(@tsd_file, notice: 'TSD file was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 
   # DELETE /tsd_files/1
   def destroy
     @tsd_file.destroy
-    redirect_to edit_forecast_snapshot_path(@fs), notice: 'TSD file was successfully destroyed.'
+    redirect_to(edit_forecast_snapshot_path(@fs), notice: 'TSD file was successfully destroyed.')
   end
 
   private

@@ -1,50 +1,50 @@
 <%= form_for(@export) do |f| %>
-  <% if @export.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@export.errors.count, "error") %> prohibited this export from being saved:</h2>
+<% if @export.errors.any? %>
+<div id="error_explanation">
+    <h2><%= pluralize(@export.errors.count, "error") %> prohibited this export from being saved:</h2>
 
-      <ul>
-      <% @export.errors.full_messages.each do |message| %>
+    <ul>
+        <% @export.errors.full_messages.each do |message| %>
         <li><%= message %></li>
-      <% end %>
-      </ul>
-    </div>
-  <% end %>
+        <% end %>
+    </ul>
+</div>
+<% end %>
 
-  <div class="field">
+<div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name, size: 80 %>
-  </div>
+</div>
 
-    <% if request.path =~ /edit/ %>
-        <h2>List of Series</h2>
-        <table>
-          <tbody>
-          <% @export.export_series.to_a.sort_by {|es| es.list_order }.map {|es| es.series }.each do |series| %>
-              <tr>
-                <td><%= link_to series.name, series %></td>
-                <td><%= link_to 'Up', {controller: :exports, action: :move_series_up, id: @export, series_id: series.id}, remote: true, data: {up: true} %></td>
-                <td><%= link_to 'Down', {controller: :exports, action: :move_series_down, id: @export, series_id: series.id}, remote: true, data: {down: true} %></td>
-                <td><%= link_to 'Remove', {controller: :exports, action: :remove_series, id: @export, series_id: series.id}, remote: true, data: {remove: true} %></td>
-              </tr>
-          <% end %>
-          </tbody>
-        </table>
-        <br />
-      <%= render 'add_series' %>
-              or <%= link_to 'Edit all series as text', { action: :edit_as_text, id: @export } %>
-              <% unless current_user.clipboard.empty? %>
-                or <%= link_to 'Import from clipboard', { action: :import_clip, id: @export } %>
-              <% end %>
-              or <%= link_to 'Add all series to clipboard', { action: :add_clip, id: @export } %>
-  <% end %>
+<% if request.path =~ /edit/ %>
+<h2>List of Series</h2>
+<table>
+    <tbody>
+        <% @export.export_series.to_a.sort_by {|es| es.list_order }.map {|es| es.series }.each do |series| %>
+        <tr>
+            <td><%= link_to series.name, series %></td>
+            <td><%= link_to 'Up', move_series_up_export_path(@export, series_id: series.id), remote: true, data: {up: true} %></td>
+            <td><%= link_to 'Down', move_series_down_export_path(@export, series_id: series.id), remote: true, data: {down: true} %></td>
+            <td><%= link_to 'Remove', remove_series_export_path(@export, series_id: series.id), remote: true, data: {remove: true}, method: :delete %></td>
+        </tr>
+        <% end %>
+    </tbody>
+</table>
+<br />
+<%= render 'add_series' %>
+or <%= link_to 'Edit all series as text', edit_as_text_export_path(@export) %>
+<% unless current_user.clipboard.empty? %>
+or <%= link_to 'Import from clipboard', import_clip_export_path(@export), method: :post %>
+<% end %>
+or <%= link_to 'Add all series to clipboard', add_clip_export_path(@export), method: :post %>
+<% end %>
 <p>
-  <div class="field">
+<div class="field">
     <%= f.select(:owned_by, User.where(universe: 'UHERO').all.map {|u| [u.email, u.id]}, :prompt => 'Owned by') %>
-  </div>
-  <div class="actions">
+</div>
+<div class="actions">
     <%= f.submit %>
     <%= link_to 'Cancel', :back %>
-  </div>
-  </p>
+</div>
+</p>
 <% end %>

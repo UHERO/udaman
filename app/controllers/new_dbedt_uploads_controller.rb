@@ -23,18 +23,19 @@ class NewDbedtUploadsController < ApplicationController
     @db_upload = NewDbedtUpload.new(db_upload_params)
 
     unless @db_upload.store_upload_file(db_upload_params[:filename])
-      redirect_to action: :index
+      redirect_to(new_dbedt_uploads_path)
+
       return
     end
-    redirect_to({ action: :index }, notice: 'DBEDT Upload was successfully stored.')
+    redirect_to(new_dbedt_uploads_path, notice: 'DBEDT Upload was successfully stored.')
   end
 
   def active_status
-    render plain: @db_upload.active, status: 200, content_type: 'text/plain'
+    render(plain: @db_upload.active, status: 200, content_type: 'text/plain')
   end
 
   def status
-    render plain: @db_upload.status, status: 200, content_type: 'text/plain'
+    render(plain: @db_upload.status, status: 200, content_type: 'text/plain')
   end
 
 private

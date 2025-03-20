@@ -1,33 +1,33 @@
-<%= form_with(model: @api_application) do |f| %>
-  <% if @api_application.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@api_application.errors.count, "error") %> prohibited this api_application from being saved:</h2>
+<%= form_with(model: @api_application, local: true) do |f| %>
+<% if @api_application.errors.any? %>
+<div id="error_explanation">
+    <h2><%= pluralize(@api_application.errors.count, "error") %> prohibited this api_application from being saved:</h2>
 
-      <ul>
-      <% @api_application.errors.full_messages.each do |message| %>
+    <ul>
+        <% @api_application.errors.full_messages.each do |message| %>
         <li><%= message %></li>
-      <% end %>
-      </ul>
-    </div>
-  <% end %>
+        <% end %>
+    </ul>
+</div>
+<% end %>
 
-  <div class="field">
+<div class="field">
     <%= f.label :name %><br>
     <%= f.text_field :name %>
-  </div>
-  <div class="field">
+</div>
+<div class="field">
     <%= f.label :hostname %><br>
     <%= f.text_field :hostname %>
-  </div>
-  <div class="field">
+</div>
+<div class="field">
     <%= f.label :api_key %><br>
     <%= f.text_field :api_key, size: 60 %>
-  </div>
-  <div class="field">
+</div>
+<div class="field">
     <%= f.label :github_nickname %> (why do we need this?)<br>
     <%= f.text_field :github_nickname %>
-  </div>
-  <div class="actions">
+</div>
+<div class="actions">
     <%= f.submit %>
-  </div>
+</div>
 <% end %>

@@ -1,16 +1,16 @@
 <table>
-	<tr>
-		<th style="width:100px;">Date</th>
-    <th>Value</th>
-		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YOY</th>
-		<th style="width:45px; text-align:center; padding:0 2px 0 0;">YTD</th>
-    <th style="width:20px;">LVL</th>
-    <th>Age</th>
-    <% if loader_count > 1 %>
-      <th>Loader</th>
-    <% end %>
-	</tr>
-<%
+    <tr>
+        <th style="width:100px;">Date</th>
+        <th>Value</th>
+        <th style="width:45px; text-align:center; padding:0 2px 0 0;">YOY</th>
+        <th style="width:45px; text-align:center; padding:0 2px 0 0;">YTD</th>
+        <th style="width:20px;">LVL</th>
+        <th>Age</th>
+        <% if loader_count > 1 %>
+        <th>Loader</th>
+        <% end %>
+    </tr>
+    <%
   ###################### WOW, having all this logic inside a view template is a MAJOR NO-NO. Should be refactored!
     def display_data_points(data_hash, env = {})
       chg_data = @chg.data.clone rescue {}
@@ -31,28 +31,28 @@
           ytd_align = ytd_chg_value == '-' ? 'center' : 'right'
           lvl_chg_value = lvl_data[cdp.date].round(3) rescue '-'
 %>
-      <tr>
-        <td><%= link_to cdp.date, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: cdp.date %></td>
+    <tr>
+        <td><%= link_to cdp.date, show_data_points_path(xseries_id: @series.xseries_id, date: cdp.date) %></td>
         <td><span class="current-datapoint"><%= dp_display(cdp_val, bgcolors[cdp.data_source_id]) %></span></td>
         <td style="text-align:<%= chg_align %>;"><span class="per-chg"><%= chg_value %></span></td>
         <td style="text-align:<%= ytd_align %>;"><span class="per-chg"><%= ytd_chg_value %></span></td>
         <td style="text-align:right;"><span class="per-chg"><%= lvl_chg_value %></span></td>
         <td><span style="float:right;"><%= dp_age_code(cdp) %></span></td>
         <% if env[:loader_count] > 1 %>
-          <td><span style="float:right;"><%= cdp.data_source_id %></span></td>
+        <td><span style="float:right;"><%= cdp.data_source_id %></span></td>
         <% end %>
-      </tr>
-<%
+    </tr>
+    <%
         else
           a_color = element == 1000000000000000.0 ? 'gray' : 'red'
 %>
-      <tr>
-        <td><%= link_to date_string, controller: :data_points, action: :show, xseries_id: @series.xseries_id, date: date_string %></td>
+    <tr>
+        <td><%= link_to date_string, show_data_points_path(xseries_id: @series.xseries_id, date: date_string) %></td>
         <td><span style='color:<%= a_color %>'><%= element %></span></td>
         <td></td>
         <td style="text-align:center"><span style='color:red'> - </span></td>
-      </tr>
-<%
+    </tr>
+    <%
         end
       end
     end
@@ -60,15 +60,15 @@
     data_hash = @vintage ? @series.get_vintage_as_data_points(@vintage) : @series.current_data_points(:hash)
     display_data_points(data_hash, { loader_count: loader_count })
 %>
-	<tr>
-		<th>Date</th>
-    <th>Value</th>
-		<th>YOY</th>
-		<th>YTD</th>
-    <th>LVL</th>
-    <th>Age</th>
-    <% if loader_count > 1 %>
-      <th>Loader</th>
-    <% end %>
-	</tr>
+    <tr>
+        <th>Date</th>
+        <th>Value</th>
+        <th>YOY</th>
+        <th>YTD</th>
+        <th>LVL</th>
+        <th>Age</th>
+        <% if loader_count > 1 %>
+        <th>Loader</th>
+        <% end %>
+    </tr>
 </table>

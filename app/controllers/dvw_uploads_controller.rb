@@ -10,7 +10,7 @@ class DvwUploadsController < ApplicationController
   end
 
   def show
-    send_file @dvw_upload.absolute_path(params[:filetype])
+    send_file(@dvw_upload.absolute_path(params[:filetype]))
   end
 
   def new
@@ -20,23 +20,23 @@ class DvwUploadsController < ApplicationController
     @dvw_upload = DvwUpload.new(dvw_upload_params)
 
     unless @dvw_upload.store_upload_files(dvw_upload_params[:filename])
-      redirect_to action: :index
+      redirect_to(dvw_uploads_path)
       return
     end
-    redirect_to({ action: :index }, notice: 'DVW upload was successfully stored.')
+    redirect_to(dvw_uploads_path, notice: 'DVW upload was successfully stored.')
   end
 
   def make_active
     @dvw_upload.make_active
-    redirect_to action: :index
+    redirect_to(dvw_uploads_path)
   end
 
   def active_status
-    render plain: @dvw_upload.active, status: 200, content_type: 'text/plain'
+    render(plain: @dvw_upload.active, status: 200, content_type: 'text/plain')
   end
 
   def status
-    render plain: @dvw_upload.get_status(params[:which]), status: 200, content_type: 'text/plain'
+    render(plain: @dvw_upload.get_status(params[:which]), status: 200, content_type: 'text/plain')
   end
 
   def update
@@ -44,7 +44,7 @@ class DvwUploadsController < ApplicationController
 
   def destroy
     @dvw_upload.destroy
-    redirect_to({ action: :index }, notice: 'DVW upload was successfully destroyed.')
+    redirect_to(dvw_uploads_path, notice: 'DVW upload was successfully destroyed.')
   end
 
 private

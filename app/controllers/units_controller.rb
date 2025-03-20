@@ -24,7 +24,7 @@ class UnitsController < ApplicationController
   def create
     # Don't allow empty or whitespace strings in the db
     if unit_params[:short_label].blank? || unit_params[:long_label].blank?
-      redirect_to({ :action => :new }, notice: 'Blank entries not allowed')
+      redirect_to(new_path, notice: 'Blank entries not allowed')
       return
     end
     unit_params[:short_label].strip!
@@ -44,9 +44,9 @@ class UnitsController < ApplicationController
 
     if saved
       @unit.reload
-      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully created.'
+      redirect_to(units_path(u: @unit.universe), notice: 'Unit was successfully created.')
     else
-      redirect_to({ :action => :new }, notice: error)
+      redirect_to(new_path, notice: error)
     end
   end
 
@@ -54,7 +54,7 @@ class UnitsController < ApplicationController
   def update
     # Don't allow empty or whitespace strings in the db
       if unit_params[:short_label].blank? || unit_params[:long_label].blank?
-      redirect_to({ :action => :edit }, notice: 'Blank entries not allowed')
+      redirect_to(edit_unit_path(@unit), notice: 'Blank entries not allowed')
       return
     end
     unit_params[:short_label].strip!
@@ -75,15 +75,16 @@ class UnitsController < ApplicationController
     end
 
     if updated
-      redirect_to units_path(u: @unit.universe), notice: 'Unit was successfully updated.'
+      redirect_to(units_path(u: @unit.universe), notice: 'Unit was successfully updated.')
     else
-      render({:action => :edit}, notice: error)
+      flash[:notice] = error
+      render(:edit)
     end
   end
 
   def destroy
     @unit.destroy
-    redirect_to units_url, notice: 'Unit was successfully destroyed.'
+    redirect_to(units_path, notice: 'Unit was successfully destroyed.')
   end
 
 private

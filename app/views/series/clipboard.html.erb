@@ -1,48 +1,49 @@
 <% if current_user.internal_user? %>
 
 <div id="summary_area">
- 	<h1 style="color:blue">Clip Board</h1>
-  <% if @all_series && @all_series.count > 0 %>
-      <h2>Total: <%= @all_series.count %></h2>
-  <% end %>
-  <br />
-  <div>
-    <% unless @clip_empty %>
-      <p><%= link_to 'Clear clipboard', { action: :clear_clip }, data: { confirm: 'Clear your clipboard: Are you sure??' } %></p>
+    <h1 style="color:blue">Clip Board</h1>
+    <% if @all_series && @all_series.count > 0 %>
+    <h2>Total: <%= @all_series.count %></h2>
     <% end %>
-    <p><%= form_with url: { action: :do_clip_action } do |f| %>
-        <select id="clip_action" name="clip_action" <%= 'disabled' if @clip_empty %>>
-          <option value=""></option>
-          <option value="metacsv">Download metadata csv</option>
-          <option value="datacsv">Download data csv</option>
-          <option value="datatsd">Download data tsd</option>
-          <% if current_user.admin_user? %>
-            <option value="reload">Batch reload with deps</option>
-            <option value="meta_update">Update metadata</option>
-            <option value="reset">Reset all downloads</option>
-            <option value="restrict">Restrict series</option>
-            <option value="unrestrict">Unrestrict series</option>
-            <option value="clear">Clear all data points</option>
-          <% end %>
-          <% if current_user.dev_user? %>
-            <option value="destroy">Destroy series</option>
-          <% end %>
-        </select>
-      <%= f.submit 'Go' %>
-      <% end %></p>
-  </div>
-  <span id="message_area" class="clip_action_status"><%= @status_message %></span>
+    <br />
+    <div>
+        <% unless @clip_empty %>
+        <p><%= link_to 'Clear clipboard', clear_clip_series_index_path, data: { confirm: 'Clear your clipboard: Are you sure??' } %></p>
+        <% end %>
+        <p><%= form_with url: do_clip_action_series_index_path, method: :post do |f| %>
+            <select id="clip_action" name="clip_action" <%= 'disabled' if @clip_empty %>>
+                <option value=""></option>
+                <option value="metacsv">Download metadata csv</option>
+                <option value="datacsv">Download data csv</option>
+                <option value="datatsd">Download data tsd</option>
+                <% if current_user.admin_user? %>
+                <option value="reload">Batch reload with deps</option>
+                <option value="meta_update">Update metadata</option>
+                <option value="reset">Reset all downloads</option>
+                <option value="restrict">Restrict series</option>
+                <option value="unrestrict">Unrestrict series</option>
+                <option value="clear">Clear all data points</option>
+                <% end %>
+                <% if current_user.dev_user? %>
+                <option value="destroy">Destroy series</option>
+                <% end %>
+            </select>
+            <%= f.submit 'Go' %>
+            <% end %>
+        </p>
+    </div>
+    <span id="message_area" class="clip_action_status"><%= @status_message %></span>
 </div>
 <div id="details_area">
-<% if @clip_empty %>
+    <% if @clip_empty %>
 
-  <strong>Clipboard empty.</strong>
+    <strong>Clipboard empty.</strong>
 
-<% else %>
+    <% else %>
 
-  <%= render partial: 'list_series', locals: { all_series: @all_series } %>
+    <%= render partial: 'list_series', locals: { all_series: @all_series } %>
 
-<% end %>
+    <% end %>
 </div>
 
 <% end %>

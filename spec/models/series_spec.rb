@@ -264,7 +264,7 @@ describe Series do
     end
 
     it "should store the ruby statement that creates it when set with eval syntax" do
-      @dh.cs "ONES@TEST.Q"
+      create_series("ONES@TEST.Q")
       "SERIES@TEST.Q".ts_eval= %Q|"ONES@TEST.Q".ts + "ONES@TEST.Q".ts|
       sources = "SERIES@TEST.Q".ts.data_sources
       sources[0].eval.should == %Q|"ONES@TEST.Q".ts + "ONES@TEST.Q".ts|
