@@ -41,7 +41,7 @@ gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
 gem 'sassc-rails', '>= 2.1.0'
 gem 'uglifier', '~> 3.0'
 gem 'jquery-rails', '~> 4.4'
-gem 'jquery-ui-rails', '~> 6.0.1'
+gem 'jquery-ui-rails', '~> 7.0.0'
 gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
