@@ -26,9 +26,9 @@ class SourcesController < ApplicationController
 
     if @source.save
       @source.reload
-      redirect_to sources_path(u: @source.universe), notice: 'Source was successfully created.'
+      redirect_to(sources_path(u: @source.universe), notice: 'Source was successfully created.')
     else
-      render :new
+      render(:new)
     end
   end
 
@@ -37,15 +37,15 @@ class SourcesController < ApplicationController
     properties = source_params.to_h
     properties.delete(:universe)  ## don't allow update of universe
     if @source.update(properties)
-      redirect_to sources_path(u: @source.universe), notice: 'Source was successfully updated.'
+      redirect_to(sources_path(u: @source.universe), notice: 'Source was successfully updated.')
     else
-      render :edit
+      render(:edit)
     end
   end
 
   def destroy
     @source.destroy
-    redirect_to sources_url, notice: 'Source was successfully destroyed.'
+    redirect_to(sources_path, notice: 'Source was successfully destroyed.')
   end
 
 private

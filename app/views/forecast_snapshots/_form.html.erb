@@ -1,60 +1,60 @@
 <%= form_for(@forecast_snapshot) do |f| %>
-  <% if @forecast_snapshot.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@forecast_snapshot.errors.count, "error") %> prohibited this forecast_snapshot from being saved:</h2>
+<% if @forecast_snapshot.errors.any? %>
+<div id="error_explanation">
+    <h2><%= pluralize(@forecast_snapshot.errors.count, "error") %> prohibited this forecast_snapshot from being saved:</h2>
 
-      <ul>
-      <% @forecast_snapshot.errors.full_messages.each do |message| %>
+    <ul>
+        <% @forecast_snapshot.errors.full_messages.each do |message| %>
         <li><%= message %></li>
-      <% end %>
-      </ul>
-    </div>
-  <% end %>
+        <% end %>
+    </ul>
+</div>
+<% end %>
 
-  <div class="field">
+<div class="field">
     <%= f.label :name %><br>
-    <%= f.text_field :name, :size => 80 %>
+    <%= f.text_field :name, size: 80 %>
     Published?
     <%= f.check_box :published %>
-  </div>
-  <div class="field">
+</div>
+<div class="field">
     <%= f.label :version %><br>
     <%= f.text_field :version %>
-  </div>
-  <div class="field">
+</div>
+<div class="field">
     <%= f.label :comments %><br>
     <%= f.text_area :comments %>
-  </div>
-  <div class="field">
-    <%= link_to 'New Forecast', { action: :pull_file, id: @forecast_snapshot, type: :new_forecast_tsd_filename },
+</div>
+<div class="field">
+    <%= link_to 'New Forecast', pull_file_forecast_snapshot_path(@forecast_snapshot, type: :new_forecast_tsd_filename),
                 title: @forecast_snapshot.filename_title(:new_forecast_tsd_filename) %>
-    <%= f.text_field :new_forecast_tsd_filename, :disabled => true, :size => 30 %>
-      Label
-      <%= f.text_field :new_forecast_tsd_label, :size => 30 %>
-      <%= f.file_field :new_forecast_tsd_filename %>
-  </div>
-  <div class="field">
-    <%= link_to 'Old Forecast', { action: :pull_file, id: @forecast_snapshot, type: :old_forecast_tsd_filename },
+    <%= f.text_field :new_forecast_tsd_filename, :disabled => true, size: 30 %>
+    Label
+    <%= f.text_field :new_forecast_tsd_label, size: 30 %>
+    <%= f.file_field :new_forecast_tsd_filename %>
+</div>
+<div class="field">
+    <%= link_to 'Old Forecast', pull_file_forecast_snapshot_path(@forecast_snapshot, type: :old_forecast_tsd_filename),
                 title: @forecast_snapshot.filename_title(:old_forecast_tsd_filename) %>
-    <%= f.text_field :old_forecast_tsd_filename, :disabled => true, :size => 30 %>
-      Label
-      <%= f.text_field :old_forecast_tsd_label, :size => 30 %>
-      <%= f.file_field :old_forecast_tsd_filename %>
-  </div>
-  <div class="field">
-    <%= link_to 'History', { action: :pull_file, id: @forecast_snapshot, type: :history_tsd_filename },
+    <%= f.text_field :old_forecast_tsd_filename, :disabled => true, size: 30 %>
+    Label
+    <%= f.text_field :old_forecast_tsd_label, size: 30 %>
+    <%= f.file_field :old_forecast_tsd_filename %>
+</div>
+<div class="field">
+    <%= link_to 'History', pull_file_forecast_snapshot_path(@forecast_snapshot, type: :history_tsd_filename),
                 title: @forecast_snapshot.filename_title(:history_tsd_filename) %>
-    <%= f.text_field :history_tsd_filename, :disabled => true, :size => 30 %>
-      Label
-      <%= f.text_field :history_tsd_label, :size => 30 %>
-      <%= f.file_field :history_tsd_filename %>
-  </div>
-  <div class="actions">
+    <%= f.text_field :history_tsd_filename, :disabled => true, size: 30 %>
+    Label
+    <%= f.text_field :history_tsd_label, size: 30 %>
+    <%= f.file_field :history_tsd_filename %>
+</div>
+<div class="actions">
     <%= f.submit 'Save forecast snapshot' %>
     <% if @isa_dup %>
-        <%= link_to 'Cancel', @forecast_snapshot, method: :delete %>
+    <%= link_to 'Cancel', @forecast_snapshot, method: :delete %>
     <% else %>
-        <%= link_to 'Cancel', :back %>
+    <%= link_to 'Cancel', :back %>
     <% end %>
-  </div>
+</div>
 <% end %>

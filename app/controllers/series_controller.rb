@@ -30,7 +30,7 @@ class SeriesController < ApplicationController
         @series.aliases.each {|a| a.rename(new_name) }
       end
     end
-    redirect_to action: :show
+    redirect_to(series_path(@series), notice: 'Successfully redirected to show.')
   end
 
   def duplicate
@@ -45,20 +45,20 @@ class SeriesController < ApplicationController
         dup_series.data_sources << new_ld
       end
     end
-    redirect_to edit_series_path(dup_series)
+    redirect_to(edit_series_path(dup_series))
   end
 
   def create
     begin
       @series = Series.create_new( series_params.merge(name_parts: name_parts) )
     rescue => error
-      redirect_to({ action: :new }, notice: error.message)
+      redirect_to(new_series_path, alert: error.message)
       return
     end
     if @series
-      redirect_to @series, notice: 'Series successfully created'
+      redirect_to(series_path(@series), notice: 'Series successfully created')
     else
-      render :new
+      render(:new)
     end
   end
 
@@ -74,9 +74,9 @@ class SeriesController < ApplicationController
     @series = @series.create_alias(series_params)
     mid = params[:add2meas].to_i
     if mid > 0
-      redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
+      redirect_to(measurement_add_series_path(id: mid, series_id: @series))
     else
-      redirect_to @series, notice: 'Alias series successfully created'
+      redirect_to(series_path(@series), notice: 'Alias series successfully created')
     end
   end
 
@@ -85,15 +85,20 @@ class SeriesController < ApplicationController
       @series.update!(series_params)
       mid = params[:add2meas].to_i
       if mid > 0
-        redirect_to controller: :measurements, action: :add_series, id: mid, series_id: @series
+        redirect_to(measurement_add_series_path(id: mid, series_id: @series.id))
         return
       end
       respond_to do |format|
-        format.html { redirect_to(@series, notice: 'Series successfully updated') }
+        format.html {
+          puts "DEBUG: Executing HTML redirect"
+          url = series_path(@series)
+          puts "DEBUG: Redirecting to #{url}"  # Add this line
+          redirect_to(series_path(@series), notice: 'Series successfully updated') }
         format.xml  { head :ok }
+        format.js   { render(js: "window.location.href = '#{series_path(@series)}'") }
       end
     rescue => e
-      redirect_to({ action: :edit }, notice: e.message)
+      redirect_to(series_path(@series), alert: e.message)
       return
     end
   end
@@ -103,7 +108,7 @@ class SeriesController < ApplicationController
 
   def bulk_create
     if Series.bulk_create( bulk_params[:definitions].split(/\n+/).map(&:strip) )
-      redirect_to action: :index
+      redirect_to(series_path, notice: 'Bulk series successfully created')
     end
   end
 
@@ -123,18 +128,18 @@ class SeriesController < ApplicationController
       @dir == 'up' ? a[:name] <=> b[:name] : b[:name] <=> a[:name]
     end
     @index_action = :clip
-    render :clipboard
+    render(:clipboard)
   end
 
-  def clear_clip
-    if params[:id]
-      current_user.clear_series(Series.find params[:id].to_i)
-      redirect_to action: :clipboard
-      return
-    end
-    current_user.clear_series
-    redirect_to action: :index
+def clear_clip
+  if params[:id]
+    current_user.clear_series(Series.find params[:id].to_i)
+    redirect_to(clip_series_index_path)
+    return
   end
+  current_user.clear_series
+  redirect_to(series_index_path)
+end
 
   def add_clip
     if params[:id]
@@ -144,20 +149,20 @@ class SeriesController < ApplicationController
       current_user.clear_series if params[:replace] == 'true'  ## must be done after results collected, in case &noclip is used
       current_user.add_series results
     end
-    redirect_to action: :clipboard
+    redirect_to(clip_series_index_path)
   end
 
   def do_clip_action
     if params[:clip_action] =~ /csv/
-      redirect_to action: :group_export, type: params[:clip_action], format: :csv, layout: false
+      redirect_to(group_export_series_path(type: params[:clip_action], format: :csv, layout: false))
       return
     end
     if params[:clip_action] == 'datatsd'
-      redirect_to action: :group_export, type: params[:clip_action], format: :tsd, layout: false
+      redirect_to(group_export_series_path(type: params[:clip_action], format: :tsd, layout: false))
       return
     end
     if params[:clip_action] == 'meta_update'
-      redirect_to action: :meta_update
+      redirect_to(meta_update_series_path)
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
@@ -183,12 +188,12 @@ class SeriesController < ApplicationController
   def meta_store
     fields = field_params.to_h.keys.map(&:to_sym)
     unless fields.count > 0
-      redirect_to({ action: :meta_update }, notice: 'No fields were specified for metadata propagation')
+      redirect_to(meta_update_series_path, notice: 'No fields were specified for metadata propagation')
       return
     end
     new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
     current_user.meta_update(new_properties)
-    redirect_to action: :clipboard
+    redirect_to(clip_series_index_path)
   end
 
   def clear
@@ -199,26 +204,26 @@ class SeriesController < ApplicationController
     delete_method_param = {}
     if cutoff_date
       if clear_params[:type].blank?
-        redirect_to action: :clear, id: @series
+        redirect_to(clear_series_path(@series))
         return
       end
       delete_method_param = { clear_params[:type].to_sym => cutoff_date }
     end
     @series.delete_data_points(**delete_method_param)  ## double splat for hash
     @series.repair_currents!
-    redirect_to controller: :series, action: :show, id: @series
+    redirect_to(series_path(@series))
   end
 
   def index
     if current_user.fsonly?
-      redirect_to controller: :forecast_snapshots, action: :index
+      redirect_to(forecast_snapshots_path)
       return
     end
     if current_user.dbedt?
       return
     end
     unless current_user.internal_user?
-      render text: 'Your current role only gets to see this page.', layout: true
+      render(text: 'Your current role only gets to see this page.', layout: true)
       return
     end
     all_series = Series.get_all_uhero.order(created_at: :desc).limit(40)
@@ -229,8 +234,8 @@ class SeriesController < ApplicationController
   end
 
   def autocomplete_search
-    render :json => Series.web_search(params[:term], params[:universe])
-                          .map {|s| { label: s[:name] + ':' + s[:description], value: s[:series_id] } }
+    render json: Series.web_search(params[:term], params[:universe])
+                       .map { |s| { label: "#{s[:name]}:#{s[:description]}", value: s[:series_id] } }
   end
 
   def new_search(search_string = nil)
@@ -238,7 +243,7 @@ class SeriesController < ApplicationController
     Rails.logger.info { "SEARCHLOG: user #{current_user.username.ljust(9, ' ')} searched #{@search_string}" }
     all_series = Series.search(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if all_series.count == 1 && @search_string !~ /[+]1\b/
-      redirect_to action: :show, id: all_series[0]
+      redirect_to(all_series[0])
       return
     end
     @all_series = create_index_structure(all_series)
@@ -257,7 +262,7 @@ class SeriesController < ApplicationController
       end
     end
     @index_action = :search
-    render :index
+    render(:index)
   end
 
   def show(no_render: false)
@@ -272,9 +277,9 @@ class SeriesController < ApplicationController
     return if no_render
 
     respond_to do |format|
-      format.csv { render :layout => false }
+      format.csv { render(layout: false) }
       format.html # show.html.erb
-      format.json { render :json => @series }
+      format.json { render(json: @series) }
     end
   end
 
@@ -324,7 +329,7 @@ class SeriesController < ApplicationController
       @freq = params[:freq] ||= $5.upcase if $5
     end
     unless @path && @fcid && @version && @freq
-      render :forecast_upload
+      render(:forecast_upload)
       return
     end
     created_series_ids = Series.do_forecast_upload(params)
@@ -335,41 +340,47 @@ class SeriesController < ApplicationController
     if @series
       @series.add_to_quarantine
     end
-    redirect_to action: :show, id: params[:id]
+    redirect_to(series_path(params[:id]))
   end
 
   def remove_from_quarantine
-    dest = { action: params[:next_action] || :show }
     if @series
-      dest[:id] = @series.id if dest[:action] == :show
       @series.remove_from_quarantine
+      if params[:next_action].present?
+        redirect_to(send("#{params[:next_action]}_series_path", @series), notice: 'Series removed from quarantine')
+      else
+        redirect_to(series_path(@series), notice: 'Series removed from quarantine') # Redirect to series#show
+      end
+    else
+      redirect_to(root_path, alert: 'Series not found') # Or wherever makes sense if @series is nil
     end
-    redirect_to dest
   end
 
   def empty_quarantine
     Series.empty_quarantine
-    redirect_to action: :quarantine
+    redirect_to(quarantine_series_path, notice: 'Successfully redirected to quarantine.')
   end
 
   def reload_all
     @series.reload_sources
-    redirect_to action: :show
+    redirect_to(series_path(@series), notice: 'Successfully redirected to show.')
   end
 
   def json_with_change
-    render :json => { :series => @series, :chg => @series.annualized_percentage_change}
+    render(json: { series: @series, chg: @series.annualized_percentage_change })
   end
 
+  # look into creating jobs for these kinds of slow actions
   def destroy
+    series_name = @series.name
     @series.destroy!
-    redirect_to action: :index
+    redirect_to(series_index_path, notice: "Series '#{series_name}' was successfully destroyed.")
   end
-  
+
   def search
     @search_results = AremosSeries.web_search(params[:search])
   end
-  
+
   def all_tsd_chart
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @all_series_to_chart = []
@@ -380,7 +391,7 @@ class SeriesController < ApplicationController
       puts data
       @all_series_to_chart.push(Series.new_transformation(
         data['name'] + '.' + data['frequency'] + ':' + tsd,
-        data['data'], 
+        data['data'],
         Series.frequency_from_code(data['frequency'])
         )) unless data.nil? or data['frequency'] != @series.name[-1]
     end
@@ -391,7 +402,7 @@ class SeriesController < ApplicationController
     eval_statement = eval_string.split(' ').map {|e| valid_series_name(e) ? %Q{"#{e}".ts} : e }.join(' ')
     @series = (Kernel::eval eval_statement) rescue nil
     unless @series
-     redirect_to action: :index
+     redirect_to(series_path)
      return
     end
 
@@ -400,7 +411,7 @@ class SeriesController < ApplicationController
     @lvl_chg = @series.absolute_change
     @ytd = @series.ytd_percentage_change
   end
-  
+
   def analyze
     @chg = @series.annualized_percentage_change
     @as = AremosSeries.get @series.name
@@ -411,12 +422,12 @@ class SeriesController < ApplicationController
 
   ## this appears to be vestigial. Renaming now; if nothing breaks, delete later (also :only ref at top of file)
   def render_data_points_DELETEME?
-    render :partial => 'data_points', :locals => {:series => @series, :as => @as}
+    render(partial: 'data_points', locals: {series: @series, as: @as})
   end
-  
+
   def update_notes
     @series.update_attributes(investigation_notes: params[:note])
-    render :partial => 'investigation_sort'
+    render(partial: 'investigation_sort')
   end
 
 private

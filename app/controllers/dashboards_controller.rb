@@ -11,14 +11,14 @@ class DashboardsController < ApplicationController
   def rerun_job
     job = ReloadJob.find(params[:id].to_i) rescue raise("Could not find existing ReloadJob id = #{params[:id]}")
     job.rerun_as(current_user)
-    redirect_to :investigate_visual
+    redirect_to(investigate_visual_path)
   end
 
   def destroy_reload_job
     job_id = params[:id].to_i
     return if job_id < 1
     ReloadJob.find(job_id).destroy rescue nil
-    redirect_to :investigate_visual
+    redirect_to(investigate_visual_path)
   end
 
   def update_public_dp
@@ -33,30 +33,30 @@ class DashboardsController < ApplicationController
   def export_tsd
     Rails.logger.info { 'Performing TSD export' }
     ExportWorker.perform_async
-    render json: { message: 'Export queued for worker' }
+    render(json: { message: 'Export queued for worker' })
   end
 
   def restart_restapi
     Rails.logger.info { 'Performing REST API restart' }
     %x{sudo systemctl restart rest-api.service}
-    render json: { message: "REST API restart #{$?.success? ? 'done' : 'FAIL'}" }
+    render(json: { message: "REST API restart #{$?.success? ? 'done' : 'FAIL'}" })
   end
 
   def restart_dvwapi
     Rails.logger.info { 'Performing DVW API restart' }
     %x{sudo systemctl restart dvw-api.service}
-    render json: { message: "DVW API restart #{$?.success? ? 'done' : 'FAIL'}" }
+    render(json: { message: "DVW API restart #{$?.success? ? 'done' : 'FAIL'}" })
   end
 
   def force_sync_files
     Rails.logger.info { 'Performing NAS file sync' }
     %x{ssh uhero@uhero13.colo.hawaii.edu "/home/uhero/filesync.sh"}
-    render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
+    render(json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" })
   end
 
   def clear_api_cache
     Rails.logger.info { 'Performing clear of API cache' }
     %x{ssh uhero@uhero12.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"}
-    render json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" }
+    render(json: { message: "NAS file sync #{$?.success? ? 'done' : 'FAIL'}" })
   end
 end

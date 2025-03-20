@@ -6,7 +6,7 @@ class DataSourcesController < ApplicationController
 
   def source
     @data_source.reload_source
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id), notice: "Successfully cleared datatable for #{@data_source.name}")
   end
 
   def clear
@@ -17,7 +17,7 @@ class DataSourcesController < ApplicationController
     delete_method_param = {}
     if cutoff_date
       if clear_params[:type].blank?
-        redirect_to action: :clear, id: @data_source
+        redirect_to(clear_data_source_path(@data_source), notice: "Queued clearing of datatable for #{@data_source.name}")
         return
       end
       delete_method_param = { clear_params[:type].to_sym => cutoff_date }
@@ -25,29 +25,29 @@ class DataSourcesController < ApplicationController
     @data_source.delete_data_points(**delete_method_param)  ## double splat for hash
     @data_source.series.repair_currents!
     @data_source.reset
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id), notice: "Successfully did clear of datatable for #{@data_source.name}")
   end
-  
+
   def delete
     if @data_source.destroy
       create_action @data_source, 'DELETE'
     end
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id), notice: "Successfully deleted datatable for #{@data_source.name}")
   end
 
   def reset
     @data_source.reset
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id), notice: "Successfully reset datatable for #{@data_source.name}")
   end
 
   def disable
     @data_source.disable!
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id), notice: "Successfully disabled datatable for #{@data_source.name}")
   end
 
   def toggle_reload_nightly
     @data_source.toggle_reload_nightly
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id), notice: "Successfully toggled reload nightly reload for #{@data_source.name}")
   end
 
   def new
@@ -56,7 +56,7 @@ class DataSourcesController < ApplicationController
   end
 
   def show
-    redirect_to controller: :series, action: :show, id: @data_source.series_id
+    redirect_to(series_path(@data_source.series_id))
   end
 
   def edit
@@ -73,9 +73,9 @@ class DataSourcesController < ApplicationController
       @data_source.setup if eval_changed
       @data_source.mark_data_as_pseudo_history(@data_source.pseudo_history?) if ph_changed
       create_action @data_source, 'UPDATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
+      redirect_to(series_path(@data_source.series_id), notice: "Successfully updated auto reload for #{@data_source.name}")
     else
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id
+      redirect_to(series_path(@data_source.series_id), notice: "Successfully updated auto reload for #{@data_source.name}")
     end
   end
 
@@ -83,15 +83,15 @@ class DataSourcesController < ApplicationController
     if @data_source.update_attributes(eval: data_source_params[:eval])
       create_action @data_source, 'UPDATE'
       begin
-        render partial: 'inline_edit', locals: {:ds => @data_source, :notice => "OK, (#{@data_source.series.aremos_diff})"}
+        render(partial: 'inline_edit', locals: {:ds => @data_source, notice: "OK, (#{@data_source.series.aremos_diff})"})
       rescue
-        render partial: 'inline_edit', locals: {:ds => @data_source, :notice => 'BROKE ON LOAD'}
+        render(partial: 'inline_edit', locals: {:ds => @data_source, notice: 'BROKE ON LOAD'})
       end
     else
-      render partial: 'inline_edit', locals: {:ds => @data_source, :notice => 'BROKE ON SAVE'}
+      render(partial: 'inline_edit', locals: {:ds => @data_source, notice: 'BROKE ON SAVE'})
     end
   end
-  
+
   def create
     create_attrs = data_source_params
     create_attrs[:scale] = create_attrs[:scale].to_f.to_s  ## normalize the scaling factor format
@@ -99,10 +99,10 @@ class DataSourcesController < ApplicationController
     @data_source = DataSource.new(create_attrs)
     if @data_source.create_from_form
       create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
-      redirect_to :controller => 'series', :action => 'show', :id => @data_source.series_id, :notice => 'Definition processed successfully'
+      redirect_to(series_path(@data_source.series_id), notice: "Successfully dcreated #{@data_source.name}"), notice: 'Definition processed successfully'
     else
       @series = Series.find_by id: @data_source.series_id
-      render :action => 'new', :series_id => @data_source.series_id
+      render(:action => 'new', :series_id => @data_source.series_id)
     end
   end
 

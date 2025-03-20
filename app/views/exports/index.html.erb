@@ -5,28 +5,28 @@
 <%= link_to 'New Export', new_export_path %>
 
 <table class="list_table">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Count</th>
-      <th colspan="5"></th>
-    </tr>
-  </thead>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Count</th>
+            <th colspan="5"></th>
+        </tr>
+    </thead>
 
-  <tbody>
-    <% @exports.each do |export| %>
-      <tr>
-        <td class="linkselect"><%= link_to export.name, export %></td>
-        <td><%= export.series.count %></td>
-        <td><%= link_to 'CSV', action: 'show', id: export, format: 'csv' %></td>
-        <td><%= link_to 'Table', action: 'show_table', id: export %></td>
-        <% if current_user.admin_user? || export.owned_by == current_user.id %>
-          <td><%= link_to 'Edit', edit_export_path(export) %></td>
-          <td><%= link_to 'Destroy', export, method: :delete, data: { confirm: "Destroy export #{export.name}\nAre you sure??" } %></td>
+    <tbody>
+        <% @exports.each do |export| %>
+        <tr>
+            <td class="linkselect"><%= link_to export.name, export %></td>
+            <td><%= export.series.count %></td>
+            <td><%= link_to 'CSV', export_path(export, format: 'csv') %></td>
+            <td><%= link_to 'Table', show_table_export_path(export) %></td>
+            <% if current_user.admin_user? || export.owned_by == current_user.id %>
+            <td><%= link_to 'Edit', edit_export_path(export) %></td>
+            <td><%= link_to 'Destroy', export, method: :delete, data: { confirm: "Destroy export #{export.name}\nAre you sure??" } %></td>
+            <% end %>
+        </tr>
         <% end %>
-      </tr>
-    <% end %>
-  </tbody>
+    </tbody>
 </table>
 
 <br>

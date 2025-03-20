@@ -40,9 +40,9 @@ class DownloadsController < ApplicationController
     @output_file = Download.new(myparams)
     if @output_file.save!
       @output_file.process_post_params(post_params)
-      redirect_to :action => 'index'
+      redirect_to(downloads_path)
     else
-      render :action => 'new'
+      render(action: 'new')
     end
   end
 
@@ -54,19 +54,18 @@ class DownloadsController < ApplicationController
       if @output_file.update! myparams
         @output_file.process_post_params(post_params)
 
-        format.html { redirect_to( :action => 'index', :notice => 'Download successfully updated.') }
+        format.html { redirect_to(downloads_path, notice: 'Download successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render :action => 'edit' }
-        format.xml  { render :xml => @output_file.errors,
-                      :status => :unprocessable_entity }
+        format.html { render(action: 'edit') }
+        format.xml  { render(xml: @output_file.errors, status: :unprocessable_entity) }
       end
     end
   end
 
   def destroy
     @output_file.destroy
-    redirect_to :action => 'index'
+    redirect_to(downloads_path)
   end
 
   def download
@@ -74,10 +73,10 @@ class DownloadsController < ApplicationController
       begin
         @output_file.download
         flash[:notice] = 'Download successfully updated.'
-        format.html { redirect_to( :action => 'index') }
+        format.html { redirect_to(downloads_path) }
       rescue Exception => e
         flash[:notice] = "Something went wrong: #{e.message}"
-        format.html { redirect_to( :action => 'index') }
+        format.html { redirect_to(downloads_path) }
       end
     end
   end
@@ -88,22 +87,22 @@ class DownloadsController < ApplicationController
       Rails.logger.warn { 'WARNING! Attempt to access filesystem path %s' % path }
       return  ## make browser blow up
     end
-    send_file File.join(ENV['DATA_PATH'], path)  ## only extract files under the DATA_PATH!
+    send_file(File.join(ENV['DATA_PATH'], path))  ## only extract files under the DATA_PATH!
   end
 
   def test_url
     @test_url_status = Download.test_url(Addressable::URI.encode(params[:change_to]))
-    render :partial => 'download_test_results'
+    render(partial: 'download_test_results')
   end
 
   def test_save_path
     @test_save_path = Download.test_save_path(params[:change_to])
-    render :partial => 'save_location_test_results'
+    render(partial: 'save_location_test_results')
   end
 
   def test_post_params
     @test_post_params = Download.test_post_params(params[:change_to])
-    render :partial => 'parameter_formatting_test_results'
+    render(partial: 'parameter_formatting_test_results')
   end
 
 private

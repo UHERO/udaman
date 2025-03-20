@@ -1,112 +1,112 @@
 <%
   form_spec = { model: @series }
-  form_spec.merge!(url: { action: :meta_store }) if @meta_update
+  form_spec.merge!(url: meta_store_series_index_path) if @meta_update
 %>
 <p>* Required fields</p>
 <%= form_with(**form_spec) do |f| %>
-    <% if @series.errors.any? %>
-        <div id="error_explanation">
-          <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>
+<% if @series.errors.any? %>
+<div id="error_explanation">
+    <h2><%= pluralize(@series.errors.count, 'error') %> prohibited this series from being saved:</h2>
 
-          <ul>
-            <% @series.errors.full_messages.each do |msg| %>
-                <li><%= msg %></li>
-            <% end %>
-          </ul>
-        </div>
-    <% end %>
+    <ul>
+        <% @series.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+        <% end %>
+    </ul>
+</div>
+<% end %>
 
-    <% backlink = { action: :show, id: @series } %>
-    <% if (@series.name.blank? rescue true) %>
-      <div class="field">
-        <%= f.label :name, 'Name: Prefix' %><br/>
-        <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
-        <%= select :name_parts, :geography_id, @all_geos.collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
-        <%= select :name_parts, :freq, %w(A S Q M W D).collect {|x| [x, x] }, {:include_blank => false} %>
-        <% backlink = :back %>
-      </div>
+<% backlink = series_path(@series) %>
+<% if (@series.name.blank? rescue true) %>
+<div class="field">
+    <%= f.label :name, 'Name: Prefix' %><br />
+    <%= text_field_tag 'name_parts[prefix]', nil, :size => 20 %> @
+    <%= select :name_parts, :geography_id, @all_geos.collect {|g| [g.handle_with_name, g.id] }, {:include_blank => false} %> .
+    <%= select :name_parts, :freq, %w(A S Q M W D).collect {|x| [x, x] }, {:include_blank => false} %>
+    <% backlink = :back %>
+</div>
+<% end %>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[dataPortalName]') %><% end %>
+    *<%= f.label :dataPortalName, 'Data Portal Name' %><br />
+    <%= f.text_field :dataPortalName, :size => 80 %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[description]') %><% end %>
+    <%= f.label :description %><br />
+    <%= f.text_area :description, :rows => 5, :cols => 60 %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[unit_id]') %><% end %>
+    *<%= f.label :unit_id %><br>
+    <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[source_id]') %><% end %>
+    *<%= f.label :source_id %><br>
+    <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[source_link]') %><% end %>
+    <%= f.label :source_link, 'Source link (web link more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br />
+    <%= f.text_field :source_link, :size => 80 %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[source_detail_id]') %><% end %>
+    <%= f.label :source_detail_id %><br>
+    <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {include_blank: true, class: 'wrappable'} %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[investigation_notes]') %><% end %>
+    <%= f.label :investigation_notes %><br />
+    <%= f.text_area :investigation_notes %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[decimals]') %><% end %>
+    *<%= f.label :decimals %>
+    <%= f.number_field :decimals, size: 3 %>
+</div>
+<% if @series.is_primary? || @series.id.nil? %>
+<%= f.fields_for :xseries do |xf| %>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[percent]') %><% end %>
+    *<%= xf.label :percent, 'Percent' %>
+    <%= xf.select :percent, [['yes', true], ['no', false]], { include_blank: true } %> (prevents calculation of growth rate)
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[real]') %><% end %>
+    <%= xf.label :real, 'Real' %>
+    <%= xf.select :real, [['yes', true], ['no', false]], { include_blank: true } %> (prevents adjustment for inflation)
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[seasonal_adjustment]') %><% end %>
+    *<%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
+    <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, { include_blank: true } %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[frequency_transform]') %><% end %>
+    *<%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
+    <%= xf.select :frequency_transform, %w(average sum first last min max).collect {|x| [x, x] }, { include_blank: true } %>
+</div>
+<div class="field">
+    <% if @meta_update %><%= check_box_tag('fields_selected[restricted]') %><% end %>
+    *<%= xf.label :restricted, 'Restricted' %>
+    <%= xf.select :restricted, [['yes', true], ['no', false]], { include_blank: true } %> (prevents visibility outside udaman)
+</div>
+<% end %>
+<% elsif @series.has_primary? %>
+<p><strong>Other metadata fields must be edited in the primary series:</strong>
+    <%= link_to @series.xseries.primary_series.name, series_path(@series.xseries.primary_series) %></p>
+<% end %>
+<div class="actions">
+    <%= f.hidden_field :universe %>
+    <%= hidden_field_tag(:add2meas, @add2meas) %>
+    <% if @meta_update %>
+    <%= f.submit 'Update all clipboard series' %>
+    <% backlink = clip_series_index_path %>
+    <% else %>
+    <%= f.submit %>
     <% end %>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[dataPortalName]') %><% end %>
-     *<%= f.label :dataPortalName, 'Data Portal Name' %><br/>
-      <%= f.text_field :dataPortalName, :size => 80 %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[description]') %><% end %>
-      <%= f.label :description %><br/>
-      <%= f.text_area :description, :rows => 5, :cols => 60 %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[unit_id]') %><% end %>
-     *<%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[source_id]') %><% end %>
-     *<%= f.label :source_id %><br>
-      <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[source_link]') %><% end %>
-      <%= f.label :source_link, 'Source link (web link more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
-      <%= f.text_field :source_link, :size => 80 %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[source_detail_id]') %><% end %>
-      <%= f.label :source_detail_id %><br>
-      <%= f.collection_select :source_detail_id, @all_details.order(:description), :id, :description, {include_blank: true, class: 'wrappable'} %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[investigation_notes]') %><% end %>
-      <%= f.label :investigation_notes %><br/>
-      <%= f.text_area :investigation_notes %>
-    </div>
-    <div class="field">
-      <% if @meta_update %><%= check_box_tag('fields_selected[decimals]') %><% end %>
-     *<%= f.label :decimals %>
-      <%= f.number_field :decimals, size: 3 %>
-    </div>
-    <% if @series.is_primary? || @series.id.nil? %>
-      <%= f.fields_for :xseries do |xf| %>
-          <div class="field">
-            <% if @meta_update %><%= check_box_tag('fields_selected[percent]') %><% end %>
-           *<%= xf.label :percent, 'Percent' %>
-            <%= xf.select :percent, [['yes', true], ['no', false]], { include_blank: true } %> (prevents calculation of growth rate)
-          </div>
-          <div class="field">
-            <% if @meta_update %><%= check_box_tag('fields_selected[real]') %><% end %>
-            <%= xf.label :real, 'Real' %>
-            <%= xf.select :real, [['yes', true], ['no', false]], { include_blank: true } %> (prevents adjustment for inflation)
-          </div>
-          <div class="field">
-            <% if @meta_update %><%= check_box_tag('fields_selected[seasonal_adjustment]') %><% end %>
-           *<%= xf.label :seasonal_adjustment, 'Seasonal Adjustment' %>
-            <%= xf.select :seasonal_adjustment, Series.seasonal_adjustments.to_a, { include_blank: true } %>
-          </div>
-          <div class="field">
-            <% if @meta_update %><%= check_box_tag('fields_selected[frequency_transform]') %><% end %>
-           *<%= xf.label :frequency_transform, 'Frequency Transformation Method' %>
-            <%= xf.select :frequency_transform, %w(average sum first last min max).collect {|x| [x, x] }, { include_blank: true } %>
-          </div>
-          <div class="field">
-            <% if @meta_update %><%= check_box_tag('fields_selected[restricted]') %><% end %>
-           *<%= xf.label :restricted, 'Restricted' %>
-            <%= xf.select :restricted, [['yes', true], ['no', false]], { include_blank: true } %> (prevents visibility outside udaman)
-          </div>
-      <% end %>
-    <% elsif @series.has_primary? %>
-      <p><strong>Other metadata fields must be edited in the primary series:</strong>
-      <%= link_to @series.xseries.primary_series.name, controller: :series, action: :show, id: @series.xseries.primary_series_id %></p>
-    <% end %>
-    <div class="actions">
-      <%= f.hidden_field :universe %>
-      <%= hidden_field_tag(:add2meas, @add2meas) %>
-      <% if @meta_update %>
-        <%= f.submit 'Update all clipboard series' %>
-        <% backlink = { action: :clip } %>
-      <% else %>
-        <%= f.submit %>
-      <% end %>
-      <%= link_to 'Cancel', backlink %>
-    </div>
+    <%= link_to 'Cancel', backlink %>
+</div>
 <% end %>

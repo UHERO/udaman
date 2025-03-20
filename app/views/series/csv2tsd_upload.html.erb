@@ -1,11 +1,11 @@
-<%= form_with url: { action: :csv2tsd, format: :tsd }, method: :post do |f| %>
+<%= form_with(url: csv2tsd_path(format: :tsd), method: :post, local: true) do |f| %>
 
-  <div class="field">
+<div class="field">
     Upload file <%= f.file_field 'csv2tsd[filepath]' %>
-  </div>
-  <div class="actions">
+</div>
+<div class="actions">
     <%= f.submit 'Do csv-to-tsd conversion' %>
     <%= link_to 'Cancel', :back %>
-  </div>
+</div>
 
 <% end %>

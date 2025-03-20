@@ -1,49 +1,59 @@
 <h1>Editing Data List <%= @data_list.name %> (<%= @data_list.universe %>)</h1>
 
 <table>
-  <thead>
-  <tr><th>Prefix</th><th>Data Portal Name</th><th colspan="2">Move</th><th colspan="2">Indent</th><th colspan="3"></th></tr>
-  </thead>
-  <tbody>
-  <% @dl_measurements.each do |measurement, ind|
+    <thead>
+        <tr>
+            <th>Prefix</th>
+            <th>Data Portal Name</th>
+            <th colspan="2">Move</th>
+            <th colspan="2">Indent</th>
+            <th colspan="3"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <% @dl_measurements.each do |measurement, ind|
     indent_i = ind ? ind[-1].to_i : 0
 %>
-    <tr>
-      <td><%= link_to measurement.prefix, measurement %></td>
-      <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= measurement.data_portal_name %></td>
-      <td><%= link_to 'Up', {controller: :data_lists, action: :move_measurement_up, id: @data_list, measurement_id: measurement.id}, remote: true, data: {up: true} %></td>
-      <td><%= link_to 'Down', {controller: :data_lists, action: :move_measurement_down, id: @data_list, measurement_id: measurement.id}, remote: true, data: {down: true} %></td>
-      <td><%= link_to '<<'.html_safe, {controller: :data_lists, action: :set_measurement_indent, id: @data_list, measurement_id: measurement.id, indent_in_out: 'out'}, remote: true, data: {indent: 1} %></td>
-      <td><%= link_to '>>'.html_safe, {controller: :data_lists, action: :set_measurement_indent, id: @data_list, measurement_id: measurement.id, indent_in_out: 'in'}, remote: true, data: {indent: 1} %></td>
+        <tr>
+            <td><%= link_to measurement.prefix, measurement %></td>
+            <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= measurement.data_portal_name %></td>
+            <td><%= link_to 'Up', move_measurement_up_data_list_path(@data_list, measurement_id: measurement.id), remote: true, data: {up: true} %></td>
+            <td><%= link_to 'Down', move_measurement_down_data_list_path(@data_list, measurement_id: measurement.id), remote: true, data: {down: true} %></td>
+            <td><%= link_to '<<'.html_safe, set_measurement_indent_data_list_path(@data_list, measurement_id: measurement.id, indent_in_out: 'out'), remote: true, data: {indent: 1} %></td>
+            <td><%= link_to '>>'.html_safe, set_measurement_indent_data_list_path(@data_list, measurement_id: measurement.id, indent_in_out: 'in'), remote: true, data: {indent: 1} %></td>
 
-      <td><%= link_to 'Duplicate', duplicate_measurement_path(measurement) %></td>
-      <td><%= link_to 'Edit', edit_measurement_path(measurement) %></td>
-      <td><%= link_to 'Remove', {controller: :data_lists, action: :remove_measurement, id: @data_list, measurement_id: measurement.id}, remote: true, data: {remove: true} %></td>
-    </tr>
-  <% end %>
-  </tbody>
+            <td><%= link_to 'Duplicate', duplicate_measurement_path(measurement) %></td>
+            <td><%= link_to 'Edit', edit_measurement_path(measurement) %></td>
+            <td><%= link_to 'Remove', remove_measurement_data_list_path(@data_list, measurement_id: measurement.id), remote: true, data: {remove: true} %></td>
+        </tr>
+        <% end %>
+    </tbody>
 </table>
 <br />
-<%= form_for(@data_list, url: {action: 'add_measurement', id: @data_list.id}) do |f2| %>
-  <div class="field">
+<%= form_for(@data_list, url: add_measurement_data_list_path(@data_list)) do |f2| %>
+<div class="field">
     <%= f2.collection_select :meas_id, Measurement.where(universe: @data_list.universe).all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {include_blank: false, selected: nil} %>
     <span class="actions"><%= f2.submit 'Add measurement' %></span>
-    <br/>or <%= link_to 'Create a new measurement for this data list',
-                        {controller: :measurements, action: :new, universe: @data_list.universe, data_list_id: @data_list.id } %>
-         or <%= link_to 'Edit all measurements as text', { action: :edit_as_text, id: @data_list } %>
-         or <%= link_to 'Add all series to clipboard', { action: :add_clip, id: @data_list } %>
-  </div>
+    <br />or <%= link_to 'Create a new measurement for this data list',
+                        new_measurement_path(universe: @data_list.universe, data_list_id: @data_list.id) %>
+    or <%= link_to 'Edit all measurements as text', edit_as_text_data_list_path(@data_list) %>
+    or <%= link_to 'Add all series to clipboard', add_clip_data_list_path(@data_list) %>
+</div>
 <% end %>
 <p>
-<%= link_to 'Show', @data_list %> |
-<%= link_to 'Index', data_lists_path(u: @data_list.universe) %> |
-<%= link_to 'Back', :back %>
+    <%= link_to 'Show', @data_list %> |
+    <%= link_to 'Index', data_lists_path(u: @data_list.universe) %> |
+    <%= link_to 'Back', :back %>
 </p>
 <hr>
 <h4>Metadata</h4>
 <%= render 'form' %>
 
 <script>
-    $(document).ready(function() { $("#data_list_uhero_meas_id").select2(); });
-    $(document).ready(function() { $("#data_list_dbedtcoh_meas_id").select2(); });
+    $(document).ready(function() {
+        $("#data_list_uhero_meas_id").select2();
+    });
+    $(document).ready(function() {
+        $("#data_list_dbedtcoh_meas_id").select2();
+    });
 </script>

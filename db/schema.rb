@@ -2,18 +2,18 @@
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
 #
-# Note that this schema.rb definition is the authoritative source for your
-# database schema. If you need to create the application database on another
-# system, you should be using db:schema:load, not running all the migrations
-# from scratch. The latter is a flawed and unsustainable approach (the more migrations
-# you'll amass, the slower it'll run and the greater likelihood for issues).
+# This file is the source Rails uses to define your schema when running `rails
+# db:schema:load`. When creating a new database, `rails db:schema:load` tends to
+# be faster and is potentially less error prone than running all of your
+# migrations from scratch. Old migrations may fail to apply correctly if those
+# migrations use external dependencies or application code.
 #
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema.define(version: 220170413025781) do
 
-  create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "name"
     t.string "hostname"
     t.string "api_key"
@@ -23,21 +23,21 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe", "name"], name: "index_api_applications_on_universe_and_name", unique: true
   end
 
-  create_table "aremos_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "aremos_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.string "name"
     t.string "frequency"
     t.string "description"
     t.string "start"
     t.string "end"
-    t.text "data", limit: 4294967295
-    t.text "aremos_data", limit: 4294967295
+    t.text "data", size: :long
+    t.text "aremos_data", size: :long
     t.date "aremos_update_date"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.index ["name"], name: "index_aremos_series_on_name"
   end
 
-  create_table "authorizations", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "authorizations", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "provider", null: false
     t.integer "provider_user_id", null: false
@@ -47,14 +47,14 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["user_id"], name: "fk_rails_4ecef5b8c5"
   end
 
-  create_table "branch_code", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "branch_code", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "last_branch_code_number", default: 0, null: false
   end
 
-  create_table "categories", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "categories", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.integer "data_list_id"
     t.integer "default_geo_id"
-    t.string "universe", limit: 5, default: "UHERO", null: false
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "hidden", default: false
@@ -65,7 +65,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.string "name"
     t.string "ancestry"
     t.string "default_handle"
-    t.string "default_freq", limit: 1
+    t.column "default_freq", "enum('A','S','Q','M','W','D')"
     t.string "meta"
     t.string "description", limit: 500
     t.index ["ancestry"], name: "index_categories_on_ancestry"
@@ -75,18 +75,18 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe"], name: "index_categories_on_universe"
   end
 
-  create_table "data_list_measurements", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "data_list_measurements", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "data_list_id"
     t.integer "measurement_id"
     t.integer "list_order", default: 0, null: false
-    t.string "indent", limit: 7, default: "indent0", null: false
+    t.column "indent", "enum('indent0','indent1','indent2','indent3')", default: "indent0", null: false
     t.index ["data_list_id", "measurement_id"], name: "index_data_list_measurements_on_data_list_id_and_measurement_id", unique: true
     t.index ["data_list_id"], name: "index_data_list_measurements_on_data_list_id"
     t.index ["measurement_id"], name: "index_data_list_measurements_on_measurement_id"
   end
 
-  create_table "data_lists", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "data_lists", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "name"
     t.integer "startyear"
     t.integer "endyear"
@@ -98,16 +98,13 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe"], name: "index_data_lists_on_universe"
   end
 
-  create_table "data_lists_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "data_lists_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "data_list_id", null: false
     t.integer "series_id", null: false
     t.index ["data_list_id"], name: "index_data_lists_series_on_data_list_id"
   end
 
-  create_table "data_load_patterns", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
-  end
-
-  create_table "data_points", primary_key: ["xseries_id", "date", "created_at", "data_source_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "data_points", primary_key: ["xseries_id", "date", "created_at", "data_source_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.integer "xseries_id", null: false
     t.date "date", null: false
     t.datetime "created_at", null: false
@@ -124,7 +121,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["xseries_id"], name: "index_on_xseries_id"
   end
 
-  create_table "data_source_actions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "data_source_actions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "data_source_id"
     t.integer "series_id"
     t.integer "user_id"
@@ -137,7 +134,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["series_id"], name: "fk_rails_cbe5366b13"
   end
 
-  create_table "data_source_downloads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "data_source_downloads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "data_source_id"
     t.integer "download_id"
     t.datetime "last_file_vers_used", default: "1970-01-01 00:00:00", null: false
@@ -145,10 +142,10 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["data_source_id", "download_id"], name: "index_data_source_downloads_on_data_source_id_and_download_id", unique: true
   end
 
-  create_table "data_sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "data_sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.integer "series_id"
     t.boolean "disabled", default: false, null: false
-    t.string "universe", limit: 5, default: "UHERO", null: false
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.integer "priority", default: 100
     t.datetime "created_at"
     t.datetime "updated_at"
@@ -172,23 +169,23 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe"], name: "index_data_sources_on_universe"
   end
 
-  create_table "dbedt_uploads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "dbedt_uploads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.datetime "upload_at"
     t.boolean "active"
-    t.string "cats_status", limit: 10
-    t.string "series_status", limit: 10
+    t.column "cats_status", "enum('processing','ok','fail')"
+    t.column "series_status", "enum('processing','ok','fail')"
     t.string "cats_filename"
     t.string "series_filename"
     t.string "last_error"
     t.datetime "last_error_at"
   end
 
-  create_table "downloads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "downloads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.string "handle"
     t.integer "sort1"
     t.integer "sort2"
     t.string "url"
-    t.string "filename_ext", limit: 4
+    t.column "filename_ext", "enum('xlsx','xls','zip','csv','txt','pdf')"
     t.text "post_parameters"
     t.datetime "created_at"
     t.datetime "updated_at"
@@ -202,7 +199,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["handle"], name: "index_downloads_on_handle", unique: true
   end
 
-  create_table "dsd_log_entries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "dsd_log_entries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.integer "download_id"
     t.datetime "time"
     t.string "url"
@@ -214,17 +211,17 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.string "mimetype"
   end
 
-  create_table "dvw_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "dvw_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.datetime "upload_at"
     t.boolean "active"
-    t.string "cats_status", limit: 10
-    t.string "series_status", limit: 10
+    t.column "cats_status", "enum('processing','ok','fail')"
+    t.column "series_status", "enum('processing','ok','fail')"
     t.string "filename"
     t.string "last_error"
     t.datetime "last_error_at"
   end
 
-  create_table "export_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "export_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "export_id"
     t.integer "series_id"
     t.integer "list_order"
@@ -233,7 +230,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["series_id"], name: "index_export_series_on_series_id"
   end
 
-  create_table "exports", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "exports", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.string "name"
     t.integer "created_by"
     t.integer "updated_by"
@@ -242,8 +239,8 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "feature_toggles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "feature_toggles", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "name"
     t.string "description"
     t.boolean "status"
@@ -251,7 +248,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "forecast_snapshots", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "forecast_snapshots", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.string "name"
     t.string "version"
     t.boolean "published"
@@ -267,15 +264,15 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["name", "version"], name: "index_forecast_snapshots_on_name_and_version", unique: true
   end
 
-  create_table "geo_trees", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "geo_trees", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "parent_id", null: false
     t.integer "child_id", null: false
     t.index ["child_id"], name: "fk_rails_5c6299c1f9"
     t.index ["parent_id"], name: "fk_rails_20ee9a0990"
   end
 
-  create_table "geographies", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "geographies", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "handle"
     t.string "display_name"
     t.string "display_name_short"
@@ -287,7 +284,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe", "handle"], name: "index_geographies_on_universe_and_handle", unique: true
   end
 
-  create_table "measurement_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "measurement_series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "measurement_id"
     t.integer "series_id"
     t.index ["measurement_id", "series_id"], name: "index_measurement_series_on_measurement_id_and_series_id", unique: true
@@ -295,11 +292,11 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["series_id"], name: "index_measurement_series_on_series_id"
   end
 
-  create_table "measurements", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "measurements", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "unit_id"
     t.integer "source_id"
     t.integer "source_detail_id"
-    t.string "universe", limit: 5, default: "UHERO", null: false
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "prefix", null: false
     t.string "data_portal_name"
     t.string "table_prefix"
@@ -310,7 +307,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.integer "decimals", default: 1, null: false
     t.boolean "restricted", default: false, null: false
     t.boolean "seasonally_adjusted"
-    t.string "seasonal_adjustment", limit: 23
+    t.column "seasonal_adjustment", "enum('seasonally_adjusted','not_seasonally_adjusted','not_applicable')"
     t.string "source_link"
     t.string "notes", limit: 500
     t.datetime "created_at", null: false
@@ -322,36 +319,33 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe"], name: "index_measurements_on_universe"
   end
 
-  create_table "new_dbedt_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "new_dbedt_uploads", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.datetime "upload_at"
     t.boolean "active"
-    t.string "status", limit: 10
+    t.column "status", "enum('processing','ok','fail')"
     t.string "filename"
     t.datetime "last_error_at"
     t.string "last_error"
   end
 
-  create_table "nta_uploads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "nta_uploads", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.datetime "upload_at"
     t.boolean "active"
-    t.string "cats_status", limit: 10
-    t.string "series_status", limit: 10
+    t.column "cats_status", "enum('processing','ok','fail')"
+    t.column "series_status", "enum('processing','ok','fail')"
     t.string "series_filename"
     t.string "last_error"
     t.datetime "last_error_at"
   end
 
-  create_table "packager_outputs", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "packager_outputs", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.string "path"
     t.date "last_new_data"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
 
-  create_table "prognoz_data_files", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
-  end
-
-  create_table "public_data_points", primary_key: ["series_id", "date"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "public_data_points", primary_key: ["series_id", "date"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "series_id", null: false
     t.date "date", null: false
     t.float "value", limit: 53
@@ -360,7 +354,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "reload_job_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "reload_job_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.bigint "reload_job_id"
     t.bigint "series_id"
     t.index ["reload_job_id", "series_id"], name: "index_reload_job_series_on_reload_job_id_and_series_id", unique: true
@@ -368,10 +362,10 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["series_id"], name: "index_reload_job_series_on_series_id"
   end
 
-  create_table "reload_jobs", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "reload_jobs", options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.bigint "user_id"
     t.datetime "created_at", null: false
-    t.string "status", limit: 10
+    t.column "status", "enum('processing','done','fail')"
     t.datetime "finished_at"
     t.string "params"
     t.boolean "update_public", default: false, null: false
@@ -379,13 +373,13 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["user_id"], name: "index_reload_jobs_on_user_id"
   end
 
-  create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "series", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.integer "xseries_id", null: false
     t.integer "geography_id"
     t.integer "unit_id"
     t.integer "source_id"
     t.integer "source_detail_id"
-    t.string "universe", limit: 5, default: "UHERO", null: false
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.integer "decimals", default: 1, null: false
     t.string "name"
     t.string "dataPortalName"
@@ -408,7 +402,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["xseries_id"], name: "fk_rails_b3202f6d25"
   end
 
-  create_table "series_reload_logs", primary_key: ["batch_id", "series_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "series_reload_logs", primary_key: ["batch_id", "series_id"], options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.string "batch_id", null: false
     t.integer "series_id", null: false
     t.integer "depth"
@@ -418,16 +412,16 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.datetime "updated_at"
   end
 
-  create_table "source_details", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "source_details", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "description", limit: 1000
     t.index ["universe"], name: "index_source_details_on_universe"
   end
 
-  create_table "sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "sources", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "description"
     t.string "link"
     t.datetime "created_at", null: false
@@ -435,7 +429,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe"], name: "index_sources_on_universe"
   end
 
-  create_table "tsd_files", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "tsd_files", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.integer "forecast_snapshot_id"
     t.string "filename"
     t.boolean "latest_forecast"
@@ -443,8 +437,8 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "units", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
+  create_table "units", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','FC','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
     t.string "short_label"
     t.string "long_label"
     t.datetime "created_at", null: false
@@ -452,7 +446,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe", "short_label", "long_label"], name: "index_units_on_universe_and_short_label_and_long_label", unique: true
   end
 
-  create_table "user_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
+  create_table "user_series", id: false, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.bigint "user_id"
     t.bigint "series_id"
     t.index ["series_id"], name: "index_user_series_on_series_id"
@@ -460,9 +454,9 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["user_id"], name: "index_user_series_on_user_id"
   end
 
-  create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1", force: :cascade do |t|
-    t.string "universe", limit: 5, default: "UHERO", null: false
-    t.string "role", limit: 8, default: "external", null: false
+  create_table "users", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
+    t.column "universe", "enum('UHERO','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
+    t.column "role", "enum('external','fsonly','internal','admin','dev')", default: "external", null: false
     t.boolean "mnemo_search", default: false, null: false
     t.string "email", default: "", null: false
     t.string "encrypted_password", limit: 128, default: "", null: false
@@ -483,13 +477,13 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["universe"], name: "index_users_on_universe"
   end
 
-  create_table "xseries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3", force: :cascade do |t|
+  create_table "xseries", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci", force: :cascade do |t|
     t.integer "primary_series_id"
     t.boolean "restricted", default: false, null: false
     t.boolean "quarantined", default: false
     t.string "frequency"
     t.boolean "seasonally_adjusted"
-    t.string "seasonal_adjustment", limit: 23
+    t.column "seasonal_adjustment", "enum('seasonally_adjusted','not_seasonally_adjusted','not_applicable')"
     t.integer "aremos_missing"
     t.float "aremos_diff"
     t.integer "mult"

@@ -51,6 +51,8 @@ Udaman is [UHERO](https://uhero.hawaii.edu)'s data management system.
 ### Install Gems
 ```bash
 $ bundle install
+# if you need to remove all gems and start over:
+# gem uninstall -aIx
 ```
 
 <br>
