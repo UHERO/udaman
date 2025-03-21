@@ -6,8 +6,7 @@ RSpec.describe "series/show", type: :view do
   before do
     # Find a series with all necessary relationships intact
     # Look for one that has primary_series with data_sources
-    @series =
-      Series.joins(:xseries).where.not(xseries: { primary_series_id: nil }).last
+    @series = Series.first
 
     # Skip if we can't find a suitable series with all necessary relationships
     unless @series

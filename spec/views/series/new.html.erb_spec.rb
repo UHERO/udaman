@@ -4,25 +4,10 @@ RSpec.describe "series/new", type: :view do
   include_context "logged in user"
 
   before do
-    # Create a new series instance
-    # @series = Series.where(universe: "UHERO").first
-    # Create a new series instance with all required fields
-    @series =
-      Series.new(
-        universe: "UHERO",
-        dataPortalName: "Test Series", # Add required dataPortalName
-        decimals: 1 # Add required decimals field
-      )
+    # simple series is created when form loads (is it deleted if the form is cancelled??)
+    @series = build_new_series_with_xseries
 
-    # Build the associated xseries with required fields
-    @series.build_xseries(
-      percent: false,
-      seasonal_adjustment: "seasonally_adjusted",
-      frequency_transform: "average",
-      restricted: false
-    )
-
-    # Set up the required instance variables using existing data
+    # needed by UI to determine form options
     @universe = "UHERO"
     @all_geos = Geography.all
     @all_units = Unit.all
@@ -43,50 +28,28 @@ RSpec.describe "series/new", type: :view do
   end
 
   it "renders the new series form" do
-    puts rendered
-    # Check for the heading
     expect(rendered).to have_selector("h1", text: /New series for UHERO/)
-
-    # The note for non-UHERO universes should not appear for UHERO
     expect(rendered).not_to have_content(
       "Note! This screen can only be used when creating a series uniquely for"
     )
 
-    # Check for form structure
     expect(rendered).to have_selector("form")
 
-    # For a new series, we should have the name prefix fields
     expect(rendered).to have_field(nil, id: "series_dataPortalName")
     expect(rendered).to have_select("name_parts[geography_id]")
     expect(rendered).to have_select("name_parts[freq]")
 
-    # Check for required fields
     expect(rendered).to have_field("series[dataPortalName]")
     expect(rendered).to have_field("series[description]")
     expect(rendered).to have_field("series[decimals]")
 
-    # Check for the action buttons
     expect(rendered).to have_button("Create Series")
     expect(rendered).to have_link("Cancel")
   end
 
   context "when creating a non-UHERO series" do
     before do
-      # @series = Series.where(universe: "COH").first
-      @series =
-        Series.new(
-          universe: "COH",
-          dataPortalName: "Test Series", # Add required dataPortalName
-          decimals: 1 # Add required decimals field
-        )
-
-      # Build the associated xseries with required fields
-      @series.build_xseries(
-        percent: false,
-        seasonal_adjustment: "seasonally_adjusted",
-        frequency_transform: "average",
-        restricted: false
-      )
+      @series = build_new_series_with_xseries
 
       @universe = "COH"
       @all_geos = Geography.all

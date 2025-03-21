@@ -1,33 +1,24 @@
 # spec/support/series_test_helper.rb
 
 module SeriesTestHelper
-  # Core setup method that creates or finds standard test objects
-  def setup_standard_objects
-    @geography = find_or_create_geography("UHERO", "HI", "Hawaii")
-    @unit = find_or_create_unit("UHERO", "Test", "Test Unit")
-    @source = find_or_create_source("UHERO", "Test Source")
-    @xseries = create(:xseries)
+  # Helper method to build a new series with xseries for testing
+  def build_new_series_with_xseries(universe = "UHERO")
+    # Create a new series instance with required fields
+    series =
+      Series.new(universe: universe, dataPortalName: "Test Series", decimals: 1)
+
+    # Build the associated xseries with required fields
+    series.build_xseries(
+      percent: false,
+      seasonal_adjustment: "adjusted_seasonally_adjusted",
+      frequency_transform: "average",
+      restricted: false
+    )
+
+    series
   end
 
-  # Helper to build a valid series with standard associations
-  def build_standard_series(attributes = {})
-    setup_standard_objects unless @geography && @unit && @source && @xseries
-
-    defaults = {
-      universe: "UHERO",
-      name: "TEST@HI.A",
-      dataPortalName: "Test Series",
-      decimals: 1,
-      scratch: 11_011, # Skip validation
-      xseries: @xseries,
-      geography_id: @geography.id,
-      unit_id: @unit.id,
-      source_id: @source.id
-    }
-
-    Series.new(defaults.merge(attributes))
-  end
-
+  RSpec.configure { |config| config.include SeriesTestHelper }
   # Helper to create a valid series with standard associations
   def create_standard_series(attributes = {})
     series = build_standard_series(attributes)
