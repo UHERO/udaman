@@ -1,6 +1,6 @@
 require 'csv'
 
-class UpdateCSV 
+class UpdateCsv
   include UpdateCore
 
   def initialize(csv_file, type: :file)
@@ -29,11 +29,11 @@ class UpdateCSV
     val = val.gsub(',','') if val.class == String
     Float(val) rescue @data[row - 1][col - 1]
   end
-  
+
   def last_column
     @data[0].count rescue raise('File appears to contain no data')
   end
-  
+
   def last_row
     @data.count rescue raise('File appears to contain no data')
   end
@@ -41,11 +41,11 @@ class UpdateCSV
   def rows_have_dates?
     true
   end
-  
+
   def columns_have_dates?
     false
   end
-  
+
   def read_dates
     @dates = Hash.new
 
@@ -56,7 +56,7 @@ class UpdateCSV
         @dates[date.to_formatted_s] = row unless date.nil?
       end
     end
-    
+
     @dates
   end
 

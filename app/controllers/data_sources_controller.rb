@@ -98,11 +98,11 @@ class DataSourcesController < ApplicationController
 
     @data_source = DataSource.new(create_attrs)
     if @data_source.create_from_form
-      create_action @data_source.series.data_sources_by_last_run.first, 'CREATE'
-      redirect_to(series_path(@data_source.series_id), notice: "Successfully dcreated #{@data_source.name}"), notice: 'Definition processed successfully'
+      create_action(@data_source.series.data_sources_by_last_run.first, 'CREATE')
+      redirect_to(series_path(@data_source.series_id), notice: "Successfully dcreated #{@data_source.name}")
     else
       @series = Series.find_by id: @data_source.series_id
-      render(:action => 'new', :series_id => @data_source.series_id)
+      render(action: 'new', series_id: @data_source.series_id)
     end
   end
 

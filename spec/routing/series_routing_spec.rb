@@ -1,35 +1,38 @@
-require "spec_helper"
+require "rails_helper"
 
-describe SeriesController do
+RSpec.describe SeriesController, type: :routing do
   describe "routing" do
-
-    xit "routes to #index" do
-      get("/series").should route_to("series#index")
+    it "routes to #index" do
+      expect(get: "/series").to route_to("series#index")
     end
 
-    xit "routes to #new" do
-      get("/series/new").should route_to("series#new")
+    it "routes to #new" do
+      expect(get: "/series/new").to route_to("series#new")
     end
 
-    xit "routes to #show" do
-      get("/series/1").should route_to("series#show", :id => "1")
+    it "routes to #show" do
+      expect(get: "/series/1").to route_to("series#show", id: "1")
     end
 
-    xit "routes to #edit" do
-      get("/series/1/edit").should route_to("series#edit", :id => "1")
+    it "routes to #edit" do
+      expect(get: "/series/1/edit").to route_to("series#edit", id: "1")
     end
 
-    xit "routes to #create" do
-      post("/series").should route_to("series#create")
+
+    it "routes to #create" do
+      expect(post: "/series").to route_to("series#create")
     end
 
-    xit "routes to #update" do
-      put("/series/1").should route_to("series#update", :id => "1")
+    it "routes to #update via PUT" do
+      expect(put: "/series/1").to route_to("series#update", id: "1")
     end
 
-    xit "routes to #destroy" do
-      delete("/series/1").should route_to("series#destroy", :id => "1")
+    it "routes to #update via PATCH" do
+      expect(patch: "/series/1").to route_to("series#update", id: "1")
     end
 
+    it "routes to #destroy" do
+      expect(delete: "/series/1").to route_to("series#destroy", id: "1")
+    end
   end
 end

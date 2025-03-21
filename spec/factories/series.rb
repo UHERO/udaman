@@ -1,22 +1,46 @@
-# spec/factories/series.rb
+# spec/factories/models.rb
 FactoryBot.define do
-  factory :series do
-    sequence(:name) { |n| "SERIES#{n}@TEST.Q" }
-    universe { "TEST" }
-
-    # Associations - make sure these associations match your model requirements
-    association :geography
-    association :xseries
-  end
-
   factory :xseries do
-    # Add necessary xseries attributes
+    frequency { 'year' }
+    percent { false }
+    seasonal_adjustment { 'not_applicable' }
+    restricted { false }
   end
 
   factory :geography do
-    sequence(:handle) { |n| "GEO#{n}" }
+    universe { 'UHERO' }
+    sequence(:handle) { |n| "GEO#{n}" }  # Ensure uniqueness
     sequence(:display_name) { |n| "Geography #{n}" }
-    sequence(:display_name_short) { |n| "Geo#{n}" }
-    universe { "TEST" }
+  end
+
+  factory :unit do
+    universe { 'UHERO' }
+    sequence(:short_label) { |n| "UNIT#{n}" }
+    sequence(:long_label) { |n| "Unit Label #{n}" }
+  end
+
+  factory :source do
+    universe { 'UHERO' }
+    sequence(:description) { |n| "Source #{n}" }
+  end
+
+  factory :series do
+    universe { 'UHERO' }
+    sequence(:name) { |n| "SERIES#{n}@GEO1.A" }
+    dataPortalName { "Test Series" }
+    decimals { 1 }
+
+    # Associations - these ensure each Series gets its own related objects
+    association :unit
+    association :source
+    association :geography
+    association :xseries
+
+    # Trait for skipping validations
+    trait :skip_validation do
+      after(:build) do |series|
+        series.scratch = 11011
+      end
+    end
   end
 end

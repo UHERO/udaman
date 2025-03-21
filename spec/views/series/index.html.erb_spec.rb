@@ -1,53 +1,37 @@
-require 'spec_helper'
+require "rails_helper"
 
-describe "series/index.html.erb" do
-  before(:each) do
-    assign(:series, [
-      stub_model(Series,
-        :name => "Name",
-        :frequency => "Frequency",
-        :description => "Description",
-        :units => 1,
-        :seasonally_adjusted => false,
-        :last_demetra_date => "Last Demetra Date",
-        :factors => {},
-        :factor_application => "Factor Application",
-        :aremos_missing => 2,
-        :aremos_diff => 1.5,
-        :mult => 3,
-        :data => {}
-      ),
-      stub_model(Series,
-        :name => "Name",
-        :frequency => "Frequency",
-        :description => "Description",
-        :units => 1,
-        :seasonally_adjusted => false,
-        :last_demetra_date => "Last Demetra Date",
-        :factors => {},
-        :factor_application => "Factor Application",
-        :aremos_missing => 2,
-        :aremos_diff => 1.5,
-        :mult => 3,
-        :data => {}
-      )
-    ])
+require "rails_helper"
+
+RSpec.describe "series/index", type: :view do
+  include_context "logged in user"
+
+  before do
+    # Fetch a limited number of series from the database
+    series_from_db = Series.limit(20)
+
+    # Assign them to the variables expected by the view
+    assign(:all_series, series_from_db)
+    assign(:search_string, nil)
+
+    render
   end
 
-  xit "renders a list of series" do
-    render
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
-    assert_select "tr>td", :text => "Name".to_s, :count => 2
-    assert_select "tr>td", :text => "Frequency".to_s, :count => 2
-    assert_select "tr>td", :text => "Description".to_s, :count => 2
-    assert_select "tr>td", :text => 1.to_s, :count => 2
-    assert_select "tr>td", :text => false.to_s, :count => 2
-    assert_select "tr>td", :text => "Last Demetra Date".to_s, :count => 2
-    assert_select "tr>td", :text => "Name".to_s, :count => 2 #should actually be the factors hash
-    assert_select "tr>td", :text => "Factor Application".to_s, :count => 2
-    assert_select "tr>td", :text => 2.to_s, :count => 2
-    assert_select "tr>td", :text => 1.5.to_s, :count => 2
-    assert_select "tr>td", :text => 3.to_s, :count => 2
-    assert_select "tr>td", :text => "Name".to_s, :count => 2 #should actually be the data hash
+  it "renders the basic structure of the page" do
+    expect(rendered).to have_selector("div#summary_area")
+    expect(rendered).to have_selector("div#details_area")
+    expect(rendered).to have_selector("h1", text: "Data Series")
+
+    # Check for some of the links
+    expect(rendered).to have_link("Create UHERO Series")
+    expect(rendered).to have_link("Create COH Series")
+
+    # If series exist, we shouldn't see the "No results" message
+    if Series.count > 0
+      expect(rendered).not_to have_content("No results.")
+      # Optionally check for the count display
+      expect(rendered).to have_selector("h2", text: /Total:/)
+    else
+      expect(rendered).to have_content("No results.")
+    end
   end
 end

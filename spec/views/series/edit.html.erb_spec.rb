@@ -1,40 +1,53 @@
-require 'spec_helper'
+require "rails_helper"
 
-describe "series/edit.html.erb" do
-  before(:each) do
-    @series = assign(:series, stub_model(Series,
-      :name => "MyString",
-      :frequency => "MyString",
-      :description => "MyString",
-      :units => 1,
-      :seasonally_adjusted => false,
-      :last_demetra_date => "MyString",
-      :factors => "",
-      :factor_application => "MyString",
-      :aremos_missing => 1,
-      :aremos_diff => 1.5,
-      :mult => 1,
-      :data => ""
-    ))
+RSpec.describe "series/edit", type: :view do
+  include_context "logged in user"
+
+  before do
+    # Use an existing series from the database
+    @series = Series.first
+    unless @series
+      skip("This test requires at least one Series in the database")
+    end
+
+    # Set up the required instance variables using existing data
+    @all_geos = Geography.all
+    @all_units = Unit.all
+    @all_sources = Source.all
+    @all_details = SourceDetail.all
+
+    # Skip if any required data is missing
+    if @all_geos.empty? || @all_units.empty? || @all_sources.empty? ||
+         @all_details.empty?
+      skip("This test requires Geography, Unit, Source and SourceDetail data")
+    end
+
+    # Additional variables needed by the form
+    @meta_update = false
+    @add2meas = nil
+
+    render
   end
 
-  xit "renders the edit series form" do
-    render
+  it "renders the edit series form" do
+    # Check for the heading
+    expect(rendered).to have_selector("h1", text: /Editing series/)
+    expect(rendered).to have_link(@series.name)
 
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
-    assert_select "form", :action => series_index_path(@series), :method => "post" do
-      assert_select "input#series_name", :name => "series[name]"
-      assert_select "input#series_frequency", :name => "series[frequency]"
-      assert_select "input#series_description", :name => "series[description]"
-      assert_select "input#series_units", :name => "series[units]"
-      assert_select "input#series_seasonally_adjusted", :name => "series[seasonally_adjusted]"
-      assert_select "input#series_last_demetra_date", :name => "series[last_demetra_date]"
-      assert_select "input#series_factors", :name => "series[factors]"
-      assert_select "input#series_factor_application", :name => "series[factor_application]"
-      assert_select "input#series_aremos_missing", :name => "series[aremos_missing]"
-      assert_select "input#series_aremos_diff", :name => "series[aremos_diff]"
-      assert_select "input#series_mult", :name => "series[mult]"
-      assert_select "input#series_data", :name => "series[data]"
-    end
+    # Check for form structure
+    expect(rendered).to have_selector("form")
+
+    # Check for required fields
+    expect(rendered).to have_field("series[dataPortalName]")
+    expect(rendered).to have_field("series[description]")
+    expect(rendered).to have_field("series[decimals]")
+
+    # Check for select fields
+    expect(rendered).to have_select("series[unit_id]")
+    expect(rendered).to have_select("series[source_id]")
+
+    # Check for the action buttons
+    expect(rendered).to have_button("Update Series")
+    expect(rendered).to have_link("Cancel")
   end
 end

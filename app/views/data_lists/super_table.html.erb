@@ -182,7 +182,7 @@
 <%= link_to 'Edit list', edit_data_list_path(@data_list) %> | <%= link_to 'Index', data_lists_path(u: @data_list.universe) %> | <%= link_to 'Reset filters', {} %>
 <div id="frequency_selector">
     <%= form_tag "/data_lists/super_table/#{@data_list.id}" %>
-    <%= generate_filter_controls(@geo, @freq, @seasonally_adjusted) %>
+    <%= generate_filter_controls(@geo, @freq, @adjustment_seasonally_adjusted) %>
     <%= submit_tag 'Show' %>
     </form>
 </div>
@@ -260,7 +260,7 @@
         return parseFloat(num);
     }
 
-    var all_data = < %= @data_list.get_all_series_data_with_changes(@freq, @geo, @seasonally_adjusted).to_json.html_safe % > ;
+    var all_data = < %= @data_list.get_all_series_data_with_changes(@freq, @geo, @adjustment_seasonally_adjusted).to_json.html_safe % > ;
     var frequency = freq(d3.keys(all_data)[0]);
     var all_dates = {};
     d3.values(all_data).forEach(function(elem) {

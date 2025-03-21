@@ -1,40 +1,116 @@
-require 'spec_helper'
+require "rails_helper"
 
-describe "series/new.html.erb" do
-  before(:each) do
-    assign(:series, stub_model(Series,
-      :name => "MyString",
-      :frequency => "MyString",
-      :description => "MyString",
-      :units => 1,
-      :seasonally_adjusted => false,
-      :last_demetra_date => "MyString",
-      :factors => "",
-      :factor_application => "MyString",
-      :aremos_missing => 1,
-      :aremos_diff => 1.5,
-      :mult => 1,
-      :data => ""
-    ).as_new_record)
+RSpec.describe "series/new", type: :view do
+  include_context "logged in user"
+
+  before do
+    # Create a new series instance
+    # @series = Series.where(universe: "UHERO").first
+    # Create a new series instance with all required fields
+    @series =
+      Series.new(
+        universe: "UHERO",
+        dataPortalName: "Test Series", # Add required dataPortalName
+        decimals: 1 # Add required decimals field
+      )
+
+    # Build the associated xseries with required fields
+    @series.build_xseries(
+      percent: false,
+      seasonal_adjustment: "seasonally_adjusted",
+      frequency_transform: "average",
+      restricted: false
+    )
+
+    # Set up the required instance variables using existing data
+    @universe = "UHERO"
+    @all_geos = Geography.all
+    @all_units = Unit.all
+    @all_sources = Source.all
+    @all_details = SourceDetail.all
+
+    # Skip if any required data is missing
+    if @all_geos.empty? || @all_units.empty? || @all_sources.empty? ||
+         @all_details.empty?
+      skip("This test requires Geography, Unit, Source and SourceDetail data")
+    end
+
+    # Additional variables that might be needed based on the form
+    @meta_update = false
+    @add2meas = nil
+
+    render
   end
 
-  xit "renders new series form" do
-    render
+  it "renders the new series form" do
+    puts rendered
+    # Check for the heading
+    expect(rendered).to have_selector("h1", text: /New series for UHERO/)
 
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
-    assert_select "form", :action => series_index_path, :method => "post" do
-      assert_select "input#series_name", :name => "series[name]"
-      assert_select "input#series_frequency", :name => "series[frequency]"
-      assert_select "input#series_description", :name => "series[description]"
-      assert_select "input#series_units", :name => "series[units]"
-      assert_select "input#series_seasonally_adjusted", :name => "series[seasonally_adjusted]"
-      assert_select "input#series_last_demetra_date", :name => "series[last_demetra_date]"
-      assert_select "input#series_factors", :name => "series[factors]"
-      assert_select "input#series_factor_application", :name => "series[factor_application]"
-      assert_select "input#series_aremos_missing", :name => "series[aremos_missing]"
-      assert_select "input#series_aremos_diff", :name => "series[aremos_diff]"
-      assert_select "input#series_mult", :name => "series[mult]"
-      assert_select "input#series_data", :name => "series[data]"
+    # The note for non-UHERO universes should not appear for UHERO
+    expect(rendered).not_to have_content(
+      "Note! This screen can only be used when creating a series uniquely for"
+    )
+
+    # Check for form structure
+    expect(rendered).to have_selector("form")
+
+    # For a new series, we should have the name prefix fields
+    expect(rendered).to have_field(nil, id: "series_dataPortalName")
+    expect(rendered).to have_select("name_parts[geography_id]")
+    expect(rendered).to have_select("name_parts[freq]")
+
+    # Check for required fields
+    expect(rendered).to have_field("series[dataPortalName]")
+    expect(rendered).to have_field("series[description]")
+    expect(rendered).to have_field("series[decimals]")
+
+    # Check for the action buttons
+    expect(rendered).to have_button("Create Series")
+    expect(rendered).to have_link("Cancel")
+  end
+
+  context "when creating a non-UHERO series" do
+    before do
+      # @series = Series.where(universe: "COH").first
+      @series =
+        Series.new(
+          universe: "COH",
+          dataPortalName: "Test Series", # Add required dataPortalName
+          decimals: 1 # Add required decimals field
+        )
+
+      # Build the associated xseries with required fields
+      @series.build_xseries(
+        percent: false,
+        seasonal_adjustment: "seasonally_adjusted",
+        frequency_transform: "average",
+        restricted: false
+      )
+
+      @universe = "COH"
+      @all_geos = Geography.all
+      @all_units = Unit.all
+      @all_sources = Source.all
+      @all_details = SourceDetail.all
+
+      # Skip if any required data is missing (repeating here for the context)
+      if @all_geos.empty? || @all_units.empty? || @all_sources.empty? ||
+           @all_details.empty?
+        skip("This test requires Geography, Unit, Source and SourceDetail data")
+      end
+
+      render
+    end
+
+    it "displays the note about creating unique series" do
+      expect(rendered).to have_selector("h1", text: /New series for COH/)
+      expect(rendered).to have_content(
+        "Note! This screen can only be used when creating a series uniquely for COH"
+      )
+      expect(rendered).to have_content(
+        "If you need to create an alias of a UHERO"
+      )
     end
   end
 end

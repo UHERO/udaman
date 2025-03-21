@@ -1,37 +1,47 @@
-require 'spec_helper'
+require "rails_helper"
 
-describe "series/show.html.erb" do
-  before(:each) do
-    @series = assign(:series, stub_model(Series,
-      :name => "Name",
-      :frequency => "Frequency",
-      :description => "Description",
-      :units => 1,
-      :seasonally_adjusted => false,
-      :last_demetra_date => "Last Demetra Date",
-      :factors => {},
-      :factor_application => "Factor Application",
-      :aremos_missing => 1,
-      :aremos_diff => 1.5,
-      :mult => 1,
-      :data => {}
-    ))
+RSpec.describe "series/show", type: :view do
+  include_context "logged in user"
+
+  before do
+    # Find a series with all necessary relationships intact
+    # Look for one that has primary_series with data_sources
+    @series =
+      Series.joins(:xseries).where.not(xseries: { primary_series_id: nil }).last
+
+    # Skip if we can't find a suitable series with all necessary relationships
+    unless @series
+      skip("This test requires a Series with primary_series and data_sources")
+    end
+
+    # Set up required instance variables
+    @desc = "Test Aremos description"
+    @dependencies = {}
+    @dsas = []
+    @clipboarded = false
+    @vintage = nil
+
+    # Helper methods that need to be stubbed
+    allow(view).to receive(:gct_datapoints).and_return(
+      "['2022-01-01', 100], ['2022-02-01', 105]"
+    )
+    allow(view).to receive(:universe_label).and_return(@series.universe)
+    allow(view).to receive(:make_alt_universe_links).and_return("No aliases")
+    allow(view).to receive(:sa_indicator).and_return("Not Seasonally Adjusted")
+    allow(view).to receive(:make_hyperlink).and_return(
+      "<a href='#'>Test link</a>"
+    )
+
+    render
   end
 
-  xit "renders attributes in <p>" do
-    render
-    # Run the generator again with the --webrat flag if you want to use webrat matchers
-    rendered.should match(/Name/)
-    rendered.should match(/Frequency/)
-    rendered.should match(/Description/)
-    rendered.should match(/1/)
-    rendered.should match(/false/)
-    rendered.should match(/Last Demetra Datestring/)
-    rendered.should match(//)
-    rendered.should match(/Factor Application/)
-    rendered.should match(/1/)
-    rendered.should match(/1.5/)
-    rendered.should match(/1/)
-    rendered.should match(//)
+  it "renders the series details correctly" do
+    # Verify key sections are present
+    expect(rendered).to have_selector("#summary_area")
+    expect(rendered).to have_selector("#details_area")
+    expect(rendered).to have_selector("h3", text: @series.name)
+
+    # Verify navigation links
+    expect(rendered).to have_selector("#navigation")
   end
 end
