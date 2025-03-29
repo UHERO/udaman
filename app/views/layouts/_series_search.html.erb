@@ -46,7 +46,7 @@
   });
 </script>
 <div class="ui-widget" style="display:inline;font-size:18px">
-  <%= form_with url: '/series/new_search' do |f| %>
+  <%= form_with url: '/series/new_search', local: true do |f| %>
     <%= f.text_field :search_string, id: 'topSeriesSearchBox', size: 30,
                       spellcheck: 'false', autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off' %>
     <input type="submit" style="display:none" />
