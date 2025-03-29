@@ -76,8 +76,6 @@ RSpec.describe "/series", type: :request do
 
     context "with valid parameters" do
       it "creates a new Series" do
-        #enum type
-        valid_seasonal_adjustment = Series.seasonal_adjustments.keys.first
         post_params = {
           series: {
             dataPortalName: "Test Series",
@@ -86,13 +84,10 @@ RSpec.describe "/series", type: :request do
             source_id: @source.id,
             decimals: 1,
             universe: "UHERO",
-            xseries_attributes: {
-              percent: false,
-              real: false,
-              seasonal_adjustment: "not_applicable",
-              frequency_transform: "average",
-              restricted: false
-            }
+            percent: false,
+            real: false,
+            frequency_transform: "average",
+            restricted: false
           },
           name_parts: {
             prefix: "TEST",
@@ -105,8 +100,8 @@ RSpec.describe "/series", type: :request do
         post series_index_url, params: post_params
 
         # Debug information
-        puts "Redirect location: #{response.location}"
-        puts "Response status: #{response.status}"
+        # puts "Redirect location: #{response.location}"
+        # puts "Response status: #{response.status}"
 
         # If it's an error with an alert message
         if response.redirect? && response.location.include?("new")
