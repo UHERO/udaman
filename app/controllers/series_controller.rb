@@ -476,7 +476,7 @@ class SeriesController < ApplicationController
     Series.empty_quarantine
     redirect_to(
       quarantine_series_path,
-      notice: "Successfully redirected to quarantine."
+      notice: "Successfully emptied quarantine."
     )
   end
 
@@ -484,7 +484,7 @@ class SeriesController < ApplicationController
     @series.reload_sources
     redirect_to(
       series_path(@series),
-      notice: "Successfully redirected to show."
+      notice: "Successfully reloaded from all sources."
     )
   end
 
