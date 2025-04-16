@@ -130,7 +130,7 @@ Rails.application.routes.draw do
 
   resources :new_dbedt_uploads do
     member do
-      get "status" => "new_dbedt_uploads#status"
+      get "status/:which" => "new_dbedt_uploads#status"
       get "active_status" => "new_dbedt_uploads#active_status"
     end
   end
@@ -203,7 +203,6 @@ Rails.application.routes.draw do
       get "autocomplete_search"
       get "group_export"
       get "new_search"
-      post "new_search"
       get "csv2tsd_upload"
       post "csv2tsd"
       get "transform"
@@ -221,8 +220,7 @@ Rails.application.routes.draw do
       get "duplicate"
       post "save_duplicate"
       get "json_with_change"
-      # Remove or comment out 'show_forecast' if it's not used
-      # get 'show_forecast'
+      get "show_forecast"
       get "all_tsd_chart"
       get "render_data_points"
       post "update_notes"
