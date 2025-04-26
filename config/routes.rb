@@ -66,10 +66,6 @@ Rails.application.routes.draw do
   end
 
   resources :dashboards do
-    member do
-      get "rerun_job"
-      post "rerun_job"
-    end
     collection do
       get "export_tsd"
       get "investigate"
