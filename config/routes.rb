@@ -23,7 +23,19 @@ Rails.application.routes.draw do
   get "autocomplete" => "series#autocomplete_search" #Is this even being used? Check to see if it can be removed
   post "csv2tsd" => "series#csv2tsd" #Is this even being used? Check to see if it can be removed
   get "misc/get_branch_code" => "misc#get_branch_code"
-  get "investigate_visual" => "dashboards#investigate_visual" # helper in controller redirects incorrectly...
+  # Start Investigations routes - these are at / rather than /dashboards for some reason
+  get "investigate_visual" => "dashboards#investigate_visual"
+  get "investigate_visual" => "dashboards#investigate_visual"
+  delete "destroy_job" => "dashboards#destroy_reload_job"
+  post "restart_restapi" => "dashboards#restart_restapi"
+  post "restart_dvwapi" => "dashboards#restart_dvwapi"
+  post "clear_api_cache" => "dashboards#clear_api_cache"
+  post "update_public_dp" => "dashboards#update_public_dp"
+  post "force_sync_files" => "dashboards#force_sync_files"
+  get "rerun_job" => "dashboards#rerun_job"
+  get "export_tsd" => "dashboards#export_tsd"
+  # End Investigations
+
   # removed but leaving for reference. If a route or controller is broken, I want to see the error
   # get '*path' => redirect('/')  ## redirect all unknown routes to /
 
