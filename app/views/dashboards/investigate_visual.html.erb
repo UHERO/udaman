@@ -54,7 +54,7 @@
                     <td style="text-align:center;">
                         <% if job.status.nil? %>
                         waiting<% if current_user.id == job.user_id || current_user.dev_user? %>
-                        <%= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe, destroy_job_dashboards_path(id: job) %>
+                        <%= link_to '<i class="fas fa-ban redban" title="cancel"></i>'.html_safe, destroy_reload_job_dashboards_path(id: job) %>
                         <% end %>
                         <% else %>
                         <%= job.status %>
