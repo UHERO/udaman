@@ -79,6 +79,7 @@ Rails.application.routes.draw do
       patch "save_as_text"
       post "add_clip"
       post "add_measurement"
+      patch "add_measurement"
       delete "remove_measurement"
       patch "move_measurement_up"
       patch "move_measurement_down"
@@ -86,7 +87,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :data_points, only: [] do #is this route even being used? Consider removing
+  resources :data_points, only: [] do
     collection do
       get "show/:xseries_id/:date" => "data_points#show", :as => :show
     end
