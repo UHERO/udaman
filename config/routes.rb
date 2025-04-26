@@ -66,6 +66,10 @@ Rails.application.routes.draw do
   end
 
   resources :dashboards do
+    member do
+      get "rerun_job"
+      post "rerun_job"
+    end
     collection do
       get "export_tsd"
       get "investigate"
@@ -75,8 +79,6 @@ Rails.application.routes.draw do
       post "update_public_dp"
       post "force_sync_files"
       post "clear_api_cache"
-      get "rerun_job"
-      post "rerun_job"
       delete "destroy_reload_job"
     end
   end

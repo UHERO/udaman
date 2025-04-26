@@ -65,7 +65,7 @@
                     <td style="text-align:center;"><%= job.series.count %></td>
                     <td>
                         <% series_list = job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s %>
-                        <%= link_to(series_list, rerun_job_dashboards_path(id: job)) %>
+                        <%= link_to(series_list, dashboards_rerun_job_path(id: job)) %>
                     </td>
                     <td class="error_message"><%= job.error rescue nil %></td>
                 </tr>
