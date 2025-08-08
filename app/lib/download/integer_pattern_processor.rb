@@ -1,6 +1,7 @@
-class IntegerPatternProcessor
+module Download
+  class IntegerPatternProcessor
 
-  def initialize(pattern)
+    def initialize(pattern)
     @pattern = pattern.to_s
   end
 
@@ -41,7 +42,7 @@ private
     opts[:header_in] ||= 'col'
     opts[:match_type] = opts[:match_type].parameterize.underscore.to_sym rescue :hiwi
     opts[:search_main] ||= 1
-    cache = DownloadsCache.new
+    cache = Download::DownloadsCache.new
 
     spreadsheet = opts[:sheet] ? cache.xls(opts[:handle], opts[:sheet]) : cache.csv(opts[:handle])
 
@@ -99,6 +100,7 @@ private
     when 'col' then opts[:sheet] ? spreadsheet.last_row : spreadsheet.length
     when 'row' then opts[:sheet] ? spreadsheet.last_column : spreadsheet[0].length
     else raise("compute_search_end: bad header_in value = #{opts[:header_in]}")
+      end
     end
   end
 end

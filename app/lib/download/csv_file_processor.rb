@@ -3,11 +3,11 @@ module Download
     def initialize(handle, options, date_info, cached_files)
       @cached_files = cached_files
       @options = options
-      @row_processor = IntegerPatternProcessor.new options[:row]
-      @col_processor = IntegerPatternProcessor.new options[:col]
-      @handle_processor = StringWithDatePatternProcessor.new handle
+      @row_processor = Download::IntegerPatternProcessor.new options[:row]
+      @col_processor = Download::IntegerPatternProcessor.new options[:col]
+      @handle_processor = Download::StringWithDatePatternProcessor.new handle
       @date_processor =
-        DatePatternProcessor.new date_info[:start],
+        Download::DatePatternProcessor.new date_info[:start],
                                  options[:frequency],
                                  date_info[:rev]
     end

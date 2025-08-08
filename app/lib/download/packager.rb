@@ -1,6 +1,7 @@
-class Packager
-  
-  def Packager.temp
+module Download
+  class Packager
+    
+    def Packager.temp
     const_q = {
   		"KNRSDNS@HON.Q" => %Q|Series.load_from_download  "QSER_G@hawaii.gov", { :file_type => "xls", :start_date => "1993-01-01", :sheet => "G-25", :row => "block:6:1:4", :col => "repeat:2:5", :frequency => "Q" }|, 
   		"KNRSDNS@HAW.Q" => %Q|Series.load_from_download  "QSER_G@hawaii.gov", { :file_type => "xls", :start_date => "1993-01-01", :sheet => "G-26", :row => "block:5:1:4", :col => "repeat:2:5", :frequency => "Q" }|, 
@@ -160,8 +161,9 @@ class Packager
     end
     
     #@download_results hash: key-handle name value-hash[:time,:url,:location,:type,:status,:changed]
-    @download_results = DownloadsCache.download_results
+    @download_results = Download::DownloadsCache.download_results
     series
-  end
+    end
 
+  end
 end

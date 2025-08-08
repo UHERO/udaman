@@ -1,5 +1,6 @@
-class TextFileProcessor
-  def initialize(handle, options, cached_files)
+module Download
+  class TextFileProcessor
+    def initialize(handle, options, cached_files)
     @cached_files = cached_files
     @handle = handle
     @options = options
@@ -37,7 +38,8 @@ class TextFileProcessor
         break
       end
       series_data[date.to_s] = data[value_col].to_f
+      end
+      series_data
     end
-    series_data
   end
 end

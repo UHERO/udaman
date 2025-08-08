@@ -1,14 +1,15 @@
 #can use allow_blanks as an option for handling blanks
-class XlsFileProcessor
-  #job of this object is to coordinate all of the other processor objects for the mapping
-  def initialize(handle, options, date_info, cached_files)
+module Download
+  class XlsFileProcessor
+    #job of this object is to coordinate all of the other processor objects for the mapping
+    def initialize(handle, options, date_info, cached_files)
     @cached_files = cached_files
-    @row_processor = IntegerPatternProcessor.new(options[:row])
-    @col_processor = IntegerPatternProcessor.new(options[:col])
-    @handle_processor = StringWithDatePatternProcessor.new handle
-    @path_processor = options[:path] && StringWithDatePatternProcessor.new(options[:path])
-    @sheet_processor = StringWithDatePatternProcessor.new options[:sheet]
-    @date_processor = DatePatternProcessor.new date_info[:start], options[:frequency], date_info[:rev]
+    @row_processor = Download::IntegerPatternProcessor.new(options[:row])
+    @col_processor = Download::IntegerPatternProcessor.new(options[:col])
+    @handle_processor = Download::StringWithDatePatternProcessor.new handle
+    @path_processor = options[:path] && Download::StringWithDatePatternProcessor.new(options[:path])
+    @sheet_processor = Download::StringWithDatePatternProcessor.new options[:sheet]
+    @date_processor = Download::DatePatternProcessor.new date_info[:start], options[:frequency], date_info[:rev]
   end
 
   def observation_at(index)
@@ -59,7 +60,7 @@ class XlsFileProcessor
       #known data values that should be suppressed as nils... may need to separate these by file being read in
       return nil if ['(D) ', '(L) ', '(N) ', '(T) ', 'no data'].include? cell_value
       return 'BREAK IN DATA'
+      end
     end
   end
-
 end

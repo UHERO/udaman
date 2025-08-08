@@ -1,5 +1,6 @@
-class DatePatternProcessor
-  def initialize(start_date, frequency, reverse)
+module Download
+  class DatePatternProcessor
+    def initialize(start_date, frequency, reverse)
     @start_date_string = start_date
     @frequency = frequency
     @reverse = reverse
@@ -50,6 +51,6 @@ class DatePatternProcessor
     #that the division by 7 will always accurately count the number of weeks spanned by the diff
     weekends_passed = ((diff + (start.cwday - 1)) / 7).round
     diff - (2 * weekends_passed)
+    end
   end
-  
 end

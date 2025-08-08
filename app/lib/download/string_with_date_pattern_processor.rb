@@ -1,5 +1,6 @@
-class StringWithDatePatternProcessor
-  def initialize(string_format)
+module Download
+  class StringWithDatePatternProcessor
+    def initialize(string_format)
     @string_format = string_format.to_s
   end
 
@@ -12,7 +13,8 @@ class StringWithDatePatternProcessor
     @string_format.include?('%')
   end
 
-  def to_s
-    @string_format
+    def to_s
+      @string_format
+    end
   end
 end

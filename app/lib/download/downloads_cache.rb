@@ -1,6 +1,7 @@
-class DownloadsCache
+module Download
+  class DownloadsCache
 
-  def initialize(options = nil)
+    def initialize(options = nil)
     @cache = { dloads: {}, dsds: {}, used_dloads: {} }
     @dload = nil
     @data_source = nil
@@ -214,6 +215,6 @@ class DownloadsCache
 
   def get_month_name(date)
     date.to_date.strftime('%^b')
+    end
   end
-
 end
