@@ -1,4 +1,4 @@
-module Download
+module Downloaders
   class CsvFileProcessor
     def initialize(handle, options, date_info, cached_files)
       @cached_files = cached_files
@@ -8,8 +8,8 @@ module Download
       @handle_processor = Download::StringWithDatePatternProcessor.new handle
       @date_processor =
         Download::DatePatternProcessor.new date_info[:start],
-                                 options[:frequency],
-                                 date_info[:rev]
+                                           options[:frequency],
+                                           date_info[:rev]
     end
 
     def observation_at(index)
