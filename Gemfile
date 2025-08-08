@@ -36,6 +36,7 @@ gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.or
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1', '>= 3.3.1'
 gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
+gem 'coffee-rails'
 
 # Dependencies related to upgrade to Ruby 2.3.0 and Rails 4.2
 gem 'sassc-rails', '>= 2.1.0'
