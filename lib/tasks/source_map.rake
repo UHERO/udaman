@@ -68,6 +68,7 @@ task :reload_sa_series_only => :environment do
   Rails.logger.info { 'reload_sa_series_only: starting task, gathering series' }
 #  sa_series = Series.search("&sa").select { |series| series.is_SA? rescue false }
   sa_series = Series.search("#sa_jobs.csv")
+  sa_series += Series.search("#sa_tour.csv")
   Series.reload_with_dependencies(sa_series.pluck(:id), 'sa', nightly: false)
 end
 

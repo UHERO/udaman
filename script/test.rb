@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+file = "dotax.csv"
+
+series = "TGBRTNS@HI.M,TGBSVNS@HI.M,TGBCTNS@HI.M,TGBTHNS@HI.M,TGBITONS@HI.M,TGBITNS@HI.M,TGBAONS@HI.M,TGBCMNS@HI.M,TGBHTNS@HI.M,TGBORNS@HI.M,TGBU4NS@HI.M,TGBISNS@HI.M,TGBPDNS@HI.M,TGBMNNS@HI.M,TGBWTNS@HI.M,TGBSINS@HI.M,TGBSWNS@HI.M,TGBU5NS@HI.M,TGBNS@HI.M,TGRRTNS@HI.M,TGRSVNS@HI.M,TGRCTNS@HI.M,TGRTHNS@HI.M,TGRITONS@HI.M,TGRITNS@HI.M,TGRAONS@HI.M,TGRCMNS@HI.M,TGRHTNS@HI.M,TGRORNS@HI.M,TGRU4NS@HI.M,TGRISNS@HI.M,TGRPDNS@HI.M,TGRMNNS@HI.M,TGRWTNS@HI.M,TGRSINS@HI.M,TGRSWNS@HI.M,TGRU5NS@HI.M,TGRALNS@HI.M,TGRUANS@HI.M,TGRNS@HI.M,TRCOESNS@HI.M,TRCOPRNS@HI.M,TRCORFNS@HI.M,TRCTFUNS@HI.M,TRCTTTNS@HI.M,TRCVNS@HI.M,TREMNS@HI.M,TRFINS@HI.M,TRFUNS@HI.M,TRGLNS@HI.M,TRGTNS@HI.M,TRHSNS@HI.M,TRIHNS@HI.M,TRINESNS@HI.M,TRINPRNS@HI.M,TRINRFNS@HI.M,TRINWHNS@HI.M,TRISNS@HI.M,TRLINS@HI.M,TRMTNS@HI.M,TRNS@HI.M,TROTNS@HI.M,TRPSNS@HI.M,TRTBNS@HI.M,TRTFNS@HI.M,TRTTNS@HI.M,TDAPNS@HI.M,TDBONS@HI.M,TDCANS@HI.M,TDCENS@HI.M,TDCVNS@HI.M,TDEMNS@HI.M,TDEVNS@HI.M,TDGFNS@HI.M,TDHWNS@HI.M,TDNANS@HI.M,TDRHNS@HI.M,TDTSNS@HI.M,TDTTNS@HI.M".split(",")
+
+series.each do |s|
+    a = Series.find_by(name: s)
+    next if a == nil
+    load_statements = a.data_sources
+    has_dotax = a.data_sources.any? { |l| l.eval.include?("rparsed/dotax.csv") }
+    next if has_dotax
+    loader_attrs = {
+        :eval => "\"#{s}\".tsn.load_from \"rparsed/dotax.csv\"",
+        :priority => 100,
+        :scale => "0.001",
+        :color => "F9FF8B",
+        :presave_hook => "",
+        :clear_before_load => "0"
+    }
+    a.save_loader(loader_attrs, [])
+end

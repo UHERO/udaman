@@ -116,16 +116,23 @@ class DataPoint < ApplicationRecord
     t = Time.now
     insert_type = universe == 'NTA' ? 'replace' : 'insert'
     update_query = <<~MYSQL
-      update public_data_points p
-        join series_all_v s on s.id = p.series_id
-        join data_points d on d.xseries_id = s.xseries_id and d.date = p.date and d.current
-      set p.value = d.value,
-          p.pseudo_history = d.pseudo_history,
-          p.updated_at = coalesce(d.updated_at, now())
-      where s.universe = ?
-      and not(s.quarantined)
-      and (d.updated_at is null or d.updated_at > p.updated_at)
-      #{' and s.id = ? ' if series} ;
+        UPDATE public_data_points p
+        JOIN (
+            SELECT s.id, s.xseries_id
+            FROM series s
+            JOIN xseries xs ON xs.id = s.xseries_id
+            WHERE s.universe = ?
+            AND COALESCE(xs.quarantined, 0) = 0
+            #{' AND s.id = ? ' if series}
+        ) s ON s.id = p.series_id
+        JOIN data_points d
+            ON d.xseries_id = s.xseries_id
+            AND d.date       = p.date
+            AND d.current    = 1
+        SET p.value          = d.value,
+            p.pseudo_history = d.pseudo_history,
+            p.updated_at     = COALESCE(d.updated_at, d.created_at)
+        WHERE COALESCE(d.updated_at, d.created_at) > p.updated_at;
     MYSQL
     insert_query = <<~MYSQL
       #{insert_type} into public_data_points (series_id, `date`, `value`, pseudo_history, created_at, updated_at)
