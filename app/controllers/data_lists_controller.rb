@@ -12,13 +12,13 @@ class DataListsController < ApplicationController
 
     respond_to do |format|
       format.html # index.html.erb
-      format.xml  { render(xml: @data_lists) }
+      format.xml  { render xml: @data_lists }
     end
   end
 
   def show
     super_table
-    render(:super_table)
+    render :super_table
   end
 
   def super_table
@@ -35,13 +35,13 @@ class DataListsController < ApplicationController
       @start_date = dates[:start_date]
       @end_date = dates[:end_date]
     end
-    render(:tableview)
+    render :tableview
   end
 
   def show_tsd_super_table
     @all_tsd_files = JSON.parse(open('http://readtsd.herokuapp.com/listnames/json').read)['file_list']
     @tsd_file = params[:tsd_file] || @all_tsd_files[0]
-    render(:tsd_super_tableview)
+    render :tsd_super_tableview
   end
 
   def show_tsd_table
@@ -52,7 +52,7 @@ class DataListsController < ApplicationController
     dates = set_dates(frequency, params)
     @start_date = dates[:start_date]
     @end_date = dates[:end_date]
-    render(:tsd_tableview)
+    render :tsd_tableview
   end
 
   def analyze_view
@@ -77,7 +77,7 @@ class DataListsController < ApplicationController
 
     respond_to do |format|
       format.html # new.html.erb
-      format.xml  { render(xml: @data_list) }
+      format.xml  { render xml: @data_list }
     end
   end
 
@@ -116,9 +116,9 @@ class DataListsController < ApplicationController
           category.update_attributes(data_list_id: @data_list.id)
         end
         format.html { redirect_to(edit_data_list_path(@data_list)) }
-        format.xml  { render(xml: @data_list), status: :created, :location => @data_list }
+        format.xml  { render xml: @data_list, status: :created, :location => @data_list }
       else
-        format.html { render(action: 'new') }
+        format.html { render action: 'new' }
         format.xml { render xml: @data_list, status: :created, location: @data_list }
       end
     end
@@ -130,7 +130,7 @@ class DataListsController < ApplicationController
         format.html { redirect_to(@data_list, notice: 'Data list was successfully updated.') }
         format.xml  { head :ok }
       else
-        format.html { render(action: 'edit') }
+        format.html { render action: 'edit' }
         format.xml  { render(xml: @data_list).errors, status: :unprocessable_entity }
       end
     end

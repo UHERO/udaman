@@ -2,7 +2,7 @@ class ApiApplicationsController < ApplicationController
   include Authorization
 
   before_action :check_authorization
-  before_action :set_api_application, only: [:show, :edit, :update, :destroy]
+  before_action :set_api_application, only: %i[show edit update destroy]
 
   # GET /api_applications
   def index
@@ -27,36 +27,50 @@ class ApiApplicationsController < ApplicationController
     @api_application = ApiApplication.new(api_application_params)
 
     if @api_application.save
-      redirect_to(api_application_path(@api_application), notice: 'Api application was successfully created.')
+      redirect_to(
+        api_application_path(@api_application),
+        notice: "Api application was successfully created."
+      )
     else
-      render(:new)
+      render :new
     end
   end
 
   # PATCH/PUT /api_applications/1
   def update
     if @api_application.update(api_application_params)
-     redirect_to(api_application_path(@api_application), notice: 'Api application was successfully updated.')
+      redirect_to(
+        api_application_path(@api_application),
+        notice: "Api application was successfully updated."
+      )
     else
-      render(:edit)
+      render :edit
     end
   end
 
   # DELETE /api_applications/1
   def destroy
     @api_application.destroy
-    redirect_to(api_applications_path, notice: 'Api application was successfully destroyed.')
+    redirect_to(
+      api_applications_path,
+      notice: "Api application was successfully destroyed."
+    )
   end
 
-private
+  private
 
-    # Use callbacks to share common setup or constraints between actions.
-    def set_api_application
-      @api_application = ApiApplication.find(params[:id])
-    end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_api_application
+    @api_application = ApiApplication.find(params[:id])
+  end
 
-    # Only allow a trusted parameter "white list" through.
-    def api_application_params
-      params.require(:api_application).permit(:name, :hostname, :api_key, :github_nickname)
-    end
+  # Only allow a trusted parameter "white list" through.
+  def api_application_params
+    params.require(:api_application).permit(
+      :name,
+      :hostname,
+      :api_key,
+      :github_nickname
+    )
+  end
 end
