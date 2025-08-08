@@ -119,7 +119,7 @@ class DataListsController < ApplicationController
         format.xml  { render(xml: @data_list), status: :created, :location => @data_list }
       else
         format.html { render(action: 'new') }
-        format.xml  { render(xml: @data_list).errors, status: :unprocessable_entity }
+        format.xml { render xml: @data_list, status: :created, location: @data_list }
       end
     end
   end
