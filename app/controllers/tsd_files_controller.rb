@@ -20,6 +20,10 @@ class TsdFilesController < ApplicationController
     @tsd_file = TsdFile.new(forecast_snapshot_id: @fs.id)
   end
 
+  # GET /tsd_files/1/edit
+  def edit
+  end
+
   # POST /tsd_files
   def create
     uploaded_file = tsd_file_params[:filename]

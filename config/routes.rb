@@ -20,8 +20,8 @@
 #  3. remaining controllers alphabetically
 
 Rails.application.routes.draw do
-  get "autocomplete" => "series#autocomplete_search" #Is this even being used? Check to see if it can be removed
-  post "csv2tsd" => "series#csv2tsd" #Is this even being used? Check to see if it can be removed
+  get "autocomplete" => "series#autocomplete_search"
+  post "csv2tsd" => "series#csv2tsd"
   get "misc/get_branch_code" => "misc#get_branch_code"
   get "investigate_visual" => "dashboards#investigate_visual"
   # removed but leaving for reference. If a route or controller is broken, I want to see the error
@@ -87,7 +87,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :data_points, only: [] do #is this route even being used? Consider removing
+  resources :data_points, only: [] do
     collection do
       get "show/:xseries_id/:date" => "data_points#show", :as => :show
     end

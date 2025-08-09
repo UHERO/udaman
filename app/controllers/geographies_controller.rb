@@ -45,6 +45,13 @@ class GeographiesController < ApplicationController
     end
   end
 
+  # DELETE /geographies/1
+  def destroy
+    universe = @geography.universe
+    @geography.destroy
+    redirect_to(geographies_path(u: universe), notice: 'Geography was successfully deleted.')
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_geography
