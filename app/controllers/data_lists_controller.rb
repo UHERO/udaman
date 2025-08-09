@@ -176,7 +176,7 @@ class DataListsController < ApplicationController
       else
         format.html { render action: "new" }
         format.xml do
-          render xml: @data_list, status: :created, location: @data_list
+          render xml: @data_list.errors, status: :unprocessable_entity
         end
       end
     end

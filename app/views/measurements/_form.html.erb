@@ -17,27 +17,27 @@
   </div>
   <div class="field">
     <%= f.label :data_portal_name, 'Data portal name' %><br>
-    <%= f.text_field :data_portal_name, :size => 80 %>
+    <%= f.text_field :data_portal_name, size: 80 %>
   </div>
   <div class="field">
     <%= f.label :table_prefix, 'Table prefix' %><br>
-    <%= f.text_field :table_prefix, :size => 80 %>
+    <%= f.text_field :table_prefix, size: 80 %>
   </div>
   <div class="field">
     <%= f.label :table_postfix, 'Table postfix' %><br>
-    <%= f.text_field :table_postfix, :size => 80 %>
+    <%= f.text_field :table_postfix, size: 80 %>
   </div>
     <div class="field">
       <%= f.label :unit_id %><br>
-      <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {:include_blank => true} %>
+      <%= f.collection_select :unit_id, @all_units.order(:long_label, :short_label), :id, :to_s, {include_blank: true} %>
     </div>
   <div class="field">
     <%= f.label :source_id %><br>
-    <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {:include_blank => true} %>
+    <%= f.collection_select :source_id, @all_sources.order(:description), :id, :description, {include_blank: true} %>
   </div>
   <div class="field">
     <%= f.label :source_link, 'Detailed source Link (more specific than the default for the above source)', title: 'More specific than the source organization link.' %><br/>
-    <%= f.text_field :source_link, :size => 80 %>
+    <%= f.text_field :source_link, size: 80 %>
   </div>
   <div class="field">
     <%= f.label :source_detail_id %><br>
@@ -45,7 +45,7 @@
   </div>
   <div class="field">
     <%= f.label :seasonal_adjustment, 'Seasonal Adjustment' %><br/>
-    <%= f.select :seasonal_adjustment, Measurement.seasonal_adjustments.to_a, {:include_blank => true} %>
+    <%= f.select :seasonal_adjustment, Measurement.seasonal_adjustments.to_a, {include_blank: true} %>
   </div>
   <div class="field">
     <%= f.label :percent, 'Percent' %>

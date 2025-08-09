@@ -119,11 +119,11 @@ class MeasurementsController < ApplicationController
   end
 
   def remove_series
+    series = Series.find(params[:series_id])
+    @measurement.series.delete(series)
     respond_to do |format|
       format.js { head :ok }
     end
-    series = Series.find(params[:series_id])
-    @measurement.series.delete(series)
   end
 
   def propagate

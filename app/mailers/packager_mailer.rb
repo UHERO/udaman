@@ -7,10 +7,10 @@ class PackagerMailer < ApplicationMailer
       @output_path = output_path
       @dates = Series.get_all_dates_from_data(@series)
       subject = is_error ? "UDAMacMini Error (#{rake_task})" : "UDAMacMini New Download (#{rake_task})"
-      mail(:to => %w(uherotek@hawaii.edu), :subject => subject)
+      mail(to: %w(uherotek@hawaii.edu), subject: subject)
     rescue => e
       Rails.logger.error { "PackagerMailer.rake_notification error: #{e.message}" }
-      mail(:to => %w(uherotek@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.rake_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(to: %w(uherotek@hawaii.edu), subject: '[UDAMACMINI] PackagerMailer.rake_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 
@@ -18,10 +18,10 @@ class PackagerMailer < ApplicationMailer
     begin
       @error = err
       @output_path = output_path
-      mail(:to => %w(uherotek@hawaii.edu), :subject => 'Rake failed in an unexpected way (Udamacmini)')
+      mail(to: %w(uherotek@hawaii.edu), subject: 'Rake failed in an unexpected way (Udamacmini)')
     rescue => e
       Rails.logger.error { "PackagerMailer.rake_error error: #{e.message}" }
-      mail(:to => %w(uherotek@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.rake_error error', :body => e.message, :content_type => 'text/plain')
+      mail(to: %w(uherotek@hawaii.edu), subject: '[UDAMACMINI] PackagerMailer.rake_error error', body: e.message, content_type: 'text/plain')
     end
   end
 
@@ -33,10 +33,10 @@ class PackagerMailer < ApplicationMailer
       @handle = handle
       @url = url
       @save_path = save_path
-      mail(:to => %w(uherotek@hawaii.edu), :subject => subject)
+      mail(to: %w(uherotek@hawaii.edu), subject: subject)
     rescue => e
       Rails.logger.error { "PackagerMailer.download_link_notification error: #{e.message}" }
-      mail(:to => %w(uherotek@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.download_link_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(to: %w(uherotek@hawaii.edu), subject: '[UDAMACMINI] PackagerMailer.download_link_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 
@@ -47,10 +47,10 @@ class PackagerMailer < ApplicationMailer
         "Udamacmini tried but failed to post new data for #{post_name} to the UHERO website"
       @post_address = post_address
       @new_data_series = new_data_series
-      mail(:to => %w(uherotek@hawaii.edu), :subject => subject) #{})
+      mail(to: %w(uherotek@hawaii.edu), subject: subject) #{})
     rescue => e
       Rails.logger.error { "PackagerMailer.website_post_notification error: #{e.message}" }
-      mail(:to => %w(uherotek@hawaii.edu), :subject => '[UDAMACMINI] PackagerMailer.website_post_notification error', :body => e.message, :content_type => 'text/plain')
+      mail(to: %w(uherotek@hawaii.edu), subject: '[UDAMACMINI] PackagerMailer.website_post_notification error', body: e.message, content_type: 'text/plain')
     end
   end
 

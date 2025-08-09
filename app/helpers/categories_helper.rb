@@ -55,7 +55,7 @@ private
     if current_user.dev_user?
       unless leaf.is_root?
         hide_op = leaf.hidden? ? 'Unhide' : 'Hide'
-        menu.push link_to(hide_op, {:controller => :categories, action: :toggle_hidden, :id => leaf})
+        menu.push link_to(hide_op, {controller: :categories, action: :toggle_hidden, id: leaf})
       end
       menu.push link_to('Destroy', leaf, method: :delete, data: { confirm: "Destroy #{leaf.name}: Are you sure??" })
     end

@@ -50,15 +50,15 @@ class DataHtmlParser
     @code = code
     @url = 'https://data.bls.gov/pdq/SurveyOutputServlet'
     @post_parameters = {
-        :data_tool =>'srgate',
-        :delimeter =>'tab',
-        :initial_request =>'false',
-        :output_format =>'text',
-        :output_type =>'column',
-        :periods_option =>'all_periods',
-        :reformat =>'true',
-        :series_id => code,
-        :years_option =>'all_years'
+        data_tool: 'srgate',
+        delimeter: 'tab',
+        initial_request: 'false',
+        output_format: 'text',
+        output_type: 'column',
+        periods_option: 'all_periods',
+        reformat: 'true',
+        series_id: code,
+        years_option: 'all_years'
     }
     @doc = self.download
     avail_freqs = data.keys
