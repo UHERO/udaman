@@ -1,2 +1,0 @@
-module DownloaderssHelper
-end
