@@ -23,6 +23,7 @@ Rails.application.routes.draw do
   get "autocomplete" => "series#autocomplete_search" #Is this even being used? Check to see if it can be removed
   post "csv2tsd" => "series#csv2tsd" #Is this even being used? Check to see if it can be removed
   get "misc/get_branch_code" => "misc#get_branch_code"
+  get "investigate_visual" => "dashboards#investigate_visual"
   # removed but leaving for reference. If a route or controller is broken, I want to see the error
   # get '*path' => redirect('/')  ## redirect all unknown routes to /
 
