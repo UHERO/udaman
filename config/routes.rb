@@ -24,6 +24,7 @@ Rails.application.routes.draw do
   post "csv2tsd" => "series#csv2tsd"
   get "misc/get_branch_code" => "misc#get_branch_code"
   get "investigate_visual" => "dashboards#investigate_visual"
+  get "export_tsd" => "dashboards#export_tsd"
   # removed but leaving for reference. If a route or controller is broken, I want to see the error
   # get '*path' => redirect('/')  ## redirect all unknown routes to /
 
