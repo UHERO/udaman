@@ -10,7 +10,7 @@
         <% unless @clip_empty %>
         <p><%= link_to 'Clear clipboard', clear_clip_series_index_path, data: { confirm: 'Clear your clipboard: Are you sure??' } %></p>
         <% end %>
-        <p><%= form_with url: do_clip_action_series_index_path, method: :post do |f| %>
+        <p><%= form_with url: do_clip_action_series_index_path, method: :post, local: true do |f| %>
             <select id="clip_action" name="clip_action" <%= 'disabled' if @clip_empty %>>
                 <option value=""></option>
                 <option value="metacsv">Download metadata csv</option>
