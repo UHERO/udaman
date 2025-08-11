@@ -90,7 +90,7 @@
 
 <script>
     d3.select('#export_tsd').on('click', function() {
-        d3.json('/export_tsd', function(data) {
+        d3.json('/dashboards/export_tsd', function(data) {
             d3.select('#message_area')
                 .text(data.message)
                 .style('background-color', '#A4CCB3')
