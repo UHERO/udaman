@@ -154,15 +154,15 @@ end
 
   def do_clip_action
     if params[:clip_action] =~ /csv/
-      redirect_to(group_export_series_path(type: params[:clip_action], format: :csv, layout: false))
+      redirect_to(group_export_series_index_path(type: params[:clip_action], format: :csv, layout: false))
       return
     end
     if params[:clip_action] == 'datatsd'
-      redirect_to(group_export_series_path(type: params[:clip_action], format: :tsd, layout: false))
+      redirect_to(group_export_series_index_path(type: params[:clip_action], format: :tsd, layout: false))
       return
     end
     if params[:clip_action] == 'meta_update'
-      redirect_to(meta_update_series_path)
+      redirect_to(meta_update_series_index_path)
       return
     end
     @status_message = current_user.do_clip_action(params[:clip_action])
@@ -188,7 +188,7 @@ end
   def meta_store
     fields = field_params.to_h.keys.map(&:to_sym)
     unless fields.count > 0
-      redirect_to(meta_update_series_path, notice: 'No fields were specified for metadata propagation')
+      redirect_to(meta_update_series_index_path, notice: 'No fields were specified for metadata propagation')
       return
     end
     new_properties = fields.map {|f| [f, series_params[f] || series_params[:xseries_attributes][f] ] }.to_h
@@ -359,7 +359,7 @@ end
 
   def empty_quarantine
     Series.empty_quarantine
-    redirect_to(quarantine_series_path, notice: 'Successfully redirected to quarantine.')
+    redirect_to(quarantine_series_index_path, notice: 'Successfully redirected to quarantine.')
   end
 
   def reload_all
