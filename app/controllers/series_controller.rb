@@ -239,7 +239,8 @@ end
   end
 
   def new_search(search_string = nil)
-    @search_string = search_string || helpers.url_decode(params[:search_string])
+    @search_string = search_string || params[:search_string]&.strip
+    @search_string = helpers.url_decode(@search_string) if @search_string&.start_with?('b64:')
     Rails.logger.info { "SEARCHLOG: user #{current_user.username.ljust(9, ' ')} searched #{@search_string}" }
     all_series = Series.search(@search_string, limit: ENV['SEARCH_DEFAULT_LIMIT'].to_i, user: current_user)
     if all_series.count == 1 && @search_string !~ /[+]1\b/
