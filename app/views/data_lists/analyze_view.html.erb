@@ -27,18 +27,18 @@
 </div>
 
 <script>
-    < % dates = @series.data.keys.sort % >
+    < % dates = @series.data.keys.sort %>
         <
-        % data = @series.data % >
+        % data = @series.data %>
         <
-        % lvl_chg = @lvl_chg.data % >
+        % lvl_chg = @lvl_chg.data %>
         <
-        % chg = @chg.data % >
+        % chg = @chg.data %>
         <
-        % ytd = @ytd.data % >
+        % ytd = @ytd.data %>
 
         var jsonData = [ <
-            % dates.each do |date_string | % > {
+            % dates.each do |date_string | %> {
                     date: "<%=date_string %>",
                     level: "<%= data[date_string].nil? ? "
                     " : " % .3 f " % data[date_string] %>",
@@ -47,20 +47,20 @@
                     ytd: "<%= ytd[date_string].nil? ? "
                     " : " % .1 f " % ytd[date_string]%>"
                 }, <
-                % end % >
+                % end %>
         ];
 
-    var priceData = [ < % dates.each_index do |i | % > [ < %= i % > , < %= data[dates[i]] % > ], < % end % > ];
-    var volumeData = [ < % dates.each_index do |i | % > [ < %= i % > , < %= chg[dates[i]].nil ? ? 0 : chg[dates[i]] % > ], < % end % > ];
+    var priceData = [ < % dates.each_index do |i | %> [ <%= i %> , <%= data[dates[i]] %> ], < % end %> ];
+    var volumeData = [ < % dates.each_index do |i | %> [ <%= i %> , <%= chg[dates[i]].nil ? ? 0 : chg[dates[i]] %> ], < % end %> ];
 
     var summaryData = [ <
         %
         i = 0
         step = data.count > 100 ? data.count / 100 : 1
         while i < data.count do
-            % >
+            %>
 
-            [ < %= i % > , < %= data[dates[i]] % > ],
+            [ <%= i %> , <%= data[dates[i]] %> ],
 
             <
             %

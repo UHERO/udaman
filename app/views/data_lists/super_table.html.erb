@@ -260,7 +260,7 @@
         return parseFloat(num);
     }
 
-    var all_data = < %= @data_list.get_all_series_data_with_changes(@freq, @geo, @seasonally_adjusted).to_json.html_safe % > ;
+    var all_data = <%= @data_list.get_all_series_data_with_changes(@freq, @geo, @seasonally_adjusted).to_json.html_safe %>;
     var frequency = freq(d3.keys(all_data)[0]);
     var all_dates = {};
     d3.values(all_data).forEach(function(elem) {

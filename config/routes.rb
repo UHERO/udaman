@@ -204,6 +204,7 @@ Rails.application.routes.draw do
       get "autocomplete_search"
       get "group_export"
       get "new_search"
+      post "new_search"
       get "csv2tsd_upload"
       post "csv2tsd"
       get "transform"
