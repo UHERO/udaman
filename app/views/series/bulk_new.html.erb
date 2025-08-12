@@ -1,4 +1,4 @@
-<%= form_with url: bulk_series_index_path, method: :post do %>
+<%= form_with url: bulk_series_index_path, method: :post, local: true do %>
 Example:
 <p>
     "VSOM2NS@HAW.M".ts_eval= %Q|Series.load_api_fred("MCOILBRENTEU", "M")|

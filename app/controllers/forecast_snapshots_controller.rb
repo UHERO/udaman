@@ -135,10 +135,22 @@ private
 
     def var_setup
       max_horizon = Date.new(Date.today.year + 30, 12).to_s
-      @all_dates =  @tsd_files[0].get_all_dates(nils: true)
-      @all_dates |= @tsd_files[1].get_all_dates(nils: true)
-      @all_dates |= @tsd_files[2].get_all_dates(nils: true)
+      @all_dates = []
+      @tsd_files.each do |tsd_file|
+        begin
+          @all_dates |= tsd_file.get_all_dates(nils: true)
+        rescue Errno::ENOENT => e
+          Rails.logger.error "TSD file not found: #{tsd_file.path} - #{e.message}"
+          # Continue processing with other files
+        end
+      end
       @all_dates = @all_dates.reject {|d| d > max_horizon }.sort
+
+      # Handle case where no valid TSD files were found
+      if @all_dates.empty?
+        Rails.logger.warn "No valid dates found for forecast snapshot #{@forecast_snapshot.id}"
+        @all_dates = [Date.today.to_s]  # Provide a fallback date
+      end
 
       @date_disp_f = lambda {|d| d[0..3] }  ### Annual
       years_past = 10
@@ -167,5 +179,17 @@ private
       @tsd_files = [ @forecast_snapshot.new_forecast_tsd,
                      @forecast_snapshot.old_forecast_tsd,
                      @forecast_snapshot.history_tsd ]
+    end
+
+    # Helper method for views to safely access TSD file data
+    helper_method :safe_tsd_series
+    def safe_tsd_series(tsd_file, nils: false)
+      return [] unless tsd_file
+      begin
+        tsd_file.get_all_series(nils: nils)
+      rescue Errno::ENOENT => e
+        Rails.logger.error "TSD file not found when accessing series: #{tsd_file.path} - #{e.message}"
+        []
+      end
     end
 end

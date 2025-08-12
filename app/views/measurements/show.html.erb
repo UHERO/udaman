@@ -1,7 +1,7 @@
 <p id="notice"><%= notice %></p>
 <h2>Measurement <%= @measurement.prefix %> (<%= @measurement.universe %>)</h2>
 
-<%= form_tag('/measurements/propagate', method: :post) do %>
+<%= form_tag(propagate_measurement_path(@measurement), method: :post) do %>
 
 <p class="propagate_controls">
   <a id="all_fields_check" href="javascript:void(0)" onClick="toggleAllFields();">Select all fields</a>
