@@ -1,217 +1,205 @@
 <script type="text/javascript">
-    // Load the Visualization API and the piechart package.
-    google.load('visualization', '1', {
-        'packages': ['corechart']
-    });
+  // Load the Visualization API and the piechart package.
+  google.load('visualization', '1', {
+      'packages': ['corechart']
+  });
 
-    // Set a callback to run when the Google Visualization API is loaded.
-    google.setOnLoadCallback(drawChart);
+  // Set a callback to run when the Google Visualization API is loaded.
+  google.setOnLoadCallback(drawChart);
 
-    // Callback that creates and populates a data table, 
-    // instantiates the pie chart, passes in the data and
-    // draws it.
-    function drawChart() {
+  // Callback that creates and populates a data table,
+  // instantiates the pie chart, passes in the data and
+  // draws it.
+  function drawChart() {
 
-        // Create our data table.
-        var data = new google.visualization.DataTable();
-        data.addColumn('string', 'Date');
-        data.addColumn('number', '<%= @series.name %>');
-        data.addRows([ <
-            %=
-            gct_datapoints(@series).html_safe %
-            >
-        ]);
+      // Create our data table.
+      var data = new google.visualization.DataTable();
+      data.addColumn('string', 'Date');
+      data.addColumn('number', '<%= @series.name %>');
+      data.addRows([ <%= gct_datapoints(@series).html_safe %> ]);
 
-        // Instantiate and draw our chart, passing in some options.
-        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-        chart.draw(data, {
-            width: 400,
-            height: 240
-        });
-        google.visualization.events.addListener(chart, 'select', function() {
-            alert("HI");
-        });
+      // Instantiate and draw our chart, passing in some options.
+      var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+      chart.draw(data, {
+          width: 400,
+          height: 240
+      });
+      google.visualization.events.addListener(chart, 'select', function() {
+          alert("HI");
+      });
 
-    }
+  }
 </script>
 <p class="notice"><%= notice %></p>
-
 <div id="summary_area">
-    <h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
-    <% if @vintage %>
+  <h3><%= @series.name %><%= '&nbsp;&nbsp;(%)'.html_safe if @series.percent  %></h3>
+  <% if @vintage %>
     <h4 style="color:#B81104;">Vintage as of <%= @vintage %> at 00:00h</h4>
+  <% end %>
+  <h3><%= @series.dataPortalName %></h3>
+  <table>
+    <tr>
+      <td>Universe</td>
+      <td><%= universe_label(@series) %></td>
+    </tr>
+    <tr>
+      <td><%= @series.is_primary? ? 'Aliases' : 'Alias of' %></td>
+      <td><%= raw make_alt_universe_links(@series) %></td>
+    </tr>
+    <tr>
+      <td>Measurements</td>
+      <td>
+        <% @series.measurements.each do |measurement| %>
+          <%= link_to(measurement.prefix, measurement) %>
+        <% end %>
+      </td>
+    </tr>
+    <tr>
+      <td>Description</td>
+      <td><%= @series.description %></td>
+    </tr>
+    <tr>
+      <td>Aremos Desc.</td>
+      <td><%= @desc %></td>
+    </tr>
+    <tr>
+      <td>Units</td>
+      <td><%= @series.unit.to_s if @series.unit %></td>
+    </tr>
+    <tr>
+      <td>Geography</td>
+      <td><%= @series.geography ? @series.geography.display_name : '<span style="color:red;">Not linked</span>'.html_safe %></td>
+    </tr>
+    <tr>
+      <td>Decimals</td>
+      <td><%= @series.decimals.to_s %></td>
+    </tr>
+    <tr>
+      <td>Base Year</td>
+      <td><%= @series.base_year %></td>
+    </tr>
+    <tr>
+      <td>Seasonal Adjustment</td>
+      <td><%= sa_indicator(@series.seasonal_adjustment) %></td>
+    </tr>
+    <tr>
+      <td>Source</td>
+      <td><%= make_hyperlink(@series.source.link, @series.source.description) if @series.source %></td>
+    </tr>
+    <tr>
+      <td>Source Link</td>
+      <td><%= make_hyperlink(@series.source_link) %></td>
+    </tr>
+    <tr>
+      <td>Source Details</td>
+      <td><%= @series.source_detail && @series.source_detail.description %></td>
+    </tr>
+    <tr>
+      <td>Restricted</td>
+      <td>
+        <% if @series.restricted %> true <i class="fas fa-ban redban" title="restricted"></i>
+        <% else %> false <% end %>
+      </td>
+    </tr>
+    <% unless @series.restricted %>
+      <tr>
+        <td>Quarantined</td>
+        <td><%= @series.quarantined.to_s %>
+          <% if current_user.admin_user? %>
+            <span id="series_controls">
+              <%= link_to('(add)', add_to_quarantine_series_path(@series)) unless @series.quarantined %>
+              <%= link_to('(remove)', remove_from_quarantine_series_path(@series)) if @series.quarantined %>
+            </span>
+          <% end %>
+        </td>
+      </tr>
     <% end %>
-    <h3><%= @series.dataPortalName %></h3>
-
-    <table>
-        <tr>
-            <td>Universe</td>
-            <td><%= universe_label(@series) %></td>
-        </tr>
-        <tr>
-            <td><%= @series.is_primary? ? 'Aliases' : 'Alias of' %></td>
-            <td><%= raw make_alt_universe_links(@series) %></td>
-        </tr>
-        <tr>
-            <td>Measurements</td>
-            <td>
-                <% @series.measurements.each do |measurement| %>
-                <%= link_to(measurement.prefix, measurement) %>
-                <% end %>
-            </td>
-        </tr>
-        <tr>
-            <td>Description</td>
-            <td><%= @series.description %></td>
-        </tr>
-        <tr>
-            <td>Aremos Desc.</td>
-            <td><%= @desc %></td>
-        </tr>
-        <tr>
-            <td>Units</td>
-            <td><%= @series.unit.to_s if @series.unit %></td>
-        </tr>
-        <tr>
-            <td>Geography</td>
-            <td><%= @series.geography ? @series.geography.display_name : '<span style="color:red;">Not linked</span>'.html_safe %></td>
-        </tr>
-        <tr>
-            <td>Decimals</td>
-            <td><%= @series.decimals.to_s %></td>
-        </tr>
-        <tr>
-            <td>Base Year</td>
-            <td><%= @series.base_year %></td>
-        </tr>
-        <tr>
-            <td>Seasonal Adjustment</td>
-            <td><%= sa_indicator(@series.seasonal_adjustment) %></td>
-        </tr>
-        <tr>
-            <td>Source</td>
-            <td><%= make_hyperlink(@series.source.link, @series.source.description) if @series.source %></td>
-        </tr>
-        <tr>
-            <td>Source Link</td>
-            <td><%= make_hyperlink(@series.source_link) %></td>
-        </tr>
-        <tr>
-            <td>Source Details</td>
-            <td><%= @series.source_detail && @series.source_detail.description %></td>
-        </tr>
-        <tr>
-            <td>Restricted</td>
-            <td>
-                <% if @series.restricted %> true <i class="fas fa-ban redban" title="restricted"></i>
-                <% else %> false <% end %>
-            </td>
-        </tr>
-        <% unless @series.restricted %>
-        <tr>
-            <td>Quarantined</td>
-            <td><%= @series.quarantined.to_s %>
-                <% if current_user.admin_user? %>
-                <span id="series_controls">
-                    <%= link_to('(add)', add_to_quarantine_series_path(@series)) unless @series.quarantined %>
-                    <%= link_to('(remove)', remove_from_quarantine_series_path(@series)) if @series.quarantined %>
-                </span>
-                <% end %>
-            </td>
-        </tr>
-        <% end %>
-        <tr>
-            <td>Created at</td>
-            <td><%= @series.created_at %></td>
-        </tr>
-        <tr>
-            <td>Updated at</td>
-            <td><%= @series.updated_at %></td>
-        </tr>
-        <% if current_user.dev_user? %>
-        <tr>
-            <td>XID (devs only)</td>
-            <td><%= @series.xseries_id %></td>
-        </tr>
-        <% end %>
-        <tr>
-            <td>Internal ID</td>
-            <td><%= @series.id %> (<%= link_to('permalink', series_path(@series)) %>)</td>
-        </tr>
-    </table>
-
-    <div id="notes">
-        <% if @series.investigation_notes %>
-        <p><strong>Notes:</strong> <%= @series.investigation_notes %></p>
-        <% end %>
-    </div>
-
-    <% url_options = @vintage ? { vintage: @vintage } : {} %>
-    <div id="navigation">
-        <% if current_user.admin_user? %>
-        <%= link_to 'Edit', edit_series_path(@series) %> |
-        <%= link_to 'Rename', rename_series_path(@series) %> |
-        <%= link_to 'Duplicate', duplicate_series_path(@series) %> |
-        <% end %>
-        <% if @series.data.present? %>
-        <%= link_to 'Analyze', analyze_series_path(@series) %> |
-        <% else %>
-        <span class="disabled-link" title="No data available for analysis">Analyze</span> |
-        <% end %>
-        <%= link_to 'CSV', series_path(@series, format: :csv, **url_options) %> |
-        <% if current_user.dev_user? %>
-        <%= link_to 'Destroy', series_path(@series), method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
-        <% end %>
-        <% if @clipboarded %>
-        <%= link_to 'Remove from clipboard', clear_clip_series_index_path(id: @series.id) %>
-        <% else %>
-        <%= link_to 'Add to clipboard', add_clip_series_index_path(id: @series.id) %>
-        <% end %>
-    </div>
-
-    <div id="series-deps">
-        <% unless @dependencies.empty? %>
-        <p><strong>Who depends on me:</strong>
-            <% @dependencies.each do |name, id| %>
-            <%= link_to name, series_path(id) %>
-            <% end %></p>
-        <% end %>
-    </div>
+    <tr>
+      <td>Created at</td>
+      <td><%= @series.created_at %></td>
+    </tr>
+    <tr>
+      <td>Updated at</td>
+      <td><%= @series.updated_at %></td>
+    </tr>
+    <% if current_user.dev_user? %>
+      <tr>
+        <td>XID (devs only)</td>
+        <td><%= @series.xseries_id %></td>
+      </tr>
+    <% end %>
+    <tr>
+      <td>Internal ID</td>
+      <td><%= @series.id %> (<%= link_to('permalink', series_path(@series)) %>)</td>
+    </tr>
+  </table>
+  <div id="notes">
+    <% if @series.investigation_notes %>
+      <p><strong>Notes:</strong> <%= @series.investigation_notes %></p>
+    <% end %>
+  </div>
+  <% url_options = @vintage ? { vintage: @vintage } : {} %>
+  <div id="navigation">
+    <% if current_user.admin_user? %>
+      <%= link_to 'Edit', edit_series_path(@series) %> |
+      <%= link_to 'Rename', rename_series_path(@series) %> |
+      <%= link_to 'Duplicate', duplicate_series_path(@series) %> |
+    <% end %>
+    <% if @series.data.present? %>
+      <%= link_to 'Analyze', analyze_series_path(@series) %> |
+    <% else %>
+      <span class="disabled-link" title="No data available for analysis">Analyze</span> |
+    <% end %>
+    <%= link_to 'CSV', series_path(@series, format: :csv, **url_options) %> |
+    <% if current_user.dev_user? %>
+      <%= link_to 'Destroy', series_path(@series), method: :delete, data: { confirm: "Destroy #{@series} - Are you sure??" } %> |
+    <% end %>
+    <% if @clipboarded %>
+      <%= link_to 'Remove from clipboard', clear_clip_series_index_path(id: @series.id) %>
+    <% else %>
+      <%= link_to 'Add to clipboard', add_clip_series_index_path(id: @series.id) %>
+    <% end %>
+  </div>
+  <div id="series-deps">
+    <% unless @dependencies.empty? %>
+      <p><strong>Who depends on me:</strong>
+        <% @dependencies.each do |name, id| %>
+          <%= link_to name, series_path(id) %>
+        <% end %></p>
+    <% end %>
+  </div>
 </div>
-
 <div id="details_area">
-    <table>
-        <% if @series.is_primary? %>
-        <tr>
-            <td style="font-weight:bold;">Loaders (
-                <% if current_user.admin_user? %>
-                <%= link_to 'new', new_data_source_path(series_id: @series) %> |
-                <%= link_to 'clear data', clear_series_path(@series) %> |
-                <% end %>
-                <%= link_to 'load all', reload_all_series_path(@series) %>
-                )
-            </td>
-        </tr>
-        <% end %>
-        <tr>
-            <td><%= render partial: 'source_list', locals: { series: @series } %></td>
-        </tr>
-    </table>
-
-    <div id="toggle-units-div">
-        <%= render :partial => 'data_display', :locals => {:series => @series} %>
-    </div>
-    <h3><%= @series.name %></h3>
-    <p><%= @desc %></p>
-    <table>
-        <tr>
-            <td class="label">Source Map</td>
-            <td>
-                <%= render :partial => 'source_map', :locals => {:series => @series} %>
-            </td>
-        </tr>
-    </table>
-
-    <h3>Source Action History</h3>
-    <%= render :partial => 'source_action_list', :locals => {:dsas => @dsas} %>
+  <table>
+    <% if @series.is_primary? %>
+      <tr>
+        <td style="font-weight:bold;">Loaders (
+          <% if current_user.admin_user? %>
+            <%= link_to 'new', new_data_source_path(series_id: @series) %> |
+            <%= link_to 'clear data', clear_series_path(@series) %> |
+          <% end %>
+          <%= link_to 'load all', reload_all_series_path(@series) %>
+          )
+        </td>
+      </tr>
+    <% end %>
+    <tr>
+      <td><%= render partial: 'source_list', locals: { series: @series } %></td>
+    </tr>
+  </table>
+  <div id="toggle-units-div">
+    <%= render :partial => 'data_display', :locals => {:series => @series} %>
+  </div>
+  <h3><%= @series.name %></h3>
+  <p><%= @desc %></p>
+  <table>
+    <tr>
+      <td class="label">Source Map</td>
+      <td>
+        <%= render :partial => 'source_map', :locals => {:series => @series} %>
+      </td>
+    </tr>
+  </table>
+  <h3>Source Action History</h3>
+  <%= render :partial => 'source_action_list', :locals => {:dsas => @dsas} %>
 </div>

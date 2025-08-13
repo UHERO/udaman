@@ -7,6 +7,8 @@ class DataSource < ApplicationRecord
   
   belongs_to :series, inverse_of: :data_sources
   has_many :data_points, dependent: :delete_all
+
+  delegate :name, to: :series
   has_many :data_source_downloads, dependent: :delete_all
   has_many :downloads, -> {distinct}, through: :data_source_downloads
   has_many :data_source_actions, dependent: :delete_all
