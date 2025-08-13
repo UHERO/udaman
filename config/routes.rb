@@ -29,7 +29,6 @@ Rails.application.routes.draw do
   # get '*path' => redirect('/')  ## redirect all unknown routes to /
 
   resources :api_applications
-  resources :dashboards
   resources :feature_toggles, only: [:index]
   resources :geographies
   resources :source_details
