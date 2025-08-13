@@ -207,6 +207,7 @@ Rails.application.routes.draw do
       get "csv2tsd_upload"
       post "csv2tsd"
       get "transform"
+      post "transform"
     end
 
     member do
