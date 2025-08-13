@@ -64,7 +64,7 @@
                     <td style="text-align:center;"><%= job.finished_at.strftime('%H:%M') rescue '-' %></td>
                     <td style="text-align:center;"><%= job.series.count %></td>
                     <td><%= series_list = job.series[0..2].map(&:name).join(', ') + (', ...' if job.series.count > 3).to_s
-                    link_to(series_list, rerun_job_dashboards_path(id: job)) %></td>
+                    link_to(series_list, rerun_job_dashboards_path(id: job), method: :post) %></td>
                     <td class="error_message"><%= job.error rescue nil %></td>
                 </tr>
                 <% end %>

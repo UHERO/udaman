@@ -53,10 +53,9 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :dashboards do
+  resources :dashboards, only: [] do
     collection do
       get "export_tsd"
-      get "investigate"
       get "investigate_visual"
       post "restart_dvwapi"
       post "restart_restapi"
