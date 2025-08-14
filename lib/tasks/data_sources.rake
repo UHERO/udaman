@@ -64,4 +64,51 @@ namespace :data_sources do
     
     puts "VSO data source update completed successfully!"
   end
+
+  desc "Change Source from ID 72 to ID 21 for series with data sources containing 'All Isl Monthly Stats model.xlsx'"
+  task update_monthly_stats_sources: :environment do
+    puts "Starting Source update for series with 'All Isl Monthly Stats model.xlsx'..."
+    
+    # Verify target Source exists
+    target_source = Source.find_by(id: 21)
+    if target_source.nil?
+      puts "ERROR: Target Source with ID 21 not found. Aborting."
+      exit 1
+    end
+    
+    original_source = Source.find_by(id: 72)
+    if original_source.nil?
+      puts "WARNING: Original Source with ID 72 not found."
+    end
+    
+    puts "Target Source: ID 21 (#{target_source.description})"
+    puts "Original Source: ID #{original_source&.id || 'NOT FOUND'} (#{original_source&.description || 'UNKNOWN'})"
+    puts ""
+    
+    # Find all series that have data sources with eval containing the target string
+    series_with_matching_eval = Series.joins(:data_sources)
+                                     .where("data_sources.eval LIKE ?", "%All Isl Monthly Stats model.xlsx%")
+                                     .distinct
+    
+    puts "Found #{series_with_matching_eval.count} series with data sources containing 'All Isl Monthly Stats model.xlsx'"
+    puts ""
+    
+    updated_count = 0
+    
+    series_with_matching_eval.each do |series|
+      old_source_id = series.source_id
+      old_source_name = series.source&.description || "UNKNOWN"
+      
+      # Update the source_id for this series
+      series.update!(source_id: 21)
+      
+      puts "Updated Series: #{series.name} (ID: #{series.id})"
+      puts "  Source changed: #{old_source_name} (#{old_source_id}) -> #{target_source.description} (21)"
+      updated_count += 1
+      puts ""
+    end
+    
+    puts "Successfully updated #{updated_count} series"
+    puts "All series with data sources containing 'All Isl Monthly Stats model.xlsx' now use Source ID 21 (#{target_source.description})"
+  end
 end

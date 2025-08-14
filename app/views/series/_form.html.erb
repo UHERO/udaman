@@ -1,5 +1,5 @@
 <%
-  form_spec = { model: @series }
+  form_spec = { model: @series, local: true }
   form_spec.merge!(url: meta_store_series_index_path) if @meta_update
 %>
 <p>* Required fields</p>
