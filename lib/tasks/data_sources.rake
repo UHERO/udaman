@@ -99,8 +99,10 @@ namespace :data_sources do
       old_source_id = series.source_id
       old_source_name = series.source&.description || "UNKNOWN"
       
-      # Update the source_id for this series
+      # Update the source_id for this series using scratch flag to bypass validation
+      series.update_columns(scratch: 11011)
       series.update!(source_id: 21)
+      series.update_columns(scratch: 0)
       
       puts "Updated Series: #{series.name} (ID: #{series.id})"
       puts "  Source changed: #{old_source_name} (#{old_source_id}) -> #{target_source.description} (21)"
@@ -110,5 +112,77 @@ namespace :data_sources do
     
     puts "Successfully updated #{updated_count} series"
     puts "All series with data sources containing 'All Isl Monthly Stats model.xlsx' now use Source ID 21 (#{target_source.description})"
+  end
+
+  desc "Update frequency_transform to 'sum' for series matching specific search terms"
+  task update_frequency_transform_to_sum: :environment do
+    puts "Starting frequency_transform update for specified search terms..."
+    
+    # List of search terms to look for
+    search_terms = [
+      "KN",
+      "KP", 
+      "KR",
+      "NT",
+      "PC(?=(DM|IT))",
+      "TD",
+      "TG", 
+      "TR(?!MS)",
+      "UI",
+      "VA(?!DC)",
+      "VDAY",
+      "VEXP(?!P)",
+      "VIS",
+      "VP",
+      "VS",
+      "VX(?!P)"
+    ]
+    
+    puts "Search terms: #{search_terms.join(', ')}"
+    puts ""
+    
+    total_updated = 0
+    
+    search_terms.each do |term|
+      puts "Searching for term: '#{term}'"
+      
+      # Use the built-in Series.search method
+      matching_series = Series.search(term, limit: 10000)
+      
+      puts "  Found #{matching_series.count} series matching '#{term}'"
+      
+      term_updated = 0
+      
+      matching_series.each do |series|
+        # Check if the series has an xseries record and current frequency_transform
+        xseries = series.xseries
+        if xseries.nil?
+          puts "  WARNING: Series #{series.name} (ID: #{series.id}) has no xseries record - skipping"
+          next
+        end
+        
+        current_transform = xseries.frequency_transform
+        
+        # Only update if it's not already 'sum'
+        if current_transform != 'sum'
+          # Use scratch flag to bypass validation during update
+          series.update_columns(scratch: 11011)
+          xseries.update!(frequency_transform: 'sum')
+          series.update_columns(scratch: 0)
+          puts "  Updated: #{series.name} (ID: #{series.id}) - #{current_transform.inspect} -> 'sum'"
+          term_updated += 1
+        else
+          puts "  Skipped: #{series.name} (ID: #{series.id}) - already 'sum'"
+        end
+      end
+      
+      puts "  Updated #{term_updated} series for term '#{term}'"
+      total_updated += term_updated
+      puts ""
+    end
+    
+    puts "Task completed!"
+    puts "Total series updated: #{total_updated}"
+    puts "All matching series now have frequency_transform set to 'sum'"
   end
 end
