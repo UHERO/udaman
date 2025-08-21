@@ -119,7 +119,8 @@ private
 
     # Use callbacks to share common setup or constraints between actions.
     def set_forecast_snapshot
-      @forecast_snapshot = ForecastSnapshot.find(params[:id])
+      id = params[:id] || params[:forecast_snapshot_id]
+      @forecast_snapshot = ForecastSnapshot.find(id)
     end
 
     # Only allow a trusted parameter "white list" through.
