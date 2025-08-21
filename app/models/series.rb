@@ -545,7 +545,7 @@ class Series < ApplicationRecord
     relpath = File.join('forecasts', params[:filepath])
     filepath = File.join(ENV['DATA_PATH'], relpath)
     if relpath =~ /csv$/i
-      csv = UpdateCSV.new(filepath)
+      csv = UpdateCsv.new(filepath)
       raise 'Unexpected csv format - series not in columns?' unless csv.columns_have_series?
       names = csv.headers.keys
     else
@@ -714,7 +714,7 @@ class Series < ApplicationRecord
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
     raise 'Load error: File not formatted in expected way' unless update_spreadsheet.update_formatted?
 
-    unless update_spreadsheet.class == UpdateCSV
+    unless update_spreadsheet.class == UpdateCsv
       update_spreadsheet.default_sheet = sheet_to_load || update_spreadsheet.sheets.first
     end
     self.frequency = update_spreadsheet.frequency
@@ -726,7 +726,7 @@ class Series < ApplicationRecord
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
     return self unless update_spreadsheet.update_formatted?  ## is there some reason we don't raise exception for this one?
 
-    unless update_spreadsheet.class == UpdateCSV
+    unless update_spreadsheet.class == UpdateCsv
       update_spreadsheet.default_sheet = sheet
     end
     self.frequency = update_spreadsheet.frequency
@@ -738,7 +738,7 @@ class Series < ApplicationRecord
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
     return self unless update_spreadsheet.update_formatted?  ## is there some reason we don't raise exception for this one?
 
-    unless update_spreadsheet.class == UpdateCSV
+    unless update_spreadsheet.class == UpdateCsv
       # default_sheet = update_spreadsheet.sheets.first
       update_spreadsheet.default_sheet = sheet
     end
