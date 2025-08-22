@@ -313,6 +313,33 @@ module SeriesInterpolation
     new_transformation("TRMS style interpolation of #{self.name}", blma_new_series_data, 'quarter')
   end
 
+  def fill_missing_months_linear
+    raise "Must be a monthly series" unless (self.frequency == 'month')
+
+    # this only includes the visible points
+    data_copy = self.data.sort
+    filled_data = {}
+    raise "Must have at least two points" unless (data_copy.length >= 2)
+
+    (0...(data_copy.length - 1)).each do |i|
+      date1, val1 = data_copy[i]
+      date2, val2 = data_copy[i + 1]
+
+      filled_data[date1] = val1
+
+      # for each month in between two points, make it first point + step * offset
+      gap = (date2.year * 12 + date2.month) - (date1.year * 12 + date1.month) - 1
+      step = (val2 - val1) / (gap + 1).to_f
+      (1..gap).each do |m|
+        filled_data[date1 >> m] = val1 + step * m
+      end
+    end
+
+    last_date, last_val = data_copy.last
+    filled_data[last_date] = last_val
+    new_transformation("Linear month gap fill for #{self.name}", filled_data, 'month')
+  end
+
 private
 
   ## Find interpolated values in the 6-month range starting at start_month, and redistribute the difference between
