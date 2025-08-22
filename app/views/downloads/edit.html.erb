@@ -1,6 +1,6 @@
 <div id="summary_area">
     <h2>Edit Download</h2>
-    <h4><%= link_to 'Show', download_path(@output_file) %></h4>
+    <h4><% if @output_file.persisted? %><%= link_to 'Show', download_path(@output_file) %><% end %></h4>
 </div>
 <div id="details_mask"></div>
 <div id="details_area">
