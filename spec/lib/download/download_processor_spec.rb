@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe DownloadProcessor do
+describe Downloaders::DownloadProcessor do
   before(:all) do
     @data_a = {"2000-01-01" => 1, "2001-01-01" => 2, "2002-01-01" => 3, "2003-01-01" => 4 }
     @data_q = {"2000-07-01" => 1, "2000-10-01" => 2, "2001-01-01" => 3, "2001-04-01" => 4 }
@@ -29,7 +29,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "A"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
       end
 
       xit "should handle basic incrementing columns in xls files in different named sheets" do
@@ -41,7 +41,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "Q"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
       end
 
       xit "should handle basic incrementing columns in xls files in different numbered sheets" do
@@ -53,7 +53,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "Q"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
       end
 
       xit "should handle basic incrementing columns in xls files when first sheet is requested" do
@@ -65,7 +65,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "Q"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q
       end
 
       #this style will not be used...
@@ -79,7 +79,7 @@ describe DownloadProcessor do
       #     :col => "increment:3:1",
       #     :frequency => "Q"
       #   }
-      #   DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q_alt
+      #   Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q_alt
       # end
 
       xit "should use the handle's target if it's present, to use in the case that the handle downloads a zip" do
@@ -92,7 +92,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "Q"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q_alt
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_q_alt
       end
 
 
@@ -106,7 +106,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "A"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
       end
 
       xit "should let you specify a header instead of a column" do
@@ -118,7 +118,7 @@ describe DownloadProcessor do
           :col => "header:row:1:indicator",
           :frequency => "A"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
       end
 
     end
@@ -136,7 +136,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "A"
         }
-        DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
+        Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data.should == @data_a
       end
     end
 
@@ -156,7 +156,7 @@ describe DownloadProcessor do
           :row => "increment:2:1",
           :col => 2
         }
-        data = DownloadProcessor.new("pattern@test.com", options).get_data
+        data = Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data
         data.keys.sort[0].should == "2010-12-01"
         data["2011-06-01"].should == 9708.05
       end
@@ -172,7 +172,7 @@ describe DownloadProcessor do
           :row => "increment:2:1",
           :col => 2
         }
-        data = DownloadProcessor.new("pattern@test.com", options).get_data
+        data = Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data
         data["2011-09-01"].should == 9017.01
         data["2011-06-01"].should == 9708.05
         data["2010-12-01"].should == 9939.8
@@ -189,7 +189,7 @@ describe DownloadProcessor do
           :row => "increment:2:1",
           :col => 2
         }
-        data = DownloadProcessor.new("pattern@test.com", options).get_data
+        data = Downloaders::DownloadProcessor.new("pattern@test.com", options).get_data
         data["2011-08-30"].should == 1209.76
         data["2011-07-29"].should == 1300.12
         #something is wrong with weekday at these later dates and need to verify eventually
@@ -210,7 +210,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "A"
       }
-      DownloadProcessor.new("manual", options).get_data.should == @data_a
+      Downloaders::DownloadProcessor.new("manual", options).get_data.should == @data_a
     end
   end #end local files test
 
@@ -228,15 +228,15 @@ describe DownloadProcessor do
     end
 
     it "should raise an exception if file_type is not specified" do
-      lambda { DownloadProcessor.new("HI@test.com", {}) }.should raise_error(RuntimeError, "File type must be specified when initializing a Download Processor")
+      lambda { Downloaders::DownloadProcessor.new("HI@test.com", {}) }.should raise_error(RuntimeError, "File type must be specified when initializing a Download Processor")
     end
 
     it "should raise an exception if all of the necessary components are not present" do
-      lambda { DownloadProcessor.new("HI@test.com", {:file_type => "xls"}) }.should raise_error(RuntimeError, "incomplete Download Processor specification because the following information is missing: start date information, row specification, column specification, sheet specification, frequency specification")
+      lambda { Downloaders::DownloadProcessor.new("HI@test.com", {:file_type => "xls"}) }.should raise_error(RuntimeError, "incomplete Download Processor specification because the following information is missing: start date information, row specification, column specification, sheet specification, frequency specification")
     end
 
     xit "should raise an exception and tell you that a handle does not exist in the database" do
-      lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "handle 'HI@test.com' does not exist")
+      lambda { Downloaders::DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "handle 'HI@test.com' does not exist")
     end
 
     it "should cause an error if the handle is 'manual' but no file path is specified" do
@@ -247,7 +247,7 @@ describe DownloadProcessor do
           :col => "increment:3:1",
           :frequency => "A"
       }
-      lambda { DownloadProcessor.new("manual", options) }.should raise_error(RuntimeError, "File path must be specified when initializing a manual Download Processor")
+      lambda { Downloaders::DownloadProcessor.new("manual", options) }.should raise_error(RuntimeError, "File path must be specified when initializing a manual Download Processor")
     end
 
     describe "error conditions past handle and validation" do
@@ -261,7 +261,7 @@ describe DownloadProcessor do
       end
 
       xit "should raise an exception if download is not successful" do
-        lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "the download for handle 'HI@test.com failed with status code 500 when attempt to reach http://broken_download.com")
+        lambda { Downloaders::DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "the download for handle 'HI@test.com failed with status code 500 when attempt to reach http://broken_download.com")
       end
 
       xit "should raise an exception if file cannot be found" do
@@ -269,13 +269,13 @@ describe DownloadProcessor do
         @dsd.stub(:save_path_flex).and_return("#{ENV["DATAFILES_PATH"]}/no_file.xls")
 
         #problem because absolute path in there
-        lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(IOError, "file spec/no_file.xls does not exist")
+        lambda { Downloaders::DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(IOError, "file spec/no_file.xls does not exist")
       end
 
       xit "should raise an exception if sheet is not present" do
         @dsd.stub(:download).and_return({status: 200})
         @options[:sheet] = "no sheet"
-        lambda { DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "sheet 'no sheet' does not exist in workbook 'spec/datafiles/specs/downloads/pattern.xls' [Handle: HI@test.com]")
+        lambda { Downloaders::DownloadProcessor.new("HI@test.com", @options).get_data }.should raise_error(RuntimeError, "sheet 'no sheet' does not exist in workbook 'spec/datafiles/specs/downloads/pattern.xls' [Handle: HI@test.com]")
       end
     end
   end
