@@ -4,16 +4,16 @@ module Downloaders
     #job of this object is to coordinate all of the other processor objects for the mapping
     def initialize(handle, options, date_info, cached_files)
       @cached_files = cached_files
-      @row_processor = Download::IntegerPatternProcessor.new(options[:row])
-      @col_processor = Download::IntegerPatternProcessor.new(options[:col])
-      @handle_processor = Download::StringWithDatePatternProcessor.new handle
+      @row_processor = Downloaders::IntegerPatternProcessor.new(options[:row])
+      @col_processor = Downloaders::IntegerPatternProcessor.new(options[:col])
+      @handle_processor = Downloaders::StringWithDatePatternProcessor.new handle
       @path_processor =
         options[:path] &&
-          Download::StringWithDatePatternProcessor.new(options[:path])
+          Downloaders::StringWithDatePatternProcessor.new(options[:path])
       @sheet_processor =
-        Download::StringWithDatePatternProcessor.new options[:sheet]
+        Downloaders::StringWithDatePatternProcessor.new options[:sheet]
       @date_processor =
-        Download::DatePatternProcessor.new date_info[:start],
+        Downloaders::DatePatternProcessor.new date_info[:start],
                                            options[:frequency],
                                            date_info[:rev]
     end

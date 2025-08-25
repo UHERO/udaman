@@ -3,8 +3,8 @@ module Downloaders
     def initialize(handle, options, date_info, cached_files)
       @cached_files = cached_files
       @options = options
-      @row_processor = Download::IntegerPatternProcessor.new options[:row]
-      @col_processor = Download::IntegerPatternProcessor.new options[:col]
+      @row_processor = Downloaders::IntegerPatternProcessor.new options[:row]
+      @col_processor = Downloaders::IntegerPatternProcessor.new options[:col]
       @handle_processor = Download::StringWithDatePatternProcessor.new handle
       @date_processor =
         Download::DatePatternProcessor.new date_info[:start],
