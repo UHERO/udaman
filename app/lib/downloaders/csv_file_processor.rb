@@ -5,9 +5,9 @@ module Downloaders
       @options = options
       @row_processor = Downloaders::IntegerPatternProcessor.new options[:row]
       @col_processor = Downloaders::IntegerPatternProcessor.new options[:col]
-      @handle_processor = Download::StringWithDatePatternProcessor.new handle
+      @handle_processor = Downloaders::StringWithDatePatternProcessor.new handle
       @date_processor =
-        Download::DatePatternProcessor.new date_info[:start],
+        Downloaders::DatePatternProcessor.new date_info[:start],
                                            options[:frequency],
                                            date_info[:rev]
     end

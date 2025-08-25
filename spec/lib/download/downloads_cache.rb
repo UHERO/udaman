@@ -1,11 +1,11 @@
 require 'spec_helper'
 
-describe DownloadsCache do
+describe Downloaders::DownloadsCache do
   before(:each) do
     @dsd = mock "download"
     @dsd.stub(:download).and_return(nil)
     Download.stub!(:get).and_return(@dsd)
-    @dc = DownloadsCache.new
+    @dc = Downloaders::DownloadsCache.new
   end
   
   describe "XLS Cache Requests" do
