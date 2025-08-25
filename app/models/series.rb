@@ -782,7 +782,7 @@ class Series < ApplicationRecord
   end
 
   def Series.load_from_download(handle, options)
-    dp = DownloadProcessor.new(handle, options)
+    dp = Downloaders::DownloadProcessor.new(handle, options)
     series_data = dp.get_data
     descript = "loaded from #{handle} into a series of files"
     if Series.valid_download_handle(handle, date_sensitive: false)
@@ -794,7 +794,7 @@ class Series < ApplicationRecord
 
   def Series.load_from_file(path, options)
     date_sens = path.include? '%'
-    dp = DownloadProcessor.new(:manual, options.merge(path: path))
+    dp = Downloaders::DownloadProcessor.new(:manual, options.merge(path: path))
     descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
     Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
   end
