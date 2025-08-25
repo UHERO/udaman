@@ -16,7 +16,7 @@ module Downloaders
       if handle == :manual and options[:path].nil?
         raise "File path must be specified when initializing a manual Download Processor"
       end
-      @cached_files = Download::DownloadsCache.new(options)
+      @cached_files = Downloaders::DownloadsCache.new(options)
       @handle = handle
       @options = options
       @file_type = options[:file_type]
@@ -24,14 +24,14 @@ module Downloaders
         raise "not a valid file type option"
       end
       @spreadsheet =
-        Download::CsvFileProcessor.new(
+        Downloaders::CsvFileProcessor.new(
           handle,
           options,
           parse_date_options,
           @cached_files
         ) if @file_type == "csv" and validate_csv
       @spreadsheet =
-        Download::XlsFileProcessor.new(
+        Downloaders::XlsFileProcessor.new(
           handle,
           options,
           parse_date_options,
@@ -42,7 +42,7 @@ module Downloaders
     def get_data
       if @file_type == "txt"
         return(
-          Download::TextFileProcessor.new(
+          Downloaders::TextFileProcessor.new(
             @handle,
             @options,
             @cached_files

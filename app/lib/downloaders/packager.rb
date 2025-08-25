@@ -179,7 +179,7 @@ module Downloaders
       end
 
       #@download_results hash: key-handle name value-hash[:time,:url,:location,:type,:status,:changed]
-      @download_results = Download::DownloadsCache.download_results
+      @download_results = Downloaders::DownloadsCache.download_results
       series
     end
   end

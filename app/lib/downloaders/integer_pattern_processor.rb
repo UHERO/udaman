@@ -72,7 +72,7 @@ module Downloaders
         :hiwi
       end
       opts[:search_main] ||= 1
-      cache = Download::DownloadsCache.new
+      cache = Downloaders::DownloadsCache.new
 
       spreadsheet =
         (
