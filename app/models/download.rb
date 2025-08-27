@@ -116,12 +116,14 @@ class Download < ApplicationRecord
     end
     if post_parameters.blank?
       Rails.logger.debug { "... Calling RestClient to get #{url.strip}" }
-      resp = RestClient.get Addressable::URI.encode(url.strip), 
-        headers: { user_agent: 'Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)' }
+      resp = RestClient.get Addressable::URI.encode(url.strip),
+        headers: { user_agent: 'Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)' },
+        timeout: 120, open_timeout: 30
     else
       Rails.logger.debug { "... Calling RestClient to get #{url.strip} with post_parameters=#{post_parameters.strip}" }
-      resp = RestClient.post Addressable::URI.encode(url.strip), post_parameters.strip, 
-        headers: { user_agent: 'Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)' }
+      resp = RestClient.post Addressable::URI.encode(url.strip), post_parameters.strip,
+        headers: { user_agent: 'Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)' },
+        timeout: 120, open_timeout: 30
     end
     status = resp.code
     data_changed = false
