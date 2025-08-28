@@ -1,0 +1,11 @@
+{
+  "name": "udaman",
+  "workspaces": ["server", "dashboard", "shared"],
+   "scripts": {
+    "build:shared": "cd shared && npm run build",
+    "dev": "npm run build:shared && concurrently \"cd shared && npm run dev\" \"cd backend && npm run dev\" \"cd frontend && npm start\""
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
