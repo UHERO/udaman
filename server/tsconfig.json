@@ -1,11 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
     "incremental": false,
+    "composite": true,
     "isolatedModules": true,
-    "lib": ["es2022", "DOM", "DOM.Iterable"],
+    "lib": ["es2022"],
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -18,11 +20,16 @@
     "outDir": "dist",
     "allowJs": false,
     "noEmit": true,
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    }
   },
   "ts-node": {
     "esm": true
   },
-  "include": ["app.ts", "src/**/*", "types/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["**/*.ts", "types/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.js"],
+  "references": [{ "path": "../shared" }]
 }

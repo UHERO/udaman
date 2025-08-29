@@ -2,7 +2,7 @@
 
 import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
 
-import { FastifyError, NotFoundError } from "../errors";
+import { NotFoundError } from "../errors";
 
 /** Related functions for managing series */
 
@@ -24,7 +24,10 @@ class Series {
   /** Create a series record */
   static async create() {}
   /** Fetches a single series record with associated xseries info */
-  static async find(db: MySQLPromisePool, opts: { id: string }) {
+  static async find(
+    db: MySQLPromisePool,
+    opts: { id: string }
+  ): Promise<Series> {
     const sql = db.format(
       `
         SELECT 
@@ -43,13 +46,15 @@ class Series {
         WHERE s.id=?`,
       [opts.id]
     );
-    const rows = await this._queryDB(db, sql);
 
-    if (!rows || rows.length === 0) {
-      return null;
+    const rows = await this._queryDB(db, sql);
+    const data = rows[0];
+
+    if (!data) {
+      throw new NotFoundError(opts.id);
     }
 
-    return rows[0];
+    return data;
   }
 
   /** Find a set of series */
@@ -71,8 +76,8 @@ class Series {
 
     const rows = await this._queryDB(db, sql);
 
-    if (!rows || rows.length === 0) {
-      return null;
+    if (rows.length === 0) {
+      throw new NotFoundError("No series found");
     }
 
     return rows;

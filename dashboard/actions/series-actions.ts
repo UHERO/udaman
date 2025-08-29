@@ -1,28 +1,8 @@
-// actions/series-actions.ts
 "use server";
 
+import { SeriesFull } from "@shared/types";
 import { apiRequest, withErrorHandling } from "lib/action-utils";
 import { ActionResult } from "lib/types";
-
-interface SeriesFull {
-  id: number;
-  xseries_id: number;
-  geography_id: number;
-  unit_id: number;
-  source_id: number;
-  source_detail_id: number | null;
-  universe: string;
-  decimals: number;
-  name: string;
-  dataPortalName: string;
-  description: string | null;
-  created_at: Date;
-  updated_at: Date;
-  dependency_depth: number;
-  source_link: string | null;
-  investigation_notes: string | null;
-  scratch: number;
-}
 
 interface SeriesListResponse {
   data: SeriesFull[];
@@ -40,7 +20,6 @@ interface SeriesResponse {
 export async function getSeries(): Promise<ActionResult<SeriesFull[]>> {
   return withErrorHandling(async () => {
     const response = await apiRequest<SeriesListResponse>("/series");
-    console.log("response.data", response);
     return response.data;
   });
 }

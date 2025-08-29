@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 
 import { NotFoundError } from "../errors";
+import { tryCatch } from "../helpers/trycatch";
 import Series from "../models/series";
 
 interface SeriesParams {
@@ -42,8 +43,19 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     listOpts,
     async (request, response) => {
       const { offset, limit } = request.params;
-      const series = await Series.findMany(app.mysql, { offset, limit });
-      return { status: 200, series };
+      const { error, data } = await tryCatch<Series>(
+        Series.findMany(app.mysql, { offset, limit })
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new NotFoundError();
+      }
+
+      return { data, offset, limit };
     }
   );
 
@@ -53,18 +65,19 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     async (request, response) => {
       const { id } = request.params;
 
-      try {
-        const series = await Series.find(app.mysql, id);
-        if (!series) {
-          response.code(404);
-          return { error: "Series not found" };
-        }
-        return { series: 200, message: id, body: series };
-      } catch (err) {
-        request.log.error("Database error:", err);
-        response.code(500);
-        return { error: "Database error" };
+      const { error, data } = await tryCatch<Series>(
+        Series.find(app.mysql, { id })
+      );
+
+      if (error) {
+        throw error;
       }
+
+      if (!data) {
+        throw new NotFoundError();
+      }
+
+      return { data };
     }
   );
 }

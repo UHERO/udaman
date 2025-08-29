@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "udaman",
-  description: "UHERO Data Manager",
+  description: "UHERO Data Manager Homepage",
 };
 
 export default function RootLayout({

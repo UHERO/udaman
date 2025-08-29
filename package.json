@@ -1,11 +1,15 @@
 {
   "name": "udaman",
   "workspaces": ["server", "dashboard", "shared"],
-   "scripts": {
-    "build:shared": "cd shared && npm run build",
-    "dev": "npm run build:shared && concurrently \"cd shared && npm run dev\" \"cd backend && npm run dev\" \"cd frontend && npm start\""
+  "scripts": {
+    "build:shared": "cd shared && bun run build",
+    "dev": "bun run build:shared && concurrently \"cd shared && bun run dev\" \"cd server && bun run dev\" \"cd dashboard && bun run dev\"",
+    "build": "bun run build:shared && bun run --filter server build && bun run --filter dashboard build",
+    "clean": "rm -rf */dist */.next */node_modules node_modules",
+    "type-check": "bun run --filter '*' type-check"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "typescript": "^5.0.0"
   }
 }
