@@ -1,16 +1,10 @@
 "use strict";
 
-import { FastifyLoggerOptions } from "fastify";
-import { PinoLoggerOptions } from "fastify/types/logger";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 
-const PORT = 3001;
-
-const getDatabaseURI = () => {
-  const NODE_ENV = process.env.NODE_ENV;
-  return NODE_ENV === "test"
-    ? process.env.TEST_URL || "uhero_db_test"
-    : process.env.DATABASE_URL || "mysql://root@localhost/uhero_db_dev";
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /** Pino Logger Config */
 const loggerConfig = () => {
@@ -35,15 +29,21 @@ const loggerConfig = () => {
 };
 
 const envConfig = {
-  dotenv: true,
+  dotenv: {
+    path: resolve(__dirname, "../.env"),
+  },
   schema: {
     type: "object",
-    required: ["PORT"],
+    required: ["SERVER_PORT", "DB_MYSQL_URL"],
     properties: {
-      PORT: { type: "string", default: "3000" },
+      SERVER_PORT: { type: "number", default: 3001 },
       NODE_ENV: { type: "string", default: "development" },
+      DB_MYSQL_URL: {
+        type: "string",
+        default: "mysql://root@localhost/uhero_db_dev",
+      },
     },
   },
 };
 
-export { loggerConfig, PORT, getDatabaseURI, envConfig };
+export { loggerConfig, envConfig };

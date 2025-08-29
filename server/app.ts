@@ -1,21 +1,22 @@
 "use strict";
 
-import Fastify from "fastify";
 import fastifyEnv from "@fastify/env";
-import seriesRoutes from "./routes/series";
-import rootRoute from "./routes/root";
-import categoriesRoutes from "./routes/categories";
-import { loggerConfig, envConfig, getDatabaseURI } from "./config";
 import mysql from "@fastify/mysql";
+import Fastify from "fastify";
+
+import { envConfig, loggerConfig } from "./config";
+import categoriesRoutes from "./routes/categories";
+import rootRoute from "./routes/root";
+import seriesRoutes from "./routes/series";
 
 const app = Fastify({
   logger: loggerConfig(),
 });
 
-app.register(fastifyEnv, envConfig);
+await app.register(fastifyEnv, envConfig);
 
-app.register(mysql, {
-  connectionString: getDatabaseURI(),
+await app.register(mysql, {
+  connectionString: app.config.DB_MYSQL_URL,
   promise: true,
 });
 

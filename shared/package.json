@@ -41,5 +41,8 @@
   "sideEffects": false,
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "prisma": "^6.15.0"
   }
 }

@@ -65,7 +65,6 @@ export function SeriesSummaryTable<TData, TValue>({
       header: "First",
       cell: ({ row }) => {
         const date = row.getValue("minDate");
-        console.log(date);
         return format(date, "yyyy-MM-dd");
       },
     },

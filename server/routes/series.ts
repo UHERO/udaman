@@ -1,7 +1,8 @@
+// import { tryCatch } from "../helpers/trycatch";
+import { tryCatch } from "@shared/utils";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 
 import { NotFoundError } from "../errors";
-import { tryCatch } from "../helpers/trycatch";
 import Series from "../models/series";
 
 interface SeriesParams {
@@ -54,7 +55,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       if (!data) {
         throw new NotFoundError();
       }
-      console.log(data);
+
       return { data, offset, limit };
     }
   );

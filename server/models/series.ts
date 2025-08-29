@@ -30,6 +30,7 @@ class Series {
     opts: { id: string }
   ): Promise<Series> {
     const sql = db.format(
+      /* sql */
       `
         SELECT 
             s.*,
@@ -60,8 +61,8 @@ class Series {
 
   /** Fetch the the most recent 40 series to display on the homepage.
    *
-   * TODO: set min and max dates on the xseries table and update them when a series is loaded.
-   * This would allow simplifying this to a single query and avoid the data_points table.
+   * todo: set min and max dates on the xseries table and update them when a series is loaded.
+   * todo: This would allow simplifying this to a single query and avoid the data_points table.
    */
   static async getSummaryList(
     db: MySQLPromisePool,
@@ -96,7 +97,7 @@ class Series {
     if (xseriesIds.length > 0) {
       // Second query - get min/max dates only for the 40 series
       const dateSql = db.format(
-        `
+        /* sql */ `
       SELECT 
         xseries_id,
         MIN(date) as min_date,

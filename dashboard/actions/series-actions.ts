@@ -1,11 +1,11 @@
 "use server";
 
-import { SeriesFull } from "@shared/types";
+import { Series } from "@shared/types";
 import { apiRequest, withErrorHandling } from "lib/action-utils";
 import { ActionResult } from "lib/types";
 
 interface SeriesListResponse {
-  data: SeriesFull[];
+  data: Series[];
   meta: {
     offset: number;
     limit: number;
@@ -14,19 +14,18 @@ interface SeriesListResponse {
 }
 
 interface SeriesResponse {
-  data: SeriesFull;
+  data: Series;
 }
 
-export async function getSeries(): Promise<ActionResult<SeriesFull[]>> {
+export async function getSeries(): Promise<ActionResult<Series[]>> {
   return withErrorHandling(async () => {
     const response = await apiRequest<SeriesListResponse>("/series");
+    console.log("ENV TEST", process.env.DB_HOST);
     return response.data;
   });
 }
 
-export async function getSeriesById(
-  id: string
-): Promise<ActionResult<SeriesFull>> {
+export async function getSeriesById(id: string): Promise<ActionResult<Series>> {
   return withErrorHandling(async () => {
     const response = await apiRequest<SeriesResponse>(`/series/${id}`);
     return response.data;
@@ -35,7 +34,7 @@ export async function getSeriesById(
 
 export async function createSeries(
   formData: FormData
-): Promise<ActionResult<SeriesFull>> {
+): Promise<ActionResult<Series>> {
   return withErrorHandling(async () => {
     const seriesData = {
       name: formData.get("name") as string,
