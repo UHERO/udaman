@@ -2,6 +2,7 @@
 
 import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
 
+import { SeriesSummary } from "../../shared/types";
 import { NotFoundError } from "../errors";
 
 /** Related functions for managing series */
@@ -57,30 +58,87 @@ class Series {
     return data;
   }
 
-  /** Find a set of series */
-  static async findMany(
+  /** Fetch the the most recent 40 series to display on the homepage.
+   *
+   * TODO: set min and max dates on the xseries table and update them when a series is loaded.
+   * This would allow simplifying this to a single query and avoid the data_points table.
+   */
+  static async getSummaryList(
     db: MySQLPromisePool,
     { offset, limit }: { offset?: number; limit?: number }
-  ) {
-    const sql = db.format(
+  ): Promise<SeriesSummary[]> {
+    // fetch initial data
+    const mainSql = db.format(
       `
-      SELECT 
-        series.* 
-      FROM series 
-      INNER JOIN xseries ON xseries.id = series.xseries_id 
-      WHERE series.universe = ? 
-      ORDER BY series.created_at DESC LIMIT ?
-      `,
+    SELECT 
+      s.name as name,
+      s.xseries_id,
+      xs.seasonal_adjustment as seasonalAdjustment,
+      s.dataPortalName as portalName,
+      u.short_label as unitShortLabel,
+      src.description as sourceDescription,
+      src.link as sourceUrl
+    FROM series s
+    INNER JOIN xseries xs ON xs.id = s.xseries_id 
+    LEFT JOIN units u ON u.id = s.unit_id
+    LEFT JOIN sources src ON src.id = s.source_id
+    WHERE s.universe = ? 
+    ORDER BY s.created_at DESC 
+    LIMIT ?
+    `,
       ["UHERO", 40]
     );
 
-    const rows = await this._queryDB(db, sql);
+    const mainRows = await this._queryDB(db, mainSql);
 
-    if (rows.length === 0) {
-      throw new NotFoundError("No series found");
+    const xseriesIds = mainRows.map((row) => row.xseries_id || row.id);
+
+    if (xseriesIds.length > 0) {
+      // Second query - get min/max dates only for the 40 series
+      const dateSql = db.format(
+        `
+      SELECT 
+        xseries_id,
+        MIN(date) as min_date,
+        MAX(date) as max_date
+      FROM data_points 
+      WHERE xseries_id IN (${xseriesIds.map(() => "?").join(",")})
+      GROUP BY xseries_id
+      `,
+        xseriesIds
+      );
+
+      console.log("dateSql", dateSql);
+      const dateRows = await this._queryDB(db, dateSql);
+
+      const dateMap = new Map(dateRows.map((row) => [row.xseries_id, row]));
+
+      const finalRows: SeriesSummary[] = mainRows.map((row) => {
+        const dateInfo = dateMap.get(row.xseries_id);
+        return {
+          name: row.name,
+          seasonalAdjustment: row.seasonalAdjustment,
+          portalName: row.portalName,
+          unitShortLabel: row.unitShortLabel,
+          sourceDescription: row.sourceDescription,
+          sourceUrl: row.sourceUrl,
+          minDate: dateInfo?.min_date || null,
+          maxDate: dateInfo?.max_date || null,
+        };
+      });
+
+      return finalRows;
     }
-
-    return rows;
+    return mainRows.map((row) => ({
+      name: row.name,
+      seasonalAdjustment: row.seasonalAdjustment,
+      portalName: row.portalName,
+      unitShortLabel: row.unitShortLabel,
+      sourceDescription: row.sourceDescription,
+      sourceUrl: row.sourceUrl,
+      minDate: null,
+      maxDate: null,
+    }));
   }
   /** Update series data */
   static async update() {}

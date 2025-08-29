@@ -44,7 +44,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     async (request, response) => {
       const { offset, limit } = request.params;
       const { error, data } = await tryCatch<Series>(
-        Series.findMany(app.mysql, { offset, limit })
+        Series.getSummaryList(app.mysql, { offset, limit })
       );
 
       if (error) {
@@ -54,7 +54,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       if (!data) {
         throw new NotFoundError();
       }
-
+      console.log(data);
       return { data, offset, limit };
     }
   );

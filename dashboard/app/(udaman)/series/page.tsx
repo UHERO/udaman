@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getSeries } from "actions/series-actions";
 
+import { SeriesSummaryTable } from "@/components/series/series-summary-table";
+
 export default async function Page() {
   const { error, data } = await getSeries();
   if (error) throw error;
@@ -14,11 +16,7 @@ export default async function Page() {
         <div className="bg-muted/50 aspect-video rounded-xl" />
       </div>
       <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min">
-        {data.map((s, i) => (
-          <p key={i}>
-            {s.dataPortalName} - {s.name}
-          </p>
-        ))}
+        <SeriesSummaryTable data={data} />
       </div>
     </div>
   );

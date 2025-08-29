@@ -51,3 +51,7 @@ export async function createSeries(
     return response.data;
   });
 }
+
+// export async function getSeriesSummaries() {
+//   // SELECT `xseries`.* FROM `xseries` WHERE `xseries`.`id` = ? LIMIT ?  [["id", 405962], ["LIMIT", 1]]
+// }

@@ -1,12 +1,15 @@
 "use client";
 
+import { SeriesSummary } from "@shared/types";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { format } from "date-fns";
 
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -16,53 +19,70 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export type Payment = {
-  id: string;
-  amount: number;
-  status: "pending" | "processing" | "success" | "failed";
-  email: string;
-};
-
-export const columns: ColumnDef<Payment>[] = [
-  {
-    accessorKey: "name",
-    header: "Name@Geo.Freq",
-  },
-  {
-    accessorKey: "sa",
-    header: "SA",
-  },
-  {
-    accessorKey: "Portal Name",
-    header: "dataPortalName",
-  },
-  {
-    accessorKey: "units",
-    header: "Units",
-  },
-  {
-    accessorKey: "first",
-    header: "First",
-  },
-  {
-    accessorKey: "last",
-    header: "Last",
-  },
-  {
-    accessorKey: "source",
-    header: "Source",
-  },
-];
-
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
+const saMap = {
+  not_seasonally_adjusted: "NS",
+  seasonally_adjusted: "SA",
+  not_applicable: "NA",
+};
+
+const saVariant = {
+  seasonally_adjusted: "text-green-600",
+  not_seasonally_adjusted: "text-orange-600",
+  not_applicable: "text-primary",
+};
+
 export function SeriesSummaryTable<TData, TValue>({
-  columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  const columns: ColumnDef<SeriesSummary>[] = [
+    {
+      accessorKey: "name",
+      header: "name@geo.freq",
+    },
+    {
+      accessorKey: "seasonalAdjustment",
+      header: "SA",
+      cell: ({ row }) => {
+        const sa = row.getValue("seasonalAdjustment");
+        return <span className={cn(saVariant[sa])}>{saMap[sa]}</span>;
+      },
+    },
+    {
+      accessorKey: "Portal Name",
+      header: "portalName",
+    },
+    {
+      accessorKey: "unitShortLabel",
+      header: "Units",
+    },
+    {
+      accessorKey: "minDate",
+      header: "First",
+      cell: ({ row }) => {
+        const date = row.getValue("minDate");
+        console.log(date);
+        return format(date, "yyyy-MM-dd");
+      },
+    },
+    {
+      accessorKey: "maxDate",
+      header: "Last",
+      cell: ({ row }) => {
+        const date = row.getValue("maxDate");
+        return format(date, "yyyy-MM-dd");
+      },
+    },
+    {
+      accessorKey: "sourceDescription",
+      header: "Source",
+    },
+  ];
+
   const table = useReactTable({
     data,
     columns,
