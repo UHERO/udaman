@@ -34,7 +34,7 @@ node_modules
 /out/
 
 # production
-/build
+build
 dist
 
 # misc
