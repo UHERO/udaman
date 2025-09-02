@@ -13,6 +13,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@types/json-schema": "^7.0.15",
     "date-fns": "^4.1.0"
   }
 }

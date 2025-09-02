@@ -11,37 +11,31 @@ interface SeriesParams {
   limit: number;
 }
 
-const listOpts = {
-  schema: {
-    params: {
-      type: "object",
-      properties: {
-        offset: { type: "number", default: 0 },
-        limit: { type: "number", default: 40 },
-      },
-    },
-  },
-};
-
-const singleOpts = {
-  schema: {
-    params: {
-      type: "object",
-      properties: {
-        id: { type: "string" },
-      },
-      required: ["id"],
-    },
-  },
-};
-
 /**
  * Series
  */
 async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
   app.get<{ Params: SeriesParams }>(
     "/series",
-    listOpts,
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          properties: {
+            offset: {
+              type: "number",
+              default: 0,
+              description: "Number of records to skip",
+            },
+            limit: {
+              type: "number",
+              default: 40,
+              description: "Maximum number of records to return",
+            },
+          },
+        },
+      },
+    },
     async (request, response) => {
       const { offset, limit } = request.params;
       const { error, data } = await tryCatch<Series>(
@@ -62,7 +56,17 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
 
   app.get<{ Params: SeriesParams }>(
     "/series/:id",
-    singleOpts,
+    {
+      schema: {
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+          },
+          required: ["id"],
+        },
+      },
+    },
     async (request, response) => {
       const { id } = request.params;
 

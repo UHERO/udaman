@@ -39,26 +39,28 @@ model aremos_series {
   @@index([name], map: "index_aremos_series_on_name")
 }
 
+// !THIS TABLE WILL BE REMOVED & REPLACED WITH NEW AUTH
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model authorizations {
-  user_id          Int
-  provider         String  @db.VarChar(255)
-  provider_user_id Int
-  name             String? @db.VarChar(255)
-  email            String? @db.VarChar(255)
-  users            users   @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "fk_rails_4ecef5b8c5")
+// model authorizations {
+//   user_id          Int
+//   provider         String  @db.VarChar(255)
+//   provider_user_id Int
+//   name             String? @db.VarChar(255)
+//   email            String? @db.VarChar(255)
+//   users            users   @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "fk_rails_4ecef5b8c5")
 
-  @@index([user_id], map: "fk_rails_4ecef5b8c5")
-  @@index([provider_user_id], map: "index_authorizations_on_provider_user_id")
-  @@ignore
-}
+//   @@index([user_id], map: "fk_rails_4ecef5b8c5")
+//   @@index([provider_user_id], map: "index_authorizations_on_provider_user_id")
+//   @@ignore
+// }
 
+// !THIS FEATURE IS NO LONGER USED. PREVIOUSLY PART OF ASANA ISSUE TRACKING
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model branch_code {
-  last_branch_code_number Int @default(0)
+// model branch_code {
+//   last_branch_code_number Int @default(0)
 
-  @@ignore
-}
+//   @@ignore
+// }
 
 model categories {
   id             Int                      @id @default(autoincrement())
@@ -116,13 +118,12 @@ model data_lists {
   @@index([universe], map: "index_data_lists_on_universe")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model data_lists_series {
+  id           Int @id @default(autoincrement())
   data_list_id Int
   series_id    Int
 
   @@index([data_list_id], map: "index_data_lists_series_on_data_list_id")
-  @@ignore
 }
 
 model data_points {
@@ -304,8 +305,8 @@ model forecast_snapshots {
   @@unique([name, version], map: "index_forecast_snapshots_on_name_and_version")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model geo_trees {
+  id                                           Int         @id @default(autoincrement())
   parent_id                                    Int
   child_id                                     Int
   geographies_geo_trees_parent_idTogeographies geographies @relation("geo_trees_parent_idTogeographies", fields: [parent_id], references: [id], onUpdate: Restrict, map: "fk_rails_20ee9a0990")
@@ -313,7 +314,6 @@ model geo_trees {
 
   @@index([parent_id], map: "fk_rails_20ee9a0990")
   @@index([child_id], map: "fk_rails_5c6299c1f9")
-  @@ignore
 }
 
 model geographies {
@@ -328,8 +328,8 @@ model geographies {
   created_at                                 DateTime             @db.DateTime(0)
   updated_at                                 DateTime             @db.DateTime(0)
   categories                                 categories[]
-  geo_trees_geo_trees_parent_idTogeographies geo_trees[]          @relation("geo_trees_parent_idTogeographies") @ignore
-  geo_trees_geo_trees_child_idTogeographies  geo_trees[]          @relation("geo_trees_child_idTogeographies") @ignore
+  geo_trees_geo_trees_parent_idTogeographies geo_trees[]          @relation("geo_trees_parent_idTogeographies")
+  geo_trees_geo_trees_child_idTogeographies  geo_trees[]          @relation("geo_trees_child_idTogeographies")
   series                                     series[]
 
   @@unique([universe, handle], map: "index_geographies_on_universe_and_handle")
@@ -417,15 +417,14 @@ model public_data_points {
   @@id([series_id, date])
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model reload_job_series {
-  reload_job_id BigInt?
-  series_id     BigInt?
+  reload_job_id BigInt
+  series_id     BigInt
 
+  @@id([reload_job_id, series_id])
   @@unique([reload_job_id, series_id], map: "index_reload_job_series_on_reload_job_id_and_series_id")
   @@index([reload_job_id], map: "index_reload_job_series_on_reload_job_id")
   @@index([series_id], map: "index_reload_job_series_on_series_id")
-  @@ignore
 }
 
 model reload_jobs {
@@ -543,15 +542,14 @@ model units {
   @@unique([universe, short_label, long_label], map: "index_units_on_universe_and_short_label_and_long_label")
 }
 
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model user_series {
-  user_id   BigInt?
-  series_id BigInt?
+  user_id   BigInt
+  series_id BigInt
 
+  @@id([user_id, series_id])
   @@unique([user_id, series_id], map: "index_user_series_on_user_id_and_series_id")
   @@index([series_id], map: "index_user_series_on_series_id")
   @@index([user_id], map: "index_user_series_on_user_id")
-  @@ignore
 }
 
 model users {
