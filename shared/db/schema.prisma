@@ -3,6 +3,10 @@ datasource db {
   url      = env("DB_MYSQL_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+}
+
 model api_applications {
   id              Int                       @id @default(autoincrement())
   universe        api_applications_universe @default(UHERO)
@@ -553,25 +557,25 @@ model user_series {
 }
 
 model users {
-  id                     Int              @id @default(autoincrement())
-  universe               users_universe   @default(UHERO)
-  role                   users_role       @default(external)
-  mnemo_search           Boolean          @default(false)
-  email                  String           @unique(map: "index_users_on_email") @default("") @db.VarChar(255)
-  encrypted_password     String           @default("") @db.VarChar(128)
-  password_salt          String?          @default("") @db.VarChar(255)
-  reset_password_token   String?          @unique(map: "index_users_on_reset_password_token") @db.VarChar(255)
-  remember_token         String?          @db.VarChar(255)
-  remember_created_at    DateTime?        @db.DateTime(0)
-  sign_in_count          Int?             @default(0)
-  current_sign_in_at     DateTime?        @db.DateTime(0)
-  last_sign_in_at        DateTime?        @db.DateTime(0)
-  current_sign_in_ip     String?          @db.VarChar(255)
-  last_sign_in_ip        String?          @db.VarChar(255)
-  created_at             DateTime?        @db.DateTime(0)
-  updated_at             DateTime?        @db.DateTime(0)
-  reset_password_sent_at DateTime?        @db.DateTime(0)
-  authorizations         authorizations[] @ignore
+  id                     Int            @id @default(autoincrement())
+  universe               users_universe @default(UHERO)
+  role                   users_role     @default(external)
+  mnemo_search           Boolean        @default(false)
+  email                  String         @unique(map: "index_users_on_email") @default("") @db.VarChar(255)
+  encrypted_password     String         @default("") @db.VarChar(128)
+  password_salt          String?        @default("") @db.VarChar(255)
+  reset_password_token   String?        @unique(map: "index_users_on_reset_password_token") @db.VarChar(255)
+  remember_token         String?        @db.VarChar(255)
+  remember_created_at    DateTime?      @db.DateTime(0)
+  sign_in_count          Int?           @default(0)
+  current_sign_in_at     DateTime?      @db.DateTime(0)
+  last_sign_in_at        DateTime?      @db.DateTime(0)
+  current_sign_in_ip     String?        @db.VarChar(255)
+  last_sign_in_ip        String?        @db.VarChar(255)
+  created_at             DateTime?      @db.DateTime(0)
+  updated_at             DateTime?      @db.DateTime(0)
+  reset_password_sent_at DateTime?      @db.DateTime(0)
+  // authorizations         authorizations[] @ignore TO BE REMOVED
 
   @@index([universe], map: "index_users_on_universe")
 }

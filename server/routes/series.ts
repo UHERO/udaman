@@ -1,4 +1,4 @@
-// import { tryCatch } from "../helpers/trycatch";
+import { series } from "@prisma/client";
 import { tryCatch } from "@shared/utils";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 
@@ -6,37 +6,36 @@ import { NotFoundError } from "../errors";
 import Series from "../models/series";
 
 interface SeriesParams {
-  id: string;
+  id: number;
   offset: number;
   limit: number;
 }
 
 /**
- * Series
+ * Series - /series
  */
 async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
-  app.get<{ Params: SeriesParams }>(
-    "/series",
-    {
-      schema: {
-        querystring: {
-          type: "object",
-          properties: {
-            offset: {
-              type: "number",
-              default: 0,
-              description: "Number of records to skip",
-            },
-            limit: {
-              type: "number",
-              default: 40,
-              description: "Maximum number of records to return",
-            },
+  app.route<{ Params: SeriesParams }>({
+    method: "GET",
+    url: "/series",
+    schema: {
+      querystring: {
+        type: "object",
+        properties: {
+          offset: {
+            type: "number",
+            default: 0,
+            description: "Number of records to skip",
+          },
+          limit: {
+            type: "number",
+            default: 40,
+            description: "Maximum number of records to return",
           },
         },
       },
     },
-    async (request, response) => {
+    handler: async (request, response) => {
       const { offset, limit } = request.params;
       const { error, data } = await tryCatch<Series>(
         Series.getSummaryList(app.mysql, { offset, limit })
@@ -51,8 +50,8 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       }
 
       return { data, offset, limit };
-    }
-  );
+    },
+  });
 
   app.get<{ Params: SeriesParams }>(
     "/series/:id",
@@ -61,7 +60,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
         params: {
           type: "object",
           properties: {
-            id: { type: "string" },
+            id: { type: "number" },
           },
           required: ["id"],
         },
@@ -70,8 +69,8 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     async (request, response) => {
       const { id } = request.params;
 
-      const { error, data } = await tryCatch<Series>(
-        Series.find(app.mysql, { id })
+      const { error, data } = await tryCatch<series>(
+        Series.getSeriesPageData(app.mysql, { id })
       );
 
       if (error) {
@@ -81,7 +80,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       if (!data) {
         throw new NotFoundError();
       }
-
+      app.log.info(data);
       return { data };
     }
   );

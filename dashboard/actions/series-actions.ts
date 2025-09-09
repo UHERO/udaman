@@ -1,11 +1,16 @@
 "use server";
 
-import { Series } from "@shared/types";
+import type {
+  data_points,
+  measurements,
+  series,
+  xseries,
+} from "@prisma/client";
 import { apiRequest, withErrorHandling } from "lib/action-utils";
 import { ActionResult } from "lib/types";
 
 interface SeriesListResponse {
-  data: Series[];
+  data: series[];
   meta: {
     offset: number;
     limit: number;
@@ -14,20 +19,31 @@ interface SeriesListResponse {
 }
 
 interface SeriesResponse {
-  data: Series;
+  data: series;
 }
 
-export async function getSeries(): Promise<ActionResult<Series[]>> {
+export async function getSeries(): Promise<ActionResult<series[]>> {
   return withErrorHandling(async () => {
     const response = await apiRequest<SeriesListResponse>("/series");
-    console.log("ENV TEST", process.env.DB_HOST);
     return response.data;
   });
 }
 
-export async function getSeriesById(id: string): Promise<ActionResult<Series>> {
+export async function getSeriesById(id: number): Promise<
+  ActionResult<{
+    metadata: xseries;
+    dataPoints: data_points[];
+    measurement: measurements;
+  }>
+> {
   return withErrorHandling(async () => {
-    const response = await apiRequest<SeriesResponse>(`/series/${id}`);
+    const response = await apiRequest<{
+      data: {
+        series: series;
+        dataPoint: data_points[];
+        measurement: measurements;
+      };
+    }>(`/series/${id}`);
     return response.data;
   });
 }

@@ -1,9 +1,13 @@
 "use strict";
 
 import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
+import { series } from "@prisma/client";
+import { SeriesMetadata } from "@shared/types/shared";
 
 import { SeriesSummary } from "../../shared/types";
 import { NotFoundError } from "../errors";
+import DataPoints from "./data-points";
+import Measurements from "./measurements";
 
 /** Related functions for managing series */
 
@@ -24,39 +28,70 @@ class Series {
   }
   /** Create a series record */
   static async create() {}
-  /** Fetches a single series record with associated xseries info */
-  static async find(
+
+  static async getSeriesMetadata(
     db: MySQLPromisePool,
-    opts: { id: string }
-  ): Promise<Series> {
-    const sql = db.format(
-      /* sql */
+    { id }: { id: number }
+  ): Promise<SeriesMetadata> {
+    const query = db.format(
       `
-        SELECT 
-            s.*,
-            x.*,
-            g.handle as geo_handle, g.display_name as geo_display_name,
-            u.short_label as unit_short, u.long_label as unit_long,
-            src.description as source_description, src.link as source_link,
-            sd.description as source_detail_description
-        FROM series s
-        JOIN xseries x ON s.xseries_id = x.id
-        LEFT JOIN geographies g ON s.geography_id = g.id  
-        LEFT JOIN units u ON s.unit_id = u.id
-        LEFT JOIN sources src ON s.source_id = src.id
-        LEFT JOIN source_details sd ON s.source_detail_id = sd.id
-        WHERE s.id=?`,
-      [opts.id]
+      SELECT 
+        s.*,
+        x.*,
+        g.handle as geo_handle, g.display_name as geo_display_name,
+        u.short_label as unit_short, u.long_label as unit_long,
+        src.description as source_description, src.link as source_link,
+        sd.description as source_detail_description
+      FROM series s
+      JOIN xseries x ON s.xseries_id = x.id
+      LEFT JOIN geographies g ON s.geography_id = g.id  
+      LEFT JOIN units u ON s.unit_id = u.id
+      LEFT JOIN sources src ON s.source_id = src.id
+      LEFT JOIN source_details sd ON s.source_detail_id = sd.id
+      WHERE s.id = ?
+    `,
+      [id]
     );
+    const response = await this._queryDB(db, query);
+    return response[0];
+  }
+  /**
+   * Fetches a single series record with associated xseries, data points, and measurement.
+   *
+   * Used on /series/[id] page info
+   * */
+  static async getSeriesPageData(
+    db: MySQLPromisePool,
+    opts: { id: number }
+  ): Promise<series> {
+    const { id } = opts;
 
-    const rows = await this._queryDB(db, sql);
-    const data = rows[0];
+    const [metadata, measurement, dataPoints] = await Promise.all([
+      this.getSeriesMetadata(db, { id }),
+      Measurements.getSeriesMeasurements(db, { seriesId: id }),
+      DataPoints.getBySeriesId(db, { seriesId: id }),
+    ]);
 
-    if (!data) {
-      throw new NotFoundError(opts.id);
+    const aliases = await this.getAliases(db, {
+      sId: id,
+      xsId: metadata.xseries_id,
+    });
+
+    if (!metadata || !dataPoints || !measurement || !aliases) {
+      throw new NotFoundError(String(opts.id));
     }
-
-    return data;
+    console.log({
+      dataPoints,
+      metadata: metadata,
+      measurement: measurement,
+      aliases,
+    });
+    return {
+      dataPoints,
+      metadata: metadata,
+      measurement: measurement,
+      aliases,
+    };
   }
 
   /** Fetch the the most recent 40 series to display on the homepage.
@@ -73,7 +108,7 @@ class Series {
       `
     SELECT 
       s.name as name,
-      s.xseries_id,
+      s.xseries_id as id,
       xs.seasonal_adjustment as seasonalAdjustment,
       s.dataPortalName as portalName,
       u.short_label as unitShortLabel,
@@ -97,9 +132,9 @@ class Series {
     if (xseriesIds.length > 0) {
       // Second query - get min/max dates only for the 40 series
       const dateSql = db.format(
-        /* sql */ `
+        `
       SELECT 
-        xseries_id,
+        xseries_id as id,
         MIN(date) as min_date,
         MAX(date) as max_date
       FROM data_points 
@@ -109,15 +144,15 @@ class Series {
         xseriesIds
       );
 
-      console.log("dateSql", dateSql);
       const dateRows = await this._queryDB(db, dateSql);
 
-      const dateMap = new Map(dateRows.map((row) => [row.xseries_id, row]));
+      const dateMap = new Map(dateRows.map((row) => [row.id, row]));
 
       const finalRows: SeriesSummary[] = mainRows.map((row) => {
-        const dateInfo = dateMap.get(row.xseries_id);
+        const dateInfo = dateMap.get(row.id);
         return {
           name: row.name,
+          id: row.id,
           seasonalAdjustment: row.seasonalAdjustment,
           portalName: row.portalName,
           unitShortLabel: row.unitShortLabel,
@@ -132,6 +167,7 @@ class Series {
     }
     return mainRows.map((row) => ({
       name: row.name,
+      id: row.id,
       seasonalAdjustment: row.seasonalAdjustment,
       portalName: row.portalName,
       unitShortLabel: row.unitShortLabel,
@@ -145,6 +181,33 @@ class Series {
   static async update() {}
   /** Delete series from database */
   static async delete() {}
+
+  static async getAliases(
+    db: MySQLPromisePool,
+    opts: { sId: number; xsId: number }
+  ) {
+    const { sId, xsId } = opts;
+    const sql = db.format(
+      `
+      SELECT * FROM series
+      WHERE xseries_id = ?
+      AND id <> ? 
+      ORDER BY
+      CASE 
+        WHEN id = (
+          SELECT primary_series_id 
+          FROM xseries 
+          WHERE id = ?
+        ) 
+        THEN 0 ELSE 1 END,
+      universe`,
+      [xsId, sId, xsId]
+    );
+
+    const response = await this._queryDB(db, sql);
+
+    return response;
+  }
 }
 
 export default Series;

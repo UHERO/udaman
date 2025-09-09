@@ -18,6 +18,7 @@ await app.register(fastifyEnv, envConfig);
 await app.register(mysql, {
   connectionString: app.config.DB_MYSQL_URL,
   promise: true,
+  multipleStatements: true,
 });
 
 app.register(rootRoute);

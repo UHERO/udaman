@@ -7,3 +7,9 @@ export async function tryCatch(promise) {
         return { data: null, error: error };
     }
 }
+export const numBool = (n) => {
+    if (n === undefined || n === null) {
+        throw Error("n is not a number. n=" + n);
+    }
+    return n !== 0;
+};

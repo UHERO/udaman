@@ -1,2 +1,2 @@
-export * from "./series";
+export * from "./udaman";
 //# sourceMappingURL=index.d.ts.map

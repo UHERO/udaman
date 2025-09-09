@@ -43,6 +43,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@prisma/client": "6.15.0",
     "prisma": "^6.15.0"
   }
 }

@@ -184,6 +184,28 @@ const data = {
       icon: Settings2,
     },
   ],
+  utilities: [
+    {
+      name: "Bill Tracker",
+      url: "/bill-tracker",
+      icon: Settings2,
+    },
+    {
+      name: "CSV-to-TSD file conversion",
+      url: "/file-conversion",
+      icon: Settings2,
+    },
+    {
+      name: "GeoCoder",
+      url: "/geocoder",
+      icon: Settings2,
+    },
+    {
+      name: "CRON Logs",
+      url: "/cron-logs",
+      icon: Settings2,
+    },
+  ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

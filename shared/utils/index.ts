@@ -21,3 +21,10 @@ export async function tryCatch<T, E = Error>(
     return { data: null, error: error as E };
   }
 }
+
+export const numBool = (n: number | null | undefined) => {
+  if (n === undefined || n === null) {
+    throw Error("n is not a number. n=" + n);
+  }
+  return n !== 0;
+};
