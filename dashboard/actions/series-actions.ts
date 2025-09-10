@@ -1,56 +1,39 @@
 "use server";
 
-import type {
-  data_points,
-  measurements,
-  series,
-  xseries,
-} from "@prisma/client";
+import type { measurements, series } from "@prisma/client";
+import { DataLoader, DataPoints, SeriesMetadata } from "@shared/types/shared";
 import { apiRequest, withErrorHandling } from "lib/action-utils";
 import { ActionResult } from "lib/types";
 
-interface SeriesListResponse {
-  data: series[];
-  meta: {
-    offset: number;
-    limit: number;
-    count: number;
-  };
-}
-
-interface SeriesResponse {
-  data: series;
-}
-
 export async function getSeries(): Promise<ActionResult<series[]>> {
   return withErrorHandling(async () => {
-    const response = await apiRequest<SeriesListResponse>("/series");
+    const response = await apiRequest<{
+      data: series[];
+      meta: {
+        offset: number;
+        limit: number;
+        count: number;
+      };
+    }>("/series");
     return response.data;
   });
 }
 
-export async function getSeriesById(id: number): Promise<
-  ActionResult<{
-    metadata: xseries;
-    dataPoints: data_points[];
-    measurement: measurements;
-  }>
-> {
+export async function getSeriesById(id: number) {
   return withErrorHandling(async () => {
     const response = await apiRequest<{
       data: {
-        series: series;
-        dataPoint: data_points[];
-        measurement: measurements;
+        metadata: SeriesMetadata;
+        dataPoints: DataPoints[];
+        measurement: measurements[];
+        loaders: DataLoader[];
       };
     }>(`/series/${id}`);
     return response.data;
   });
 }
 
-export async function createSeries(
-  formData: FormData
-): Promise<ActionResult<Series>> {
+export async function createSeries(formData: FormData) {
   return withErrorHandling(async () => {
     const seriesData = {
       name: formData.get("name") as string,
@@ -58,7 +41,9 @@ export async function createSeries(
       // ... other fields
     };
 
-    const response = await apiRequest<SeriesResponse>("/series", {
+    const response = await apiRequest<{
+      data: series;
+    }>("/series", {
       method: "POST",
       body: JSON.stringify(seriesData),
     });
@@ -66,7 +51,3 @@ export async function createSeries(
     return response.data;
   });
 }
-
-// export async function getSeriesSummaries() {
-//   // SELECT `xseries`.* FROM `xseries` WHERE `xseries`.`id` = ? LIMIT ?  [["id", 405962], ["LIMIT", 1]]
-// }

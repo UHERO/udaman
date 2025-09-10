@@ -115,7 +115,6 @@ const uheroDate = (date: Date, freq?: string) => {
  * they settled on the 100 day and 10 month intervals.
  */
 function dpAgeCode(updatedAt: string, pseudoHistory: boolean) {
-  console.log("updatedAt", updatedAt);
   const now = new Date();
   const createdAt = new Date(updatedAt);
   const days = differenceInDays(now, createdAt);
@@ -138,4 +137,9 @@ function dpAgeCode(updatedAt: string, pseudoHistory: boolean) {
   return prefix + ageCode;
 }
 
-export { generateDates, uheroDate, dpAgeCode };
+function formatRuntime(runtimeSeconds: number | null): string {
+  if (runtimeSeconds === null) return "-";
+  return `${runtimeSeconds.toFixed(2)}s`;
+}
+
+export { generateDates, uheroDate, dpAgeCode, formatRuntime };

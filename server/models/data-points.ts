@@ -31,15 +31,16 @@ class DataPoints {
   static async getBySeriesId(
     db: MySQLPromisePool,
     opts: { seriesId: number }
-  ): Promise<data_points[]> {
+  ): Promise<DataPoints[]> {
     const query = db.format(
       `
       WITH current_data AS (
         SELECT
           date,
           value,
-          updated_at,  -- Add this line
+          updated_at,
           pseudo_history,
+          data_source_id,
           SUM(value) OVER (
             PARTITION BY YEAR(date)
             ORDER BY date
@@ -47,7 +48,7 @@ class DataPoints {
           ) AS ytd_sum,
           DATE_SUB(date, INTERVAL 1 YEAR) AS prev_year_date,
           LAG(value, 1) OVER (ORDER BY date) AS prev_value
-        FROM data_points
+        FROM data_points dp
         WHERE xseries_id = ? AND current = 1
       ),
       prev_year_data AS (
@@ -88,16 +89,18 @@ class DataPoints {
         END AS lvl_change,
 
         c.updated_at,
-        c.pseudo_history
+        c.pseudo_history,
+        ds.color
       FROM current_data c
       LEFT JOIN prev_year_data p ON c.prev_year_date = p.date
+      LEFT JOIN data_sources ds ON ds.id = c.data_source_id
       ORDER BY c.date DESC
       `,
       [opts.seriesId, opts.seriesId]
     );
 
     const response = await this._queryDB(db, query);
-    return response;
+    return response as DataPoints[];
   }
 }
 

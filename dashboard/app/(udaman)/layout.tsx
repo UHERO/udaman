@@ -42,7 +42,9 @@ export default function RootLayout({
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">UHERO Data Manager</BreadcrumbLink>
+                    <BreadcrumbLink href="/series">
+                      UHERO Data Manager
+                    </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>

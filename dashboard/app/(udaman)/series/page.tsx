@@ -14,7 +14,7 @@ export default async function Page() {
   const { error, data } = await getSeries();
   if (error) throw error;
   if (!data) notFound();
-  // console.log("data", data);
+
   const count = data.length ?? 0;
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

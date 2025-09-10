@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SeriesSummary } from "@shared/types";
+import { DataPoint, Measurement, SeriesSummary } from "@shared/types";
 import { SeasonalAdjustment, SeriesMetadata } from "@shared/types/shared";
 import { numBool } from "@shared/utils";
 import { dpAgeCode, uheroDate } from "@shared/utils/time";
@@ -13,7 +13,7 @@ import {
 } from "@tanstack/react-table";
 import { format } from "date-fns";
 
-import { cn } from "@/lib/utils";
+import { cn, getColor } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -27,6 +27,7 @@ import { SAIndicator } from "../common";
 
 interface DataTableProps<TData> {
   data: TData[];
+  options?: { decimals: number };
 }
 
 export function SeriesSummaryTable<TData>({ data }: DataTableProps<TData>) {
@@ -147,32 +148,40 @@ export function SeriesSummaryTable<TData>({ data }: DataTableProps<TData>) {
   );
 }
 
-export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
+export function MetaDataTable({
+  metadata,
+}: {
+  metadata: SeriesMetadata & { measurement: Measurement[] };
+}) {
+  console.log("MetaDataTable", metadata);
   const rows = [
-    { name: "Universe", val: metadata.universe },
+    { name: "Universe", val: metadata.s_universe },
     {
       name: "Aliases",
-      val: metadata.aliases.length > 0 ? metadata.aliases.length : "",
+      val: metadata.aliases.length > 0 ? metadata.aliases.length : "-",
     },
     {
       name: "Measurements",
       val: (
         <Link
-          href={`/measurements/${metadata.measurement.id}`}
+          href={`/measurements/${metadata.measurement[0].id}`}
           className="hover:underline"
         >
-          {metadata.measurement.prefix}
+          {metadata.measurement.map((m) => m.prefix).join(",")}
         </Link>
       ),
     },
-    { name: "Description", val: metadata.description },
-    { name: "Aremos Desc.", val: metadata.name },
-    { name: "Units", val: `${metadata.unit_long} (${metadata.unit_short})` },
+    { name: "Description", val: metadata.s_description },
+    { name: "Aremos Desc.", val: metadata.s_name },
+    {
+      name: "Units",
+      val: `${metadata.u_long_label} (${metadata.u_short_label})`,
+    },
     { name: "Geography", val: metadata.geo_display_name },
-    { name: "Decimals", val: metadata.decimals },
+    { name: "Decimals", val: metadata.s_decimals },
     {
       name: "Seasonal Adjustment",
-      val: <SAIndicator sa={metadata.seasonal_adjustment} />,
+      val: <SAIndicator sa={metadata.xs_seasonal_adjustment} />,
     },
     {
       name: "Source",
@@ -185,23 +194,24 @@ export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
     { name: "Source Details", val: metadata.source_detail_description },
     {
       name: "Restricted",
-      val: numBool(metadata.restricted) ? "True" : "False",
+      val: numBool(metadata.xs_restricted) ? "True" : "False",
     },
     {
       name: "Quarantined",
-      val: numBool(metadata.quarantined) ? "True" : "False",
+      val: numBool(metadata.xs_quarantined) ? "True" : "False",
     },
-    { name: "Created at", val: new Date(metadata.created_at).toDateString() },
-    { name: "Updated at", val: new Date(metadata.updated_at).toDateString() },
-    { name: "XID (devs only)", val: metadata.xseries_id },
-    { name: "Internal ID", val: metadata.id },
+    { name: "Created at", val: new Date(metadata.s_created_at).toDateString() },
+    { name: "Updated at", val: new Date(metadata.s_updated_at).toDateString() },
+    { name: "XID (devs only)", val: metadata.xs_id },
+    { name: "Internal ID", val: metadata.s_id },
   ];
+
   return (
     <div className="p-1">
       <div className="mb-2">
-        <h2 className="text-xl font-bold opacity-80">{metadata.name}</h2>
+        <h2 className="text-xl font-bold opacity-80">{metadata.s_name}</h2>
         <p className="text-primary/80 text-lg font-bold">
-          {metadata.dataPortalName}
+          {metadata.s_dataPortalName}
         </p>
       </div>
       <Table>
@@ -221,8 +231,22 @@ export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
   );
 }
 
-export const SeriesDataTable = ({ data }) => {
-  const columns: ColumnDef<any>[] = [
+export const SeriesDataTable = ({
+  data,
+  options,
+}: {
+  data: any;
+  options: { decimals: number };
+}) => {
+  const { decimals } = options;
+  /* 
+  Table needs to know about
+    - series id for link to dp vintages view: /data-points/[id]
+    - loaders (source?)
+      - to highlight dp w/ loader-color
+      - show loader # column if more than 1 loader
+  */
+  const columns: ColumnDef<DataPoint>[] = [
     {
       accessorKey: "date",
       header: "Date",
@@ -233,8 +257,9 @@ export const SeriesDataTable = ({ data }) => {
       header: "Value",
       cell: ({ row }) => {
         let val = row.getValue("value");
-        val = val === null ? "-" : val.toFixed(1);
-        return <span className="font-bold">{val}</span>;
+        val = val === null ? "-" : val.toFixed(decimals);
+        const color = row.getValue("color");
+        return <span className={cn("size-full font-bold")}>{val}</span>;
       },
     },
     {
@@ -248,7 +273,7 @@ export const SeriesDataTable = ({ data }) => {
           <span
             className={cn(
               "text-primary/60 w-full text-end text-xs",
-              parseInt(val) > 0 ? "text-green-800" : "text-red-800"
+              parseInt(val) >= 0 ? "text-green-800" : "text-red-800"
             )}
           >
             {displayVal}
@@ -260,10 +285,17 @@ export const SeriesDataTable = ({ data }) => {
       accessorKey: "ytd",
       header: "YTD",
       cell: ({ row }) => {
-        let val = row.getValue("ytd");
-        val = val === null ? "-" : val.toFixed(1) + "%";
+        const val = row.getValue("ytd");
+        const displayVal = val === null ? "-" : val.toFixed(1) + "%";
         return (
-          <span className="text-primary/60 w-full text-end text-xs">{val}</span>
+          <span
+            className={cn(
+              "text-primary/60 w-full text-end text-xs",
+              parseInt(val) >= 0 ? "text-green-800" : "text-red-800"
+            )}
+          >
+            {displayVal}
+          </span>
         );
       },
     },
@@ -271,9 +303,18 @@ export const SeriesDataTable = ({ data }) => {
       accessorKey: "lvl_change",
       header: "LVL",
       cell: ({ row }) => {
-        let val = row.getValue("lvl_change");
-        val = val === null ? "-" : val.toFixed(3);
-        return <span className="text-primary/60 text-xs">{val}</span>;
+        const val = row.getValue("lvl_change");
+        const displayVal = val === null ? "-" : val.toFixed(1) + "%";
+        return (
+          <span
+            className={cn(
+              "text-primary/60 w-full text-end text-xs",
+              parseInt(val) >= 0 ? "text-green-800" : "text-red-800"
+            )}
+          >
+            {displayVal}
+          </span>
+        );
       },
     },
     {
@@ -286,6 +327,10 @@ export const SeriesDataTable = ({ data }) => {
       accessorKey: "pseudo_history",
       header: "pseudo_history",
     },
+    {
+      accessorKey: "color",
+      header: "color",
+    },
   ];
 
   const table = useReactTable({
@@ -295,6 +340,7 @@ export const SeriesDataTable = ({ data }) => {
     initialState: {
       columnVisibility: {
         pseudo_history: false,
+        color: false,
       },
     },
   });
@@ -306,7 +352,7 @@ export const SeriesDataTable = ({ data }) => {
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead key={header.id} className="text-end">
                   {header.isPlaceholder
                     ? null
                     : flexRender(
@@ -324,12 +370,16 @@ export const SeriesDataTable = ({ data }) => {
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className={cn(i % 2 === 0 ? "bg-muted" : "bg-none")}
+                className={cn("group", i % 2 === 0 ? "bg-muted" : "bg-none")}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell
                     key={cell.id}
-                    className="border-b bg-white text-end"
+                    className={cn(
+                      "group-hover:bg-muted cursor-default border-b bg-white text-end",
+                      cell.column.id === "value" &&
+                        getColor(cell.row.getValue("color"))
+                    )}
                   >
                     {/* {cell.getValue() ?? "-"} */}
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

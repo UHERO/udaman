@@ -1,29 +1,20 @@
-import type {
-  data_points,
-  data_sources,
-  geographies,
-  series,
+import {
+  Prisma,
   source_details,
   sources,
-  units,
-  xseries,
+  type data_sources,
+  type geographies,
+  type series,
+  type units,
+  type xseries,
 } from "@prisma/client";
-
-export type SeasonalAdjustment =
-  | "not_seasonally_adjusted"
-  | "seasonally_adjusted"
-  | "not_applicable";
-
-export type Universe = "UHERO" | "DBEDT" | "NTA" | "COH" | "CCOM";
 
 // Helper type to add prefix to keys
 type PrefixKeys<T, P extends string> = {
   [K in keyof T as `${P}${string & K}`]: T[K];
 };
 
-// The following is an approach for typing the results from the monster
-// query for getting series metadata b/c fields are all renamed and
-// returned in a flat object.
+// Define the field selections
 type SeriesSelection = Pick<
   series,
   | "id"
@@ -69,7 +60,7 @@ type XseriesSelection = Pick<
   | "factors"
 >;
 
-export type DataLoader = Pick<
+type DataSourceSelection = Pick<
   data_sources,
   | "id"
   | "series_id"
@@ -101,21 +92,8 @@ type UnitsDetailSelection = Pick<units, "long_label" | "short_label">;
 
 export type SeriesMetadata = PrefixKeys<SeriesSelection, "s_"> &
   PrefixKeys<XseriesSelection, "xs_"> &
+  PrefixKeys<DataSourceSelection, "ds_"> &
   PrefixKeys<GeoSelection, "geo_"> &
-  PrefixKeys<SourceSelection, "source_"> &
+  PrefixKeys<SourceSelection, "source"> &
   PrefixKeys<SourceDetailSelection, "source_detail_"> &
   PrefixKeys<UnitsDetailSelection, "u_">;
-
-type DataPointsSelection = Pick<
-  data_points,
-  "date" | "value" | "updated_at" | "pseudo_history"
->;
-
-type CalculatedFields = {
-  yoy: number | null;
-  ytd: number | null;
-  lvl_change: number | null;
-  color: string;
-};
-
-export type DataPoints = DataPointsSelection & CalculatedFields;
