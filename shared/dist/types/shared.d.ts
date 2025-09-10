@@ -19,6 +19,6 @@ type CalculatedFields = {
     lvl_change: number | null;
     color: string;
 };
-export type DataPoints = DataPointsSelection & CalculatedFields;
+export type DataPoint = DataPointsSelection & CalculatedFields;
 export {};
 //# sourceMappingURL=shared.d.ts.map

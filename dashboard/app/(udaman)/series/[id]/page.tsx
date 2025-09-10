@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getSeriesById } from "@/actions/series-actions";
 
 import { LoaderSection } from "@/components/series/data-loader";
-import { MetaDataTable, SeriesDataTable } from "@/components/series/tables";
+import { MetaDataTable } from "@/components/series/meta-data-table";
+import { SeriesDataTable } from "@/components/series/series-table";
 
 export default async function SeriesPage({
   params,
@@ -23,7 +24,10 @@ export default async function SeriesPage({
         <LoaderSection seriesId={id} loaders={loaders} />
         <SeriesDataTable
           data={dataPoints}
-          options={{ decimals: metadata.s_decimals }}
+          options={{
+            decimals: metadata.s_decimals,
+            showLoaderCol: loaders.length > 1,
+          }}
         />
       </div>
       <div className="col-span-4 rounded">

@@ -1,5 +1,5 @@
 import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
-import { data_points } from "@prisma/client";
+import { DataPoint } from "@shared/types/shared";
 
 class DataPoints {
   static async _queryDB<T extends RowDataPacket>(
@@ -31,7 +31,7 @@ class DataPoints {
   static async getBySeriesId(
     db: MySQLPromisePool,
     opts: { seriesId: number }
-  ): Promise<DataPoints[]> {
+  ): Promise<DataPoint[]> {
     const query = db.format(
       `
       WITH current_data AS (
@@ -90,6 +90,7 @@ class DataPoints {
 
         c.updated_at,
         c.pseudo_history,
+        c.data_source_id as loader_id,
         ds.color
       FROM current_data c
       LEFT JOIN prev_year_data p ON c.prev_year_date = p.date
@@ -100,7 +101,7 @@ class DataPoints {
     );
 
     const response = await this._queryDB(db, query);
-    return response as DataPoints[];
+    return response as DataPoint[];
   }
 }
 

@@ -118,4 +118,4 @@ type CalculatedFields = {
   color: string;
 };
 
-export type DataPoints = DataPointsSelection & CalculatedFields;
+export type DataPoint = DataPointsSelection & CalculatedFields;

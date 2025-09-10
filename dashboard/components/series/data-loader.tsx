@@ -4,7 +4,7 @@ import { formatRuntime, uheroDate } from "@shared/utils/time";
 import { format } from "date-fns";
 import { Clock10, ClockPlus } from "lucide-react";
 
-import { cn, getColor } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardAction,
@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+import { getColor } from "../helpers";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 
