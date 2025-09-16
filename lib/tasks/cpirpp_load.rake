@@ -18,7 +18,8 @@ task :load_cpirpp => :environment do
 
   # also gets cpiu_...i
   all_series.concat(Series.search("^CPIU_"))
-  all_series.concat(Series.search("^CPIRPP_"))
+  # all_series.concat(Series.search("^CPIRPP_"))
+  all_series.concat(Series.search("^CPIRPP"))
   all_series.concat(Series.search("^SBSCPIRPP_"))
 
   raise "too many series" unless all_series.length < 500
