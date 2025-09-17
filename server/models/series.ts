@@ -1,7 +1,8 @@
 "use strict";
 
-import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
-import { SeriesMetadata } from "@shared/types/shared";
+import { MySQLPromisePool } from "@fastify/mysql";
+import { SeriesMetadata, Universe } from "@shared/types/shared";
+import { queryDB } from "helpers/sql";
 
 import { SeriesSummary } from "../../shared/types";
 import { NotFoundError } from "../errors";
@@ -12,22 +13,43 @@ import Measurements from "./measurements";
 /** Related functions for managing series */
 
 class Series {
-  /** INTERNAL USE ONLY - queries must be prepared & property escaped using db.format
-   * do not pass user input to this method */
-  static async _queryDB<T extends RowDataPacket>(
-    db: MySQLPromisePool,
-    queryString: string
-  ): Promise<T[]> {
-    try {
-      const [rows] = (await db.execute(queryString)) as [T[], any];
-      return rows;
-    } catch (err) {
-      console.log("Series query error ", err);
-      throw err;
-    }
-  }
   /** Create a series record */
   static async create() {}
+
+  static async getSeriesByName(
+    db: MySQLPromisePool,
+    seriesName: string
+  ): Promise<{
+    name: string;
+    id: number;
+    aremos_missing: number | null;
+    aremos_diff: number | null;
+  }> {
+    const query = db.format(
+      `
+      SELECT 
+        s.id,
+        s.name,
+        x.aremos_missing,
+        x.aremos_diff
+      FROM series s
+      JOIN xseries x ON s.xseries_id = x.id
+      WHERE s.name = ?
+      LIMIT 1
+    `,
+      [seriesName]
+    );
+
+    const response = await queryDB(db, query);
+    const r = response[0];
+    if (!r) throw new NotFoundError(seriesName);
+    return {
+      name: r.name,
+      id: r.id,
+      aremos_missing: r.aremos_missing,
+      aremos_diff: r.aremos_diff,
+    };
+  }
 
   static async getSeriesMetadata(
     db: MySQLPromisePool,
@@ -91,7 +113,7 @@ class Series {
     `,
       [id]
     );
-    const response = await this._queryDB(db, query);
+    const response = await queryDB(db, query);
     console.log(response);
     return response[0] as SeriesMetadata;
   }
@@ -103,7 +125,7 @@ class Series {
   static async getSeriesPageData(db: MySQLPromisePool, opts: { id: number }) {
     const { id } = opts;
 
-    // ? This is a big set of queries, previously Ruby did them all individually. I've merged them as much as is possible
+    // ? Previously Ruby did them all individually. I've merged them as much as is possible
     // ? but this would be a great place to test out different loading patterns and measure perf.
     const [metadata, measurement, dataPoints, loaders] = await Promise.all([
       this.getSeriesMetadata(db, { id }),
@@ -120,12 +142,7 @@ class Series {
     if (!metadata || !dataPoints || !measurement || !aliases || !loaders) {
       throw new NotFoundError(String(opts.id));
     }
-    // console.log({
-    //   dataPoints,
-    //   metadata: metadata,
-    //   measurement: measurement,
-    //   aliases,
-    // });
+
     return {
       dataPoints,
       metadata: metadata,
@@ -143,7 +160,7 @@ class Series {
   static async getSummaryList(
     db: MySQLPromisePool,
     { offset, limit }: { offset?: number; limit?: number }
-  ): Promise<SeriesSummary[]> {
+  ) {
     // fetch initial data
     const mainSql = db.format(
       `
@@ -166,7 +183,7 @@ class Series {
       ["UHERO", 40]
     );
 
-    const mainRows = await this._queryDB(db, mainSql);
+    const mainRows = await queryDB(db, mainSql);
 
     const xseriesIds = mainRows.map((row) => row.xseries_id || row.id);
 
@@ -185,7 +202,7 @@ class Series {
         xseriesIds
       );
 
-      const dateRows = await this._queryDB(db, dateSql);
+      const dateRows = await queryDB(db, dateSql);
 
       const dateMap = new Map(dateRows.map((row) => [row.id, row]));
 
@@ -245,10 +262,15 @@ class Series {
       [xsId, sId, xsId]
     );
 
-    const response = await this._queryDB(db, sql);
+    const response = await queryDB(db, sql);
 
     return response;
   }
+
+  static async search(
+    { text: string, limit = 10000, user = null },
+    universe: { text: string; limit: number; user: null; universe: Universe }
+  ) {}
 }
 
 export default Series;

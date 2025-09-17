@@ -13,3 +13,27 @@ export const numBool = (n) => {
     }
     return n !== 0;
 };
+export function isValidSeriesName(text) {
+    // Checks for basic series name pattern: PREFIX@GEO.FREQ
+    const seriesNamePattern = /^[A-Z0-9_&%$]+@[A-Z0-9_]+(\.[ASQMWD])?$/i;
+    return seriesNamePattern.test(text);
+}
+export function formatTimestamp(timestampSeconds) {
+    if (!timestampSeconds)
+        return "Never";
+    const date = new Date(timestampSeconds * 1000);
+    return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+    });
+}
+export function formatValue(value, label) {
+    if (value === null || value === undefined)
+        return `${label}: N/A`;
+    return `${label}: ${value}`;
+}

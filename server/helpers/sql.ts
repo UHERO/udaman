@@ -1,3 +1,5 @@
+import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
+
 import { BadRequestError } from "../errors";
 
 /**
@@ -30,4 +32,17 @@ function sqlForPartialUpdate(
   };
 }
 
-export { sqlForPartialUpdate };
+async function queryDB<T extends RowDataPacket>(
+  db: MySQLPromisePool,
+  queryString: string
+): Promise<T[]> {
+  try {
+    const [rows] = (await db.execute(queryString)) as [T[], any];
+    return rows;
+  } catch (err) {
+    console.log("Series query error ", err);
+    throw err;
+  }
+}
+
+export { sqlForPartialUpdate, queryDB };

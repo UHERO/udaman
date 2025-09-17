@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { getSeriesById } from "@/actions/series-actions";
+import { getSeriesById, getSourceMap } from "@/actions/series-actions";
 
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
 import { SeriesDataTable } from "@/components/series/series-table";
+import { SourceMapTable } from "@/components/series/source-map";
 
 export default async function SeriesPage({
   params,
@@ -12,8 +13,9 @@ export default async function SeriesPage({
 }) {
   const { id } = await params;
   const { error, data } = await getSeriesById(id);
-  if (error) throw error;
-  if (!data) notFound();
+  const sourceMap = await getSourceMap(id);
+  if (error || sourceMap.error) throw error;
+  if (!data || !sourceMap.data) notFound();
 
   const { dataPoints, metadata, measurement, aliases, loaders } = data;
 
@@ -29,6 +31,7 @@ export default async function SeriesPage({
             showLoaderCol: loaders.length > 1,
           }}
         />
+        <SourceMapTable seriesId={id} nodes={sourceMap.data} />
       </div>
       <div className="col-span-4 rounded">
         <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />

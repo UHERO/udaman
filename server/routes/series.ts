@@ -1,6 +1,8 @@
 import { series } from "@prisma/client";
+import { SourceMapNode } from "@shared/types/shared";
 import { tryCatch } from "@shared/utils";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import { DataLoaders } from "models/data-loaders";
 
 import { NotFoundError } from "../errors";
 import Series from "../models/series";
@@ -69,7 +71,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     async (request, response) => {
       const { id } = request.params;
 
-      const { error, data } = await tryCatch<series>(
+      const { error, data } = await tryCatch(
         Series.getSeriesPageData(app.mysql, { id })
       );
 
@@ -81,6 +83,38 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
         throw new NotFoundError();
       }
       app.log.info(data);
+      return { data };
+    }
+  );
+
+  app.get<{ Params: SeriesParams }>(
+    "/series/:id/source-map",
+    {
+      schema: {
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "number" },
+          },
+          required: ["id"],
+        },
+      },
+    },
+    async (request, response) => {
+      const { id } = request.params;
+
+      const { error, data } = await tryCatch<SourceMapNode[]>(
+        DataLoaders.buildSourceMap(app.mysql, { seriesId: id })
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new NotFoundError();
+      }
+      app.log.info("SOURCE MAP", data);
       return { data };
     }
   );

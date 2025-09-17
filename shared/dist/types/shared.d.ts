@@ -20,5 +20,19 @@ type CalculatedFields = {
     color: string;
 };
 export type DataPoint = DataPointsSelection & CalculatedFields;
+export type DataLoaderType = Pick<data_sources, "id" | "description" | "last_run_in_seconds" | "priority" | "disabled" | "eval" | "dependencies">;
+export interface SeriesDependency {
+    name: string;
+    id: number;
+    aremos_missing: number | null;
+    aremos_diff: number | null;
+}
+export interface SourceMapNode {
+    dataSource: DataLoaderType;
+    dependencies: SeriesDependency[];
+    children: SourceMapNode[];
+    depth: number;
+    color: string;
+}
 export {};
 //# sourceMappingURL=shared.d.ts.map
