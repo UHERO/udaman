@@ -1,6 +1,0 @@
-{
-  "/(udaman)/series/[id]/page": "app/(udaman)/series/[id]/page.js",
-  "/(udaman)/series/page": "app/(udaman)/series/page.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js"
-}

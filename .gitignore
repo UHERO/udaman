@@ -24,3 +24,5 @@ NOTES
 .env
 script.rb
 vendor/bundle
+*.env
+.next
