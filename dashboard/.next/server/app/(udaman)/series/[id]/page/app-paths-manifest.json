@@ -1,0 +1,3 @@
+{
+  "/(udaman)/series/[id]/page": "app/(udaman)/series/[id]/page.js"
+}

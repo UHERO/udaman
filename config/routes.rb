@@ -128,7 +128,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :new_dbedt_uploads do
+  resources :new_dbedt_uploads, only: [:index, :show, :create, :destroy] do
     member do
       get "status/:which" => "new_dbedt_uploads#status"
       get "active_status" => "new_dbedt_uploads#active_status"
