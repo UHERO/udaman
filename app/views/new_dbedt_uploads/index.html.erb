@@ -48,7 +48,7 @@
                 </span>
             </td>
             <td><i class="upload-status fas <%= make_fa_processing_classes(db_upload.status) %>" id="new_dbedt-noop-<%= db_upload.id %>" aria-hidden="true"></i>
-                <%= link_to 'Database file', dbedt_upload_path(db_upload)%>
+                <%= link_to 'Database file', new_dbedt_upload_path(db_upload)%>
             </td>
             <td><%= timestamp %></td>
             <td>
