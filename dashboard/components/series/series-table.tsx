@@ -29,7 +29,7 @@ const isNumber = (val: unknown): val is number => {
 };
 
 const dpColor = (n: number) => {
-  if (n === 0) return "text-primary/70";
+  if (n === 0) return "text-slate-700";
   if (n > 0) return "text-green-800";
   return "text-red-800";
 };

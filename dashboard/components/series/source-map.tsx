@@ -139,7 +139,7 @@ export const SourceMapTable: React.FC<{
       </div>
     );
   }
-  console.log("NODES", nodes);
+
   return (
     <div style={{ margin: "20px 0" }}>
       <h3>Source Map</h3>

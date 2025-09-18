@@ -18,7 +18,7 @@ class DataPoints {
   /**
    * Gets Data points for a given series, and calculates YOY, YTD, and LVL.
    * The database contains these fields, but they appeare to be unused. So we calculate
-   * them on demand. Alternative is to calculate them
+   * them on demand.
    * {
    *  "date": Date,
    *  "value": number,
@@ -94,10 +94,10 @@ class DataPoints {
         ds.color
       FROM current_data c
       LEFT JOIN prev_year_data p ON c.prev_year_date = p.date
-      LEFT JOIN data_sources ds ON ds.id = c.data_source_id
+      LEFT JOIN data_sources ds ON ds.series_id = ?
       ORDER BY c.date DESC
       `,
-      [opts.seriesId, opts.seriesId]
+      [opts.seriesId, opts.seriesId, opts.seriesId]
     );
 
     const response = await this._queryDB(db, query);

@@ -18,7 +18,7 @@ export default async function SeriesPage({
   if (!data || !sourceMap.data) notFound();
 
   const { dataPoints, metadata, measurement, aliases, loaders } = data;
-
+  // console.log(dataPoints);
   return (
     <div className="grid grid-cols-12 gap-4">
       <div className="col-span-1 rounded"></div>
