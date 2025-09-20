@@ -1,13 +1,6 @@
 import { MySQLPromisePool } from "@fastify/mysql";
-import {
-  DataLoaderType,
-  SeriesDependency,
-  SourceMapNode,
-} from "@shared/types/shared";
-import { isValidSeriesName } from "@shared/utils";
+import { DataLoaderType, SourceMapNode } from "@shared/types/shared";
 import { queryDB } from "helpers/sql";
-
-import Series from "./series";
 
 /** Called data_sources in the database. Goal is to change it to data_loaders to
  * be less ambiguous, and not overlap with the source and source detail tables.
@@ -77,76 +70,125 @@ export class DataLoaders {
     return response as DataLoaderType[];
   }
 
-  static async buildSourceMap(
+  /** Iteratively fetches sources for use in series source map. Note that I attempted to move
+   * this logic into a recursive SQL query, but it was very very slow for series with multiple
+   * dependents. Implemented instead as a series of queries.
+   */
+
+  static async getDependencies(
     db: MySQLPromisePool,
     {
-      seriesId,
-      depth = 5,
-      seen = new Set(),
-      colors = [
-        "FFCC99",
-        "CCFFFF",
-        "99CCFF",
-        "CC99FF",
-        "FFFF99",
-        "CCFFCC",
-        "FF99CC",
-        "CCCCFF",
-        "9999FF",
-        "99FFCC",
-      ],
-    }: {
-      seriesId: number;
-      depth?: number;
-      seen?: Set<string>;
-      colors?: string[];
-    }
+      seriesName,
+      directOnly = false,
+    }: { seriesName: string; directOnly?: boolean }
   ): Promise<SourceMapNode[]> {
-    if (depth > 6) return [];
+    const seen = new Set<string>();
 
-    const dataSources = await this.getDataLoadersBySeriesId(db, { seriesId });
-    const sourceMapNodes: SourceMapNode[] = [];
+    async function buildNodes(
+      name: string,
+      level: number
+    ): Promise<SourceMapNode[]> {
+      if (seen.has(name)) {
+        return []; // Avoid infinite loops
+      }
+      seen.add(name);
 
-    for (const dataSource of dataSources) {
-      const dependencies: SeriesDependency[] = [];
-      const children: SourceMapNode[] = [];
+      const query = db.format(
+        `
+      SELECT 
+        s.name,
+        ds.id,
+        ds.series_id,
+        ds.disabled,
+        ds.universe,
+        ds.color,
+        ds.last_run_at,
+        ds.last_run_in_seconds,
+        ds.last_error,
+        ds.last_error_at,
+        ds.dependencies,
+        ds.description,
+        xs.aremos_missing,
+        xs.aremos_diff
+      FROM data_sources ds 
+      JOIN series s ON s.id = ds.series_id 
+      JOIN xseries xs ON xs.id = s.xseries_id 
+      WHERE s.name = ? 
+        AND ds.universe = 'UHERO' 
+        AND ds.disabled = 0
+    `,
+        [name]
+      );
 
-      if (dataSource.description) {
-        const words = dataSource.description.split(/\s+/);
+      const results = await queryDB(db, query);
 
-        for (const word of words) {
-          if (isValidSeriesName(word) && !seen.has(word)) {
-            seen.add(word);
+      if (results.length === 0) {
+        return [];
+      }
 
-            const series = await Series.getSeriesByName(db, word);
-            if (series) {
-              dependencies.push(series);
+      const nodes: SourceMapNode[] = [];
 
-              // Recursively get children
-              const childNodes = await this.buildSourceMap(
-                db,
-                series.id,
-                depth + 1,
-                new Set(seen),
-                [...colors]
-              );
+      for (const row of results) {
+        const children: SourceMapNode[] = [];
+        if (row.dependencies) {
+          const deps = _parseDependencyField(row.dependencies);
+          for (const dep of deps) {
+            if (!directOnly || level === 0) {
+              const childNodes = await buildNodes(dep, level + 1);
               children.push(...childNodes);
             }
           }
         }
+
+        nodes.push({
+          name,
+          children,
+          level,
+          dataSource: {
+            id: row.id,
+            series_id: row.series_id,
+            disabled: !!row.disabled,
+            universe: row.universe,
+            color: row.color,
+            last_run_at: row.last_run_at,
+            last_run_in_seconds: row.last_run_in_seconds,
+            last_error: row.last_error,
+            dependencies: row.dependencies,
+            description: row.description,
+            aremos_missing: row.aremos_missing,
+            aremos_diff: row.aremos_diff,
+          },
+        });
       }
 
-      const color = colors.shift() || "AAAAAA";
-
-      sourceMapNodes.push({
-        dataSource,
-        dependencies,
-        children,
-        depth,
-        color,
-      });
+      return nodes;
     }
 
-    return sourceMapNodes;
+    return buildNodes(seriesName, 0);
   }
+}
+
+/** Dependency field in database is a serialized Ruby array which I guess looks like Yaml.
+ * todo: change this field in the db to JSON */
+function _parseDependencyField(yamlString: string): string[] {
+  if (
+    !yamlString ||
+    yamlString.trim() === "---" ||
+    yamlString.includes("--- []")
+  ) {
+    return [];
+  }
+
+  // Simple parser for YAML array format: "---\n- SERIES_NAME\n- SERIES_NAME2"
+  const lines = yamlString.split("\n");
+  const dependencies: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("- ")) {
+      dependencies.push(trimmed.substring(2).trim());
+    }
+  }
+
+  return dependencies;
 }

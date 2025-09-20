@@ -13,28 +13,36 @@ export default async function SeriesPage({
 }) {
   const { id } = await params;
   const { error, data } = await getSeriesById(id);
-  const sourceMap = await getSourceMap(id);
-  if (error || sourceMap.error) throw error;
-  if (!data || !sourceMap.data) notFound();
-
+  if (error) throw error;
+  if (data === null) return notFound();
   const { dataPoints, metadata, measurement, aliases, loaders } = data;
-  // console.log(dataPoints);
+
+  const sourceMap = await getSourceMap(id, { name: metadata.s_name });
+  if (sourceMap.error) throw error;
+  if (sourceMap.data === null) return notFound();
   return (
-    <div className="grid grid-cols-12 gap-4">
-      <div className="col-span-1 rounded"></div>
-      <div className="col-span-7 rounded">
-        <LoaderSection seriesId={id} loaders={loaders} />
-        <SeriesDataTable
-          data={dataPoints}
-          options={{
-            decimals: metadata.s_decimals,
-            showLoaderCol: loaders.length > 1,
-          }}
-        />
-        <SourceMapTable seriesId={id} nodes={sourceMap.data} />
+    <div className="">
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-1 rounded"></div>
+        <div className="col-span-7 rounded">
+          <LoaderSection seriesId={id} loaders={loaders} />
+          <SeriesDataTable
+            data={dataPoints}
+            options={{
+              decimals: metadata.s_decimals,
+              showLoaderCol: loaders.length > 1,
+            }}
+          />
+          {/* <SourceMapTable seriesId={id} nodes={sourceMap.data} /> */}
+        </div>
+        <div className="col-span-4 rounded">
+          <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
+        </div>
       </div>
-      <div className="col-span-4 rounded">
-        <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-11 col-start-2">
+          <SourceMapTable data={sourceMap.data} />
+        </div>
       </div>
     </div>
   );

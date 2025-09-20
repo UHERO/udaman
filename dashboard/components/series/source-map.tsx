@@ -1,125 +1,68 @@
-import { DataLoaderType, SeriesDependency } from "@shared/types/shared";
+import React from "react";
+import Link from "next/link";
+import { SourceMapNode } from "@shared/types/shared";
+import { dateTimestamp } from "@shared/utils/time";
 
-interface SourceMapNode {
-  dataSource: DataLoaderType;
-  dependencies: SeriesDependency[];
-  children: SourceMapNode[];
-  depth: number;
-  color: string;
-}
+import { cn } from "@/lib/utils";
 
-interface SourceMapRowProps {
+import { getColor } from "../helpers";
+
+interface SourceMapProps {
   node: SourceMapNode;
-  isRoot?: boolean;
+  depth?: number;
 }
 
-function formatTimestamp(timestampSeconds: number): string {
-  if (!timestampSeconds) return "Never";
+/** Recursive table for displaying Series heirarchy. Faithful recreation of the previous version.
+ * I imagine this could be reimagined a bit more elegantly.
+ */
+const SourceMap: React.FC<SourceMapProps> = ({ node, depth = 0 }) => {
+  const { dataSource } = node;
+  const seriesHref = `/series/${node.dataSource.series_id}`;
 
-  const date = new Date(timestampSeconds * 1000);
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
-
-function formatValue(value: number | null | undefined, label: string): string {
-  if (value === null || value === undefined) return `${label}: N/A`;
-  return `${label}: ${value}`;
-}
-
-const SourceMapRow: React.FC<SourceMapRowProps> = ({ node }) => {
-  const { dataSource, dependencies, children, color, depth } = node;
-  console.log("SourceMapRow", node);
   return (
     <tr>
-      {/* Data Source Cell - Always present (matches ERB first <td>) */}
+      <td className="border border-gray-300 bg-gray-50 p-3 align-top">
+        <Link
+          href={seriesHref}
+          className="text-sm font-bold text-slate-700 hover:underline"
+        >
+          {node.name}
+        </Link>
+      </td>
       <td
-        style={{
-          backgroundColor: depth % 2 === 0 ? "white" : `#${color}`,
-          padding: "8px",
-          border: "1px solid #ccc",
-          verticalAlign: "top",
-          minWidth: "200px",
-        }}
+        className={cn(
+          "min-w-2xs border border-gray-300 p-2 align-top",
+          dataSource.disabled && "opacity-50",
+          getColor(dataSource.color)
+        )}
       >
-        <div>
-          <strong>{dataSource.description || "No description"}</strong>
-          <br />
-          <small>[{formatTimestamp(dataSource.last_run_in_seconds)}]</small>
+        <div className="space-y-1">
+          <div className="text-sm font-semibold text-gray-900">
+            {dataSource.description || "No description"}
+          </div>
+          <div className="space-y-0.5 text-xs text-gray-600">
+            <div>Last Run: {dateTimestamp(dataSource.last_run_in_seconds)}</div>
+            <div>{`missing: ${dataSource.aremos_missing}`}</div>
+            <div>{`diff: ${dataSource.aremos_diff}`}</div>
+            {dataSource.last_error && (
+              <div className="font-medium text-red-600">
+                Error: {dataSource.last_error}
+              </div>
+            )}
+          </div>
         </div>
       </td>
-
-      {/* Dependencies Cell - Only if there are dependencies (matches ERB second <td>) */}
-      {dependencies.length > 0 && (
-        <td style={{ padding: "0", border: "1px solid #ccc" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {node.children.length > 0 && (
+        <td className="border border-gray-300 bg-gray-50 p-0">
+          <table className="w-full border-collapse">
             <tbody>
-              {dependencies.map((dep, i) => {
-                // Find children data sources that belong to this specific dependency
-                const depChildren = children.filter(
-                  (child) =>
-                    // This is a simplification - in real implementation you'd need proper mapping
-                    true // For now, include all children for each dependency
-                );
-
-                return (
-                  <tr key={`${dep.name}-${i}`}>
-                    {/* Series Info Cell (matches ERB dependency series info) */}
-                    <td
-                      style={{
-                        backgroundColor: `#${color}`,
-                        padding: "8px",
-                        border: "1px solid #ccc",
-                        verticalAlign: "top",
-                        minWidth: "150px",
-                      }}
-                    >
-                      <div>
-                        <a
-                          href={`/series/${dep.id}`}
-                          style={{
-                            fontWeight: "bold",
-                            color: "#0066cc",
-                            textDecoration: "none",
-                          }}
-                        >
-                          {dep.name}
-                        </a>
-                        <br />
-                        <small>
-                          {formatValue(dep.aremos_missing, "missing")}
-                        </small>
-                        <br />
-                        <small>{formatValue(dep.aremos_diff, "diff")}</small>
-                      </div>
-                    </td>
-
-                    {/* Nested Data Sources Cell (matches ERB recursive part) */}
-                    {depChildren.length > 0 && (
-                      <td style={{ padding: "0", border: "1px solid #ccc" }}>
-                        <table
-                          style={{ width: "100%", borderCollapse: "collapse" }}
-                        >
-                          <tbody>
-                            {depChildren.map((child) => (
-                              <SourceMapRow
-                                key={`${child.dataSource.id}-${dep.name}`}
-                                node={child}
-                              />
-                            ))}
-                          </tbody>
-                        </table>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
+              {node.children.map((child, index) => (
+                <SourceMap
+                  key={`${child.dataSource.id}-${child.name}-${index}`}
+                  node={child}
+                  depth={depth + 1}
+                />
+              ))}
             </tbody>
           </table>
         </td>
@@ -128,38 +71,54 @@ const SourceMapRow: React.FC<SourceMapRowProps> = ({ node }) => {
   );
 };
 
-export const SourceMapTable: React.FC<{
-  seriesId: number;
-  nodes: SourceMapNode[];
-}> = ({ seriesId, nodes }) => {
-  if (nodes.length === 0) {
-    return (
-      <div style={{ padding: "20px", color: "#666" }}>
-        No data sources found for this series.
-      </div>
-    );
+interface SourceMapTableProps {
+  data: SourceMapNode[];
+  title?: string;
+}
+
+export function SourceMapTable({
+  data,
+  title = "Data Sources",
+}: SourceMapTableProps) {
+  if (data === undefined || data === null || data.length === 0) {
+    return null;
   }
+  const rootSeries = data.length > 0 ? data[0]?.name : "N/A";
+  const maxDepth = Math.max(...data.map((node) => getMaxDepth(node)));
+  const nodeCount = data.reduce((sum, node) => sum + countNodes(node), 0);
 
   return (
-    <div style={{ margin: "20px 0" }}>
-      <h3>Source Map</h3>
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{
-            borderCollapse: "collapse",
-            width: "100%",
-            border: "1px solid #ccc",
-          }}
-          className="operations-table"
-        >
+    <div className="my-5">
+      <h3 className="mb-4 font-semibold text-gray-900">{title}</h3>
+      <div className="overflow-x-auto border">
+        <table className="w-full border-collapse overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
           <tbody>
-            {/* Each top-level data source gets its own row (matches ERB outer loop) */}
-            {nodes.map((node) => (
-              <SourceMapRow key={node.dataSource.id} node={node} />
+            {data.map((node, index) => (
+              <SourceMap
+                key={`${node.dataSource.id}-${node.name}-${index}`}
+                node={node}
+              />
             ))}
           </tbody>
         </table>
       </div>
+
+      <div className="mt-3 flex gap-4 text-xs text-slate-600">
+        <span>Root Series: {rootSeries}</span>
+        <span>Max Depth: {maxDepth}</span>
+        <span>Total Nodes: {nodeCount}</span>
+        <span>Data Sources: {data.length}</span>
+      </div>
     </div>
   );
-};
+}
+
+// Helper functions
+function getMaxDepth(node: SourceMapNode): number {
+  if (node.children.length === 0) return node.level;
+  return Math.max(...node.children.map((child) => getMaxDepth(child)));
+}
+
+function countNodes(node: SourceMapNode): number {
+  return 1 + node.children.reduce((sum, child) => sum + countNodes(child), 0);
+}

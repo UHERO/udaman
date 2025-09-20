@@ -1,5 +1,7 @@
 "use server";
 
+import { notFound } from "next/navigation";
+
 import { ActionResult, createActionResult } from "./types";
 
 export async function withErrorHandling<T>(
@@ -48,6 +50,5 @@ export async function apiRequest<T>(
     error.name = `${response.status}`;
     throw error;
   }
-
   return data;
 }

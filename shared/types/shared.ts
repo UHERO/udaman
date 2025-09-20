@@ -131,6 +131,28 @@ export type DataLoaderType = Pick<
   | "dependencies"
 >;
 
+export type SourceMapDataLoaderType = Pick<
+  data_sources,
+  | "id"
+  | "series_id"
+  | "disabled"
+  | "universe"
+  | "color"
+  | "last_run_at"
+  | "last_run_in_seconds"
+  | "last_error"
+  | "dependencies"
+  | "description"
+> &
+  Pick<xseries, "aremos_missing" | "aremos_diff">;
+
+export interface SourceMapNode {
+  name: string;
+  children: SourceMapNode[];
+  level: number;
+  dataSource: SourceMapDataLoaderType;
+}
+
 export interface SeriesDependency {
   name: string;
   id: number;
@@ -138,10 +160,10 @@ export interface SeriesDependency {
   aremos_diff: number | null;
 }
 
-export interface SourceMapNode {
-  dataSource: DataLoaderType;
-  dependencies: SeriesDependency[];
-  children: SourceMapNode[];
-  depth: number;
-  color: string;
-}
+// export interface SourceMapNode {
+//   dataSource: DataLoaderType;
+//   dependencies: SeriesDependency[];
+//   children: SourceMapNode[];
+//   depth: number;
+//   color: string;
+// }

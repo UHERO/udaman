@@ -11,6 +11,7 @@ interface SeriesParams {
   id: number;
   offset: number;
   limit: number;
+  name: string;
 }
 
 /**
@@ -82,7 +83,6 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       if (!data) {
         throw new NotFoundError();
       }
-      app.log.info(data);
       return { data };
     }
   );
@@ -98,13 +98,23 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
           },
           required: ["id"],
         },
+        querystring: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+          },
+          required: ["name"],
+        },
       },
     },
     async (request, response) => {
       const { id } = request.params;
+      const { name } = request.query;
 
-      const { error, data } = await tryCatch<SourceMapNode[]>(
-        DataLoaders.buildSourceMap(app.mysql, { seriesId: id })
+      app.log.info(`ROUTE id: ${id}, name: ${name}`);
+
+      const { error, data } = await tryCatch(
+        DataLoaders.getDependencies(app.mysql, { seriesName: name })
       );
 
       if (error) {
@@ -114,7 +124,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       if (!data) {
         throw new NotFoundError();
       }
-      app.log.info("SOURCE MAP", data);
+
       return { data };
     }
   );

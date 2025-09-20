@@ -17,6 +17,7 @@ const loggerConfig = () => {
           options: {
             translateTime: "HH:MM:ss Z",
             ignore: "pid,hostname",
+            colorize: true,
           },
         },
       };

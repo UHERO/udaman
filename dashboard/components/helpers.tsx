@@ -1,8 +1,8 @@
 /* Tailwind requires colors be named somewhere in the codebase in order to use so using
 this implementation to get started, may switch to using hex codes as keys to tailwind 
 colors for better colors. */
-export const getColor = (color: string | null) => {
-  if (color === null) return "bg-muted";
+export const getColor = (color: string | null | undefined) => {
+  if (color === null || color === undefined) return "bg-muted";
   const colors: Record<string, string> = {
     // Purples
     B2A1EA: "bg-[#B2A1EA]",

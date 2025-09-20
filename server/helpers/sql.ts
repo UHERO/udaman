@@ -1,4 +1,5 @@
 import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
+import { app } from "app";
 
 import { BadRequestError } from "../errors";
 
@@ -37,6 +38,7 @@ async function queryDB<T extends RowDataPacket>(
   queryString: string
 ): Promise<T[]> {
   try {
+    app.log.info(queryString);
     const [rows] = (await db.execute(queryString)) as [T[], any];
     return rows;
   } catch (err) {

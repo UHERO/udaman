@@ -1,5 +1,6 @@
 "use server";
 
+import { notFound } from "next/navigation";
 import type { measurements, series } from "@prisma/client";
 import {
   DataLoader,
@@ -34,6 +35,7 @@ export async function getSeriesById(id: number) {
         loaders: DataLoader[];
       };
     }>(`/series/${id}`);
+
     return response.data;
   });
 }
@@ -58,13 +60,22 @@ export async function getSeriesById(id: number) {
 // }
 
 export async function getSourceMap(
-  id: number
+  id: number,
+  queryParams: { name: string | null }
 ): Promise<ActionResult<SourceMapNode[]>> {
+  const { name } = queryParams;
+  if (name === null) return notFound();
+
   return withErrorHandling(async () => {
+    const searchParams = new URLSearchParams({ name });
+    const url = `/series/${id}/source-map?${searchParams.toString()}`;
+    console.log("URL:   ", url);
+
     const response = await apiRequest<{
       data: SourceMapNode[];
-    }>(`/series/${id}/source-map`);
-    console.log("Data ", response);
+    }>(url);
+
+    if (!response.data) return notFound();
     return response.data;
   });
 }
