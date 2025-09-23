@@ -1,6 +1,6 @@
 ## Q and A were left out of the original script for some reason. Adding them here.
 ## Merge the two tasks before using this on prod.
-task :create_cpirpp => :environment do
+task :create_cpirpp_i => :environment do
   ids.each_with_index do |id, idx|
     unit_id = "129"
     bls_source_id = "2"
