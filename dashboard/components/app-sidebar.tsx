@@ -27,7 +27,7 @@ import {
 import { NavMain } from "@/components/nav-main";
 import { NavDataPortals } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
-import { UniverseSwitcher } from "@/components/team-switcher";
+import { UniverseSwitcher } from "@/components/universe-switcher";
 
 const data = {
   user: {
@@ -47,9 +47,24 @@ const data = {
       description: "National Trade Accounts",
     },
     {
-      name: "KAU",
+      name: "FC",
       logo: Command,
-      description: "County of Kauai",
+      description: "Forecast",
+    },
+    {
+      name: "CCOM",
+      logo: Command,
+      description: "Chamber of Commerce",
+    },
+    {
+      name: "DBEDT",
+      logo: Command,
+      description: "Dept. of Economic Development & Tourism",
+    },
+    {
+      name: "COH",
+      logo: Command,
+      description: "County of Hawaii",
     },
   ],
   navMain: [

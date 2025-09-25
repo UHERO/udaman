@@ -4,14 +4,19 @@ import { notFound } from "next/navigation";
 import type { measurements, series } from "@prisma/client";
 import {
   DataLoader,
-  DataPoints,
+  DataPoint,
   SeriesMetadata,
   SourceMapNode,
+  Universe,
 } from "@shared/types/shared";
 import { apiRequest, withErrorHandling } from "lib/action-utils";
 import { ActionResult } from "lib/types";
 
-export async function getSeries(): Promise<ActionResult<series[]>> {
+/** Used in series summary page */
+export async function getSeries(params: {
+  universe?: Universe;
+}): Promise<ActionResult<series[]>> {
+  const universe = params.universe ?? "UHERO";
   return withErrorHandling(async () => {
     const response = await apiRequest<{
       data: series[];
@@ -20,22 +25,26 @@ export async function getSeries(): Promise<ActionResult<series[]>> {
         limit: number;
         count: number;
       };
-    }>("/series");
+    }>(`/series?u=${universe}`);
     return response.data;
   });
 }
 
-export async function getSeriesById(id: number) {
+export async function getSeriesById(
+  id: number,
+  params: { universe?: Universe }
+) {
+  const universe = params.universe ?? "UHERO";
+
   return withErrorHandling(async () => {
     const response = await apiRequest<{
       data: {
         metadata: SeriesMetadata;
-        dataPoints: DataPoints[];
+        dataPoints: DataPoint[];
         measurement: measurements[];
         loaders: DataLoader[];
       };
     }>(`/series/${id}`);
-
     return response.data;
   });
 }
@@ -65,17 +74,13 @@ export async function getSourceMap(
 ): Promise<ActionResult<SourceMapNode[]>> {
   const { name } = queryParams;
   if (name === null) return notFound();
+  const searchParams = new URLSearchParams({ name });
+  const url = `/series/${id}/source-map?${searchParams.toString()}`;
 
   return withErrorHandling(async () => {
-    const searchParams = new URLSearchParams({ name });
-    const url = `/series/${id}/source-map?${searchParams.toString()}`;
-    console.log("URL:   ", url);
-
     const response = await apiRequest<{
       data: SourceMapNode[];
     }>(url);
-
-    if (!response.data) return notFound();
     return response.data;
   });
 }

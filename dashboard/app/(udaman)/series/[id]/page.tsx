@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSeriesById, getSourceMap } from "@/actions/series-actions";
+import { Universe } from "@shared/types/shared";
 
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
@@ -8,17 +9,20 @@ import { SourceMapTable } from "@/components/series/source-map";
 
 export default async function SeriesPage({
   params,
+  searchParams,
 }: {
   params: { id: number };
+  searchParams: { u: Universe | undefined };
 }) {
   const { id } = await params;
-  const { error, data } = await getSeriesById(id);
-  if (error) throw error;
-  if (data === null) return notFound();
-  const { dataPoints, metadata, measurement, aliases, loaders } = data;
+  const { u } = await searchParams;
+  const series = await getSeriesById(id, { universe: u || "UHERO" });
+
+  if (series.data === null) return notFound();
+  const { dataPoints, metadata, measurement, aliases, loaders } = series.data;
 
   const sourceMap = await getSourceMap(id, { name: metadata.s_name });
-  if (sourceMap.error) throw error;
+
   if (sourceMap.data === null) return notFound();
   return (
     <div className="">

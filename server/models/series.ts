@@ -114,7 +114,8 @@ class Series {
       [id]
     );
     const response = await queryDB(db, query);
-    console.log(response);
+    if (response.length === 0)
+      throw new NotFoundError("404 - Series not found: " + id);
     return response[0] as SeriesMetadata;
   }
   /**
@@ -159,14 +160,18 @@ class Series {
    */
   static async getSummaryList(
     db: MySQLPromisePool,
-    { offset, limit }: { offset?: number; limit?: number }
+    {
+      offset,
+      limit,
+      universe,
+    }: { offset?: number; limit?: number; universe: Universe }
   ) {
     // fetch initial data
     const mainSql = db.format(
       `
     SELECT 
       s.name as name,
-      s.xseries_id as id,
+      s.id as id,
       xs.seasonal_adjustment as seasonalAdjustment,
       s.dataPortalName as portalName,
       u.short_label as unitShortLabel,
@@ -180,7 +185,7 @@ class Series {
     ORDER BY s.created_at DESC 
     LIMIT ?
     `,
-      ["UHERO", 40]
+      [universe, 40]
     );
 
     const mainRows = await queryDB(db, mainSql);
@@ -271,6 +276,15 @@ class Series {
     { text: string, limit = 10000, user = null },
     universe: { text: string; limit: number; user: null; universe: Universe }
   ) {}
+
+  static isValidName(str: string) {
+    if (!str || !str.includes("@")) return false;
+
+    // Simplified series name validation (XXXX@XXX.X format)
+    const seriesNameRegex =
+      /^([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?@(\w+?)(\.([ASQMWD]))?$/i;
+    return seriesNameRegex.test(str);
+  }
 }
 
 export default Series;

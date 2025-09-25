@@ -1,6 +1,10 @@
 import { MySQLPromisePool } from "@fastify/mysql";
 import { DataLoaderType, SourceMapNode } from "@shared/types/shared";
+import { CreateLoaderPayload } from "@shared/types/sources";
+import { app } from "app";
 import { queryDB } from "helpers/sql";
+
+import Series from "./series";
 
 /** Called data_sources in the database. Goal is to change it to data_loaders to
  * be less ambiguous, and not overlap with the source and source detail tables.
@@ -165,6 +169,228 @@ export class DataLoaders {
     }
 
     return buildNodes(seriesName, 0);
+  }
+
+  /**
+   * insert record to db
+   * set color
+   * set dependencies
+   */
+  static async create(db: MySQLPromisePool, payload: CreateLoaderPayload) {
+    const {
+      seriesId,
+      scale,
+      code,
+      priority,
+      presaveHook,
+      clearBeforeLoad,
+      universe,
+      pseudoHistory,
+    } = payload;
+
+    const loaderType = this._getLoaderType(code, pseudoHistory);
+    app.log.info(loaderType);
+    const colorPalette = this._getColor(loaderType);
+    app.log.info(colorPalette);
+    const description = this._generateDescriptionFromEval(code);
+    app.log.info(description);
+
+    const optimalColor = await this.calculateColor(
+      db,
+      seriesId,
+      loaderType,
+      colorPalette
+    );
+
+    const dependencies = this._extractDependencies(description || "", code);
+
+    const query = db.format(
+      `
+        INSERT INTO data_sources (
+          series_id, eval, priority, scale, presave_hook, 
+          clear_before_load, pseudo_history, universe, disabled, 
+          reload_nightly, color, dependencies,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  NOW(), NOW())
+      `,
+      [
+        seriesId,
+        code,
+        priority || 50,
+        scale || "1.0",
+        presaveHook,
+        clearBeforeLoad,
+        pseudoHistory,
+        universe,
+        false, // disabled
+        true, // reload_nightly
+        optimalColor,
+        JSON.stringify(dependencies), // serialized array
+      ]
+    );
+
+    const response = await queryDB(db, query);
+    app.log.info("233 \n");
+    app.log.info(response);
+    return response;
+  }
+
+  static async calculateColor(
+    connection: MySQLPromisePool,
+    seriesId: number,
+    loaderType: string,
+    colorPalette: string[]
+  ) {
+    const [existing] = await connection.execute(
+      `
+      SELECT ds.color, COUNT(*) as usage_count
+      FROM data_sources ds
+      WHERE ds.series_id = ?
+        AND ds.disabled = 0
+        AND (
+          (? = 'pseudo_history' AND ds.pseudo_history = 1) OR
+          (? != 'pseudo_history' AND ds.pseudo_history = 0 AND 
+           CASE 
+             WHEN ds.eval REGEXP 'load_api' THEN 'api'
+             WHEN ds.eval REGEXP 'forecast' THEN 'forecast' 
+             WHEN ds.eval REGEXP 'load_from_download' THEN 'download'
+             WHEN ds.eval REGEXP 'load_[a-z_]*from.*history' THEN 'history'
+             WHEN ds.eval REGEXP 'load_[a-z_]*from' THEN 'manual'
+             ELSE 'other'
+           END = ?)
+        )
+      GROUP BY ds.color
+    `,
+      [seriesId, loaderType, loaderType, loaderType]
+    );
+
+    // Create usage map
+    const usageMap = {};
+    existing.forEach((row) => {
+      if (colorPalette.includes(row.color)) {
+        usageMap[row.color] = row.usage_count;
+      }
+    });
+
+    // Find least used color
+    let optimalColor = colorPalette[0];
+    let minUsage = usageMap[optimalColor] || 0;
+
+    for (const color of colorPalette) {
+      const usage = usageMap[color] || 0;
+      if (usage < minUsage) {
+        optimalColor = color;
+        minUsage = usage;
+      }
+    }
+
+    return optimalColor;
+  }
+  /** Helper: Determine loader type from eval expression */
+  static _getLoaderType(evalExpr: string, pseudoHistory = false) {
+    if (pseudoHistory) return "pseudo_history";
+
+    if (/load_api/.test(evalExpr)) return "api";
+    if (/forecast/i.test(evalExpr)) return "forecast";
+    if (/load_from_download/.test(evalExpr)) return "download";
+    if (/load_[a-z_]*from.*history/i.test(evalExpr)) return "history";
+    if (/load_[a-z_]*from/i.test(evalExpr)) return "manual";
+
+    return "other"; // calculations/method calls
+  }
+
+  /**  */
+  static _getColor(type: string) {
+    const palettes: Record<string, string[]> = {
+      api: ["B2A1EA", "CDC8FE", "A885EF"], // Purples
+      forecast: ["FFA94E", "FFA500"], // Oranges
+      download: ["A9BEF2", "C3DDF9", "6495ED"], // Blues
+      manual: ["F9FF8B", "FBFFBD", "F0E67F"], // Yellows
+      history: ["CAAF8C", "DFC3AA", "B78E5C"], // Browns
+      pseudo_history: ["FEB4AA"], // Salmon
+      other: ["9FDD8C", "D0F0C0", "88D3B2", "74C365"], // Greens
+    };
+    return palettes[type] || ["FFFFFF"];
+  }
+
+  /** Helper: Extract series name dependencies from text */
+  static _extractDependencies(description: string, evalExpr: string) {
+    const dependencies = new Set();
+    const text = `${description} ${evalExpr}`;
+    const words = text.split(/\s+/); // Split on whitespace and check each word
+
+    for (const word of words) {
+      if (Series.isValidName(word)) {
+        dependencies.add(word);
+      }
+    }
+
+    return Array.from(dependencies);
+  }
+
+  /** Parse eval expressions to generate human-readable descriptions */
+  static _generateDescriptionFromEval(evalExpr: string) {
+    // Handle aggregation: "SERIES@GEO.FREQ".ts.aggregate(:frequency, :operation)
+    const aggregateMatch = evalExpr.match(
+      /^"([^"]+)"\.ts\.aggregate\(:(\w+),\s*:(\w+)\)/
+    );
+    if (aggregateMatch) {
+      const [, seriesName, frequency, operation] = aggregateMatch;
+      return `Aggregated as ${operation} from ${seriesName}`;
+    }
+
+    // Handle interpolation: "SERIES@GEO.FREQ".ts.fill_missing_months_linear
+    const interpolateMatch = evalExpr.match(
+      /^"([^"]+)"\.ts\.fill_missing_months_linear/
+    );
+    if (interpolateMatch) {
+      const [, seriesName] = interpolateMatch;
+      return `Interpolated from ${seriesName}`;
+    }
+
+    // Handle file loading: "SERIES@GEO.FREQ".tsn.load_from("path")
+    const loadFromMatch = evalExpr.match(
+      /^"([^"]+)"\.tsn?\.load_from\("([^"]+)"\)/
+    );
+    if (loadFromMatch) {
+      const [_, seriesName, filePath] = loadFromMatch;
+      return `loaded from static file <${filePath}>`;
+    }
+
+    // Handle API loading: Series.load_api_bls_NEW("ID", "FREQ")
+    const apiMatch = evalExpr.match(
+      /Series\.load_api_(\w+)(?:_NEW)?\("([^"]+)",\s*"([^"]+)"\)/
+    );
+    if (apiMatch) {
+      const [, source, id, freq] = apiMatch;
+      return `loaded data set from ${source.toUpperCase()} API with parameters shown`;
+    }
+
+    // Handle arithmetic: "SERIES1@GEO.FREQ".ts * number
+    const multiplyMatch = evalExpr.match(/^"([^"]+)"\.ts\s*\*\s*([\d.]+)/);
+    if (multiplyMatch) {
+      const [, seriesName, multiplier] = multiplyMatch;
+      return `${seriesName} * ${multiplier}`;
+    }
+
+    // Handle division: ("SERIES1@GEO.FREQ".ts) / ("SERIES2@GEO.FREQ".ts) * 100
+    const divisionMatch = evalExpr.match(
+      /\(\("([^"]+)"\.ts\)\s*\/\s*\("([^"]+)"\.ts\)\)\s*\*\s*([\d.]+)/
+    );
+    if (divisionMatch) {
+      const [, numerator, denominator, multiplier] = divisionMatch;
+      return `((${numerator}) / (${denominator})) * ${multiplier}`;
+    }
+
+    // Handle simple series reference: "SERIES@GEO.FREQ".ts
+    const simpleMatch = evalExpr.match(/^"([^"]+)"\.ts$/);
+    if (simpleMatch) {
+      const [, seriesName] = simpleMatch;
+      return seriesName;
+    }
+
+    // Fallback: return the eval expression itself (cleaned up)
+    return evalExpr.replace(/"/g, "").replace(/\.ts/g, "");
   }
 }
 

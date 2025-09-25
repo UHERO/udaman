@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Universe } from "@shared/types/shared";
 import { getSeries } from "actions/series-actions";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
 
@@ -10,8 +11,13 @@ import { Label } from "@/components/ui/label";
 import { SeriesListTable } from "@/components/series/series-list-table";
 import { H1 } from "@/components/typography";
 
-export default async function Page() {
-  const { error, data } = await getSeries();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: { u: Universe | undefined };
+}) {
+  const { u } = await searchParams;
+  const { error, data } = await getSeries({ universe: u });
   if (error) throw error;
   if (!data) notFound();
 

@@ -19,3 +19,17 @@ export interface Source {
   created_at: Date;
   updated_at: Date;
 }
+
+export interface CreateLoaderFormData {
+  code: string;
+  priority: number;
+  scale: number;
+  presaveHook: string;
+  clearBeforeLoad: boolean;
+  pseudoHistory: boolean;
+}
+
+export interface CreateLoaderPayload extends CreateLoaderFormData {
+  universe: Universe;
+  seriesId: number;
+}

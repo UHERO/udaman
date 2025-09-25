@@ -1,7 +1,5 @@
 "use server";
 
-import { notFound } from "next/navigation";
-
 import { ActionResult, createActionResult } from "./types";
 
 export async function withErrorHandling<T>(
@@ -13,7 +11,7 @@ export async function withErrorHandling<T>(
   } catch (error) {
     console.error("Server action error:", error);
 
-    // Can add error types more as needed
+    // add error types more as needed
     if (error instanceof Error) {
       if (error.message.includes("404")) {
         return createActionResult.error("Resource not found", 404);

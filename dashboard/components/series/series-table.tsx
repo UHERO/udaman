@@ -46,13 +46,15 @@ export const SeriesDataTable = ({
 }) => {
   const { decimals } = options;
 
-  const PercCell = ({ n }: { n: number | null }) => {
+  const FormattedCell = ({ n, unit }: { n: number | null; unit?: string }) => {
     if (!isNumber(n)) return "-";
+    let value = n.toFixed(decimals);
+    if (unit === "perc") value += "%";
     return (
       <span
-        className={cn("text-primary/60 w-full text-end text-xs", dpColor(n))}
+        className={cn("w-full text-end text-xs text-slate-600", dpColor(n))}
       >
-        {n.toFixed(decimals)}%
+        {value}
       </span>
     );
   };
@@ -83,7 +85,7 @@ export const SeriesDataTable = ({
       },
       cell: ({ cell }) => {
         const val = cell.getValue() as number | null;
-        return <PercCell n={val} />;
+        return <FormattedCell n={val} unit="perc" />;
       },
     },
     {
@@ -91,7 +93,7 @@ export const SeriesDataTable = ({
       header: "YTD",
       cell: ({ cell }) => {
         const val = cell.getValue() as number | null;
-        return <PercCell n={val} />;
+        return <FormattedCell n={val} unit="perc" />;
       },
     },
     {
@@ -99,7 +101,7 @@ export const SeriesDataTable = ({
       header: "LVL",
       cell: ({ cell }) => {
         const val = cell.getValue() as number | null;
-        return <PercCell n={val} />;
+        return <FormattedCell n={val} />;
       },
     },
     {
@@ -137,7 +139,7 @@ export const SeriesDataTable = ({
   console.log("data", data[0]);
   return (
     <div>
-      <Table className="border-separate border-spacing-1 font-mono">
+      <Table className="border-separate border-spacing-1 font-mono text-gray-800">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>

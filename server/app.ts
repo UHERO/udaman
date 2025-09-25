@@ -6,6 +6,7 @@ import Fastify from "fastify";
 
 import { envConfig } from "./config";
 import categoriesRoutes from "./routes/categories";
+import dataLoadersRoutes from "./routes/data-loaders";
 import rootRoute from "./routes/root";
 import seriesRoutes from "./routes/series";
 
@@ -32,6 +33,7 @@ await app.register(mysql, {
 
 app.register(rootRoute);
 app.register(seriesRoutes);
+app.register(dataLoadersRoutes);
 app.register(categoriesRoutes);
 
 export { app };

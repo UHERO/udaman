@@ -26,12 +26,13 @@ export const LoaderSection = ({
   seriesId: number;
   loaders: DataLoader[];
 }) => {
-  //   console.log("LoaderSection", loaders);
   return (
     <div className="flex flex-col border-b">
       <div className="flex h-6 flex-row items-center justify-start border-b pb-2 font-semibold">
         <span className="mr-4">Loaders</span>
-        <Button variant={"link"}>new</Button>
+        <Button variant={"link"}>
+          <Link href={`/data-loaders/new?seriesId=${seriesId}`}>new</Link>
+        </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"}>clear data</Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
@@ -119,7 +120,12 @@ const LoaderItem = ({ loader }: { loader: DataLoader }) => {
           <span className="text-primary/90 mr-2 text-lg font-semibold">
             {loader.id}
           </span>
-          <Button variant={"ghost"} size={"icon"} title="Toggle nightly load">
+          <Button
+            variant={"ghost"}
+            size={"icon"}
+            title="Toggle nightly load"
+            className="border-gray-500 hover:scale-105 hover:border hover:bg-white/40"
+          >
             {loader.reload_nightly ? (
               <Clock10 className="stroke-primary" />
             ) : (

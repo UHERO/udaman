@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import { ChevronsUpDown, Plus } from "lucide-react"
-import * as React from "react"
+import * as React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChevronsUpDown, Plus } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -11,29 +12,48 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function UniverseSwitcher({
   universes,
 }: {
   universes: {
-    name: string
-    logo: React.ElementType
-    description: string
-  }[]
+    name: string;
+    logo: React.ElementType;
+    description: string;
+  }[];
 }) {
-  const { isMobile } = useSidebar()
-  const [activeUniverse, setActiveUniverse] = React.useState(universes[0])
+  const { isMobile } = useSidebar();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeUniverse, setActiveUniverse] = React.useState(universes[0]);
 
-  if (!activeUniverse) {
-    return null
-  }
+  React.useEffect(() => {
+    if (!activeUniverse) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("u", activeUniverse.name);
+    router.replace(`?${params.toString()}`);
+  }, [activeUniverse, searchParams, router]);
+
+  React.useEffect(() => {
+    const universeFromUrl = searchParams.get("u");
+
+    if (universeFromUrl) {
+      const foundUniverse = universes.find((u) => u.name === universeFromUrl);
+      if (foundUniverse) {
+        setActiveUniverse(foundUniverse);
+      }
+    } else {
+      setActiveUniverse(universes[0]);
+    }
+  }, []);
 
   return (
     <SidebarMenu>
@@ -48,8 +68,12 @@ export function UniverseSwitcher({
                 <activeUniverse.logo className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{activeUniverse.name}</span>
-                <span className="truncate text-xs">{activeUniverse.description}</span>
+                <span className="truncate font-medium">
+                  {activeUniverse.name}
+                </span>
+                <span className="truncate text-xs">
+                  {activeUniverse.description}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -81,11 +105,13 @@ export function UniverseSwitcher({
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
-              <div className="text-muted-foreground font-medium">Add universe</div>
+              <div className="text-muted-foreground font-medium">
+                Add universe
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

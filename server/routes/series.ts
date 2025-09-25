@@ -1,5 +1,4 @@
-import { series } from "@prisma/client";
-import { SourceMapNode } from "@shared/types/shared";
+import { Universe } from "@shared/types/shared";
 import { tryCatch } from "@shared/utils";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { DataLoaders } from "models/data-loaders";
@@ -7,18 +6,25 @@ import { DataLoaders } from "models/data-loaders";
 import { NotFoundError } from "../errors";
 import Series from "../models/series";
 
-interface SeriesParams {
+interface SeriesQueryParams {
+  offset?: number;
+  limit?: number;
+  u: Universe;
+}
+
+interface SeriesRouteParams {
   id: number;
-  offset: number;
-  limit: number;
+}
+
+interface SourceMapQuery {
   name: string;
 }
 
 /**
- * Series - /series
+ * Series Routes
  */
 async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
-  app.route<{ Params: SeriesParams }>({
+  app.route<{ Querystring: SeriesQueryParams }>({
     method: "GET",
     url: "/series",
     schema: {
@@ -35,13 +41,18 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
             default: 40,
             description: "Maximum number of records to return",
           },
+          u: {
+            type: "string",
+            default: "UHERO",
+            description: "Data universe",
+          },
         },
       },
     },
     handler: async (request, response) => {
-      const { offset, limit } = request.params;
+      const { offset, limit, u } = request.query;
       const { error, data } = await tryCatch<Series>(
-        Series.getSummaryList(app.mysql, { offset, limit })
+        Series.getSummaryList(app.mysql, { offset, limit, universe: u })
       );
 
       if (error) {
@@ -55,21 +66,19 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       return { data, offset, limit };
     },
   });
-
-  app.get<{ Params: SeriesParams }>(
-    "/series/:id",
-    {
-      schema: {
-        params: {
-          type: "object",
-          properties: {
-            id: { type: "number" },
-          },
-          required: ["id"],
+  app.route<{ Params: SeriesRouteParams }>({
+    method: "GET",
+    url: "/series/:id",
+    schema: {
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "number" },
         },
+        required: ["id"],
       },
     },
-    async (request, response) => {
+    handler: async (request, response) => {
       const { id } = request.params;
 
       const { error, data } = await tryCatch(
@@ -83,31 +92,34 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       if (!data) {
         throw new NotFoundError();
       }
-      return { data };
-    }
-  );
 
-  app.get<{ Params: SeriesParams }>(
-    "/series/:id/source-map",
-    {
-      schema: {
-        params: {
-          type: "object",
-          properties: {
-            id: { type: "number" },
-          },
-          required: ["id"],
+      return { data };
+    },
+  });
+
+  app.route<{
+    Params: SeriesRouteParams;
+    Querystring: SourceMapQuery;
+  }>({
+    method: "GET",
+    url: "/series/:id/source-map",
+    schema: {
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "number" },
         },
-        querystring: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-          },
-          required: ["name"],
+        required: ["id"],
+      },
+      querystring: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
         },
+        required: ["name"],
       },
     },
-    async (request, response) => {
+    handler: async (request, response) => {
       const { id } = request.params;
       const { name } = request.query;
 
@@ -126,8 +138,8 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       }
 
       return { data };
-    }
-  );
+    },
+  });
 }
 
 export default routes;

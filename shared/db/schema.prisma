@@ -178,26 +178,26 @@ model data_source_downloads {
 
 model data_sources {
   id                  Int                   @id @default(autoincrement())
-  series_id           Int?
-  disabled            Boolean               @default(false)
-  universe            data_sources_universe @default(UHERO)
-  priority            Int?                  @default(100)
-  created_at          DateTime?             @db.DateTime(0)
-  updated_at          DateTime?             @db.DateTime(0)
-  reload_nightly      Boolean?              @default(true)
-  pseudo_history      Boolean               @default(false)
   clear_before_load   Boolean               @default(false)
-  eval                String?               @db.VarChar(500)
-  scale               String                @default("1.0") @db.VarChar(255)
-  presave_hook        String?               @db.VarChar(255)
   color               String?               @db.VarChar(255)
-  runtime             Float?                @db.Float
-  last_run_at         DateTime?             @db.DateTime(0)
-  last_run_in_seconds Decimal?              @db.Decimal(17, 3)
-  last_error          String?               @db.VarChar(255)
-  last_error_at       DateTime?             @db.DateTime(0)
   dependencies        String?               @db.Text
   description         String?               @db.Text
+  disabled            Boolean               @default(false)
+  eval                String?               @db.VarChar(500)
+  last_error          String?               @db.VarChar(255)
+  last_error_at       DateTime?             @db.DateTime(0)
+  last_run_at         DateTime?             @db.DateTime(0)
+  last_run_in_seconds Decimal?              @db.Decimal(17, 3)
+  presave_hook        String?               @db.VarChar(255)
+  priority            Int?                  @default(100)
+  pseudo_history      Boolean               @default(false)
+  reload_nightly      Boolean?              @default(true)
+  runtime             Float?                @db.Float
+  scale               String                @default("1.0") @db.VarChar(255)
+  series_id           Int?
+  universe            data_sources_universe @default(UHERO)
+  created_at          DateTime?             @db.DateTime(0)
+  updated_at          DateTime?             @db.DateTime(0)
 
   @@index([series_id], map: "index_data_sources_on_series_id")
   @@index([universe], map: "index_data_sources_on_universe")
