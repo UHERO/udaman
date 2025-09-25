@@ -12,6 +12,12 @@ interface SeriesQueryParams {
   u: Universe;
 }
 
+interface SeriesDeleteParams {
+  u: Universe;
+  date: string;
+  deleteBy: "observationDate" | "vintageDate" | "none";
+}
+
 interface SeriesRouteParams {
   id: number;
 }
@@ -127,6 +133,52 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
 
       const { error, data } = await tryCatch(
         DataLoaders.getDependencies(app.mysql, { seriesName: name })
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new NotFoundError();
+      }
+
+      return { data };
+    },
+  });
+
+  app.route<{
+    Params: SeriesRouteParams;
+    Querystring: SeriesDeleteParams;
+  }>({
+    method: "DELETE",
+    url: "/series/:id/delete",
+    schema: {
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "number" },
+        },
+        required: ["id"],
+      },
+      querystring: {
+        type: "object",
+        properties: {
+          u: { type: "string" },
+          date: { type: "string" },
+          deleteBy: { type: "string" },
+        },
+        required: ["u", "date", "deleteBy"],
+      },
+    },
+    handler: async (request, response) => {
+      const { id } = request.params;
+      const { u, date, deleteBy } = request.query;
+
+      app.log.info(`DELETE: /series/${id}/delete`);
+
+      const { error, data } = await tryCatch(
+        Series.deleteDataPoints(app.mysql, { id, u, date, deleteBy })
       );
 
       if (error) {

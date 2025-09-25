@@ -2,6 +2,7 @@
 
 import { MySQLPromisePool } from "@fastify/mysql";
 import { SeriesMetadata, Universe } from "@shared/types/shared";
+import { app } from "app";
 import { queryDB } from "helpers/sql";
 
 import { SeriesSummary } from "../../shared/types";
@@ -243,7 +244,135 @@ class Series {
   /** Update series data */
   static async update() {}
   /** Delete series from database */
-  static async delete() {}
+  static async deleteDataPoints(
+    db: MySQLPromisePool,
+    opts: {
+      id: number;
+      u: Universe;
+      deleteBy: "observationDate" | "vintageDate" | "none";
+      date?: string;
+    }
+  ) {
+    const { id, u, deleteBy, date } = opts;
+
+    if (deleteBy === "observationDate" && date) {
+      await this.deleteDataPointsByObservationDate(db, { id: id, u: u, date });
+      await this.repairDataPoints(db, { id: id });
+    }
+    if (deleteBy === "vintageDate" && date) {
+      await this.deleteDataPointsByVintage(db, { id: id, u: u, date });
+      await this.repairDataPoints(db, { id: id });
+    }
+    if (deleteBy === "none") {
+      await this.deleteAllDataPoints(db, { id: id, u: u });
+    }
+
+    return "ok";
+  }
+  /** Use after partially deleting datapoints by vintage or observation date
+   * to load the deleted datapoint where no other vintage exists */
+  static async repairDataPoints(db: MySQLPromisePool, opts: { id: number }) {
+    const { id } = opts;
+    const needRepairDatesQuery = db.format(
+      `
+    SELECT DISTINCT dp.date
+    FROM data_points dp
+    WHERE dp.xseries_id = ?
+      AND NOT EXISTS (
+        SELECT 1 FROM data_points current_dp 
+        WHERE current_dp.xseries_id = dp.xseries_id 
+          AND current_dp.date = dp.date 
+          AND current_dp.current = true
+      )
+  `,
+      [id]
+    );
+    const needRepairDates = await queryDB(db, needRepairDatesQuery);
+    app.log.info(needRepairDates);
+
+    for (const dateRow of needRepairDates) {
+      const query = db.format(
+        `
+      UPDATE data_points 
+      SET current = true 
+      WHERE id = (
+        SELECT id FROM (
+          SELECT id FROM data_points 
+          WHERE xseries_id = ? AND date = ? 
+          ORDER BY created_at DESC 
+          LIMIT 1
+        ) tmp
+      )
+    `,
+        [id, dateRow.date]
+      );
+      const response = await queryDB(db, query);
+      app.log.info(response);
+    }
+    return;
+  }
+  /** Retrieve distinct dates for a given series */
+  static async getSeriesDates(db: MySQLPromisePool, opts: { id: number }) {
+    const { id } = opts;
+    const query = db.format(
+      `
+    SELECT DISTINCT date 
+    FROM data_points 
+    WHERE xseries_id = ? 
+    ORDER BY date`,
+      [id]
+    );
+    const response = await queryDB(db, query);
+    return response;
+  }
+
+  static async deleteAllDataPoints(
+    db: MySQLPromisePool,
+    opts: { id: number; u: Universe }
+  ) {
+    const { id, u } = opts;
+    const query = db.format(
+      `
+      DELETE FROM data_points 
+      WHERE universe = ? AND xseries_id = ?;`,
+      [u, id]
+    );
+
+    const response = await queryDB(db, query);
+    return response;
+  }
+
+  static async deleteDataPointsByObservationDate(
+    db: MySQLPromisePool,
+    opts: { id: number; u: Universe; date: string }
+  ) {
+    const { id, u, date } = opts;
+    const query = db.format(
+      `
+      DELETE FROM data_points 
+      WHERE universe = ? AND xseries_id = ? AND date >= ?;`,
+      [u, id, date]
+    );
+
+    const response = await queryDB(db, query);
+    return response;
+  }
+
+  static async deleteDataPointsByVintage(
+    db: MySQLPromisePool,
+    opts: { id: number; u: Universe; date: string }
+  ) {
+    const { id, u, date } = opts;
+    const query = db.format(
+      `
+      DELETE FROM data_points 
+      WHERE universe = ? AND xseries_id = ? AND created_at > ?;`,
+      [u, id, date]
+    );
+
+    const response = await queryDB(db, query);
+    return response;
+  }
 
   static async getAliases(
     db: MySQLPromisePool,

@@ -149,4 +149,23 @@ function dateTimestamp(seconds: number | undefined | Decimal | null): string {
   return format(date, "MMM d, yyyy HH:mm");
 }
 
-export { generateDates, uheroDate, dpAgeCode, formatRuntime, dateTimestamp };
+/** Ensure datestring is in standard yyyy-mm-dd format. If optional array provided, ensures date exists in array. */
+function isValidDate(dateString: string, dateArr?: string[]) {
+  const match = dateString.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!match) return false;
+
+  // catches basic invalid dates like 13th month
+  const date = new Date(dateString);
+  if (date.toISOString().slice(0, 10) !== dateString) return false;
+
+  return dateArr ? dateArr.includes(dateString) : true;
+}
+
+export {
+  generateDates,
+  uheroDate,
+  dpAgeCode,
+  formatRuntime,
+  dateTimestamp,
+  isValidDate,
+};

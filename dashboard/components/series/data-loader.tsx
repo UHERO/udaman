@@ -34,7 +34,9 @@ export const LoaderSection = ({
           <Link href={`/data-loaders/new?seriesId=${seriesId}`}>new</Link>
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
-        <Button variant={"link"}>clear data</Button>
+        <Button variant={"link"}>
+          <Link href={`/series/${seriesId}/delete`}>clear data</Link>
+        </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"}>load all</Button>
       </div>

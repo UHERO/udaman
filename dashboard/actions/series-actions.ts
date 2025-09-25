@@ -84,3 +84,24 @@ export async function getSourceMap(
     return response.data;
   });
 }
+
+export async function deleteSeriesDataPoints(
+  id: number,
+  queryParams: {
+    universe: string;
+    date: string;
+    deleteBy: "observationDate" | "vintageDate" | "none";
+  }
+): Promise<ActionResult<SourceMapNode[]>> {
+  const { universe, date, deleteBy } = queryParams;
+
+  const searchParams = new URLSearchParams({ u: universe, date, deleteBy });
+  const url = `/series/${id}/source-map?${searchParams.toString()}`;
+
+  return withErrorHandling(async () => {
+    const response = await apiRequest<{
+      data: SourceMapNode[];
+    }>(url, { method: "DELETE" });
+    return response.data;
+  });
+}
