@@ -1,8 +1,8 @@
 "use strict";
 
-import { MySQLPromisePool } from "@fastify/mysql";
 import { SeriesMetadata, Universe } from "@shared/types/shared";
 import { app } from "app";
+import { mysql } from "helpers/db";
 import { queryDB } from "helpers/sql";
 
 import { SeriesSummary } from "../../shared/types";
@@ -17,16 +17,13 @@ class Series {
   /** Create a series record */
   static async create() {}
 
-  static async getSeriesByName(
-    db: MySQLPromisePool,
-    seriesName: string
-  ): Promise<{
+  static async getSeriesByName(seriesName: string): Promise<{
     name: string;
     id: number;
     aremos_missing: number | null;
     aremos_diff: number | null;
   }> {
-    const query = db.format(
+    const query = mysql.format(
       `
       SELECT 
         s.id,
@@ -41,7 +38,7 @@ class Series {
       [seriesName]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     const r = response[0];
     if (!r) throw new NotFoundError(seriesName);
     return {
@@ -52,12 +49,13 @@ class Series {
     };
   }
 
-  static async getSeriesMetadata(
-    db: MySQLPromisePool,
-    { id }: { id: number }
-  ): Promise<SeriesMetadata> {
+  static async getSeriesMetadata({
+    id,
+  }: {
+    id: number;
+  }): Promise<SeriesMetadata> {
     // todo: remove unused fields after initial build
-    const query = db.format(
+    const query = mysql.format(
       `
       SELECT 
         s.id as s_id,
@@ -114,7 +112,7 @@ class Series {
     `,
       [id]
     );
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     if (response.length === 0)
       throw new NotFoundError("404 - Series not found: " + id);
     return response[0] as SeriesMetadata;
@@ -124,25 +122,23 @@ class Series {
    *
    * Used on /series/[id] page info
    * */
-  static async getSeriesPageData(db: MySQLPromisePool, opts: { id: number }) {
-    const { id } = opts;
-
+  static async getSeriesPageData({ id }: { id: number }) {
     // ? Previously Ruby did them all individually. I've merged them as much as is possible
     // ? but this would be a great place to test out different loading patterns and measure perf.
     const [metadata, measurement, dataPoints, loaders] = await Promise.all([
-      this.getSeriesMetadata(db, { id }),
-      Measurements.getSeriesMeasurements(db, { seriesId: id }),
-      DataPoints.getBySeriesId(db, { seriesId: id }),
-      DataLoaders.getSeriesLoaders(db, { seriesId: id }),
+      this.getSeriesMetadata({ id }),
+      Measurements.getSeriesMeasurements({ seriesId: id }),
+      DataPoints.getBySeriesId({ seriesId: id }),
+      DataLoaders.getSeriesLoaders({ seriesId: id }),
     ]);
 
-    const aliases = await this.getAliases(db, {
+    const aliases = await this.getAliases({
       sId: id,
       xsId: metadata.xs_id,
     });
 
     if (!metadata || !dataPoints || !measurement || !aliases || !loaders) {
-      throw new NotFoundError(String(opts.id));
+      throw new NotFoundError(String(id));
     }
 
     return {
@@ -159,16 +155,17 @@ class Series {
    * todo: set min and max dates on the xseries table and update them when a series is loaded.
    * todo: This would allow simplifying this to a single query and avoid the data_points table.
    */
-  static async getSummaryList(
-    db: MySQLPromisePool,
-    {
-      offset,
-      limit,
-      universe,
-    }: { offset?: number; limit?: number; universe: Universe }
-  ) {
+  static async getSummaryList({
+    offset,
+    limit,
+    universe,
+  }: {
+    offset?: number;
+    limit?: number;
+    universe: Universe;
+  }) {
     // fetch initial data
-    const mainSql = db.format(
+    const mainSql = mysql.format(
       `
     SELECT 
       s.name as name,
@@ -189,13 +186,13 @@ class Series {
       [universe, 40]
     );
 
-    const mainRows = await queryDB(db, mainSql);
+    const mainRows = await queryDB(mainSql);
 
     const xseriesIds = mainRows.map((row) => row.xseries_id || row.id);
 
     if (xseriesIds.length > 0) {
       // Second query - get min/max dates only for the 40 series
-      const dateSql = db.format(
+      const dateSql = mysql.format(
         `
       SELECT 
         xseries_id as id,
@@ -208,7 +205,7 @@ class Series {
         xseriesIds
       );
 
-      const dateRows = await queryDB(db, dateSql);
+      const dateRows = await queryDB(dateSql);
 
       const dateMap = new Map(dateRows.map((row) => [row.id, row]));
 
@@ -244,36 +241,33 @@ class Series {
   /** Update series data */
   static async update() {}
   /** Delete series from database */
-  static async deleteDataPoints(
-    db: MySQLPromisePool,
-    opts: {
-      id: number;
-      u: Universe;
-      deleteBy: "observationDate" | "vintageDate" | "none";
-      date?: string;
-    }
-  ) {
+  static async deleteDataPoints(opts: {
+    id: number;
+    u: Universe;
+    deleteBy: "observationDate" | "vintageDate" | "none";
+    date?: string;
+  }) {
     const { id, u, deleteBy, date } = opts;
-
+    app.log.info(opts);
     if (deleteBy === "observationDate" && date) {
-      await this.deleteDataPointsByObservationDate(db, { id: id, u: u, date });
-      await this.repairDataPoints(db, { id: id });
+      await this.deleteDataPointsByObservationDate({ id: id, u: u, date });
+      await this.repairDataPoints({ id: id });
     }
     if (deleteBy === "vintageDate" && date) {
-      await this.deleteDataPointsByVintage(db, { id: id, u: u, date });
-      await this.repairDataPoints(db, { id: id });
+      await this.deleteDataPointsByVintage({ id: id, u: u, date });
+      await this.repairDataPoints({ id: id });
     }
     if (deleteBy === "none") {
-      await this.deleteAllDataPoints(db, { id: id, u: u });
+      await this.deleteAllDataPoints({ id: id, u: u });
     }
 
     return "ok";
   }
   /** Use after partially deleting datapoints by vintage or observation date
    * to load the deleted datapoint where no other vintage exists */
-  static async repairDataPoints(db: MySQLPromisePool, opts: { id: number }) {
+  static async repairDataPoints(opts: { id: number }) {
     const { id } = opts;
-    const needRepairDatesQuery = db.format(
+    const needRepairDatesQuery = mysql.format(
       `
     SELECT DISTINCT dp.date
     FROM data_points dp
@@ -287,11 +281,11 @@ class Series {
   `,
       [id]
     );
-    const needRepairDates = await queryDB(db, needRepairDatesQuery);
+    const needRepairDates = await queryDB(needRepairDatesQuery);
     app.log.info(needRepairDates);
 
     for (const dateRow of needRepairDates) {
-      const query = db.format(
+      const query = mysql.format(
         `
       UPDATE data_points 
       SET current = true 
@@ -306,15 +300,15 @@ class Series {
     `,
         [id, dateRow.date]
       );
-      const response = await queryDB(db, query);
+      const response = await queryDB(query);
       app.log.info(response);
     }
     return;
   }
   /** Retrieve distinct dates for a given series */
-  static async getSeriesDates(db: MySQLPromisePool, opts: { id: number }) {
+  static async getSeriesDates(opts: { id: number }) {
     const { id } = opts;
-    const query = db.format(
+    const query = mysql.format(
       `
     SELECT DISTINCT date 
     FROM data_points 
@@ -322,64 +316,57 @@ class Series {
     ORDER BY date`,
       [id]
     );
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response;
   }
 
-  static async deleteAllDataPoints(
-    db: MySQLPromisePool,
-    opts: { id: number; u: Universe }
-  ) {
+  static async deleteAllDataPoints(opts: { id: number; u: Universe }) {
     const { id, u } = opts;
-    const query = db.format(
+    const query = mysql.format(
       `
-      DELETE FROM data_points 
-      WHERE universe = ? AND xseries_id = ?;`,
-      [u, id]
+      DELETE FROM data_points WHERE xseries_id = ?;`,
+      [id]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response;
   }
 
-  static async deleteDataPointsByObservationDate(
-    db: MySQLPromisePool,
-    opts: { id: number; u: Universe; date: string }
-  ) {
+  static async deleteDataPointsByObservationDate(opts: {
+    id: number;
+    u: Universe;
+    date: string;
+  }) {
     const { id, u, date } = opts;
-    const query = db.format(
+    const query = mysql.format(
       `
-      DELETE FROM data_points 
-      WHERE universe = ? AND xseries_id = ? AND date >= ?;`,
-      [u, id, date]
+      DELETE FROM data_points WHERE xseries_id = ? AND date >= ?;`,
+      [id, date]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response;
   }
 
-  static async deleteDataPointsByVintage(
-    db: MySQLPromisePool,
-    opts: { id: number; u: Universe; date: string }
-  ) {
+  static async deleteDataPointsByVintage(opts: {
+    id: number;
+    u: Universe;
+    date: string;
+  }) {
     const { id, u, date } = opts;
-    const query = db.format(
+    const query = mysql.format(
       `
-      DELETE FROM data_points 
-      WHERE universe = ? AND xseries_id = ? AND created_at > ?;`,
-      [u, id, date]
+      DELETE FROM data_points WHERE xseries_id = ? AND created_at > ?;`,
+      [id, date]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response;
   }
 
-  static async getAliases(
-    db: MySQLPromisePool,
-    opts: { sId: number; xsId: number }
-  ) {
+  static async getAliases(opts: { sId: number; xsId: number }) {
     const { sId, xsId } = opts;
-    const sql = db.format(
+    const sql = mysql.format(
       `
       SELECT * FROM series
       WHERE xseries_id = ?
@@ -396,7 +383,7 @@ class Series {
       [xsId, sId, xsId]
     );
 
-    const response = await queryDB(db, sql);
+    const response = await queryDB(sql);
 
     return response;
   }

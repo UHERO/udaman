@@ -34,10 +34,6 @@ export async function apiRequest<T>(
   const response = await fetch(
     `${process.env.API_BASE_URL || "http://127.0.0.1:3001"}${endpoint}`,
     {
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
       ...options,
     }
   );

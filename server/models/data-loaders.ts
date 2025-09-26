@@ -2,6 +2,7 @@ import { MySQLPromisePool } from "@fastify/mysql";
 import { DataLoaderType, SourceMapNode } from "@shared/types/shared";
 import { CreateLoaderPayload } from "@shared/types/sources";
 import { app } from "app";
+import { mysql } from "helpers/db";
 import { queryDB } from "helpers/sql";
 
 import Series from "./series";
@@ -10,11 +11,12 @@ import Series from "./series";
  * be less ambiguous, and not overlap with the source and source detail tables.
  */
 export class DataLoaders {
-  static async getSeriesLoaders(
-    db: MySQLPromisePool,
-    { seriesId }: { seriesId: number }
-  ): Promise<DataLoaderType[]> {
-    const query = db.format(
+  static async getSeriesLoaders({
+    seriesId,
+  }: {
+    seriesId: number;
+  }): Promise<DataLoaderType[]> {
+    const query = mysql.format(
       `
         SELECT
             id,
@@ -44,15 +46,16 @@ export class DataLoaders {
       [seriesId]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response as DataLoaderType[];
   }
 
-  static async getDataLoadersBySeriesId(
-    db: MySQLPromisePool,
-    { seriesId }: { seriesId: number }
-  ): Promise<DataLoaderType[]> {
-    const query = db.format(
+  static async getDataLoadersBySeriesId({
+    seriesId,
+  }: {
+    seriesId: number;
+  }): Promise<DataLoaderType[]> {
+    const query = mysql.format(
       `
     SELECT 
       id,
@@ -70,7 +73,7 @@ export class DataLoaders {
       [seriesId]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response as DataLoaderType[];
   }
 
@@ -79,13 +82,13 @@ export class DataLoaders {
    * dependents. Implemented instead as a series of queries.
    */
 
-  static async getDependencies(
-    db: MySQLPromisePool,
-    {
-      seriesName,
-      directOnly = false,
-    }: { seriesName: string; directOnly?: boolean }
-  ): Promise<SourceMapNode[]> {
+  static async getDependencies({
+    seriesName,
+    directOnly = false,
+  }: {
+    seriesName: string;
+    directOnly?: boolean;
+  }): Promise<SourceMapNode[]> {
     const seen = new Set<string>();
 
     async function buildNodes(
@@ -97,7 +100,7 @@ export class DataLoaders {
       }
       seen.add(name);
 
-      const query = db.format(
+      const query = mysql.format(
         `
       SELECT 
         s.name,
@@ -124,7 +127,7 @@ export class DataLoaders {
         [name]
       );
 
-      const results = await queryDB(db, query);
+      const results = await queryDB(query);
 
       if (results.length === 0) {
         return [];
@@ -196,7 +199,6 @@ export class DataLoaders {
     app.log.info(description);
 
     const optimalColor = await this.calculateColor(
-      db,
       seriesId,
       loaderType,
       colorPalette
@@ -204,7 +206,7 @@ export class DataLoaders {
 
     const dependencies = this._extractDependencies(description || "", code);
 
-    const query = db.format(
+    const query = mysql.format(
       `
         INSERT INTO data_sources (
           series_id, eval, priority, scale, presave_hook, 
@@ -229,19 +231,18 @@ export class DataLoaders {
       ]
     );
 
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     app.log.info("233 \n");
     app.log.info(response);
     return response;
   }
 
   static async calculateColor(
-    connection: MySQLPromisePool,
     seriesId: number,
     loaderType: string,
     colorPalette: string[]
   ) {
-    const [existing] = await connection.execute(
+    const query = mysql.format(
       `
       SELECT ds.color, COUNT(*) as usage_count
       FROM data_sources ds
@@ -263,8 +264,8 @@ export class DataLoaders {
     `,
       [seriesId, loaderType, loaderType, loaderType]
     );
+    const existing = await queryDB(query);
 
-    // Create usage map
     const usageMap = {};
     existing.forEach((row) => {
       if (colorPalette.includes(row.color)) {
@@ -391,6 +392,28 @@ export class DataLoaders {
 
     // Fallback: return the eval expression itself (cleaned up)
     return evalExpr.replace(/"/g, "").replace(/\.ts/g, "");
+  }
+
+  /** from Rails app: DataSource.reload_source */
+  static reload({
+    seriesId,
+    clearFirst,
+  }: {
+    seriesId: number;
+    clearFirst: boolean;
+  }) {
+    const series = Series.getSeriesMetadata({ id: seriesId });
+    app.log.info(
+      `Begin reload of definition ${seriesId} for series <#{self.series}> [#{description}]`
+    );
+    const time = new Date();
+    const props = {
+      lastRun: time,
+      lastRunAt: time,
+      lastError: null,
+      lastErrorAt: null,
+      runtime: null,
+    };
   }
 }
 

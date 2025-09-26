@@ -58,7 +58,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     handler: async (request, response) => {
       const { offset, limit, u } = request.query;
       const { error, data } = await tryCatch<Series>(
-        Series.getSummaryList(app.mysql, { offset, limit, universe: u })
+        Series.getSummaryList({ offset, limit, universe: u })
       );
 
       if (error) {
@@ -87,9 +87,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     handler: async (request, response) => {
       const { id } = request.params;
 
-      const { error, data } = await tryCatch(
-        Series.getSeriesPageData(app.mysql, { id })
-      );
+      const { error, data } = await tryCatch(Series.getSeriesPageData({ id }));
 
       if (error) {
         throw error;
@@ -132,7 +130,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       app.log.info(`ROUTE id: ${id}, name: ${name}`);
 
       const { error, data } = await tryCatch(
-        DataLoaders.getDependencies(app.mysql, { seriesName: name })
+        DataLoaders.getDependencies({ seriesName: name })
       );
 
       if (error) {
@@ -178,7 +176,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       app.log.info(`DELETE: /series/${id}/delete`);
 
       const { error, data } = await tryCatch(
-        Series.deleteDataPoints(app.mysql, { id, u, date, deleteBy })
+        Series.deleteDataPoints({ id, u, date, deleteBy })
       );
 
       if (error) {

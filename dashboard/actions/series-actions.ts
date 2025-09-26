@@ -96,7 +96,7 @@ export async function deleteSeriesDataPoints(
   const { universe, date, deleteBy } = queryParams;
 
   const searchParams = new URLSearchParams({ u: universe, date, deleteBy });
-  const url = `/series/${id}/source-map?${searchParams.toString()}`;
+  const url = `/series/${id}/delete?${searchParams.toString()}`;
 
   return withErrorHandling(async () => {
     const response = await apiRequest<{

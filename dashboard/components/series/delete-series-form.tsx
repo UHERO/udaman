@@ -1,7 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { deleteSeriesDataPoints } from "@/actions/series-actions";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isValidDate } from "@shared/utils/time";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -21,20 +23,15 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 const formSchema = z.object({
-  date: z
-    .string()
-    .refine((val) => val === "" || /^\d{4}-\d{1,2}-\d{1,2}$/.test(val), {
-      message: "Date must be in yyyy-mm-dd format or empty",
-    }),
+  date: z.string().refine((val) => val === "" || isValidDate(val), {
+    message: "Date is invalid",
+  }),
   deleteBy: z.enum(["observationDate", "vintageDate", "none"]),
 });
-/**
- * todo: either:
- *  1. change input to select from current series available dates
- *  2. validate inputed date to confirm it's valid before sending form data
- *
- */
+
 export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
+  const queryParams = useSearchParams();
+  const universe = queryParams.get("u") ?? "UHERO";
   const nav = useRouter();
   const goBack = () => nav.back();
 
@@ -51,7 +48,7 @@ export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    // await createDataLoader({ universe: "UHERO", seriesId: 120349 }, values);
+    await deleteSeriesDataPoints(seriesId, { universe: universe, ...values });
     nav.push(`/series/${seriesId}`);
   }
 
@@ -79,7 +76,7 @@ export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
                         <RadioGroupItem value="observationDate" />
                       </FormControl>
                       <FormLabel className="w-fit font-normal text-pretty">
-                        <b>Observation date:</b> delete all data on and after
+                        <b>Observation date:</b> delete data points following
                         given date
                       </FormLabel>
                     </FormItem>
@@ -88,8 +85,8 @@ export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
                         <RadioGroupItem value="vintageDate" />
                       </FormControl>
                       <FormLabel className="font-normal">
-                        <b>Vintage:</b> Reset series to the state on the given
-                        date.
+                        <b>Vintage:</b> delete data points loaded after given
+                        date
                       </FormLabel>
                     </FormItem>
                     <FormItem className="flex items-center gap-3">
@@ -111,7 +108,10 @@ export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
             name="date"
             render={({ field }) => (
               <FormItem className={cn(disableDate && "opacity-50")}>
-                <FormLabel>Date</FormLabel>
+                <FormLabel>
+                  Date{" "}
+                  <span className="text-xs text-slate-500">YYYY-MM-DD</span>
+                </FormLabel>
                 <FormControl>
                   <Input
                     disabled={disableDate}
@@ -128,8 +128,8 @@ export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
             )}
           />
           <div className="flex flex-row gap-x-4">
-            <Button type="submit">Save loader</Button>
-            <Button variant={"outline"} onClick={goBack}>
+            <Button type="submit">Clear datapoints</Button>
+            <Button type="button" variant={"outline"} onClick={goBack}>
               Cancel
             </Button>
           </div>

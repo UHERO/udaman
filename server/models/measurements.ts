@@ -1,12 +1,9 @@
-import { MySQLPromisePool } from "@fastify/mysql";
+import { mysql } from "helpers/db";
 import { queryDB } from "helpers/sql";
 
 class Measurements {
-  static async getSeriesMeasurements(
-    db: MySQLPromisePool,
-    { seriesId }: { seriesId: number }
-  ) {
-    const query = db.format(
+  static async getSeriesMeasurements({ seriesId }: { seriesId: number }) {
+    const query = mysql.format(
       `
       SELECT m.*
       FROM measurements m
@@ -15,7 +12,7 @@ class Measurements {
       `,
       [seriesId]
     );
-    const response = await queryDB(db, query);
+    const response = await queryDB(query);
     return response;
   }
 }

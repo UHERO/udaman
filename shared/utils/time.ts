@@ -7,6 +7,8 @@ import {
   format,
   fromUnixTime,
   isAfter,
+  isValid,
+  parseISO,
   startOfMonth,
   startOfQuarter,
   startOfYear,
@@ -125,7 +127,7 @@ function dpAgeCode(updatedAt: string, pseudoHistory: boolean) {
 
   let ageCode;
   if (days < 100) {
-    ageCode = days.toString().padStart(2, "0");
+    ageCode = `${days.toString().padStart(2, "0")}d`;
   } else if (months < 10) {
     ageCode = `${months}m`;
   } else {
@@ -151,12 +153,10 @@ function dateTimestamp(seconds: number | undefined | Decimal | null): string {
 
 /** Ensure datestring is in standard yyyy-mm-dd format. If optional array provided, ensures date exists in array. */
 function isValidDate(dateString: string, dateArr?: string[]) {
-  const match = dateString.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (!match) return false;
+  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateString)) return false;
 
-  // catches basic invalid dates like 13th month
-  const date = new Date(dateString);
-  if (date.toISOString().slice(0, 10) !== dateString) return false;
+  const date = parseISO(dateString);
+  if (!isValid(date)) return false;
 
   return dateArr ? dateArr.includes(dateString) : true;
 }

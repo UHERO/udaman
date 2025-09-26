@@ -42,6 +42,10 @@ const envConfig = {
         type: "string",
         default: "mysql://root@localhost/uhero_db_dev",
       },
+      DATA_DIR: {
+        type: "string",
+        default: "./data",
+      },
     },
   },
 };

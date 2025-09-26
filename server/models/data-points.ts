@@ -1,13 +1,13 @@
-import { MySQLPromisePool, RowDataPacket } from "@fastify/mysql";
+import { RowDataPacket } from "@fastify/mysql";
 import { DataPoint } from "@shared/types/shared";
+import { mysql } from "helpers/db";
 
 class DataPoints {
   static async _queryDB<T extends RowDataPacket>(
-    db: MySQLPromisePool,
     queryString: string
   ): Promise<T[]> {
     try {
-      const [rows] = (await db.execute(queryString)) as [T[], any];
+      const [rows] = (await mysql.execute(queryString)) as [T[], any];
       return rows;
     } catch (err) {
       console.log("Series query error ", err);
@@ -28,11 +28,8 @@ class DataPoints {
    *  "updated_at": Date
    * }
    */
-  static async getBySeriesId(
-    db: MySQLPromisePool,
-    opts: { seriesId: number }
-  ): Promise<DataPoint[]> {
-    const query = db.format(
+  static async getBySeriesId(opts: { seriesId: number }): Promise<DataPoint[]> {
+    const query = mysql.format(
       `
       WITH current_data AS (
         SELECT
@@ -114,7 +111,7 @@ class DataPoints {
       [opts.seriesId, opts.seriesId, opts.seriesId]
     );
 
-    const response = await this._queryDB(db, query);
+    const response = await this._queryDB(query);
     return response as DataPoint[];
   }
 }
