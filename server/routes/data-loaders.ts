@@ -12,7 +12,7 @@ interface LoaderQueryString {
 }
 
 /**
- * Data Loaders, previously data sources. Changed to avoid conflict with other sources table
+ * Data Loaders, previously data sources. Changed to avoid similar naming with other "sources" table
  */
 async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
   app.route({
@@ -91,7 +91,7 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       const payload = request.body;
       console.log(payload);
 
-      const res = DataLoaders.create(app.mysql, {
+      const res = DataLoaders.create({
         ...payload,
         universe: u as Universe,
         seriesId: seriesId,

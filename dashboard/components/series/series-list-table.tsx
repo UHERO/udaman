@@ -27,7 +27,7 @@ interface DataTableProps<TData> {
   options?: { decimals: number };
 }
 
-export function SeriesListTable<TData>({ data }: DataTableProps<TData>) {
+export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
   const columns: ColumnDef<SeriesSummary>[] = [
     {
       accessorKey: "name",
@@ -65,16 +65,16 @@ export function SeriesListTable<TData>({ data }: DataTableProps<TData>) {
       accessorKey: "minDate",
       header: "First",
       cell: ({ row }) => {
-        const date = row.getValue("minDate");
-        return format(date, "yyyy-MM-dd");
+        const date = row.getValue<Date | null>("minDate");
+        return date ? format(date, "yyyy-MM-dd") : "-";
       },
     },
     {
       accessorKey: "maxDate",
       header: "Last",
       cell: ({ row }) => {
-        const date = row.getValue("maxDate");
-        return format(date, "yyyy-MM-dd");
+        const date = row.getValue<Date | null>("maxDate");
+        return date ? format(date, "yyyy-MM-dd") : "-";
       },
     },
     {

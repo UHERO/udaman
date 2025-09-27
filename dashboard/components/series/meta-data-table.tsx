@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Measurement } from "@shared/types";
 import { SeriesMetadata } from "@shared/types/shared";
 import { numBool } from "@shared/utils";
 import {
@@ -22,11 +21,7 @@ type MetadataRow = {
   value: React.ReactNode;
 };
 
-export function MetaDataTable({
-  metadata,
-}: {
-  metadata: SeriesMetadata & { measurement: Measurement[] };
-}) {
+export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
   console.log("MetaDataTable", metadata);
 
   const data: MetadataRow[] = useMemo(
@@ -79,11 +74,15 @@ export function MetaDataTable({
       },
       {
         name: "Created at",
-        value: new Date(metadata.s_created_at).toDateString(),
+        value: metadata.s_created_at
+          ? new Date(metadata.s_created_at).toDateString()
+          : "-",
       },
       {
         name: "Updated at",
-        value: new Date(metadata.s_updated_at).toDateString(),
+        value: metadata.s_updated_at
+          ? new Date(metadata.s_updated_at).toDateString()
+          : "-",
       },
       { name: "XID (devs only)", value: metadata.xs_id },
       { name: "Internal ID", value: metadata.s_id },

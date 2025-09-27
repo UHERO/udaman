@@ -1,9 +1,9 @@
-import { mysql } from "helpers/db";
+import { mysql } from "helpers/mysql";
 import { queryDB } from "helpers/sql";
 
 class Measurements {
   static async getSeriesMeasurements({ seriesId }: { seriesId: number }) {
-    const query = mysql.format(
+    const query = mysql().format(
       `
       SELECT m.*
       FROM measurements m

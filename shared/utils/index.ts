@@ -22,7 +22,11 @@ export async function tryCatch<T, E = Error>(
   }
 }
 
-export const numBool = (n: number | null | undefined) => {
+/** Because mysql stores booleans as 0 (false) and 1 (true).
+ * Guess I could alter this in the model, but I'd have to
+ * overwrite the imputed prisma schema type  */
+export const numBool = (n: number | null | undefined | boolean) => {
+  if (typeof n === "boolean") return n;
   if (n === undefined || n === null) {
     throw Error("n is not a number. n=" + n);
   }

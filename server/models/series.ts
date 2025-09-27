@@ -2,7 +2,7 @@
 
 import { SeriesMetadata, Universe } from "@shared/types/shared";
 import { app } from "app";
-import { mysql } from "helpers/db";
+import { mysql } from "helpers/mysql";
 import { queryDB } from "helpers/sql";
 
 import { SeriesSummary } from "../../shared/types";
@@ -10,8 +10,6 @@ import { NotFoundError } from "../errors";
 import { DataLoaders } from "./data-loaders";
 import DataPoints from "./data-points";
 import Measurements from "./measurements";
-
-/** Related functions for managing series */
 
 class Series {
   /** Create a series record */
@@ -23,7 +21,7 @@ class Series {
     aremos_missing: number | null;
     aremos_diff: number | null;
   }> {
-    const query = mysql.format(
+    const query = mysql().format(
       `
       SELECT 
         s.id,
@@ -55,7 +53,7 @@ class Series {
     id: number;
   }): Promise<SeriesMetadata> {
     // todo: remove unused fields after initial build
-    const query = mysql.format(
+    const query = mysql().format(
       `
       SELECT 
         s.id as s_id,
@@ -165,7 +163,7 @@ class Series {
     universe: Universe;
   }) {
     // fetch initial data
-    const mainSql = mysql.format(
+    const mainSql = mysql().format(
       `
     SELECT 
       s.name as name,
@@ -192,7 +190,7 @@ class Series {
 
     if (xseriesIds.length > 0) {
       // Second query - get min/max dates only for the 40 series
-      const dateSql = mysql.format(
+      const dateSql = mysql().format(
         `
       SELECT 
         xseries_id as id,
@@ -267,7 +265,7 @@ class Series {
    * to load the deleted datapoint where no other vintage exists */
   static async repairDataPoints(opts: { id: number }) {
     const { id } = opts;
-    const needRepairDatesQuery = mysql.format(
+    const needRepairDatesQuery = mysql().format(
       `
     SELECT DISTINCT dp.date
     FROM data_points dp
@@ -285,7 +283,7 @@ class Series {
     app.log.info(needRepairDates);
 
     for (const dateRow of needRepairDates) {
-      const query = mysql.format(
+      const query = mysql().format(
         `
       UPDATE data_points 
       SET current = true 
@@ -308,7 +306,7 @@ class Series {
   /** Retrieve distinct dates for a given series */
   static async getSeriesDates(opts: { id: number }) {
     const { id } = opts;
-    const query = mysql.format(
+    const query = mysql().format(
       `
     SELECT DISTINCT date 
     FROM data_points 
@@ -322,7 +320,7 @@ class Series {
 
   static async deleteAllDataPoints(opts: { id: number; u: Universe }) {
     const { id, u } = opts;
-    const query = mysql.format(
+    const query = mysql().format(
       `
       DELETE FROM data_points WHERE xseries_id = ?;`,
       [id]
@@ -338,7 +336,7 @@ class Series {
     date: string;
   }) {
     const { id, u, date } = opts;
-    const query = mysql.format(
+    const query = mysql().format(
       `
       DELETE FROM data_points WHERE xseries_id = ? AND date >= ?;`,
       [id, date]
@@ -354,7 +352,7 @@ class Series {
     date: string;
   }) {
     const { id, u, date } = opts;
-    const query = mysql.format(
+    const query = mysql().format(
       `
       DELETE FROM data_points WHERE xseries_id = ? AND created_at > ?;`,
       [id, date]
@@ -366,7 +364,7 @@ class Series {
 
   static async getAliases(opts: { sId: number; xsId: number }) {
     const { sId, xsId } = opts;
-    const sql = mysql.format(
+    const sql = mysql().format(
       `
       SELECT * FROM series
       WHERE xseries_id = ?

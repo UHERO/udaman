@@ -1,6 +1,7 @@
 "use server";
 
 import { notFound } from "next/navigation";
+import { udamanFetch } from "@/actions/action-utils";
 import type { measurements, series } from "@prisma/client";
 import {
   DataLoader,
@@ -9,25 +10,21 @@ import {
   SourceMapNode,
   Universe,
 } from "@shared/types/shared";
-import { apiRequest, withErrorHandling } from "lib/action-utils";
-import { ActionResult } from "lib/types";
 
 /** Used in series summary page */
 export async function getSeries(params: {
   universe?: Universe;
-}): Promise<ActionResult<series[]>> {
+}): Promise<series[]> {
   const universe = params.universe ?? "UHERO";
-  return withErrorHandling(async () => {
-    const response = await apiRequest<{
-      data: series[];
-      meta: {
-        offset: number;
-        limit: number;
-        count: number;
-      };
-    }>(`/series?u=${universe}`);
-    return response.data;
-  });
+  const result = await udamanFetch<{
+    data: series[];
+    meta: {
+      offset: number;
+      limit: number;
+      count: number;
+    };
+  }>(`/series?u=${universe}`);
+  return result.data;
 }
 
 export async function getSeriesById(
@@ -35,54 +32,32 @@ export async function getSeriesById(
   params: { universe?: Universe }
 ) {
   const universe = params.universe ?? "UHERO";
-
-  return withErrorHandling(async () => {
-    const response = await apiRequest<{
-      data: {
-        metadata: SeriesMetadata;
-        dataPoints: DataPoint[];
-        measurement: measurements[];
-        loaders: DataLoader[];
-      };
-    }>(`/series/${id}`);
-    return response.data;
-  });
+  const searchParams = new URLSearchParams({ u: universe });
+  const response = await udamanFetch<{
+    data: {
+      metadata: SeriesMetadata;
+      dataPoints: DataPoint[];
+      measurement: measurements[];
+      loaders: DataLoader[];
+      aliases: series[];
+    };
+  }>(`/series/${id}?${searchParams.toString()}`);
+  return response.data;
 }
-
-// export async function createSeries(formData: FormData) {
-//   return withErrorHandling(async () => {
-//     const seriesData = {
-//       name: formData.get("name") as string,
-//       dataPortalName: formData.get("dataPortalName") as string,
-//       // ... other fields
-//     };
-
-//     const response = await apiRequest<{
-//       data: series;
-//     }>("/series", {
-//       method: "POST",
-//       body: JSON.stringify(seriesData),
-//     });
-
-//     return response.data;
-//   });
-// }
 
 export async function getSourceMap(
   id: number,
   queryParams: { name: string | null }
-): Promise<ActionResult<SourceMapNode[]>> {
+): Promise<SourceMapNode[]> {
   const { name } = queryParams;
   if (name === null) return notFound();
   const searchParams = new URLSearchParams({ name });
   const url = `/series/${id}/source-map?${searchParams.toString()}`;
 
-  return withErrorHandling(async () => {
-    const response = await apiRequest<{
-      data: SourceMapNode[];
-    }>(url);
-    return response.data;
-  });
+  const response = await udamanFetch<{
+    data: SourceMapNode[];
+  }>(url);
+  return response.data;
 }
 
 export async function deleteSeriesDataPoints(
@@ -92,16 +67,13 @@ export async function deleteSeriesDataPoints(
     date: string;
     deleteBy: "observationDate" | "vintageDate" | "none";
   }
-): Promise<ActionResult<SourceMapNode[]>> {
+): Promise<SourceMapNode[]> {
   const { universe, date, deleteBy } = queryParams;
 
   const searchParams = new URLSearchParams({ u: universe, date, deleteBy });
   const url = `/series/${id}/delete?${searchParams.toString()}`;
-
-  return withErrorHandling(async () => {
-    const response = await apiRequest<{
-      data: SourceMapNode[];
-    }>(url, { method: "DELETE" });
-    return response.data;
+  const response = await udamanFetch<{ data: SourceMapNode[] }>(url, {
+    method: "DELETE",
   });
+  return response.data;
 }

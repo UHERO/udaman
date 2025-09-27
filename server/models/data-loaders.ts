@@ -1,8 +1,7 @@
-import { MySQLPromisePool } from "@fastify/mysql";
 import { DataLoaderType, SourceMapNode } from "@shared/types/shared";
 import { CreateLoaderPayload } from "@shared/types/sources";
 import { app } from "app";
-import { mysql } from "helpers/db";
+import { mysql } from "helpers/mysql";
 import { queryDB } from "helpers/sql";
 
 import Series from "./series";
@@ -16,7 +15,7 @@ export class DataLoaders {
   }: {
     seriesId: number;
   }): Promise<DataLoaderType[]> {
-    const query = mysql.format(
+    const query = mysql().format(
       `
         SELECT
             id,
@@ -55,7 +54,7 @@ export class DataLoaders {
   }: {
     seriesId: number;
   }): Promise<DataLoaderType[]> {
-    const query = mysql.format(
+    const query = mysql().format(
       `
     SELECT 
       id,
@@ -100,7 +99,7 @@ export class DataLoaders {
       }
       seen.add(name);
 
-      const query = mysql.format(
+      const query = mysql().format(
         `
       SELECT 
         s.name,
@@ -179,7 +178,7 @@ export class DataLoaders {
    * set color
    * set dependencies
    */
-  static async create(db: MySQLPromisePool, payload: CreateLoaderPayload) {
+  static async create(payload: CreateLoaderPayload) {
     const {
       seriesId,
       scale,
@@ -206,7 +205,7 @@ export class DataLoaders {
 
     const dependencies = this._extractDependencies(description || "", code);
 
-    const query = mysql.format(
+    const query = mysql().format(
       `
         INSERT INTO data_sources (
           series_id, eval, priority, scale, presave_hook, 
@@ -242,7 +241,7 @@ export class DataLoaders {
     loaderType: string,
     colorPalette: string[]
   ) {
-    const query = mysql.format(
+    const query = mysql().format(
       `
       SELECT ds.color, COUNT(*) as usage_count
       FROM data_sources ds

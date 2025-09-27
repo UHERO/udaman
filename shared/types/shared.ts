@@ -2,6 +2,7 @@ import type {
   data_points,
   data_sources,
   geographies,
+  measurements,
   series,
   source_details,
   sources,
@@ -104,7 +105,9 @@ export type SeriesMetadata = PrefixKeys<SeriesSelection, "s_"> &
   PrefixKeys<GeoSelection, "geo_"> &
   PrefixKeys<SourceSelection, "source_"> &
   PrefixKeys<SourceDetailSelection, "source_detail_"> &
-  PrefixKeys<UnitsDetailSelection, "u_">;
+  PrefixKeys<UnitsDetailSelection, "u_"> & { aliases: series[] } & {
+    measurement: measurements[];
+  };
 
 type DataPointsSelection = Pick<
   data_points,

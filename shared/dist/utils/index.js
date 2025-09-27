@@ -7,7 +7,12 @@ export async function tryCatch(promise) {
         return { data: null, error: error };
     }
 }
+/** Because mysql stores booleans as 0 (false) and 1 (true).
+ * Guess I could alter this in the model, but I'd have to
+ * overwrite the imputed prisma schema type  */
 export const numBool = (n) => {
+    if (typeof n === "boolean")
+        return n;
     if (n === undefined || n === null) {
         throw Error("n is not a number. n=" + n);
     }

@@ -1,4 +1,4 @@
-import type { data_points, data_sources, geographies, series, source_details, sources, units, xseries } from "@prisma/client";
+import type { data_points, data_sources, geographies, measurements, series, source_details, sources, units, xseries } from "@prisma/client";
 export type SeasonalAdjustment = "not_seasonally_adjusted" | "seasonally_adjusted" | "not_applicable";
 export type Universe = "UHERO" | "DBEDT" | "NTA" | "COH" | "CCOM";
 type PrefixKeys<T, P extends string> = {
@@ -11,7 +11,11 @@ type GeoSelection = Pick<geographies, "handle" | "display_name">;
 type SourceSelection = Pick<sources, "description" | "link">;
 type SourceDetailSelection = Pick<source_details, "description">;
 type UnitsDetailSelection = Pick<units, "long_label" | "short_label">;
-export type SeriesMetadata = PrefixKeys<SeriesSelection, "s_"> & PrefixKeys<XseriesSelection, "xs_"> & PrefixKeys<GeoSelection, "geo_"> & PrefixKeys<SourceSelection, "source_"> & PrefixKeys<SourceDetailSelection, "source_detail_"> & PrefixKeys<UnitsDetailSelection, "u_">;
+export type SeriesMetadata = PrefixKeys<SeriesSelection, "s_"> & PrefixKeys<XseriesSelection, "xs_"> & PrefixKeys<GeoSelection, "geo_"> & PrefixKeys<SourceSelection, "source_"> & PrefixKeys<SourceDetailSelection, "source_detail_"> & PrefixKeys<UnitsDetailSelection, "u_"> & {
+    aliases: series[];
+} & {
+    measurement: measurements[];
+};
 type DataPointsSelection = Pick<data_points, "date" | "value" | "updated_at" | "pseudo_history">;
 type CalculatedFields = {
     yoy: number | null;

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Universe } from "@shared/types/shared";
 import { getSeries } from "actions/series-actions";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
@@ -17,11 +16,9 @@ export default async function Page({
   searchParams: { u: Universe | undefined };
 }) {
   const { u } = await searchParams;
-  const { error, data } = await getSeries({ universe: u });
-  if (error) throw error;
-  if (!data) notFound();
-
+  const data = await getSeries({ universe: u });
   const count = data.length ?? 0;
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="grid auto-rows-min gap-4 md:grid-cols-3">

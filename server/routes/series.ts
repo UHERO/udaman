@@ -57,16 +57,11 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     },
     handler: async (request, response) => {
       const { offset, limit, u } = request.query;
-      const { error, data } = await tryCatch<Series>(
-        Series.getSummaryList({ offset, limit, universe: u })
-      );
+      const data = await Series.getSummaryList({ offset, limit, universe: u });
 
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        throw new NotFoundError();
+      if (data.length === 0) {
+        response.code(404);
+        return { error: "No series found" };
       }
 
       return { data, offset, limit };
@@ -87,14 +82,11 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     handler: async (request, response) => {
       const { id } = request.params;
 
-      const { error, data } = await tryCatch(Series.getSeriesPageData({ id }));
-
-      if (error) {
-        throw error;
-      }
+      const data = await Series.getSeriesPageData({ id });
 
       if (!data) {
-        throw new NotFoundError();
+        response.code(404);
+        return { error: "No series found" };
       }
 
       return { data };
@@ -124,21 +116,13 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       },
     },
     handler: async (request, response) => {
-      const { id } = request.params;
       const { name } = request.query;
 
-      app.log.info(`ROUTE id: ${id}, name: ${name}`);
+      const data = await DataLoaders.getDependencies({ seriesName: name });
 
-      const { error, data } = await tryCatch(
-        DataLoaders.getDependencies({ seriesName: name })
-      );
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        throw new NotFoundError();
+      if (data.length === 0) {
+        response.code(404);
+        return { error: "No Source-map found" };
       }
 
       return { data };

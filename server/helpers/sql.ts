@@ -2,7 +2,7 @@ import { RowDataPacket } from "@fastify/mysql";
 import { app } from "app";
 
 import { BadRequestError } from "../errors";
-import { mysql } from "./db";
+import { mysql } from "./mysql";
 
 /**
  * Accepts two Arguments:
@@ -39,10 +39,10 @@ async function queryDB<T extends RowDataPacket>(
 ): Promise<T[]> {
   try {
     app.log.info(queryString);
-    const [rows] = (await mysql.execute(queryString)) as [T[], any];
+    const [rows] = (await mysql().execute(queryString)) as [T[], any];
     return rows;
   } catch (err) {
-    console.log("Series query error ", err);
+    app.log.error(err);
     throw err;
   }
 }

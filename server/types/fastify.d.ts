@@ -7,6 +7,7 @@ declare module "fastify" {
       SERVER_PORT: number;
       NODE_ENV: string;
       DB_MYSQL_URL: string;
+      DATA_DIR: string;
     };
   }
 }

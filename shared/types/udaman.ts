@@ -1,4 +1,4 @@
-import { SeasonalAdjustment, Universe } from "./shared";
+import { SeasonalAdjustment } from "./shared";
 
 export interface Series {
   id: number;
@@ -99,26 +99,3 @@ export interface SeriesSummary {
 // | created_at          | datetime                                                               | NO   |     | NULL    |                |
 // | updated_at          | datetime                                                               | NO   |     | NULL    |                |
 // +---------------------+------------------------------------------------------------------------+------+-----+---------+----------------+
-
-export interface Measurement {
-  id: number;
-  unit_id: number;
-  source_id: number;
-  source_detail_id: number;
-  universe: Universe;
-  prefix: string | null;
-  data_portal_name: string | null;
-  table_prefix: string | null;
-  table_postfix: string | null;
-  frequency_transform: string | null;
-  percent: number | null;
-  real: number | null;
-  decimals: number;
-  restricted: number;
-  seasonally_adjusted: number | null;
-  seasonal_adjustment: SeasonalAdjustment | null;
-  source_link: string | null;
-  notes: string | null;
-  created_at: Date | null;
-  updated_at: Date | null;
-}
