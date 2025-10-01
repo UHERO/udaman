@@ -15,7 +15,7 @@ class ApiDvwReloadWorker
   def perform(dvw_upload_id)
     @dvw_upload = DvwUpload.find(dvw_upload_id)
 
-    mylogger :info, 'Starting API DVW series reload'
+    mylogger :info, 'Starting API DVW series reload with dependencies'
 
     api_dvw_series = Series.search("#api_dvw", limit: 10000)
 
@@ -26,26 +26,16 @@ class ApiDvwReloadWorker
 
     mylogger :info, "Found #{api_dvw_series.count} series with #api_dvw data sources"
 
-    success_count = 0
-    fail_count = 0
+    series_ids = api_dvw_series.pluck(:id)
 
-    api_dvw_series.each do |series|
-      mylogger :debug, "Reloading #{series.name}"
-
-      begin
-        if series.reload_sources(nightly: false, clear_first: false)
-          success_count += 1
-        else
-          fail_count += 1
-          mylogger :error, "Failed to reload #{series.name} (no exception)"
-        end
-      rescue => e
-        fail_count += 1
-        mylogger :error, "Failed to reload #{series.name}: #{e.message}"
-      end
+    begin
+      mylogger :info, "Calling reload_with_dependencies for #{series_ids.count} series"
+      Series.reload_with_dependencies(series_ids, 'api_dvw', nightly: false, clear_first: false)
+      mylogger :info, "API DVW reload with dependencies completed successfully"
+    rescue => e
+      mylogger :error, "Failed to reload with dependencies: #{e.message}"
+      raise
     end
-
-    mylogger :info, "API DVW reload completed: #{success_count} success, #{fail_count} failed of #{api_dvw_series.count} total"
 
   rescue => e
     mylogger :error, "API DVW reload job failed: #{e.message}"
