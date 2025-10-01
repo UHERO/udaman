@@ -286,6 +286,11 @@ class DvwUpload < ApplicationRecord
     else
       mylogger :warn, "worker_tasks: API /dvw/ cache clear FAIL: #{$?}"
     end
+
+    # Queue API DVW series reload as separate process
+    # This will start after DVW upload completes successfully
+    ApiDvwReloadWorker.perform_async(self.id)
+    mylogger :info, 'worker_tasks: API DVW series reload queued'
   end
 
 private
