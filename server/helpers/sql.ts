@@ -46,5 +46,13 @@ async function queryDB<T extends RowDataPacket>(
     throw err;
   }
 }
-
-export { sqlForPartialUpdate, queryDB };
+/** Convert string containing commas to regex OR list
+ * and preserves commas where not part of a list
+ */
+function convertCommas(string: string) {
+  string.replaceAll(",,", "#FOO#");
+  string.replaceAll(",", "|");
+  string.replaceAll("#FOO#", ",");
+  return string;
+}
+export { sqlForPartialUpdate, queryDB, convertCommas };

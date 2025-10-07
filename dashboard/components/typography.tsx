@@ -6,11 +6,27 @@ export const H1 = ({
   ...props
 }: React.ComponentProps<"h1">) => (
   <h1
-    className={cn("text-7xl font-bold tracking-tight opacity-80", className)}
+    className={cn(
+      "text-7xl font-bold tracking-tight text-stone-700",
+      className
+    )}
     {...props}
   >
     {children}
   </h1>
+);
+
+export const H2 = ({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"h2">) => (
+  <h2
+    className={cn("mb-7 text-5xl font-bold text-stone-700", className)}
+    {...props}
+  >
+    {children}
+  </h2>
 );
 
 export const Lead = ({

@@ -15,7 +15,7 @@ export type SeasonalAdjustment =
   | "seasonally_adjusted"
   | "not_applicable";
 
-export type Universe = "UHERO" | "DBEDT" | "NTA" | "COH" | "CCOM";
+export type Universe = "UHERO" | "FC" | "DBEDT" | "NTA" | "COH" | "CCOM";
 
 // Helper type to add prefix to keys
 type PrefixKeys<T, P extends string> = {

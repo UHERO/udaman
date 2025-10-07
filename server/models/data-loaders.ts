@@ -265,16 +265,15 @@ export class DataLoaders {
     );
     const existing = await queryDB(query);
 
-    const usageMap = {};
+    const usageMap: Record<string, number> = {};
     existing.forEach((row) => {
       if (colorPalette.includes(row.color)) {
         usageMap[row.color] = row.usage_count;
       }
     });
 
-    // Find least used color
     let optimalColor = colorPalette[0];
-    let minUsage = usageMap[optimalColor] || 0;
+    let minUsage = (optimalColor && usageMap[optimalColor]) || 0;
 
     for (const color of colorPalette) {
       const usage = usageMap[color] || 0;
@@ -363,7 +362,10 @@ export class DataLoaders {
     );
     if (apiMatch) {
       const [, source, id, freq] = apiMatch;
-      return `loaded data set from ${source.toUpperCase()} API with parameters shown`;
+      const sourceTxt = source
+        ? `loaded data set from ${source.toUpperCase()} API with parameters shown`
+        : "Source not found";
+      return sourceTxt;
     }
 
     // Handle arithmetic: "SERIES1@GEO.FREQ".ts * number

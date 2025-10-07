@@ -1,6 +1,6 @@
 import type { data_points, data_sources, geographies, measurements, series, source_details, sources, units, xseries } from "@prisma/client";
 export type SeasonalAdjustment = "not_seasonally_adjusted" | "seasonally_adjusted" | "not_applicable";
-export type Universe = "UHERO" | "DBEDT" | "NTA" | "COH" | "CCOM";
+export type Universe = "UHERO" | "FC" | "DBEDT" | "NTA" | "COH" | "CCOM";
 type PrefixKeys<T, P extends string> = {
     [K in keyof T as `${P}${string & K}`]: T[K];
 };

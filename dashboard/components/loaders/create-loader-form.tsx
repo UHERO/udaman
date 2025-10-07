@@ -3,29 +3,29 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { createDataLoader } from "@/actions/data-loaders";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Select } from "@radix-ui/react-select";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-import { Checkbox } from "../ui/checkbox";
 import {
+  Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "@/components/ui/select";
+
+import { H2 } from "../typography";
 
 const formSchema = z.object({
   code: z.string().min(2, {
@@ -34,10 +34,10 @@ const formSchema = z.object({
   priority: z
     .number()
     .min(0, {
-      message: "Priorty must be a number between 0 and 100",
+      message: "Priority must be a number between 0 and 100",
     })
     .max(100, {
-      message: "Priorty must be a number between 0 and 100",
+      message: "Priority must be a number between 0 and 100",
     }),
   scale: z.number(),
   presaveHook: z.string(),
@@ -73,75 +73,69 @@ export function CreateLoaderForm() {
 
   return (
     <main className="m-4 max-w-md">
-      <h1 className="mb-7 text-5xl font-bold text-gray-700">
-        Add a new loader
-      </h1>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Code</FormLabel>
-                <FormControl>
-                  <Input placeholder="enter load statement" {...field} />
-                </FormControl>
-                <FormDescription>
-                  Field will be evaluated as code to load data points
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="priority"
-              render={({ field }) => (
-                <FormItem className="justify-start">
-                  <FormLabel>Priority</FormLabel>
-                  <FormControl>
-                    <Input type="number" min={1} max={100} {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Loader with higher priority take precedence. Avoid
-                    duplicates
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="scale"
-              render={({ field }) => (
-                <FormItem className="justify-start">
-                  <FormLabel>Scale</FormLabel>
-                  <FormControl>
-                    <Input type="number" min={0} {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    (multiply original data by: 0.001, 1, 1000, etc)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <FormField
-            control={form.control}
-            name="presaveHook"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Presave hook</FormLabel>
-                <FormControl>
+      <H2>Add a new loader</H2>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FieldSet>
+          <FieldGroup>
+            <Field data-invalid={!!form.formState.errors.code}>
+              <FieldLabel htmlFor="code">Code</FieldLabel>
+              <Input
+                id="code"
+                placeholder="enter load statement"
+                aria-invalid={!!form.formState.errors.code}
+                {...form.register("code")}
+              />
+              <FieldDescription>
+                Field will be evaluated as code to load data points
+              </FieldDescription>
+              <FieldError errors={[form.formState.errors.code]} />
+            </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field data-invalid={!!form.formState.errors.priority}>
+                <FieldLabel htmlFor="priority">Priority</FieldLabel>
+                <Input
+                  id="priority"
+                  type="number"
+                  min={1}
+                  max={100}
+                  aria-invalid={!!form.formState.errors.priority}
+                  {...form.register("priority", { valueAsNumber: true })}
+                />
+                <FieldDescription>
+                  Loader with higher priority take precedence. Avoid duplicates
+                </FieldDescription>
+                <FieldError errors={[form.formState.errors.priority]} />
+              </Field>
+
+              <Field data-invalid={!!form.formState.errors.scale}>
+                <FieldLabel htmlFor="scale">Scale</FieldLabel>
+                <Input
+                  id="scale"
+                  type="number"
+                  min={0}
+                  aria-invalid={!!form.formState.errors.scale}
+                  {...form.register("scale", { valueAsNumber: true })}
+                />
+                <FieldDescription>
+                  (multiply original data by: 0.001, 1, 1000, etc)
+                </FieldDescription>
+                <FieldError errors={[form.formState.errors.scale]} />
+              </Field>
+            </div>
+
+            <Field data-invalid={!!form.formState.errors.presaveHook}>
+              <FieldLabel htmlFor="presaveHook">Presave hook</FieldLabel>
+              <Controller
+                name="presaveHook"
+                control={form.control}
+                render={({ field }) => (
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    defaultValue={"1"}
+                    defaultValue="1"
                   >
-                    <SelectTrigger className="min-w-sm">
+                    <SelectTrigger id="presaveHook" className="min-w-sm">
                       <SelectValue placeholder="Select hook (this is uncommon)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -152,63 +146,66 @@ export function CreateLoaderForm() {
                       ))}
                     </SelectContent>
                   </Select>
-                </FormControl>
-                <FormDescription>
-                  Method to be called prior to storing data points during load
-                  operation
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="clearBeforeLoad"
-            render={({ field }) => (
-              <FormItem className="flex flex-row">
-                <FormControl>
-                  <FormLabel>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) =>
-                        field.onChange(!field.value)
-                      }
-                    />
-                    Always clear existing data points before loading
-                  </FormLabel>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="pseudoHistory"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <FormLabel>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) =>
-                        field.onChange(!field.value)
-                      }
-                    />
-                    This load is pseudo-history
-                  </FormLabel>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex flex-row gap-x-4">
+                )}
+              />
+              <FieldDescription>
+                Method to be called prior to storing data points during load
+                operation
+              </FieldDescription>
+              <FieldError errors={[form.formState.errors.presaveHook]} />
+            </Field>
+
+            <Field
+              orientation="horizontal"
+              data-invalid={!!form.formState.errors.clearBeforeLoad}
+            >
+              <Controller
+                name="clearBeforeLoad"
+                control={form.control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="clearBeforeLoad"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <FieldLabel htmlFor="clearBeforeLoad">
+                Always clear existing data points before loading
+              </FieldLabel>
+              <FieldError errors={[form.formState.errors.clearBeforeLoad]} />
+            </Field>
+
+            <Field
+              orientation="horizontal"
+              data-invalid={!!form.formState.errors.pseudoHistory}
+            >
+              <Controller
+                name="pseudoHistory"
+                control={form.control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="pseudoHistory"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+              <FieldLabel htmlFor="pseudoHistory">
+                This load is pseudo-history
+              </FieldLabel>
+              <FieldError errors={[form.formState.errors.pseudoHistory]} />
+            </Field>
+          </FieldGroup>
+
+          <div className="mt-8 flex flex-row gap-x-4">
             <Button type="submit">Save loader</Button>
-            <Button variant={"outline"} onClick={goBack}>
+            <Button type="button" variant="outline" onClick={goBack}>
               Cancel
             </Button>
           </div>
-        </form>
-      </Form>
+        </FieldSet>
+      </form>
     </main>
   );
 }

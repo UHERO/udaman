@@ -39,7 +39,7 @@ const data = {
     {
       name: "UHERO",
       logo: GalleryVerticalEnd,
-      description: "",
+      description: "UHERO",
     },
     {
       name: "NTA",

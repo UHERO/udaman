@@ -2,6 +2,8 @@ import { Universe } from "@shared/types/shared";
 import { tryCatch } from "@shared/utils";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { DataLoaders } from "models/data-loaders";
+import DataPoints from "models/data-points";
+import Measurements from "models/measurements";
 
 import { NotFoundError } from "../errors";
 import Series from "../models/series";
@@ -10,6 +12,7 @@ interface SeriesQueryParams {
   offset?: number;
   limit?: number;
   u: Universe;
+  search: string;
 }
 
 interface SeriesDeleteParams {
@@ -37,6 +40,10 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       querystring: {
         type: "object",
         properties: {
+          searcj: {
+            type: "string",
+            description: "Bulk search across series",
+          },
           offset: {
             type: "number",
             default: 0,
@@ -56,8 +63,11 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
       },
     },
     handler: async (request, response) => {
-      const { offset, limit, u } = request.query;
-      const data = await Series.getSummaryList({ offset, limit, universe: u });
+      const { offset, limit, u, search } = request.query;
+
+      const data = search
+        ? await Series.search()
+        : await Series.getSummaryList({ offset, limit, universe: u });
 
       if (data.length === 0) {
         response.code(404);
@@ -82,14 +92,32 @@ async function routes(app: FastifyInstance, options: FastifyPluginOptions) {
     handler: async (request, response) => {
       const { id } = request.params;
 
-      const data = await Series.getSeriesPageData({ id });
+      const [metadata, measurement, dataPoints, loaders] = await Promise.all([
+        Series.getSeriesMetadata({ id }),
+        Measurements.getSeriesMeasurements({ seriesId: id }),
+        DataPoints.getBySeriesId({ seriesId: id }),
+        DataLoaders.getSeriesLoaders({ seriesId: id }),
+      ]);
 
-      if (!data) {
+      const aliases = await Series.getAliases({
+        sId: id,
+        xsId: metadata.xs_id,
+      });
+
+      if (!metadata || !dataPoints || !measurement || !aliases || !loaders) {
         response.code(404);
         return { error: "No series found" };
       }
 
-      return { data };
+      return {
+        data: {
+          aliases,
+          dataPoints,
+          loaders,
+          measurement: measurement,
+          metadata: metadata,
+        },
+      };
     },
   });
 

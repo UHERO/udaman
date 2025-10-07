@@ -1,20 +1,9 @@
 import { RowDataPacket } from "@fastify/mysql";
 import { DataPoint } from "@shared/types/shared";
 import { mysql } from "helpers/mysql";
+import { queryDB } from "helpers/sql";
 
 class DataPoints {
-  static async _queryDB<T extends RowDataPacket>(
-    queryString: string
-  ): Promise<T[]> {
-    try {
-      const [rows] = (await mysql().execute(queryString)) as [T[], any];
-      return rows;
-    } catch (err) {
-      console.log("Series query error ", err);
-      throw err;
-    }
-  }
-
   /**
    * Gets Data points for a given series, and calculates YOY, YTD, and LVL.
    * The database contains these fields, but they appeare to be unused. So we calculate
@@ -111,7 +100,7 @@ class DataPoints {
       [opts.seriesId, opts.seriesId, opts.seriesId]
     );
 
-    const response = await this._queryDB(query);
+    const response = await queryDB(query);
     return response as DataPoint[];
   }
 }

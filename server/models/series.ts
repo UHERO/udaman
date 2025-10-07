@@ -1,15 +1,13 @@
 "use strict";
 
 import { SeriesMetadata, Universe } from "@shared/types/shared";
+import { isValidUniverse } from "@shared/utils/validators";
 import { app } from "app";
 import { mysql } from "helpers/mysql";
-import { queryDB } from "helpers/sql";
+import { convertCommas, queryDB } from "helpers/sql";
 
 import { SeriesSummary } from "../../shared/types";
 import { NotFoundError } from "../errors";
-import { DataLoaders } from "./data-loaders";
-import DataPoints from "./data-points";
-import Measurements from "./measurements";
 
 class Series {
   /** Create a series record */
@@ -114,38 +112,6 @@ class Series {
     if (response.length === 0)
       throw new NotFoundError("404 - Series not found: " + id);
     return response[0] as SeriesMetadata;
-  }
-  /**
-   * Fetches a single series record with associated xseries, data points, and measurement.
-   *
-   * Used on /series/[id] page info
-   * */
-  static async getSeriesPageData({ id }: { id: number }) {
-    // ? Previously Ruby did them all individually. I've merged them as much as is possible
-    // ? but this would be a great place to test out different loading patterns and measure perf.
-    const [metadata, measurement, dataPoints, loaders] = await Promise.all([
-      this.getSeriesMetadata({ id }),
-      Measurements.getSeriesMeasurements({ seriesId: id }),
-      DataPoints.getBySeriesId({ seriesId: id }),
-      DataLoaders.getSeriesLoaders({ seriesId: id }),
-    ]);
-
-    const aliases = await this.getAliases({
-      sId: id,
-      xsId: metadata.xs_id,
-    });
-
-    if (!metadata || !dataPoints || !measurement || !aliases || !loaders) {
-      throw new NotFoundError(String(id));
-    }
-
-    return {
-      dataPoints,
-      metadata: metadata,
-      measurement: measurement,
-      aliases,
-      loaders,
-    };
   }
 
   /** Fetch the the most recent 40 series to display on the homepage.
@@ -386,10 +352,121 @@ class Series {
     return response;
   }
 
-  static async search(
-    { text: string, limit = 10000, user = null },
-    universe: { text: string; limit: number; user: null; universe: Universe }
-  ) {}
+  /**
+   * 1. join series & xseries
+   * 2. univ defaults to UHERO
+   * 3.
+   */
+  static async search({
+    text,
+    limit = 10000,
+    user = null,
+    universe,
+  }: {
+    text: string;
+    limit: number;
+    user: null;
+    universe: Universe | string;
+  }) {
+    if (text.length < 1) throw new Error("Invalid search term");
+    const joins = [`INNER JOIN xseries ON xseries.id = series.xseries_id`];
+    const operators = "^+~-@.#!:;&/=";
+    const conditions = [];
+    const variables = [];
+    let firstTerm = "";
+    let negated = "";
+
+    const terms = text.split(" ");
+    for (let term of terms) {
+      negated = "";
+      if (term[0] === "-") {
+        negated = "NOT ";
+        term = term.slice(1);
+      }
+
+      const hasOperator = term[0] !== undefined && operators.includes(term[0]);
+      const operator = term[0];
+
+      if (hasOperator) {
+        term = term.slice(1);
+      }
+
+      switch (operator) {
+        case "/":
+          const abbrevs: Record<string, Universe> = { u: "UHERO", db: "DBEDT" };
+          universe = abbrevs[term] ?? term;
+          if (!isValidUniverse(universe)) {
+            throw new Error(`Unknown universe ${universe}`);
+          }
+        case "+":
+          const newLimit = parseInt(term);
+          if (isNaN(newLimit) || newLimit <= 0) {
+            throw new Error(`Invalid limit ${term}`);
+          }
+          limit = newLimit;
+        case "=":
+          conditions.push(`series.name = ?`);
+          variables.push(term);
+        case "^":
+          conditions.push(
+            `substring_index(series.name,'@',1) ${negated}regexp ?`
+          );
+          variables.push(`^${convertCommas(term)}`);
+        case "~":
+          conditions.push(
+            `substring_index(series.name,'@',1) ${negated}regexp ?`
+          );
+          variables.push(`~${convertCommas(term)}`);
+        case ":":
+          // ":: search sources.link && source_link"
+          if (term.startsWith(":")) {
+            joins.push(
+              "left outer join sources on sources.id = series.source_id"
+            );
+            conditions.push(
+              `concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) ${negated}regexp ?`
+            );
+            variables.push(convertCommas(term.slice(1)));
+          } else {
+            conditions.push(`source_link ${negated}regexp ?`);
+            variables.push(convertCommas(term));
+          }
+        case "@":
+          const geoMap: Record<string, string[]> = {
+            HIALL: [
+              "HI5",
+              "NBI",
+              "MOL",
+              "MAUI",
+              "LAN",
+              "HAWH",
+              "HAWK",
+              "HIONLY",
+            ],
+            HI5: ["HI", "CNTY"],
+            CNTY: ["HAW", "HON", "KAU", "MAU"],
+          };
+
+          joins.push(
+            `INNER JOIN geographies ON geographies.id = series.geography_id`
+          );
+          const geos = term
+            .split(",")
+            .flatMap((g) => geoMap[g.toUpperCase()] || [g.toUpperCase()]);
+
+          const geoQs = geos.map((g) => "?").join(", ");
+          conditions.push(`geographies.handle ${negated}in (${geoQs})`);
+          variables.concat(geos);
+        case ".":
+
+        case "#":
+        case "!":
+        case ";":
+        case "&":
+        default:
+      }
+    }
+  }
 
   static isValidName(str: string) {
     if (!str || !str.includes("@")) return false;
@@ -399,6 +476,8 @@ class Series {
       /^([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?@(\w+?)(\.([ASQMWD]))?$/i;
     return seriesNameRegex.test(str);
   }
+
+  static isValidUniverse(universe: Universe | string) {}
 }
 
 export default Series;

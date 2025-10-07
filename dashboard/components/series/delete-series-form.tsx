@@ -10,17 +10,17 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { H2 } from "../typography";
 
 const formSchema = z.object({
   date: z.string().refine((val) => val === "" || isValidDate(val), {
@@ -54,87 +54,81 @@ export function DeleteSeriesForm({ seriesId }: { seriesId: number }) {
 
   return (
     <main className="m-4 max-w-md">
-      <h1 className="mb-7 text-5xl font-bold text-gray-700">
-        Clear Series Data
-      </h1>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="deleteBy"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>Clear data points by...</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    className="flex flex-col"
-                  >
-                    <FormItem className="flex items-center gap-3">
-                      <FormControl>
-                        <RadioGroupItem value="observationDate" />
-                      </FormControl>
-                      <FormLabel className="w-fit font-normal text-pretty">
-                        <b>Observation date:</b> delete data points following
-                        given date
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center gap-3">
-                      <FormControl>
-                        <RadioGroupItem value="vintageDate" />
-                      </FormControl>
-                      <FormLabel className="font-normal">
-                        <b>Vintage:</b> delete data points loaded after given
-                        date
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center gap-3">
-                      <FormControl>
-                        <RadioGroupItem value="none" />
-                      </FormControl>
-                      <FormLabel className="font-normal">
-                        <b>Neither:</b> clear all data points.
-                      </FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem className={cn(disableDate && "opacity-50")}>
-                <FormLabel>
-                  Date{" "}
-                  <span className="text-xs text-slate-500">YYYY-MM-DD</span>
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={disableDate}
-                    placeholder="YYYY-MM-DD"
-                    {...field}
+      <H2 className="mb-7">Clear Series Data</H2>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FieldSet>
+          <FieldGroup>
+            <Field data-invalid={!!form.formState.errors.deleteBy}>
+              <FieldLabel>Clear data points by...</FieldLabel>
+              <RadioGroup
+                value={form.watch("deleteBy")}
+                onValueChange={(value) =>
+                  form.setValue(
+                    "deleteBy",
+                    value as "observationDate" | "vintageDate" | "none"
+                  )
+                }
+                className="flex flex-col"
+              >
+                <Field orientation="horizontal">
+                  <RadioGroupItem
+                    value="observationDate"
+                    id="observationDate"
                   />
-                </FormControl>
-                <FormDescription>
-                  Clear data points relative to the following date or leave
-                  blank to delete all data points.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex flex-row gap-x-4">
+                  <FieldLabel
+                    htmlFor="observationDate"
+                    className="font-normal text-pretty"
+                  >
+                    <b>Observation date:</b> delete data points following given
+                    date
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <RadioGroupItem value="vintageDate" id="vintageDate" />
+                  <FieldLabel htmlFor="vintageDate" className="font-normal">
+                    <b>Vintage:</b> delete data points loaded after given date
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <RadioGroupItem value="none" id="none" />
+                  <FieldLabel htmlFor="none" className="font-normal">
+                    <b>Neither:</b> clear all data points.
+                  </FieldLabel>
+                </Field>
+              </RadioGroup>
+              <FieldError errors={[form.formState.errors.deleteBy]} />
+            </Field>
+
+            <Field
+              data-invalid={!!form.formState.errors.date}
+              className={cn(disableDate && "opacity-50")}
+            >
+              <FieldLabel htmlFor="date">
+                Date <span className="text-xs text-slate-500">YYYY-MM-DD</span>
+              </FieldLabel>
+              <Input
+                id="date"
+                disabled={disableDate}
+                placeholder="YYYY-MM-DD"
+                aria-invalid={!!form.formState.errors.date}
+                {...form.register("date")}
+              />
+              <FieldDescription>
+                Clear data points relative to the following date or leave blank
+                to delete all data points.
+              </FieldDescription>
+              <FieldError errors={[form.formState.errors.date]} />
+            </Field>
+          </FieldGroup>
+
+          <div className="mt-8 flex flex-row gap-x-4">
             <Button type="submit">Clear datapoints</Button>
             <Button type="button" variant={"outline"} onClick={goBack}>
               Cancel
             </Button>
           </div>
-        </form>
-      </Form>
+        </FieldSet>
+      </form>
     </main>
   );
 }

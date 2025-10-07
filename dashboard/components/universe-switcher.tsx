@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronsUpDown, Plus } from "lucide-react";
+import { ChevronsUpDown, GalleryVerticalEnd, Plus } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -20,6 +20,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+const defaultU = {
+  name: "UHERO",
+  logo: GalleryVerticalEnd as React.ElementType,
+  description: "Primary Universe",
+};
+
 export function UniverseSwitcher({
   universes,
 }: {
@@ -32,7 +38,7 @@ export function UniverseSwitcher({
   const { isMobile } = useSidebar();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeUniverse, setActiveUniverse] = React.useState(universes[0]);
+  const [activeUniverse, setActiveUniverse] = React.useState(defaultU);
 
   React.useEffect(() => {
     if (!activeUniverse) return;
@@ -47,11 +53,11 @@ export function UniverseSwitcher({
 
     if (universeFromUrl) {
       const foundUniverse = universes.find((u) => u.name === universeFromUrl);
-      if (foundUniverse) {
+      if (foundUniverse !== undefined) {
         setActiveUniverse(foundUniverse);
       }
     } else {
-      setActiveUniverse(universes[0]);
+      setActiveUniverse(defaultU);
     }
   }, []);
 
