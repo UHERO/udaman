@@ -38,14 +38,18 @@ class SeriesController < ApplicationController
 
   def save_duplicate
     new_name = params[:new_name].strip
-    dup_series = @series.duplicate(new_name)
-    if params[:copy_loaders] == 'yes'
-      @series.enabled_data_sources.each do |ld|
-        new_ld = ld.dup
-        dup_series.data_sources << new_ld
+    begin
+      dup_series = @series.duplicate(new_name)
+      if params[:copy_loaders] == 'yes'
+        @series.enabled_data_sources.each do |ld|
+          new_ld = ld.dup
+          dup_series.data_sources << new_ld
+        end
       end
+      redirect_to(edit_series_path(dup_series))
+    rescue RuntimeError => e
+      redirect_to(duplicate_series_path(@series), alert: e.message)
     end
-    redirect_to(edit_series_path(dup_series))
   end
 
   def create
