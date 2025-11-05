@@ -208,6 +208,7 @@ Rails.application.routes.draw do
       post "csv2tsd"
       get "transform"
       post "transform"
+      get "analyze/:id", to: "series#analyze"  # Legacy route for /series/analyze/:id
     end
 
     member do
