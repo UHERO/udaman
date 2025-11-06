@@ -65,8 +65,8 @@ private
   def order_section(leaf, first, last)
       return if first && last
       links = []
-      links.push link_to('Up', "/categories/up/#{leaf.id}") unless first
-      links.push link_to('Down', "/categories/down/#{leaf.id}") unless last
+      links.push link_to('Up', up_category_path(leaf)) unless first
+      links.push link_to('Down', down_category_path(leaf)) unless last
       links.join(' - ')
   end
 
