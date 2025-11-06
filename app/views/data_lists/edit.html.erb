@@ -30,7 +30,7 @@
     </tbody>
 </table>
 <br />
-<%= form_for(@data_list, url: add_measurement_data_list_path(@data_list)) do |f2| %>
+<%= form_for(@data_list, url: add_measurement_data_list_path(@data_list), method: :post) do |f2| %>
 <div class="field">
     <%= f2.collection_select :meas_id, Measurement.where(universe: @data_list.universe).all.order(:prefix, :data_portal_name), :id, :prefix_and_name, {include_blank: false, selected: nil} %>
     <span class="actions"><%= f2.submit 'Add measurement' %></span>
