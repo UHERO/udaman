@@ -17,14 +17,14 @@
         <tr>
             <td><%= link_to measurement.prefix, measurement %></td>
             <td><span class="indentation"><%= make_indentation(indent_i) %></span><%= measurement.data_portal_name %></td>
-            <td><%= link_to 'Up', move_measurement_up_data_list_path(@data_list, measurement_id: measurement.id), remote: true, data: {up: true} %></td>
-            <td><%= link_to 'Down', move_measurement_down_data_list_path(@data_list, measurement_id: measurement.id), remote: true, data: {down: true} %></td>
-            <td><%= link_to '<<'.html_safe, set_measurement_indent_data_list_path(@data_list, measurement_id: measurement.id, indent_in_out: 'out'), remote: true, data: {indent: 1} %></td>
-            <td><%= link_to '>>'.html_safe, set_measurement_indent_data_list_path(@data_list, measurement_id: measurement.id, indent_in_out: 'in'), remote: true, data: {indent: 1} %></td>
+            <td><%= link_to 'Up', move_measurement_up_data_list_path(@data_list, measurement_id: measurement.id), method: :patch, remote: true, data: {up: true} %></td>
+            <td><%= link_to 'Down', move_measurement_down_data_list_path(@data_list, measurement_id: measurement.id), method: :patch, remote: true, data: {down: true} %></td>
+            <td><%= link_to '<<'.html_safe, set_measurement_indent_data_list_path(@data_list, measurement_id: measurement.id, indent_in_out: 'out'), method: :patch, remote: true, data: {indent: 1} %></td>
+            <td><%= link_to '>>'.html_safe, set_measurement_indent_data_list_path(@data_list, measurement_id: measurement.id, indent_in_out: 'in'), method: :patch, remote: true, data: {indent: 1} %></td>
 
             <td><%= link_to 'Duplicate', duplicate_measurement_path(measurement) %></td>
             <td><%= link_to 'Edit', edit_measurement_path(measurement) %></td>
-            <td><%= link_to 'Remove', remove_measurement_data_list_path(@data_list, measurement_id: measurement.id), remote: true, data: {remove: true} %></td>
+            <td><%= link_to 'Remove', remove_measurement_data_list_path(@data_list, measurement_id: measurement.id), method: :delete, remote: true, data: {remove: true} %></td>
         </tr>
         <% end %>
     </tbody>
