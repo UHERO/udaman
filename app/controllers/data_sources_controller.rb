@@ -90,21 +90,26 @@ class DataSourcesController < ApplicationController
       (@data_source.pseudo_history? != update_attrs[:pseudo_history].to_bool)
     update_attrs[:scale] = update_attrs[:scale].to_f.to_s ## normalize the scaling factor format
 
-    if @data_source.update!(update_attrs)
-      @data_source.setup if eval_changed
-      if ph_changed
-        @data_source.mark_data_as_pseudo_history(@data_source.pseudo_history?)
+    begin
+      if @data_source.update!(update_attrs)
+        @data_source.setup if eval_changed
+        if ph_changed
+          @data_source.mark_data_as_pseudo_history(@data_source.pseudo_history?)
+        end
+        create_action @data_source, "UPDATE"
+        redirect_to(
+          series_path(@data_source.series_id),
+          notice: "Successfully updated auto reload for #{@data_source.name}"
+        )
+      else
+        redirect_to(
+          series_path(@data_source.series_id),
+          notice: "Successfully updated auto reload for #{@data_source.name}"
+        )
       end
-      create_action @data_source, "UPDATE"
-      redirect_to(
-        series_path(@data_source.series_id),
-        notice: "Successfully updated auto reload for #{@data_source.name}"
-      )
-    else
-      redirect_to(
-        series_path(@data_source.series_id),
-        notice: "Successfully updated auto reload for #{@data_source.name}"
-      )
+    rescue StandardError => e
+      flash[:alert] = "Error updating data source: #{e.message}"
+      redirect_to edit_data_source_path(@data_source)
     end
   end
 
@@ -144,12 +149,18 @@ class DataSourcesController < ApplicationController
     create_attrs[:scale] = create_attrs[:scale].to_f.to_s ## normalize the scaling factor format
 
     @data_source = DataSource.new(create_attrs)
-    if @data_source.create_from_form
-      create_action @data_source.series.data_sources_by_last_run.first, "CREATE"
-      redirect_to series_path(@data_source.series_id),
-                  notice: "Successfully created #{@data_source.series.name}"
-    else
+    begin
+      if @data_source.create_from_form
+        create_action @data_source.series.data_sources_by_last_run.first, "CREATE"
+        redirect_to series_path(@data_source.series_id),
+                    notice: "Successfully created #{@data_source.series.name}"
+      else
+        @series = Series.find_by id: @data_source.series_id
+        render(action: "new", series_id: @data_source.series_id)
+      end
+    rescue StandardError => e
       @series = Series.find_by id: @data_source.series_id
+      flash.now[:alert] = "Error creating data source: #{e.message}"
       render(action: "new", series_id: @data_source.series_id)
     end
   end
