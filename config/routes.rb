@@ -71,6 +71,7 @@ Rails.application.routes.draw do
     member do
       get "duplicate"
       get "super_table"
+      post "super_table"
       get "show_table"
       get "show_tsd_super_table"
       get "show_tsd_table"
