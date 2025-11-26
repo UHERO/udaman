@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h2>DBEDT Upload Started</h2>
+
+    <p>A new DBEDT upload has been triggered.</p>
+
+    <table style="border-collapse: collapse; margin: 20px 0;">
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Upload ID:</td>
+        <td style="padding: 8px;"><%= @upload_id %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Filename:</td>
+        <td style="padding: 8px;"><%= @filename %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Started At:</td>
+        <td style="padding: 8px;"><%= @upload_time.strftime('%Y-%m-%d %H:%M:%S %Z') %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Status:</td>
+        <td style="padding: 8px;">Processing</td>
+      </tr>
+    </table>
+
+    <p>You will receive another notification when the upload completes.</p>
+  </body>
+</html>

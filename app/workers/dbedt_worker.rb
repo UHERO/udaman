@@ -15,6 +15,8 @@ class DbedtWorker
     begin
       upload = NewDbedtUpload.find(id) || raise("No #{self.class} found with id=#{id}")
       upload.worker_tasks(do_csv_proc: do_csv_proc)
+      # Send success notification
+      DbedtUploadMailer.upload_completed(upload).deliver_later
     rescue => error
       mylogger :error, error.message
       mylogger :error, error.backtrace
@@ -22,6 +24,8 @@ class DbedtWorker
         upload.update_attributes(status: :fail,
                                  last_error_at: Time.now,
                                  last_error: error.message[0..254])
+        # Send failure notification
+        DbedtUploadMailer.upload_completed(upload).deliver_later
       end
     end
   end

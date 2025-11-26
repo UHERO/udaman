@@ -1,0 +1,14 @@
+DBEDT Upload <%= @status == 'ok' ? 'Completed Successfully' : 'Failed' %>
+<%= '=' * 50 %>
+
+Upload ID:   <%= @upload_id %>
+Filename:    <%= @filename %>
+Started At:  <%= @upload_time.strftime('%Y-%m-%d %H:%M:%S %Z') %>
+Status:      <%= @status.upcase %>
+<% if @message.present? %>
+Message:     <%= @message %>
+<% end %>
+
+<% if @status != 'ok' %>
+The upload failed. Please check the logs for more details.
+<% end %>

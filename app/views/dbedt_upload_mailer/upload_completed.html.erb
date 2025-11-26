@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h2>DBEDT Upload <%= @status == 'ok' ? 'Completed Successfully' : 'Failed' %></h2>
+
+    <table style="border-collapse: collapse; margin: 20px 0;">
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Upload ID:</td>
+        <td style="padding: 8px;"><%= @upload_id %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Filename:</td>
+        <td style="padding: 8px;"><%= @filename %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Started At:</td>
+        <td style="padding: 8px;"><%= @upload_time.strftime('%Y-%m-%d %H:%M:%S %Z') %></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Status:</td>
+        <td style="padding: 8px; color: <%= @status == 'ok' ? 'green' : 'red' %>; font-weight: bold;">
+          <%= @status.upcase %>
+        </td>
+      </tr>
+      <% if @message.present? %>
+      <tr>
+        <td style="padding: 8px; font-weight: bold; vertical-align: top;">Message:</td>
+        <td style="padding: 8px;"><%= @message %></td>
+      </tr>
+      <% end %>
+    </table>
+
+    <% if @status != 'ok' %>
+    <p style="color: red;">
+      <strong>The upload failed. Please check the logs for more details.</strong>
+    </p>
+    <% end %>
+  </body>
+</html>
