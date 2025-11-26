@@ -85,6 +85,10 @@ Rails.application.routes.draw do
       patch "move_measurement_down"
       patch "set_measurement_indent"
     end
+
+    collection do
+      post "super_table/:id" => "data_lists#super_table"
+    end
   end
 
   resources :data_points, only: [] do
