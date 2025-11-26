@@ -23,8 +23,12 @@ class NewDbedtUpload < ApplicationRecord
       self.save
       write_file_to_disk(filename, file_content)
       DbedtWorker.perform_async(id, true)
-      # Send notification email
-      DbedtUploadMailer.upload_started(self).deliver_later
+      # Send notification email (don't let email failures block upload)
+      begin
+        DbedtUploadMailer.upload_started(self).deliver_later
+      rescue => email_error
+        mylogger :warn, "Failed to send upload started email: #{email_error.message}"
+      end
     rescue => e
       mylogger :error, e.message
       self.delete if e.message =~ /disk write failed/
