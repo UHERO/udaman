@@ -1,6 +1,12 @@
 class DbedtUploadMailer < ApplicationMailer
   default from: 'udaman.bot@gmail.com'
 
+  NOTIFICATION_RECIPIENTS = [
+    'wood2@hawaii.edu',
+    'vward@hawaii.edu',
+    'paul.t.oshiro@hawaii.gov'    # Paul uploads the files from DBEDT 1-2x per month
+  ]
+
   def upload_started(upload)
     @upload = upload
     @upload_id = upload.id
@@ -8,7 +14,7 @@ class DbedtUploadMailer < ApplicationMailer
     @upload_time = upload.upload_at
 
     mail(
-      to: 'wood2@hawaii.edu',
+      to: NOTIFICATION_RECIPIENTS,
       subject: "DBEDT Upload Started: #{@filename}"
     )
   end
@@ -26,7 +32,7 @@ class DbedtUploadMailer < ApplicationMailer
       "DBEDT Upload Failed: #{@filename}"
 
     mail(
-      to: 'wood2@hawaii.edu',
+      to: NOTIFICATION_RECIPIENTS,
       subject: subject
     )
   end
