@@ -1,7 +1,7 @@
 module Downloaders
   class IntegerPatternProcessor
     def initialize(pattern)
-      @pattern = pattern.to_s
+      @pattern = convert_to_numeric_pattern(pattern.to_s)
     end
 
     def compute(index, cached_files = nil, handle = nil, sheet = nil)
@@ -166,6 +166,27 @@ module Downloaders
       else
         raise("compute_search_end: bad header_in value = #{opts[:header_in]}")
       end
+    end
+    # Convert Excel style column labels to number
+    # A -> 1, AA - > 27, CZ -> 96, etc
+    def convert_to_numeric_pattern(pattern)
+      # If it's already numeric or a complex pattern, return as-is
+      return pattern if pattern =~ /^(\d+|increment:|repeat:|block:|header)/
+
+      # Try Excel column notation conversion (A-Z, AA-ZZ, etc.)
+      if pattern =~ /^[A-Z]+$/i
+        return excel_column_to_number(pattern.upcase).to_s
+      end
+
+      pattern
+    end
+
+    def excel_column_to_number(column)
+      result = 0
+      column.each_char do |char|
+        result = result * 26 + (char.ord - 'A'.ord + 1)
+      end
+      result
     end
   end
 end
