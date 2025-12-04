@@ -9,9 +9,6 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: resolve(__dirname, "../.env") });
 
 const nextConfig: NextConfig = {
-  turbo: {
-    root: "../",
-  },
   env: {
     DB_HOST: process.env.DATABASE_URL,
   },
