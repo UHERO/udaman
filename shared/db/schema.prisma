@@ -66,6 +66,9 @@ model aremos_series {
 //   @@ignore
 // }
 
+// 'order' field is deprecated; replaced by 'list_order' in 2017 migration
+// 20170118021203_rename_column_order_in_categories.rb
+
 model categories {
   id             Int                      @id @default(autoincrement())
   data_list_id   Int?
