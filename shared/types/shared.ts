@@ -16,7 +16,7 @@ export type SeasonalAdjustment =
   | "not_applicable";
 
 export type Universe = "UHERO" | "FC" | "DBEDT" | "NTA" | "COH" | "CCOM";
-
+export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";
 // Helper type to add prefix to keys
 type PrefixKeys<T, P extends string> = {
   [K in keyof T as `${P}${string & K}`]: T[K];

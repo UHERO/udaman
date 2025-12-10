@@ -11,6 +11,8 @@ import rootRoute from "./routes/root";
 import seriesRoutes from "./routes/series";
 
 const app = Fastify({
+  // Treat /path and /path/ the same so navigation to /path/ doesn't throw a 404
+  ignoreTrailingSlash: true,
   logger: {
     transport: {
       target: "pino-pretty",
