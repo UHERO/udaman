@@ -15,6 +15,11 @@ export async function udamanFetch<T>(
       throw new Error(`${response.status} - ${response.statusText}`);
     }
 
+    // Handle 204 No Content responses (e.g., DELETE requests)
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     const contentType = response.headers.get("content-type");
     if (!contentType?.includes("application/json")) {
       throw new Error("Response is not JSON");
