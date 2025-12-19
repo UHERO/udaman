@@ -19,7 +19,7 @@
 
 # Learn more: http://github.com/javan/whenever
 
-set :output, {:standard => '~/Documents/cronlog/udaman-download.log', :error => '~/Documents/cronlog/udaman-error.log'}
+set :output, {:standard => './log/cronlog/udaman-download.log', :error => './log/cronlog/udaman-error.log'}
 # set :environment, 'development'
 #job_type :rake,    'cd :path && rake :task :output'
 job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['DATA_PATH'].nil?} #{%Q|RAILS_ENV=#{ENV['RAILS_ENV']}| unless ENV['RAILS_ENV'].nil?} bundle exec rake :task"
@@ -54,6 +54,10 @@ end
 
 every 1.day, :at => '6:00 am' do
   rake :reload_bea_series_only
+  rake :reload_bls_series_only
+end
+
+every 1.day, :at => '10:20 am' do
   rake :reload_bls_series_only
 end
 
