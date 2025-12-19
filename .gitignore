@@ -23,6 +23,12 @@ spec/datafiles/specs_output
 NOTES
 .env
 script.rb
+vendor/bundle/
 vendor/bundle
+bin/bundle
 *.env
 .next
+vendor
+log/
+spec/datafiles/specs_output/
+spec/datafiles/dates_and_samples_output/b

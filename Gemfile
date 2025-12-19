@@ -1,7 +1,6 @@
 source 'https://rubygems.org'
 
 gem 'rails', '~> 6.0.1'
-gem 'bundler', '>= 2.1.4'
 
 # Application Monitoring
 
@@ -32,7 +31,6 @@ gem 'whenever'
 gem 'mechanize', '>= 2.7.5'
 gem 'net-sftp'
 gem 'dalli', '~> 3.2'
-gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.org'
 gem 'ancestry'
 gem 'will_paginate', '~> 3.1', '>= 3.3.1'
 gem 'font-awesome-sass', '~> 5.6', '>= 5.6.1'
@@ -47,6 +45,7 @@ gem 'devise', '~> 4.7', '>= 4.7.1'
 gem 'stringex', '~> 2.8', '>= 2.8.5'
 
 gem 'nokogiri', '~> 1.14'
+gem 'rails-assets-select2', '~> 4.0.5', source: 'http://insecure.rails-assets.org'
 
 # Highcharts gem for forecast snapshot
 gem 'highcharts-rails', '>= 6.0.3'
@@ -55,6 +54,8 @@ gem 'highcharts-rails', '>= 6.0.3'
 gem 'passenger', '>= 6.0.18'
 gem 'sqlite3'
 
+# Load environment variables from .env file
+gem 'dotenv-rails'
 
 group :development do
   gem 'listen'
@@ -63,9 +64,11 @@ group :development do
   gem 'faker', '~> 1.6'
   gem 'watchr'
   gem 'database_cleaner-active_record'
+  gem 'irb'
 end
 
 group :test do
   gem 'rake'
   gem 'rspec-sidekiq', '~> 3.0', '>= 3.0.3'
 end
+
