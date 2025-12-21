@@ -2,8 +2,7 @@
  * GEOGRAPHIES MODEL
  * Handles read operations for geographies
  *
- * In a series like 1Q84@HI.A, 'HI' is the geography handle.
- * indicates where the series applies to (e.g., Hawaii, US, etc.)
+ * Pending other crud operations
  **********************************************************************/
 
 import { RowDataPacket } from "@fastify/mysql";

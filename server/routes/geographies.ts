@@ -20,14 +20,8 @@ const geographyListQuerySchema = {
   },
 };
 
-/**
- * Geographies
- *
- * In a series like 1Q84@HI.A, 'HI' is the geography handle.
- * This denotes where the series applies to (e.g., Hawaii, US, etc.)
- */
 async function routes(app: FastifyInstance, _options: FastifyPluginOptions) {
-  // List all geographies with optional universe filter
+  // List all geographies per universe
   app.route<{ Querystring: GeographyListQuery }>({
     method: "GET",
     url: "/geographies",
