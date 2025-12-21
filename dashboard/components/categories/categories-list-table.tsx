@@ -140,9 +140,6 @@ function CategoryRowWithChildren({
   const isFirst = siblingIndex === 0;
   const isLast = siblingIndex === siblings.length - 1;
 
-  // Non-root categories with children can be toggled
-  const canToggle = hasChildren && !isRoot;
-
   const handleMove = async (direction: "up" | "down") => {
     const siblingOffset = direction === "up" ? -1 : 1;
     const sibling = siblings[siblingIndex + siblingOffset];
@@ -158,12 +155,7 @@ function CategoryRowWithChildren({
   return (
     <>
       <TableRow
-        className={cn(
-          "border-b",
-          isExpanded && "bg-muted",
-          canToggle && "hover:bg-muted-foreground/10 cursor-pointer"
-        )}
-        onClick={canToggle ? () => onToggle(category.id) : undefined}
+        className={cn("border-b", isExpanded && "bg-muted")}
       >
         <TableCell>
           {/* inline css for dynamic padding based on tree depth - for indentation */}
