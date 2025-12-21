@@ -11,56 +11,23 @@
  **********************************************************************/
 
 import { RowDataPacket, ResultSetHeader } from "@fastify/mysql";
-import { Frequency, Universe } from "@shared/types/shared";
+import {
+  Category,
+  CreateCategoryPayload,
+  Universe,
+  UpdateCategoryPayload,
+} from "@shared/types/shared";
 import { mysql } from "helpers/mysql";
 import { queryDB } from "helpers/sql";
 
 import { NotFoundError } from "../errors";
 
-// defines the schema for a single category row
-export interface CategoryRow extends RowDataPacket {
-  id: number;
-  data_list_id: number | null;
-  default_geo_id: number | null;
-  universe: Universe;
-  created_at: Date;
-  updated_at: Date;
-  hidden: 0 | 1 | null;
-  masked: 0 | 1;
-  header: 0 | 1 | null;
-  list_order: number | null;
-  name: string | null;
-  ancestry: string | null;
-  default_handle: string | null;
-  default_freq: Frequency | null;
-  meta: string | null;
-  description: string | null;
-}
+// extends Category with RowDataPacket for mysql2 compatibility
+export interface CategoryRow extends RowDataPacket, Category {}
 
 export interface CategoryNode extends CategoryRow {
   children: CategoryNode[];
 }
-
-export type CreateCategoryPayload = {
-  parentId?: number | null;
-  name?: string | null;
-  description?: string | null;
-  dataListId?: number | null;
-  defaultGeoId?: number | null;
-  defaultFreq?: Frequency | null;
-  universe?: Universe;
-  header?: boolean;
-  masked?: boolean;
-  hidden?: boolean;
-};
-
-// prevent updating parentId in update payload
-export type UpdateCategoryPayload = Partial<
-  Omit<CreateCategoryPayload, "parentId">
-> & {
-  listOrder?: number | null;
-  meta?: string | null;
-};
 
 // used in list method to filter categories
 // by universe and optionally exclude a specific category by id
@@ -272,6 +239,31 @@ class Categories {
       `UPDATE categories SET ${fields.join(", ")} WHERE id = ?`,
       [...values, id]
     );
+
+    // cascade visibility updates to all descendants
+    // when parent is hidden/masked, children become masked
+    // when parent is unhidden/unmasked, children become unmasked
+    if (updates.hidden !== undefined || updates.masked !== undefined) {
+      const shouldMaskChildren =
+        updates.hidden === true || updates.masked === true;
+      const shouldUnmaskChildren =
+        updates.hidden === false || updates.masked === false;
+
+      const category = await this.getById(id);
+      const path = this.pathFor(category);
+
+      if (shouldMaskChildren) {
+        await conn.execute<ResultSetHeader>(
+          `UPDATE categories SET masked = 1, updated_at = NOW() WHERE ancestry = ? OR ancestry LIKE ?`,
+          [path, `${path}/%`]
+        );
+      } else if (shouldUnmaskChildren) {
+        await conn.execute<ResultSetHeader>(
+          `UPDATE categories SET masked = 0, updated_at = NOW() WHERE ancestry = ? OR ancestry LIKE ?`,
+          [path, `${path}/%`]
+        );
+      }
+    }
 
     return this.getById(id);
   }

@@ -7,7 +7,7 @@ import {
   swapCategoryOrder,
   updateCategoryVisibility,
 } from "@/actions/categories";
-import { Frequency, Universe } from "@shared/types/shared";
+import { Category, Geography, Universe } from "@shared/types/shared";
 import {
   ArrowDown,
   ArrowUp,
@@ -20,6 +20,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,19 +40,6 @@ import {
 import { CategoryFormSheet } from "./category-form-sheet";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
 
-export interface Category {
-  id: number;
-  name: string | null;
-  description: string | null;
-  universe: Universe;
-  ancestry: string | null;
-  default_freq: Frequency | null;
-  hidden: 0 | 1 | null;
-  masked: 0 | 1;
-  header: 0 | 1 | null;
-  list_order: number | null;
-}
-
 interface CategoryNode extends Category {
   children: CategoryNode[];
   depth: number;
@@ -60,6 +48,7 @@ interface CategoryNode extends Category {
 interface DataTableProps {
   data: Category[];
   universe?: Universe;
+  geographies: Geography[];
 }
 
 // Build a tree structure from flat category list based on ancestry
@@ -115,9 +104,9 @@ interface CategoryRowProps {
   expanded: Set<number>;
   onToggle: (id: number) => void;
   rowIndex: number;
-  onAddChild?: (parentId: number) => void;
-  onEdit?: (id: number) => void;
-  onDelete?: (id: number) => void;
+  onAddChild: (parentId: number) => void;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
   onSwap: (
     id1: number,
     order1: number,
@@ -128,6 +117,7 @@ interface CategoryRowProps {
     id: number,
     updates: { hidden?: boolean; masked?: boolean }
   ) => Promise<void>;
+  geographyMap: Map<number, Geography>;
 }
 
 function CategoryRowWithChildren({
@@ -142,6 +132,7 @@ function CategoryRowWithChildren({
   onDelete,
   onSwap,
   onToggleVisibility,
+  geographyMap,
 }: CategoryRowProps) {
   const hasChildren = category.children.length > 0;
   const isExpanded = expanded.has(category.id);
@@ -152,38 +143,50 @@ function CategoryRowWithChildren({
   // Non-root categories with children can be toggled
   const canToggle = hasChildren && !isRoot;
 
-  const handleMoveUp = async () => {
-    const prevSibling = siblings[siblingIndex - 1];
-    if (!prevSibling) return;
+  const handleMove = async (direction: "up" | "down") => {
+    const siblingOffset = direction === "up" ? -1 : 1;
+    const sibling = siblings[siblingIndex + siblingOffset];
+    if (!sibling) return;
     await onSwap(
       category.id,
       category.list_order ?? 0,
-      prevSibling.id,
-      prevSibling.list_order ?? 0
-    );
-  };
-
-  const handleMoveDown = async () => {
-    const nextSibling = siblings[siblingIndex + 1];
-    if (!nextSibling) return;
-    await onSwap(
-      category.id,
-      category.list_order ?? 0,
-      nextSibling.id,
-      nextSibling.list_order ?? 0
+      sibling.id,
+      sibling.list_order ?? 0
     );
   };
 
   return (
     <>
       <TableRow
-        className={`border-b ${isExpanded ? "bg-muted" : ""} ${canToggle ? "hover:bg-muted-foreground/10 cursor-pointer" : ""}`}
+        className={cn(
+          "border-b",
+          isExpanded && "bg-muted",
+          canToggle && "hover:bg-muted-foreground/10 cursor-pointer"
+        )}
         onClick={canToggle ? () => onToggle(category.id) : undefined}
       >
         <TableCell>
-          <div style={{ paddingLeft: `${category.depth * 1}rem` }}>
-            {category.depth > 0 && (
-              <span className="text-muted-foreground mr-2">└─</span>
+          {/* inline css for dynamic padding based on tree depth - for indentation */}
+          <div
+            className="flex items-center"
+            style={{ paddingLeft: `${category.depth * 1}rem` }}
+          >
+            {hasChildren && !isRoot ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggle(category.id);
+                }}
+                className="hover:bg-muted-foreground/20 mr-1 cursor-pointer rounded p-0.5"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            ) : (
+              !isRoot && <span className="mr-1 w-5" />
             )}
             <Link href={`/categories/${category.id}`}>
               {category.name || "-"}
@@ -192,6 +195,14 @@ function CategoryRowWithChildren({
         </TableCell>
         <TableCell>{category.universe}</TableCell>
         <TableCell>{category.id}</TableCell>
+        <TableCell>{category.default_freq || "-"}</TableCell>
+        <TableCell>
+          {category.default_geo_id
+            ? geographyMap.get(category.default_geo_id)?.display_name ||
+              geographyMap.get(category.default_geo_id)?.handle ||
+              category.default_geo_id
+            : "-"}
+        </TableCell>
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-2">
             {category.hidden === 1 && (
@@ -245,7 +256,7 @@ function CategoryRowWithChildren({
               variant="ghost"
               size="icon"
               className="h-7 w-7 cursor-pointer"
-              onClick={() => onAddChild?.(category.id)}
+              onClick={() => onAddChild(category.id)}
               title="Add child"
             >
               <Plus className="h-4 w-4" />
@@ -254,7 +265,7 @@ function CategoryRowWithChildren({
               variant="ghost"
               size="icon"
               className="h-7 w-7 cursor-pointer"
-              onClick={() => onEdit?.(category.id)}
+              onClick={() => onEdit(category.id)}
               title="Edit"
             >
               <Pencil className="h-4 w-4" />
@@ -263,7 +274,7 @@ function CategoryRowWithChildren({
               variant="ghost"
               size="icon"
               className="h-7 w-7 cursor-pointer"
-              onClick={() => onDelete?.(category.id)}
+              onClick={() => onDelete(category.id)}
               title="Delete"
             >
               <Trash2 className="h-4 w-4" />
@@ -272,7 +283,7 @@ function CategoryRowWithChildren({
               variant="ghost"
               size="icon"
               className="h-7 w-7 cursor-pointer"
-              onClick={handleMoveUp}
+              onClick={() => handleMove("up")}
               disabled={isFirst}
               title="Move up"
             >
@@ -282,22 +293,13 @@ function CategoryRowWithChildren({
               variant="ghost"
               size="icon"
               className="h-7 w-7 cursor-pointer"
-              onClick={handleMoveDown}
+              onClick={() => handleMove("down")}
               disabled={isLast}
               title="Move down"
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
           </div>
-        </TableCell>
-        <TableCell className="w-10 cursor-pointer">
-          {canToggle ? (
-            isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )
-          ) : null}
         </TableCell>
       </TableRow>
       {hasChildren &&
@@ -316,30 +318,18 @@ function CategoryRowWithChildren({
             onDelete={onDelete}
             onSwap={onSwap}
             onToggleVisibility={onToggleVisibility}
+            geographyMap={geographyMap}
           />
         ))}
     </>
   );
 }
 
-// Get all toggleable category IDs (non-root with children)
-function getToggleableIds(nodes: CategoryNode[]): number[] {
-  const ids: number[] = [];
-
-  const traverse = (nodeList: CategoryNode[]) => {
-    for (const node of nodeList) {
-      if (node.depth > 0 && node.children.length > 0) {
-        ids.push(node.id);
-      }
-      traverse(node.children);
-    }
-  };
-
-  traverse(nodes);
-  return ids;
-}
-
-export function CategoriesListTable({ data, universe }: DataTableProps) {
+export function CategoriesListTable({
+  data,
+  universe,
+  geographies,
+}: DataTableProps) {
   const router = useRouter();
   const tree = useMemo(() => buildTree(data), [data]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -353,6 +343,8 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
   const [parentIdForCreate, setParentIdForCreate] = useState<number | null>(
     null
   );
+  const [parentCategoryForCreate, setParentCategoryForCreate] =
+    useState<Category | null>(null);
   const [universeForCreate, setUniverseForCreate] = useState<Universe | null>(
     null
   );
@@ -364,8 +356,11 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
     name: string | null;
   } | null>(null);
 
-  const toggleableIds = useMemo(() => getToggleableIds(tree), [tree]);
-  const allExpanded = toggleableIds.every((id) => expanded.has(id));
+  // Create a map for quick geography lookup
+  const geographyMap = useMemo(
+    () => new Map(geographies.map((g) => [g.id, g])),
+    [geographies]
+  );
 
   // Helper to find category by id from flat data
   const findCategoryById = (id: number): Category | undefined => {
@@ -382,14 +377,6 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
       }
       return next;
     });
-  };
-
-  const handleToggleAll = () => {
-    if (allExpanded) {
-      setExpanded(new Set());
-    } else {
-      setExpanded(new Set(toggleableIds));
-    }
   };
 
   const handleSwap = async (
@@ -410,24 +397,12 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
     router.refresh();
   };
 
-  const handleCreate = () => {
-    // Find the root category for this universe to use as parent
-    // Root categories have ancestry === null
-    const rootCategory = data.find(
-      (cat) => cat.ancestry === null && cat.universe === (universe ?? "UHERO")
-    );
-    setFormMode("create");
-    setSelectedCategory(null);
-    setParentIdForCreate(rootCategory?.id ?? null);
-    setUniverseForCreate(universe ?? "UHERO");
-    setFormOpen(true);
-  };
-
   const handleAddChild = (parentId: number) => {
     const parent = findCategoryById(parentId);
     setFormMode("create");
     setSelectedCategory(null);
     setParentIdForCreate(parentId);
+    setParentCategoryForCreate(parent ?? null);
     setUniverseForCreate(parent?.universe ?? universe ?? "UHERO");
     setFormOpen(true);
   };
@@ -438,6 +413,7 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
       setFormMode("edit");
       setSelectedCategory(category);
       setParentIdForCreate(null);
+      setParentCategoryForCreate(null);
       setFormOpen(true);
     }
   };
@@ -452,12 +428,6 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Category
-        </Button>
-      </div>
       <div className="overflow-hidden rounded-md">
         <Table>
           <TableHeader>
@@ -465,23 +435,10 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Universe</TableHead>
               <TableHead>ID</TableHead>
+              <TableHead>Default Freq</TableHead>
+              <TableHead>Default Geo</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
-              <TableHead className="w-10">
-                {toggleableIds.length > 0 && (
-                  <button
-                    onClick={handleToggleAll}
-                    className="hover:bg-muted-foreground/20 cursor-pointer rounded p-0.5"
-                    title={allExpanded ? "Collapse all" : "Expand all"}
-                  >
-                    {allExpanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </button>
-                )}
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -500,11 +457,12 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
                   onDelete={handleDelete}
                   onSwap={handleSwap}
                   onToggleVisibility={handleToggleVisibility}
+                  geographyMap={geographyMap}
                 />
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -519,7 +477,9 @@ export function CategoriesListTable({ data, universe }: DataTableProps) {
         mode={formMode}
         category={selectedCategory}
         parentId={parentIdForCreate}
+        parentCategory={parentCategoryForCreate}
         defaultUniverse={universeForCreate}
+        geographies={geographies}
       />
 
       <DeleteCategoryDialog

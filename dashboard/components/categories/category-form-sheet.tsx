@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  createCategory,
-  updateCategory,
-  CreateCategoryPayload,
-  UpdateCategoryPayload,
-} from "@/actions/categories";
-import { Frequency, Universe } from "@shared/types/shared";
+import { createCategory, updateCategory } from "@/actions/categories";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Category, Frequency, Geography, Universe } from "@shared/types/shared";
+import { frequencies, universes } from "@shared/utils/validators";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -30,7 +35,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-import { Category } from "./categories-list-table";
+const formSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  universe: z.enum(universes as [Universe, ...Universe[]]),
+  defaultFreq: z.enum(["", ...frequencies] as ["", ...Frequency[]]),
+  defaultGeoId: z.number().nullable(),
+  hidden: z.boolean(),
+  masked: z.boolean(),
+  header: z.boolean(),
+});
 
 interface CategoryFormSheetProps {
   open: boolean;
@@ -38,11 +52,10 @@ interface CategoryFormSheetProps {
   mode: "create" | "edit";
   category?: Category | null;
   parentId?: number | null;
+  parentCategory?: Category | null;
   defaultUniverse?: Universe | null;
+  geographies: Geography[];
 }
-
-const FREQUENCIES: Frequency[] = ["A", "S", "Q", "M", "W", "D"];
-const UNIVERSES: Universe[] = ["UHERO", "COH", "NTA"];
 
 export function CategoryFormSheet({
   open,
@@ -50,70 +63,76 @@ export function CategoryFormSheet({
   mode,
   category,
   parentId,
+  parentCategory,
   defaultUniverse,
+  geographies,
 }: CategoryFormSheetProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [universe, setUniverse] = useState<Universe>("UHERO");
-  const [defaultFreq, setDefaultFreq] = useState<Frequency | "">("");
-  const [hidden, setHidden] = useState(false);
-  const [masked, setMasked] = useState(false);
-  const [header, setHeader] = useState(false);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      universe: "UHERO",
+      defaultFreq: "",
+      defaultGeoId: null,
+      hidden: false,
+      masked: false,
+      header: false,
+    },
+  });
 
   // Reset form when category or mode changes
   useEffect(() => {
     if (open) {
-      setName(category?.name ?? "");
-      setDescription(category?.description ?? "");
-      setUniverse(category?.universe ?? defaultUniverse ?? "UHERO");
-      setDefaultFreq(category?.default_freq ?? "");
-      setHidden(category?.hidden === 1);
-      setMasked(category?.masked === 1);
-      setHeader(category?.header === 1);
+      form.reset({
+        name: category?.name ?? "",
+        description: category?.description ?? "",
+        universe: category?.universe ?? defaultUniverse ?? "UHERO",
+        defaultFreq: category?.default_freq ?? "",
+        defaultGeoId: category?.default_geo_id ?? null,
+        hidden: category?.hidden === 1,
+        masked: category?.masked === 1,
+        header: category?.header === 1,
+      });
     }
-  }, [open, category, defaultUniverse]);
+  }, [open, category, defaultUniverse, form]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (mode === "create") {
-        const payload: CreateCategoryPayload = {
+        await createCategory({
           parentId: parentId ?? null,
-          name: name || null,
-          description: description || null,
-          universe,
-          defaultFreq: defaultFreq || null,
-          hidden,
-          masked,
-          header,
-        };
-        await createCategory(payload);
+          name: values.name || null,
+          description: values.description || null,
+          universe: values.universe,
+          defaultFreq: values.defaultFreq || null,
+          defaultGeoId: values.defaultGeoId,
+          hidden: values.hidden,
+          // Only send masked if explicitly true; otherwise let backend inherit from parent
+          masked: values.masked || undefined,
+          header: values.header,
+        });
       } else if (category) {
-        const payload: UpdateCategoryPayload = {
-          name: name || null,
-          description: description || null,
-          universe,
-          defaultFreq: defaultFreq || null,
-          hidden,
-          masked,
-          header,
-        };
-        await updateCategory(category.id, payload);
+        await updateCategory(category.id, {
+          name: values.name || null,
+          description: values.description || null,
+          universe: values.universe,
+          defaultFreq: values.defaultFreq || null,
+          defaultGeoId: values.defaultGeoId,
+          hidden: values.hidden,
+          masked: values.masked,
+          header: values.header,
+        });
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to save category:", error);
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  }
 
   const title =
     mode === "create"
@@ -125,7 +144,7 @@ export function CategoryFormSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader>
+        <SheetHeader className="pb-0 pt-3">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
             {mode === "create"
@@ -134,105 +153,186 @@ export function CategoryFormSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Category name"
-            />
-          </div>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-0 overflow-y-auto px-4"
+        >
+          <FieldSet className="m-0 gap-1 p-0">
+            <FieldGroup className="gap-2">
+              <Field data-invalid={!!form.formState.errors.name}>
+                <FieldLabel htmlFor="name">Name</FieldLabel>
+                <Input
+                  id="name"
+                  placeholder="Category name"
+                  {...form.register("name")}
+                />
+                <FieldError errors={[form.formState.errors.name]} />
+              </Field>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Category description"
-            />
-          </div>
+              <Field data-invalid={!!form.formState.errors.description}>
+                <FieldLabel htmlFor="description">Description</FieldLabel>
+                <Input
+                  id="description"
+                  placeholder="Category description"
+                  {...form.register("description")}
+                />
+                <FieldError errors={[form.formState.errors.description]} />
+              </Field>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="universe">Universe</Label>
-            <Select
-              value={universe}
-              onValueChange={(value) => setUniverse(value as Universe)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select universe" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNIVERSES.map((u) => (
-                  <SelectItem key={u} value={u}>
-                    {u}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <Field data-invalid={!!form.formState.errors.universe}>
+                <FieldLabel htmlFor="universe">Universe</FieldLabel>
+                <Select
+                  value={form.watch("universe")}
+                  onValueChange={(value) =>
+                    form.setValue("universe", value as Universe)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select universe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {universes.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {u}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError errors={[form.formState.errors.universe]} />
+              </Field>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="defaultFreq">Default Frequency</Label>
-            <Select
-              value={defaultFreq || "none"}
-              onValueChange={(value) =>
-                setDefaultFreq(value === "none" ? "" : (value as Frequency))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select frequency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {FREQUENCIES.map((f) => (
-                  <SelectItem key={f} value={f}>
-                    {f}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <Field data-invalid={!!form.formState.errors.defaultFreq}>
+                <FieldLabel htmlFor="defaultFreq">Default Frequency</FieldLabel>
+                <Select
+                  value={form.watch("defaultFreq") || "none"}
+                  onValueChange={(value) =>
+                    form.setValue(
+                      "defaultFreq",
+                      value === "none" ? "" : (value as Frequency)
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {frequencies.map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {f}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError errors={[form.formState.errors.defaultFreq]} />
+              </Field>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="hidden"
-              checked={hidden}
-              onCheckedChange={(checked) => setHidden(checked === true)}
-            />
-            <Label htmlFor="hidden">Hidden</Label>
-          </div>
+              <Field data-invalid={!!form.formState.errors.defaultGeoId}>
+                <FieldLabel htmlFor="defaultGeo">Default Geography</FieldLabel>
+                <Select
+                  value={form.watch("defaultGeoId")?.toString() || "none"}
+                  onValueChange={(value) =>
+                    form.setValue(
+                      "defaultGeoId",
+                      value === "none" ? null : Number(value)
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select geography" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {geographies.map((geo) => (
+                      <SelectItem key={geo.id} value={geo.id.toString()}>
+                        {geo.display_name || geo.handle || `ID: ${geo.id}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError errors={[form.formState.errors.defaultGeoId]} />
+              </Field>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="masked"
-              checked={masked}
-              onCheckedChange={(checked) => setMasked(checked === true)}
-            />
-            <Label htmlFor="masked">Masked</Label>
-          </div>
+              <Field>
+                <FieldLabel htmlFor="dataList">Data List</FieldLabel>
+                <Select value="none">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select data list" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="header"
-              checked={header}
-              onCheckedChange={(checked) => setHeader(checked === true)}
-            />
-            <Label htmlFor="header">Header</Label>
-          </div>
+              <div className="flex flex-col gap-2">
+                {mode === "create" &&
+                parentCategory &&
+                (parentCategory.hidden === 1 || parentCategory.masked === 1) ? (
+                  <p className="text-muted-foreground text-sm">
+                    This category will be automatically masked because its
+                    parent is{" "}
+                    {parentCategory.hidden === 1 ? "hidden" : "masked"}.
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-6">
+                    <Field orientation="horizontal">
+                      <Checkbox
+                        id="hidden"
+                        checked={form.watch("hidden")}
+                        onCheckedChange={(checked) =>
+                          form.setValue("hidden", checked === true)
+                        }
+                      />
+                      <FieldLabel htmlFor="hidden">Hidden</FieldLabel>
+                    </Field>
 
-          <SheetFooter className="mt-4">
+                    <Field orientation="horizontal">
+                      <Checkbox
+                        id="masked"
+                        checked={form.watch("masked")}
+                        onCheckedChange={(checked) =>
+                          form.setValue("masked", checked === true)
+                        }
+                      />
+                      <FieldLabel htmlFor="masked">Masked</FieldLabel>
+                    </Field>
+                  </div>
+                )}
+
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id="header"
+                    checked={form.watch("header")}
+                    onCheckedChange={(checked) =>
+                      form.setValue("header", checked === true)
+                    }
+                  />
+                  <FieldLabel htmlFor="header">Header</FieldLabel>
+                </Field>
+              </div>
+            </FieldGroup>
+          </FieldSet>
+
+          <SheetFooter className="mt-1">
             <Button
+              className="cursor-pointer"
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : mode === "create" ? "Create" : "Save"}
+            <Button
+              className="cursor-pointer"
+              type="submit"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting
+                ? "Saving..."
+                : mode === "create"
+                  ? "Create"
+                  : "Save"}
             </Button>
           </SheetFooter>
         </form>

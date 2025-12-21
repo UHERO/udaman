@@ -3,22 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { udamanFetch } from "@/actions/action-utils";
-import type { categories, measurements, series } from "@prisma/client";
 import {
-  DataLoader,
-  DataPoint,
-  Frequency,
-  SeriesMetadata,
-  SourceMapNode,
+  Category,
+  CreateCategoryPayload,
   Universe,
+  UpdateCategoryPayload,
 } from "@shared/types/shared";
 
 export async function getCategories(params: {
   universe?: Universe;
-}): Promise<categories[]> {
+}): Promise<Category[]> {
   const universe = params.universe ?? "UHERO";
   const result = await udamanFetch<{
-    data: categories[];
+    data: Category[];
     meta: {
       offset: number;
       limit: number;
@@ -29,25 +26,21 @@ export async function getCategories(params: {
   return result.data;
 }
 
-export async function updateCategoryOrder(
-  id: number,
-  listOrder: number
-): Promise<void> {
-  await udamanFetch(`/categories/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ listOrder }),
-  });
-  revalidatePath("/categories");
+export async function getCategory(id: number): Promise<Category> {
+  const result = await udamanFetch<{ data: Category }>(`/categories/${id}`);
+  if (!result.data) {
+    notFound();
+  }
+  return result.data;
 }
 
+// Swaps the list_order values between two categories
 export async function swapCategoryOrder(
   id1: number,
   order1: number,
   id2: number,
   order2: number
 ): Promise<void> {
-  // Swap the list_order values between two categories
   await Promise.all([
     udamanFetch(`/categories/${id1}`, {
       method: "PATCH",
@@ -75,30 +68,10 @@ export async function updateCategoryVisibility(
   revalidatePath("/categories");
 }
 
-export type CreateCategoryPayload = {
-  parentId?: number | null;
-  name?: string | null;
-  description?: string | null;
-  dataListId?: number | null;
-  defaultGeoId?: number | null;
-  defaultFreq?: Frequency | null;
-  universe?: Universe;
-  header?: boolean;
-  masked?: boolean;
-  hidden?: boolean;
-};
-
-export type UpdateCategoryPayload = Partial<
-  Omit<CreateCategoryPayload, "parentId">
-> & {
-  listOrder?: number | null;
-  meta?: string | null;
-};
-
 export async function createCategory(
   payload: CreateCategoryPayload
-): Promise<categories> {
-  const result = await udamanFetch<{ data: categories }>("/categories", {
+): Promise<Category> {
+  const result = await udamanFetch<{ data: Category }>("/categories", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -110,8 +83,8 @@ export async function createCategory(
 export async function updateCategory(
   id: number,
   payload: UpdateCategoryPayload
-): Promise<categories> {
-  const result = await udamanFetch<{ data: categories }>(`/categories/${id}`, {
+): Promise<Category> {
+  const result = await udamanFetch<{ data: Category }>(`/categories/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
