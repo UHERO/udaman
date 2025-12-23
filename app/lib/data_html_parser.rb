@@ -21,9 +21,9 @@ class DataHtmlParser
     end
     data
   end
-  
+
   def get_bls_series_ONHOLD(series_id, _ = nil)
-    api_key = ENV['API_KEY_BLS'] || raise('No API key defined for BLS')
+    api_key = ENV['API_KEY_BLS_V2'] || raise('No API key defined for BLS')
     thisyear = Date.today.year
     @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registrationkey=%s&startyear=%d&endyear=%d' %
       [series_id, api_key, thisyear - 9, thisyear]
@@ -237,7 +237,7 @@ class DataHtmlParser
   def doc
     @doc
   end
-  
+
   def content
     @content
   end
@@ -249,7 +249,7 @@ class DataHtmlParser
   def bls_text
     @doc.css('pre').text   ## This 'pre' has to be lower case for some strange reason
   end
-  
+
   def get_data
     data_hash ||= {}
     resp = bls_text
@@ -267,7 +267,7 @@ class DataHtmlParser
     end
     data_hash
   end
-  
+
   def data
     @data_hash ||= get_data
   end
@@ -343,5 +343,5 @@ private
         response.value
     end
   end
-  
+
 end
