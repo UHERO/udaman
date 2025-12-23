@@ -63,13 +63,13 @@ task :create_cpirpp => :environment do
     testing_prefix = ""
 
     # old series that end before the last decade
-    OLD_SERIES = %w[
+    old_series = %w[
       CUURA104SA0
       CUURA212SA0
       CUURA213SA0
       CUURA214SA0
       CUURA425SA0
-    ].freeze
+    ]
 
     # load statement templates
     load_statement_template = "Series.load_api_bls_NEW(\"xxxx\", \"yyyy\")"
@@ -128,7 +128,7 @@ task :create_cpirpp => :environment do
       ds = s.data_sources.create!(ds_attrs)
       ds.setup
       # skip series that ended decades ago and have no new data points
-      if OLD_SERIES.include?(id)
+      if old_series.include?(id)
         ds.update!(disabled: true, last_error: nil, last_error_at: nil)
       end
 
