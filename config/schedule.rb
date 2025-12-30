@@ -22,7 +22,7 @@
 set :output, {:standard => './log/cronlog/udaman-download.log', :error => './log/cronlog/udaman-error.log'}
 # set :environment, 'development'
 #job_type :rake,    'cd :path && rake :task :output'
-job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['DATA_PATH'].nil?} #{%Q|RAILS_ENV=#{ENV['RAILS_ENV']}| unless ENV['RAILS_ENV'].nil?} bundle exec rake :task"
+job_type :rake, "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['DATA_PATH'].nil?} #{%Q|RAILS_ENV=#{ENV['RAILS_ENV']}| unless ENV['RAILS_ENV'].nil?} bundle exec rake :task :output"
 #job_type :rake,    "cd :path && RAILS_ENV=:environment bundle exec rake :task :output"
 
 # this is a useful short task for testing cron
@@ -31,68 +31,68 @@ job_type :rake,    "cd :path && #{%Q|DATA_PATH=#{ENV['DATA_PATH']}| unless ENV['
 # end
 
 every 1.day, :at => '6:09 pm' do
-  rake source_map:reset_dependency_depth
+  rake "source_map:reset_dependency_depth"
 end
 
-every 1.day, :at => '1:00 am' do
-  rake :update_seats_links
-  rake :update_vis_history_links
-end
+# every 1.day, :at => '1:00 am' do
+#   rake :update_seats_links
+#   rake :update_vis_history_links
+# end
 
 every 1.day, at: '7:40 pm' do
-  rake source_map:purge_old_stuff
+  rake "source_map:purge_old_stuff"
 end
 
 ## The famous "Nightly Reload"
 every 1.day, :at => '7:44 pm' do
-  rake source_map:batch_reload_uhero
+  rake "source_map:batch_reload_uhero"
 end
 
 every 1.day, :at => '3:00 am' do
-  rake source_map:reload_tour_ocup_series_only
+  rake "source_map:reload_tour_ocup_series_only"
 end
 
 every 1.day, :at => '6:00 am' do
-  rake source_map:reload_bea_series_only
-  rake source_map:reload_bls_series_only
+  rake "source_map:reload_bea_series_only"
+  rake "source_map:reload_bls_series_only"
 end
 
 every 1.day, :at => '10:20 am' do
-  rake source_map:reload_bls_series_only
+  rake "source_map:reload_bls_series_only"
 end
 
 every :weekday, :at => '10:00 am' do
-  rake source_map:reload_sa_series_only
+  rake "source_map:reload_sa_series_only"
 end
 
 every :weekday, :at => '4:15 pm' do
-  rake source_map:reload_vap_hi_daily
+  rake "source_map:reload_vap_hi_daily"
 end
 
 every 1.day, :at => ['9:15 am', '1:00 pm'] do
-  rake source_map:reload_covid_series
+  rake "source_map:reload_covid_series"
 end
 
 every :thursday, :at => '11:00 am' do
-  rake reload_uic_weekly:reload_uic_weekly
+  rake "source_map:reload_uic_weekly"
 end
 
 # -----------------------------------------------------------
 
-every :day, at: '6:30 am' do
-  rake :gen_investigate_csv
-end
+# every :day, at: '6:30 am' do
+#   rake :gen_investigate_csv
+# end
 
 every :day, at: '8:50 am' do
-  rake exports:tsd_exports
+  rake "exports:tsd_exports"
 end
 
 every :day, at: ['11:01 am', '12:01 pm', '1:01 pm', '2:01 pm', '3:01 pm', '4:01 pm', '5:01 pm'] do
-  rake source_map:update_public_data_points
+  rake "source_map:update_public_data_points"
 end
 
 every :saturday, :at => '1:00 pm' do
-  rake source_map:export_kauai_dashboard
+  rake "source_map:export_kauai_dashboard"
 end
 
 #bring down pv file daily
