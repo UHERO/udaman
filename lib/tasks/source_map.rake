@@ -1,9 +1,11 @@
+API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
+
 namespace :source_map do
   task :reset_dependency_depth => :environment do
-    Rails.logger.info { 'reset_dependency_depth: Start' }
+    Rails.logger.info { 'reset_dependency_depth: START' }
     DataSource.set_all_dependencies
     Series.assign_dependency_depth
-    Rails.logger.info { 'reset_dependency_depth: Done' }
+    Rails.logger.info { 'reset_dependency_depth: DONE' }
   end
 
   desc 'Switch rails logger to stdout'
@@ -18,6 +20,7 @@ namespace :source_map do
 
   ## The (in)famous "Nightly Reload"
   task :batch_reload_uhero => :environment do
+    Rails.logger.info { 'batch_reload_uhero: START' }
     full_set_ids = Series.get_all_uhero.pluck(:id)
     full_set_ids -= Series.search('#load_api_bls').pluck(:id)
     full_set_ids -= Series.search('#load_api_bea').pluck(:id)
@@ -27,50 +30,58 @@ namespace :source_map do
     Rails.logger.info { "Task batch_reload_uhero: ship off to SeriesReloadManager, batch_id=#{mgr.batch_id}" }
     mgr.batch_reload
     DataPoint.update_public_all_universes
+    Rails.logger.info { 'batch_reload_uhero: DONE' }
   end
 
   task :purge_old_stuff => :environment do
+    Rails.logger.info { 'purge_old_jobs: task START' }
     ReloadJob.purge_old_jobs
     SeriesReloadLog.purge_old_logs
     DsdLogEntry.purge_old_logs(6.weeks)
+    Rails.logger.info { 'purge_old_jobs: task DONE' }
   end
 
   task :reload_hiwi_series_only => :environment do
-    Rails.logger.info { 'reload_hiwi_series_only: starting task, gathering series' }
+    Rails.logger.info { 'reload_hiwi_series_only: task START, gathering series' }
     hiwi_series = Series.search('#hiwi.org')
     Series.reload_with_dependencies(hiwi_series.pluck(:id), 'hiwi', nightly: true)
     DataPoint.update_public_all_universes
+    Rails.logger.info { 'reload_hiwi_series_only: task DONE' }
   end
 
   task :reload_bls_series_only => :environment do
-    Rails.logger.info { 'reload_bls_series_only: starting task, gathering series' }
+    Rails.logger.info { 'reload_bls_series_only: task START, gathering series' }
     bls_series = Series.search('#load_api_bls')
     Series.reload_with_dependencies(bls_series.pluck(:id), 'bls', nightly: true)
     DataPoint.update_public_all_universes
+    Rails.logger.info { 'reload_bls_series_only: task DONE' }
   end
 
   task :reload_bea_series_only => :environment do
-    Rails.logger.info { 'reload_bea_series_only: starting task, gathering series' }
+    Rails.logger.info { 'reload_bea_series_only: task START, gathering series' }
     bea_series = Series.search('#load_api_bea')
     Series.reload_with_dependencies(bea_series.pluck(:id), 'bea', nightly: true, group_size: 10) ### reduce group size, bec we are blowing out BEA's req/min quota
     DataPoint.update_public_all_universes
+    Rails.logger.info { 'reload_bea_series_only: task DONE' }
   end
 
   task :reload_tour_ocup_series_only => :environment do
-    Rails.logger.info { 'reload_tour_ocup_series_only: starting task' }
+    Rails.logger.info { 'reload_tour_ocup_series_only: task START' }
     tour_ocup = Series.search('#tour_ocup%Y')
     Series.reload_with_dependencies(tour_ocup.pluck(:id), 'tour_ocup', nightly: true)
+    Rails.logger.info { 'reload_tour_ocup_series_only: task DONE' }
   end
 
   task :reload_sa_series_only => :environment do
     # sa_series consists of series that are in the UHERO universe,
     # are seasonally adjusted, and do not end with NS
 
-    Rails.logger.info { 'reload_sa_series_only: starting task, gathering series' }
+    Rails.logger.info { 'reload_sa_series_only: task START, gathering series' }
   #  sa_series = Series.search("&sa").select { |series| series.is_SA? rescue false }
     sa_series = Series.search("#sa_jobs.csv")
     sa_series += Series.search("#sa_tour.csv")
     Series.reload_with_dependencies(sa_series.pluck(:id), 'sa', nightly: false)
+    Rails.logger.info { 'reload_sa_series_only: task DONE' }
   end
 
   task :reload_vap_hi_daily => :environment do
@@ -90,8 +101,6 @@ namespace :source_map do
     DataPoint.update_public_all_universes
     Rails.logger.info { 'update_public_all_universes: task DONE' }
   end
-
-  API_TOKEN = '-VI_yuv0UzZNy4av1SM5vQlkfPK_JKnpGfMzuJR7d0M='
 
   def pull_cat_series_from_api(univ, cat_id, geo, freq)
     cat_url = %q{https://api.uhero.hawaii.edu/v1/category/series?id=%d\&geo=%s\&freq=%s\&expand=true\&nocache}
