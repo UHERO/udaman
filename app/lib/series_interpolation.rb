@@ -18,7 +18,7 @@ module SeriesInterpolation
     end
     new_transformation("Replicated the first value back to #{date}", new_data)
   end
-  
+
   def extend_last_fwd_to_match(series_name)
     last_data_point_date = series_name.ts.last_observation
     current_last_data_point = last_observation
@@ -33,6 +33,35 @@ module SeriesInterpolation
       new_date += offset.months
     end
     new_transformation("Replicated the last value out to the last date of #{series_name}", new_data)
+  end
+
+  ## Add a missing data point by calculating from adjacent observations
+  ## Usage: "SERIES_NAME".ts.add_missing_dp("2023-07-01", :average)
+  ## Added to address BLS datapoints lost during Fall 2025 shutdown
+  def add_missing_dp(date_str, operation = :average)
+    target_date = Date.parse(date_str)
+
+    # Find the adjacent data points (before and after the target date)
+    sorted_dates = data.keys.sort
+    prev_date = sorted_dates.select { |d| d < target_date }.last
+    next_date = sorted_dates.select { |d| d > target_date }.first
+
+    raise "No data point found before #{target_date}" unless prev_date
+    raise "No data point found after #{target_date}" unless next_date
+
+    prev_val = data[prev_date]
+    next_val = data[next_date]
+
+    # Calculate the new value based on the operation
+    new_value = case operation
+                when :average
+                  (prev_val + next_val) / 2.0
+                else
+                  raise "Operation #{operation} is not supported. Use :average"
+                end
+
+    new_dp = { target_date => new_value }
+    new_transformation("Added missing data point at #{target_date} (#{operation}) from #{self}", new_dp)
   end
 
   ## when monthly data are only available for alternate ("every other") month, fill in the gaps
@@ -82,7 +111,7 @@ module SeriesInterpolation
     end
     new_transformation("Interpolated by filling #{self} to #{target_frequency}", new_series_data, target_frequency.to_s)
   end
-  
+
   def fill_days_interpolation
     interpolate_week_to_day :fill
   end
@@ -127,15 +156,15 @@ module SeriesInterpolation
         temp_series_data[date] = val
         next
       end
-      
+
       temp_series_data[date] = val + (val - temp_series_data[last_date]) * ((divisor - 1) / (divisor + 1).to_f)
-      
+
       last_date = date
     end
-    
+
     temp_series = new_transformation("Temp series from #{self}", temp_series_data)
     temp_series.frequency = self.frequency
-    
+
     series_data = temp_series.linear_interpolate(frequency).data
     new_transformation("Pseudo Centered Spline Interpolation of #{self}", series_data, frequency)
   end
@@ -143,13 +172,13 @@ module SeriesInterpolation
   #first period is just first value
   def linear_interpolate(frequency)
     raise AggregationException unless (frequency == :quarter and self.frequency == 'year') or
-                                  (frequency == :month and self.frequency == 'quarter') or 
+                                  (frequency == :month and self.frequency == 'quarter') or
                                   (frequency == :day and self.frequency == 'month')
     data_copy = self.data.sort
     last_val = data_copy[0][1]
     last_date = data_copy[0][0]
     first = data_copy.shift
-    
+
     new_series_data = nil
     data_copy.each do |date, val|
       diff = val - last_val
@@ -291,15 +320,15 @@ module SeriesInterpolation
       new_series_data[Date.new(year, 10)] = previous_data_val + (val - previous_data_val) / 4 * 1.5
       last_diff = val - previous_data_val
       previous_data_val = val
-      previous_year = key  
+      previous_year = key
     end
-    
+
     year = previous_year.year
     new_series_data[Date.new(year)] = previous_data_val - last_diff / 4 * 1.5
     new_series_data[Date.new(year, 4)] = previous_data_val - last_diff / 4 * 0.5
     new_series_data[Date.new(year, 7)] = previous_data_val + last_diff / 4 * 0.5
     new_series_data[Date.new(year, 10)] = previous_data_val + last_diff / 4 * 1.5
-    
+
     blma_new_series_data = {}
     prev_val = nil
     new_series_data.sort.each do |key,val|
