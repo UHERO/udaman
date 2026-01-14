@@ -26,10 +26,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "prisma:generate": "prisma generate --schema ./db/schema.prisma",
+    "build": "bun run prisma:generate && tsc",
+    "dev": "bun run prisma:generate && tsc --watch",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "bun run prisma:generate && tsc --noEmit"
   },
   "keywords": [
     "shared",
@@ -44,6 +45,10 @@
   },
   "dependencies": {
     "@prisma/client": "6.15.0",
-    "prisma": "^6.15.0"
+    "prisma": "^6.15.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@tanstack/react-table": "^8.21.3"
   }
 }

@@ -10,10 +10,12 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/node": "^22.13.5"
   },
   "dependencies": {
     "@types/json-schema": "^7.0.15",
-    "date-fns": "^4.1.0"
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3"
   }
 }
