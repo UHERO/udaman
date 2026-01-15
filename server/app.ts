@@ -7,6 +7,7 @@ import Fastify from "fastify";
 import { envConfig } from "./config";
 import categoriesRoutes from "./routes/categories";
 import dataLoadersRoutes from "./routes/data-loaders";
+import geographiesRoutes from "./routes/geographies";
 import rootRoute from "./routes/root";
 import seriesRoutes from "./routes/series";
 
@@ -37,5 +38,6 @@ app.register(rootRoute);
 app.register(seriesRoutes);
 app.register(dataLoadersRoutes);
 app.register(categoriesRoutes);
+app.register(geographiesRoutes);
 
 export { app };

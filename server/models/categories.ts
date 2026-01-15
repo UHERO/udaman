@@ -10,57 +10,19 @@
             └─ Great-grandchild (id: 34, ancestry: "1/4/6")
  **********************************************************************/
 
-import { RowDataPacket, ResultSetHeader } from "@fastify/mysql";
+import { RowDataPacket } from "@fastify/mysql";
 import { Frequency, Universe } from "@shared/types/shared";
 import { mysql } from "helpers/mysql";
-import { queryDB } from "helpers/sql";
+import { queryDB, executeDB, buildSetClause } from "helpers/sql";
 
 import { NotFoundError } from "../errors";
 
-// defines the schema for a single category row
-export interface CategoryRow extends RowDataPacket {
-  id: number;
-  data_list_id: number | null;
-  default_geo_id: number | null;
-  universe: Universe;
-  created_at: Date;
-  updated_at: Date;
-  hidden: 0 | 1 | null;
-  masked: 0 | 1;
-  header: 0 | 1 | null;
-  list_order: number | null;
-  name: string | null;
-  ancestry: string | null;
-  default_handle: string | null;
-  default_freq: Frequency | null;
-  meta: string | null;
-  description: string | null;
-}
+// extends Category with RowDataPacket for mysql2 compatibility
+export interface CategoryRow extends RowDataPacket, Category {}
 
 export interface CategoryNode extends CategoryRow {
   children: CategoryNode[];
 }
-
-export type CreateCategoryPayload = {
-  parentId?: number | null;
-  name?: string | null;
-  description?: string | null;
-  dataListId?: number | null;
-  defaultGeoId?: number | null;
-  defaultFreq?: Frequency | null;
-  universe?: Universe;
-  header?: boolean;
-  masked?: boolean;
-  hidden?: boolean;
-};
-
-// prevent updating parentId in update payload
-export type UpdateCategoryPayload = Partial<
-  Omit<CreateCategoryPayload, "parentId">
-> & {
-  listOrder?: number | null;
-  meta?: string | null;
-};
 
 // used in list method to filter categories
 // by universe and optionally exclude a specific category by id
@@ -95,8 +57,7 @@ class Categories {
     const maskedValue =
       masked ?? (!!parent?.masked || !!parent?.hidden ? true : false);
 
-    const conn = mysql();
-    const [result] = await conn.execute<ResultSetHeader>(
+    const result = await executeDB(
       `
         INSERT INTO categories (
           data_list_id,
@@ -215,49 +176,9 @@ class Categories {
       return this.getById(id);
     }
 
-    // this piece builds the SQL UPDATE statement dynamically, where only the
-    // fields provided will be updated
-
-    // holds the "field = ?" parts of the query
-    const fields: string[] = [];
-    // holds the corresponding values for the placeholders
-    const values: (string | number | null)[] = [];
-
-    // map camelCase keys to snake_case column names in the db
-    const mapping: Record<string, keyof UpdateCategoryPayload> = {
-      name: "name",
-      description: "description",
-      data_list_id: "dataListId",
-      default_geo_id: "defaultGeoId",
-      default_freq: "defaultFreq",
-      header: "header",
-      masked: "masked",
-      hidden: "hidden",
-      list_order: "listOrder",
-      meta: "meta",
-      universe: "universe",
-    };
-
-    /* 
-      builds the SET clause in the SQL UPDATE query (`UPDATE categories SET ...`)
-      loops through the mapping. for each field that exists in the updates payload, 
-      add it to the fields and values arrays
-      sample SQL: UPDATE categories SET name = ?, description = ?, updated_at = NOW() WHERE id = ?
-      values: [...values, id] -> [newName, newDescription, id]
-    */
-    for (const [column, key] of Object.entries(mapping)) {
-      if (updates[key] !== undefined) {
-        const value = updates[key];
-        // handle boolean fields (stored as TINYINT in db as 0/1)
-        if (typeof value === "boolean") {
-          fields.push(`${column} = ?`);
-          values.push(value ? 1 : 0);
-        } else {
-          fields.push(`${column} = ?`);
-          values.push(value as any);
-        }
-      }
-    }
+    // build the SET clause dynamically from the updates payload
+    // (auto-converts camelCase keys to snake_case columns)
+    const { fields, values } = buildSetClause(updates);
 
     // if no valid fields were provided, return the category as is
     if (!fields.length) {
@@ -266,12 +187,10 @@ class Categories {
 
     fields.push("updated_at = NOW()");
 
-    const conn = mysql();
-
-    await conn.execute<ResultSetHeader>(
-      `UPDATE categories SET ${fields.join(", ")} WHERE id = ?`,
-      [...values, id]
-    );
+    await executeDB(`UPDATE categories SET ${fields.join(", ")} WHERE id = ?`, [
+      ...values,
+      id,
+    ]);
 
     return this.getById(id);
   }
@@ -283,12 +202,11 @@ class Categories {
   static async delete(id: number) {
     const category = await this.getById(id);
     const path = this.pathFor(category);
-    const conn = mysql();
-    await conn.execute<ResultSetHeader>(
+    await executeDB(
       `
-        DELETE FROM categories 
-        WHERE id = ? 
-          OR ancestry = ? 
+        DELETE FROM categories
+        WHERE id = ?
+          OR ancestry = ?
           OR ancestry LIKE ?
       `,
       [category.id, path, `${path}/%`]
@@ -307,15 +225,16 @@ class Categories {
   // Params: the ancestry path of the parent category "1/4", or null for root
   // Return: next available list_order (int)
   private static async nextListOrder(ancestry: string | null) {
-    const conn = mysql();
     // If creating a root category, find the highest list_order among all the other
     // existing root categories
-    // If creating a child category, look for other cateogries with same ancestry
+    // If creating a child category, look for other categories with same ancestry
     const sql = ancestry
-      ? `SELECT COALESCE(MAX(list_order), -1) + 1 as nextOrder FROM categories WHERE ancestry = ?`
+      ? mysql().format(
+          `SELECT COALESCE(MAX(list_order), -1) + 1 as nextOrder FROM categories WHERE ancestry = ?`,
+          [ancestry]
+        )
       : `SELECT COALESCE(MAX(list_order), -1) + 1 as nextOrder FROM categories WHERE ancestry IS NULL`;
-    const params = ancestry ? [ancestry] : [];
-    const [rows] = await conn.execute<NextOrderRow[]>(sql, params);
+    const rows = await queryDB<NextOrderRow>(sql);
     return rows[0]?.nextOrder ?? 0;
   }
 

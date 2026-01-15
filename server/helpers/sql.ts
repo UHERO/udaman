@@ -1,4 +1,4 @@
-import { RowDataPacket } from "@fastify/mysql";
+import { RowDataPacket, ResultSetHeader } from "@fastify/mysql";
 import { app } from "app";
 
 import { BadRequestError } from "../errors";
@@ -34,6 +34,7 @@ function sqlForPartialUpdate(
   };
 }
 
+// For read operations (SELECT)
 async function queryDB<T extends RowDataPacket>(
   queryString: string
 ): Promise<T[]> {
@@ -41,6 +42,22 @@ async function queryDB<T extends RowDataPacket>(
     app.log.info(queryString);
     const [rows] = (await mysql().execute(queryString)) as [T[], any];
     return rows;
+  } catch (err) {
+    app.log.error(err);
+    throw err;
+  }
+}
+
+// For write operations (INSERT, UPDATE, DELETE)
+async function executeDB(
+  sql: string,
+  params: any[] = []
+): Promise<ResultSetHeader> {
+  try {
+    const conn = mysql();
+    app.log.info(conn.format(sql, params));
+    const [result] = await conn.execute<ResultSetHeader>(sql, params);
+    return result;
   } catch (err) {
     app.log.error(err);
     throw err;
@@ -55,4 +72,50 @@ function convertCommas(string: string) {
   string.replaceAll("#FOO#", ",");
   return string;
 }
-export { sqlForPartialUpdate, queryDB, convertCommas };
+
+/**
+ * Converts camelCase to snake_case
+ * e.g., "dataListId" -> "data_list_id"
+ */
+function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+/*
+ * Builds the SET clause for a SQL UPDATE query
+ * Auto-converts camelCase keys to snake_case column names
+ * Handles boolean -> 0/1 conversion for TINYINT columns
+ *
+ * sample input: { name: "New Name", dataListId: 5, hidden: true }
+ * sample output: { fields: ["name = ?", "data_list_id = ?", "hidden = ?"], values: ["New Name", 5, 1] }
+ */
+function buildSetClause<T extends Record<string, any>>(
+  updates: T
+): { fields: string[]; values: (string | number | null)[] } {
+  const fields: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value !== undefined) {
+      const column = toSnakeCase(key);
+      // handle boolean fields (stored as TINYINT in db as 0/1)
+      if (typeof value === "boolean") {
+        fields.push(`${column} = ?`);
+        values.push(value ? 1 : 0);
+      } else {
+        fields.push(`${column} = ?`);
+        values.push(value as string | number | null);
+      }
+    }
+  }
+
+  return { fields, values };
+}
+
+export {
+  sqlForPartialUpdate,
+  queryDB,
+  executeDB,
+  convertCommas,
+  buildSetClause,
+};

@@ -17,6 +17,59 @@ export type SeasonalAdjustment =
 
 export type Universe = "UHERO" | "FC" | "DBEDT" | "NTA" | "COH" | "CCOM";
 export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";
+
+export interface Category {
+  id: number;
+  data_list_id: number | null;
+  default_geo_id: number | null;
+  universe: Universe;
+  created_at: Date | string;
+  updated_at: Date | string;
+  hidden: 0 | 1 | null;
+  masked: 0 | 1;
+  header: 0 | 1 | null;
+  list_order: number | null;
+  name: string | null;
+  ancestry: string | null;
+  default_handle: string | null;
+  default_freq: Frequency | null;
+  meta: string | null;
+  description: string | null;
+}
+
+export type CreateCategoryPayload = {
+  parentId?: number | null;
+  name?: string | null;
+  description?: string | null;
+  dataListId?: number | null;
+  defaultGeoId?: number | null;
+  defaultFreq?: Frequency | null;
+  universe?: Universe;
+  header?: boolean;
+  masked?: boolean;
+  hidden?: boolean;
+};
+
+export type UpdateCategoryPayload = Partial<
+  Omit<CreateCategoryPayload, "parentId">
+> & {
+  listOrder?: number | null;
+  meta?: string | null;
+};
+
+export type Geography = {
+  id: number;
+  universe: Universe;
+  handle: string | null;
+  display_name: string | null;
+  display_name_short: string | null;
+  fips: string | null;
+  list_order: number | null;
+  geotype: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+};
+
 // Helper type to add prefix to keys
 type PrefixKeys<T, P extends string> = {
   [K in keyof T as `${P}${string & K}`]: T[K];
