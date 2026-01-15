@@ -225,10 +225,10 @@ class Categories {
 
     fields.push("updated_at = NOW()");
 
-    await executeDB(
-      `UPDATE categories SET ${fields.join(", ")} WHERE id = ?`,
-      [...values, id]
-    );
+    await executeDB(`UPDATE categories SET ${fields.join(", ")} WHERE id = ?`, [
+      ...values,
+      id,
+    ]);
 
     return this.getById(id);
   }
