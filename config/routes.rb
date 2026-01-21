@@ -153,7 +153,7 @@ Rails.application.routes.draw do
       get "show_table"
       get "add_series/:series_id", to: "exports#add_series", as: "add_series"
       get "edit_as_text", to: "exports#edit_as_text"
-      get "save_as_text", to: "exports#save_as_text"
+      post "save_as_text", to: "exports#save_as_text"
       post "import_clip", to: "exports#import_clip"
       post "add_clip", to: "exports#add_clip"
       delete "remove_series", to: "exports#remove_series"
