@@ -605,7 +605,7 @@ class Series < ApplicationRecord
   def data
     @data ||= extract_from_datapoints('value')
   end
-  
+
   def data=(data_hash)
     @data = data_hash
   end
@@ -690,7 +690,7 @@ class Series < ApplicationRecord
     ## this class method now only exists as a wrapper because there are still a bunch of calls to it out in the wild.
     Series.new.new_transformation(name, data, frequency)
   end
-  
+
   def new_transformation(name, data, frequency = nil)
     raise "Dataset for the series '#{name}' is empty/nonexistent" if data.nil?
     frequency = Series.frequency_from_code(frequency) || frequency || self.frequency || Series.frequency_from_name(name)
@@ -732,7 +732,7 @@ class Series < ApplicationRecord
     self.frequency = update_spreadsheet.frequency
     new_transformation("loaded SA from static file <#{spreadsheet_path}>", update_spreadsheet.series(self.ns_series_name))
   end
-  
+
   def load_mean_corrected_sa_from(spreadsheet_path, sheet: 'sadata')
     update_spreadsheet = UpdateSpreadsheet.new_xls_or_csv(spreadsheet_path)
     raise 'Load error: File possibly missing?' if update_spreadsheet.load_error?
@@ -798,7 +798,7 @@ class Series < ApplicationRecord
     descript = 'loaded from %s with options shown' % (date_sens ? "set of static files #{path}" : "static file <#{path}>")
     Series.new_transformation(descript, dp.get_data, frequency_from_code(options[:frequency]))
   end
-  
+
   def Series.load_api_bea(frequency, dataset, parameters)
     dhp = DataHtmlParser.new
     series_data = dhp.get_bea_series(dataset, parameters)
@@ -809,7 +809,7 @@ class Series < ApplicationRecord
     end
     Series.new_transformation(name, series_data, frequency)
   end
-  
+
   def Series.load_api_bls(series_id, frequency)
     dhp = DataHtmlParser.new
     series_data = dhp.get_bls_series(series_id, frequency)
@@ -987,7 +987,7 @@ class Series < ApplicationRecord
     out_path ||= File.join(ENV['DATA_PATH'], 'udaman_tsd')
     in_path ||= File.join(ENV['DATA_PATH'], 'BnkLists')
     ## Hostname alias "uheronas" is defined in /etc/hosts - change there if necessary
-    nas_path = 'udaman@uheronas:/volume1/UHEROroot/work/udamandata'
+    nas_path = 'udaman@128.171.200.230:/volume1/UHEROroot/work/udamandata'
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
     if system("rsync -r --del #{nas_path}/BnkLists/ #{in_path}")  ## final slash needed on source dir name

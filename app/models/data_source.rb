@@ -4,7 +4,7 @@ class DataSource < ApplicationRecord
   include Validators
   require 'digest/md5'
   serialize :dependencies, Array
-  
+
   belongs_to :series, inverse_of: :data_sources
   has_many :data_points, dependent: :delete_all
 
@@ -98,7 +98,7 @@ class DataSource < ApplicationRecord
     def current_data_points
       data_points.where(current: true).order(:date).all
     end
-    
+
     def create_from_form
       Series.eval(series.name,
                   { eval: eval,           ## if/when any new user-settable fields are added to Loader,

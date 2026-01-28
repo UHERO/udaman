@@ -23,7 +23,7 @@ class DataHtmlParser
   end
 
   def get_bls_series_ONHOLD(series_id, _ = nil)
-    api_key = ENV['API_KEY_BLS_V2'] || raise('No API key defined for BLS')
+    api_key = ENV['API_KEY_BLS_V2'] || raise('No API key defined for BLS V2')
     thisyear = Date.today.year
     @url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/%s?registrationkey=%s&startyear=%d&endyear=%d' %
       [series_id, api_key, thisyear - 9, thisyear]
