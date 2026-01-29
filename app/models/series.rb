@@ -990,13 +990,20 @@ class Series < ApplicationRecord
     nas_path = 'udaman@128.171.200.230:/volume1/UHEROroot/work/udamandata'
 
     Rails.logger.info { "run_tsd_exports: starting at #{Time.now}" }
-    if system("rsync -r --del #{nas_path}/BnkLists/ #{in_path}")  ## final slash needed on source dir name
+    Rails.logger.info { "run_tsd_exports: out_path=#{out_path}, in_path=#{in_path}, nas_path=#{nas_path}" }
+
+    # Sync input files from NAS
+    rsync_in_cmd = "rsync -r --del #{nas_path}/BnkLists/ #{in_path}"
+    Rails.logger.info { "run_tsd_exports: running: #{rsync_in_cmd}" }
+    if system(rsync_in_cmd)
       Rails.logger.info { "run_tsd_exports: synced #{in_path} from NAS to local disk" }
     else
-      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from NAS to local disk - using existing files" }
+      exit_code = $?.exitstatus
+      Rails.logger.error { "run_tsd_exports: Could not sync #{in_path} from NAS (exit code: #{exit_code}) - using existing files" }
     end
 
     files ||= Dir.entries(in_path).select {|f| f =~ /\.txt$/ }
+    Rails.logger.info { "run_tsd_exports: found #{files.count} input files to process" }
     files.each do |filename|
       Rails.logger.info { "run_tsd_exports: processing input file #{filename}" }
       f = open File.join(in_path, filename)
@@ -1007,14 +1014,19 @@ class Series < ApplicationRecord
       frequency_code = bank.split('_')[-1].upcase
       list.map! {|name| "#{name.strip.upcase}.#{frequency_code}" }
       output_file = File.join(out_path, bank + '.tsd')
-      Rails.logger.info { "run_tsd_exports: export #{list} to #{output_file}" }
+      Rails.logger.info { "run_tsd_exports: exporting #{list.count} series to #{output_file}" }
       Series.write_data_list_tsd(list, output_file)
+      Rails.logger.info { "run_tsd_exports: completed export to #{output_file}" }
     end
 
-    if system("rsync -r #{out_path}/ #{nas_path}/udaman_tsd")  ## final slash needed on source dir name
-      Rails.logger.info  { "run_tsd_exports: Contents of #{out_path} COPIED to NAS" }
+    # Sync output files to NAS
+    rsync_out_cmd = "rsync -r #{out_path}/ #{nas_path}/udaman_tsd"
+    Rails.logger.info { "run_tsd_exports: running: #{rsync_out_cmd}" }
+    if system(rsync_out_cmd)
+      Rails.logger.info { "run_tsd_exports: Contents of #{out_path} COPIED to NAS" }
     else
-      Rails.logger.error { "run_tsd_exports: Could not copy contents of #{out_path} directory to NAS" }
+      exit_code = $?.exitstatus
+      Rails.logger.error { "run_tsd_exports: Could not copy #{out_path} to NAS (exit code: #{exit_code})" }
     end
     Rails.logger.info { "run_tsd_exports: finished at #{Time.now}" }
   end
