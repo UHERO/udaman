@@ -10,7 +10,7 @@ gem 'capistrano-rails'
 gem 'capistrano-bundler', '~> 1.0'
 gem 'capistrano', '~> 3.0'
 gem 'highline', '~> 1.6.0'
-gem 'mysql2', '~> 0.5', '>= 0.5.3'
+gem 'mysql2", "= 0.5.6'
 gem 'composite_primary_keys'
 gem 'concurrent-ruby', '1.3.4'
 gem 'roo', '~> 2.8', '>= 2.8.2'
@@ -71,4 +71,3 @@ group :test do
   gem 'rake'
   gem 'rspec-sidekiq', '~> 3.0', '>= 3.0.3'
 end
-
