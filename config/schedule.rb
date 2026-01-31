@@ -69,9 +69,9 @@ every :weekday, :at => '4:15 pm' do
   rake "source_map:reload_vap_hi_daily"
 end
 
-every 1.day, :at => ['9:15 am', '1:00 pm'] do
-  rake "source_map:reload_covid_series"
-end
+# every 1.day, :at => ['9:15 am', '1:00 pm'] do
+#   rake "source_map:reload_covid_series"
+# end
 
 every :thursday, :at => '11:00 am' do
   rake "source_map:reload_uic_weekly"
@@ -87,7 +87,8 @@ every :day, at: '8:50 am' do
   rake "exports:tsd_exports"
 end
 
-every :day, at: ['11:01 am', '12:01 pm', '1:01 pm', '2:01 pm', '3:01 pm', '4:01 pm', '5:01 pm'] do
+## 2026/1/30 - Reduced from hourly to every other hour. Taking too long and obstructing other jobs.
+every :day, at: ['11:01 am', '1:01 pm', '3:01 pm', '5:01 pm'] do
   rake "source_map:update_public_data_points"
 end
 
