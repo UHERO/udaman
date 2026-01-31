@@ -65,7 +65,7 @@ class DashboardsController < ApplicationController
 
   def clear_api_cache
     Rails.logger.info { "Performing clear of API cache" }
-    `ssh uhero@uhero12.colo.hawaii.edu "bin/clear_api_cache.sh /v1/"`
-    render json: { message: "NAS file sync #{$?.success? ? "done" : "FAIL"}" }
+    `ssh uhero@uhero12.colo.hawaii.edu "bin/clear_api_cache.sh /v1"`
+    render json: { message: "API cache clear #{$?.success? ? "done" : "FAIL"}" }
   end
 end
