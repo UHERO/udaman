@@ -9,8 +9,8 @@ production:
     username: <%= ENV['DB_USER'] || 'root' %>
     password: <%= ENV['DB_PASSWORD'] || '' %>
     port: 3306
-    read_timeout: 60
-    write_timeout: 60
+    read_timeout: 600
+    write_timeout: 600
 
 development:
     adapter: mysql2
