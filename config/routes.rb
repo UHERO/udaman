@@ -63,6 +63,7 @@ Rails.application.routes.draw do
       post "force_sync_files"
       post "clear_api_cache"
       post "rerun_job"
+      get "destroy_reload_job"
       delete "destroy_reload_job"
     end
   end
