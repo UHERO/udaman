@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025782) do
+ActiveRecord::Schema.define(version: 220170413025783) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.column "universe", "enum('UHERO','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
