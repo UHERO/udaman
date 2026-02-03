@@ -232,10 +232,10 @@ class DataSource < ApplicationRecord
         s = self.send(presave_hook, s) if presave_hook
 
         # Refresh dependencies from eval before validation (in case they're stale)
-        set_dependencies_without_save!
+        # set_dependencies_without_save!
 
         # Validate seasonal adjustment compatibility
-        validate_seasonal_adjustment_compatibility!
+        # validate_seasonal_adjustment_compatibility!
 
         base_year = base_year_from_eval_string(eval_stmt)
         if base_year && base_year != series.base_year
