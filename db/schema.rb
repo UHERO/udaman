@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 220170413025781) do
+ActiveRecord::Schema.define(version: 220170413025782) do
 
   create_table "api_applications", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
     t.column "universe", "enum('UHERO','DBEDT','NTA','COH','CCOM')", default: "UHERO", null: false
@@ -118,7 +118,8 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.float "yoy", limit: 53
     t.float "ytd", limit: 53
     t.index ["data_source_id"], name: "index_on_data_source_id"
-    t.index ["xseries_id"], name: "index_on_xseries_id"
+    t.index ["xseries_id", "current", "date"], name: "idx_data_points_xseries_current_date"
+    t.index ["xseries_id", "updated_at"], name: "idx_data_points_xseries_updated"
   end
 
   create_table "data_source_actions", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci", force: :cascade do |t|
@@ -397,6 +398,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.index ["source_id"], name: "fk_rails_6f2f66e327"
     t.index ["unit_id"], name: "fk_rails_1961e72b74"
     t.index ["universe", "name"], name: "index_series_on_universe_and_name", unique: true
+    t.index ["universe", "xseries_id", "id"], name: "series_univ_x_id"
     t.index ["universe", "xseries_id"], name: "index_series_on_universe_and_xseries_id", unique: true
     t.index ["universe"], name: "index_series_on_universe"
     t.index ["xseries_id"], name: "fk_rails_b3202f6d25"
@@ -499,6 +501,7 @@ ActiveRecord::Schema.define(version: 220170413025781) do
     t.string "factor_application"
     t.text "factors"
     t.index ["primary_series_id"], name: "fk_rails_4d09425f97"
+    t.index ["quarantined", "id"], name: "xseries_quar_id"
   end
 
   add_foreign_key "authorizations", "users"

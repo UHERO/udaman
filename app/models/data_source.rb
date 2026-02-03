@@ -231,6 +231,12 @@ class DataSource < ApplicationRecord
         s = Kernel::eval eval_stmt
         s = self.send(presave_hook, s) if presave_hook
 
+        # Refresh dependencies from eval before validation (in case they're stale)
+        set_dependencies_without_save!
+
+        # Validate seasonal adjustment compatibility
+        validate_seasonal_adjustment_compatibility!
+
         base_year = base_year_from_eval_string(eval_stmt)
         if base_year && base_year != series.base_year
           series.xseries.update_columns(base_year: base_year)
@@ -247,6 +253,63 @@ class DataSource < ApplicationRecord
       end
       Rails.logger.info { "Completed reload of definition #{id} for series <#{self.series}> [#{description}]" }
       true
+    end
+
+    def validate_seasonal_adjustment_compatibility!
+      return if dependencies.blank?
+
+      current_sa = series.seasonal_adjustment
+      return if current_sa.blank?
+
+      dependencies.each do |dep_name|
+        dep_series = Series.find_by(name: dep_name)
+        next unless dep_series
+
+        dep_sa = dep_series.seasonal_adjustment
+        next if dep_sa.blank?
+
+        # Check for invalid combinations, but only error if a comparable alternative exists
+        invalid = false
+        error_msg = nil
+        comparable_name = nil
+
+        if current_sa == 'not_seasonally_adjusted' && dep_sa == 'seasonally_adjusted'
+          # NS loading from SA - check if NS version of source exists
+          if dep_name =~ /^(.+?)(@.+)$/
+            comparable_name = "#{$1}NS#{$2}"
+            comparable = Series.find_by(name: comparable_name, universe: dep_series.universe)
+            if comparable && comparable.seasonal_adjustment == 'not_seasonally_adjusted'
+              invalid = true
+              error_msg = "NS series should load from NS series (not SA): #{series.name} (NS) should use #{comparable_name} (NS) instead of #{dep_name} (SA)"
+            end
+          end
+        elsif current_sa == 'seasonally_adjusted' && dep_sa == 'not_seasonally_adjusted'
+          # SA loading from NS - check if SA version of source exists
+          if dep_name =~ /^(.+?)NS(@.+)$/
+            comparable_name = "#{$1}#{$2}"
+            comparable = Series.find_by(name: comparable_name, universe: dep_series.universe)
+            if comparable && comparable.seasonal_adjustment == 'seasonally_adjusted'
+              invalid = true
+              error_msg = "SA series should load from SA series (not NS): #{series.name} (SA) should use #{comparable_name} (SA) instead of #{dep_name} (NS)"
+            end
+          end
+        elsif current_sa == 'not_applicable' && dep_sa == 'seasonally_adjusted'
+          # N/A loading from SA - check if NS version of source exists
+          if dep_name =~ /^(.+?)(@.+)$/
+            comparable_name = "#{$1}NS#{$2}"
+            comparable = Series.find_by(name: comparable_name, universe: dep_series.universe)
+            if comparable && comparable.seasonal_adjustment == 'not_seasonally_adjusted'
+              invalid = true
+              error_msg = "N/A series should load from NS series (not SA): #{series.name} (N/A) should use #{comparable_name} (NS) instead of #{dep_name} (SA)"
+            end
+          end
+        end
+
+        if invalid
+          Rails.logger.error { "Seasonal adjustment validation failed for DataSource #{id}: #{error_msg}" }
+          raise error_msg
+        end
+      end
     end
 
     def base_year_from_eval_string(eval_string)
