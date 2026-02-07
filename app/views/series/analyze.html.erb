@@ -77,11 +77,58 @@ end
         <th>Std. Dev.</th>
     </tr>
     <tr>
-        <td><%=  "%.3f" % @series.average %></td>
-        <td><%= "%.3f" % @series.median %></td>
-        <td><%= "%.3f" % @series.standard_deviation %></td>
+        <td id="stat-mean"><%=  "%.3f" % @series.average %></td>
+        <td id="stat-median"><%= "%.3f" % @series.median %></td>
+        <td id="stat-stddev"><%= "%.3f" % @series.standard_deviation %></td>
     </tr>
 </table>
+
+<script>
+Event.observe(document, 'dom:loaded', function() {
+    function calcStats(xmin, xmax) {
+        var values = [];
+        for (var i = xmin; i <= xmax && i < jsonData.length; i++) {
+            var v = parseFloat(jsonData[i].level);
+            if (!isNaN(v) && jsonData[i].level !== '') values.push(v);
+        }
+        if (values.length === 0) return null;
+
+        var sum = 0;
+        for (var i = 0; i < values.length; i++) sum += values[i];
+        var mean = sum / values.length;
+
+        var sorted = values.slice().sort(function(a, b) { return a - b; });
+        var mid = Math.floor(sorted.length / 2);
+        var median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+
+        var sqDiffSum = 0;
+        for (var i = 0; i < values.length; i++) {
+            sqDiffSum += (values[i] - mean) * (values[i] - mean);
+        }
+        var stddev = values.length > 1 ? Math.sqrt(sqDiffSum / (values.length - 1)) : 0;
+
+        return {mean: mean, median: median, stddev: stddev};
+    }
+
+    function updateStats(xmin, xmax) {
+        var stats = calcStats(xmin, xmax);
+        if (stats) {
+            $('stat-mean').update(stats.mean.toFixed(3));
+            $('stat-median').update(stats.median.toFixed(3));
+            $('stat-stddev').update(stats.stddev.toFixed(3));
+        }
+    }
+
+    Event.observe(HumbleFinance.containers.summary, 'flotr:select', function(e) {
+        var area = e.memo[0];
+        updateStats(Math.floor(area.x1), Math.ceil(area.x2));
+    });
+
+    Event.observe(HumbleFinance.containers.summary, 'flotr:click', function() {
+        updateStats(0, jsonData.length - 1);
+    });
+});
+</script>
 
 <table style="margin-top: 50px;">
     <tr>
