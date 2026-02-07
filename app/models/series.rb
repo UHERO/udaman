@@ -1168,6 +1168,13 @@ class Series < ApplicationRecord
         when /^[}]/
           conditions.push %Q{series.description #{negated}regexp ?}
           bindvars.push tane.convert_commas
+        when /^(first|last)([<>]=?)(.*)/
+          raise 'Cannot negate date range search terms' if negated
+          agg_func = $1 == 'first' ? 'MIN' : 'MAX'
+          op = $2
+          date_val = Date.parse($3) rescue raise("Invalid date format: #{$3}")
+          conditions.push %Q{xseries.id in (select dp.xseries_id from data_points dp where dp.current = 1 and dp.value is not null group by dp.xseries_id having #{agg_func}(dp.date) #{op} ?)}
+          bindvars.push date_val
         when /^[,]/
           raise 'Spaces cannot occur in comma-separated search lists'
         else

@@ -1,0 +1,8 @@
+coverage
+.bundle
+pkg
+.DS_Store
+Gemfile.lock
+*.gem
+vendor
+.ruby-version

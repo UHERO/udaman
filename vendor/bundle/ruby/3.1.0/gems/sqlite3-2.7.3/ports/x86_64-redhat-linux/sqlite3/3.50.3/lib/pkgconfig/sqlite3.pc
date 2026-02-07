@@ -1,0 +1,13 @@
+# Package Information for pkg-config
+
+prefix=/srv/udaman/udaman/vendor/bundle/ruby/3.1.0/gems/sqlite3-2.7.3/ports/x86_64-redhat-linux/sqlite3/3.50.3
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: SQLite
+Description: SQL database engine
+Version: 3.50.3
+Libs: -L${libdir} -lsqlite3
+Libs.private: -lm -lz -ldl -lpthread 
+Cflags: -I${includedir}
