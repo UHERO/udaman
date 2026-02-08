@@ -1,15 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { SeriesMetadata } from "@catalog/types/shared";
 import { numBool } from "@catalog/utils";
 import {
-    ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
-import Link from "next/link";
-import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -22,7 +23,7 @@ type MetadataRow = {
 };
 
 export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
-  console.log("MetaDataTable", metadata);
+  const { universe } = useParams();
 
   const data: MetadataRow[] = useMemo(
     () => [
@@ -36,7 +37,7 @@ export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
         value: metadata.measurement.map((m) => (
           <Link
             key={`${m.id}`}
-            href={`/measurements/${m.id}`}
+            href={`/udaman/${universe}/measurements/${m.id}`}
             className="block hover:underline"
           >
             {m.prefix}
@@ -87,7 +88,7 @@ export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
       { name: "XID (devs only)", value: metadata.xs_id },
       { name: "Internal ID", value: metadata.s_id },
     ],
-    [metadata],
+    [metadata]
   );
 
   const columns: ColumnDef<MetadataRow>[] = useMemo(
@@ -111,7 +112,7 @@ export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
         cell: ({ cell }) => cell.getValue() as React.ReactNode,
       },
     ],
-    [],
+    []
   );
 
   const table = useReactTable({

@@ -1,7 +1,7 @@
+import React from "react";
+import Link from "next/link";
 import { SourceMapNode } from "@catalog/types/shared";
 import { dateTimestamp } from "@catalog/utils/time";
-import Link from "next/link";
-import React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -9,15 +9,16 @@ import { getColor } from "../helpers";
 
 interface SourceMapProps {
   node: SourceMapNode;
+  universe: string;
   depth?: number;
 }
 
 /** Recursive table for displaying Series heirarchy. Faithful recreation of the previous version.
  * I imagine this could be reimagined a bit more elegantly.
  */
-const SourceMap: React.FC<SourceMapProps> = ({ node, depth = 0 }) => {
+const SourceMap: React.FC<SourceMapProps> = ({ node, universe, depth = 0 }) => {
   const { dataSource } = node;
-  const seriesHref = `/series/${node.dataSource.series_id}`;
+  const seriesHref = `/udaman/${universe}/series/${node.dataSource.series_id}`;
 
   return (
     <tr>
@@ -33,7 +34,7 @@ const SourceMap: React.FC<SourceMapProps> = ({ node, depth = 0 }) => {
         className={cn(
           "min-w-2xs border border-gray-300 p-2 align-top",
           dataSource.disabled && "opacity-50",
-          getColor(dataSource.color),
+          getColor(dataSource.color)
         )}
       >
         <div className="space-y-1">
@@ -60,6 +61,7 @@ const SourceMap: React.FC<SourceMapProps> = ({ node, depth = 0 }) => {
                 <SourceMap
                   key={`${child.dataSource.id}-${child.name}-${index}`}
                   node={child}
+                  universe={universe}
                   depth={depth + 1}
                 />
               ))}
@@ -73,11 +75,13 @@ const SourceMap: React.FC<SourceMapProps> = ({ node, depth = 0 }) => {
 
 interface SourceMapTableProps {
   data: SourceMapNode[];
+  universe: string;
   title?: string;
 }
 
 export function SourceMapTable({
   data,
+  universe,
   title = "Data Sources",
 }: SourceMapTableProps) {
   if (data === undefined || data === null || data.length === 0) {
@@ -97,6 +101,7 @@ export function SourceMapTable({
               <SourceMap
                 key={`${node.dataSource.id}-${node.name}-${index}`}
                 node={node}
+                universe={universe}
               />
             ))}
           </tbody>

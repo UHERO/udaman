@@ -6,7 +6,7 @@ import { GeographiesListTable } from "@/components/geographies/geographies-list-
 export default async function Page({
   params,
 }: {
-  params: { universe: Universe };
+  params: Promise<{ universe: Universe }>;
 }) {
   const { universe } = await params;
   const data = await getGeographies({ universe });

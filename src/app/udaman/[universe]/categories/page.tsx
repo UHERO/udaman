@@ -7,7 +7,7 @@ import { Categories } from "@/components/categories/categories-page";
 export default async function Page({
   params,
 }: {
-  params: { universe: Universe };
+  params: Promise<{ universe: Universe }>;
 }) {
   const { universe } = await params;
   const [data, geographies] = await Promise.all([

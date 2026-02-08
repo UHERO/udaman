@@ -14,7 +14,7 @@ import {
 export default async function CategoryPage({
   params,
 }: {
-  params: { universe: string; id: string };
+  params: Promise<{ universe: string; id: string }>;
 }) {
   const { universe, id } = await params;
   const category = await getCategory(Number(id));

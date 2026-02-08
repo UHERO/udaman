@@ -1,28 +1,30 @@
+import Link from "next/link";
 import { DataLoader } from "@catalog/types/shared";
 import { formatRuntime, uheroDate } from "@catalog/utils/time";
 import { format } from "date-fns";
 import { Clock10, ClockPlus } from "lucide-react";
-import Link from "next/link";
 
-import {
-    Card,
-    CardAction,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 import { getColor } from "../helpers";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 
 export const LoaderSection = ({
+  universe,
   seriesId,
   loaders,
 }: {
+  universe: string;
   seriesId: number;
   loaders: DataLoader[];
 }) => {
@@ -31,24 +33,36 @@ export const LoaderSection = ({
       <div className="flex h-6 flex-row items-center justify-start border-b pb-2 font-semibold">
         <span className="mr-4">Loaders</span>
         <Button variant={"link"}>
-          <Link href={`/data-loaders/new?seriesId=${seriesId}`}>new</Link>
+          <Link
+            href={`/udaman/${universe}/data-loaders/new?seriesId=${seriesId}`}
+          >
+            new
+          </Link>
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"}>
-          <Link href={`/series/${seriesId}/delete`}>clear data</Link>
+          <Link href={`/udaman/${universe}/series/${seriesId}/delete`}>
+            clear data
+          </Link>
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"}>load all</Button>
       </div>
 
       {loaders.map((l, i) => (
-        <LoaderItem key={`data-loader-${i}`} loader={l} />
+        <LoaderItem key={`data-loader-${i}`} universe={universe} loader={l} />
       ))}
     </div>
   );
 };
 
-const LoaderItem = ({ loader }: { loader: DataLoader }) => {
+const LoaderItem = ({
+  universe,
+  loader,
+}: {
+  universe: string;
+  loader: DataLoader;
+}) => {
   const lastRunDate =
     loader.last_run_at !== null ? uheroDate(loader.last_run_at) : "-";
   const lastRunTime =
@@ -113,7 +127,9 @@ const LoaderItem = ({ loader }: { loader: DataLoader }) => {
             className="h-6"
             asChild
           >
-            <Link href={`/data-loaders/edit/${loader.id}`}>edit</Link>
+            <Link href={`/udaman/${universe}/data-loaders/edit/${loader.id}`}>
+              edit
+            </Link>
           </Button>
         </CardAction>
       </CardContent>
@@ -138,10 +154,10 @@ const LoaderItem = ({ loader }: { loader: DataLoader }) => {
       </CardHeader>
       <CardContent>
         <CardDescription>
-          <p className="text-primary wrap-break-word text-pretty">
+          <p className="text-primary text-pretty wrap-break-word">
             {loader.description}
           </p>
-          <p className="text-primary wrap-break-word text-pretty">
+          <p className="text-primary text-pretty wrap-break-word">
             {loader.eval}
           </p>
         </CardDescription>
@@ -152,7 +168,7 @@ const LoaderItem = ({ loader }: { loader: DataLoader }) => {
         <span
           className={cn(
             "ml-auto",
-            parseInt(loader.scale) === 1 && "text-primary/60",
+            parseInt(loader.scale) === 1 && "text-primary/60"
           )}
         >{`scale: ${loader.scale}`}</span>
       </CardFooter>

@@ -1,24 +1,24 @@
 "use client";
 
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { SeriesSummary } from "@catalog/types";
 import { SeasonalAdjustment } from "@catalog/types/shared";
 import {
-    ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
 import { format } from "date-fns";
-import Link from "next/link";
-import { useParams } from "next/navigation";
 
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 
 import { SAIndicator } from "../common";
@@ -41,7 +41,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
       ),
       cell: ({ row }) => {
         return (
-          <Link href={`/${universe}/series/${row.original.id}`}>
+          <Link href={`/udaman/${universe}/series/${row.original.id}`}>
             {row.getValue("name")}
           </Link>
         );
@@ -111,7 +111,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext(),
+                          header.getContext()
                         )}
                   </TableHead>
                 );

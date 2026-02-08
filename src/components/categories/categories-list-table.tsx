@@ -1,41 +1,41 @@
 "use client";
 
-import { Category, Geography, Universe } from "@catalog/types/shared";
-import {
-    ArrowDown,
-    ArrowUp,
-    ChevronDown,
-    ChevronRight,
-    Eye,
-    EyeOff,
-    Pencil,
-    Plus,
-    Trash2,
-} from "lucide-react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-
 import {
-    swapCategoryOrder,
-    updateCategoryVisibility,
+  swapCategoryOrder,
+  updateCategoryVisibility,
 } from "@/actions/categories";
+import { Category, Geography, Universe } from "@catalog/types/shared";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 
 import { CategoryFormSheet } from "./category-form-sheet";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
@@ -111,11 +111,11 @@ interface CategoryRowProps {
     id1: number,
     order1: number,
     id2: number,
-    order2: number,
+    order2: number
   ) => Promise<void>;
   onToggleVisibility: (
     id: number,
-    updates: { hidden?: boolean; masked?: boolean },
+    updates: { hidden?: boolean; masked?: boolean }
   ) => Promise<void>;
   geographyMap: Map<number, Geography>;
 }
@@ -149,7 +149,7 @@ function CategoryRowWithChildren({
       category.id,
       category.list_order ?? 0,
       sibling.id,
-      sibling.list_order ?? 0,
+      sibling.list_order ?? 0
     );
   };
 
@@ -179,7 +179,7 @@ function CategoryRowWithChildren({
             ) : (
               !isRoot && <span className="mr-1 w-5" />
             )}
-            <Link href={`/${universe}/categories/${category.id}`}>
+            <Link href={`/udaman/${universe}/categories/${category.id}`}>
               {category.name || "-"}
             </Link>
           </div>
@@ -329,15 +329,15 @@ export function CategoriesListTable({
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
-    null,
+    null
   );
   const [parentIdForCreate, setParentIdForCreate] = useState<number | null>(
-    null,
+    null
   );
   const [parentCategoryForCreate, setParentCategoryForCreate] =
     useState<Category | null>(null);
   const [universeForCreate, setUniverseForCreate] = useState<Universe | null>(
-    null,
+    null
   );
 
   // Delete dialog state
@@ -350,7 +350,7 @@ export function CategoriesListTable({
   // Create a map for quick geography lookup
   const geographyMap = useMemo(
     () => new Map(geographies.map((g) => [g.id, g])),
-    [geographies],
+    [geographies]
   );
 
   // Helper to find category by id from flat data
@@ -374,7 +374,7 @@ export function CategoriesListTable({
     id1: number,
     order1: number,
     id2: number,
-    order2: number,
+    order2: number
   ) => {
     await swapCategoryOrder(id1, order1, id2, order2);
     router.refresh();
@@ -382,7 +382,7 @@ export function CategoriesListTable({
 
   const handleToggleVisibility = async (
     id: number,
-    updates: { hidden?: boolean; masked?: boolean },
+    updates: { hidden?: boolean; masked?: boolean }
   ) => {
     await updateCategoryVisibility(id, updates);
     router.refresh();

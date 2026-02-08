@@ -6,7 +6,7 @@ export default async function UniverseLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { universe: string };
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
 

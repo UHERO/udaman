@@ -9,7 +9,7 @@ import { SourceMapTable } from "@/components/series/source-map";
 export default async function SeriesPage({
   params,
 }: {
-  params: { universe: Universe; id: number };
+  params: Promise<{ universe: Universe; id: number }>;
 }) {
   const { universe, id } = await params;
   const series = await getSeriesById(id, { universe });
@@ -23,7 +23,7 @@ export default async function SeriesPage({
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-1 rounded"></div>
         <div className="col-span-7 rounded">
-          <LoaderSection seriesId={id} loaders={loaders} />
+          <LoaderSection universe={universe} seriesId={id} loaders={loaders} />
           <SeriesDataTable
             data={dataPoints}
             options={{
@@ -31,7 +31,7 @@ export default async function SeriesPage({
               showLoaderCol: loaders.length > 1,
             }}
           />
-          <SourceMapTable data={sourceMap} />
+          <SourceMapTable data={sourceMap} universe={universe} />
         </div>
         <div className="col-span-4 rounded">
           <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
@@ -39,7 +39,7 @@ export default async function SeriesPage({
       </div>
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-11 col-start-2">
-          <SourceMapTable data={sourceMap} />
+          <SourceMapTable data={sourceMap} universe={universe} />
         </div>
       </div>
     </div>

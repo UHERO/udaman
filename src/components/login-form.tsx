@@ -1,9 +1,9 @@
 import Link from "next/link";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 
 export function LoginForm({
   className,
@@ -13,7 +13,7 @@ export function LoginForm({
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Login to your account</h1>
-        <p className="text-muted-foreground text-balance text-sm">
+        <p className="text-muted-foreground text-sm text-balance">
           Enter your email below to login to your account
         </p>
       </div>
@@ -35,7 +35,7 @@ export function LoginForm({
           <Input id="password" type="password" required />
         </div>
         <Button type="submit" className="w-full" asChild>
-          <Link href={"/series"}>Login</Link>
+          <Link href={"/udaman/uhero/series"}>Login</Link>
         </Button>
         <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
           <span className="bg-background text-muted-foreground relative z-10 px-2">
