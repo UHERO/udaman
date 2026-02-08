@@ -1,0 +1,90 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { notFound } from "next/navigation";
+import { createLogger } from "@/core/observability/logger";
+import {
+  getCategories as fetchCategories,
+  getCategory as fetchCategory,
+  createCategory as createCategoryCtrl,
+  updateCategory as updateCategoryCtrl,
+  deleteCategory as deleteCategoryCtrl,
+} from "@catalog/controllers/categories";
+import type {
+  Category,
+  CreateCategoryPayload,
+  UpdateCategoryPayload,
+  Universe,
+} from "@catalog/types/shared";
+
+const log = createLogger("action.categories");
+
+export async function getCategories(params: {
+  universe?: Universe;
+}): Promise<Category[]> {
+  const universe = params.universe ?? "UHERO";
+  log.info({ universe }, "getCategories action called");
+  const result = await fetchCategories({ u: universe, excludeId: 0 });
+  log.info({ count: (result.data as Category[]).length }, "getCategories action completed");
+  return result.data as Category[];
+}
+
+export async function getCategory(id: number): Promise<Category> {
+  log.info({ id }, "getCategory action called");
+  const result = await fetchCategory({ id });
+  if (!result.data) {
+    notFound();
+  }
+  return result.data as Category;
+}
+
+// Swaps the list_order values between two categories
+export async function swapCategoryOrder(
+  id1: number,
+  order1: number,
+  id2: number,
+  order2: number
+): Promise<void> {
+  log.info({ id1, order1, id2, order2 }, "swapCategoryOrder action called");
+  await Promise.all([
+    updateCategoryCtrl({ id: id1, payload: { listOrder: order2 } }),
+    updateCategoryCtrl({ id: id2, payload: { listOrder: order1 } }),
+  ]);
+  revalidatePath("/categories");
+}
+
+export async function updateCategoryVisibility(
+  id: number,
+  updates: { hidden?: boolean; masked?: boolean }
+): Promise<void> {
+  log.info({ id, updates }, "updateCategoryVisibility action called");
+  await updateCategoryCtrl({ id, payload: updates });
+  revalidatePath("/categories");
+}
+
+export async function createCategory(
+  payload: CreateCategoryPayload
+): Promise<Category> {
+  log.info("createCategory action called");
+  const result = await createCategoryCtrl({ payload });
+  revalidatePath("/categories");
+  log.info({ id: (result.data as Category).id }, "createCategory action completed");
+  return result.data as Category;
+}
+
+export async function updateCategory(
+  id: number,
+  payload: UpdateCategoryPayload
+): Promise<Category> {
+  log.info({ id }, "updateCategory action called");
+  const result = await updateCategoryCtrl({ id, payload });
+  revalidatePath("/categories");
+  return result.data as Category;
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  log.info({ id }, "deleteCategory action called");
+  await deleteCategoryCtrl({ id });
+  revalidatePath("/categories");
+  log.info({ id }, "deleteCategory action completed");
+}
