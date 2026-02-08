@@ -333,25 +333,30 @@ class Series {
           if (!isValidUniverse(universe)) {
             throw new Error(`Unknown universe ${universe}`);
           }
+          break;
         case "+":
           const newLimit = parseInt(term);
           if (isNaN(newLimit) || newLimit <= 0) {
             throw new Error(`Invalid limit ${term}`);
           }
           limit = newLimit;
+          break;
         case "=":
           conditions.push(`series.name = ?`);
           variables.push(term);
+          break;
         case "^":
           conditions.push(
             `substring_index(series.name,'@',1) ${negated}regexp ?`
           );
           variables.push(`^${convertCommas(term)}`);
+          break;
         case "~":
           conditions.push(
             `substring_index(series.name,'@',1) ${negated}regexp ?`
           );
           variables.push(`~${convertCommas(term)}`);
+          break;
         case ":":
           // ":: search sources.link && source_link"
           if (term.startsWith(":")) {
@@ -366,7 +371,9 @@ class Series {
             conditions.push(`source_link ${negated}regexp ?`);
             variables.push(convertCommas(term));
           }
+          break;
         case "@":
+          // TODO: avoid hard coding things already stored in database.
           const geoMap: Record<string, string[]> = {
             HIALL: [
               "HI5",
@@ -392,13 +399,19 @@ class Series {
           const geoQs = geos.map(() => "?").join(", ");
           conditions.push(`geographies.handle ${negated}in (${geoQs})`);
           variables.push(...geos);
+          break;
         case ".":
-
+          break;
         case "#":
+          break
         case "!":
+          break
         case ";":
+          break
         case "&":
+          break
         default:
+          break;
       }
     }
   }

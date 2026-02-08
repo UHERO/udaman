@@ -1,33 +1,33 @@
 "use client";
 
-import {
-    ArrowDownToLine,
-    ArrowLeftFromLine,
-    ArrowUpToLine,
-    AudioWaveform,
-    BookOpen,
-    ChartLine,
-    ClipboardList,
-    Command,
-    GalleryVerticalEnd,
-    HatGlasses,
-    Settings,
-    Settings2,
-    TableProperties,
-} from "lucide-react";
-import { useParams } from "next/navigation";
 import * as React from "react";
+import { useParams } from "next/navigation";
+import {
+  ArrowDownToLine,
+  ArrowLeftFromLine,
+  ArrowUpToLine,
+  AudioWaveform,
+  BookOpen,
+  ChartLine,
+  ClipboardList,
+  Command,
+  GalleryVerticalEnd,
+  HatGlasses,
+  Settings,
+  Settings2,
+  TableProperties,
+} from "lucide-react";
 
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 import { NavMain } from "@/components/nav-main";
 import { NavDataPortals } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarRail,
-} from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
 
 const data = {
@@ -225,7 +225,7 @@ const data = {
 };
 
 function prefixUrl(url: string, universe: string): string {
-  if (url.startsWith("/")) return `/${universe}${url}`;
+  if (url.startsWith("/")) return `/udaman/${universe}${url}`;
   return url;
 }
 
@@ -243,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           url: prefixUrl(sub.url, universe),
         })),
       })),
-    [universe],
+    [universe]
   );
 
   const dataPortal = React.useMemo(
@@ -252,7 +252,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ...item,
         url: prefixUrl(item.url, universe),
       })),
-    [universe],
+    [universe]
   );
 
   return (
