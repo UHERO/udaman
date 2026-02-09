@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { getColor } from "../helpers";
+import { useSeriesHover } from "./series-data-section";
 
 const isNumber = (val: unknown): val is number => {
   if (val === null || val === undefined) return false;
@@ -44,6 +45,7 @@ export const SeriesDataTable = ({
     showLoaderCol: boolean;
   };
 }) => {
+  const { setHoveredDate } = useSeriesHover();
   const { decimals } = options;
 
   const FormattedCell = ({ n, unit }: { n: number | null; unit?: string }) => {
@@ -136,7 +138,6 @@ export const SeriesDataTable = ({
       },
     },
   });
-  console.log("data", data[0]);
   return (
     <div>
       <Table className="border-separate border-spacing-1 font-mono text-gray-800">
@@ -163,6 +164,8 @@ export const SeriesDataTable = ({
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
                 className={cn("group", i % 2 === 0 ? "bg-muted" : "bg-none")}
+                onMouseEnter={() => setHoveredDate(row.getValue("date"))}
+                onMouseLeave={() => setHoveredDate(null)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell

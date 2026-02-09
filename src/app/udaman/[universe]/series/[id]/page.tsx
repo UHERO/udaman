@@ -3,6 +3,8 @@ import { Universe } from "@catalog/types/shared";
 import { getSeriesById, getSourceMap } from "@/actions/series-actions";
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
+import { SeriesChart } from "@/components/series/series-chart";
+import { SeriesHoverProvider } from "@/components/series/series-data-section";
 import { SeriesDataTable } from "@/components/series/series-table";
 import { SourceMapTable } from "@/components/series/source-map";
 
@@ -20,23 +22,26 @@ export default async function SeriesPage({
 
   return (
     <div className="">
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-1 rounded"></div>
-        <div className="col-span-7 rounded">
-          <LoaderSection universe={universe} seriesId={id} loaders={loaders} />
-          <SeriesDataTable
-            data={dataPoints}
-            options={{
-              decimals: metadata.s_decimals,
-              showLoaderCol: loaders.length > 1,
-            }}
-          />
-          <SourceMapTable data={sourceMap} universe={universe} />
+      <SeriesHoverProvider>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-1 rounded"></div>
+          <div className="col-span-7 rounded">
+            <LoaderSection universe={universe} seriesId={id} loaders={loaders} />
+            <SeriesDataTable
+              data={dataPoints}
+              options={{
+                decimals: metadata.s_decimals,
+                showLoaderCol: loaders.length > 1,
+              }}
+            />
+            <SourceMapTable data={sourceMap} universe={universe} />
+          </div>
+          <div className="col-span-4 rounded">
+            <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
+            <SeriesChart data={dataPoints} />
+          </div>
         </div>
-        <div className="col-span-4 rounded">
-          <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
-        </div>
-      </div>
+      </SeriesHoverProvider>
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-11 col-start-2">
           <SourceMapTable data={sourceMap} universe={universe} />
