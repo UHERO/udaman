@@ -2,7 +2,7 @@ import { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
 import Link from "next/link";
 
-import { getSeries } from "@/actions/series-actions";
+import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { SeriesListTable } from "@/components/series/series-list-table";
 import { H1 } from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
@@ -12,17 +12,23 @@ import { Label } from "@/components/ui/label";
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ universe: Universe }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { universe } = await params;
-  const data = await getSeries({ universe });
+  const { q } = await searchParams;
+  const data = q
+    ? await searchSeriesAction(q, universe)
+    : await getSeries({ universe });
   const count = data.length ?? 0;
+  const isSearch = Boolean(q);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-        <SeriesCard count={count} />
+        <SeriesCard count={count} isSearch={isSearch} />
         <CalculateCard />
         <TroubleCard />
       </div>
@@ -33,11 +39,13 @@ export default async function Page({
   );
 }
 
-const SeriesCard = ({ count }: { count: number }) => (
+const SeriesCard = ({ count, isSearch }: { count: number; isSearch: boolean }) => (
   <div className="flex flex-col rounded-xl">
     <div>
       <H1>Data Series</H1>
-      <p className="font-mono text-4xl">Total: {count}</p>
+      <p className="font-mono text-4xl">
+        {isSearch ? `Search: ${count} results` : `Total: ${count}`}
+      </p>
     </div>
     <Button asChild className="justify-start" variant={"ghost"}>
       <Link href="#">

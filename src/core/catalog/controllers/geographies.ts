@@ -1,6 +1,7 @@
 import { createLogger } from "@/core/observability/logger";
-import { Universe } from "../types/shared";
-import Geographies from "../models/geographies";
+import type { Universe } from "../types/shared";
+import GeographyCollection from "../collections/geography-collection";
+import type { CreateGeographyPayload, UpdateGeographyPayload } from "../collections/geography-collection";
 
 const log = createLogger("catalog.geographies");
 
@@ -10,13 +11,33 @@ const log = createLogger("catalog.geographies");
 
 export async function getGeographies({ u }: { u?: Universe }) {
   log.info({ universe: u }, "fetching geographies");
-  const data = await Geographies.list({ universe: u });
-  log.info({ count: (data as any[]).length }, "geographies fetched");
+  const data = await GeographyCollection.list({ universe: u });
+  log.info({ count: data.length }, "geographies fetched");
   return { data };
 }
 
 export async function getGeography({ id }: { id: number }) {
   log.info({ id }, "fetching geography");
-  const data = await Geographies.getById(id);
+  const data = await GeographyCollection.getById(id);
   return { data };
+}
+
+export async function createGeography({ payload }: { payload: CreateGeographyPayload }) {
+  log.info({ payload }, "creating geography");
+  const data = await GeographyCollection.create(payload);
+  log.info({ id: data.id }, "geography created");
+  return { data };
+}
+
+export async function updateGeography({ id, payload }: { id: number; payload: UpdateGeographyPayload }) {
+  log.info({ id, payload }, "updating geography");
+  const data = await GeographyCollection.update(id, payload);
+  log.info({ id }, "geography updated");
+  return { data };
+}
+
+export async function deleteGeography({ id }: { id: number }) {
+  log.info({ id }, "deleting geography");
+  await GeographyCollection.delete(id);
+  log.info({ id }, "geography deleted");
 }

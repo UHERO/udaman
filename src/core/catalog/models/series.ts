@@ -1,431 +1,399 @@
-import { mysql } from "@/lib/mysql/db";
-import { convertCommas } from "@/lib/mysql/helpers";
-import { SeriesMetadata, Universe } from "../types/shared";
-import { isValidUniverse } from "../utils/validators";
-import { SeriesSummary } from "../types/udaman";
+import type { SeasonalAdjustment, Universe } from "../types/shared";
+
+// ─── Name parsing ────────────────────────────────────────────────────
+// Series names follow the pattern: PREFIX@GEO.FREQ
+// e.g. "E_NF@HI.M" → prefix=E_NF, geo=HI, freq=M
+
+const NAME_REGEX =
+  /^(([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)(\.([ASQMWD]))?$/i;
+
+export type FrequencyCode = "A" | "S" | "Q" | "M" | "W" | "D";
+
+export type FrequencyLong =
+  | "year"
+  | "semi"
+  | "quarter"
+  | "month"
+  | "week"
+  | "day";
+
+const FREQ_CODE_TO_LONG: Record<FrequencyCode, FrequencyLong> = {
+  A: "year",
+  S: "semi",
+  Q: "quarter",
+  M: "month",
+  W: "week",
+  D: "day",
+};
+
+const FREQ_LONG_TO_CODE = Object.fromEntries(
+  Object.entries(FREQ_CODE_TO_LONG).map(([k, v]) => [v, k]),
+) as Record<FrequencyLong, FrequencyCode>;
+
+export interface ParsedName {
+  prefixFull: string;
+  prefix: string;
+  forecast: string | null;
+  version: string | null;
+  history: string | null;
+  geo: string;
+  freq: FrequencyCode | null;
+  freqLong: FrequencyLong | null;
+}
+
+// ─── Input type ──────────────────────────────────────────────────────
+// What you pass to `new Series(...)` — typically a row from the DB
+// or a merged series+xseries object. Uses snake_case to match DB columns.
+
+export type SeriesAttrs = {
+  id?: number | null;
+  xseries_id?: number | null;
+  universe?: string | null;
+  name: string;
+  dataPortalName?: string | null;
+  description?: string | null;
+  decimals?: number | null;
+  geography_id?: number | null;
+  unit_id?: number | null;
+  source_id?: number | null;
+  source_detail_id?: number | null;
+  source_link?: string | null;
+  investigation_notes?: string | null;
+  dependency_depth?: number | null;
+  scratch?: number | null;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
+  // xseries fields
+  primary_series_id?: number | null;
+  frequency?: string | null;
+  restricted?: boolean | number | null;
+  quarantined?: boolean | number | null;
+  seasonal_adjustment?: string | null;
+  seasonally_adjusted?: boolean | number | null;
+  aremos_missing?: number | null;
+  aremos_diff?: number | null;
+  percent?: boolean | number | null;
+  real?: boolean | number | null;
+};
+
+// ─── Model ───────────────────────────────────────────────────────────
 
 class Series {
-  /** Create a series record */
-  static async create() {}
+  // series table fields
+  readonly id: number | null;
+  readonly xseriesId: number | null;
+  readonly universe: Universe;
+  name: string;
+  dataPortalName: string | null;
+  description: string | null;
+  decimals: number;
+  geographyId: number | null;
+  unitId: number | null;
+  sourceId: number | null;
+  sourceDetailId: number | null;
+  sourceLink: string | null;
+  investigationNotes: string | null;
+  dependencyDepth: number;
+  scratch: number;
+  createdAt: Date | null;
+  updatedAt: Date | null;
 
-  static async getSeriesByName(seriesName: string): Promise<{
-    name: string;
-    id: number;
-    aremos_missing: number | null;
-    aremos_diff: number | null;
-  }> {
-    const rows = await mysql`
-      SELECT
-        s.id,
-        s.name,
-        x.aremos_missing,
-        x.aremos_diff
-      FROM series s
-      JOIN xseries x ON s.xseries_id = x.id
-      WHERE s.name = ${seriesName}
-      LIMIT 1
-    `;
+  // xseries fields (delegated, mirrors Rails `delegate_missing_to :xseries`)
+  readonly primarySeriesId: number | null;
+  frequency: string | null;
+  restricted: boolean;
+  quarantined: boolean;
+  seasonalAdjustment: SeasonalAdjustment | null;
+  seasonallyAdjusted: boolean | null;
+  aremossMissing: number | null;
+  aremosDiff: number | null;
+  percent: boolean | null;
+  real: boolean | null;
 
-    const r = rows[0] as any;
-    if (!r) throw new Error(`Series not found: ${seriesName}`);
+  // in-memory state (not persisted)
+  #data: Map<string, number> | null = null;
+  #trimStart: Date | null = null;
+  #trimEnd: Date | null = null;
+
+  constructor(attrs: SeriesAttrs) {
+    // series
+    this.id = attrs.id ?? null;
+    this.xseriesId = attrs.xseries_id ?? null;
+    this.universe = (attrs.universe as Universe) ?? "UHERO";
+    this.name = attrs.name;
+    this.dataPortalName = attrs.dataPortalName ?? null;
+    this.description = attrs.description ?? null;
+    this.decimals = attrs.decimals ?? 1;
+    this.geographyId = attrs.geography_id ?? null;
+    this.unitId = attrs.unit_id ?? null;
+    this.sourceId = attrs.source_id ?? null;
+    this.sourceDetailId = attrs.source_detail_id ?? null;
+    this.sourceLink = attrs.source_link ?? null;
+    this.investigationNotes = attrs.investigation_notes ?? null;
+    this.dependencyDepth = attrs.dependency_depth ?? 0;
+    this.scratch = attrs.scratch ?? 0;
+    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
+    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+
+    // xseries
+    this.primarySeriesId = attrs.primary_series_id ?? null;
+    this.frequency = attrs.frequency ?? null;
+    this.restricted = Boolean(attrs.restricted);
+    this.quarantined = Boolean(attrs.quarantined);
+    this.seasonalAdjustment = (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
+    this.seasonallyAdjusted = attrs.seasonally_adjusted != null ? Boolean(attrs.seasonally_adjusted) : null;
+    this.aremossMissing = attrs.aremos_missing ?? null;
+    this.aremosDiff = attrs.aremos_diff ?? null;
+    this.percent = attrs.percent != null ? Boolean(attrs.percent) : null;
+    this.real = attrs.real != null ? Boolean(attrs.real) : null;
+  }
+
+  // ─── Display ─────────────────────────────────────────────────────
+
+  toString(): string {
+    return this.name ?? "UNNAMED_SERIES";
+  }
+
+  // ─── Name parsing & building ─────────────────────────────────────
+
+  static parseName(name: string): ParsedName {
+    const m = name.match(NAME_REGEX);
+    if (!m) throw new SeriesNameError(`Invalid series name format: ${name}`);
+
+    const freqCode = m[9]?.toUpperCase() as FrequencyCode | undefined;
     return {
-      name: r.name,
-      id: r.id,
-      aremos_missing: r.aremos_missing,
-      aremos_diff: r.aremos_diff,
+      prefixFull: m[1],
+      prefix: m[2],
+      forecast: m[4]?.toUpperCase() ?? null,
+      version: m[5]?.toUpperCase() === "F" ? (m[6]?.toUpperCase() ?? null) : null,
+      history: m[5]?.toUpperCase() === "H" ? (m[6]?.toUpperCase() ?? null) : null,
+      geo: m[7].toUpperCase(),
+      freq: freqCode ?? null,
+      freqLong: freqCode ? FREQ_CODE_TO_LONG[freqCode] ?? null : null,
     };
   }
 
-  static async getSeriesMetadata({
-    id,
-  }: {
-    id: number;
-  }): Promise<SeriesMetadata> {
-    // todo: remove unused fields after initial build
-    const rows = await mysql`
-      SELECT
-        s.id as s_id,
-        s.geography_id as s_geography_id,
-        s.unit_id as s_unit_id,
-        s.source_id as s_source_id,
-        s.source_detail_id as s_source_detail_id,
-        s.universe as s_universe,
-        s.decimals as s_decimals,
-        s.name as s_name,
-        s.dataPortalName as s_dataPortalName,
-        s.description as s_description,
-        s.created_at as s_created_at,
-        s.updated_at as s_updated_at,
-        s.dependency_depth as s_dependency_depth,
-        s.source_link as s_source_link,
-        s.investigation_notes as s_investigation_notes,
-        s.scratch as s_scratch,
-        x.id as xs_id,
-        x.primary_series_id as xs_primary_series_id,
-        x.restricted as xs_restricted,
-        x.quarantined as xs_quarantined,
-        x.frequency as xs_frequency,
-        x.seasonally_adjusted as xs_seasonally_adjusted,
-        x.seasonal_adjustment as xs_seasonal_adjustment,
-        x.aremos_missing as xs_aremos_missing,
-        x.aremos_diff as xs_aremos_diff,
-        x.mult as xs_mult,
-        x.created_at as xs_created_at,
-        x.updated_at as xs_updated_at,
-        x.units as xs_units,
-        x.percent as xs_percent,
-        x.real as xs_real,
-        x.base_year as xs_base_year,
-        x.frequency_transform as xs_frequency_transform,
-        x.last_demetra_date as xs_last_demetra_date,
-        x.last_demetra_datestring as xs_last_demetra_datestring,
-        x.factor_application as xs_factor_application,
-        x.factors as xs_factors,
-        g.handle as geo_handle,
-        g.display_name as geo_display_name,
-        u.short_label as u_short_label,
-        u.long_label as u_long_label,
-        src.description as source_description,
-        src.link as source_link,
-        sd.description as source_detail_description
-      FROM series s
-      JOIN xseries x ON s.xseries_id = x.id
-      LEFT JOIN geographies g ON s.geography_id = g.id
-      LEFT JOIN units u ON s.unit_id = u.id
-      LEFT JOIN sources src ON s.source_id = src.id
-      LEFT JOIN source_details sd ON s.source_detail_id = sd.id
-      WHERE s.id = ${id}
-    `;
-    if (rows.length === 0)
-      throw new Error("404 - Series not found: " + id);
-    return rows[0] as SeriesMetadata;
+  parseName(): ParsedName {
+    return Series.parseName(this.name);
   }
 
-  /** Fetch the the most recent 40 series to display on the homepage.
-   *
-   * todo: set min and max dates on the xseries table and update them when a series is loaded.
-   * todo: This would allow simplifying this to a single query and avoid the data_points table.
-   */
-  static async getSummaryList({
-    offset,
-    limit,
-    universe,
-  }: {
-    offset?: number;
-    limit?: number;
-    universe: Universe;
-  }) {
-    // fetch initial data
-    const mainRows = await mysql`
-      SELECT
-        s.name as name,
-        s.id as id,
-        s.xseries_id as xseriesId,
-        xs.seasonal_adjustment as seasonalAdjustment,
-        s.dataPortalName as portalName,
-        u.short_label as unitShortLabel,
-        src.description as sourceDescription,
-        src.link as sourceUrl
-      FROM series s
-      INNER JOIN xseries xs ON xs.id = s.xseries_id
-      LEFT JOIN units u ON u.id = s.unit_id
-      LEFT JOIN sources src ON src.id = s.source_id
-      WHERE s.universe = ${universe}
-      ORDER BY s.created_at DESC
-      LIMIT 40
-    `;
-
-    const xseriesIds = mainRows.map((row: any) => row.xseriesId);
-
-    if (xseriesIds.length > 0) {
-      // Second query - get min/max dates only for the 40 series
-      const dateRows = await mysql`
-        SELECT
-          xseries_id as id,
-          MIN(date) as min_date,
-          MAX(date) as max_date
-        FROM data_points
-        WHERE xseries_id IN ${mysql(xseriesIds)}
-        GROUP BY xseries_id
-      `;
-
-      const dateMap = new Map(dateRows.map((row: any) => [row.id, row]));
-
-      const finalRows: SeriesSummary[] = mainRows.map((row: any) => {
-        const dateInfo = dateMap.get(row.xseriesId) as any;
-        return {
-          name: row.name,
-          id: row.id,
-          seasonalAdjustment: row.seasonalAdjustment,
-          portalName: row.portalName,
-          unitShortLabel: row.unitShortLabel,
-          sourceDescription: row.sourceDescription,
-          sourceUrl: row.sourceUrl,
-          minDate: dateInfo?.min_date || null,
-          maxDate: dateInfo?.max_date || null,
-        };
-      });
-
-      return finalRows;
+  static buildName(prefix: string, geo: string, freq?: string | null): string {
+    if (!prefix?.trim() || !geo?.trim()) {
+      throw new Error(`Empty prefix ("${prefix}") and/or geography ("${geo}") not allowed`);
     }
-    return mainRows.map((row: any) => ({
-      name: row.name,
-      id: row.id,
-      seasonalAdjustment: row.seasonalAdjustment,
-      portalName: row.portalName,
-      unitShortLabel: row.unitShortLabel,
-      sourceDescription: row.sourceDescription,
-      sourceUrl: row.sourceUrl,
-      minDate: null,
-      maxDate: null,
-    }));
+    let name = `${prefix.trim().toUpperCase()}@${geo.trim().toUpperCase()}`;
+    if (freq) name += `.${freq.trim().toUpperCase()}`;
+    Series.parseName(name); // validate
+    return name;
   }
 
-  /** Update series data */
-  static async update() {}
-
-  /** Delete series from database */
-  static async deleteDataPoints(opts: {
-    id: number;
-    u: Universe;
-    deleteBy: "observationDate" | "vintageDate" | "none";
-    date?: string;
-  }) {
-    const { id, u, deleteBy, date } = opts;
-    if (deleteBy === "observationDate" && date) {
-      await this.deleteDataPointsByObservationDate({ id, u, date });
-      await this.repairDataPoints({ id });
-    }
-    if (deleteBy === "vintageDate" && date) {
-      await this.deleteDataPointsByVintage({ id, u, date });
-      await this.repairDataPoints({ id });
-    }
-    if (deleteBy === "none") {
-      await this.deleteAllDataPoints({ id, u });
-    }
-
-    return "ok";
+  buildName(overrides: Partial<ParsedName> = {}): string {
+    const parts = { ...this.parseName(), ...overrides };
+    return Series.buildName(parts.prefix, parts.geo, parts.freq);
   }
 
-  /** Use after partially deleting datapoints by vintage or observation date
-   * to load the deleted datapoint where no other vintage exists */
-  static async repairDataPoints(opts: { id: number }) {
-    const { id } = opts;
-    const needRepairDates = await mysql`
-      SELECT DISTINCT dp.date
-      FROM data_points dp
-      WHERE dp.xseries_id = ${id}
-        AND NOT EXISTS (
-          SELECT 1 FROM data_points current_dp
-          WHERE current_dp.xseries_id = dp.xseries_id
-            AND current_dp.date = dp.date
-            AND current_dp.current = true
-        )
-    `;
+  get nameNoFreq(): string {
+    return this.buildName({ freq: null });
+  }
 
-    for (const dateRow of needRepairDates) {
-      await mysql`
-        UPDATE data_points
-        SET current = true
-        WHERE id = (
-          SELECT id FROM (
-            SELECT id FROM data_points
-            WHERE xseries_id = ${id} AND date = ${(dateRow as any).date}
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) tmp
-        )
-      `;
+  static isValidName(str: string): boolean {
+    return NAME_REGEX.test(str);
+  }
+
+  // ─── Frequency helpers ───────────────────────────────────────────
+
+  static frequencyFromCode(code: string | null | undefined): FrequencyLong | null {
+    if (!code) return null;
+    return FREQ_CODE_TO_LONG[code.toUpperCase() as FrequencyCode] ?? null;
+  }
+
+  static codeFromFrequency(freq: string | null | undefined): FrequencyCode | null {
+    if (!freq) return null;
+    const normalized = freq.toLowerCase().replace(/ly$/, "");
+    return FREQ_LONG_TO_CODE[normalized as FrequencyLong] ?? null;
+  }
+
+  get frequencyCode(): FrequencyCode | null {
+    return Series.codeFromFrequency(this.frequency);
+  }
+
+  get frequencyFromName(): FrequencyLong | null {
+    return Series.parseName(this.name).freqLong;
+  }
+
+  // ─── Identity & relationships ────────────────────────────────────
+
+  get isPrimary(): boolean {
+    return this.primarySeriesId === this.id;
+  }
+
+  get isAlias(): boolean {
+    return !this.isPrimary;
+  }
+
+  // ─── Seasonal adjustment ─────────────────────────────────────────
+
+  get isSA(): boolean {
+    if (this.seasonalAdjustment === "seasonally_adjusted") return true;
+    if (this.seasonalAdjustment === "not_seasonally_adjusted") return false;
+    // fuzzy: infer from name suffix
+    return /SA$/i.test(this.parseName().prefix);
+  }
+
+  get isNS(): boolean {
+    if (this.seasonalAdjustment === "not_seasonally_adjusted") return true;
+    if (this.seasonalAdjustment === "seasonally_adjusted") return false;
+    return /NS$/i.test(this.parseName().prefix);
+  }
+
+  get nsSeriesName(): string {
+    const prefix = this.parseName().prefix;
+    if (/NS$/i.test(prefix)) throw new Error(`${this} already ends in NS`);
+    return this.buildName({ prefix: prefix + "NS" });
+  }
+
+  get nonNsSeriesName(): string {
+    return this.buildName({ prefix: this.parseName().prefix.replace(/NS$/i, "") });
+  }
+
+  // ─── Validation ──────────────────────────────────────────────────
+
+  get isValid(): boolean {
+    return this.validate().length === 0;
+  }
+
+  validate(): string[] {
+    const errors: string[] = [];
+    if (!this.name) errors.push("Name is required");
+    if (this.sourceLink && !Series.#isValidUrl(this.sourceLink)) {
+      errors.push("Source link is not a valid URL");
+    }
+    if (this.universe === "UHERO" && !this.#noEnforceFields) {
+      if (!this.dataPortalName) errors.push("Data Portal Name is required");
+      if (!this.unitId) errors.push("Unit is required");
+      if (!this.sourceId) errors.push("Source is required");
+      if (this.decimals == null) errors.push("Decimals is required");
+    }
+    return errors;
+  }
+
+  get #noEnforceFields(): boolean {
+    if (this.universe !== "UHERO") return true;
+    if (this.scratch === 11011) return true;
+    if (this.scratch === 90909) return true;
+    if (/test/i.test(this.name)) return true;
+    return false;
+  }
+
+  static #isValidUrl(str: string): boolean {
+    try {
+      new URL(str);
+      return true;
+    } catch {
+      return false;
     }
   }
 
-  /** Retrieve distinct dates for a given series */
-  static async getSeriesDates(opts: { id: number }) {
-    return mysql`
-      SELECT DISTINCT date
-      FROM data_points
-      WHERE xseries_id = ${opts.id}
-      ORDER BY date
-    `;
-  }
+  // ─── Metadata integrity ──────────────────────────────────────────
+  // Port of Rails Series.meta_integrity_check
+  // Enforces implicational relationships between attributes.
 
-  static async deleteAllDataPoints(opts: { id: number; u: Universe }) {
-    return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id}`;
-  }
-
-  static async deleteDataPointsByObservationDate(opts: {
-    id: number;
-    u: Universe;
-    date: string;
-  }) {
-    return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND date >= ${opts.date}`;
-  }
-
-  static async deleteDataPointsByVintage(opts: {
-    id: number;
-    u: Universe;
-    date: string;
-  }) {
-    return mysql`DELETE FROM data_points WHERE xseries_id = ${opts.id} AND created_at > ${opts.date}`;
-  }
-
-  static async getAliases(opts: { sId: number; xsId: number }) {
-    const { sId, xsId } = opts;
-    return mysql`
-      SELECT * FROM series
-      WHERE xseries_id = ${xsId}
-      AND id <> ${sId}
-      ORDER BY
-      CASE
-        WHEN id = (
-          SELECT primary_series_id
-          FROM xseries
-          WHERE id = ${xsId}
-        )
-        THEN 0 ELSE 1 END,
-      universe
-    `;
-  }
-
-  /**
-   * 1. join series & xseries
-   * 2. univ defaults to UHERO
-   * 3.
-   */
-  static async search({
-    text,
-    limit = 10000,
-    user = null,
-    universe,
-  }: {
-    text: string;
-    limit: number;
-    user: null;
-    universe: Universe | string;
-  }) {
-    if (text.length < 1) throw new Error("Invalid search term");
-    const joins = [`INNER JOIN xseries ON xseries.id = series.xseries_id`];
-    const operators = "^+~-@.#!:;&/=";
-    const conditions: string[] = [];
-    const variables: any[] = [];
-    let firstTerm = "";
-    let negated = "";
-
-    const terms = text.split(" ");
-    for (let term of terms) {
-      negated = "";
-      if (term[0] === "-") {
-        negated = "NOT ";
-        term = term.slice(1);
-      }
-
-      const hasOperator = term[0] !== undefined && operators.includes(term[0]);
-      const operator = term[0];
-
-      if (hasOperator) {
-        term = term.slice(1);
-      }
-
-      switch (operator) {
-        case "/":
-          const abbrevs: Record<string, Universe> = { u: "UHERO", db: "DBEDT" };
-          universe = abbrevs[term] ?? term;
-          if (!isValidUniverse(universe)) {
-            throw new Error(`Unknown universe ${universe}`);
-          }
-          break;
-        case "+":
-          const newLimit = parseInt(term);
-          if (isNaN(newLimit) || newLimit <= 0) {
-            throw new Error(`Invalid limit ${term}`);
-          }
-          limit = newLimit;
-          break;
-        case "=":
-          conditions.push(`series.name = ?`);
-          variables.push(term);
-          break;
-        case "^":
-          conditions.push(
-            `substring_index(series.name,'@',1) ${negated}regexp ?`
-          );
-          variables.push(`^${convertCommas(term)}`);
-          break;
-        case "~":
-          conditions.push(
-            `substring_index(series.name,'@',1) ${negated}regexp ?`
-          );
-          variables.push(`~${convertCommas(term)}`);
-          break;
-        case ":":
-          // ":: search sources.link && source_link"
-          if (term.startsWith(":")) {
-            joins.push(
-              "left outer join sources on sources.id = series.source_id"
-            );
-            conditions.push(
-              `concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) ${negated}regexp ?`
-            );
-            variables.push(convertCommas(term.slice(1)));
-          } else {
-            conditions.push(`source_link ${negated}regexp ?`);
-            variables.push(convertCommas(term));
-          }
-          break;
-        case "@":
-          // TODO: avoid hard coding things already stored in database.
-          const geoMap: Record<string, string[]> = {
-            HIALL: [
-              "HI5",
-              "NBI",
-              "MOL",
-              "MAUI",
-              "LAN",
-              "HAWH",
-              "HAWK",
-              "HIONLY",
-            ],
-            HI5: ["HI", "CNTY"],
-            CNTY: ["HAW", "HON", "KAU", "MAU"],
-          };
-
-          joins.push(
-            `INNER JOIN geographies ON geographies.id = series.geography_id`
-          );
-          const geos = term
-            .split(",")
-            .flatMap((g) => geoMap[g.toUpperCase()] || [g.toUpperCase()]);
-
-          const geoQs = geos.map(() => "?").join(", ");
-          conditions.push(`geographies.handle ${negated}in (${geoQs})`);
-          variables.push(...geos);
-          break;
-        case ".":
-          break;
-        case "#":
-          break
-        case "!":
-          break
-        case ";":
-          break
-        case "&":
-          break
-        default:
-          break;
-      }
+  enforceMetaIntegrity(): void {
+    if (this.frequency === "year") {
+      this.seasonalAdjustment = "not_applicable";
+    } else if (this.name && /NS$/i.test(Series.parseName(this.name).prefix)) {
+      this.seasonalAdjustment = "not_seasonally_adjusted";
     }
   }
 
-  static isValidName(str: string) {
-    if (!str || !str.includes("@")) return false;
+  // ─── In-memory data (non-persisted) ──────────────────────────────
 
-    // Simplified series name validation (XXXX@XXX.X format)
-    const seriesNameRegex =
-      /^([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?@(\w+?)(\.([ASQMWD]))?$/i;
-    return seriesNameRegex.test(str);
+  get data(): Map<string, number> {
+    return this.#data ??= new Map();
   }
 
-  static isValidUniverse(universe: Universe | string) {}
+  set data(value: Map<string, number>) {
+    this.#data = value;
+  }
+
+  get trimPeriodStart(): Date | null { return this.#trimStart; }
+  set trimPeriodStart(d: Date | null) { this.#trimStart = d; }
+
+  get trimPeriodEnd(): Date | null { return this.#trimEnd; }
+  set trimPeriodEnd(d: Date | null) { this.#trimEnd = d; }
+
+  get firstObservation(): string | null {
+    const dates = [...this.data.keys()].filter((k) => this.data.get(k) != null).sort();
+    return dates[0] ?? null;
+  }
+
+  get lastObservation(): string | null {
+    const dates = [...this.data.keys()].filter((k) => this.data.get(k) != null).sort();
+    return dates.at(-1) ?? null;
+  }
+
+  get observationCount(): number {
+    return [...this.data.values()].filter((v) => v != null).length;
+  }
+
+  // ─── Serialization ───────────────────────────────────────────────
+
+  toJSON() {
+    return {
+      id: this.id,
+      name: this.name,
+      universe: this.universe,
+      dataPortalName: this.dataPortalName,
+      description: this.description,
+      decimals: this.decimals,
+      frequency: this.frequency,
+      frequencyCode: this.frequencyCode,
+      restricted: this.restricted,
+      quarantined: this.quarantined,
+      seasonalAdjustment: this.seasonalAdjustment,
+      isPrimary: this.isPrimary,
+      sourceLink: this.sourceLink,
+    };
+  }
+
+  // ─── Stubs for domain logic (to be implemented) ──────────────────
+  // These mirror the Rails model's richer methods. The Collection layer
+  // handles the DB side; these handle the business logic.
+
+  /** Rename series, updating dependents' loader evals. */
+  rename(_newName: string): void { /* TODO */ }
+
+  /** Duplicate this series under a new name. */
+  duplicate(_newName: string, _overrides?: Partial<SeriesAttrs>): Series { /* TODO */ return this; }
+
+  /** Create an alias of this series into another universe. */
+  createAlias(_props: { universe: Universe; name?: string }): Series { /* TODO */ return this; }
+
+  /** Reload all enabled data sources for this series. */
+  reloadSources(_opts?: { nightly?: boolean; clearFirst?: boolean }): void { /* TODO */ }
+}
+
+// ─── Errors ──────────────────────────────────────────────────────────
+
+export class SeriesNameError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesNameError";
+  }
+}
+
+export class SeriesValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesValidationError";
+  }
+}
+
+export class SeriesDestroyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesDestroyError";
+  }
 }
 
 export default Series;

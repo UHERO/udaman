@@ -9,7 +9,7 @@ class DataPoints {
    */
   static async getBySeriesId(opts: { xseriesId: number }): Promise<DataPoint[]> {
     const { xseriesId } = opts;
-    const rows = await mysql`
+    const rows = await mysql<DataPoint>`
       WITH current_data AS (
         SELECT
           date,
@@ -85,7 +85,7 @@ class DataPoints {
       ORDER BY c.date DESC
     `;
 
-    return rows as DataPoint[];
+    return rows;
   }
 }
 

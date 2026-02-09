@@ -1,0 +1,43 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createLogger } from "@/core/observability/logger";
+import {
+  getSources as fetchSources,
+  createSource as createSourceCtrl,
+  updateSource as updateSourceCtrl,
+  deleteSource as deleteSourceCtrl,
+} from "@catalog/controllers/sources";
+import type { CreateSourcePayload, UpdateSourcePayload } from "@catalog/collections/source-collection";
+import type { Universe } from "@catalog/types/shared";
+
+const log = createLogger("action.sources");
+
+export async function getSources(params?: { universe?: Universe }) {
+  log.info({ universe: params?.universe }, "getSources action called");
+  const result = await fetchSources({ u: params?.universe });
+  log.info({ count: result.data.length }, "getSources action completed");
+  return result.data.map((s) => s.toJSON());
+}
+
+export async function createSource(payload: CreateSourcePayload) {
+  log.info("createSource action called");
+  const result = await createSourceCtrl({ payload });
+  revalidatePath("/sources");
+  log.info({ id: result.data.id }, "createSource action completed");
+  return result.data.toJSON();
+}
+
+export async function updateSource(id: number, payload: UpdateSourcePayload) {
+  log.info({ id }, "updateSource action called");
+  const result = await updateSourceCtrl({ id, payload });
+  revalidatePath("/sources");
+  return result.data.toJSON();
+}
+
+export async function deleteSource(id: number): Promise<void> {
+  log.info({ id }, "deleteSource action called");
+  await deleteSourceCtrl({ id });
+  revalidatePath("/sources");
+  log.info({ id }, "deleteSource action completed");
+}

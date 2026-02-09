@@ -1,8 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { deleteSeriesDataPoints } from "@/actions/series-actions";
-import { isValidDate } from "@catalog/utils/time";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,9 +20,22 @@ import { Input } from "@/components/ui/input";
 import { H2 } from "../typography";
 
 const formSchema = z.object({
-  date: z.string().refine((val) => val === "" || isValidDate(val), {
-    message: "Date is invalid",
-  }),
+  name: z.string(),
+  geography: z.string(),
+  frequency: z.string(),
+  dataPortalName: z.string(),
+  description: z.string(),
+  unit: z.string(),
+  source: z.string(),
+  sourceLink: z.string(),
+  sourceDetail: z.string(),
+  investigationNotes: z.string(),
+  decimals: z.number(),
+  percent: z.boolean(),
+  real: z.boolean(),
+  seasonalAdjustment: z.string(),
+  frequencyTransformationMethod: z.string(),
+  restricted: z.boolean(),
 });
 
 export function SeriesCreateForm({
@@ -40,15 +51,28 @@ export function SeriesCreateForm({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: "",
+      name: "",
+      geography: "",
+      frequency: "",
+      dataPortalName: "",
+      description: "",
+      unit: "",
+      source: "",
+      sourceLink: "",
+      sourceDetail: "",
+      investigationNotes: "",
+      decimals: 1,
+      percent: false,
+      real: false,
+      seasonalAdjustment: "NA", // SA, NS, NA
+      frequencyTransformationMethod: "sum", // check enum
+      restricted: true,
     },
   });
 
-  const deleteBy = form.watch("");
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    await deleteSeriesDataPoints(seriesId, { universe: universe, ...values });
+
     nav.push(`/${universe}/series/${seriesId}`);
   }
 

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --bun next dev --turbopack | pino-pretty",
+    "dev": "bun --bun next dev -p 3008 --turbopack",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
     "lint": "eslint .",
@@ -45,6 +45,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4",
     "@next/eslint-plugin-next": "^16",
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.3.8",
     "@types/node": "^24",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",

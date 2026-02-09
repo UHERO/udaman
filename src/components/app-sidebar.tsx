@@ -73,7 +73,6 @@ const data = {
       title: "Data Series",
       url: "/series",
       icon: TableProperties,
-      isActive: true,
       items: [
         {
           title: "List Series",

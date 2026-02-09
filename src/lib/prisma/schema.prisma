@@ -1,20 +1,38 @@
 datasource db {
   provider = "mysql"
+  url = env("DB_MYSQL_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
+model universe {
+  name             String             @id @db.VarChar(10)
+  api_applications api_applications[]
+  categories       categories[]
+  data_lists       data_lists[]
+  data_sources     data_sources[]
+  feature_toggles  feature_toggles[]
+  geographies      geographies[]
+  measurements     measurements[]
+  series           series[]
+  source_details   source_details[]
+  sources          sources[]
+  units            units[]
+  users            users[]
+}
+
 model api_applications {
-  id              Int                       @id @default(autoincrement())
-  universe        api_applications_universe @default(UHERO)
-  name            String?                   @db.VarChar(255)
-  hostname        String?                   @db.VarChar(255)
-  api_key         String?                   @db.VarChar(255)
-  created_at      DateTime                  @db.DateTime(0)
-  updated_at      DateTime                  @db.DateTime(0)
-  github_nickname String?                   @db.VarChar(255)
+  id              Int        @id @default(autoincrement())
+  universe        String     @default("UHERO") @db.VarChar(10)
+  name            String?    @db.VarChar(255)
+  hostname        String?    @db.VarChar(255)
+  api_key         String?    @db.VarChar(255)
+  created_at      DateTime   @db.DateTime(0)
+  updated_at      DateTime   @db.DateTime(0)
+  github_nickname String?    @db.VarChar(255)
+  universe_rel    universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_api_applications_universe")
 
   @@unique([universe, name], map: "index_api_applications_on_universe_and_name")
 }
@@ -72,7 +90,7 @@ model categories {
   id             Int                      @id @default(autoincrement())
   data_list_id   Int?
   default_geo_id Int?
-  universe       categories_universe      @default(UHERO)
+  universe       String                   @default("UHERO") @db.VarChar(10)
   created_at     DateTime                 @db.DateTime(0)
   updated_at     DateTime                 @db.DateTime(0)
   hidden         Boolean?                 @default(false)
@@ -88,6 +106,7 @@ model categories {
   description    String?                  @db.VarChar(500)
   geographies    geographies?             @relation(fields: [default_geo_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_c390c9a75e")
   data_lists     data_lists?              @relation(fields: [data_list_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_cats_data_list_id")
+  universe_rel   universe                 @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_categories_universe")
 
   @@index([default_geo_id], map: "fk_rails_c390c9a75e")
   @@index([data_list_id], map: "fk_rails_cats_data_list_id")
@@ -109,17 +128,18 @@ model data_list_measurements {
 }
 
 model data_lists {
-  id         Int                 @id @default(autoincrement())
-  universe   data_lists_universe @default(UHERO)
-  name       String?             @db.VarChar(255)
+  id         Int          @id @default(autoincrement())
+  universe   String       @default("UHERO") @db.VarChar(10)
+  name       String?      @db.VarChar(255)
   startyear  Int?
   endyear    Int?
-  created_at DateTime?           @db.DateTime(0)
-  updated_at DateTime?           @db.DateTime(0)
+  created_at DateTime?    @db.DateTime(0)
+  updated_at DateTime?    @db.DateTime(0)
   created_by Int?
   updated_by Int?
   owned_by   Int?
   categories categories[]
+  universe_rel universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_data_lists_universe")
 
   @@index([universe], map: "index_data_lists_on_universe")
 }
@@ -179,27 +199,28 @@ model data_source_downloads {
 }
 
 model data_sources {
-  id                  Int                   @id @default(autoincrement())
-  clear_before_load   Boolean               @default(false)
-  color               String?               @db.VarChar(255)
-  dependencies        String?               @db.Text
-  description         String?               @db.Text
-  disabled            Boolean               @default(false)
-  eval                String?               @db.VarChar(500)
-  last_error          String?               @db.VarChar(255)
-  last_error_at       DateTime?             @db.DateTime(0)
-  last_run_at         DateTime?             @db.DateTime(0)
-  last_run_in_seconds Decimal?              @db.Decimal(17, 3)
-  presave_hook        String?               @db.VarChar(255)
-  priority            Int?                  @default(100)
-  pseudo_history      Boolean               @default(false)
-  reload_nightly      Boolean?              @default(true)
-  runtime             Float?                @db.Float
-  scale               String                @default("1.0") @db.VarChar(255)
+  id                  Int       @id @default(autoincrement())
+  clear_before_load   Boolean   @default(false)
+  color               String?   @db.VarChar(255)
+  dependencies        String?   @db.Text
+  description         String?   @db.Text
+  disabled            Boolean   @default(false)
+  eval                String?   @db.VarChar(500)
+  last_error          String?   @db.VarChar(255)
+  last_error_at       DateTime? @db.DateTime(0)
+  last_run_at         DateTime? @db.DateTime(0)
+  last_run_in_seconds Decimal?  @db.Decimal(17, 3)
+  presave_hook        String?   @db.VarChar(255)
+  priority            Int?      @default(100)
+  pseudo_history      Boolean   @default(false)
+  reload_nightly      Boolean?  @default(true)
+  runtime             Float?    @db.Float
+  scale               String    @default("1.0") @db.VarChar(255)
   series_id           Int?
-  universe            data_sources_universe @default(UHERO)
-  created_at          DateTime?             @db.DateTime(0)
-  updated_at          DateTime?             @db.DateTime(0)
+  universe            String    @default("UHERO") @db.VarChar(10)
+  created_at          DateTime? @db.DateTime(0)
+  updated_at          DateTime? @db.DateTime(0)
+  universe_rel        universe  @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_data_sources_universe")
 
   @@index([series_id], map: "index_data_sources_on_series_id")
   @@index([universe], map: "index_data_sources_on_universe")
@@ -284,13 +305,14 @@ model exports {
 }
 
 model feature_toggles {
-  id          Int                      @id @default(autoincrement())
-  universe    feature_toggles_universe @default(UHERO)
-  name        String?                  @db.VarChar(255)
-  description String?                  @db.VarChar(255)
+  id          Int       @id @default(autoincrement())
+  universe    String    @default("UHERO") @db.VarChar(10)
+  name        String?   @db.VarChar(255)
+  description String?   @db.VarChar(255)
   status      Boolean?
-  created_at  DateTime                 @db.DateTime(0)
-  updated_at  DateTime                 @db.DateTime(0)
+  created_at  DateTime  @db.DateTime(0)
+  updated_at  DateTime  @db.DateTime(0)
+  universe_rel universe @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_feature_toggles_universe")
 }
 
 model forecast_snapshots {
@@ -323,20 +345,21 @@ model geo_trees {
 }
 
 model geographies {
-  id                                         Int                  @id @default(autoincrement())
-  universe                                   geographies_universe @default(UHERO)
-  handle                                     String?              @db.VarChar(255)
-  display_name                               String?              @db.VarChar(255)
-  display_name_short                         String?              @db.VarChar(255)
-  fips                                       String?              @db.VarChar(255)
+  id                                         Int         @id @default(autoincrement())
+  universe                                   String      @default("UHERO") @db.VarChar(10)
+  handle                                     String?     @db.VarChar(255)
+  display_name                               String?     @db.VarChar(255)
+  display_name_short                         String?     @db.VarChar(255)
+  fips                                       String?     @db.VarChar(255)
   list_order                                 Int?
-  geotype                                    String?              @db.VarChar(255)
-  created_at                                 DateTime             @db.DateTime(0)
-  updated_at                                 DateTime             @db.DateTime(0)
+  geotype                                    String?     @db.VarChar(255)
+  created_at                                 DateTime    @db.DateTime(0)
+  updated_at                                 DateTime    @db.DateTime(0)
   categories                                 categories[]
-  geo_trees_geo_trees_parent_idTogeographies geo_trees[]          @relation("geo_trees_parent_idTogeographies")
-  geo_trees_geo_trees_child_idTogeographies  geo_trees[]          @relation("geo_trees_child_idTogeographies")
+  geo_trees_geo_trees_parent_idTogeographies geo_trees[] @relation("geo_trees_parent_idTogeographies")
+  geo_trees_geo_trees_child_idTogeographies  geo_trees[] @relation("geo_trees_child_idTogeographies")
   series                                     series[]
+  universe_rel                               universe    @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_geographies_universe")
 
   @@unique([universe, handle], map: "index_geographies_on_universe_and_handle")
 }
@@ -356,7 +379,7 @@ model measurements {
   unit_id             Int?
   source_id           Int?
   source_detail_id    Int?
-  universe            measurements_universe             @default(UHERO)
+  universe            String                            @default("UHERO") @db.VarChar(10)
   prefix              String                            @db.VarChar(255)
   data_portal_name    String?                           @db.VarChar(255)
   table_prefix        String?                           @db.VarChar(255)
@@ -375,6 +398,7 @@ model measurements {
   units               units?                            @relation(fields: [unit_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_c5bad45aff")
   sources             sources?                          @relation(fields: [source_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_e96addabdb")
   source_details      source_details?                   @relation(fields: [source_detail_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_f4c727584e")
+  universe_rel        universe                          @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_measurements_universe")
 
   @@unique([universe, prefix], map: "index_measurements_on_universe_and_prefix")
   @@index([unit_id], map: "fk_rails_c5bad45aff")
@@ -457,7 +481,7 @@ model series {
   unit_id                                   Int?
   source_id                                 Int?
   source_detail_id                          Int?
-  universe                                  series_universe       @default(UHERO)
+  universe                                  String                @default("UHERO") @db.VarChar(10)
   decimals                                  Int                   @default(1)
   name                                      String?               @db.VarChar(255)
   dataPortalName                            String?               @db.VarChar(255)
@@ -475,6 +499,7 @@ model series {
   geographies                               geographies?          @relation(fields: [geography_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_rails_963076a967")
   xseries_series_xseries_idToxseries        xseries               @relation("series_xseries_idToxseries", fields: [xseries_id], references: [id], onUpdate: Restrict, map: "fk_rails_b3202f6d25")
   xseries_xseries_primary_series_idToseries xseries[]             @relation("xseries_primary_series_idToseries")
+  universe_rel                              universe              @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_series_universe")
 
   @@unique([universe, name], map: "index_series_on_universe_and_name")
   @@unique([universe, xseries_id], map: "index_series_on_universe_and_xseries_id")
@@ -502,26 +527,28 @@ model series_reload_logs {
 }
 
 model source_details {
-  id           Int                     @id @default(autoincrement())
-  universe     source_details_universe @default(UHERO)
-  created_at   DateTime                @db.DateTime(0)
-  updated_at   DateTime                @db.DateTime(0)
-  description  String?                 @db.VarChar(1000)
+  id           Int            @id @default(autoincrement())
+  universe     String         @default("UHERO") @db.VarChar(10)
+  created_at   DateTime       @db.DateTime(0)
+  updated_at   DateTime       @db.DateTime(0)
+  description  String?        @db.VarChar(1000)
   measurements measurements[]
   series       series[]
+  universe_rel universe       @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_source_details_universe")
 
   @@index([universe], map: "index_source_details_on_universe")
 }
 
 model sources {
-  id           Int              @id @default(autoincrement())
-  universe     sources_universe @default(UHERO)
-  description  String?          @db.VarChar(255)
-  link         String?          @db.VarChar(255)
-  created_at   DateTime         @db.DateTime(0)
-  updated_at   DateTime         @db.DateTime(0)
+  id           Int            @id @default(autoincrement())
+  universe     String         @default("UHERO") @db.VarChar(10)
+  description  String?        @db.VarChar(255)
+  link         String?        @db.VarChar(255)
+  created_at   DateTime       @db.DateTime(0)
+  updated_at   DateTime       @db.DateTime(0)
   measurements measurements[]
   series       series[]
+  universe_rel universe       @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_sources_universe")
 
   @@index([universe], map: "index_sources_on_universe")
 }
@@ -537,13 +564,14 @@ model tsd_files {
 
 model units {
   id           Int            @id @default(autoincrement())
-  universe     units_universe @default(UHERO)
+  universe     String         @default("UHERO") @db.VarChar(10)
   short_label  String?        @db.VarChar(255)
   long_label   String?        @db.VarChar(255)
   created_at   DateTime       @db.DateTime(0)
   updated_at   DateTime       @db.DateTime(0)
   measurements measurements[]
   series       series[]
+  universe_rel universe       @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_units_universe")
 
   @@unique([universe, short_label, long_label], map: "index_units_on_universe_and_short_label_and_long_label")
 }
@@ -559,25 +587,26 @@ model user_series {
 }
 
 model users {
-  id                     Int            @id @default(autoincrement())
-  universe               users_universe @default(UHERO)
-  role                   users_role     @default(external)
-  mnemo_search           Boolean        @default(false)
-  email                  String         @unique(map: "index_users_on_email") @default("") @db.VarChar(255)
-  encrypted_password     String         @default("") @db.VarChar(128)
-  password_salt          String?        @default("") @db.VarChar(255)
-  reset_password_token   String?        @unique(map: "index_users_on_reset_password_token") @db.VarChar(255)
-  remember_token         String?        @db.VarChar(255)
-  remember_created_at    DateTime?      @db.DateTime(0)
-  sign_in_count          Int?           @default(0)
-  current_sign_in_at     DateTime?      @db.DateTime(0)
-  last_sign_in_at        DateTime?      @db.DateTime(0)
-  current_sign_in_ip     String?        @db.VarChar(255)
-  last_sign_in_ip        String?        @db.VarChar(255)
-  created_at             DateTime?      @db.DateTime(0)
-  updated_at             DateTime?      @db.DateTime(0)
-  reset_password_sent_at DateTime?      @db.DateTime(0)
+  id                     Int        @id @default(autoincrement())
+  universe               String     @default("UHERO") @db.VarChar(10)
+  role                   users_role @default(external)
+  mnemo_search           Boolean    @default(false)
+  email                  String     @unique(map: "index_users_on_email") @default("") @db.VarChar(255)
+  encrypted_password     String     @default("") @db.VarChar(128)
+  password_salt          String?    @default("") @db.VarChar(255)
+  reset_password_token   String?    @unique(map: "index_users_on_reset_password_token") @db.VarChar(255)
+  remember_token         String?    @db.VarChar(255)
+  remember_created_at    DateTime?  @db.DateTime(0)
+  sign_in_count          Int?       @default(0)
+  current_sign_in_at     DateTime?  @db.DateTime(0)
+  last_sign_in_at        DateTime?  @db.DateTime(0)
+  current_sign_in_ip     String?    @db.VarChar(255)
+  last_sign_in_ip        String?    @db.VarChar(255)
+  created_at             DateTime?  @db.DateTime(0)
+  updated_at             DateTime?  @db.DateTime(0)
+  reset_password_sent_at DateTime?  @db.DateTime(0)
   // authorizations         authorizations[] @ignore TO BE REMOVED
+  universe_rel           universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_users_universe")
 
   @@index([universe], map: "index_users_on_universe")
 }
@@ -611,74 +640,6 @@ model xseries {
   @@index([quarantined, id], map: "xseries_quar_id")
 }
 
-enum units_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum feature_toggles_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum source_details_universe {
-  UHERO
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum users_universe {
-  UHERO
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum api_applications_universe {
-  UHERO
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum data_lists_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum geographies_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
-enum sources_universe {
-  UHERO
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
 enum users_role {
   external
   fsonly
@@ -693,28 +654,10 @@ enum new_dbedt_uploads_status {
   fail
 }
 
-enum categories_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
 enum dbedt_uploads_cats_status {
   processing
   ok
   fail
-}
-
-enum data_sources_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
 }
 
 enum reload_jobs_status {
@@ -754,15 +697,6 @@ enum data_list_measurements_indent {
   indent3
 }
 
-enum measurements_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
-}
-
 enum nta_uploads_series_status {
   processing
   ok
@@ -782,15 +716,6 @@ enum xseries_seasonal_adjustment {
   seasonally_adjusted
   not_seasonally_adjusted
   not_applicable
-}
-
-enum series_universe {
-  UHERO
-  FC
-  DBEDT
-  NTA
-  COH
-  CCOM
 }
 
 enum categories_default_freq {

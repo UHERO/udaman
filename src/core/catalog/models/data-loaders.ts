@@ -3,6 +3,28 @@ import { DataLoaderType, SourceMapNode } from "../types/shared";
 import { CreateLoaderPayload } from "../types/sources";
 import Series from "./series";
 
+interface DependencyRow {
+  name: string;
+  id: number;
+  series_id: number;
+  disabled: boolean;
+  universe: string;
+  color: string;
+  last_run_at: Date | null;
+  last_run_in_seconds: number | null;
+  last_error: string | null;
+  last_error_at: Date | null;
+  dependencies: string | null;
+  description: string | null;
+  aremos_missing: number | null;
+  aremos_diff: number | null;
+}
+
+interface ColorUsageRow {
+  color: string;
+  usage_count: number;
+}
+
 /** Called data_sources in the database. Goal is to change it to data_loaders to
  * be less ambiguous, and not overlap with the source and source detail tables.
  */
@@ -12,7 +34,7 @@ export class DataLoaders {
   }: {
     seriesId: number;
   }): Promise<DataLoaderType[]> {
-    const rows = await mysql`
+    const rows = await mysql<DataLoaderType>`
       SELECT
           id,
           series_id,
@@ -38,7 +60,7 @@ export class DataLoaders {
       FROM data_sources ds
       WHERE ds.series_id = ${seriesId}
     `;
-    return rows as DataLoaderType[];
+    return rows;
   }
 
   static async getDataLoadersBySeriesId({
@@ -46,7 +68,7 @@ export class DataLoaders {
   }: {
     seriesId: number;
   }): Promise<DataLoaderType[]> {
-    const rows = await mysql`
+    const rows = await mysql<DataLoaderType>`
       SELECT
         id,
         description,
@@ -60,7 +82,7 @@ export class DataLoaders {
         AND disabled = 0
       ORDER BY priority ASC, last_run_in_seconds DESC
     `;
-    return rows as DataLoaderType[];
+    return rows;
   }
 
   /** Iteratively fetches sources for use in series source map. Note that I attempted to move
@@ -85,7 +107,7 @@ export class DataLoaders {
       }
       seen.add(name);
 
-      const results = await mysql`
+      const results = await mysql<DependencyRow>`
         SELECT
           s.name,
           ds.id,
@@ -115,8 +137,7 @@ export class DataLoaders {
 
       const nodes: SourceMapNode[] = [];
 
-      for (const row of results) {
-        const r = row as any;
+      for (const r of results) {
         const children: SourceMapNode[] = [];
         if (r.dependencies) {
           const deps = _parseDependencyField(r.dependencies);
@@ -217,7 +238,7 @@ export class DataLoaders {
     loaderType: string,
     colorPalette: string[]
   ) {
-    const existing = await mysql`
+    const existing = await mysql<ColorUsageRow>`
       SELECT ds.color, COUNT(*) as usage_count
       FROM data_sources ds
       WHERE ds.series_id = ${seriesId}
@@ -238,7 +259,7 @@ export class DataLoaders {
     `;
 
     const usageMap: Record<string, number> = {};
-    existing.forEach((row: any) => {
+    existing.forEach((row) => {
       if (colorPalette.includes(row.color)) {
         usageMap[row.color] = row.usage_count;
       }

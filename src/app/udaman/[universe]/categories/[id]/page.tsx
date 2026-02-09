@@ -21,15 +21,15 @@ export default async function CategoryPage({
   const geographies = await getGeographies({});
 
   const geographyMap = new Map(geographies.map((g) => [g.id, g]));
-  const defaultGeo = category.default_geo_id
-    ? geographyMap.get(category.default_geo_id)
+  const defaultGeo = category.defaultGeoId
+    ? geographyMap.get(category.defaultGeoId)
     : null;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center gap-4">
         <Link
-          href={`/${universe}/categories`}
+          href={`/udaman/${universe}/categories`}
           className="text-muted-foreground hover:text-foreground flex items-center gap-1"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -41,9 +41,9 @@ export default async function CategoryPage({
         <h1 className="text-3xl font-bold">
           {category.name || "Unnamed Category"}
         </h1>
-        {category.hidden === 1 && <Badge variant="secondary">Hidden</Badge>}
-        {category.masked === 1 && <Badge variant="outline">Masked</Badge>}
-        {category.header === 1 && <Badge>Header</Badge>}
+        {category.hidden && <Badge variant="secondary">Hidden</Badge>}
+        {category.masked && <Badge variant="outline">Masked</Badge>}
+        {category.header && <Badge>Header</Badge>}
       </div>
 
       {category.description && (
@@ -75,13 +75,13 @@ export default async function CategoryPage({
               <TableCell className="text-muted-foreground font-medium">
                 List Order
               </TableCell>
-              <TableCell>{category.list_order ?? "-"}</TableCell>
+              <TableCell>{category.listOrder ?? "-"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">
                 Default Frequency
               </TableCell>
-              <TableCell>{category.default_freq || "-"}</TableCell>
+              <TableCell>{category.defaultFreq || "-"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">
@@ -89,7 +89,7 @@ export default async function CategoryPage({
               </TableCell>
               <TableCell>
                 {defaultGeo
-                  ? defaultGeo.display_name ||
+                  ? defaultGeo.displayName ||
                     defaultGeo.handle ||
                     defaultGeo.id
                   : "-"}
@@ -99,51 +99,31 @@ export default async function CategoryPage({
               <TableCell className="text-muted-foreground font-medium">
                 Default Handle
               </TableCell>
-              <TableCell>{category.default_handle || "-"}</TableCell>
+              <TableCell>{category.defaultHandle || "-"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">
                 Data List ID
               </TableCell>
-              <TableCell>{category.data_list_id ?? "-"}</TableCell>
+              <TableCell>{category.dataListId ?? "-"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">
                 Hidden
               </TableCell>
-              <TableCell>{category.hidden === 1 ? "Yes" : "No"}</TableCell>
+              <TableCell>{category.hidden ? "Yes" : "No"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">
                 Masked
               </TableCell>
-              <TableCell>{category.masked === 1 ? "Yes" : "No"}</TableCell>
+              <TableCell>{category.masked ? "Yes" : "No"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">
                 Header
               </TableCell>
-              <TableCell>{category.header === 1 ? "Yes" : "No"}</TableCell>
-            </TableRow>
-            <TableRow className="odd:bg-muted">
-              <TableCell className="text-muted-foreground font-medium">
-                Created At
-              </TableCell>
-              <TableCell>
-                {category.created_at
-                  ? new Date(category.created_at).toLocaleString()
-                  : "-"}
-              </TableCell>
-            </TableRow>
-            <TableRow className="odd:bg-muted">
-              <TableCell className="text-muted-foreground font-medium">
-                Updated At
-              </TableCell>
-              <TableCell>
-                {category.updated_at
-                  ? new Date(category.updated_at).toLocaleString()
-                  : "-"}
-              </TableCell>
+              <TableCell>{category.header ? "Yes" : "No"}</TableCell>
             </TableRow>
             <TableRow className="odd:bg-muted">
               <TableCell className="text-muted-foreground font-medium">

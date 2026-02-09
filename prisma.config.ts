@@ -2,10 +2,9 @@ import 'dotenv/config'
 import { defineConfig, env } from "prisma/config";
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  schema: 'src/lib/prisma/schema.prisma',
   migrations: { 
-    path: 'prisma/migrations',
-    seed: 'tsx prisma/seed.ts',
+    path: 'src/lib/prisma/migrations',
   },
   datasource: { 
     url: env("DB_MYSQL_URL")

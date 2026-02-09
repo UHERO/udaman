@@ -87,7 +87,7 @@ function buildTree(categories: Category[]): CategoryNode[] {
 
   // Sort children by list_order
   const sortNodes = (nodes: CategoryNode[]) => {
-    nodes.sort((a, b) => (a.list_order ?? 0) - (b.list_order ?? 0));
+    nodes.sort((a, b) => (a.listOrder ?? 0) - (b.listOrder ?? 0));
     for (const node of nodes) {
       sortNodes(node.children);
     }
@@ -147,9 +147,9 @@ function CategoryRowWithChildren({
     if (!sibling) return;
     await onSwap(
       category.id,
-      category.list_order ?? 0,
+      category.listOrder ?? 0,
       sibling.id,
-      sibling.list_order ?? 0
+      sibling.listOrder ?? 0
     );
   };
 
@@ -186,17 +186,17 @@ function CategoryRowWithChildren({
         </TableCell>
         <TableCell>{category.universe}</TableCell>
         <TableCell>{category.id}</TableCell>
-        <TableCell>{category.default_freq || "-"}</TableCell>
+        <TableCell>{category.defaultFreq || "-"}</TableCell>
         <TableCell>
-          {category.default_geo_id
-            ? geographyMap.get(category.default_geo_id)?.display_name ||
-              geographyMap.get(category.default_geo_id)?.handle ||
-              category.default_geo_id
+          {category.defaultGeoId
+            ? geographyMap.get(category.defaultGeoId)?.displayName ||
+              geographyMap.get(category.defaultGeoId)?.handle ||
+              category.defaultGeoId
             : "-"}
         </TableCell>
         <TableCell onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-2">
-            {category.hidden === 1 && (
+            {category.hidden && (
               <Badge
                 variant="secondary"
                 className="cursor-pointer"
@@ -209,7 +209,7 @@ function CategoryRowWithChildren({
                 Hidden
               </Badge>
             )}
-            {category.masked === 1 && (
+            {category.masked && (
               <Badge
                 variant="outline"
                 className="cursor-pointer"
@@ -222,7 +222,7 @@ function CategoryRowWithChildren({
               </Badge>
             )}
 
-            {category.hidden !== 1 && (
+            {!category.hidden && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

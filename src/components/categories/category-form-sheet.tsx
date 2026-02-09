@@ -95,11 +95,11 @@ export function CategoryFormSheet({
         name: category?.name ?? "",
         description: category?.description ?? "",
         universe: category?.universe ?? defaultUniverse ?? "UHERO",
-        defaultFreq: category?.default_freq ?? "",
-        defaultGeoId: category?.default_geo_id ?? null,
-        hidden: category?.hidden === 1,
-        masked: category?.masked === 1,
-        header: category?.header === 1,
+        defaultFreq: category?.defaultFreq ?? "",
+        defaultGeoId: category?.defaultGeoId ?? null,
+        hidden: category?.hidden ?? false,
+        masked: category?.masked ?? false,
+        header: category?.header ?? false,
       });
     }
   }, [open, category, defaultUniverse, form]);
@@ -250,7 +250,7 @@ export function CategoryFormSheet({
                     <SelectItem value="none">None</SelectItem>
                     {geographies.map((geo) => (
                       <SelectItem key={geo.id} value={geo.id.toString()}>
-                        {geo.display_name || geo.handle || `ID: ${geo.id}`}
+                        {geo.displayName || geo.handle || `ID: ${geo.id}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -273,11 +273,11 @@ export function CategoryFormSheet({
               <div className="flex flex-col gap-2">
                 {mode === "create" &&
                 parentCategory &&
-                (parentCategory.hidden === 1 || parentCategory.masked === 1) ? (
+                (parentCategory.hidden || parentCategory.masked) ? (
                   <p className="text-muted-foreground text-sm">
                     This category will be automatically masked because its
                     parent is{" "}
-                    {parentCategory.hidden === 1 ? "hidden" : "masked"}.
+                    {parentCategory.hidden ? "hidden" : "masked"}.
                   </p>
                 ) : (
                   <div className="flex items-center gap-6">

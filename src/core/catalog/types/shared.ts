@@ -20,19 +20,17 @@ export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";
 
 export interface Category {
   id: number;
-  data_list_id: number | null;
-  default_geo_id: number | null;
+  dataListId: number | null;
+  defaultGeoId: number | null;
   universe: Universe;
-  created_at: Date | string;
-  updated_at: Date | string;
-  hidden: 0 | 1 | null;
-  masked: 0 | 1;
-  header: 0 | 1 | null;
-  list_order: number | null;
+  hidden: boolean;
+  masked: boolean;
+  header: boolean;
+  listOrder: number | null;
   name: string | null;
   ancestry: string | null;
-  default_handle: string | null;
-  default_freq: Frequency | null;
+  defaultHandle: string | null;
+  defaultFreq: Frequency | null;
   meta: string | null;
   description: string | null;
 }
@@ -61,13 +59,11 @@ export type Geography = {
   id: number;
   universe: Universe;
   handle: string | null;
-  display_name: string | null;
-  display_name_short: string | null;
+  displayName: string | null;
+  displayNameShort: string | null;
   fips: string | null;
-  list_order: number | null;
+  listOrder: number | null;
   geotype: string | null;
-  created_at: Date | string;
-  updated_at: Date | string;
 };
 
 // Helper type to add prefix to keys

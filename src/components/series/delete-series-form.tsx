@@ -53,7 +53,7 @@ export function DeleteSeriesForm({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
     await deleteSeriesDataPoints(seriesId, { universe: universe, ...values });
-    nav.push(`/${universe}/series/${seriesId}`);
+    nav.push(`/udaman/${universe}/series/${seriesId}`);
   }
 
   return (

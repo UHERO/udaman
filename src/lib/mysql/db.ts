@@ -12,7 +12,7 @@ const connection = new SQL({
   password: process.env.DB_PSWD ?? "",
 });
 
-function mysql(strings: TemplateStringsArray, ...values: any[]): Promise<any[]>;
+function mysql<T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: any[]): Promise<T[]>;
 function mysql(value: any, ...keys: string[]): any;
 function mysql(...args: any[]) {
   const [first] = args;
@@ -33,4 +33,14 @@ function mysql(...args: any[]) {
   });
 }
 
-export { mysql };
+/** Execute a raw SQL string with positional `?` parameters (for dynamic queries). */
+function rawQuery<T = Record<string, unknown>>(sql: string, params: (string | number | Date)[] = []): Promise<T[]> {
+  const start = performance.now();
+  return (connection as any).unsafe(sql, params).then((result: any[]) => {
+    const durationMs = +(performance.now() - start).toFixed(2);
+    log.debug({ durationMs, rows: result.length }, "query");
+    return result;
+  });
+}
+
+export { mysql, rawQuery };

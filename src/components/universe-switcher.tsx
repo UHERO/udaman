@@ -51,7 +51,9 @@ export function UniverseSwitcher({
 
   const setActiveUniverse = React.useCallback(
     (universe: typeof defaultU) => {
-      router.replace(pathname.replace(/^\/[^/]+/, `/${universe.name}`));
+      const segments = pathname.split("/");
+      segments[2] = universe.name; // /udaman/[universe]/...
+      router.replace(segments.join("/"));
     },
     [pathname, router],
   );

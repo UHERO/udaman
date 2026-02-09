@@ -48,12 +48,12 @@ export interface SeriesSummary {
   name: string;
   id: number;
   seasonalAdjustment: SeasonalAdjustment;
-  portalName: string;
-  unitShortLabel: string;
+  portalName: string | null;
+  unitShortLabel: string | null;
   minDate: Date | null;
   maxDate: Date | null;
-  sourceDescription: string;
-  sourceUrl: string;
+  sourceDescription: string | null;
+  sourceUrl: string | null;
 }
 
 // Data Points Mariadb Schema

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   const { universe } = useParams();
-  const href = universe ? `/${universe}/series` : "/";
+  const href = universe ? `/udaman/${universe}/series` : "/";
 
   return (
     <main className="flex h-full flex-col items-center justify-center gap-2">

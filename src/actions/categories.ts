@@ -24,18 +24,16 @@ export async function getCategories(params: {
 }): Promise<Category[]> {
   const universe = params.universe ?? "UHERO";
   log.info({ universe }, "getCategories action called");
-  const result = await fetchCategories({ u: universe, excludeId: 0 });
-  log.info({ count: (result.data as Category[]).length }, "getCategories action completed");
-  return result.data as Category[];
+  const result = await fetchCategories({ u: universe });
+  log.info({ count: result.data.length }, "getCategories action completed");
+  return result.data.map((c) => c.toJSON());
 }
 
 export async function getCategory(id: number): Promise<Category> {
   log.info({ id }, "getCategory action called");
   const result = await fetchCategory({ id });
-  if (!result.data) {
-    notFound();
-  }
-  return result.data as Category;
+  if (!result.data) notFound();
+  return result.data.toJSON();
 }
 
 // Swaps the list_order values between two categories
@@ -68,8 +66,8 @@ export async function createCategory(
   log.info("createCategory action called");
   const result = await createCategoryCtrl({ payload });
   revalidatePath("/categories");
-  log.info({ id: (result.data as Category).id }, "createCategory action completed");
-  return result.data as Category;
+  log.info({ id: result.data.id }, "createCategory action completed");
+  return result.data.toJSON();
 }
 
 export async function updateCategory(
@@ -79,7 +77,7 @@ export async function updateCategory(
   log.info({ id }, "updateCategory action called");
   const result = await updateCategoryCtrl({ id, payload });
   revalidatePath("/categories");
-  return result.data as Category;
+  return result.data.toJSON();
 }
 
 export async function deleteCategory(id: number): Promise<void> {

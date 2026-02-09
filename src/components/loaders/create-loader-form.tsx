@@ -67,7 +67,7 @@ export function CreateLoaderForm({ universe }: { universe: Universe }) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     await createDataLoader({ universe, seriesId: Number(seriesId) }, values);
-    nav.push(`/${universe}/series/${seriesId}`);
+    nav.push(`/udaman/${universe}/series/${seriesId}`);
   }
 
   const presaveHooks = ["update_full_years_top_priority"];

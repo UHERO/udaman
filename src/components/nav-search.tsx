@@ -1,12 +1,35 @@
+"use client";
+
+import { useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Info } from "lucide-react";
 
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
 export function NavSearchInput() {
+  const router = useRouter();
+  const { universe } = useParams<{ universe: string }>();
+  const searchParams = useSearchParams();
+  const [term, setTerm] = useState(searchParams.get("q") ?? "");
+
+  function handleSubmit(e: { preventDefault(): void }) {
+    e.preventDefault();
+    const trimmed = term.trim();
+    if (trimmed) {
+      router.push(`/udaman/${universe}/series?q=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push(`/udaman/${universe}/series`);
+    }
+  }
+
   return (
-    <div className="flex items-center justify-center self-end rounded-sm border">
+    <form
+      onSubmit={handleSubmit}
+      className="flex items-center justify-center self-end rounded-sm border"
+    >
       <Button
+        type="button"
         size={"icon"}
         variant="secondary"
         className="rounded-r-none"
@@ -14,8 +37,13 @@ export function NavSearchInput() {
       >
         <Info />
       </Button>
-      <Input className="border-none shadow-none" />
-    </div>
+      <Input
+        className="border-none shadow-none"
+        value={term}
+        onChange={(e) => setTerm(e.target.value)}
+        placeholder="Search series..."
+      />
+    </form>
   );
 }
 
@@ -47,4 +75,4 @@ Useful formulas and hints:
 ~ns$      Match NS series based on name
 Meta-geographies: @cnty, @hi5 (HI + @cnty), @hiall
 145746  Find series by ID number (or comma-sep list of 'em!)
-!bad !date !format    Match multiple words (same for #)"`;
+!bad !date !format    Match multiple words (same for #)`;

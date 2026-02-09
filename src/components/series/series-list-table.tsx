@@ -62,6 +62,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
     {
       accessorKey: "unitShortLabel",
       header: "Units",
+      cell: ({ row }) => row.getValue("unitShortLabel") ?? "-",
     },
     {
       accessorKey: "minDate",
@@ -82,13 +83,17 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
     {
       accessorKey: "sourceDescription",
       header: "Source",
-      cell: ({ row }) => (
-        <div className="max-w-48 truncate">
-          <Link href="#" className="hover:font-medium hover:underline">
-            {row.getValue("sourceDescription")}
-          </Link>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const desc = row.getValue("sourceDescription");
+        if (!desc) return "-";
+        return (
+          <div className="max-w-48 truncate">
+            <Link href="#" className="hover:font-medium hover:underline">
+              {desc as string}
+            </Link>
+          </div>
+        );
+      },
     },
   ];
 
