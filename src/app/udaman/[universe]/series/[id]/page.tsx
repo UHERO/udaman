@@ -1,6 +1,6 @@
+import { getSeriesById, getSourceMap } from "@/actions/series-actions";
 import { Universe } from "@catalog/types/shared";
 
-import { getSeriesById, getSourceMap } from "@/actions/series-actions";
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
 import { SeriesChart } from "@/components/series/series-chart";
@@ -26,7 +26,11 @@ export default async function SeriesPage({
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-1 rounded"></div>
           <div className="col-span-7 rounded">
-            <LoaderSection universe={universe} seriesId={id} loaders={loaders} />
+            <LoaderSection
+              universe={universe}
+              seriesId={id}
+              loaders={loaders}
+            />
             <SeriesDataTable
               data={dataPoints}
               options={{
@@ -34,9 +38,8 @@ export default async function SeriesPage({
                 showLoaderCol: loaders.length > 1,
               }}
             />
-            <SourceMapTable data={sourceMap} universe={universe} />
           </div>
-          <div className="col-span-4 rounded">
+          <div className="sticky top-4 col-span-4 self-start rounded">
             <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
             <SeriesChart data={dataPoints} />
           </div>

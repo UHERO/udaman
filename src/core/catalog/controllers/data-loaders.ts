@@ -1,7 +1,7 @@
 import { createLogger } from "@/core/observability/logger";
 import { Universe } from "../types/shared";
 import { CreateLoaderFormData } from "../types/sources";
-import { DataLoaders } from "../models/data-loaders";
+import LoaderCollection from "@catalog/collections/loader-collection";
 
 const log = createLogger("catalog.data-loaders");
 
@@ -12,13 +12,17 @@ const log = createLogger("catalog.data-loaders");
  *************************************************************************/
 
 export async function getDataLoaders() {
-  // TODO: implement list
-  return { data: [] };
+  log.info("fetching all data loaders");
+  const data = await LoaderCollection.list();
+  log.info({ count: data.length }, "data loaders fetched");
+  return { data };
 }
 
 export async function getDataLoader({ id }: { id: number }) {
-  // TODO: implement get by id
-  return { data: null, id };
+  log.info({ id }, "fetching data loader by id");
+  const data = await LoaderCollection.getById(id);
+  log.info({ id }, "data loader fetched");
+  return { data };
 }
 
 export async function createDataLoader({ seriesId, universe, payload }: {
@@ -27,7 +31,7 @@ export async function createDataLoader({ seriesId, universe, payload }: {
   payload: CreateLoaderFormData;
 }) {
   log.info({ seriesId, universe }, "creating data loader");
-  const data = await DataLoaders.create({
+  const data = await LoaderCollection.create({
     ...payload,
     universe,
     seriesId,

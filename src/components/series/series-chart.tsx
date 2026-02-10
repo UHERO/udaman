@@ -25,7 +25,8 @@ export function SeriesChart({ data }: { data: DataPoint[] }) {
         date: new Date(d.date).getTime(),
         value: Number(d.value),
       }))
-      .sort((a, b) => a.date - b.date);
+      .sort((a, b) => a.date - b.date)
+      .slice(-24);
 
     if (!points.length) {
       return { chartData: [], minVal: 0, maxVal: 0 };

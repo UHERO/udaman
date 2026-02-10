@@ -27,6 +27,12 @@ dist
 # Debug
 npm-debug.log*
 
+# Data Files
+*.csv
+*.xls
+*.xlsx
+data/
+
 # Misc
 .DS_Store
 *.pem

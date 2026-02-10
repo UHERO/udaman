@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DataLoader } from "@catalog/types/shared";
+import type Loader from "@catalog/models/loader";
 import { formatRuntime, uheroDate } from "@catalog/utils/time";
 import { format } from "date-fns";
 import { Clock10, ClockPlus } from "lucide-react";
@@ -26,7 +26,7 @@ export const LoaderSection = ({
 }: {
   universe: string;
   seriesId: number;
-  loaders: DataLoader[];
+  loaders: Loader[];
 }) => {
   return (
     <div className="flex flex-col border-b">
@@ -61,12 +61,12 @@ const LoaderItem = ({
   loader,
 }: {
   universe: string;
-  loader: DataLoader;
+  loader: Loader;
 }) => {
   const lastRunDate =
-    loader.last_run_at !== null ? uheroDate(loader.last_run_at) : "-";
+    loader.lastRunAt !== null ? uheroDate(loader.lastRunAt) : "-";
   const lastRunTime =
-    loader.last_run_at !== null ? format(loader.last_run_at, "HH:MM") : "-";
+    loader.lastRunAt !== null ? format(loader.lastRunAt, "HH:MM") : "-";
   const runtime = formatRuntime(loader.runtime);
   return (
     <Card className={cn("p-2", getColor(loader.color))}>
@@ -144,7 +144,7 @@ const LoaderItem = ({
             title="Toggle nightly load"
             className="border-gray-500 hover:scale-105 hover:border hover:bg-white/40"
           >
-            {loader.reload_nightly ? (
+            {loader.reloadNightly ? (
               <Clock10 className="stroke-primary" />
             ) : (
               <ClockPlus className="stroke-primary/50" />

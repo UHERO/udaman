@@ -82,7 +82,7 @@ interface SourceMapTableProps {
 export function SourceMapTable({
   data,
   universe,
-  title = "Data Sources",
+  title = "Source Map",
 }: SourceMapTableProps) {
   if (data === undefined || data === null || data.length === 0) {
     return null;

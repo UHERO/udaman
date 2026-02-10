@@ -119,31 +119,6 @@ type XseriesSelection = Pick<
   | "factors"
 >;
 
-export type DataLoader = Pick<
-  data_sources,
-  | "id"
-  | "series_id"
-  | "disabled"
-  | "universe"
-  | "priority"
-  | "created_at"
-  | "updated_at"
-  | "reload_nightly"
-  | "pseudo_history"
-  | "clear_before_load"
-  | "eval"
-  | "scale"
-  | "presave_hook"
-  | "color"
-  | "runtime"
-  | "last_run_at"
-  | "last_run_in_seconds"
-  | "last_error"
-  | "last_error_at"
-  | "dependencies"
-  | "description"
->;
-
 type GeoSelection = Pick<geographies, "handle" | "display_name">;
 type SourceSelection = Pick<sources, "description" | "link">;
 type SourceDetailSelection = Pick<source_details, "description">;
@@ -171,17 +146,6 @@ type CalculatedFields = {
 };
 
 export type DataPoint = DataPointsSelection & CalculatedFields;
-
-export type DataLoaderType = Pick<
-  data_sources,
-  | "id"
-  | "description"
-  | "last_run_in_seconds"
-  | "priority"
-  | "disabled"
-  | "eval"
-  | "dependencies"
->;
 
 export type SourceMapDataLoaderType = Pick<
   data_sources,
@@ -212,10 +176,3 @@ export interface SeriesDependency {
   aremos_diff: number | null;
 }
 
-// export interface SourceMapNode {
-//   dataSource: DataLoaderType;
-//   dependencies: SeriesDependency[];
-//   children: SourceMapNode[];
-//   depth: number;
-//   color: string;
-// }

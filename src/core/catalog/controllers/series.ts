@@ -1,6 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { Universe } from "../types/shared";
-import { DataLoaders } from "../models/data-loaders";
+import LoaderCollection from "@catalog/collections/loader-collection";
 import DataPoints from "../models/data-points";
 import Measurements from "../models/measurements";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -27,7 +27,7 @@ export async function getSeriesById({ id }: { id: number }) {
   const [measurement, dataPoints, loaders] = await Promise.all([
     Measurements.getSeriesMeasurements({ seriesId: id }),
     DataPoints.getBySeriesId({ xseriesId: metadata.xs_id }),
-    DataLoaders.getSeriesLoaders({ seriesId: id }),
+    LoaderCollection.getBySeriesId(id),
   ]);
 
   const aliases = await SeriesCollection.getAliases({
@@ -50,7 +50,7 @@ export async function getSeriesById({ id }: { id: number }) {
 
 export async function getSourceMap({ name }: { name: string }) {
   log.info({ name }, "fetching source map");
-  const data = await DataLoaders.getDependencies({ seriesName: name });
+  const data = await LoaderCollection.getDependencyTree(name);
   return { data };
 }
 
