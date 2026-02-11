@@ -1,11 +1,23 @@
 import { mysql } from "@/lib/mysql/db";
-import { DataPoint } from "../types/shared";
+import type { DataPoint } from "../types/shared";
+import DataPointModel from "../models/data-point";
 
-class DataPoints {
+export type VintageDataPoint = {
+  date: Date;
+  value: number | null;
+  created_at: Date;
+  updated_at: Date | null;
+  data_source_id: number;
+  current: boolean;
+  pseudo_history: number | null;
+  color: string | null;
+};
+
+class DataPointCollection {
   /**
-   * Gets Data points for a given series, and calculates YOY, YTD, and LVL.
-   * The database contains these fields, but they appear to be unused. So we calculate
-   * them on demand.
+   * Gets current data points for a given xseries, with calculated YOY, YTD, and LVL.
+   * Returns the specialized projection type (not model instances) since the result
+   * includes computed columns from the CTE query.
    */
   static async getBySeriesId(opts: { xseriesId: number }): Promise<DataPoint[]> {
     const { xseriesId } = opts;
@@ -87,6 +99,35 @@ class DataPoints {
 
     return rows;
   }
+
+  /**
+   * Gets all vintages (current + non-current) for a specific xseries + date,
+   * ordered by created_at DESC (most recent first).
+   */
+  static async getVintagesByDate(opts: {
+    xseriesId: number;
+    date: string;
+  }): Promise<VintageDataPoint[]> {
+    const { xseriesId, date } = opts;
+    const rows = await mysql<VintageDataPoint>`
+      SELECT
+        dp.date,
+        dp.value,
+        dp.created_at,
+        dp.updated_at,
+        dp.data_source_id,
+        dp.current,
+        dp.pseudo_history,
+        ds.color
+      FROM data_points dp
+      LEFT JOIN data_sources ds ON ds.id = dp.data_source_id
+      WHERE dp.xseries_id = ${xseriesId}
+        AND dp.date = ${date}
+      ORDER BY dp.created_at DESC
+    `;
+
+    return rows;
+  }
 }
 
-export default DataPoints;
+export default DataPointCollection;

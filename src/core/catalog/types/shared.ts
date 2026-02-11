@@ -145,7 +145,7 @@ type CalculatedFields = {
   color: string;
 };
 
-export type DataPoint = DataPointsSelection & CalculatedFields;
+export type DataPoint = DataPointsSelection & CalculatedFields & { loader_id: number };
 
 export type SourceMapDataLoaderType = Pick<
   data_sources,

@@ -1,7 +1,7 @@
 import { createLogger } from "@/core/observability/logger";
 import { Universe } from "../types/shared";
 import LoaderCollection from "@catalog/collections/loader-collection";
-import DataPoints from "../models/data-points";
+import DataPointCollection from "@catalog/collections/data-point-collection";
 import Measurements from "../models/measurements";
 import SeriesCollection from "@catalog/collections/series-collection";
 
@@ -26,7 +26,7 @@ export async function getSeriesById({ id }: { id: number }) {
 
   const [measurement, dataPoints, loaders] = await Promise.all([
     Measurements.getSeriesMeasurements({ seriesId: id }),
-    DataPoints.getBySeriesId({ xseriesId: metadata.xs_id }),
+    DataPointCollection.getBySeriesId({ xseriesId: metadata.xs_id }),
     LoaderCollection.getBySeriesId(id),
   ]);
 

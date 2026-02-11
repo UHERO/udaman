@@ -36,6 +36,9 @@ export default async function SeriesPage({
               options={{
                 decimals: metadata.s_decimals,
                 showLoaderCol: loaders.length > 1,
+                xseriesId: metadata.xs_id,
+                universe,
+                seriesId: id,
               }}
             />
           </div>

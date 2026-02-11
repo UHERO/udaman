@@ -114,7 +114,7 @@ export const LoaderSection = ({
             description: errors.join("; "),
           });
         } else {
-          toast("All loaders completed", {
+          toast.success("All loaders completed", {
             description: `Ran ${enabledLoaders.length} loader(s)`,
           });
         }
@@ -184,7 +184,7 @@ const LoaderItem = ({
         } else if (status === "skipped") {
           toast("Loader skipped", { description: message });
         } else {
-          toast("Loader completed", { description: message });
+          toast.success("Loader completed", { description: message });
         }
         router.refresh();
       } catch (err) {
@@ -198,7 +198,7 @@ const LoaderItem = ({
     startTransition(async () => {
       try {
         await clearLoader(loader.id);
-        toast("Data points cleared", {
+        toast.success("Data points cleared", {
           description: `Cleared data points for loader ${loader.id}`,
         });
         router.refresh();
@@ -213,7 +213,7 @@ const LoaderItem = ({
     startTransition(async () => {
       try {
         await deleteLoader(loader.id);
-        toast("Loader deleted", {
+        toast.success("Loader deleted", {
           description: `Deleted loader ${loader.id}`,
         });
         router.refresh();
@@ -228,7 +228,7 @@ const LoaderItem = ({
     startTransition(async () => {
       try {
         await disableLoader(loader.id);
-        toast("Loader disabled", {
+        toast.success("Loader disabled", {
           description: `Disabled loader ${loader.id}`,
         });
         router.refresh();
@@ -347,6 +347,11 @@ const LoaderItem = ({
             )}
           </Button>
         </CardTitle>
+        {loader.lastError && (
+          <p className="text-xs text-red-800" title={loader.lastError}>
+            {loader.lastError}
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <CardDescription>
@@ -382,7 +387,7 @@ const DisabledLoaderItem = ({ loader }: { loader: SerializedLoader }) => {
     startTransition(async () => {
       try {
         await enableLoader(loader.id);
-        toast("Loader enabled", {
+        toast.success("Loader enabled", {
           description: `Enabled loader ${loader.id}`,
         });
         router.refresh();

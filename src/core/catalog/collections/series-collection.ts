@@ -1,8 +1,9 @@
 import { mysql, rawQuery } from "@/lib/mysql/db";
-import { convertCommas } from "@/lib/mysql/helpers";
+import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
 import Series from "../models/series";
 import type { SeriesAttrs } from "../models/series";
+import TimeSeriesCollection from "./time-series-collection";
 import type { SeasonalAdjustment, SeriesMetadata, Universe } from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
 import { isValidUniverse } from "../utils/validators";
@@ -26,9 +27,172 @@ interface DateRangeRow {
   max_date: Date | null;
 }
 
+// ─── Payload types ───────────────────────────────────────────────────
+
+export type CreateSeriesPayload = {
+  name: string;
+  universe?: Universe;
+  geographyId?: number | null;
+  dataPortalName?: string | null;
+  description?: string | null;
+  decimals?: number;
+  unitId?: number | null;
+  sourceId?: number | null;
+  sourceDetailId?: number | null;
+  sourceLink?: string | null;
+  investigationNotes?: string | null;
+  // TimeSeries fields (passed through to xseries)
+  frequency?: string | null;
+  seasonalAdjustment?: SeasonalAdjustment | null;
+  seasonallyAdjusted?: boolean | null;
+  restricted?: boolean;
+  quarantined?: boolean;
+  percent?: boolean | null;
+  real?: boolean | null;
+  baseYear?: number | null;
+  frequencyTransform?: string | null;
+  factorApplication?: string | null;
+  factors?: string | null;
+  aremosMissing?: number | null;
+  aremosDiff?: number | null;
+  mult?: number | null;
+};
+
+export type UpdateSeriesPayload = {
+  name?: string;
+  dataPortalName?: string | null;
+  description?: string | null;
+  decimals?: number;
+  geographyId?: number | null;
+  unitId?: number | null;
+  sourceId?: number | null;
+  sourceDetailId?: number | null;
+  sourceLink?: string | null;
+  investigationNotes?: string | null;
+  scratch?: number;
+  // TimeSeries fields (only applied if this series is primary)
+  frequency?: string | null;
+  seasonalAdjustment?: SeasonalAdjustment | null;
+  seasonallyAdjusted?: boolean | null;
+  restricted?: boolean;
+  quarantined?: boolean;
+  percent?: boolean | null;
+  real?: boolean | null;
+  baseYear?: number | null;
+  frequencyTransform?: string | null;
+  factorApplication?: string | null;
+  factors?: string | null;
+  aremosMissing?: number | null;
+  aremosDiff?: number | null;
+  mult?: number | null;
+};
+
+// ─── Collection ──────────────────────────────────────────────────────
+
 class SeriesCollection {
-  /** Create a series record */
-  static async create() {}
+  /**
+   * Create a new series and its backing TimeSeries (xseries) record.
+   *
+   * Flow:
+   *  1. Parse the name to extract geo handle and frequency
+   *  2. Resolve geography_id from handle + universe
+   *  3. Apply metadata integrity rules (SA, percent)
+   *  4. Create the xseries record
+   *  5. Insert the series row pointing to that xseries
+   *  6. Set xseries.primary_series_id back to the new series
+   */
+  static async create(payload: CreateSeriesPayload): Promise<Series> {
+    const universe = payload.universe ?? "UHERO";
+    const parsed = Series.parseName(payload.name);
+
+    // Resolve geography
+    let geoId = payload.geographyId ?? null;
+    if (!geoId) {
+      const geoRows = await mysql<{ id: number }>`
+        SELECT id FROM geographies
+        WHERE universe = ${universe} AND handle = ${parsed.geo}
+        LIMIT 1
+      `;
+      if (!geoRows[0]) {
+        throw new Error(`No ${universe} geography found for handle=${parsed.geo}`);
+      }
+      geoId = geoRows[0].id;
+    }
+
+    // Derive frequency from name if not provided
+    const frequency = payload.frequency ?? parsed.freqLong ?? null;
+
+    // Meta integrity: annual → not_applicable; NS suffix → not_seasonally_adjusted
+    let sa = payload.seasonalAdjustment ?? null;
+    if (frequency === "year") {
+      sa = "not_applicable";
+    } else if (/NS$/i.test(parsed.prefix)) {
+      sa = "not_seasonally_adjusted";
+    }
+
+    // Resolve percent from unit if provided
+    let percent = payload.percent ?? null;
+    if (payload.unitId) {
+      const unitRows = await mysql<{ short_label: string | null }>`
+        SELECT short_label FROM units WHERE id = ${payload.unitId} LIMIT 1
+      `;
+      if (unitRows[0]) {
+        percent = unitRows[0].short_label === "%";
+      }
+    }
+
+    // 1. Create xseries
+    const timeSeries = await TimeSeriesCollection.create({
+      frequency,
+      seasonalAdjustment: sa,
+      seasonallyAdjusted: payload.seasonallyAdjusted,
+      restricted: payload.restricted,
+      quarantined: payload.quarantined,
+      percent,
+      real: payload.real,
+      baseYear: payload.baseYear,
+      frequencyTransform: payload.frequencyTransform,
+      factorApplication: payload.factorApplication,
+      factors: payload.factors,
+      aremosMissing: payload.aremosMissing,
+      aremosDiff: payload.aremosDiff,
+      mult: payload.mult,
+    });
+
+    // 2. Insert series row
+    await mysql`
+      INSERT INTO series (
+        xseries_id, name, universe, geography_id, unit_id, source_id,
+        source_detail_id, dataPortalName, description, decimals,
+        source_link, investigation_notes, dependency_depth, scratch,
+        created_at, updated_at
+      ) VALUES (
+        ${timeSeries.id},
+        ${payload.name},
+        ${universe},
+        ${geoId},
+        ${payload.unitId ?? null},
+        ${payload.sourceId ?? null},
+        ${payload.sourceDetailId ?? null},
+        ${payload.dataPortalName ?? null},
+        ${payload.description ?? null},
+        ${payload.decimals ?? 1},
+        ${payload.sourceLink ?? null},
+        ${payload.investigationNotes ?? null},
+        ${0},
+        ${0},
+        NOW(),
+        NOW()
+      )
+    `;
+
+    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+
+    // 3. Set primary_series_id back on xseries
+    await TimeSeriesCollection.setPrimarySeries(timeSeries.id, insertId);
+
+    return this.getById(insertId);
+  }
 
   /** Fetch a single series by name, returned as a Series model instance */
   static async getByName(seriesName: string): Promise<Series> {
@@ -273,8 +437,224 @@ class SeriesCollection {
     }));
   }
 
-  /** Update series data */
-  static async update() {}
+  /**
+   * Update a series (and its xseries if it's the primary).
+   *
+   * Series-table fields are always written. TimeSeries-table fields
+   * (frequency, SA, percent, etc.) are only written when this series
+   * is the primary — aliases don't own the shared data metadata.
+   */
+  static async update(id: number, payload: UpdateSeriesPayload): Promise<Series> {
+    if (!Object.keys(payload).length) return this.getById(id);
+
+    const series = await this.getById(id);
+
+    // Separate series vs xseries fields
+    const {
+      frequency, seasonalAdjustment, seasonallyAdjusted,
+      restricted, quarantined, percent, real, baseYear,
+      frequencyTransform, factorApplication, factors,
+      aremosMissing, aremosDiff, mult,
+      ...seriesFields
+    } = payload;
+
+    const xseriesPayload = {
+      frequency, seasonalAdjustment, seasonallyAdjusted,
+      restricted, quarantined, percent, real, baseYear,
+      frequencyTransform, factorApplication, factors,
+      aremosMissing, aremosDiff, mult,
+    };
+
+    // Apply meta integrity rules
+    const effFreq = frequency ?? series.frequency;
+    if (effFreq === "year") {
+      xseriesPayload.seasonalAdjustment = "not_applicable";
+    } else {
+      const effName = seriesFields.name ?? series.name;
+      if (/NS$/i.test(Series.parseName(effName).prefix)) {
+        xseriesPayload.seasonalAdjustment = "not_seasonally_adjusted";
+      }
+    }
+
+    // Resolve percent from unit if unit is changing
+    if (seriesFields.unitId !== undefined) {
+      const unitId = seriesFields.unitId;
+      if (unitId) {
+        const unitRows = await mysql<{ short_label: string | null }>`
+          SELECT short_label FROM units WHERE id = ${unitId} LIMIT 1
+        `;
+        if (unitRows[0]) {
+          xseriesPayload.percent = unitRows[0].short_label === "%";
+        }
+      }
+    }
+
+    // Update series table fields
+    const seriesUpdateObj = buildUpdateObject(seriesFields);
+    const seriesCols = Object.keys(seriesUpdateObj);
+    if (seriesCols.length > 0) {
+      await mysql`
+        UPDATE series
+        SET ${mysql(seriesUpdateObj, ...seriesCols)}, updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    }
+
+    // Update xseries fields only if this is the primary series
+    if (series.isPrimary) {
+      // Strip undefined values
+      const cleanXs: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(xseriesPayload)) {
+        if (v !== undefined) cleanXs[k] = v;
+      }
+      if (Object.keys(cleanXs).length > 0) {
+        await TimeSeriesCollection.update(
+          series.xseriesId!,
+          cleanXs as Parameters<typeof TimeSeriesCollection.update>[1]
+        );
+      }
+    }
+
+    return this.getById(id);
+  }
+
+  /**
+   * Delete a series.
+   *
+   * Guards:
+   *  - Cannot delete a primary series that still has aliases
+   *  - Cannot delete a series that other series depend on (via loader deps)
+   *
+   * Cleanup:
+   *  - Deletes public_data_points for this series
+   *  - If primary: clears primary_series_id FK, deletes series, then deletes
+   *    the xseries (which cascades to data_points)
+   *  - If alias: just deletes the series row
+   */
+  static async delete(id: number, opts?: { force?: boolean }): Promise<void> {
+    const series = await this.getById(id);
+
+    if (series.isPrimary) {
+      // Check for aliases
+      const aliases = await this.getAliases({
+        sId: series.id!,
+        xsId: series.xseriesId!,
+      });
+      if (aliases.length > 0) {
+        throw new SeriesDeleteError(
+          `Cannot delete primary series ${series.name} with ${aliases.length} alias(es). Delete aliases first.`
+        );
+      }
+    }
+
+    // Check for dependents (other series whose loaders reference this name)
+    if (!opts?.force) {
+      const dependentRows = await mysql<{ id: number }>`
+        SELECT ds.id
+        FROM data_sources ds
+        WHERE ds.disabled = 0
+          AND JSON_CONTAINS(ds.dependencies, ${JSON.stringify(series.name)})
+        LIMIT 1
+      `;
+      if (dependentRows.length > 0) {
+        throw new SeriesDeleteError(
+          `Cannot delete series ${series.name} — other series depend on it. Remove dependencies first.`
+        );
+      }
+    }
+
+    // Delete public data points
+    await mysql`DELETE FROM public_data_points WHERE series_id = ${id}`;
+
+    if (series.isPrimary && series.xseriesId) {
+      // Clear FK to avoid constraint violation
+      await mysql`
+        UPDATE xseries SET primary_series_id = NULL WHERE id = ${series.xseriesId}
+      `;
+      // Delete the series row
+      await mysql`DELETE FROM series WHERE id = ${id}`;
+      // Delete the xseries (cascades to data_points)
+      await TimeSeriesCollection.delete(series.xseriesId);
+    } else {
+      // Alias: just remove the series row
+      await mysql`DELETE FROM series WHERE id = ${id}`;
+    }
+  }
+
+  /**
+   * Create an alias of an existing primary series into another universe.
+   * The alias shares the same xseries (same data points).
+   */
+  static async createAlias(
+    primarySeriesId: number,
+    opts: { universe: Universe; name?: string; geographyId?: number }
+  ): Promise<Series> {
+    const primary = await this.getById(primarySeriesId);
+
+    if (!primary.isPrimary) {
+      throw new Error(`${primary.name} is not a primary series, cannot be aliased`);
+    }
+    if (opts.universe === primary.universe) {
+      throw new Error(`Cannot alias ${primary.name} into same universe ${opts.universe}`);
+    }
+
+    const aliasName = opts.name ?? primary.name;
+
+    // Check name doesn't already exist in the target universe
+    const existingRows = await mysql<{ id: number }>`
+      SELECT id FROM series
+      WHERE universe = ${opts.universe} AND name = ${aliasName}
+      LIMIT 1
+    `;
+    if (existingRows.length > 0) {
+      throw new Error(`${aliasName} already exists in ${opts.universe}`);
+    }
+
+    // Resolve geography in the target universe
+    let geoId = opts.geographyId ?? null;
+    if (!geoId) {
+      const parsed = Series.parseName(aliasName);
+      const geoRows = await mysql<{ id: number }>`
+        SELECT id FROM geographies
+        WHERE universe = ${opts.universe} AND handle = ${parsed.geo}
+        LIMIT 1
+      `;
+      if (!geoRows[0]) {
+        throw new Error(`No geography ${parsed.geo} in universe ${opts.universe}`);
+      }
+      geoId = geoRows[0].id;
+    }
+
+    // Insert the alias series pointing to the same xseries
+    await mysql`
+      INSERT INTO series (
+        xseries_id, name, universe, geography_id, unit_id, source_id,
+        source_detail_id, dataPortalName, description, decimals,
+        source_link, investigation_notes, dependency_depth, scratch,
+        created_at, updated_at
+      ) VALUES (
+        ${primary.xseriesId},
+        ${aliasName},
+        ${opts.universe},
+        ${geoId},
+        ${primary.unitId},
+        ${primary.sourceId},
+        ${primary.sourceDetailId},
+        ${primary.dataPortalName},
+        ${primary.description},
+        ${primary.decimals},
+        ${primary.sourceLink},
+        ${primary.investigationNotes},
+        ${primary.dependencyDepth},
+        ${0},
+        NOW(),
+        NOW()
+      )
+    `;
+
+    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    return this.getById(insertId);
+  }
 
   /** Delete series data points with optional date filtering */
   static async deleteDataPoints(opts: {
@@ -720,8 +1100,8 @@ class SeriesCollection {
           WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
         `;
         await mysql`
-          INSERT INTO data_points (xseries_id, date, value, created_at, current, pseudo_history, data_source_id)
-          VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
+          INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
+          VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
         `;
       }
     }
@@ -732,8 +1112,8 @@ class SeriesCollection {
       if (value === SENTINEL) continue;
 
       await mysql`
-        INSERT INTO data_points (xseries_id, date, value, created_at, current, pseudo_history, data_source_id)
-        VALUES (${xseriesId}, ${dateStr}, ${value}, NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
+        INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
+        VALUES (${xseriesId}, ${dateStr}, ${value}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
       `;
     }
   }
@@ -793,6 +1173,13 @@ class SeriesCollection {
   // Delegate to model for name/universe validation
   static isValidName = Series.isValidName;
   static isValidUniverse = isValidUniverse;
+}
+
+export class SeriesDeleteError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SeriesDeleteError";
+  }
 }
 
 export default SeriesCollection;

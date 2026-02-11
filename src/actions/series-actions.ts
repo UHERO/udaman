@@ -9,6 +9,7 @@ import {
   deleteSeriesDataPoints as deleteDataPointsCtrl,
   searchSeries,
 } from "@catalog/controllers/series";
+import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type {
   SourceMapNode,
@@ -100,6 +101,13 @@ export async function getFormOptions({ universe }: { universe: Universe }) {
     sourceDetails: sourceDetails.data.map(g => g.toJSON()),
   }
 
+}
+
+export async function getDataPointVintages(xseriesId: number, date: string) {
+  log.info({ xseriesId, date }, "getDataPointVintages action called");
+  const vintages = await DataPointCollection.getVintagesByDate({ xseriesId, date });
+  log.info({ xseriesId, date, count: vintages.length }, "getDataPointVintages action completed");
+  return vintages;
 }
 
 /** Resolve series names to their IDs. Returns a name→id map. */

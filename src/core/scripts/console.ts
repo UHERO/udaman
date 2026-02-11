@@ -26,6 +26,7 @@ import SourceCollection from "@catalog/collections/source-collection";
 import SourceDetailCollection from "@catalog/collections/source-detail-collection";
 import UnitCollection from "@catalog/collections/unit-collection";
 import UniverseCollection from "@catalog/collections/universe-collection";
+import TimeSeriesCollection from "@catalog/collections/time-series-collection";
 
 // ─── Models ──────────────────────────────────────────────────────────
 import Category from "@catalog/models/category";
@@ -36,6 +37,7 @@ import Measurement from "@catalog/models/measurement";
 import Series from "@catalog/models/series";
 import Source from "@catalog/models/source";
 import SourceDetail from "@catalog/models/source-detail";
+import TimeSeries from "@catalog/models/time-series";
 import Unit from "@catalog/models/unit";
 
 // ─── Utilities ───────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ const ctx: Record<string, unknown> = {
   SourceDetailCollection,
   UnitCollection,
   UniverseCollection,
+  TimeSeriesCollection,
   Category,
   DataList,
   Geography,
@@ -65,6 +68,7 @@ const ctx: Record<string, unknown> = {
   Series,
   Source,
   SourceDetail,
+  TimeSeries,
   Unit,
   EvalExecutor,
   EvalParser,

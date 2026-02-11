@@ -18,8 +18,10 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 import { getColor } from "../helpers";
+import { DataPointHoverCard } from "./data-point-hover-card";
 import { useSeriesHover } from "./series-data-section";
 
 const isNumber = (val: unknown): val is number => {
@@ -43,6 +45,9 @@ export const SeriesDataTable = ({
   options: {
     decimals: number;
     showLoaderCol: boolean;
+    xseriesId: number;
+    universe: string;
+    seriesId: number;
   };
 }) => {
   const { setHoveredDate } = useSeriesHover();
@@ -70,12 +75,20 @@ export const SeriesDataTable = ({
     {
       accessorKey: "value",
       header: "Value",
-      cell: ({ cell }) => {
+      cell: ({ cell, row }) => {
         const val = cell.getValue() as number | null;
+        const displayValue = isNumber(val) ? val.toFixed(decimals) : "-";
+        const rowDate = row.getValue("date") as Date;
+        const dateStr = format(rowDate, "yyyy-MM-dd");
         return (
-          <span className="font-bold">
-            {isNumber(val) ? val.toFixed(decimals) : "-"}
-          </span>
+          <DataPointHoverCard
+            value={displayValue}
+            xseriesId={options.xseriesId}
+            date={dateStr}
+            universe={options.universe}
+            seriesId={options.seriesId}
+            decimals={decimals}
+          />
         );
       },
     },
