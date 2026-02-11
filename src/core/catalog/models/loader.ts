@@ -34,6 +34,9 @@ export type LoaderType =
   | "manual"
   | "other";
 
+/** Plain-object shape returned by Loader.toJSON(), safe to pass across the server/client boundary. */
+export type SerializedLoader = ReturnType<Loader["toJSON"]>;
+
 class Loader {
   readonly id: number;
   seriesId: number | null;
@@ -229,6 +232,119 @@ class Loader {
 
     // Fallback: return the eval expression itself (cleaned up)
     return evalExpr.replace(/"/g, "").replace(/\.ts/g, "");
+  }
+
+  /** Whether this loader is a history or pseudo_history type */
+  get isHistory(): boolean {
+    return this.loaderType === "history" || this.loaderType === "pseudo_history";
+  }
+
+  /** Recompute dependencies from description and eval (in-memory only) */
+  refreshDependencies(): void {
+    this.dependencies = Loader.extractDependencies(
+      this.description ?? "",
+      this.eval ?? ""
+    );
+  }
+
+  /** Strip whitespace from string fields, convert blank strings to null (pre-save hook) */
+  cleanWhitespace(): void {
+    const stringFields = [
+      "eval",
+      "description",
+      "color",
+      "scale",
+      "presaveHook",
+      "lastError",
+    ] as const;
+    for (const field of stringFields) {
+      const value = this[field];
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        (this as Record<string, unknown>)[field] = trimmed === "" ? null : trimmed;
+      }
+    }
+  }
+
+  /** Extract base year from eval string containing "rebase" */
+  baseYearFromEval(): number | null {
+    const evalStr = this.eval;
+    if (!evalStr) return null;
+
+    if (/rebase/.test(evalStr)) {
+      const yearMatch = evalStr.match(/rebase\(["']?(\d+)/);
+      if (yearMatch) {
+        return parseInt(yearMatch[1], 10);
+      }
+      // If rebase is present but no explicit year, caller must resolve via DB
+      return null;
+    }
+    // Dependencies base_year lookup requires DB — caller handles
+    return null;
+  }
+
+  /**
+   * Validate seasonal adjustment compatibility between a series and its dependencies.
+   * Returns an error message string if invalid, or null if valid.
+   * Static so collection can pass in resolved dependency data without the model needing DB access.
+   */
+  static validateSeasonalAdjustmentCompatibility(opts: {
+    currentSA: string | null;
+    dependencies: Array<{
+      name: string;
+      seasonalAdjustment: string | null;
+      universe: string;
+    }>;
+  }): string | null {
+    const { currentSA, dependencies } = opts;
+    if (!currentSA) return null;
+
+    for (const dep of dependencies) {
+      const depSA = dep.seasonalAdjustment;
+      if (!depSA) continue;
+
+      if (
+        currentSA === "not_seasonally_adjusted" &&
+        depSA === "seasonally_adjusted"
+      ) {
+        // NS loading from SA — check if NS version name would exist
+        const match = dep.name.match(/^(.+?)(@.+)$/);
+        if (match) {
+          const comparableName = `${match[1]}NS${match[2]}`;
+          return (
+            `NS series should load from NS series (not SA): ` +
+            `should use ${comparableName} (NS) instead of ${dep.name} (SA)`
+          );
+        }
+      } else if (
+        currentSA === "seasonally_adjusted" &&
+        depSA === "not_seasonally_adjusted"
+      ) {
+        // SA loading from NS — check if SA version name would exist
+        const match = dep.name.match(/^(.+?)NS(@.+)$/);
+        if (match) {
+          const comparableName = `${match[1]}${match[2]}`;
+          return (
+            `SA series should load from SA series (not NS): ` +
+            `should use ${comparableName} (SA) instead of ${dep.name} (NS)`
+          );
+        }
+      } else if (
+        currentSA === "not_applicable" &&
+        depSA === "seasonally_adjusted"
+      ) {
+        // N/A loading from SA — check if NS version name would exist
+        const match = dep.name.match(/^(.+?)(@.+)$/);
+        if (match) {
+          const comparableName = `${match[1]}NS${match[2]}`;
+          return (
+            `N/A series should load from NS series (not SA): ` +
+            `should use ${comparableName} (NS) instead of ${dep.name} (SA)`
+          );
+        }
+      }
+    }
+    return null;
   }
 
   toString(): string {

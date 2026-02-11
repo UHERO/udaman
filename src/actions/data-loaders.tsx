@@ -1,7 +1,14 @@
 "use server";
 
 import { createLogger } from "@/core/observability/logger";
-import { createDataLoader as createDataLoaderCtrl } from "@catalog/controllers/data-loaders";
+import {
+  createDataLoader as createDataLoaderCtrl,
+  loadDataPoints as loadDataPointsCtrl,
+  clearLoaderDataPoints as clearLoaderCtrl,
+  deleteDataLoader as deleteLoaderCtrl,
+  disableDataLoader as disableLoaderCtrl,
+  enableDataLoader as enableLoaderCtrl,
+} from "@catalog/controllers/data-loaders";
 import type { Universe } from "@catalog/types/shared";
 import type { CreateLoaderFormData } from "@catalog/types/sources";
 
@@ -16,4 +23,39 @@ export async function createDataLoader(
   const result = await createDataLoaderCtrl({ seriesId, universe, payload });
   log.info({ seriesId }, "createDataLoader action completed");
   return result.data;
+}
+
+export async function reloadLoader(loaderId: number, clearFirst = false) {
+  log.info({ loaderId, clearFirst }, "reloadLoader action called");
+  const result = await loadDataPointsCtrl({ id: loaderId, clearFirst });
+  log.info({ loaderId }, "reloadLoader action completed");
+  return result;
+}
+
+export async function clearLoader(loaderId: number) {
+  log.info({ loaderId }, "clearLoader action called");
+  const result = await clearLoaderCtrl({ id: loaderId });
+  log.info({ loaderId }, "clearLoader action completed");
+  return result;
+}
+
+export async function deleteLoader(loaderId: number) {
+  log.info({ loaderId }, "deleteLoader action called");
+  const result = await deleteLoaderCtrl({ id: loaderId });
+  log.info({ loaderId }, "deleteLoader action completed");
+  return result;
+}
+
+export async function disableLoader(loaderId: number) {
+  log.info({ loaderId }, "disableLoader action called");
+  const result = await disableLoaderCtrl({ id: loaderId });
+  log.info({ loaderId }, "disableLoader action completed");
+  return result;
+}
+
+export async function enableLoader(loaderId: number) {
+  log.info({ loaderId }, "enableLoader action called");
+  const result = await enableLoaderCtrl({ id: loaderId });
+  log.info({ loaderId }, "enableLoader action completed");
+  return result;
 }

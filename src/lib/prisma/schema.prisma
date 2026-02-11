@@ -148,7 +148,6 @@ model data_lists_series {
   id           Int @id @default(autoincrement())
   data_list_id Int
   series_id    Int
-
   @@index([data_list_id], map: "index_data_lists_series_on_data_list_id")
 }
 

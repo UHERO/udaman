@@ -39,11 +39,11 @@ export async function getSeriesById({ id }: { id: number }) {
 
   return {
     data: {
-      aliases,
-      dataPoints,
-      loaders,
-      measurement,
-      metadata,
+      aliases: aliases.map(d => d.toJSON()),
+      dataPoints: dataPoints,
+      loaders: loaders.map(d => d.toJSON()),
+      measurement: measurement,
+      metadata: metadata,
     },
   };
 }

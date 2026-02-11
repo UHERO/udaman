@@ -9,6 +9,7 @@ import {
   deleteSeriesDataPoints as deleteDataPointsCtrl,
   searchSeries,
 } from "@catalog/controllers/series";
+import SeriesCollection from "@catalog/collections/series-collection";
 import type {
   SourceMapNode,
   Universe,
@@ -37,7 +38,7 @@ export async function getSeriesById(id: number, _params?: { universe?: Universe 
   log.info({ id, dataPointCount: result.data.dataPoints.length }, "getSeriesById action completed");
   return {
     ...result.data,
-    aliases: result.data.aliases.map((a) => a.toJSON()),
+    aliases: result.data.aliases,
   };
 }
 
@@ -93,9 +94,15 @@ export async function getFormOptions({ universe }: { universe: Universe }) {
   ]);
 
   return {
-    geographies: geographies.data.map(d => d.toJSON()),
-    units: units.data.map(d => d.toJSON()),
-    sources: sources.data.map(d => d.toJSON()),
-    sourceDetails: sourceDetails.data.map(d => d.toJSON()),
+    geographies: geographies.data.map(g => g.toJSON()),
+    units: units.data.map(g => g.toJSON()),
+    sources: sources.data.map(g => g.toJSON()),
+    sourceDetails: sourceDetails.data.map(g => g.toJSON()),
   }
+
+}
+
+/** Resolve series names to their IDs. Returns a name→id map. */
+export async function resolveSeriesIds(names: string[]): Promise<Record<string, number>> {
+  return SeriesCollection.getIdsByNames(names);
 }

@@ -314,18 +314,22 @@ class SeriesCollection {
     `;
 
     for (const dateRow of needRepairDates) {
-      await mysql`
-        UPDATE data_points
-        SET current = true
-        WHERE id = (
-          SELECT id FROM (
-            SELECT id FROM data_points
-            WHERE xseries_id = ${id} AND date = ${dateRow.date}
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) tmp
-        )
+      const latest = await mysql<{ created_at: Date; data_source_id: number }>`
+        SELECT created_at, data_source_id FROM data_points
+        WHERE xseries_id = ${id} AND date = ${dateRow.date}
+        ORDER BY created_at DESC
+        LIMIT 1
       `;
+      if (latest.length > 0) {
+        await mysql`
+          UPDATE data_points
+          SET current = true
+          WHERE xseries_id = ${id}
+            AND date = ${dateRow.date}
+            AND created_at = ${latest[0].created_at}
+            AND data_source_id = ${latest[0].data_source_id}
+        `;
+      }
     }
   }
 
@@ -647,6 +651,143 @@ class SeriesCollection {
 
     const rows = await rawQuery<SeriesAttrs>(sql, variables);
     return rows.map((row) => new Series(row));
+  }
+
+  /** Resolve a list of series names to a name→id map. Unknown names are omitted. */
+  static async getIdsByNames(names: string[]): Promise<Record<string, number>> {
+    if (names.length === 0) return {};
+    const rows = await mysql<{ name: string; id: number }>`
+      SELECT name, id FROM series WHERE name IN ${mysql(names)}
+    `;
+    const map: Record<string, number> = {};
+    for (const row of rows) {
+      map[row.name] = row.id;
+    }
+    return map;
+  }
+
+  // ─── Data point persistence ──────────────────────────────────────
+
+  /**
+   * Persist a map of date→value data points for a series.
+   * Updates existing current data points and inserts new ones.
+   * Port of Rails Series#update_data.
+   */
+  static async updateData(opts: {
+    xseriesId: number;
+    data: Map<string, number>;
+    dataSourceId: number;
+    pseudoHistory: boolean;
+  }): Promise<void> {
+    const { xseriesId, data, dataSourceId, pseudoHistory } = opts;
+    const SENTINEL = 1.0e15;
+
+    // Remove nil/undefined values
+    const cleanData = new Map<string, number>();
+    for (const [date, value] of data) {
+      if (value != null) cleanData.set(date, value);
+    }
+
+    if (cleanData.size === 0) return;
+
+    // Get existing current data points for this series
+    const existingRows = await mysql<{ date: Date; data_source_id: number }>`
+      SELECT date, data_source_id
+      FROM data_points
+      WHERE xseries_id = ${xseriesId} AND current = 1
+    `;
+
+    const existingDates = new Set<string>();
+    for (const row of existingRows) {
+      const dateStr = row.date instanceof Date
+        ? row.date.toISOString().slice(0, 10)
+        : String(row.date);
+      existingDates.add(dateStr);
+
+      const newValue = cleanData.get(dateStr);
+      if (newValue === undefined) continue;
+
+      if (newValue === SENTINEL) {
+        // Sentinel means "no data" — mark existing point as non-current
+        await mysql`
+          UPDATE data_points SET current = 0
+          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
+        `;
+      } else {
+        // Create new version of the data point (marks old as non-current)
+        await mysql`
+          UPDATE data_points SET current = 0
+          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
+        `;
+        await mysql`
+          INSERT INTO data_points (xseries_id, date, value, created_at, current, pseudo_history, data_source_id)
+          VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
+        `;
+      }
+    }
+
+    // Insert brand new data points (dates not yet in DB)
+    for (const [dateStr, value] of cleanData) {
+      if (existingDates.has(dateStr)) continue;
+      if (value === SENTINEL) continue;
+
+      await mysql`
+        INSERT INTO data_points (xseries_id, date, value, created_at, current, pseudo_history, data_source_id)
+        VALUES (${xseriesId}, ${dateStr}, ${value}, NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
+      `;
+    }
+  }
+
+  // ─── Static loader stubs (eval-callable) ─────────────────────────
+
+  /** Load series data from a named download source. */
+  static async loadFromDownload(_handle: string, _options: Record<string, unknown> = {}): Promise<Series> {
+    /* TODO */ throw new Error("loadFromDownload not yet implemented");
+  }
+
+  /** Load series data from a file path. */
+  static async loadFromFile(_path: string, _options: Record<string, unknown> = {}): Promise<Series> {
+    /* TODO */ throw new Error("loadFromFile not yet implemented");
+  }
+
+  /** Load from the BLS API (legacy endpoint). */
+  static async loadApiBls(_seriesId: string, _frequency: string): Promise<Series> {
+    /* TODO */ throw new Error("loadApiBls not yet implemented");
+  }
+
+  /** Load from the BLS API (v2 endpoint). */
+  static async loadApiBlsNew(_seriesId: string, _frequency: string): Promise<Series> {
+    /* TODO */ throw new Error("loadApiBlsNew not yet implemented");
+  }
+
+  /** Load from the FRED API. */
+  static async loadApiFred(_code: string, _frequency?: string, _aggMethod?: string): Promise<Series> {
+    /* TODO */ throw new Error("loadApiFred not yet implemented");
+  }
+
+  /** Load from the BEA API. */
+  static async loadApiBea(_frequency: string, _dataset: string, _params: Record<string, string> = {}): Promise<Series> {
+    /* TODO */ throw new Error("loadApiBea not yet implemented");
+  }
+
+  /** Load from the Japan e-Stat API. */
+  static async loadApiEstatjp(_code: string, _filters: Record<string, string> = {}): Promise<Series> {
+    /* TODO */ throw new Error("loadApiEstatjp not yet implemented");
+  }
+
+  /** Load from the EIA Annual Energy Outlook API. */
+  static async loadApiEiaAeo(_options: Record<string, string> = {}): Promise<Series> {
+    /* TODO */ throw new Error("loadApiEiaAeo not yet implemented");
+  }
+
+  /** Load from the EIA Short-Term Energy Outlook API. */
+  static async loadApiEiaSteo(_options: Record<string, string> = {}): Promise<Series> {
+    /* TODO */ throw new Error("loadApiEiaSteo not yet implemented");
+  }
+
+  /** Load from the DVW API. */
+  static async loadApiDvw(_mod: string, _freq: string, _indicator: string, _dimensions: string): Promise<Series> {
+    /* TODO */ throw new Error("loadApiDvw not yet implemented");
   }
 
   // Delegate to model for name/universe validation

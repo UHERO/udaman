@@ -371,6 +371,107 @@ class Series {
 
   /** Reload all enabled data sources for this series. */
   reloadSources(_opts?: { nightly?: boolean; clearFirst?: boolean }): void { /* TODO */ }
+
+  // ─── Arithmetic (series_arithmetic.rb) ────────────────────────────
+
+  /** Add another series or scalar to this series point-by-point. */
+  add(_other: Series | number): Series { /* TODO */ return this; }
+
+  /** Subtract another series or scalar from this series. */
+  subtract(_other: Series | number): Series { /* TODO */ return this; }
+
+  /** Multiply this series by another series or scalar. */
+  multiply(_other: Series | number): Series { /* TODO */ return this; }
+
+  /** Divide this series by another series or scalar. */
+  divide(_other: Series | number): Series { /* TODO */ return this; }
+
+  /** Raise this series to a power. */
+  power(_other: Series | number): Series { /* TODO */ return this; }
+
+  /** Add with zero-fill: treat missing values as 0 before adding. */
+  zeroAdd(_other: Series): Series { /* TODO */ return this; }
+
+  /** Round data values to the given precision. */
+  round(_precision?: number): Series { /* TODO */ return this; }
+
+  /** Rebase the series so the given year equals 100. */
+  rebase(_year?: number): Series { /* TODO */ return this; }
+
+  /** Deflate nominal values using a price index series. */
+  convertToReal(_index?: string): Series { /* TODO */ return this; }
+
+  /** Per-capita transform: divide by population series. */
+  perCap(_options?: { pop?: string; multiplier?: number }): Series { /* TODO */ return this; }
+
+  /** Year-over-year percent change. */
+  yoy(): Series { /* TODO */ return this; }
+
+  /** Year-to-date cumulative sum. */
+  ytd(): Series { /* TODO */ return this; }
+
+  /** Period-over-period difference (lag defaults to 1). */
+  diff(_lag?: number): Series { /* TODO */ return this; }
+
+  /** Rolling annual sum (12-month for monthly, 4-quarter for quarterly). */
+  annualSum(): Series { /* TODO */ return this; }
+
+  /** Rolling annual average. */
+  annualAverage(): Series { /* TODO */ return this; }
+
+  /** Period-over-period percentage change. */
+  percentageChange(): Series { /* TODO */ return this; }
+
+  /** Year-over-year difference (level change, not percent). */
+  yoyDiff(): Series { /* TODO */ return this; }
+
+  /** Return data scaled by the given factor (does not mutate). */
+  scaledData(scale = 1.0): Map<string, number> {
+    const SENTINEL = 1.0e15;
+    const result = new Map<string, number>();
+    for (const [date, value] of this.data) {
+      result.set(date, value === SENTINEL ? value : value * scale);
+    }
+    return result;
+  }
+
+  // ─── Aggregation (series_aggregation.rb) ──────────────────────────
+
+  /** Aggregate to a lower frequency (e.g. month → quarter). */
+  aggregate(_frequency: string, _operation?: string): Series { /* TODO */ return this; }
+
+  // ─── Interpolation (series_interpolation.rb) ──────────────────────
+
+  /** Fill gaps in monthly data with linear interpolation. */
+  fillMissingMonthsLinear(): Series { /* TODO */ return this; }
+
+  /** Interpolate to a target frequency using the given method. */
+  interpolate(_targetFreq: string, _method?: string): Series { /* TODO */ return this; }
+
+  /** Linear interpolation to the given frequency. */
+  linearInterpolate(_frequency: string): Series { /* TODO */ return this; }
+
+  /** Fill and interpolate to a target frequency. */
+  fillInterpolateTo(_targetFrequency: string): Series { /* TODO */ return this; }
+
+  // ─── Data adjustment (series_data_adjustment.rb) ──────────────────
+
+  /** Trim data to the given date window. */
+  trim(_startDate?: string, _endDate?: string): Series { /* TODO */ return this; }
+
+  /** Shift all dates by a duration string (e.g. "1 year"). */
+  shiftBy(_duration: string): Series { /* TODO */ return this; }
+
+  // ─── File loading ───────────────────────────────────────────────────
+  // File I/O is handled by the eval executor + DataFileReader (server-only).
+  // These stubs exist so the ALLOWED_INSTANCE_METHODS whitelist in the
+  // executor recognizes them; actual dispatch is intercepted before reaching here.
+
+  /** Load data from a static file into this series. */
+  loadFrom(_path: string): Series { throw new Error("loadFrom must be called via EvalExecutor"); }
+
+  /** Load seasonally-adjusted data from a static file. */
+  loadSaFrom(_path: string): Series { throw new Error("loadSaFrom must be called via EvalExecutor"); }
 }
 
 // ─── Errors ──────────────────────────────────────────────────────────
