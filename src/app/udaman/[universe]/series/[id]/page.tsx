@@ -22,10 +22,10 @@ export default async function SeriesPage({
 
   return (
     <div className="">
-      <SeriesHoverProvider>
+      <SeriesHoverProvider xseriesId={metadata.xs_id}>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-1 rounded"></div>
-          <div className="col-span-7 rounded">
+          <div className="col-span-6 rounded">
             <LoaderSection
               universe={universe}
               seriesId={id}

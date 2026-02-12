@@ -20,8 +20,9 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { getColor } from "../helpers";
-import { DataPointHoverCard } from "./data-point-hover-card";
+import { DataPointTooltip } from "./data-point-hover-card";
 import { useSeriesHover } from "./series-data-section";
 
 const isNumber = (val: unknown): val is number => {
@@ -81,7 +82,7 @@ export const SeriesDataTable = ({
         const rowDate = row.getValue("date") as Date;
         const dateStr = format(rowDate, "yyyy-MM-dd");
         return (
-          <DataPointHoverCard
+          <DataPointTooltip
             value={displayValue}
             xseriesId={options.xseriesId}
             date={dateStr}
@@ -152,6 +153,7 @@ export const SeriesDataTable = ({
     },
   });
   return (
+    <TooltipProvider delayDuration={200} skipDelayDuration={0}>
     <div>
       <Table className="border-separate border-spacing-1 font-mono text-gray-800">
         <TableHeader>
@@ -221,5 +223,6 @@ export const SeriesDataTable = ({
         </TableHeader>
       </Table>
     </div>
+    </TooltipProvider>
   );
 };

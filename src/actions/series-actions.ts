@@ -1,6 +1,7 @@
 "use server";
 
 import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createLogger } from "@/core/observability/logger";
 import {
   getSeries as fetchSeries,
@@ -8,10 +9,18 @@ import {
   getSourceMap as fetchSourceMap,
   deleteSeriesDataPoints as deleteDataPointsCtrl,
   searchSeries,
+  getSeriesWithNullField as fetchSeriesWithNullField,
+  getQuarantinedSeries as fetchQuarantinedSeries,
+  unquarantineSeries as unquarantineSeriesCtrl,
+  emptyQuarantine as emptyQuarantineCtrl,
 } from "@catalog/controllers/series";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
+import type { CreateSeriesPayload } from "@catalog/collections/series-collection";
+import LoaderCollection from "@catalog/collections/loader-collection";
+import { transaction } from "@database/mysql";
 import type {
+  SeasonalAdjustment,
   SourceMapNode,
   Universe,
 } from "@catalog/types/shared";
@@ -110,7 +119,222 @@ export async function getDataPointVintages(xseriesId: number, date: string) {
   return vintages;
 }
 
+export async function getAllDataPointVintages(xseriesId: number) {
+  log.info({ xseriesId }, "getAllDataPointVintages action called");
+  const vintages = await DataPointCollection.getAllVintages({ xseriesId });
+  log.info({ xseriesId, dates: Object.keys(vintages).length }, "getAllDataPointVintages action completed");
+  return vintages;
+}
+
 /** Resolve series names to their IDs. Returns a name→id map. */
 export async function resolveSeriesIds(names: string[]): Promise<Record<string, number>> {
   return SeriesCollection.getIdsByNames(names);
+}
+
+// ─── Create actions ─────────────────────────────────────────────────
+
+export interface CreateSeriesFormPayload {
+  name: string;
+  universe: Universe;
+  dataPortalName?: string;
+  unitId?: number | null;
+  sourceId?: number | null;
+  sourceDetailId?: number | null;
+  decimals?: number;
+  description?: string;
+  sourceLink?: string;
+  seasonalAdjustment?: SeasonalAdjustment | null;
+  frequencyTransform?: string;
+  percent?: boolean;
+  real?: boolean;
+  restricted?: boolean;
+  quarantined?: boolean;
+  investigationNotes?: string;
+}
+
+export async function createSeries(payload: CreateSeriesFormPayload) {
+  log.info({ name: payload.name, universe: payload.universe }, "createSeries action called");
+
+  const createPayload: CreateSeriesPayload = {
+    name: payload.name,
+    universe: payload.universe,
+    dataPortalName: payload.dataPortalName || null,
+    unitId: payload.unitId ?? null,
+    sourceId: payload.sourceId ?? null,
+    sourceDetailId: payload.sourceDetailId ?? null,
+    decimals: payload.decimals ?? 1,
+    description: payload.description || null,
+    sourceLink: payload.sourceLink || null,
+    seasonalAdjustment: payload.seasonalAdjustment ?? null,
+    frequencyTransform: payload.frequencyTransform || null,
+    percent: payload.percent ?? null,
+    real: payload.real ?? null,
+    restricted: payload.restricted ?? false,
+    quarantined: payload.quarantined ?? false,
+    investigationNotes: payload.investigationNotes || null,
+  };
+
+  const series = await SeriesCollection.create(createPayload);
+  log.info({ id: series.id, name: series.name }, "createSeries action completed");
+  revalidatePath(`/udaman/${payload.universe}/series`);
+  return series.toJSON();
+}
+
+// ─── Bulk create ────────────────────────────────────────────────────
+
+interface ParsedBulkLine {
+  name: string;
+  evalExpression: string;
+}
+
+function parseBulkLine(line: string): ParsedBulkLine | null {
+  const match = line.match(/^"([^"]+)"\.ts_eval\s*=\s*%Q\|(.+)\|$/);
+  if (!match) return null;
+  return { name: match[1], evalExpression: match[2] };
+}
+
+export interface BulkCreatePayload {
+  universe: Universe;
+  definitions: string;
+  unitId?: number | null;
+  sourceId?: number | null;
+  sourceDetailId?: number | null;
+  decimals?: number;
+  description?: string;
+  sourceLink?: string;
+  seasonalAdjustment?: SeasonalAdjustment | null;
+  frequencyTransform?: string;
+  percent?: boolean;
+  real?: boolean;
+  restricted?: boolean;
+  quarantined?: boolean;
+  investigationNotes?: string;
+}
+
+export async function bulkCreateSeries(
+  payload: BulkCreatePayload
+): Promise<{ successCount: number; errors: string[] }> {
+  const { universe, definitions, ...optionalMeta } = payload;
+  log.info({ universe }, "bulkCreateSeries action called");
+
+  const lines = definitions
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (lines.length === 0) {
+    return { successCount: 0, errors: ["No definitions provided"] };
+  }
+
+  // Parse all lines first — fail fast if any are invalid
+  const parsed: ParsedBulkLine[] = [];
+  const parseErrors: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const result = parseBulkLine(lines[i]);
+    if (!result) {
+      parseErrors.push(`Line ${i + 1}: invalid format — ${lines[i].slice(0, 80)}`);
+    } else {
+      parsed.push(result);
+    }
+  }
+
+  if (parseErrors.length > 0) {
+    return { successCount: 0, errors: parseErrors };
+  }
+
+  // Build shared metadata (only non-empty values)
+  const sharedMeta: Partial<CreateSeriesPayload> = {};
+  if (optionalMeta.unitId != null) sharedMeta.unitId = optionalMeta.unitId;
+  if (optionalMeta.sourceId != null) sharedMeta.sourceId = optionalMeta.sourceId;
+  if (optionalMeta.sourceDetailId != null) sharedMeta.sourceDetailId = optionalMeta.sourceDetailId;
+  if (optionalMeta.decimals != null) sharedMeta.decimals = optionalMeta.decimals;
+  if (optionalMeta.description) sharedMeta.description = optionalMeta.description;
+  if (optionalMeta.sourceLink) sharedMeta.sourceLink = optionalMeta.sourceLink;
+  if (optionalMeta.seasonalAdjustment) sharedMeta.seasonalAdjustment = optionalMeta.seasonalAdjustment;
+  if (optionalMeta.frequencyTransform) sharedMeta.frequencyTransform = optionalMeta.frequencyTransform;
+  if (optionalMeta.percent != null) sharedMeta.percent = optionalMeta.percent;
+  if (optionalMeta.real != null) sharedMeta.real = optionalMeta.real;
+  if (optionalMeta.restricted != null) sharedMeta.restricted = optionalMeta.restricted;
+  if (optionalMeta.quarantined != null) sharedMeta.quarantined = optionalMeta.quarantined;
+  if (optionalMeta.investigationNotes) sharedMeta.investigationNotes = optionalMeta.investigationNotes;
+
+  // Process within a transaction
+  const errors: string[] = [];
+  let successCount = 0;
+
+  try {
+    successCount = await transaction(async () => {
+      let count = 0;
+      for (const { name, evalExpression } of parsed) {
+        // Find or create the series
+        let series;
+        try {
+          series = await SeriesCollection.getByName(name);
+        } catch {
+          // Series doesn't exist, create it
+          series = await SeriesCollection.create({
+            name,
+            universe,
+            ...sharedMeta,
+          });
+        }
+
+        // Create the loader with the eval expression
+        await LoaderCollection.create({
+          seriesId: series.id!,
+          code: evalExpression,
+          universe,
+          priority: 50,
+          scale: 1,
+          presaveHook: "",
+          clearBeforeLoad: false,
+          pseudoHistory: false,
+        });
+
+        count++;
+      }
+      return count;
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    errors.push(msg);
+    log.error({ error: msg }, "bulkCreateSeries failed — rolled back");
+    return { successCount: 0, errors };
+  }
+
+  log.info({ successCount }, "bulkCreateSeries action completed");
+  revalidatePath(`/udaman/${universe}/series`);
+  return { successCount, errors };
+}
+
+// ─── Null-field audit ───────────────────────────────────────────────
+
+export async function getSeriesWithNullField(
+  universe: string,
+  field: string,
+  page: number = 1,
+  perPage: number = 50,
+) {
+  return fetchSeriesWithNullField({ universe, field, page, perPage });
+}
+
+// ─── Quarantine ─────────────────────────────────────────────────────
+
+export async function getQuarantinedSeries(
+  universe: string,
+  page: number = 1,
+  perPage: number = 50,
+) {
+  return fetchQuarantinedSeries({ universe, page, perPage });
+}
+
+export async function unquarantineSeries(seriesId: number, universe: string) {
+  await unquarantineSeriesCtrl({ seriesId });
+  revalidatePath(`/udaman/${universe}/series/quarantine`);
+}
+
+export async function emptyQuarantine(universe: string) {
+  const count = await emptyQuarantineCtrl({ universe });
+  revalidatePath(`/udaman/${universe}/series/quarantine`);
+  return count;
 }

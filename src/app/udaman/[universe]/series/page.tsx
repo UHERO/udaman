@@ -1,14 +1,14 @@
+import Link from "next/link";
+import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
-import Link from "next/link";
 
-import { getSeries, searchSeriesAction } from "@/actions/series-actions";
-import { SeriesListTable } from "@/components/series/series-list-table";
-import { H1 } from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SeriesListTable } from "@/components/series/series-list-table";
+import { H1 } from "@/components/typography";
 
 export default async function Page({
   params,
@@ -39,7 +39,13 @@ export default async function Page({
   );
 }
 
-const SeriesCard = ({ count, isSearch }: { count: number; isSearch: boolean }) => (
+const SeriesCard = ({
+  count,
+  isSearch,
+}: {
+  count: number;
+  isSearch: boolean;
+}) => (
   <div className="flex flex-col rounded-xl">
     <div>
       <H1>Data Series</H1>

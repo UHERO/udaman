@@ -4,7 +4,7 @@ import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 import Series from "../models/series";
 import type { SeriesAttrs } from "../models/series";
 import TimeSeriesCollection from "./time-series-collection";
-import type { SeasonalAdjustment, SeriesMetadata, Universe } from "../types/shared";
+import type { SeriesAuditRow, SeasonalAdjustment, SeriesMetadata, Universe } from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
 import { isValidUniverse } from "../utils/validators";
 
@@ -1349,6 +1349,161 @@ class SeriesCollection {
   // Delegate to model for name/universe validation
   static isValidName = Series.isValidName;
   static isValidUniverse = isValidUniverse;
+
+  // ─── Null-field audit ───────────────────────────────────────────────
+
+  /** Allowlisted field keys → SQL column expressions */
+  private static readonly NULL_FIELD_COLUMNS: Record<string, { column: string; isText: boolean }> = {
+    source_id:        { column: "s.source_id",        isText: false },
+    unit_id:          { column: "s.unit_id",          isText: false },
+    source_detail_id: { column: "s.source_detail_id", isText: false },
+    geography_id:     { column: "s.geography_id",     isText: false },
+    dataPortalName:   { column: "s.dataPortalName",   isText: true  },
+    description:      { column: "s.description",      isText: true  },
+    source_link:      { column: "s.source_link",      isText: true  },
+  };
+
+  static async getWithNullField(
+    universe: string,
+    field: string,
+    page: number = 1,
+    perPage: number = 50,
+  ): Promise<{ rows: SeriesAuditRow[]; totalCount: number }> {
+    const spec = SeriesCollection.NULL_FIELD_COLUMNS[field];
+    if (!spec) {
+      throw new Error(`Invalid null-field audit key: ${field}`);
+    }
+
+    const nullCheck = spec.isText
+      ? `(${spec.column} IS NULL OR ${spec.column} = '')`
+      : `${spec.column} IS NULL`;
+
+    const offset = (page - 1) * perPage;
+
+    const countRows = await rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM series s WHERE s.universe = ? AND ${nullCheck}`,
+      [universe],
+    );
+    const totalCount = countRows[0]?.cnt ?? 0;
+
+    if (totalCount === 0) return { rows: [], totalCount: 0 };
+
+    const seriesRows = await rawQuery<{
+      id: number;
+      name: string;
+      dataPortalName: string | null;
+    }>(
+      `SELECT s.id, s.name, s.dataPortalName
+       FROM series s
+       WHERE s.universe = ? AND ${nullCheck}
+       ORDER BY s.name
+       LIMIT ? OFFSET ?`,
+      [universe, perPage, offset],
+    );
+
+    if (seriesRows.length === 0) return { rows: [], totalCount };
+
+    return {
+      rows: await SeriesCollection.attachLoaderEvals(seriesRows),
+      totalCount,
+    };
+  }
+
+  // ─── Quarantine ─────────────────────────────────────────────────────
+
+  static async getQuarantined(
+    universe: string,
+    page: number = 1,
+    perPage: number = 50,
+  ): Promise<{ rows: SeriesAuditRow[]; totalCount: number }> {
+    const offset = (page - 1) * perPage;
+
+    const countRows = await rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt
+       FROM series s
+       INNER JOIN xseries x ON s.xseries_id = x.id
+       WHERE s.universe = ? AND x.quarantined = 1`,
+      [universe],
+    );
+    const totalCount = countRows[0]?.cnt ?? 0;
+
+    if (totalCount === 0) return { rows: [], totalCount: 0 };
+
+    const seriesRows = await rawQuery<{
+      id: number;
+      name: string;
+      dataPortalName: string | null;
+    }>(
+      `SELECT s.id, s.name, s.dataPortalName
+       FROM series s
+       INNER JOIN xseries x ON s.xseries_id = x.id
+       WHERE s.universe = ? AND x.quarantined = 1
+       ORDER BY s.name
+       LIMIT ? OFFSET ?`,
+      [universe, perPage, offset],
+    );
+
+    if (seriesRows.length === 0) return { rows: [], totalCount };
+
+    return {
+      rows: await SeriesCollection.attachLoaderEvals(seriesRows),
+      totalCount,
+    };
+  }
+
+  static async unquarantine(seriesId: number): Promise<void> {
+    await rawQuery(
+      `UPDATE xseries SET quarantined = 0
+       WHERE id = (SELECT xseries_id FROM series WHERE id = ?)`,
+      [seriesId],
+    );
+  }
+
+  static async emptyQuarantine(universe: string): Promise<number> {
+    const result = await rawQuery<{ affectedRows?: number }>(
+      `UPDATE xseries x
+       INNER JOIN series s ON s.xseries_id = x.id
+       SET x.quarantined = 0
+       WHERE s.universe = ? AND x.quarantined = 1`,
+      [universe],
+    );
+    // rawQuery returns row array; for UPDATE, Bun SQL returns [{affectedRows}]
+    return (result as unknown as { count: number }).count ?? 0;
+  }
+
+  // ─── Shared helpers ─────────────────────────────────────────────────
+
+  /** Fetch enabled loader evals for a set of series and attach them. */
+  private static async attachLoaderEvals(
+    seriesRows: { id: number; name: string; dataPortalName: string | null }[],
+  ): Promise<SeriesAuditRow[]> {
+    const ids = seriesRows.map((r) => r.id);
+    const placeholders = ids.map(() => "?").join(",");
+    const loaderRows = await rawQuery<{
+      series_id: number;
+      eval: string | null;
+    }>(
+      `SELECT series_id, eval FROM data_sources
+       WHERE series_id IN (${placeholders}) AND disabled = 0
+       ORDER BY series_id, priority`,
+      ids,
+    );
+
+    const loaderMap = new Map<number, string[]>();
+    for (const lr of loaderRows) {
+      if (!lr.eval) continue;
+      const arr = loaderMap.get(lr.series_id) ?? [];
+      arr.push(lr.eval);
+      loaderMap.set(lr.series_id, arr);
+    }
+
+    return seriesRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      dataPortalName: r.dataPortalName,
+      loaderEvals: loaderMap.get(r.id) ?? [],
+    }));
+  }
 }
 
 export class SeriesDeleteError extends Error {

@@ -1,4 +1,3 @@
-import { Decimal } from "@prisma/client/runtime/library";
 import {
   addMonths,
   addQuarters,
@@ -145,7 +144,7 @@ function formatRuntime(runtimeSeconds: number | null): string {
   return `${runtimeSeconds.toFixed(2)}s`;
 }
 
-function dateTimestamp(seconds: number | undefined | Decimal | null): string {
+function dateTimestamp(seconds: number | undefined | null): string {
   if (seconds === undefined || seconds === null) return "-";
   const date = fromUnixTime(Number(seconds));
   return format(date, "MMM d, yyyy HH:mm");

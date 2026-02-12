@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { SeriesMetadata } from "@catalog/types/shared";
+import type { SeriesMetadata, SeriesAlias, MeasurementRef } from "@catalog/types/shared";
 import { numBool } from "@catalog/utils";
 import {
   ColumnDef,
@@ -22,7 +22,9 @@ type MetadataRow = {
   value: React.ReactNode;
 };
 
-export function MetaDataTable({ metadata }: { metadata: SeriesMetadata }) {
+export function MetaDataTable({ metadata }: {
+  metadata: SeriesMetadata & { aliases: SeriesAlias[]; measurement: MeasurementRef[] };
+}) {
   const { universe } = useParams();
 
   const data: MetadataRow[] = useMemo(

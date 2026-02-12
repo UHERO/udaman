@@ -31,6 +31,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "perCap",
   "yoy",
   "ytd",
+  "ytdSum",
   "diff",
   "annualSum",
   "annualAverage",
@@ -44,9 +45,14 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "interpolate",
   "linearInterpolate",
   "fillInterpolateTo",
+  // Moving averages
+  "movingAverage",
+  "backwardLookingMovingAverage",
+  "forwardLookingMovingAverage",
   // Data adjustment
   "trim",
   "shiftBy",
+  "getLastIncompleteYear",
   // File loading
   "loadFrom",
   "loadSaFrom",

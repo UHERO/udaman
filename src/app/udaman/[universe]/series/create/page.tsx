@@ -1,8 +1,6 @@
 import { getFormOptions } from "@/actions/series-actions";
-import Universe from "@/core/catalog/models/universe";
-import { createLogger } from "@/core/observability/logger";
-
-const log = createLogger("CreateSeriesPage");
+import { SeriesCreateForm } from "@/components/series/series-create-form";
+import type { Universe } from "@catalog/types/shared";
 
 export default async function CreateSeriesPage({
   params,
@@ -15,14 +13,15 @@ export default async function CreateSeriesPage({
     universe,
   });
 
-  log.info(
-    { geographies, units, sources, sourceDetails },
-    "deleteSeriesDataPoints action called"
-  );
-
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <>Create Form</>
+      <SeriesCreateForm
+        universe={universe}
+        geographies={geographies}
+        units={units}
+        sources={sources}
+        sourceDetails={sourceDetails}
+      />
     </div>
   );
 }

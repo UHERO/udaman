@@ -43,4 +43,18 @@ function rawQuery<T = Record<string, unknown>>(sql: string, params: (string | nu
   });
 }
 
-export { mysql, rawQuery };
+/** Run a callback inside a database transaction (uses Bun SQL's `sql.begin`).
+ *  The transaction is committed if the callback resolves, rolled back if it throws. */
+async function transaction<T>(fn: () => Promise<T>): Promise<T> {
+  const start = performance.now();
+  // Bun SQL's .begin() provides a scoped transaction that auto-commits/rollbacks
+  const [result] = await connection.begin(async () => {
+    const value = await fn();
+    return [value];
+  });
+  const durationMs = +(performance.now() - start).toFixed(2);
+  log.debug({ durationMs }, "transaction");
+  return result as T;
+}
+
+export { mysql, rawQuery, transaction };

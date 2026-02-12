@@ -66,6 +66,51 @@ export async function deleteSeriesDataPoints({ id, u, date, deleteBy }: {
   return { data };
 }
 
+export async function getSeriesWithNullField({
+  universe,
+  field,
+  page,
+  perPage,
+}: {
+  universe: string;
+  field: string;
+  page?: number;
+  perPage?: number;
+}) {
+  log.info({ universe, field, page }, "fetching series with null field");
+  const result = await SeriesCollection.getWithNullField(universe, field, page, perPage);
+  log.info({ universe, field, totalCount: result.totalCount }, "series with null field fetched");
+  return result;
+}
+
+export async function getQuarantinedSeries({
+  universe,
+  page,
+  perPage,
+}: {
+  universe: string;
+  page?: number;
+  perPage?: number;
+}) {
+  log.info({ universe, page }, "fetching quarantined series");
+  const result = await SeriesCollection.getQuarantined(universe, page, perPage);
+  log.info({ universe, totalCount: result.totalCount }, "quarantined series fetched");
+  return result;
+}
+
+export async function unquarantineSeries({ seriesId }: { seriesId: number }) {
+  log.info({ seriesId }, "unquarantining series");
+  await SeriesCollection.unquarantine(seriesId);
+  log.info({ seriesId }, "series unquarantined");
+}
+
+export async function emptyQuarantine({ universe }: { universe: string }) {
+  log.info({ universe }, "emptying quarantine");
+  const count = await SeriesCollection.emptyQuarantine(universe);
+  log.info({ universe, count }, "quarantine emptied");
+  return count;
+}
+
 export async function searchSeries({term, universe="uhero", limit}:{term: string, universe: string; limit?: number}) {
   log.info({ term, universe, limit }, "search series");
   const results = await SeriesCollection.search({text: term, universe, limit});

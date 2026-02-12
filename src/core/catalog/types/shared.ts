@@ -1,8 +1,6 @@
 import type {
   data_points,
-  data_sources,
   geographies,
-  measurements,
   series,
   source_details,
   sources,
@@ -129,9 +127,19 @@ export type SeriesMetadata = PrefixKeys<SeriesSelection, "s_"> &
   PrefixKeys<GeoSelection, "geo_"> &
   PrefixKeys<SourceSelection, "source_"> &
   PrefixKeys<SourceDetailSelection, "source_detail_"> &
-  PrefixKeys<UnitsDetailSelection, "u_"> & { aliases: series[] } & {
-    measurement: measurements[];
-  };
+  PrefixKeys<UnitsDetailSelection, "u_">;
+
+/** Minimal alias shape used by the series detail page (from Series.toJSON()). */
+export interface SeriesAlias {
+  id: number | null;
+  name: string;
+}
+
+/** Minimal measurement shape used by the series detail page. */
+export interface MeasurementRef {
+  id: number;
+  prefix: string;
+}
 
 type DataPointsSelection = Pick<
   data_points,
@@ -147,26 +155,26 @@ type CalculatedFields = {
 
 export type DataPoint = DataPointsSelection & CalculatedFields & { loader_id: number };
 
-export type SourceMapDataLoaderType = Pick<
-  data_sources,
-  | "id"
-  | "series_id"
-  | "disabled"
-  | "universe"
-  | "color"
-  | "last_run_at"
-  | "last_run_in_seconds"
-  | "last_error"
-  | "dependencies"
-  | "description"
-> &
-  Pick<xseries, "aremos_missing" | "aremos_diff">;
+export interface SourceMapDataSource {
+  id: number;
+  series_id: number;
+  disabled: boolean;
+  universe: string;
+  color: string;
+  last_run_at: Date | null;
+  last_run_in_seconds: number | null;
+  last_error: string | null;
+  dependencies: string | null;
+  description: string | null;
+  aremos_missing: number | null;
+  aremos_diff: number | null;
+}
 
 export interface SourceMapNode {
   name: string;
   children: SourceMapNode[];
   level: number;
-  dataSource: SourceMapDataLoaderType;
+  dataSource: SourceMapDataSource;
 }
 
 export interface SeriesDependency {
@@ -174,5 +182,12 @@ export interface SeriesDependency {
   id: number;
   aremos_missing: number | null;
   aremos_diff: number | null;
+}
+
+export interface SeriesAuditRow {
+  id: number;
+  name: string;
+  dataPortalName: string | null;
+  loaderEvals: string[];
 }
 

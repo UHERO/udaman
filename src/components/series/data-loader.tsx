@@ -130,12 +130,21 @@ const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
             );
           }
 
-          if (/^<(.+)>$/.test(word)) {
-            // TODO: link to download when download routes are implemented
+          const fileMatch = word.match(/^<(.+)>$/);
+          if (fileMatch) {
+            const filePath = fileMatch[1];
             return (
-              <span key={`${segIdx}-${i}`} className="italic" title={word.slice(1, -1)}>
+              <span key={`${segIdx}-${i}`}>
                 {prefix}
-                {word}
+                {"<"}
+                <a
+                  href={`/api/data-file/${filePath}`}
+                  className="underline hover:opacity-70"
+                  title={`Download ${filePath}`}
+                >
+                  {filePath}
+                </a>
+                {">"}
               </span>
             );
           }

@@ -88,15 +88,15 @@ const data = {
         },
         {
           title: "CSV-to-TSD File Conversion",
-          url: "#",
+          url: "/series/csv-to-tsd",
         },
         {
-          title: "Series with no Source",
-          url: "#",
+          title: "Series Missing Metadata",
+          url: "/series/no-source",
         },
         {
           title: "Quarantined Series",
-          url: "#",
+          url: "/series/quarantine",
         },
       ],
     },
@@ -207,7 +207,7 @@ const data = {
     },
     {
       name: "CSV-to-TSD file conversion",
-      url: "/file-conversion",
+      url: "/series/csv-to-tsd",
       icon: Settings2,
     },
     {

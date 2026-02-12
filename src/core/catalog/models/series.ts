@@ -30,6 +30,103 @@ const FREQ_LONG_TO_CODE = Object.fromEntries(
   Object.entries(FREQ_CODE_TO_LONG).map(([k, v]) => [v, k]),
 ) as Record<FrequencyLong, FrequencyCode>;
 
+// ─── Frequency helpers ──────────────────────────────────────────────
+
+/** Numeric ordering of frequencies (higher number = higher frequency). */
+const FREQ_ORDER: Record<string, number> = {
+  year: 1, semi: 2, quarter: 4, month: 12, week: 52, day: 365,
+};
+
+/** Return the numeric ordering for a frequency string or code. */
+function freqn(freq: string | null | undefined): number {
+  if (!freq) return 0;
+  const normalized = freq.toLowerCase().replace(/ly$/, "");
+  return FREQ_ORDER[normalized] ?? FREQ_ORDER[FREQ_CODE_TO_LONG[freq.toUpperCase() as FrequencyCode]] ?? 0;
+}
+
+/**
+ * Return how many higher-frequency units fit in one lower-frequency unit.
+ * e.g. freqPerFreq("month", "year") → 12, freqPerFreq("quarter", "year") → 4
+ */
+function freqPerFreq(higher: string, lower: string): number | null {
+  const h = normalizeFreq(higher);
+  const l = normalizeFreq(lower);
+  if (l === h) return 1;
+  const table: Record<string, Record<string, number>> = {
+    year:    { semi: 2, quarter: 4, month: 12 },
+    semi:    { quarter: 2, month: 6 },
+    quarter: { month: 3 },
+    week:    { day: 7 },
+  };
+  return table[l]?.[h] ?? null;
+}
+
+function normalizeFreq(freq: string): string {
+  const lower = freq.toLowerCase().replace(/ly$/, "");
+  return FREQ_CODE_TO_LONG[freq.toUpperCase() as FrequencyCode] ?? lower;
+}
+
+// ─── Date helpers ───────────────────────────────────────────────────
+
+/** Return the start-of-period date string for a given frequency. */
+function periodStart(dateStr: string, freq: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const y = d.getFullYear();
+  const m = d.getMonth(); // 0-based
+  switch (normalizeFreq(freq)) {
+    case "year":    return `${y}-01-01`;
+    case "semi":    return m < 6 ? `${y}-01-01` : `${y}-07-01`;
+    case "quarter": {
+      const qMonth = Math.floor(m / 3) * 3 + 1;
+      return `${y}-${String(qMonth).padStart(2, "0")}-01`;
+    }
+    case "month":   return `${y}-${String(m + 1).padStart(2, "0")}-01`;
+    case "week":    {
+      // ISO week start (Monday)
+      const day = d.getDay();
+      const diff = (day + 6) % 7;
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - diff);
+      return monday.toISOString().slice(0, 10);
+    }
+    default:        return dateStr;
+  }
+}
+
+/** Add n months to a YYYY-MM-DD date string. */
+function addMonths(dateStr: string, n: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setMonth(d.getMonth() + n);
+  // Clamp day to end of month (e.g. Jan 31 + 1 month → Feb 28)
+  return d.toISOString().slice(0, 10);
+}
+
+/** Format YYYY-MM-DD from components. */
+function fmtDate(y: number, m: number, d = 1): string {
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** Parse a date string into {year, month}. */
+function parseYM(dateStr: string): { year: number; month: number } {
+  const d = new Date(dateStr + "T00:00:00");
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
+}
+
+// ─── Aggregation helpers ────────────────────────────────────────────
+
+type AggOp = "sum" | "average" | "min" | "max" | "first" | "last";
+
+function applyAggOp(values: number[], op: AggOp): number {
+  switch (op) {
+    case "sum":     return values.reduce((a, b) => a + b, 0);
+    case "average": return values.reduce((a, b) => a + b, 0) / values.length;
+    case "min":     return Math.min(...values);
+    case "max":     return Math.max(...values);
+    case "first":   return values[0];
+    case "last":    return values[values.length - 1];
+  }
+}
+
 /** Apply a single arithmetic operation. Returns null for NaN/Infinity. */
 function doArithmetic(a: number, op: string, b: number): number | null {
   let result: number;
@@ -507,25 +604,163 @@ class Series {
   perCap(_options?: { pop?: string; multiplier?: number }): Series { /* TODO */ return this; }
 
   /** Year-over-year percent change. */
-  yoy(): Series { /* TODO */ return this; }
+  yoy(): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      const prevDate = addMonths(dateStr, -12);
+      const prevVal = this.data.get(prevDate);
+      if (prevVal == null) continue;
+      if (prevVal === 0 && value !== 0) continue;
+      if (prevVal === 0 && value === 0) { newData.set(dateStr, 0); continue; }
+      newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
+    }
+    const s = new Series({ name: `Annualized percentage change of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Year-to-date: YTD cumulative sum, then YOY of that. */
+  ytd(): Series {
+    return this.ytdSum().yoy();
+  }
 
   /** Year-to-date cumulative sum. */
-  ytd(): Series { /* TODO */ return this; }
+  ytdSum(): Series {
+    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const newData = new Map<string, number>();
+    let trackYear: number | null = null;
+    let cumSum = 0;
 
-  /** Period-over-period difference (lag defaults to 1). */
-  diff(_lag?: number): Series { /* TODO */ return this; }
+    for (const [dateStr, value] of sorted) {
+      const { year } = parseYM(dateStr);
+      if (year !== trackYear) {
+        trackYear = year;
+        cumSum = 0;
+      }
+      cumSum += value;
+      newData.set(dateStr, cumSum);
+    }
 
-  /** Rolling annual sum (12-month for monthly, 4-quarter for quarterly). */
-  annualSum(): Series { /* TODO */ return this; }
+    const s = new Series({ name: `Year-to-date sum of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
-  /** Rolling annual average. */
-  annualAverage(): Series { /* TODO */ return this; }
+  /** Period-over-period difference (lag defaults to 1 observation). */
+  diff(lag = 1): Series {
+    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const newData = new Map<string, number>();
+
+    for (let i = lag; i < sorted.length; i++) {
+      const [date, value] = sorted[i];
+      const prevVal = sorted[i - lag][1];
+      if (prevVal != null) {
+        newData.set(date, value - prevVal);
+      }
+    }
+
+    const s = new Series({ name: `Difference of ${this} w/lag of ${lag}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Annual sum: aggregate to annual sum, then map back to each observation date.
+   * Each data point gets the annual sum for its year.
+   */
+  annualSum(): Series {
+    // Aggregate to annual sums (without pruning — we need all years)
+    const annualSums = new Map<number, { sum: number; count: number }>();
+    for (const [dateStr, value] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualSums.get(year);
+      if (entry) { entry.sum += value; entry.count++; }
+      else annualSums.set(year, { sum: value, count: 1 });
+    }
+
+    // Prune incomplete years
+    const expectedPerYear = freqPerFreq(normalizeFreq(this.frequency ?? ""), "year");
+    const newData = new Map<string, number>();
+    for (const [dateStr] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualSums.get(year);
+      if (!entry) continue;
+      if (expectedPerYear && entry.count < expectedPerYear) continue;
+      newData.set(dateStr, entry.sum);
+    }
+
+    const s = new Series({ name: `Annual sum of ${this.name}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Annual average: aggregate to annual average, then map back to each observation date.
+   * Each data point gets the annual average for its year.
+   */
+  annualAverage(): Series {
+    const annualGroups = new Map<number, { sum: number; count: number }>();
+    for (const [dateStr, value] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualGroups.get(year);
+      if (entry) { entry.sum += value; entry.count++; }
+      else annualGroups.set(year, { sum: value, count: 1 });
+    }
+
+    const expectedPerYear = freqPerFreq(normalizeFreq(this.frequency ?? ""), "year");
+    const newData = new Map<string, number>();
+    for (const [dateStr] of this.data) {
+      const { year } = parseYM(dateStr);
+      const entry = annualGroups.get(year);
+      if (!entry) continue;
+      if (expectedPerYear && entry.count < expectedPerYear) continue;
+      newData.set(dateStr, entry.sum / entry.count);
+    }
+
+    const s = new Series({ name: `Annual average of ${this.name}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
   /** Period-over-period percentage change. */
-  percentageChange(): Series { /* TODO */ return this; }
+  percentageChange(): Series {
+    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const newData = new Map<string, number>();
+
+    for (let i = 1; i < sorted.length; i++) {
+      const [date, current] = sorted[i];
+      const prev = sorted[i - 1][1];
+      if (prev == null || current == null) continue;
+      if (prev === 0 && current !== 0) continue;
+      if (prev === 0 && current === 0) { newData.set(date, 0); continue; }
+      newData.set(date, ((current - prev) / prev) * 100);
+    }
+
+    const s = new Series({ name: `Percentage change of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
   /** Year-over-year difference (level change, not percent). */
-  yoyDiff(): Series { /* TODO */ return this; }
+  yoyDiff(): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      const prevDate = addMonths(dateStr, -12);
+      const prevVal = this.data.get(prevDate);
+      if (prevVal == null) continue;
+      newData.set(dateStr, value - prevVal);
+    }
+    const s = new Series({ name: `Year over year diff of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
   /** Return data scaled by the given factor (does not mutate). */
   scaledData(scale = 1.0): Map<string, number> {
@@ -540,29 +775,373 @@ class Series {
   // ─── Aggregation (series_aggregation.rb) ──────────────────────────
 
   /** Aggregate to a lower frequency (e.g. month → quarter). */
-  aggregate(_frequency: string, _operation?: string): Series { /* TODO */ return this; }
+  aggregate(frequency: string, operation?: string): Series {
+    const targetFreq = normalizeFreq(frequency);
+    const srcFreq = normalizeFreq(this.frequency ?? "");
+
+    if (!["year", "semi", "quarter", "month", "week"].includes(targetFreq)) {
+      throw new Error(`Cannot aggregate to frequency ${frequency}`);
+    }
+    if (freqn(targetFreq) >= freqn(srcFreq)) {
+      throw new Error("Can only aggregate to a lower frequency");
+    }
+
+    const op = (operation ?? "average") as AggOp;
+
+    // Group data points by target-frequency period start date
+    const groups = new Map<string, number[]>();
+    const sortedDates = [...this.data.keys()].sort();
+    for (const date of sortedDates) {
+      const value = this.data.get(date);
+      if (value == null) continue;
+      const key = periodStart(date, targetFreq);
+      const arr = groups.get(key);
+      if (arr) arr.push(value);
+      else groups.set(key, [value]);
+    }
+
+    // Prune incomplete periods
+    const minPoints = freqPerFreq(srcFreq, targetFreq);
+    const newData = new Map<string, number>();
+    for (const [date, values] of groups) {
+      if (minPoints && values.length < minPoints) continue;
+      newData.set(date, applyAggOp(values, op));
+    }
+
+    const s = new Series({ name: `Aggregated as ${op} from ${this}` });
+    s.data = newData;
+    s.frequency = targetFreq;
+    return s;
+  }
 
   // ─── Interpolation (series_interpolation.rb) ──────────────────────
 
   /** Fill gaps in monthly data with linear interpolation. */
-  fillMissingMonthsLinear(): Series { /* TODO */ return this; }
+  fillMissingMonthsLinear(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "month") {
+      throw new Error("Must be a monthly series");
+    }
 
-  /** Interpolate to a target frequency using the given method. */
-  interpolate(_targetFreq: string, _method?: string): Series { /* TODO */ return this; }
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) throw new Error("Must have at least two points");
 
-  /** Linear interpolation to the given frequency. */
-  linearInterpolate(_frequency: string): Series { /* TODO */ return this; }
+    const newData = new Map<string, number>();
 
-  /** Fill and interpolate to a target frequency. */
-  fillInterpolateTo(_targetFrequency: string): Series { /* TODO */ return this; }
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const [dateStr1, val1] = sorted[i];
+      const [dateStr2, val2] = sorted[i + 1];
+
+      newData.set(dateStr1, val1);
+
+      const ym1 = parseYM(dateStr1);
+      const ym2 = parseYM(dateStr2);
+      const gap = (ym2.year * 12 + ym2.month) - (ym1.year * 12 + ym1.month) - 1;
+      const step = (val2 - val1) / (gap + 1);
+
+      for (let m = 1; m <= gap; m++) {
+        newData.set(addMonths(dateStr1, m), val1 + step * m);
+      }
+    }
+
+    const [lastDate, lastVal] = sorted[sorted.length - 1];
+    newData.set(lastDate, lastVal);
+
+    const s = new Series({ name: `Linear month gap fill for ${this.name}` });
+    s.data = newData;
+    s.frequency = "month";
+    return s;
+  }
+
+  /**
+   * AREMOS-style interpolation to a higher frequency.
+   * method: "average" (default) or "sum"
+   */
+  interpolate(targetFreq: string, method: string = "average"): Series {
+    const target = normalizeFreq(targetFreq);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    if (method !== "average" && method !== "sum") {
+      throw new Error(`Interpolation method ${method} not supported`);
+    }
+    if (freqn(target) <= freqn(src)) {
+      throw new Error("Can only interpolate to a higher frequency");
+    }
+    if (this.data.size < 2) throw new Error("Insufficient data");
+
+    const howMany = freqPerFreq(target, src);
+    const targetMonths = freqPerFreq("month", target);
+    if (!howMany || !targetMonths) {
+      throw new Error(`Interpolation from ${src} to ${target} not supported`);
+    }
+
+    const allFactors: Record<string, Record<string, number[]>> = {
+      year:    { quarter: [-1.5, -0.5, 0.5, 1.5] },
+      semi:    { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
+      quarter: { month: [-1, 0, 1] },
+    };
+
+    const factors = allFactors[src]?.[target];
+    if (!factors) {
+      throw new Error(`Interpolation from ${src} to ${target} not yet supported`);
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const newData = new Map<string, number>();
+    let lastDate: string | null = null;
+    let lastVal: number | null = null;
+    let increment = 0;
+
+    for (const [thisDate, thisVal] of sorted) {
+      if (lastVal !== null && lastDate !== null) {
+        increment = (thisVal - lastVal) / howMany;
+        let values = factors.map((f) => lastVal! + f * increment);
+        if (method === "sum") values = values.map((v) => v / howMany);
+        for (let t = 0; t < howMany; t++) {
+          newData.set(addMonths(lastDate, t * targetMonths), values[t]);
+        }
+      }
+      lastDate = thisDate;
+      lastVal = thisVal;
+    }
+
+    // Repeat for final observation
+    if (lastDate !== null && lastVal !== null) {
+      let values = factors.map((f) => lastVal! + f * increment);
+      if (method === "sum") values = values.map((v) => v / howMany);
+      for (let t = 0; t < howMany; t++) {
+        newData.set(addMonths(lastDate, t * targetMonths), values[t]);
+      }
+    }
+
+    const s = new Series({ name: `Interpolated by ${method} method from ${this}` });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  /** Linear match-last interpolation to the given frequency. */
+  linearInterpolate(frequency: string): Series {
+    const target = normalizeFreq(frequency);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    const valid = (src === "year" && target === "quarter")
+              || (src === "quarter" && target === "month");
+    if (!valid) throw new Error(`Cannot linear interpolate from ${src} to ${target}`);
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) throw new Error("Insufficient data");
+
+    const newData = new Map<string, number>();
+
+    // First point: no diff, so interpolate with diff=0
+    const [firstDate, firstVal] = sorted[0];
+    if (src === "year" && target === "quarter") {
+      newData.set(firstDate, firstVal);
+      newData.set(addMonths(firstDate, 3), firstVal);
+      newData.set(addMonths(firstDate, 6), firstVal);
+      newData.set(addMonths(firstDate, 9), firstVal);
+    } else {
+      newData.set(firstDate, firstVal);
+      newData.set(addMonths(firstDate, 1), firstVal);
+      newData.set(addMonths(firstDate, 2), firstVal);
+    }
+
+    for (let i = 1; i < sorted.length; i++) {
+      const [date, val] = sorted[i];
+      const diff = val - sorted[i - 1][1];
+
+      if (src === "year" && target === "quarter") {
+        newData.set(date,                  val - (diff / 4) * 3);
+        newData.set(addMonths(date, 3),    val - (diff / 4) * 2);
+        newData.set(addMonths(date, 6),    val - (diff / 4));
+        newData.set(addMonths(date, 9),    val);
+      } else {
+        // quarter → month
+        newData.set(date,                  val - (diff / 3) * 2);
+        newData.set(addMonths(date, 1),    val - (diff / 3));
+        newData.set(addMonths(date, 2),    val);
+      }
+    }
+
+    const s = new Series({ name: `Interpolated (linear match last) from ${this}` });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  /** Fill-interpolate to a target frequency (repeats each value across sub-periods). */
+  fillInterpolateTo(targetFrequency: string): Series {
+    const target = normalizeFreq(targetFrequency);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    if (src !== "year") {
+      throw new Error(`fill_interpolate_to only supports annual source, got ${src}`);
+    }
+
+    let monthValues: number[];
+    if (target === "quarter") {
+      monthValues = [1, 4, 7, 10];
+    } else if (target === "month") {
+      monthValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    } else {
+      throw new Error(`Cannot fill-interpolate from ${src} to ${target}`);
+    }
+
+    const newData = new Map<string, number>();
+    for (const [dateStr, val] of this.data) {
+      const { year } = parseYM(dateStr);
+      for (const month of monthValues) {
+        newData.set(fmtDate(year, month), val);
+      }
+    }
+
+    const s = new Series({ name: `Interpolated by filling ${this} to ${target}` });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  // ─── Moving averages (series_sharing.rb) ─────────────────────────
+
+  /** Standard window size for moving averages based on frequency. */
+  private get standardWindowSize(): number {
+    switch (normalizeFreq(this.frequency ?? "")) {
+      case "day":     return 7;
+      case "month":   return 12;
+      case "week":
+      case "quarter":
+      case "year":    return 4;
+      default: throw new Error(`No window size defined for frequency ${this.frequency}`);
+    }
+  }
+
+  /**
+   * Backward-looking moving average.
+   * Each point is the average of itself and the (window-1) preceding points.
+   */
+  backwardLookingMovingAverage(window?: number): Series {
+    const periods = window ?? this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const start = i - periods + 1;
+      if (start < 0) continue;
+      let sum = 0;
+      for (let j = start; j <= i; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({ name: `Backward-looking moving average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Forward-looking moving average. */
+  forwardLookingMovingAverage(window?: number): Series {
+    const periods = window ?? this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const end = i + periods - 1;
+      if (end >= sorted.length) continue;
+      let sum = 0;
+      for (let j = i; j <= end; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({ name: `Forward-looking moving average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Centered moving average with edge fallback to forward/backward. */
+  movingAverage(): Series {
+    const periods = this.standardWindowSize;
+    const half = Math.floor(periods / 2);
+    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const last = sorted.length - 1;
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      let start: number, end: number;
+      if (i < half) {
+        // left edge: forward-looking
+        start = i; end = i + periods - 1;
+      } else if (i > last - half) {
+        // right edge: backward-looking
+        start = i - periods + 1; end = i;
+      } else {
+        // centered
+        start = i - half; end = i + half;
+      }
+      if (start < 0 || end >= sorted.length) continue;
+      let sum = 0;
+      for (let j = start; j <= end; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / (end - start + 1));
+    }
+
+    const s = new Series({ name: `Moving average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Get data for the last incomplete year (current year if not finished). */
+  getLastIncompleteYear(): Series {
+    const lastObs = this.lastObservation;
+    if (!lastObs) {
+      const s = new Series({ name: `No data because no incomplete year` });
+      s.frequency = this.frequency;
+      return s;
+    }
+    const { year, month } = parseYM(lastObs);
+    const freq = normalizeFreq(this.frequency ?? "");
+    if ((freq === "month" && month === 12) || (freq === "quarter" && month === 10)) {
+      const s = new Series({ name: `No data because no incomplete year` });
+      s.frequency = this.frequency;
+      return s;
+    }
+    return this.trim(fmtDate(year, 1));
+  }
 
   // ─── Data adjustment (series_data_adjustment.rb) ──────────────────
 
-  /** Trim data to the given date window. */
-  trim(_startDate?: string, _endDate?: string): Series { /* TODO */ return this; }
+  /** Trim data to a date window. Either or both bounds may be omitted. */
+  trim(startDate?: string | null, endDate?: string | null): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      if (startDate && dateStr < startDate) continue;
+      if (endDate && dateStr > endDate) continue;
+      newData.set(dateStr, value);
+    }
+    const s = new Series({ name: `${this} trimmed` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
-  /** Shift all dates by a duration string (e.g. "1 year"). */
-  shiftBy(_duration: string): Series { /* TODO */ return this; }
+  /** Shift all dates by n months. */
+  shiftBy(months: number): Series {
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of this.data) {
+      newData.set(addMonths(dateStr, months), value);
+    }
+    const s = new Series({ name: `${this} shifted by ${months} months` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
   // ─── File loading ───────────────────────────────────────────────────
   // File I/O is handled by the eval executor + DataFileReader (server-only).

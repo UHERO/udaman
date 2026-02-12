@@ -28,6 +28,13 @@ function Tooltip({
   );
 }
 
+/** Tooltip root without an implicit TooltipProvider — use inside an existing TooltipProvider. */
+function TooltipRoot({
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+}
+
 function TooltipTrigger({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
@@ -58,4 +65,4 @@ function TooltipContent({
   );
 }
 
-export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
+export { Tooltip, TooltipContent, TooltipProvider, TooltipRoot, TooltipTrigger };

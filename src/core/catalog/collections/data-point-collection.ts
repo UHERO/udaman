@@ -128,6 +128,42 @@ class DataPointCollection {
 
     return rows;
   }
+
+  /**
+   * Gets all vintages for an xseries — only dates that have more than one
+   * data point (i.e. actual revision history). Returns a map of date string
+   * to vintage array, ordered by created_at DESC within each date.
+   */
+  static async getAllVintages(opts: {
+    xseriesId: number;
+  }): Promise<Record<string, VintageDataPoint[]>> {
+    const { xseriesId } = opts;
+    const rows = await mysql<VintageDataPoint>`
+      SELECT
+        dp.date,
+        dp.value,
+        dp.created_at,
+        dp.updated_at,
+        dp.data_source_id,
+        dp.current,
+        dp.pseudo_history,
+        ds.color
+      FROM data_points dp
+      LEFT JOIN data_sources ds ON ds.id = dp.data_source_id
+      WHERE dp.xseries_id = ${xseriesId}
+      ORDER BY dp.date DESC, dp.created_at DESC
+    `;
+
+    const map: Record<string, VintageDataPoint[]> = {};
+    for (const row of rows) {
+      const dateStr = row.date instanceof Date
+        ? row.date.toISOString().slice(0, 10)
+        : String(row.date);
+      if (!map[dateStr]) map[dateStr] = [];
+      map[dateStr].push(row);
+    }
+    return map;
+  }
 }
 
 export default DataPointCollection;

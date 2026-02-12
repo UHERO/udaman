@@ -1,4 +1,4 @@
-import { mysql } from "@/lib/mysql/db";
+import { mysql, rawQuery } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 import TimeSeries from "../models/time-series";
 import type { TimeSeriesAttrs } from "../models/time-series";
@@ -30,24 +30,31 @@ export type UpdateTimeSeriesPayload = Partial<CreateTimeSeriesPayload> & {
   lastDemetraDatestring?: string | null;
 };
 
+// `real` is a reserved keyword in MariaDB, so we must backtick-quote it
+// in raw SQL. Tagged template literals (mysql`...`) use backticks as
+// delimiters, making it impossible to embed literal backticks reliably.
+// Queries that reference the `real` column use rawQuery() instead.
+
+const SELECT_COLS = `
+  id, primary_series_id, restricted, quarantined,
+  frequency, seasonally_adjusted, seasonal_adjustment,
+  aremos_missing, aremos_diff, mult, units,
+  percent, \`real\`, base_year, frequency_transform,
+  last_demetra_date, last_demetra_datestring,
+  factor_application, factors,
+  created_at, updated_at`;
+
+const SELECT_COLS_PREFIXED = SELECT_COLS.replace(/(\w+)/g, "x.$1");
+
 // ─── Collection ──────────────────────────────────────────────────────
 
 class TimeSeriesCollection {
   /** Fetch a TimeSeries by its id (xseries.id). */
   static async getById(id: number): Promise<TimeSeries> {
-    const rows = await mysql<TimeSeriesAttrs>`
-      SELECT
-        id, primary_series_id, restricted, quarantined,
-        frequency, seasonally_adjusted, seasonal_adjustment,
-        aremos_missing, aremos_diff, mult, units,
-        percent, real, base_year, frequency_transform,
-        last_demetra_date, last_demetra_datestring,
-        factor_application, factors,
-        created_at, updated_at
-      FROM xseries
-      WHERE id = ${id}
-      LIMIT 1
-    `;
+    const rows = await rawQuery<TimeSeriesAttrs>(
+      `SELECT ${SELECT_COLS} FROM xseries WHERE id = ? LIMIT 1`,
+      [id],
+    );
     const row = rows[0];
     if (!row) throw new Error(`TimeSeries not found: ${id}`);
     return new TimeSeries(row);
@@ -55,20 +62,13 @@ class TimeSeriesCollection {
 
   /** Fetch the TimeSeries associated with a series id. */
   static async getBySeriesId(seriesId: number): Promise<TimeSeries> {
-    const rows = await mysql<TimeSeriesAttrs>`
-      SELECT
-        x.id, x.primary_series_id, x.restricted, x.quarantined,
-        x.frequency, x.seasonally_adjusted, x.seasonal_adjustment,
-        x.aremos_missing, x.aremos_diff, x.mult, x.units,
-        x.percent, x.real, x.base_year, x.frequency_transform,
-        x.last_demetra_date, x.last_demetra_datestring,
-        x.factor_application, x.factors,
-        x.created_at, x.updated_at
-      FROM xseries x
-      JOIN series s ON s.xseries_id = x.id
-      WHERE s.id = ${seriesId}
-      LIMIT 1
-    `;
+    const rows = await rawQuery<TimeSeriesAttrs>(
+      `SELECT ${SELECT_COLS_PREFIXED}
+       FROM xseries x
+       JOIN series s ON s.xseries_id = x.id
+       WHERE s.id = ? LIMIT 1`,
+      [seriesId],
+    );
     const row = rows[0];
     if (!row) throw new Error(`TimeSeries not found for series: ${seriesId}`);
     return new TimeSeries(row);
@@ -76,34 +76,33 @@ class TimeSeriesCollection {
 
   /** Create a new TimeSeries record. Returns the new model instance. */
   static async create(payload: CreateTimeSeriesPayload): Promise<TimeSeries> {
-    await mysql`
-      INSERT INTO xseries (
+    await rawQuery(
+      `INSERT INTO xseries (
         primary_series_id, frequency, seasonal_adjustment, seasonally_adjusted,
-        restricted, quarantined, percent, real, base_year,
+        restricted, quarantined, percent, \`real\`, base_year,
         frequency_transform, factor_application, factors,
         aremos_missing, aremos_diff, mult, units,
         created_at, updated_at
-      ) VALUES (
-        ${payload.primarySeriesId ?? null},
-        ${payload.frequency ?? null},
-        ${payload.seasonalAdjustment ?? null},
-        ${payload.seasonallyAdjusted ?? null},
-        ${payload.restricted ?? false},
-        ${payload.quarantined ?? false},
-        ${payload.percent ?? null},
-        ${payload.real ?? null},
-        ${payload.baseYear ?? null},
-        ${payload.frequencyTransform ?? null},
-        ${payload.factorApplication ?? null},
-        ${payload.factors ?? null},
-        ${payload.aremosMissing ?? null},
-        ${payload.aremosDiff ?? null},
-        ${payload.mult ?? null},
-        ${payload.units ?? 1},
-        NOW(),
-        NOW()
-      )
-    `;
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        payload.primarySeriesId ?? null,
+        payload.frequency ?? null,
+        payload.seasonalAdjustment ?? null,
+        payload.seasonallyAdjusted ?? null,
+        payload.restricted ?? false,
+        payload.quarantined ?? false,
+        payload.percent ?? null,
+        payload.real ?? null,
+        payload.baseYear ?? null,
+        payload.frequencyTransform ?? null,
+        payload.factorApplication ?? null,
+        payload.factors ?? null,
+        payload.aremosMissing ?? null,
+        payload.aremosDiff ?? null,
+        payload.mult ?? null,
+        payload.units ?? 1,
+      ] as any[],
+    );
 
     const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
