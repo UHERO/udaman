@@ -39,3 +39,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
     ```
     Doesn't need to be fancy, but controller seems like the appropriate layer to handle basic logging & messages. Messages can be used in Toasts in the UI to show confirmations/errors to the user.
 2. Set consistent log levels, maybe info for controllers, debug for models & collections.
+
+3. Setup testing for the write methods, anything using CREATE, INSERT, DELETE, UPDATE. Much of this code has been ai generated, and before putting the app on prod it's important that these actions are reviewed carefully. 
+    - Note that Deletes need to be reviewed so that they aren't leaving orphaned records. 
+    - Updates, Insert, Creates need to be reviewed to ensure related records are also updated or created where relevant.
+    - Claude's gotten pretty great, but it still often misses the broader context when methods are interconnected.

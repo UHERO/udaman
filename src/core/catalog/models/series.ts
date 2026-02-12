@@ -30,6 +30,21 @@ const FREQ_LONG_TO_CODE = Object.fromEntries(
   Object.entries(FREQ_CODE_TO_LONG).map(([k, v]) => [v, k]),
 ) as Record<FrequencyLong, FrequencyCode>;
 
+/** Apply a single arithmetic operation. Returns null for NaN/Infinity. */
+function doArithmetic(a: number, op: string, b: number): number | null {
+  let result: number;
+  switch (op) {
+    case "+":  result = a + b; break;
+    case "-":  result = a - b; break;
+    case "*":  result = a * b; break;
+    case "/":  result = a / b; break;
+    case "**": result = a ** b; break;
+    default: return null;
+  }
+  if (!isFinite(result) || isNaN(result)) return null;
+  return result;
+}
+
 export interface ParsedName {
   prefixFull: string;
   prefix: string;
@@ -374,26 +389,113 @@ class Series {
 
   // ─── Arithmetic (series_arithmetic.rb) ────────────────────────────
 
+  /**
+   * Apply an arithmetic operation between this series and another series.
+   * Iterates over dates from the longer series; dates where either value
+   * is missing are excluded from the result.
+   */
+  private performArithmetic(op: string, other: Series): Series {
+    const longerData = this.data.size >= other.data.size ? this.data : other.data;
+    const newData = new Map<string, number>();
+
+    for (const date of longerData.keys()) {
+      const a = this.data.get(date);
+      const b = other.data.get(date);
+      if (a === undefined || b === undefined) continue;
+      const result = doArithmetic(a, op, b);
+      if (result !== null) newData.set(date, result);
+    }
+
+    const s = new Series({ name: `${this} ${op} ${other}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Apply an arithmetic operation between this series and a constant.
+   * Keeps all dates from the original series.
+   */
+  private performConstArithmetic(op: string, constant: number): Series {
+    const newData = new Map<string, number>();
+
+    for (const [date, value] of this.data) {
+      const result = doArithmetic(value, op, constant);
+      if (result !== null) newData.set(date, result);
+    }
+
+    const s = new Series({ name: `${this} ${op} ${constant}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
   /** Add another series or scalar to this series point-by-point. */
-  add(_other: Series | number): Series { /* TODO */ return this; }
+  add(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("+", other)
+      : this.performArithmetic("+", other);
+  }
 
   /** Subtract another series or scalar from this series. */
-  subtract(_other: Series | number): Series { /* TODO */ return this; }
+  subtract(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("-", other)
+      : this.performArithmetic("-", other);
+  }
 
   /** Multiply this series by another series or scalar. */
-  multiply(_other: Series | number): Series { /* TODO */ return this; }
+  multiply(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("*", other)
+      : this.performArithmetic("*", other);
+  }
 
   /** Divide this series by another series or scalar. */
-  divide(_other: Series | number): Series { /* TODO */ return this; }
+  divide(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("/", other)
+      : this.performArithmetic("/", other);
+  }
 
   /** Raise this series to a power. */
-  power(_other: Series | number): Series { /* TODO */ return this; }
+  power(other: Series | number): Series {
+    return typeof other === "number"
+      ? this.performConstArithmetic("**", other)
+      : this.performArithmetic("**", other);
+  }
 
   /** Add with zero-fill: treat missing values as 0 before adding. */
-  zeroAdd(_other: Series): Series { /* TODO */ return this; }
+  zeroAdd(other: Series): Series {
+    const longerData = this.data.size >= other.data.size ? this.data : other.data;
+    const newData = new Map<string, number>();
+
+    for (const date of longerData.keys()) {
+      const a = this.data.get(date) ?? 0;
+      const b = other.data.get(date) ?? 0;
+      newData.set(date, a + b);
+    }
+
+    const s = new Series({ name: `${this} zero_add ${other}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
   /** Round data values to the given precision. */
-  round(_precision?: number): Series { /* TODO */ return this; }
+  round(precision = 0): Series {
+    const factor = Math.pow(10, precision);
+    const newData = new Map<string, number>();
+
+    for (const [date, value] of this.data) {
+      newData.set(date, Math.round(value * factor) / factor);
+    }
+
+    const s = new Series({ name: `${this} round ${precision}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
 
   /** Rebase the series so the given year equals 100. */
   rebase(_year?: number): Series { /* TODO */ return this; }

@@ -6,8 +6,14 @@ import SeriesCollection from "../collections/series-collection";
 
 // ─── Ruby → TypeScript method name mapping ──────────────────────────
 
+/** Explicit aliases for Ruby method names that don't follow snake_case conventions. */
+const METHOD_ALIASES: Record<string, string> = {
+  "load_api_bls_NEW": "loadApiBlsV2",
+};
+
 function snakeToCamel(s: string): string {
-  return s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+  if (METHOD_ALIASES[s]) return METHOD_ALIASES[s];
+  return s.replace(/_([a-zA-Z])/g, (_, c: string) => c.toUpperCase());
 }
 
 /** Instance methods callable from eval expressions (whitelist). */
@@ -51,7 +57,7 @@ const ALLOWED_STATIC_METHODS = new Set([
   "loadFromDownload",
   "loadFromFile",
   "loadApiBls",
-  "loadApiBlsNew",
+  "loadApiBlsV2",
   "loadApiFred",
   "loadApiBea",
   "loadApiEstatjp",
@@ -83,7 +89,9 @@ async function resolveArg(
       return arg.value;
     case "series_ref": {
       try {
-        return await SeriesCollection.getByName(arg.name);
+        const series = await SeriesCollection.getByName(arg.name);
+        await SeriesCollection.loadCurrentData(series);
+        return series;
       } catch (e) {
         if (arg.nullable) return null as unknown as Series;
         throw e;
@@ -106,7 +114,9 @@ class EvalExecutor {
     switch (node.type) {
       case "series_ref": {
         try {
-          return await SeriesCollection.getByName(node.name);
+          const series = await SeriesCollection.getByName(node.name);
+          await SeriesCollection.loadCurrentData(series);
+          return series;
         } catch (e) {
           if (node.nullable) {
             // .tsn returns a blank Series placeholder when not found

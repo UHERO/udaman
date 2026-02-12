@@ -332,7 +332,7 @@ class DataFileReader {
 // ─── CSV Parsing Helper ──────────────────────────────────────────────
 
 /** Split a CSV row respecting quoted fields */
-function splitCSVRow(line: string): string[] {
+export function splitCSVRow(line: string): string[] {
   const result: string[] = [];
   let current = "";
   let inQuotes = false;

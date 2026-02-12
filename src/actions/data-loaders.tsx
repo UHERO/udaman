@@ -8,9 +8,10 @@ import {
   deleteDataLoader as deleteLoaderCtrl,
   disableDataLoader as disableLoaderCtrl,
   enableDataLoader as enableLoaderCtrl,
+  updateDataLoader as updateDataLoaderCtrl,
 } from "@catalog/controllers/data-loaders";
 import type { Universe } from "@catalog/types/shared";
-import type { CreateLoaderFormData } from "@catalog/types/sources";
+import type { CreateLoaderFormData, UpdateLoaderFormData } from "@catalog/types/sources";
 
 const log = createLogger("action.data-loaders");
 
@@ -57,5 +58,15 @@ export async function enableLoader(loaderId: number) {
   log.info({ loaderId }, "enableLoader action called");
   const result = await enableLoaderCtrl({ id: loaderId });
   log.info({ loaderId }, "enableLoader action completed");
+  return result;
+}
+
+export async function updateDataLoader(
+  loaderId: number,
+  payload: UpdateLoaderFormData
+) {
+  log.info({ loaderId }, "updateDataLoader action called");
+  const result = await updateDataLoaderCtrl({ id: loaderId, payload });
+  log.info({ loaderId }, "updateDataLoader action completed");
   return result;
 }

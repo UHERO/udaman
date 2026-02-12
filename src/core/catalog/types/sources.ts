@@ -33,3 +33,14 @@ export interface CreateLoaderPayload extends CreateLoaderFormData {
   universe: Universe;
   seriesId: number;
 }
+
+export interface UpdateLoaderFormData {
+  eval?: string;
+  priority?: number;
+  scale?: number;
+  presaveHook?: string;
+  clearBeforeLoad?: boolean;
+  pseudoHistory?: boolean;
+  reloadNightly?: boolean;
+  color?: string;
+}

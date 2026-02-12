@@ -1,28 +1,28 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  clearLoader,
+  deleteLoader,
+  disableLoader,
+  enableLoader,
+  reloadLoader,
+} from "@/actions/data-loaders";
+import {
+  deleteSeriesDataPoints,
+  resolveSeriesIds,
+} from "@/actions/series-actions";
 import type { SerializedLoader } from "@catalog/models/loader";
 import Series from "@catalog/models/series";
+import type { Universe } from "@catalog/types/shared";
 import { formatRuntime, uheroDate } from "@catalog/utils/time";
 import { format } from "date-fns";
 import { Clock10, ClockPlus } from "lucide-react";
 import { toast } from "sonner";
 
-import { reloadLoader, clearLoader, deleteLoader, disableLoader, enableLoader } from "@/actions/data-loaders";
-import { resolveSeriesIds } from "@/actions/series-actions";
 import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,54 +34,119 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { LoaderCreateDialog } from "@/components/loaders/loader-create-dialog";
+import { LoaderEditSheet } from "@/components/loaders/loader-edit-sheet";
+
 import { getColor } from "../helpers";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 
-/** Render text with series names as direct links to their series page. */
+/** Split text into segments, extracting HTML anchor tags as typed parts. */
+function splitTextSegments(text: string): Array<{ type: "text"; value: string } | { type: "link"; href: string; label: string }> {
+  const parts: Array<{ type: "text"; value: string } | { type: "link"; href: string; label: string }> = [];
+  const anchorRegex = /<a\s+href="([^"]*)"[^>]*>([^<]*)<\/a>/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = anchorRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
+    }
+    parts.push({ type: "link", href: match[1], label: match[2] });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ type: "text", value: text.slice(lastIndex) });
+  }
+
+  return parts;
+}
+
+/** Render text with series names as direct links and HTML anchors as clickable links. */
 const LinkedText = ({ text, universe }: { text: string; universe: string }) => {
   const [idMap, setIdMap] = useState<Record<string, number>>({});
-  const words = text.split(" ");
 
   useEffect(() => {
-    const names = text.split(" ").filter((w) => Series.isValidName(w));
+    // Strip HTML tags before extracting series names
+    const plainText = text.replace(/<[^>]*>/g, " ");
+    const names = plainText.split(" ").filter((w) => Series.isValidName(w));
     if (names.length === 0) return;
     resolveSeriesIds(names).then(setIdMap);
   }, [text]);
 
+  const segments = splitTextSegments(text);
+
   return (
     <>
-      {words.map((word, i) => {
-        const prefix = i > 0 ? " " : "";
-
-        if (Series.isValidName(word)) {
-          const id = idMap[word];
-          if (id) {
-            return (
-              <span key={i}>
-                {prefix}
-                <Link
-                  href={`/udaman/${universe}/series/${id}`}
-                  className="underline hover:opacity-70"
-                >
-                  {word}
-                </Link>
-              </span>
-            );
-          }
-          return <span key={i}>{prefix}{word}</span>;
-        }
-
-        if (/^<(.+)>$/.test(word)) {
-          // TODO: link to download when download routes are implemented
+      {segments.map((segment, segIdx) => {
+        if (segment.type === "link") {
           return (
-            <span key={i} className="italic" title={word.slice(1, -1)}>
-              {prefix}{word}
-            </span>
+            <a
+              key={`seg-${segIdx}`}
+              href={segment.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:opacity-70"
+            >
+              {segment.label}
+            </a>
           );
         }
 
-        return <span key={i}>{prefix}{word}</span>;
+        const words = segment.value.split(" ");
+        return words.map((word, i) => {
+          const prefix = segIdx > 0 || i > 0 ? " " : "";
+
+          if (Series.isValidName(word)) {
+            const id = idMap[word];
+            if (id) {
+              return (
+                <span key={`${segIdx}-${i}`}>
+                  {prefix}
+                  <Link
+                    href={`/udaman/${universe}/series/${id}`}
+                    className="underline hover:opacity-70"
+                  >
+                    {word}
+                  </Link>
+                </span>
+              );
+            }
+            return (
+              <span key={`${segIdx}-${i}`}>
+                {prefix}
+                {word}
+              </span>
+            );
+          }
+
+          if (/^<(.+)>$/.test(word)) {
+            // TODO: link to download when download routes are implemented
+            return (
+              <span key={`${segIdx}-${i}`} className="italic" title={word.slice(1, -1)}>
+                {prefix}
+                {word}
+              </span>
+            );
+          }
+
+          return (
+            <span key={`${segIdx}-${i}`}>
+              {prefix}
+              {word}
+            </span>
+          );
+        });
       })}
     </>
   );
@@ -96,7 +161,28 @@ export const LoaderSection = ({
   seriesId: number;
   loaders: SerializedLoader[];
 }) => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const handleClearAll = () =>
+    startTransition(async () => {
+      try {
+        await deleteSeriesDataPoints(seriesId, {
+          universe,
+          date: "",
+          deleteBy: "none",
+        });
+        toast.success("Data cleared", {
+          description: "All data points for this series have been deleted",
+        });
+        router.refresh();
+      } catch (err) {
+        toast.error("Clear failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    });
 
   const handleLoadAll = () =>
     startTransition(async () => {
@@ -118,6 +204,7 @@ export const LoaderSection = ({
             description: `Ran ${enabledLoaders.length} loader(s)`,
           });
         }
+        router.refresh();
       } catch (err) {
         toast.error("Load all failed", {
           description: err instanceof Error ? err.message : "Unknown error",
@@ -129,19 +216,32 @@ export const LoaderSection = ({
     <div className="flex flex-col border-b">
       <div className="flex h-6 flex-row items-center justify-start border-b pb-2 font-semibold">
         <span className="mr-4">Loaders</span>
-        <Button variant={"link"}>
-          <Link
-            href={`/udaman/${universe}/data-loaders/new?seriesId=${seriesId}`}
-          >
-            new
-          </Link>
+        <Button variant={"link"} onClick={() => setCreateOpen(true)}>
+          new
         </Button>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
-        <Button variant={"link"}>
-          <Link href={`/udaman/${universe}/series/${seriesId}/delete`}>
-            clear data
-          </Link>
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant={"link"} disabled={isPending}>
+              clear data
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear all data points?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will delete all data points for this series across all
+                loaders.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleClearAll}>
+                Clear all
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Separator orientation="vertical" className="bg-primary/60 h-4" />
         <Button variant={"link"} onClick={handleLoadAll} disabled={isPending}>
           {isPending ? "loading..." : "load all"}
@@ -155,6 +255,13 @@ export const LoaderSection = ({
           <LoaderItem key={`data-loader-${i}`} universe={universe} loader={l} />
         )
       )}
+
+      <LoaderCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        universe={universe as Universe}
+        seriesId={seriesId}
+      />
     </div>
   );
 };
@@ -168,6 +275,7 @@ const LoaderItem = ({
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [editOpen, setEditOpen] = useState(false);
   const lastRunDate =
     loader.lastRunAt !== null ? uheroDate(loader.lastRunAt) : "-";
   const lastRunTime =
@@ -289,7 +397,8 @@ const LoaderItem = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Loader {loader.id}?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete this loader and all of its data points. This action cannot be undone.
+                  This will permanently delete this loader and all of its data
+                  points. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -321,11 +430,9 @@ const LoaderItem = ({
             variant="link"
             size="sm"
             className="h-6"
-            asChild
+            onClick={() => setEditOpen(true)}
           >
-            <Link href={`/udaman/${universe}/data-loaders/edit/${loader.id}`}>
-              edit
-            </Link>
+            edit
           </Button>
         </CardAction>
       </CardContent>
@@ -375,6 +482,12 @@ const LoaderItem = ({
           )}
         >{`scale: ${loader.scale}`}</span>
       </CardFooter>
+
+      <LoaderEditSheet
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        loader={loader}
+      />
     </Card>
   );
 };
@@ -401,9 +514,7 @@ const DisabledLoaderItem = ({ loader }: { loader: SerializedLoader }) => {
   return (
     <Card className="bg-muted/40 p-2 opacity-60">
       <CardContent className="flex h-6 items-center gap-x-2">
-        <span className="text-muted-foreground text-sm">
-          {loader.id}
-        </span>
+        <span className="text-muted-foreground text-sm">{loader.id}</span>
         <span className="text-muted-foreground text-xs italic">disabled</span>
         <span className="text-muted-foreground ml-auto text-xs">
           {loader.description ?? loader.eval}

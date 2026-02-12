@@ -215,6 +215,26 @@ class SeriesCollection {
     return new Series(row);
   }
 
+  /** Load current data points from the database into a Series' in-memory data map. */
+  static async loadCurrentData(series: Series): Promise<void> {
+    if (!series.xseriesId) return;
+    const rows = await mysql<{ date: Date | string; value: number | null }>`
+      SELECT date, value
+      FROM data_points
+      WHERE xseries_id = ${series.xseriesId} AND current = 1
+      ORDER BY date
+    `;
+    const data = new Map<string, number>();
+    for (const row of rows) {
+      if (row.value == null) continue;
+      const dateStr = row.date instanceof Date
+        ? row.date.toISOString().slice(0, 10)
+        : String(row.date);
+      data.set(dateStr, row.value);
+    }
+    series.data = data;
+  }
+
   /** Fetch a single series by id, returned as a Series model instance */
   static async getById(id: number): Promise<Series> {
     const rows = await mysql<SeriesAttrs>`
@@ -1050,8 +1070,15 @@ class SeriesCollection {
 
   /**
    * Persist a map of date→value data points for a series.
-   * Updates existing current data points and inserts new ones.
-   * Port of Rails Series#update_data.
+   *
+   * Only writes when data actually changes:
+   *  - If a date already has a current data point with the same value,
+   *    no new row is inserted (avoids vintage bloat).
+   *  - If the value differs, the old point is marked non-current and a
+   *    new vintage is inserted.
+   *  - Brand-new dates are inserted directly.
+   *  - The sentinel value (1e15) means "no data" and marks existing
+   *    points as non-current.
    */
   static async updateData(opts: {
     xseriesId: number;
@@ -1070,50 +1097,127 @@ class SeriesCollection {
 
     if (cleanData.size === 0) return;
 
-    // Get existing current data points for this series
-    const existingRows = await mysql<{ date: Date; data_source_id: number }>`
-      SELECT date, data_source_id
-      FROM data_points
-      WHERE xseries_id = ${xseriesId} AND current = 1
+    // Get this loader's priority
+    const loaderRows = await mysql<{ priority: number | null }>`
+      SELECT priority FROM data_sources WHERE id = ${dataSourceId}
     `;
+    const loaderPriority = loaderRows[0]?.priority ?? 100;
 
-    const existingDates = new Set<string>();
-    for (const row of existingRows) {
+    // Get this loader's most recent data point per date (for dedup).
+    // Uses the latest data point regardless of current flag — another loader
+    // may have set ours to current=0, but we still don't need to re-insert
+    // if the value hasn't changed.
+    const ownRows = await mysql<{ date: Date; value: number | null; created_at: Date }>`
+      SELECT date, value, created_at
+      FROM data_points
+      WHERE xseries_id = ${xseriesId} AND data_source_id = ${dataSourceId}
+      ORDER BY created_at DESC
+    `;
+    const ownLatestByDate = new Map<string, number | null>();
+    for (const row of ownRows) {
       const dateStr = row.date instanceof Date
         ? row.date.toISOString().slice(0, 10)
         : String(row.date);
-      existingDates.add(dateStr);
-
-      const newValue = cleanData.get(dateStr);
-      if (newValue === undefined) continue;
-
-      if (newValue === SENTINEL) {
-        // Sentinel means "no data" — mark existing point as non-current
-        await mysql`
-          UPDATE data_points SET current = 0
-          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
-        `;
-      } else {
-        // Create new version of the data point (marks old as non-current)
-        await mysql`
-          UPDATE data_points SET current = 0
-          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
-        `;
-        await mysql`
-          INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
-          VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
-        `;
+      if (!ownLatestByDate.has(dateStr)) {
+        ownLatestByDate.set(dateStr, row.value);
       }
     }
 
-    // Insert brand new data points (dates not yet in DB)
-    for (const [dateStr, value] of cleanData) {
-      if (existingDates.has(dateStr)) continue;
-      if (value === SENTINEL) continue;
+    // Get existing current data points with their loader's priority
+    const currentRows = await mysql<{
+      date: Date;
+      value: number | null;
+      data_source_id: number;
+      priority: number;
+    }>`
+      SELECT dp.date, dp.value, dp.data_source_id,
+             COALESCE(ds.priority, 100) as priority
+      FROM data_points dp
+      LEFT JOIN data_sources ds ON dp.data_source_id = ds.id
+      WHERE dp.xseries_id = ${xseriesId} AND dp.current = 1
+    `;
+    const currentByDate = new Map<
+      string,
+      { value: number | null; dataSourceId: number; priority: number }
+    >();
+    for (const row of currentRows) {
+      const dateStr = row.date instanceof Date
+        ? row.date.toISOString().slice(0, 10)
+        : String(row.date);
+      const existing = currentByDate.get(dateStr);
+      // Keep the highest priority current data point
+      if (!existing || row.priority > existing.priority) {
+        currentByDate.set(dateStr, {
+          value: row.value,
+          dataSourceId: row.data_source_id,
+          priority: row.priority,
+        });
+      }
+    }
 
+    for (const [dateStr, newValue] of cleanData) {
+      if (newValue === SENTINEL) {
+        // Sentinel means "no data" — mark existing points as non-current
+        await mysql`
+          UPDATE data_points SET current = 0
+          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
+        `;
+        continue;
+      }
+
+      const current = currentByDate.get(dateStr);
+
+      // Dedup: if this loader's most recent data point for this date already
+      // has the same value, don't insert a new row. But we may still need to
+      // reclaim the `current` flag if a lower-priority loader currently holds it.
+      const ownLatest = ownLatestByDate.get(dateStr);
+      if (ownLatest !== undefined && ownLatest === newValue) {
+        // Already current from this loader — nothing to do
+        if (current && current.dataSourceId === dataSourceId) {
+          continue;
+        }
+        // Current is held by a higher-priority loader — don't touch it
+        if (current && current.priority > loaderPriority) {
+          continue;
+        }
+        // Current is held by a lower/equal-priority loader — reclaim it
+        // by pointing current to this loader's existing data point (no new insert)
+        if (current) {
+          await mysql`
+            UPDATE data_points SET current = 0
+            WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
+          `;
+          await mysql`
+            UPDATE data_points SET current = 1
+            WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
+              AND data_source_id = ${dataSourceId}
+            ORDER BY created_at DESC LIMIT 1
+          `;
+        }
+        continue;
+      }
+
+      // Priority check: don't overwrite a higher-priority loader's current point
+      if (
+        current &&
+        current.dataSourceId !== dataSourceId &&
+        current.priority > loaderPriority
+      ) {
+        continue;
+      }
+
+      // Mark old current as non-current
+      if (current) {
+        await mysql`
+          UPDATE data_points SET current = 0
+          WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
+        `;
+      }
+
+      // Insert new data point
       await mysql`
         INSERT INTO data_points (xseries_id, date, value, created_at, updated_at, current, pseudo_history, data_source_id)
-        VALUES (${xseriesId}, ${dateStr}, ${value}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
+        VALUES (${xseriesId}, ${dateStr}, ${newValue}, NOW(), NOW(), 1, ${pseudoHistory ? 1 : 0}, ${dataSourceId})
       `;
     }
   }
@@ -1121,53 +1225,125 @@ class SeriesCollection {
   // ─── Static loader stubs (eval-callable) ─────────────────────────
 
   /** Load series data from a named download source. */
-  static async loadFromDownload(_handle: string, _options: Record<string, unknown> = {}): Promise<Series> {
-    /* TODO */ throw new Error("loadFromDownload not yet implemented");
+  static async loadFromDownload(
+    handle: string,
+    options: Record<string, unknown> = {},
+  ): Promise<Series> {
+    const { default: DownloadProcessor } = await import("../utils/download-processor");
+    const data = await DownloadProcessor.getData(
+      handle,
+      options as Record<string, string | number | boolean>,
+    );
+    const freqCode = options.frequency ? String(options.frequency) : null;
+    const freq = Series.frequencyFromCode(freqCode);
+    const result = new Series({ name: `loaded from download <${handle}>` });
+    result.data = data;
+    if (freq) result.frequency = freq;
+    return result;
   }
 
-  /** Load series data from a file path. */
-  static async loadFromFile(_path: string, _options: Record<string, unknown> = {}): Promise<Series> {
-    /* TODO */ throw new Error("loadFromFile not yet implemented");
+  /** Load series data from a file path using DownloadProcessor cell navigation.
+   *  Equivalent to Rails: Series.load_from_file(path, options)
+   *  Uses the same row/col/sheet/frequency options as loadFromDownload,
+   *  but reads from a direct file path instead of a download handle.
+   */
+  static async loadFromFile(path: string, options: Record<string, unknown> = {}): Promise<Series> {
+    const { default: DownloadProcessor } = await import("../utils/download-processor");
+    const isDateSensitive = path.includes("%");
+    const data = await DownloadProcessor.getData(
+      ":manual",
+      { ...options, path } as Record<string, string | number | boolean>,
+    );
+    const freqCode = options.frequency ? String(options.frequency) : null;
+    const freq = Series.frequencyFromCode(freqCode);
+    const description = isDateSensitive
+      ? `loaded from set of static files ${path} with options shown`
+      : `loaded from static file <${path}> with options shown`;
+    const result = new Series({ name: description });
+    result.data = data;
+    if (freq) result.frequency = freq;
+    return result;
   }
 
-  /** Load from the BLS API (legacy endpoint). */
-  static async loadApiBls(_seriesId: string, _frequency: string): Promise<Series> {
-    /* TODO */ throw new Error("loadApiBls not yet implemented");
+  /** Load from the BLS API (v1 legacy endpoint). */
+  static async loadApiBls(seriesId: string, frequency: string): Promise<Series> {
+    const { fetchSeries } = await import("../utils/api-clients/bls");
+    const { data, url } = await fetchSeries(seriesId, frequency);
+    return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the BLS API (v2 endpoint). */
-  static async loadApiBlsNew(_seriesId: string, _frequency: string): Promise<Series> {
-    /* TODO */ throw new Error("loadApiBlsNew not yet implemented");
+  static async loadApiBlsV2(seriesId: string, frequency: string): Promise<Series> {
+    const { fetchSeriesV2 } = await import("../utils/api-clients/bls");
+    const { data, url } = await fetchSeriesV2(seriesId, frequency);
+    return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the FRED API. */
-  static async loadApiFred(_code: string, _frequency?: string, _aggMethod?: string): Promise<Series> {
-    /* TODO */ throw new Error("loadApiFred not yet implemented");
+  static async loadApiFred(code: string, frequency?: string, aggMethod?: string): Promise<Series> {
+    const { fetchSeries } = await import("../utils/api-clients/fred");
+    const { data, url } = await fetchSeries(code, frequency, aggMethod);
+    return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the BEA API. */
-  static async loadApiBea(_frequency: string, _dataset: string, _params: Record<string, string> = {}): Promise<Series> {
-    /* TODO */ throw new Error("loadApiBea not yet implemented");
+  static async loadApiBea(frequency: string, dataset: string, params: Record<string, string> = {}): Promise<Series> {
+    const { fetchSeries } = await import("../utils/api-clients/bea");
+    const { data, url } = await fetchSeries(dataset, params);
+    return this.wrapApiResult(data, url, frequency);
   }
 
-  /** Load from the Japan e-Stat API. */
-  static async loadApiEstatjp(_code: string, _filters: Record<string, string> = {}): Promise<Series> {
-    /* TODO */ throw new Error("loadApiEstatjp not yet implemented");
+  /** Load from the Japan e-Stat API (monthly data only). */
+  static async loadApiEstatjp(code: string, filters: Record<string, string> = {}): Promise<Series> {
+    const { fetchSeries } = await import("../utils/api-clients/estat-jp");
+    const { data, url } = await fetchSeries(code, filters);
+    return this.wrapApiResult(data, url, "M");
   }
 
   /** Load from the EIA Annual Energy Outlook API. */
-  static async loadApiEiaAeo(_options: Record<string, string> = {}): Promise<Series> {
-    /* TODO */ throw new Error("loadApiEiaAeo not yet implemented");
+  static async loadApiEiaAeo(options: Record<string, string> = {}): Promise<Series> {
+    const { route, scenario, seriesId, frequency = "annual", value_in = "value" } = options;
+    if (!route || !scenario || !seriesId) {
+      throw new Error("route, scenario, and seriesId are all required parameters");
+    }
+    const { fetchSeries } = await import("../utils/api-clients/eia");
+    const { data, url } = await fetchSeries(route, scenario, seriesId, frequency, value_in);
+    const freqCode = Series.codeFromFrequency(frequency);
+    return this.wrapApiResult(data, url, freqCode);
   }
 
   /** Load from the EIA Short-Term Energy Outlook API. */
-  static async loadApiEiaSteo(_options: Record<string, string> = {}): Promise<Series> {
-    /* TODO */ throw new Error("loadApiEiaSteo not yet implemented");
+  static async loadApiEiaSteo(options: Record<string, string> = {}): Promise<Series> {
+    const { seriesId, frequency = "monthly", value_in = "value" } = options;
+    if (!seriesId) throw new Error("seriesId is a required parameter");
+    const { fetchSeries } = await import("../utils/api-clients/eia");
+    const { data, url } = await fetchSeries("steo", null, seriesId, frequency, value_in);
+    const freqCode = Series.codeFromFrequency(frequency);
+    return this.wrapApiResult(data, url, freqCode);
   }
 
   /** Load from the DVW API. */
-  static async loadApiDvw(_mod: string, _freq: string, _indicator: string, _dimensions: string): Promise<Series> {
-    /* TODO */ throw new Error("loadApiDvw not yet implemented");
+  static async loadApiDvw(mod: string, freq: string, indicator: string, dimensions: Record<string, string>): Promise<Series> {
+    const { fetchSeries } = await import("../utils/api-clients/dvw");
+    const { data, url } = await fetchSeries(mod, freq, indicator, dimensions);
+    return this.wrapApiResult(data, url, freq);
+  }
+
+  /** Wrap an API result into a Series with description and frequency. */
+  private static wrapApiResult(
+    data: Map<string, number>,
+    url: string,
+    freqCodeOrName?: string | null,
+  ): Series {
+    const link = `<a href="${url}">API URL</a>`;
+    const description = data.size > 0
+      ? `loaded data set from ${link} with parameters shown`
+      : `No data collected from ${link} - possibly redacted`;
+    const result = new Series({ name: description });
+    result.data = data;
+    const freq = Series.frequencyFromCode(freqCodeOrName ?? null);
+    if (freq) result.frequency = freq;
+    return result;
   }
 
   // Delegate to model for name/universe validation

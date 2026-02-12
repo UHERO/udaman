@@ -1,6 +1,6 @@
 import { createLogger } from "@/core/observability/logger";
 import { Universe } from "../types/shared";
-import { CreateLoaderFormData } from "../types/sources";
+import { CreateLoaderFormData, UpdateLoaderFormData } from "../types/sources";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import type { ReloadResult } from "@catalog/collections/loader-collection";
 import type { SerializedLoader } from "@catalog/models/loader";
@@ -80,4 +80,18 @@ export async function enableDataLoader({ id }: { id: number }): Promise<Controll
   const loader = await LoaderCollection.update(id, { disabled: false });
   log.info({ id }, "data loader enabled");
   return { message: "data loader enabled", data: loader.toJSON() };
+}
+
+export async function updateDataLoader({ id, payload }: {
+  id: number;
+  payload: UpdateLoaderFormData;
+}): Promise<ControllerResponse<SerializedLoader>> {
+  log.info({ id }, "updating data loader");
+  const { scale, ...rest } = payload;
+  const loader = await LoaderCollection.update(id, {
+    ...rest,
+    ...(scale !== undefined ? { scale: String(scale) } : {}),
+  });
+  log.info({ id }, "data loader updated");
+  return { message: "data loader updated", data: loader.toJSON() };
 }
