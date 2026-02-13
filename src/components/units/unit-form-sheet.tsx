@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createUnit, updateUnit } from "@/actions/units";
@@ -86,23 +87,25 @@ export function UnitFormSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (mode === "create") {
-        await createUnit({
+        const result = await createUnit({
           shortLabel: values.shortLabel || null,
           longLabel: values.longLabel || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       } else if (unit) {
-        await updateUnit(unit.id, {
+        const result = await updateUnit(unit.id, {
           shortLabel: values.shortLabel || null,
           longLabel: values.longLabel || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save unit:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save unit");
     }
   }
 

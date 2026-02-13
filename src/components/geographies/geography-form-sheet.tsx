@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createGeography, updateGeography } from "@/actions/geographies";
@@ -93,7 +94,7 @@ export function GeographyFormSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (mode === "create") {
-        await createGeography({
+        const result = await createGeography({
           handle: values.handle || null,
           displayName: values.displayName || null,
           displayNameShort: values.displayNameShort || null,
@@ -102,8 +103,9 @@ export function GeographyFormSheet({
           geotype: values.geotype || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       } else if (geography) {
-        await updateGeography(geography.id, {
+        const result = await updateGeography(geography.id, {
           handle: values.handle || null,
           displayName: values.displayName || null,
           displayNameShort: values.displayNameShort || null,
@@ -112,12 +114,13 @@ export function GeographyFormSheet({
           geotype: values.geotype || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save geography:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save geography");
     }
   }
 

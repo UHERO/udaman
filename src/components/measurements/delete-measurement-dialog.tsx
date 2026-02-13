@@ -3,6 +3,7 @@
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteMeasurement } from "@/actions/measurements";
 import {
@@ -37,11 +38,12 @@ export function DeleteMeasurementDialog({
 
     setIsDeleting(true);
     try {
-      await deleteMeasurement(measurementId);
+      const result = await deleteMeasurement(measurementId);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to delete measurement:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete measurement");
     } finally {
       setIsDeleting(false);
     }

@@ -193,7 +193,7 @@ export function SeriesEditDialog({
     const geoId = resolveGeoId(values.geo, formOptions.geographies);
 
     try {
-      await updateSeries(seriesId, universe, {
+      const result = await updateSeries(seriesId, universe, {
         name: newName,
         geographyId: geoId,
         frequency: freqCodeToLong[values.freq.toUpperCase()] ?? null,
@@ -213,7 +213,7 @@ export function SeriesEditDialog({
         quarantined: values.quarantined,
         investigationNotes: values.investigationNotes || undefined,
       });
-      toast.success("Series updated");
+      toast.success(result.message);
       onOpenChange(false);
       router.refresh();
     } catch (error) {

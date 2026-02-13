@@ -8,6 +8,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { createDataLoader } from "@/actions/data-loaders";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -91,11 +92,12 @@ export function LoaderCreateDialog({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await createDataLoader({ universe, seriesId }, values);
+      const result = await createDataLoader({ universe, seriesId }, values);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to create loader:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create loader");
     }
   }
 

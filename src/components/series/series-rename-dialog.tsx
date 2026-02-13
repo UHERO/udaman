@@ -83,13 +83,13 @@ export function SeriesRenameDialog({
     const geoId = resolveGeoId(values.geo, formOptions.geographies);
 
     try {
-      await updateSeries(seriesId, universe, {
+      const result = await updateSeries(seriesId, universe, {
         name: newName,
         dataPortalName: values.dataPortalName,
         geographyId: geoId,
         frequency: freqCodeToLong[values.freq.toUpperCase()] ?? null,
       });
-      toast.success("Series renamed", { description: newName });
+      toast.success(result.message, { description: newName });
       onOpenChange(false);
       router.refresh();
     } catch (error) {

@@ -114,12 +114,12 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
 
     try {
       if (isEdit) {
-        await updateDownloadAction(download!.id, payload);
-        toast.success("Download updated");
-        router.push(`/udaman/${universe}/downloads/${download!.id}`);
+        const result = await updateDownloadAction(download!.id, payload);
+        toast.success(result.message);
+        router.push(`/udaman/${universe}/downloads/${result.id}`);
       } else {
         const result = await createDownloadAction(payload);
-        toast.success("Download created");
+        toast.success(result.message);
         router.push(`/udaman/${universe}/downloads/${result.id}`);
       }
     } catch (error) {
@@ -134,8 +134,8 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
 
   async function handleDelete() {
     try {
-      await deleteDownloadAction(download!.id);
-      toast.success("Download deleted");
+      const result = await deleteDownloadAction(download!.id);
+      toast.success(result.message);
       router.push(`/udaman/${universe}/downloads`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Delete failed");

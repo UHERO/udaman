@@ -25,19 +25,20 @@ export async function createSource(payload: CreateSourcePayload) {
   const result = await createSourceCtrl({ payload });
   revalidatePath("/sources");
   log.info({ id: result.data.id }, "createSource action completed");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 export async function updateSource(id: number, payload: UpdateSourcePayload) {
   log.info({ id }, "updateSource action called");
   const result = await updateSourceCtrl({ id, payload });
   revalidatePath("/sources");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteSource(id: number): Promise<void> {
+export async function deleteSource(id: number) {
   log.info({ id }, "deleteSource action called");
-  await deleteSourceCtrl({ id });
+  const result = await deleteSourceCtrl({ id });
   revalidatePath("/sources");
   log.info({ id }, "deleteSource action completed");
+  return { message: result.message };
 }

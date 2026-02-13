@@ -59,8 +59,8 @@ function DownloadRow({
 
   async function handleDestroy() {
     try {
-      await deleteDownloadAction(dl.id);
-      toast.success(`"${dl.handle}" deleted`);
+      const result = await deleteDownloadAction(dl.id);
+      toast.success(result.message);
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");

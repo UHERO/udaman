@@ -25,19 +25,20 @@ export async function createDataList(payload: CreateDataListPayload) {
   const result = await createDataListCtrl({ payload });
   revalidatePath("/data-list");
   log.info({ id: result.data.id }, "createDataList action completed");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 export async function updateDataList(id: number, payload: UpdateDataListPayload) {
   log.info({ id }, "updateDataList action called");
   const result = await updateDataListCtrl({ id, payload });
   revalidatePath("/data-list");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteDataList(id: number): Promise<void> {
+export async function deleteDataList(id: number) {
   log.info({ id }, "deleteDataList action called");
-  await deleteDataListCtrl({ id });
+  const result = await deleteDataListCtrl({ id });
   revalidatePath("/data-list");
   log.info({ id }, "deleteDataList action completed");
+  return { message: result.message };
 }

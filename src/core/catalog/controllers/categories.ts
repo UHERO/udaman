@@ -31,18 +31,19 @@ export async function createCategory({ payload }: { payload: CreateCategoryPaylo
   log.info({ payload }, "creating category");
   const data = await CategoryCollection.create(payload);
   log.info({ id: data.id }, "category created");
-  return { data };
+  return { message: "Category created", data };
 }
 
 export async function updateCategory({ id, payload }: { id: number; payload: UpdateCategoryPayload }) {
   log.info({ id, payload }, "updating category");
   const data = await CategoryCollection.update(id, payload);
   log.info({ id }, "category updated");
-  return { data };
+  return { message: "Category updated", data };
 }
 
 export async function deleteCategory({ id }: { id: number }) {
   log.info({ id }, "deleting category");
   await CategoryCollection.delete(id);
   log.info({ id }, "category deleted");
+  return { message: "Category deleted" };
 }

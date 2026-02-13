@@ -314,10 +314,8 @@ const LoaderItem = ({
   const handleClear = () =>
     startTransition(async () => {
       try {
-        await clearLoader(loader.id);
-        toast.success("Data points cleared", {
-          description: `Cleared data points for loader ${loader.id}`,
-        });
+        const result = await clearLoader(loader.id);
+        toast.success(result.message);
         router.refresh();
       } catch (err) {
         toast.error("Clear failed", {
@@ -329,10 +327,8 @@ const LoaderItem = ({
   const handleDelete = () =>
     startTransition(async () => {
       try {
-        await deleteLoader(loader.id);
-        toast.success("Loader deleted", {
-          description: `Deleted loader ${loader.id}`,
-        });
+        const result = await deleteLoader(loader.id);
+        toast.success(result.message);
         router.refresh();
       } catch (err) {
         toast.error("Delete failed", {
@@ -344,10 +340,8 @@ const LoaderItem = ({
   const handleDisable = () =>
     startTransition(async () => {
       try {
-        await disableLoader(loader.id);
-        toast.success("Loader disabled", {
-          description: `Disabled loader ${loader.id}`,
-        });
+        const result = await disableLoader(loader.id);
+        toast.success(result.message);
         router.refresh();
       } catch (err) {
         toast.error("Disable failed", {
@@ -508,10 +502,8 @@ const DisabledLoaderItem = ({ loader }: { loader: SerializedLoader }) => {
   const handleEnable = () =>
     startTransition(async () => {
       try {
-        await enableLoader(loader.id);
-        toast.success("Loader enabled", {
-          description: `Enabled loader ${loader.id}`,
-        });
+        const result = await enableLoader(loader.id);
+        toast.success(result.message);
         router.refresh();
       } catch (err) {
         toast.error("Enable failed", {

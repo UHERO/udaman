@@ -62,27 +62,28 @@ export async function updateCategoryVisibility(
 
 export async function createCategory(
   payload: CreateCategoryPayload
-): Promise<Category> {
+): Promise<{ message: string; data: Category }> {
   log.info("createCategory action called");
   const result = await createCategoryCtrl({ payload });
   revalidatePath("/categories");
   log.info({ id: result.data.id }, "createCategory action completed");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 export async function updateCategory(
   id: number,
   payload: UpdateCategoryPayload
-): Promise<Category> {
+): Promise<{ message: string; data: Category }> {
   log.info({ id }, "updateCategory action called");
   const result = await updateCategoryCtrl({ id, payload });
   revalidatePath("/categories");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteCategory(id: number): Promise<void> {
+export async function deleteCategory(id: number): Promise<{ message: string }> {
   log.info({ id }, "deleteCategory action called");
-  await deleteCategoryCtrl({ id });
+  const result = await deleteCategoryCtrl({ id });
   revalidatePath("/categories");
   log.info({ id }, "deleteCategory action completed");
+  return { message: result.message };
 }

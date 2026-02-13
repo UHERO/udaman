@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createSource, updateSource } from "@/actions/sources";
@@ -86,23 +87,25 @@ export function SourceFormSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (mode === "create") {
-        await createSource({
+        const result = await createSource({
           description: values.description || null,
           link: values.link || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       } else if (source) {
-        await updateSource(source.id, {
+        const result = await updateSource(source.id, {
           description: values.description || null,
           link: values.link || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save source:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save source");
     }
   }
 

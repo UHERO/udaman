@@ -129,12 +129,12 @@ export function SeriesDuplicateForm({
           investigationNotes: values.investigationNotes || undefined,
         },
       );
-      toast.success(`Series "${result.name}" created`, {
+      toast.success(result.message, {
         description: values.copyLoaders
           ? "Loaders copied from source series"
           : "Created without loaders",
       });
-      nav.push(`/udaman/${universe}/series/${result.id}`);
+      nav.push(`/udaman/${universe}/series/${result.data.id}`);
     } catch (error) {
       const msg =
         error instanceof Error ? error.message : "Failed to duplicate series";

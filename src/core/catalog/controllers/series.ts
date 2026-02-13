@@ -121,7 +121,7 @@ export async function updateSeries({
   log.info({ id }, "updating series");
   const result = await SeriesCollection.update(id, payload);
   log.info({ id, name: result.name }, "series updated");
-  return result;
+  return { message: "Series updated", data: result };
 }
 
 export async function duplicateSeries({
@@ -154,7 +154,7 @@ export async function duplicateSeries({
   }
 
   log.info({ sourceId, newId: newSeries.id, name: newSeries.name }, "series duplicated");
-  return newSeries;
+  return { message: "Series duplicated", data: newSeries };
 }
 
 export async function deleteSeries({
@@ -167,6 +167,7 @@ export async function deleteSeries({
   log.info({ id, force }, "deleting series");
   await SeriesCollection.delete(id, { force });
   log.info({ id }, "series deleted");
+  return { message: "Series deleted" };
 }
 
 export async function searchSeries({term, universe="uhero", limit}:{term: string, universe: string; limit?: number}) {

@@ -3,6 +3,7 @@
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteDataList } from "@/actions/data-lists";
 import {
@@ -37,11 +38,12 @@ export function DeleteDataListDialog({
 
     setIsDeleting(true);
     try {
-      await deleteDataList(dataListId);
+      const result = await deleteDataList(dataListId);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to delete data list:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete data list");
     } finally {
       setIsDeleting(false);
     }

@@ -58,18 +58,19 @@ export async function createMeasurement({ payload }: { payload: CreateMeasuremen
   log.info({ payload }, "creating measurement");
   const data = await MeasurementCollection.create(payload);
   log.info({ id: data.id }, "measurement created");
-  return { data };
+  return { message: "Measurement created", data };
 }
 
 export async function updateMeasurement({ id, payload }: { id: number; payload: UpdateMeasurementPayload }) {
   log.info({ id, payload }, "updating measurement");
   const data = await MeasurementCollection.update(id, payload);
   log.info({ id }, "measurement updated");
-  return { data };
+  return { message: "Measurement updated", data };
 }
 
 export async function deleteMeasurement({ id }: { id: number }) {
   log.info({ id }, "deleting measurement");
   await MeasurementCollection.delete(id);
   log.info({ id }, "measurement deleted");
+  return { message: "Measurement deleted" };
 }

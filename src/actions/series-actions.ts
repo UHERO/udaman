@@ -361,7 +361,7 @@ export async function updateSeries(
   });
 
   revalidatePath(`/udaman/${universe}/series/${id}`);
-  return result.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 // ─── Duplicate ───────────────────────────────────────────────────────
@@ -396,7 +396,7 @@ export async function duplicateSeries(
   });
 
   revalidatePath(`/udaman/${universe}/series`);
-  return result.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 // ─── Delete ─────────────────────────────────────────────────────────

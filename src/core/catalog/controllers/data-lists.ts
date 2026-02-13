@@ -68,18 +68,19 @@ export async function createDataList({ payload }: { payload: CreateDataListPaylo
   log.info({ payload }, "creating data list");
   const data = await DataListCollection.create(payload);
   log.info({ id: data.id }, "data list created");
-  return { data };
+  return { message: "Data list created", data };
 }
 
 export async function updateDataList({ id, payload }: { id: number; payload: UpdateDataListPayload }) {
   log.info({ id, payload }, "updating data list");
   const data = await DataListCollection.update(id, payload);
   log.info({ id }, "data list updated");
-  return { data };
+  return { message: "Data list updated", data };
 }
 
 export async function deleteDataList({ id }: { id: number }) {
   log.info({ id }, "deleting data list");
   await DataListCollection.delete(id);
   log.info({ id }, "data list deleted");
+  return { message: "Data list deleted" };
 }

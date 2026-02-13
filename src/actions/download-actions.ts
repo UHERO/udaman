@@ -28,16 +28,17 @@ export async function downloadToServer(id: number): Promise<{ status: number; ch
   return triggerDownloadToServer({ id });
 }
 
-export async function createDownloadAction(payload: CreateDownloadPayload): Promise<{ id: number }> {
-  const dl = await createDownload(payload);
-  return { id: dl.id };
+export async function createDownloadAction(payload: CreateDownloadPayload) {
+  const result = await createDownload(payload);
+  return { message: result.message, id: result.data.id };
 }
 
-export async function updateDownloadAction(id: number, payload: UpdateDownloadPayload): Promise<{ id: number }> {
-  const dl = await updateDownload(id, payload);
-  return { id: dl.id };
+export async function updateDownloadAction(id: number, payload: UpdateDownloadPayload) {
+  const result = await updateDownload(id, payload);
+  return { message: result.message, id: result.data.id };
 }
 
-export async function deleteDownloadAction(id: number): Promise<void> {
-  await deleteDownload(id);
+export async function deleteDownloadAction(id: number) {
+  const result = await deleteDownload(id);
+  return { message: result.message };
 }

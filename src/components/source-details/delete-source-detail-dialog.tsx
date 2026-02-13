@@ -3,6 +3,7 @@
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteSourceDetail } from "@/actions/source-details";
 import {
@@ -37,11 +38,12 @@ export function DeleteSourceDetailDialog({
 
     setIsDeleting(true);
     try {
-      await deleteSourceDetail(sourceDetailId);
+      const result = await deleteSourceDetail(sourceDetailId);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to delete source detail:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete source detail");
     } finally {
       setIsDeleting(false);
     }

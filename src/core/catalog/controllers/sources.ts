@@ -41,18 +41,19 @@ export async function createSource({ payload }: { payload: CreateSourcePayload }
   log.info({ payload }, "creating source");
   const data = await SourceCollection.create(payload);
   log.info({ id: data.id }, "source created");
-  return { data };
+  return { message: "Source created", data };
 }
 
 export async function updateSource({ id, payload }: { id: number; payload: UpdateSourcePayload }) {
   log.info({ id, payload }, "updating source");
   const data = await SourceCollection.update(id, payload);
   log.info({ id }, "source updated");
-  return { data };
+  return { message: "Source updated", data };
 }
 
 export async function deleteSource({ id }: { id: number }) {
   log.info({ id }, "deleting source");
   await SourceCollection.delete(id);
   log.info({ id }, "source deleted");
+  return { message: "Source deleted" };
 }

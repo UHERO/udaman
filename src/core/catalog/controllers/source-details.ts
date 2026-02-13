@@ -26,18 +26,19 @@ export async function createSourceDetail({ payload }: { payload: CreateSourceDet
   log.info({ payload }, "creating source detail");
   const data = await SourceDetailCollection.create(payload);
   log.info({ id: data.id }, "source detail created");
-  return { data };
+  return { message: "Source detail created", data };
 }
 
 export async function updateSourceDetail({ id, payload }: { id: number; payload: UpdateSourceDetailPayload }) {
   log.info({ id, payload }, "updating source detail");
   const data = await SourceDetailCollection.update(id, payload);
   log.info({ id }, "source detail updated");
-  return { data };
+  return { message: "Source detail updated", data };
 }
 
 export async function deleteSourceDetail({ id }: { id: number }) {
   log.info({ id }, "deleting source detail");
   await SourceDetailCollection.delete(id);
   log.info({ id }, "source detail deleted");
+  return { message: "Source detail deleted" };
 }

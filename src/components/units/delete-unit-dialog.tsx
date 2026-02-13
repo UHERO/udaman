@@ -3,6 +3,7 @@
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteUnit } from "@/actions/units";
 import {
@@ -37,11 +38,12 @@ export function DeleteUnitDialog({
 
     setIsDeleting(true);
     try {
-      await deleteUnit(unitId);
+      const result = await deleteUnit(unitId);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to delete unit:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete unit");
     } finally {
       setIsDeleting(false);
     }

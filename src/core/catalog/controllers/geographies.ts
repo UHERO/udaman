@@ -26,18 +26,19 @@ export async function createGeography({ payload }: { payload: CreateGeographyPay
   log.info({ payload }, "creating geography");
   const data = await GeographyCollection.create(payload);
   log.info({ id: data.id }, "geography created");
-  return { data };
+  return { message: "Geography created", data };
 }
 
 export async function updateGeography({ id, payload }: { id: number; payload: UpdateGeographyPayload }) {
   log.info({ id, payload }, "updating geography");
   const data = await GeographyCollection.update(id, payload);
   log.info({ id }, "geography updated");
-  return { data };
+  return { message: "Geography updated", data };
 }
 
 export async function deleteGeography({ id }: { id: number }) {
   log.info({ id }, "deleting geography");
   await GeographyCollection.delete(id);
   log.info({ id }, "geography deleted");
+  return { message: "Geography deleted" };
 }

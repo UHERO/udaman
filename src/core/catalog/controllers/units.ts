@@ -33,18 +33,19 @@ export async function createUnit({ payload }: { payload: CreateUnitPayload }) {
   log.info({ payload }, "creating unit");
   const data = await UnitCollection.create(payload);
   log.info({ id: data.id }, "unit created");
-  return { data };
+  return { message: "Unit created", data };
 }
 
 export async function updateUnit({ id, payload }: { id: number; payload: UpdateUnitPayload }) {
   log.info({ id, payload }, "updating unit");
   const data = await UnitCollection.update(id, payload);
   log.info({ id }, "unit updated");
-  return { data };
+  return { message: "Unit updated", data };
 }
 
 export async function deleteUnit({ id }: { id: number }) {
   log.info({ id }, "deleting unit");
   await UnitCollection.delete(id);
   log.info({ id }, "unit deleted");
+  return { message: "Unit deleted" };
 }

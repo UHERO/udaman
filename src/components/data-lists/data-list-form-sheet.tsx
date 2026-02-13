@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createDataList, updateDataList } from "@/actions/data-lists";
@@ -82,21 +83,23 @@ export function DataListFormSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (mode === "create") {
-        await createDataList({
+        const result = await createDataList({
           name: values.name || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       } else if (dataList) {
-        await updateDataList(dataList.id, {
+        const result = await updateDataList(dataList.id, {
           name: values.name || null,
           universe: values.universe,
         });
+        toast.success(result.message);
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save data list:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save data list");
     }
   }
 

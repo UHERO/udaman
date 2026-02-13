@@ -9,6 +9,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { updateDataLoader } from "@/actions/data-loaders";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -106,11 +107,12 @@ export function LoaderEditSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!loader) return;
     try {
-      await updateDataLoader(loader.id, values);
+      const result = await updateDataLoader(loader.id, values);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to update loader:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update loader");
     }
   }
 

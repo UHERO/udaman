@@ -25,19 +25,20 @@ export async function createUnit(payload: CreateUnitPayload) {
   const result = await createUnitCtrl({ payload });
   revalidatePath("/units");
   log.info({ id: result.data.id }, "createUnit action completed");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 export async function updateUnit(id: number, payload: UpdateUnitPayload) {
   log.info({ id }, "updateUnit action called");
   const result = await updateUnitCtrl({ id, payload });
   revalidatePath("/units");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteUnit(id: number): Promise<void> {
+export async function deleteUnit(id: number) {
   log.info({ id }, "deleteUnit action called");
-  await deleteUnitCtrl({ id });
+  const result = await deleteUnitCtrl({ id });
   revalidatePath("/units");
   log.info({ id }, "deleteUnit action completed");
+  return { message: result.message };
 }

@@ -25,19 +25,20 @@ export async function createMeasurement(payload: CreateMeasurementPayload) {
   const result = await createMeasurementCtrl({ payload });
   revalidatePath("/measurement");
   log.info({ id: result.data.id }, "createMeasurement action completed");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 export async function updateMeasurement(id: number, payload: UpdateMeasurementPayload) {
   log.info({ id }, "updateMeasurement action called");
   const result = await updateMeasurementCtrl({ id, payload });
   revalidatePath("/measurement");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteMeasurement(id: number): Promise<void> {
+export async function deleteMeasurement(id: number) {
   log.info({ id }, "deleteMeasurement action called");
-  await deleteMeasurementCtrl({ id });
+  const result = await deleteMeasurementCtrl({ id });
   revalidatePath("/measurement");
   log.info({ id }, "deleteMeasurement action completed");
+  return { message: result.message };
 }

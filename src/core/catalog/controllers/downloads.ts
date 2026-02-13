@@ -158,14 +158,17 @@ export async function getDownloadForEdit({ id }: { id: number }): Promise<Downlo
 }
 
 export async function createDownload(payload: CreateDownloadPayload) {
-  return DownloadCollection.create(payload);
+  const data = await DownloadCollection.create(payload);
+  return { message: "Download created", data };
 }
 
 export async function updateDownload(id: number, payload: UpdateDownloadPayload) {
-  return DownloadCollection.update(id, payload);
+  const data = await DownloadCollection.update(id, payload);
+  return { message: "Download updated", data };
 }
 
 export async function deleteDownload(id: number) {
-  return DownloadCollection.delete(id);
+  await DownloadCollection.delete(id);
+  return { message: "Download deleted" };
 }
 

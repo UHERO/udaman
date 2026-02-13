@@ -3,6 +3,7 @@
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteGeography } from "@/actions/geographies";
 import {
@@ -37,11 +38,12 @@ export function DeleteGeographyDialog({
 
     setIsDeleting(true);
     try {
-      await deleteGeography(geographyId);
+      const result = await deleteGeography(geographyId);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to delete geography:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete geography");
     } finally {
       setIsDeleting(false);
     }

@@ -3,6 +3,7 @@
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { deleteCategory } from "@/actions/categories";
 import {
@@ -37,11 +38,12 @@ export function DeleteCategoryDialog({
 
     setIsDeleting(true);
     try {
-      await deleteCategory(categoryId);
+      const result = await deleteCategory(categoryId);
+      toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to delete category:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete category");
     } finally {
       setIsDeleting(false);
     }

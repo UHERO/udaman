@@ -24,27 +24,28 @@ export async function getGeographies(params?: {
 
 export async function createGeography(
   payload: CreateGeographyPayload
-): Promise<Geography> {
+): Promise<{ message: string; data: Geography }> {
   log.info("createGeography action called");
   const result = await createGeographyCtrl({ payload });
   revalidatePath("/geographies");
   log.info({ id: result.data.id }, "createGeography action completed");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
 export async function updateGeography(
   id: number,
   payload: UpdateGeographyPayload
-): Promise<Geography> {
+): Promise<{ message: string; data: Geography }> {
   log.info({ id }, "updateGeography action called");
   const result = await updateGeographyCtrl({ id, payload });
   revalidatePath("/geographies");
-  return result.data.toJSON();
+  return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteGeography(id: number): Promise<void> {
+export async function deleteGeography(id: number): Promise<{ message: string }> {
   log.info({ id }, "deleteGeography action called");
-  await deleteGeographyCtrl({ id });
+  const result = await deleteGeographyCtrl({ id });
   revalidatePath("/geographies");
   log.info({ id }, "deleteGeography action completed");
+  return { message: result.message };
 }

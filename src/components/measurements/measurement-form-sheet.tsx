@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createMeasurement, updateMeasurement } from "@/actions/measurements";
@@ -166,15 +167,17 @@ export function MeasurementFormSheet({
       };
 
       if (mode === "create") {
-        await createMeasurement(payload);
+        const result = await createMeasurement(payload);
+        toast.success(result.message);
       } else if (measurement) {
-        await updateMeasurement(measurement.id, payload);
+        const result = await updateMeasurement(measurement.id, payload);
+        toast.success(result.message);
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save measurement:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save measurement");
     }
   }
 

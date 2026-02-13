@@ -23,7 +23,7 @@ export async function createDataLoader(
   log.info({ seriesId, universe }, "createDataLoader action called");
   const result = await createDataLoaderCtrl({ seriesId, universe, payload });
   log.info({ seriesId }, "createDataLoader action completed");
-  return result.data;
+  return { message: result.message, data: result.data };
 }
 
 export async function reloadLoader(loaderId: number, clearFirst = false) {

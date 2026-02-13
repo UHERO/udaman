@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createCategory, updateCategory } from "@/actions/categories";
@@ -107,7 +108,7 @@ export function CategoryFormSheet({
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (mode === "create") {
-        await createCategory({
+        const result = await createCategory({
           parentId: parentId ?? null,
           name: values.name || null,
           description: values.description || null,
@@ -119,8 +120,9 @@ export function CategoryFormSheet({
           masked: values.masked || undefined,
           header: values.header,
         });
+        toast.success(result.message);
       } else if (category) {
-        await updateCategory(category.id, {
+        const result = await updateCategory(category.id, {
           name: values.name || null,
           description: values.description || null,
           universe: values.universe,
@@ -130,12 +132,13 @@ export function CategoryFormSheet({
           masked: values.masked,
           header: values.header,
         });
+        toast.success(result.message);
       }
 
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to save category:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to save category");
     }
   }
 
