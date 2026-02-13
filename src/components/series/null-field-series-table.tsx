@@ -107,10 +107,10 @@ export function NullFieldSeriesTable({ universe }: { universe: string }) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-8" />
             <TableHead className="w-64">Name</TableHead>
             <TableHead className="w-64">Data Portal Name</TableHead>
             <TableHead>Loaders</TableHead>
-            <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -125,7 +125,14 @@ export function NullFieldSeriesTable({ universe }: { universe: string }) {
             </TableRow>
           ) : (
             rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                className="group cursor-pointer"
+                onClick={() => window.location.href = `/udaman/${universe}/series/${row.id}`}
+              >
+                <TableCell className="text-muted-foreground w-8">
+                  <span className="invisible group-hover:visible">&rarr;</span>
+                </TableCell>
                 <TableCell className="font-mono text-sm">{row.name}</TableCell>
                 <TableCell className="text-sm">
                   {row.dataPortalName ?? "-"}
@@ -146,14 +153,6 @@ export function NullFieldSeriesTable({ universe }: { universe: string }) {
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
-                </TableCell>
-                <TableCell>
-                  <Link
-                    href={`/udaman/${universe}/series/${row.id}`}
-                    className="text-primary text-sm hover:underline"
-                  >
-                    Show
-                  </Link>
                 </TableCell>
               </TableRow>
             ))

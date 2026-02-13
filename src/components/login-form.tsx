@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -59,7 +59,7 @@ export function LoginForm({
             id="email"
             name="email"
             type="email"
-            placeholder="m@example.com"
+            placeholder="piko@puka.com"
             autoComplete="email"
             required
             autoFocus
@@ -70,6 +70,7 @@ export function LoginForm({
             <Label htmlFor="password">Password</Label>
             <a
               href="#"
+              onClick={() => toast.info("Not yet implemented")}
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
               Forgot your password?
@@ -84,9 +85,7 @@ export function LoginForm({
           />
         </div>
 
-        {error && (
-          <p className="text-destructive text-sm">{error}</p>
-        )}
+        {error && <p className="text-destructive text-sm">{error}</p>}
 
         <Button type="submit" disabled={isPending} className="w-full">
           {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}

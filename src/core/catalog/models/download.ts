@@ -86,6 +86,16 @@ class Download {
     return this.extractPath() ?? this.savePath();
   }
 
+  /** Extract hostname from the URL */
+  get domain(): string | null {
+    if (!this.url) return null;
+    try {
+      return new URL(this.url).hostname;
+    } catch {
+      return null;
+    }
+  }
+
   toString(): string {
     return `Download#${this.id} <${this.handle}>`;
   }

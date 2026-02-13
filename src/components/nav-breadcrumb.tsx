@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,8 +11,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 const sectionLabels: Record<string, string> = {
   series: "Series",
@@ -24,15 +25,19 @@ export function NavBreadcrumb() {
   const pathname = usePathname();
 
   // /udaman/[universe]/[section]/[id]/...
-  const segments = pathname.replace(/^\/udaman\/?/, "").split("/").filter(Boolean);
+  const segments = pathname
+    .replace(/^\/udaman\/?/, "")
+    .split("/")
+    .filter(Boolean);
 
   // segments[0] = universe, segments[1] = section, segments[2] = id, etc.
   const universe = segments[0];
   const section = segments[1];
   const itemId = segments[2];
 
-  const sectionLabel = section ? sectionLabels[section] ?? section : null;
-  const sectionHref = universe && section ? `/udaman/${universe}/${section}` : null;
+  const sectionLabel = section ? (sectionLabels[section] ?? section) : null;
+  const sectionHref =
+    universe && section ? `/udaman/${universe}/${section}` : null;
 
   // On /udaman or /udaman/[universe] — just show Home
   if (!sectionLabel) {

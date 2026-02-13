@@ -78,19 +78,19 @@ const data = {
           url: "/series/create",
         },
         {
-          title: "Forecast Series Upload",
-          url: "#",
+          title: "Forecast Upload",
+          url: "/series/forecast-upload",
         },
         {
-          title: "CSV-to-TSD File Conversion",
+          title: "CSV-to-TSD",
           url: "/series/csv-to-tsd",
         },
         {
-          title: "Series Missing Metadata",
+          title: "Missing Metadata",
           url: "/series/no-source",
         },
         {
-          title: "Quarantined Series",
+          title: "Quarantine",
           url: "/series/quarantine",
         },
       ],
@@ -102,7 +102,7 @@ const data = {
     },
     {
       title: "Downloads",
-      url: "#",
+      url: "/downloads",
       icon: ArrowDownToLine,
     },
     {
