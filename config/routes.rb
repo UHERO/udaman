@@ -191,6 +191,8 @@ Rails.application.routes.draw do
 
   resources :series do
     collection do
+      get "new"
+      post "new", to: "series#create"
       get "bulk" => "series#bulk_new"
       post "bulk" => "series#bulk_create"
       get "search"

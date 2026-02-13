@@ -88,7 +88,7 @@ module SeriesInterpolation
       end
       date += 2.months ## track only the missing data points
     end
-    new_transformation("Interpolation of alternate missing months from #{self}", new_dp)
+    new_transformation("Interpolation of alternate missing months from #{self}#{" and #{semi}" if semi}", new_dp)
   end
 
   def fill_interpolate_to(target_frequency)
