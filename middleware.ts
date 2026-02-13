@@ -27,6 +27,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Normalize universe segment to lowercase: /udaman/UHERO/... → /udaman/uhero/...
+  const match = pathname.match(/^\/udaman\/([^/]+)(\/.*)?$/);
+  if (match) {
+    const universe = match[1];
+    const lower = universe.toLowerCase();
+    if (universe !== lower) {
+      const rest = match[2] ?? "";
+      const url = new URL(`/udaman/${lower}${rest}`, request.url);
+      url.search = request.nextUrl.search;
+      return NextResponse.redirect(url, 308);
+    }
+  }
+
   return NextResponse.next();
 }
 

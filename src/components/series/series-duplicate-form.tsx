@@ -52,7 +52,7 @@ type DuplicateFormValues = z.infer<typeof duplicateSchema>;
 // ─── Props ──────────────────────────────────────────────────────────
 
 interface SeriesDuplicateFormProps {
-  universe: Universe;
+  universe: string;
   sourceSeriesId: number;
   metadata: SeriesMetadata;
   loaderCount: number;
@@ -107,11 +107,11 @@ export function SeriesDuplicateForm({
     try {
       const result = await duplicateSeries(
         sourceSeriesId,
-        universe,
+        universe as Universe,
         values.copyLoaders,
         {
           name,
-          universe,
+          universe: universe as Universe,
           dataPortalName: values.dataPortalName || undefined,
           unitId: values.unitId,
           sourceId: values.sourceId,

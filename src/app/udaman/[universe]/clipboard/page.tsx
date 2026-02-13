@@ -1,4 +1,3 @@
-import type { Universe } from "@catalog/types/shared";
 import { getClipboardSeries } from "@/actions/clipboard-actions";
 import { H1 } from "@/components/typography";
 import { ClipboardTable } from "@/components/clipboard/clipboard-table";
@@ -6,7 +5,7 @@ import { ClipboardTable } from "@/components/clipboard/clipboard-table";
 export default async function ClipboardPage({
   params,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
   const { data, count } = await getClipboardSeries();

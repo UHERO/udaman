@@ -51,7 +51,7 @@ const formSchema = z.object({
 interface LoaderCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  universe: Universe;
+  universe: string;
   seriesId: number;
 }
 
@@ -92,7 +92,7 @@ export function LoaderCreateDialog({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await createDataLoader({ universe, seriesId }, values);
+      const result = await createDataLoader({ universe: universe as Universe, seriesId }, values);
       toast.success(result.message);
       router.refresh();
       onOpenChange(false);

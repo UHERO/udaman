@@ -114,7 +114,7 @@ export const metadataDefaults = {
 // ─── Props ──────────────────────────────────────────────────────────
 
 interface SeriesCreateFormProps {
-  universe: Universe;
+  universe: string;
   geographies: GeographyOption[];
   units: UnitOption[];
   sources: SourceOption[];
@@ -438,7 +438,7 @@ export function SeriesCreateForm({
     try {
       const result = await createSeries({
         name,
-        universe,
+        universe: universe as Universe,
         dataPortalName: values.dataPortalName || undefined,
         unitId: values.unitId,
         sourceId: values.sourceId,
@@ -482,7 +482,7 @@ export function SeriesCreateForm({
   async function onBulkSubmit(values: BulkFormValues) {
     try {
       const result = await bulkCreateSeries({
-        universe,
+        universe: universe as Universe,
         definitions: values.definitions,
         unitId: values.unitId,
         sourceId: values.sourceId,

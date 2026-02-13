@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSeries, searchSeriesAction } from "@/actions/series-actions";
-import { Universe } from "@catalog/types/shared";
+import type { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +14,15 @@ export default async function Page({
   params,
   searchParams,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
   searchParams: Promise<{ q?: string }>;
 }) {
   const { universe } = await params;
+  const u = universe as Universe;
   const { q } = await searchParams;
   const data = q
-    ? await searchSeriesAction(q, universe)
-    : await getSeries({ universe });
+    ? await searchSeriesAction(q, u)
+    : await getSeries({ universe: u });
   const count = data.length ?? 0;
   const isSearch = Boolean(q);
 

@@ -6,16 +6,16 @@ import { SourcesListTable } from "@/components/sources/sources-list-table";
 export default async function Page({
   params,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
-  const data = await getSources({ universe });
+  const data = await getSources({ universe: universe as Universe });
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <h1 className="text-3xl font-bold">Sources</h1>
       <div className="min-h-screen flex-1 rounded-xl md:min-h-min">
-        <SourcesListTable data={data} universe={universe} />
+        <SourcesListTable data={data} universe={universe as Universe} />
       </div>
     </div>
   );

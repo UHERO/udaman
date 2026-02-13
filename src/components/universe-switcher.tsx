@@ -43,7 +43,8 @@ export function UniverseSwitcher({
   const activeUniverse = React.useMemo(() => {
     const universeFromUrl = params.universe as string | undefined;
     if (universeFromUrl) {
-      const found = universes.find((u) => u.name === universeFromUrl);
+      const upper = universeFromUrl.toUpperCase();
+      const found = universes.find((u) => u.name === upper);
       if (found) return found;
     }
     return defaultU;
@@ -52,7 +53,7 @@ export function UniverseSwitcher({
   const setActiveUniverse = React.useCallback(
     (universe: typeof defaultU) => {
       const segments = pathname.split("/");
-      segments[2] = universe.name; // /udaman/[universe]/...
+      segments[2] = universe.name.toLowerCase(); // /udaman/[universe]/...
       router.replace(segments.join("/"));
     },
     [pathname, router],

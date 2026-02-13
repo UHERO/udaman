@@ -1,4 +1,3 @@
-import { Universe } from "@catalog/types/shared";
 import { ChevronDown } from "lucide-react";
 
 import {
@@ -12,7 +11,7 @@ import { H1 } from "@/components/typography";
 export default async function QuarantinePage({
   params,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
 

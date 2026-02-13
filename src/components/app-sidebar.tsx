@@ -230,7 +230,7 @@ export function AppSidebar({
   user: { name: string; email: string; avatar: string };
 }) {
   const params = useParams();
-  const universe = (params.universe as string) || "UHERO";
+  const universe = (params.universe as string) || "uhero";
 
   const navMain = React.useMemo(
     () =>

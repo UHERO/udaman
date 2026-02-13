@@ -152,7 +152,7 @@ interface SeriesEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   seriesId: number;
-  universe: Universe;
+  universe: string;
   metadata: SeriesMetadata;
   formOptions: SeriesFormOptions;
 }
@@ -193,7 +193,7 @@ export function SeriesEditDialog({
     const geoId = resolveGeoId(values.geo, formOptions.geographies);
 
     try {
-      const result = await updateSeries(seriesId, universe, {
+      const result = await updateSeries(seriesId, universe as Universe, {
         name: newName,
         geographyId: geoId,
         frequency: freqCodeToLong[values.freq.toUpperCase()] ?? null,

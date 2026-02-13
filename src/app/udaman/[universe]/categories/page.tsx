@@ -1,18 +1,19 @@
 import { getCategories } from "@/actions/categories";
 import { getGeographies } from "@/actions/geographies";
-import { Universe } from "@catalog/types/shared";
+import type { Universe } from "@catalog/types/shared";
 
 import { Categories } from "@/components/categories/categories-page";
 
 export default async function Page({
   params,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
+  const u = universe as Universe;
   const [data, geographies] = await Promise.all([
-    getCategories({ universe }),
-    getGeographies({ universe }),
+    getCategories({ universe: u }),
+    getGeographies({ universe: u }),
   ]);
 
   return (

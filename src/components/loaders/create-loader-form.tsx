@@ -1,6 +1,6 @@
 "use client";
 
-import { Universe } from "@catalog/types/shared";
+import type { Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
@@ -46,7 +46,7 @@ const formSchema = z.object({
   pseudoHistory: z.boolean(),
 });
 
-export function CreateLoaderForm({ universe }: { universe: Universe }) {
+export function CreateLoaderForm({ universe }: { universe: string }) {
   const queryParams = useSearchParams();
   const seriesId = queryParams.get("seriesId");
 
@@ -66,7 +66,7 @@ export function CreateLoaderForm({ universe }: { universe: Universe }) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await createDataLoader({ universe, seriesId: Number(seriesId) }, values);
+    await createDataLoader({ universe: universe as Universe, seriesId: Number(seriesId) }, values);
     nav.push(`/udaman/${universe}/series/${seriesId}`);
   }
 

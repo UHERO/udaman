@@ -48,7 +48,8 @@ export default async function UniversePage({
   params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
-  const info = universeInfo[universe] ?? {
+  const key = universe.toUpperCase();
+  const info = universeInfo[key] ?? {
     name: universe,
     description: "",
     portalUrl: null,

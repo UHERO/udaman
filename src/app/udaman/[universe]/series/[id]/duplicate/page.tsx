@@ -8,13 +8,14 @@ import type { Universe } from "@catalog/types/shared";
 export default async function DuplicateSeriesPage({
   params,
 }: {
-  params: Promise<{ universe: Universe; id: number }>;
+  params: Promise<{ universe: string; id: number }>;
 }) {
   const { universe, id } = await params;
+  const u = universe as Universe;
 
   const [series, formOptions] = await Promise.all([
-    getSeriesById(id, { universe }),
-    getFormOptions({ universe }),
+    getSeriesById(id, { universe: u }),
+    getFormOptions({ universe: u }),
   ]);
 
   return (

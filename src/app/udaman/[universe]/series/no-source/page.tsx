@@ -1,12 +1,10 @@
-import { Universe } from "@catalog/types/shared";
-
 import { NullFieldSeriesTable } from "@/components/series/null-field-series-table";
 import { H1 } from "@/components/typography";
 
 export default async function NoSourcePage({
   params,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
 

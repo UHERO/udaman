@@ -1,5 +1,5 @@
 import { getSeriesById, getSourceMap, getFormOptions } from "@/actions/series-actions";
-import { Universe } from "@catalog/types/shared";
+import type { Universe } from "@catalog/types/shared";
 
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
@@ -12,16 +12,17 @@ import { SourceMapTable } from "@/components/series/source-map";
 export default async function SeriesPage({
   params,
 }: {
-  params: Promise<{ universe: Universe; id: number }>;
+  params: Promise<{ universe: string; id: number }>;
 }) {
   const { universe, id } = await params;
-  const series = await getSeriesById(id, { universe });
+  const u = universe as Universe;
+  const series = await getSeriesById(id, { universe: u });
 
   const { dataPoints, metadata, measurement, aliases, loaders } = series;
 
   const [sourceMap, formOptions] = await Promise.all([
     getSourceMap(id, { name: metadata.s_name }),
-    getFormOptions({ universe }),
+    getFormOptions({ universe: u }),
   ]);
 
   return (

@@ -6,7 +6,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { deleteSeries } from "@/actions/series-actions";
-import type { Universe } from "@catalog/types/shared";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +22,7 @@ interface DeleteSeriesDialogProps {
   onOpenChange: (open: boolean) => void;
   seriesId: number;
   seriesName: string | null;
-  universe: Universe;
+  universe: string;
 }
 
 export function DeleteSeriesDialog({

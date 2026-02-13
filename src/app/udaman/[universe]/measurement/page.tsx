@@ -9,14 +9,15 @@ import { MeasurementsListTable } from "@/components/measurements/measurements-li
 export default async function Page({
   params,
 }: {
-  params: Promise<{ universe: Universe }>;
+  params: Promise<{ universe: string }>;
 }) {
   const { universe } = await params;
+  const u = universe as Universe;
   const [data, unitsList, sourcesList, sourceDetailsList] = await Promise.all([
-    getMeasurements({ universe }),
-    getUnits({ universe }),
-    getSources({ universe }),
-    getSourceDetails({ universe }),
+    getMeasurements({ universe: u }),
+    getUnits({ universe: u }),
+    getSources({ universe: u }),
+    getSourceDetails({ universe: u }),
   ]);
 
   const units = unitsList.map((u) => ({
@@ -40,7 +41,7 @@ export default async function Page({
       <div className="min-h-screen flex-1 rounded-xl md:min-h-min">
         <MeasurementsListTable
           data={data}
-          universe={universe}
+          universe={u}
           units={units}
           sources={sources}
           sourceDetails={sourceDetails}

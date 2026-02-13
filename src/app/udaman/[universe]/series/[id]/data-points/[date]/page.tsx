@@ -16,11 +16,11 @@ import { getColor } from "@/components/helpers";
 export default async function DataPointVintagesPage({
   params,
 }: {
-  params: Promise<{ universe: Universe; id: string; date: string }>;
+  params: Promise<{ universe: string; id: string; date: string }>;
 }) {
   const { universe, id, date } = await params;
   const seriesId = Number(id);
-  const series = await getSeriesById(seriesId, { universe });
+  const series = await getSeriesById(seriesId, { universe: universe as Universe });
   const { metadata } = series;
 
   const vintages = await getDataPointVintages(metadata.xs_id, date);

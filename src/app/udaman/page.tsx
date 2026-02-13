@@ -9,7 +9,7 @@ export default async function LoginPage() {
   const session = await getSession();
 
   if (session?.user) {
-    redirect("/udaman/UHERO/series");
+    redirect("/udaman/uhero/series");
   }
 
   return (
