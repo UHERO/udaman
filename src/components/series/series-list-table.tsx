@@ -28,6 +28,15 @@ interface DataTableProps<TData> {
   options?: { decimals: number };
 }
 
+const Restricted = () => (
+  <span
+    className="text-destructive ml-1 text-lg font-semibold"
+    title="Restricted"
+  >
+    &#x2298;
+  </span>
+);
+
 export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
   const { universe } = useParams();
   const columns: ColumnDef<SeriesSummary>[] = [
@@ -43,6 +52,7 @@ export function SeriesListTable({ data }: DataTableProps<SeriesSummary>) {
         return (
           <Link href={`/udaman/${universe}/series/${row.original.id}`}>
             {row.getValue("name")}
+            {row.original.restricted && <Restricted />}
           </Link>
         );
       },

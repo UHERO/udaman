@@ -48,6 +48,7 @@ export interface SeriesSummary {
   name: string;
   id: number;
   seasonalAdjustment: SeasonalAdjustment;
+  restricted: boolean;
   portalName: string | null;
   unitShortLabel: string | null;
   minDate: Date | null;

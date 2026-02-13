@@ -1,9 +1,10 @@
-import { getSeriesById, getSourceMap } from "@/actions/series-actions";
+import { getSeriesById, getSourceMap, getFormOptions } from "@/actions/series-actions";
 import { Universe } from "@catalog/types/shared";
 
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
 import { SeriesChart } from "@/components/series/series-chart";
+import { SeriesActionsBar } from "@/components/series/series-actions-bar";
 import { SeriesHoverProvider } from "@/components/series/series-data-section";
 import { SeriesDataTable } from "@/components/series/series-table";
 import { SourceMapTable } from "@/components/series/source-map";
@@ -18,7 +19,10 @@ export default async function SeriesPage({
 
   const { dataPoints, metadata, measurement, aliases, loaders } = series;
 
-  const sourceMap = await getSourceMap(id, { name: metadata.s_name });
+  const [sourceMap, formOptions] = await Promise.all([
+    getSourceMap(id, { name: metadata.s_name }),
+    getFormOptions({ universe }),
+  ]);
 
   return (
     <div className="">
@@ -44,6 +48,7 @@ export default async function SeriesPage({
           </div>
           <div className="sticky top-4 col-span-4 self-start rounded">
             <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
+            <SeriesActionsBar seriesId={id} metadata={metadata} formOptions={formOptions} />
             <SeriesChart data={dataPoints} />
           </div>
         </div>

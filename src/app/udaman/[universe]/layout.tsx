@@ -1,5 +1,15 @@
-import { isValidUniverse } from "@catalog/utils/validators";
 import { notFound } from "next/navigation";
+import { isValidUniverse } from "@catalog/utils/validators";
+import { requireAuth } from "@/lib/auth/dal";
+import { AppSidebar } from "@/components/app-sidebar";
+import { NavBreadcrumb } from "@/components/nav-breadcrumb";
+import { NavSearchInput } from "@/components/nav-search";
+import { Separator } from "@/components/ui/separator";
+import {
+    SidebarInset,
+    SidebarProvider,
+    SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export default async function UniverseLayout({
   children,
@@ -14,5 +24,32 @@ export default async function UniverseLayout({
     notFound();
   }
 
-  return <>{children}</>;
+  const session = await requireAuth();
+  const user = {
+    name: session.user?.name ?? session.user?.email ?? "User",
+    email: session.user?.email ?? "",
+    avatar: session.user?.image ?? "",
+  };
+
+  return (
+    <SidebarProvider>
+      <AppSidebar user={user} />
+      <SidebarInset>
+        <header className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+          <div className="flex w-full items-center justify-start gap-2 px-4">
+            <div className="flex w-full items-center justify-start gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator
+                orientation="vertical"
+                className="mr-2 data-[orientation=vertical]:h-4"
+              />
+              <NavBreadcrumb />
+            </div>
+            <NavSearchInput />
+          </div>
+        </header>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }

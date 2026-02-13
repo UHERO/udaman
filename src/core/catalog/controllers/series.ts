@@ -111,6 +111,64 @@ export async function emptyQuarantine({ universe }: { universe: string }) {
   return count;
 }
 
+export async function updateSeries({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: import("@catalog/collections/series-collection").UpdateSeriesPayload;
+}) {
+  log.info({ id }, "updating series");
+  const result = await SeriesCollection.update(id, payload);
+  log.info({ id, name: result.name }, "series updated");
+  return result;
+}
+
+export async function duplicateSeries({
+  sourceId,
+  payload,
+  copyLoaders,
+}: {
+  sourceId: number;
+  payload: import("@catalog/collections/series-collection").CreateSeriesPayload;
+  copyLoaders: boolean;
+}) {
+  log.info({ sourceId, name: payload.name, copyLoaders }, "duplicating series");
+  const newSeries = await SeriesCollection.create(payload);
+
+  if (copyLoaders) {
+    const loaders = await LoaderCollection.getEnabledBySeriesId(sourceId);
+    for (const loader of loaders) {
+      await LoaderCollection.create({
+        seriesId: newSeries.id!,
+        code: loader.eval ?? "",
+        universe: payload.universe ?? "UHERO",
+        priority: loader.priority,
+        scale: Number(loader.scale) || 1,
+        presaveHook: loader.presaveHook ?? "",
+        clearBeforeLoad: loader.clearBeforeLoad,
+        pseudoHistory: loader.pseudoHistory,
+      });
+    }
+    log.info({ sourceId, newId: newSeries.id, loadersCopied: loaders.length }, "loaders copied");
+  }
+
+  log.info({ sourceId, newId: newSeries.id, name: newSeries.name }, "series duplicated");
+  return newSeries;
+}
+
+export async function deleteSeries({
+  id,
+  force,
+}: {
+  id: number;
+  force?: boolean;
+}) {
+  log.info({ id, force }, "deleting series");
+  await SeriesCollection.delete(id, { force });
+  log.info({ id }, "series deleted");
+}
+
 export async function searchSeries({term, universe="uhero", limit}:{term: string, universe: string; limit?: number}) {
   log.info({ term, universe, limit }, "search series");
   const results = await SeriesCollection.search({text: term, universe, limit});

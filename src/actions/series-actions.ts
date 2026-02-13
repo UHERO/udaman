@@ -8,6 +8,9 @@ import {
   getSeriesById as fetchSeriesById,
   getSourceMap as fetchSourceMap,
   deleteSeriesDataPoints as deleteDataPointsCtrl,
+  updateSeries as updateSeriesCtrl,
+  duplicateSeries as duplicateSeriesCtrl,
+  deleteSeries as deleteSeriesCtrl,
   searchSeries,
   getSeriesWithNullField as fetchSeriesWithNullField,
   getQuarantinedSeries as fetchQuarantinedSeries,
@@ -305,6 +308,106 @@ export async function bulkCreateSeries(
   log.info({ successCount }, "bulkCreateSeries action completed");
   revalidatePath(`/udaman/${universe}/series`);
   return { successCount, errors };
+}
+
+// ─── Update ──────────────────────────────────────────────────────────
+
+export interface UpdateSeriesFormPayload {
+  name?: string;
+  geographyId?: number | null;
+  frequency?: string | null;
+  dataPortalName?: string;
+  unitId?: number | null;
+  sourceId?: number | null;
+  sourceDetailId?: number | null;
+  decimals?: number;
+  description?: string;
+  sourceLink?: string;
+  seasonalAdjustment?: SeasonalAdjustment | null;
+  frequencyTransform?: string;
+  percent?: boolean;
+  real?: boolean;
+  restricted?: boolean;
+  quarantined?: boolean;
+  investigationNotes?: string;
+}
+
+export async function updateSeries(
+  id: number,
+  universe: Universe,
+  payload: UpdateSeriesFormPayload,
+) {
+  const result = await updateSeriesCtrl({
+    id,
+    payload: {
+      name: payload.name,
+      geographyId: payload.geographyId,
+      frequency: payload.frequency,
+      dataPortalName: payload.dataPortalName || null,
+      unitId: payload.unitId ?? null,
+      sourceId: payload.sourceId ?? null,
+      sourceDetailId: payload.sourceDetailId ?? null,
+      decimals: payload.decimals ?? 1,
+      description: payload.description || null,
+      sourceLink: payload.sourceLink || null,
+      seasonalAdjustment: payload.seasonalAdjustment ?? null,
+      frequencyTransform: payload.frequencyTransform || null,
+      percent: payload.percent ?? null,
+      real: payload.real ?? null,
+      restricted: payload.restricted ?? false,
+      quarantined: payload.quarantined ?? false,
+      investigationNotes: payload.investigationNotes || null,
+    },
+  });
+
+  revalidatePath(`/udaman/${universe}/series/${id}`);
+  return result.toJSON();
+}
+
+// ─── Duplicate ───────────────────────────────────────────────────────
+
+export async function duplicateSeries(
+  originSeriesId: number,
+  universe: Universe,
+  copyLoaders: boolean,
+  payload: CreateSeriesFormPayload,
+) {
+  const result = await duplicateSeriesCtrl({
+    sourceId: originSeriesId,
+    payload: {
+      name: payload.name,
+      universe,
+      dataPortalName: payload.dataPortalName || null,
+      unitId: payload.unitId ?? null,
+      sourceId: payload.sourceId ?? null,
+      sourceDetailId: payload.sourceDetailId ?? null,
+      decimals: payload.decimals ?? 1,
+      description: payload.description || null,
+      sourceLink: payload.sourceLink || null,
+      seasonalAdjustment: payload.seasonalAdjustment ?? null,
+      frequencyTransform: payload.frequencyTransform || null,
+      percent: payload.percent ?? null,
+      real: payload.real ?? null,
+      restricted: payload.restricted ?? false,
+      quarantined: payload.quarantined ?? false,
+      investigationNotes: payload.investigationNotes || null,
+    },
+    copyLoaders,
+  });
+
+  revalidatePath(`/udaman/${universe}/series`);
+  return result.toJSON();
+}
+
+// ─── Delete ─────────────────────────────────────────────────────────
+
+export async function deleteSeries(
+  id: number,
+  universe: string,
+  opts?: { force?: boolean },
+) {
+  await deleteSeriesCtrl({ id, force: opts?.force });
+  revalidatePath(`/udaman/${universe}/series`);
 }
 
 // ─── Null-field audit ───────────────────────────────────────────────

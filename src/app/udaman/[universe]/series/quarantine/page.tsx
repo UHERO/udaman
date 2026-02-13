@@ -27,12 +27,11 @@ export default async function QuarantinePage({
         <CollapsibleContent>
           <div className="text-muted-foreground mt-2 max-w-2xl space-y-3 rounded-md border p-4 text-sm">
             <p>
-              Series may be added to the quarantine, and removed from the
-              quarantine, manually using the links on the left side of the
-              Udaman series show page.
+              Series may be added and removed from the quarantine manually from
+              the series page.
             </p>
             <p>
-              Series can additionally be added to the quarantine by Udaman
+              Additionally, series may be added to the quarantine by Udaman
               automatically if <strong>all</strong> of the following conditions
               hold:
             </p>

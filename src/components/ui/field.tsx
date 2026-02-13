@@ -55,7 +55,7 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 const fieldVariants = cva(
-  "group/field flex w-full gap-1 data-[invalid=true]:text-destructive",
+  "group/field flex w-full gap-1 data-[invalid=true]:text-destructive data-[warning=true]:text-amber-600 dark:data-[warning=true]:text-amber-500",
   {
     variants: {
       orientation: {
@@ -230,6 +230,24 @@ function FieldError({
   );
 }
 
+function FieldWarning({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  if (!children) return null;
+
+  return (
+    <div
+      data-slot="field-warning"
+      className={cn("text-sm font-normal text-amber-600 dark:text-amber-500", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
 export {
   Field,
   FieldContent,
@@ -241,4 +259,5 @@ export {
   FieldSeparator,
   FieldSet,
   FieldTitle,
+  FieldWarning,
 };

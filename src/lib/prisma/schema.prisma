@@ -1,6 +1,5 @@
 datasource db {
   provider = "mysql"
-  url = env("DB_MYSQL_URL")
 }
 
 generator client {
@@ -604,10 +603,51 @@ model users {
   created_at             DateTime?  @db.DateTime(0)
   updated_at             DateTime?  @db.DateTime(0)
   reset_password_sent_at DateTime?  @db.DateTime(0)
-  // authorizations         authorizations[] @ignore TO BE REMOVED
+  name                   String?    @db.VarChar(255)
+  email_verified         DateTime?  @db.DateTime(3)
+  image                  String?    @db.VarChar(255)
   universe_rel           universe   @relation(fields: [universe], references: [name], onUpdate: Cascade, onDelete: Restrict, map: "fk_users_universe")
+  accounts               accounts[]
+  sessions               sessions[]
 
   @@index([universe], map: "index_users_on_universe")
+}
+
+model accounts {
+  id                  Int     @id @default(autoincrement())
+  user_id             Int
+  type                String  @db.VarChar(255)
+  provider            String  @db.VarChar(255)
+  provider_account_id String  @db.VarChar(255)
+  refresh_token       String? @db.Text
+  access_token        String? @db.Text
+  expires_at          Int?
+  token_type          String? @db.VarChar(255)
+  scope               String? @db.VarChar(255)
+  id_token            String? @db.Text
+  session_state       String? @db.VarChar(255)
+  user                users   @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_accounts_user_id")
+
+  @@unique([provider, provider_account_id], map: "index_accounts_on_provider_and_provider_account_id")
+  @@index([user_id], map: "index_accounts_on_user_id")
+}
+
+model sessions {
+  id            Int      @id @default(autoincrement())
+  session_token String   @unique(map: "index_sessions_on_session_token") @db.VarChar(255)
+  user_id       Int
+  expires       DateTime @db.DateTime(0)
+  user          users    @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_sessions_user_id")
+
+  @@index([user_id], map: "index_sessions_on_user_id")
+}
+
+model verification_tokens {
+  identifier String   @db.VarChar(255)
+  token      String   @db.VarChar(255)
+  expires    DateTime @db.DateTime(0)
+
+  @@id([identifier, token])
 }
 
 model xseries {

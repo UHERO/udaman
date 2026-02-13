@@ -43,6 +43,17 @@ import Unit from "@catalog/models/unit";
 // ─── Utilities ───────────────────────────────────────────────────────
 import EvalExecutor from "@catalog/utils/eval-executor";
 import EvalParser from "@catalog/utils/eval-parser";
+import { hash as hashPassword, compare as comparePassword } from "bcryptjs";
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+async function resetAllPasswords(newPassword: string = "change me") {
+  const hashed = await hashPassword(newPassword, 10);
+  await mysql`UPDATE users SET encrypted_password = ${hashed}`;
+  const rows = await mysql`SELECT COUNT(*) as count FROM users`;
+  const count = (rows[0] as Record<string, unknown>).count;
+  console.log(`Reset ${count} user passwords to "${newPassword}"`);
+}
 
 // ─── Expose as globals ──────────────────────────────────────────────
 
@@ -72,6 +83,9 @@ const ctx: Record<string, unknown> = {
   Unit,
   EvalExecutor,
   EvalParser,
+  hashPassword,
+  comparePassword,
+  resetAllPasswords,
 };
 
 Object.assign(globalThis, ctx);
@@ -126,6 +140,7 @@ console.log("Udaman console ready.");
 console.log("Collections: SeriesCollection, LoaderCollection, MeasurementCollection, ...");
 console.log("Models:      Series, Loader, Measurement, ...");
 console.log("Utils:       EvalParser, EvalExecutor, mysql, rawQuery");
+console.log("Auth:        hashPassword, comparePassword, resetAllPasswords");
 console.log("Type .help for available globals, .exit to quit");
 console.log("");
 console.log("Try: const s = await SeriesCollection.getByName('E_NF@HI.M')");
@@ -159,6 +174,7 @@ rl.on("line", async (line: string) => {
     console.log("  Models:      Category, DataList, Geography, Loader, Measurement,");
     console.log("               Series, Source, SourceDetail, Unit");
     console.log("  Utils:       EvalExecutor, EvalParser");
+    console.log("  Auth:        hashPassword, comparePassword, resetAllPasswords");
     console.log("\n  .exit  quit\n");
     rl.prompt();
     return;

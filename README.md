@@ -44,3 +44,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
     - Note that Deletes need to be reviewed so that they aren't leaving orphaned records. 
     - Updates, Insert, Creates need to be reviewed to ensure related records are also updated or created where relevant.
     - Claude's gotten pretty great, but it still often misses the broader context when methods are interconnected.
+
+
+# Migrations needed
+1. dataPortalName is appears to be the only camelCase name in a database of snake_case names. setup a migration to rename to data_portal_name.
+2. 

@@ -14,6 +14,7 @@ interface SeriesSummaryRow {
   id: number;
   xseriesId: number;
   seasonalAdjustment: SeasonalAdjustment;
+  restricted: number;
   portalName: string | null;
   unitShortLabel: string | null;
   sourceDescription: string | null;
@@ -333,6 +334,7 @@ class SeriesCollection {
         s.id as id,
         s.xseries_id as xseriesId,
         xs.seasonal_adjustment as seasonalAdjustment,
+        xs.restricted as restricted,
         s.dataPortalName as portalName,
         u.short_label as unitShortLabel,
         src.description as sourceDescription,
@@ -367,6 +369,7 @@ class SeriesCollection {
           name: row.name,
           id: row.id,
           seasonalAdjustment: row.seasonalAdjustment,
+          restricted: Boolean(row.restricted),
           portalName: row.portalName,
           unitShortLabel: row.unitShortLabel,
           sourceDescription: row.sourceDescription,
@@ -382,6 +385,7 @@ class SeriesCollection {
       name: row.name,
       id: row.id,
       seasonalAdjustment: row.seasonalAdjustment,
+      restricted: Boolean(row.restricted),
       portalName: row.portalName,
       unitShortLabel: row.unitShortLabel,
       sourceDescription: row.sourceDescription,
@@ -401,6 +405,7 @@ class SeriesCollection {
         s.id as id,
         s.xseries_id as xseriesId,
         xs.seasonal_adjustment as seasonalAdjustment,
+        xs.restricted as restricted,
         s.dataPortalName as portalName,
         u.short_label as unitShortLabel,
         src.description as sourceDescription,
@@ -434,6 +439,7 @@ class SeriesCollection {
           name: row.name,
           id: row.id,
           seasonalAdjustment: row.seasonalAdjustment,
+          restricted: Boolean(row.restricted),
           portalName: row.portalName,
           unitShortLabel: row.unitShortLabel,
           sourceDescription: row.sourceDescription,
@@ -448,6 +454,7 @@ class SeriesCollection {
       name: row.name,
       id: row.id,
       seasonalAdjustment: row.seasonalAdjustment,
+      restricted: Boolean(row.restricted),
       portalName: row.portalName,
       unitShortLabel: row.unitShortLabel,
       sourceDescription: row.sourceDescription,
@@ -510,7 +517,9 @@ class SeriesCollection {
     }
 
     // Update series table fields
-    const seriesUpdateObj = buildUpdateObject(seriesFields);
+    const seriesUpdateObj = buildUpdateObject(seriesFields, {
+      dataPortalName: "dataPortalName",
+    });
     const seriesCols = Object.keys(seriesUpdateObj);
     if (seriesCols.length > 0) {
       await mysql`
@@ -585,6 +594,24 @@ class SeriesCollection {
 
     // Delete public data points
     await mysql`DELETE FROM public_data_points WHERE series_id = ${id}`;
+
+    // Delete loaders (data_sources) and their sub-records
+    await mysql`
+      DELETE dsa FROM data_source_actions dsa
+      JOIN data_sources ds ON ds.id = dsa.data_source_id
+      WHERE ds.series_id = ${id}
+    `;
+    await mysql`
+      DELETE dsd FROM data_source_downloads dsd
+      JOIN data_sources ds ON ds.id = dsd.data_source_id
+      WHERE ds.series_id = ${id}
+    `;
+    await mysql`DELETE FROM data_sources WHERE series_id = ${id}`;
+
+    // Delete join-table records
+    await mysql`DELETE FROM measurement_series WHERE series_id = ${id}`;
+    await mysql`DELETE FROM export_series WHERE series_id = ${id}`;
+    await mysql`DELETE FROM user_series WHERE series_id = ${id}`;
 
     if (series.isPrimary && series.xseriesId) {
       // Clear FK to avoid constraint violation

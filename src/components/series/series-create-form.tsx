@@ -23,6 +23,7 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSet,
+  FieldWarning,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 import { H2 } from "../typography";
+import { SeriesNameFields, assembleSeriesName } from "./series-name-fields";
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -59,7 +61,7 @@ const frequencyTransformOptions = [
 
 // ─── Schemas ────────────────────────────────────────────────────────
 
-const metadataSchema = {
+export const metadataSchema = {
   unitId: z.number().nullable(),
   sourceId: z.number().nullable(),
   sourceDetailId: z.number().nullable(),
@@ -76,7 +78,9 @@ const metadataSchema = {
 };
 
 const singleFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  prefix: z.string().min(1, "Series prefix is required"),
+  geo: z.string().min(1, "Geography is required"),
+  freq: z.string().min(1, "Frequency is required"),
   dataPortalName: z.string().min(1, "Data portal name is required"),
   ...metadataSchema,
   unitId: z.number({ error: "Unit is required" }),
@@ -91,7 +95,7 @@ const bulkFormSchema = z.object({
 type SingleFormValues = z.infer<typeof singleFormSchema>;
 type BulkFormValues = z.infer<typeof bulkFormSchema>;
 
-const metadataDefaults = {
+export const metadataDefaults = {
   unitId: null as number | null,
   sourceId: null as number | null,
   sourceDetailId: null as number | null,
@@ -119,20 +123,30 @@ interface SeriesCreateFormProps {
 
 // ─── Shared metadata fields component ───────────────────────────────
 
-function MetadataFields({
-  form,
-  units,
-  sources,
-  sourceDetails,
-  required,
-}: {
+export interface MetadataFieldsProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<any>;
   units: UnitOption[];
   sources: SourceOption[];
   sourceDetails: SourceDetailOption[];
   required: boolean;
-}) {
+  /** Field names that were originally null — highlighted with a yellow warning ring */
+  nullFields?: Set<string>;
+  /** Warning message to show on the percent checkbox (non-blocking) */
+  percentWarning?: string;
+}
+
+export function MetadataFields({
+  form,
+  units,
+  sources,
+  sourceDetails,
+  required,
+  nullFields,
+  percentWarning,
+}: MetadataFieldsProps) {
+  const warn = (field: string) => nullFields?.has(field) && !form.formState.errors[field];
+
   return (
     <>
       <Field data-invalid={!!form.formState.errors.description}>
@@ -145,7 +159,10 @@ function MetadataFields({
         <FieldError errors={[form.formState.errors.description]} />
       </Field>
 
-      <Field data-invalid={!!form.formState.errors.sourceId}>
+      <Field
+        data-invalid={!!form.formState.errors.sourceId}
+        data-warning={warn("sourceId")}
+      >
         <FieldLabel htmlFor="sourceId">Source{required && " *"}</FieldLabel>
         <Select
           value={form.watch("sourceId")?.toString() || "none"}
@@ -166,6 +183,7 @@ function MetadataFields({
           </SelectContent>
         </Select>
         <FieldError errors={[form.formState.errors.sourceId]} />
+        {warn("sourceId") && <FieldWarning>Was empty — please select a source</FieldWarning>}
       </Field>
 
       <Field data-invalid={!!form.formState.errors.sourceLink}>
@@ -209,7 +227,10 @@ function MetadataFields({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field data-invalid={!!form.formState.errors.unitId}>
+        <Field
+          data-invalid={!!form.formState.errors.unitId}
+          data-warning={warn("unitId")}
+        >
           <FieldLabel htmlFor="unitId">Unit{required && " *"}</FieldLabel>
           <Select
             value={form.watch("unitId")?.toString() || "none"}
@@ -231,9 +252,13 @@ function MetadataFields({
             </SelectContent>
           </Select>
           <FieldError errors={[form.formState.errors.unitId]} />
+          {warn("unitId") && <FieldWarning>Was empty — please select a unit</FieldWarning>}
         </Field>
 
-        <Field data-invalid={!!form.formState.errors.seasonalAdjustment}>
+        <Field
+          data-invalid={!!form.formState.errors.seasonalAdjustment}
+          data-warning={warn("seasonalAdjustment")}
+        >
           <FieldLabel htmlFor="seasonalAdjustment">
             Seasonal Adjustment
           </FieldLabel>
@@ -256,11 +281,17 @@ function MetadataFields({
             </SelectContent>
           </Select>
           <FieldError errors={[form.formState.errors.seasonalAdjustment]} />
+          {warn("seasonalAdjustment") && (
+            <FieldWarning>Was empty — please select a value</FieldWarning>
+          )}
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field data-invalid={!!form.formState.errors.decimals}>
+        <Field
+          data-invalid={!!form.formState.errors.decimals}
+          data-warning={warn("decimals")}
+        >
           <FieldLabel htmlFor="decimals">Decimals</FieldLabel>
           <Input
             id="decimals"
@@ -273,7 +304,10 @@ function MetadataFields({
           <FieldError errors={[form.formState.errors.decimals]} />
         </Field>
 
-        <Field data-invalid={!!form.formState.errors.frequencyTransform}>
+        <Field
+          data-invalid={!!form.formState.errors.frequencyTransform}
+          data-warning={warn("frequencyTransform")}
+        >
           <FieldLabel htmlFor="frequencyTransform">
             Frequency Transform
           </FieldLabel>
@@ -296,53 +330,65 @@ function MetadataFields({
             </SelectContent>
           </Select>
           <FieldError errors={[form.formState.errors.frequencyTransform]} />
+          {warn("frequencyTransform") && (
+            <FieldWarning>Was empty — please select a method</FieldWarning>
+          )}
         </Field>
       </div>
 
-      <div className="flex items-center gap-6">
-        <Field orientation="horizontal">
-          <Checkbox
-            id="percent"
-            checked={form.watch("percent")}
-            onCheckedChange={(checked) =>
-              form.setValue("percent", checked === true)
-            }
-          />
-          <FieldLabel htmlFor="percent">Percent</FieldLabel>
-        </Field>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-6">
+          <Field
+            orientation="horizontal"
+            data-warning={warn("percent")}
+          >
+            <Checkbox
+              id="percent"
+              checked={form.watch("percent")}
+              onCheckedChange={(checked) =>
+                form.setValue("percent", checked === true)
+              }
+            />
+            <FieldLabel htmlFor="percent">Percent</FieldLabel>
+          </Field>
 
-        <Field orientation="horizontal">
-          <Checkbox
-            id="real"
-            checked={form.watch("real")}
-            onCheckedChange={(checked) =>
-              form.setValue("real", checked === true)
-            }
-          />
-          <FieldLabel htmlFor="real">Real</FieldLabel>
-        </Field>
+          <Field orientation="horizontal">
+            <Checkbox
+              id="real"
+              checked={form.watch("real")}
+              onCheckedChange={(checked) =>
+                form.setValue("real", checked === true)
+              }
+            />
+            <FieldLabel htmlFor="real">Real</FieldLabel>
+          </Field>
 
-        <Field orientation="horizontal">
-          <Checkbox
-            id="restricted"
-            checked={form.watch("restricted")}
-            onCheckedChange={(checked) =>
-              form.setValue("restricted", checked === true)
-            }
-          />
-          <FieldLabel htmlFor="restricted">Restricted</FieldLabel>
-        </Field>
+          <Field
+            orientation="horizontal"
+            data-warning={warn("restricted")}
+          >
+            <Checkbox
+              id="restricted"
+              checked={form.watch("restricted")}
+              onCheckedChange={(checked) =>
+                form.setValue("restricted", checked === true)
+              }
+            />
+            <FieldLabel htmlFor="restricted">Restricted</FieldLabel>
+          </Field>
 
-        <Field orientation="horizontal">
-          <Checkbox
-            id="quarantined"
-            checked={form.watch("quarantined")}
-            onCheckedChange={(checked) =>
-              form.setValue("quarantined", checked === true)
-            }
-          />
-          <FieldLabel htmlFor="quarantined">Quarantined</FieldLabel>
-        </Field>
+          <Field orientation="horizontal">
+            <Checkbox
+              id="quarantined"
+              checked={form.watch("quarantined")}
+              onCheckedChange={(checked) =>
+                form.setValue("quarantined", checked === true)
+              }
+            />
+            <FieldLabel htmlFor="quarantined">Quarantined</FieldLabel>
+          </Field>
+        </div>
+        {percentWarning && <FieldWarning>{percentWarning}</FieldWarning>}
       </div>
 
       <Field data-invalid={!!form.formState.errors.investigationNotes}>
@@ -365,6 +411,7 @@ function MetadataFields({
 
 export function SeriesCreateForm({
   universe,
+  geographies,
   units,
   sources,
   sourceDetails,
@@ -376,7 +423,9 @@ export function SeriesCreateForm({
   const singleForm = useForm<SingleFormValues>({
     resolver: zodResolver(singleFormSchema),
     defaultValues: {
-      name: "",
+      prefix: "",
+      geo: "",
+      freq: "",
       dataPortalName: "",
       ...metadataDefaults,
       unitId: null as unknown as number,
@@ -385,9 +434,10 @@ export function SeriesCreateForm({
   });
 
   async function onSingleSubmit(values: SingleFormValues) {
+    const name = assembleSeriesName(values.prefix, values.geo, values.freq);
     try {
       const result = await createSeries({
-        name: values.name,
+        name,
         universe,
         dataPortalName: values.dataPortalName || undefined,
         unitId: values.unitId,
@@ -410,7 +460,13 @@ export function SeriesCreateForm({
     } catch (error) {
       const msg =
         error instanceof Error ? error.message : "Failed to create series";
-      toast.error(msg);
+      if (msg.includes("Duplicate entry")) {
+        singleForm.setError("prefix", {
+          message: `"${name}" already exists in ${universe}`,
+        });
+      } else {
+        toast.error(msg);
+      }
     }
   }
 
@@ -476,16 +532,11 @@ export function SeriesCreateForm({
           <form onSubmit={singleForm.handleSubmit(onSingleSubmit)}>
             <FieldSet>
               <FieldGroup>
-                <Field data-invalid={!!singleForm.formState.errors.name}>
-                  <FieldLabel htmlFor="name">Name *</FieldLabel>
-                  <Input
-                    id="name"
-                    placeholder="E_NF@HI.M"
-                    {...singleForm.register("name")}
-                  />
-                  <FieldDescription>{`series@geo.freq`}</FieldDescription>
-                  <FieldError errors={[singleForm.formState.errors.name]} />
-                </Field>
+                <SeriesNameFields
+                  form={singleForm}
+                  geographies={geographies}
+                  idPrefix="create-"
+                />
 
                 <Field
                   data-invalid={!!singleForm.formState.errors.dataPortalName}

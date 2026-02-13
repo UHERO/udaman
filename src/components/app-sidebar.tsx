@@ -31,11 +31,6 @@ import { NavUser } from "@/components/nav-user";
 import { UniverseSwitcher } from "@/components/universe-switcher";
 
 const data = {
-  user: {
-    name: "wood2",
-    email: "wood2@hawaii.edu",
-    avatar: "/avatars/shadcn.jpg",
-  },
   universes: [
     {
       name: "UHERO",
@@ -228,7 +223,12 @@ function prefixUrl(url: string, universe: string): string {
   return url;
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user: { name: string; email: string; avatar: string };
+}) {
   const params = useParams();
   const universe = (params.universe as string) || "UHERO";
 
@@ -264,7 +264,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavDataPortals projects={dataPortal} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

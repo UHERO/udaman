@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
-
 import {
   emptyQuarantine,
   getQuarantinedSeries,
   unquarantineSeries,
 } from "@/actions/series-actions";
 import type { SeriesAuditRow } from "@catalog/types/shared";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -50,7 +50,7 @@ export function QuarantineSeriesTable({ universe }: { universe: string }) {
         setTotalCount(result.totalCount);
       });
     },
-    [universe],
+    [universe]
   );
 
   useEffect(() => {
@@ -58,17 +58,36 @@ export function QuarantineSeriesTable({ universe }: { universe: string }) {
   }, [page, fetchData]);
 
   const handleUnquarantine = (seriesId: number) => {
+    const series = rows.find((r) => r.id === seriesId);
     startTransition(async () => {
-      await unquarantineSeries(seriesId, universe);
-      fetchData(page);
+      try {
+        await unquarantineSeries(seriesId, universe);
+        toast.success("Series removed from quarantine", {
+          description: series?.name ?? `Series ${seriesId}`,
+        });
+        fetchData(page);
+      } catch (err) {
+        toast.error("Unquarantine failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
     });
   };
 
   const handleEmptyQuarantine = () => {
     startTransition(async () => {
-      await emptyQuarantine(universe);
-      setPage(1);
-      fetchData(1);
+      try {
+        const count = await emptyQuarantine(universe);
+        toast.success("Quarantine emptied", {
+          description: `${count} series unquarantined`,
+        });
+        setPage(1);
+        fetchData(1);
+      } catch (err) {
+        toast.error("Empty quarantine failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
     });
   };
 

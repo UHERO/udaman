@@ -1,5 +1,9 @@
 import { Loader } from "@/components/ui/loader";
 
 export default function Loading() {
-  return <Loader />;
+  return (
+    <div className="flex justify-center pt-[33vh]">
+      <Loader />
+    </div>
+  );
 }

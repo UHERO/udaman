@@ -57,4 +57,30 @@ async function transaction<T>(fn: () => Promise<T>): Promise<T> {
   return result as T;
 }
 
-export { mysql, rawQuery, transaction };
+/**
+ * Run a callback with a transaction-scoped raw SQL executor.
+ * All queries share the same underlying connection, so temporary tables
+ * created inside the callback are visible to subsequent queries.
+ */
+async function scopedConnection<T>(
+  fn: (exec: (sql: string, params?: (string | number | Date)[]) => Promise<any[]>) => Promise<T>,
+): Promise<T> {
+  const start = performance.now();
+  const [result] = await connection.begin(async (tx: any) => {
+    const exec = (sql: string, params: (string | number | Date)[] = []) => {
+      const qStart = performance.now();
+      return tx.unsafe(sql, params).then((rows: any[]) => {
+        const durationMs = +(performance.now() - qStart).toFixed(2);
+        log.debug({ durationMs, rows: rows.length }, "scoped query");
+        return rows;
+      });
+    };
+    const value = await fn(exec);
+    return [value];
+  });
+  const durationMs = +(performance.now() - start).toFixed(2);
+  log.debug({ durationMs }, "scoped connection");
+  return result as T;
+}
+
+export { mysql, rawQuery, transaction, scopedConnection };

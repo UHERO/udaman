@@ -15,14 +15,18 @@ function toSnakeCase(str: string): string {
  *
  * sample input: { name: "New Name", dataListId: 5, hidden: true }
  * sample output: { name: "New Name", data_list_id: 5, hidden: 1 }
+ *
+ * Use `columnOverrides` for columns that don't follow snake_case convention,
+ * e.g. { dataPortalName: "dataPortalName" } to keep the camelCase column name.
  */
 function buildUpdateObject<T extends Record<string, any>>(
-  updates: T
+  updates: T,
+  columnOverrides?: Record<string, string>,
 ): Record<string, string | number | null> {
   const result: Record<string, string | number | null> = {};
   for (const [key, value] of Object.entries(updates)) {
     if (value !== undefined) {
-      const column = toSnakeCase(key);
+      const column = columnOverrides?.[key] ?? toSnakeCase(key);
       result[column] = typeof value === "boolean" ? (value ? 1 : 0) : value;
     }
   }
