@@ -104,7 +104,10 @@ async function resolveArg(
       }
     }
     case "options":
-      return arg.value;
+      // Coerce all values to strings — API methods expect Record<string, string>
+      return Object.fromEntries(
+        Object.entries(arg.value).map(([k, v]) => [k, String(v)])
+      );
   }
 }
 

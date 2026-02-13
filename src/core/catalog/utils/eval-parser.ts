@@ -39,6 +39,7 @@ type TokenType =
   | "SYMBOL"
   | "STRING_ARG"
   | "HASH"
+  | "HASH_KEY"
   | "COMMA";
 
 interface Token {
@@ -205,6 +206,12 @@ function tokenize(input: string): Token[] {
       while (i < input.length && /[a-zA-Z0-9_]/.test(input[i])) {
         ident += input[i];
         advance();
+      }
+      // Check for Ruby hash key syntax: `Identifier:` (colon immediately after)
+      if (i < input.length && input[i] === ":") {
+        advance(); // skip the colon
+        tokens.push({ type: "HASH_KEY", value: ident });
+        continue;
       }
       // Treat as DOT_IDENT since it's likely a method after Series.
       tokens.push({ type: "DOT_IDENT", value: ident });
@@ -485,6 +492,32 @@ class EvalParser {
     if (tok.type === "HASH") {
       this.advance();
       return { type: "options", value: parseRubyHash(tok.value) };
+    }
+
+    // Ruby implicit hash (key: value pairs without braces)
+    if (tok.type === "HASH_KEY") {
+      const opts: Record<string, string | number | boolean> = {};
+      while (this.current()?.type === "HASH_KEY") {
+        const key = this.advance().value;
+        const valTok = this.current();
+        if (!valTok) throw new EvalParseError("Unexpected end of input after hash key");
+
+        if (valTok.type === "STRING_ARG" || valTok.type === "QUOTED_STRING") {
+          opts[key] = this.advance().value;
+        } else if (valTok.type === "NUMBER") {
+          opts[key] = Number(this.advance().value);
+        } else if (valTok.type === "DOT_IDENT" && (valTok.value === "true" || valTok.value === "false")) {
+          opts[key] = valTok.value === "true";
+          this.advance();
+        } else if (valTok.type === "SYMBOL") {
+          opts[key] = this.advance().value;
+        } else {
+          throw new EvalParseError(`Unexpected hash value for key "${key}": ${valTok.type}(${valTok.value})`);
+        }
+
+        if (this.current()?.type === "COMMA") this.advance();
+      }
+      return { type: "options", value: opts };
     }
 
     throw new EvalParseError(
