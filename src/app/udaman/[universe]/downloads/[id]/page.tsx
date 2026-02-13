@@ -25,7 +25,7 @@ export default async function DownloadDetailPage({
       <div>
         <h1 className="text-3xl font-bold font-mono">{detail.handle}</h1>
         <Link
-          href={`/udaman/${universe}/downloads/${detail.id}`}
+          href={`/udaman/${universe}/downloads/${detail.id}/edit`}
           className="text-muted-foreground text-sm hover:underline"
         >
           Edit

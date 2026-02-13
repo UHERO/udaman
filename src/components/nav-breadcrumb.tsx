@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Fragment } from "react";
 import { usePathname } from "next/navigation";
 
 import {
@@ -12,35 +13,36 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-const sectionLabels: Record<string, string> = {
+const segmentLabels: Record<string, string> = {
   series: "Series",
   categories: "Categories",
   geographies: "Geographies",
   "data-loaders": "Data Loaders",
   clipboard: "Clipboard",
   downloads: "Downloads",
+  analyze: "Analyze",
+  quarantine: "Quarantine",
+  "forecast-upload": "Forecast Upload",
+  new: "New",
+  edit: "Edit",
+  duplicate: "Duplicate",
+  create: "Create",
 };
 
 export function NavBreadcrumb() {
   const pathname = usePathname();
 
-  // /udaman/[universe]/[section]/[id]/...
+  // Strip /udaman/[universe] prefix, split remaining segments
   const segments = pathname
     .replace(/^\/udaman\/?/, "")
     .split("/")
     .filter(Boolean);
 
-  // segments[0] = universe, segments[1] = section, segments[2] = id, etc.
   const universe = segments[0];
-  const section = segments[1];
-  const itemId = segments[2];
+  // Everything after the universe becomes breadcrumb items
+  const crumbSegments = segments.slice(1);
 
-  const sectionLabel = section ? (sectionLabels[section] ?? section) : null;
-  const sectionHref =
-    universe && section ? `/udaman/${universe}/${section}` : null;
-
-  // On /udaman or /udaman/[universe] — just show Home
-  if (!sectionLabel) {
+  if (crumbSegments.length === 0) {
     return (
       <Breadcrumb>
         <BreadcrumbList>
@@ -52,26 +54,11 @@ export function NavBreadcrumb() {
     );
   }
 
-  // On a section page like /udaman/UHERO/series
-  if (!itemId) {
-    return (
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem className="hidden md:block">
-            <BreadcrumbLink asChild>
-              <Link href={`/udaman/${universe}`}>Home</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block" />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{sectionLabel}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    );
-  }
+  const crumbs = crumbSegments.map((segment, i) => ({
+    label: segmentLabels[segment] ?? segment,
+    href: `/udaman/${universe}/${crumbSegments.slice(0, i + 1).join("/")}`,
+  }));
 
-  // On an item page like /udaman/UHERO/series/123
   return (
     <Breadcrumb>
       <BreadcrumbList>
@@ -80,16 +67,23 @@ export function NavBreadcrumb() {
             <Link href={`/udaman/${universe}`}>Home</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator className="hidden md:block" />
-        <BreadcrumbItem className="hidden md:block">
-          <BreadcrumbLink asChild>
-            <Link href={sectionHref!}>{sectionLabel}</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator className="hidden md:block" />
-        <BreadcrumbItem>
-          <BreadcrumbPage>{itemId}</BreadcrumbPage>
-        </BreadcrumbItem>
+        {crumbs.map((crumb, i) => {
+          const isLast = i === crumbs.length - 1;
+          return (
+            <Fragment key={crumb.href}>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem className={!isLast ? "hidden md:block" : undefined}>
+                {isLast ? (
+                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <Link href={crumb.href}>{crumb.label}</Link>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
+          );
+        })}
       </BreadcrumbList>
     </Breadcrumb>
   );

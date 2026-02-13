@@ -1,6 +1,9 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { downloadToServer } from "@/actions/download-actions";
 import type { RelatedSeries } from "@catalog/collections/download-collection";
 import type {
   DownloadDetail,
@@ -12,6 +15,7 @@ import {
   CircleAlert,
   CircleCheck,
   CircleX,
+  Loader2,
   RefreshCw,
   ShieldAlert,
 } from "lucide-react";
@@ -22,6 +26,7 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 
@@ -107,15 +112,13 @@ function LogSection({ entries }: { entries: LogEntrySerialized[] }) {
             {group.url}
           </a>
           <Table className="w-auto">
-            <TableBody>
+            <TableHeader>
               <TableRow className="border-b">
-                <TableHead className="h-min">
-                  <TableCell className="p-0 text-left">Date</TableCell>
-                </TableHead>
-                <TableHead className="h-min">
-                  <TableCell className="p-0 text-left">Status</TableCell>
-                </TableHead>
+                <TableHead className="h-min">Date</TableHead>
+                <TableHead className="h-min">Status</TableHead>
               </TableRow>
+            </TableHeader>
+            <TableBody>
               {group.entries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="text-muted-foreground py-1 pr-2 text-sm whitespace-nowrap">
@@ -186,6 +189,29 @@ export function DownloadDetailView({
   detail: DownloadDetail;
   universe: string;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function handleDownloadToServer() {
+    startTransition(async () => {
+      try {
+        const result = await downloadToServer(detail.id);
+        if (result.status === 200) {
+          toast.success(
+            result.changed
+              ? "Downloaded — file content changed"
+              : "Downloaded — no changes detected"
+          );
+        } else {
+          toast.warning(`Download returned status ${result.status}`);
+        }
+        router.refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Download failed");
+      }
+    });
+  }
+
   return (
     <div className="grid grid-cols-[auto_1fr] gap-8">
       {/* Left column: Download log */}
@@ -195,8 +221,14 @@ export function DownloadDetailView({
       <div className="flex flex-col gap-6">
         <section>
           <h2 className="text-xl font-semibold">Server file location</h2>
-          <p className="text-muted-foreground mt-1 font-mono text-sm break-all">
+          <a
+            href={`/api/data-file/${detail.savePathRelative}`}
+            className="text-muted-foreground mt-1 block font-mono text-sm break-all hover:underline"
+          >
             {detail.savePath}
+          </a>
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Click to download the server&apos;s saved copy
           </p>
         </section>
 
@@ -204,9 +236,13 @@ export function DownloadDetailView({
           <h2 className="text-xl font-semibold">Source links</h2>
           <div className="mt-1 flex flex-col gap-1">
             <button
-              className="text-muted-foreground w-fit cursor-pointer text-sm hover:underline"
-              onClick={() => toast.info("Not yet implemented")}
+              className="w-fit cursor-pointer text-sm hover:underline disabled:cursor-wait disabled:opacity-50"
+              disabled={isPending}
+              onClick={handleDownloadToServer}
             >
+              {isPending && (
+                <Loader2 className="mr-1 inline size-3.5 animate-spin" />
+              )}
               download-to-server
             </button>
             {detail.url ? (
@@ -214,7 +250,7 @@ export function DownloadDetailView({
                 href={detail.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline"
+                className="w-fit text-sm hover:underline"
               >
                 download-to-user
               </a>

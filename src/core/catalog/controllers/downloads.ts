@@ -4,7 +4,11 @@
  *************************************************************************/
 
 import DownloadCollection from "@catalog/collections/download-collection";
-import type { RelatedSeries } from "@catalog/collections/download-collection";
+import type {
+  RelatedSeries,
+  CreateDownloadPayload,
+  UpdateDownloadPayload,
+} from "@catalog/collections/download-collection";
 
 export type DownloadSummary = {
   id: number;
@@ -71,6 +75,7 @@ export type DownloadDetail = {
   sheetOverride: string | null;
   notes: string | null;
   savePath: string;
+  savePathRelative: string;
   logEntries: LogEntrySerialized[];
   relatedSeries: RelatedSeries[];
 };
@@ -102,6 +107,7 @@ export async function getDownloadDetail({ id }: { id: number }): Promise<Downloa
     sheetOverride: download.sheetOverride,
     notes: download.notes,
     savePath: download.savePath(),
+    savePathRelative: `rawdata/${download.sanitizeHandle()}.${download.filenameExt ?? "ext"}`,
     logEntries: logEntries.map((e) => ({
       id: e.id,
       url: e.url,
@@ -112,3 +118,54 @@ export async function getDownloadDetail({ id }: { id: number }): Promise<Downloa
     relatedSeries,
   };
 }
+
+export async function triggerDownloadToServer({ id }: { id: number }) {
+  return DownloadCollection.downloadToServer(id);
+}
+
+/** Serialized download data for populating the edit form */
+export type DownloadFormData = {
+  id: number;
+  handle: string;
+  url: string;
+  filenameExt: string;
+  dateSensitive: boolean;
+  freezeFile: boolean;
+  sort1: number | null;
+  sort2: number | null;
+  fileToExtract: string;
+  sheetOverride: string;
+  postParameters: string;
+  notes: string;
+};
+
+export async function getDownloadForEdit({ id }: { id: number }): Promise<DownloadFormData> {
+  const dl = await DownloadCollection.getById(id);
+  return {
+    id: dl.id,
+    handle: dl.handle ?? "",
+    url: dl.url ?? "",
+    filenameExt: dl.filenameExt ?? "xlsx",
+    dateSensitive: dl.dateSensitive,
+    freezeFile: dl.freezeFile,
+    sort1: dl.sort1,
+    sort2: dl.sort2,
+    fileToExtract: dl.fileToExtract ?? "",
+    sheetOverride: dl.sheetOverride ?? "",
+    postParameters: dl.postParameters ?? "",
+    notes: dl.notes ?? "",
+  };
+}
+
+export async function createDownload(payload: CreateDownloadPayload) {
+  return DownloadCollection.create(payload);
+}
+
+export async function updateDownload(id: number, payload: UpdateDownloadPayload) {
+  return DownloadCollection.update(id, payload);
+}
+
+export async function deleteDownload(id: number) {
+  return DownloadCollection.delete(id);
+}
+

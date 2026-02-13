@@ -49,3 +49,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 # Migrations needed
 1. dataPortalName is appears to be the only camelCase name in a database of snake_case names. setup a migration to rename to data_portal_name.
 2. 
+
+# Questions for Peter
+1. Is Forecast Upload still used?
+2. Is FC Universe used (would it be if we added some new features?)
+3. Any Reason to keep AREMOS comparison fields/features like diff & missing
+- check for any other abandoned or deprecated items

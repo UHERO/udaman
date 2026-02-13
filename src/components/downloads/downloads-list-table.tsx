@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import { ChevronsUpDown, Ban } from "lucide-react";
+import { useState, useTransition } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ChevronsUpDown, Ban, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  deleteDownloadAction,
+  downloadToServer,
+} from "@/actions/download-actions";
 import type { DomainGroup, DownloadSummary } from "@catalog/controllers/downloads";
+import { DeleteDownloadDialog } from "@/components/downloads/delete-download-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -27,7 +32,40 @@ function DownloadRow({
   dl: DownloadSummary;
   universe: string;
 }) {
+  const router = useRouter();
   const isOrphan = !dl.hasRelatedSeries && !dl.dateSensitive;
+  const [isDownloading, startDownload] = useTransition();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  function handleDownloadToServer() {
+    startDownload(async () => {
+      try {
+        const result = await downloadToServer(dl.id);
+        if (result.status === 200) {
+          toast.success(
+            result.changed
+              ? `${dl.handle}: Downloaded — file content changed`
+              : `${dl.handle}: Downloaded — no changes detected`,
+          );
+        } else {
+          toast.warning(`${dl.handle}: Download returned status ${result.status}`);
+        }
+        router.refresh();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Download failed");
+      }
+    });
+  }
+
+  async function handleDestroy() {
+    try {
+      await deleteDownloadAction(dl.id);
+      toast.success(`"${dl.handle}" deleted`);
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+    }
+  }
 
   return (
     <TableRow>
@@ -48,34 +86,45 @@ function DownloadRow({
       </TableCell>
       <TableCell>
         <Link
-          href={`/udaman/${universe}/downloads/${dl.id}`}
+          href={`/udaman/${universe}/downloads/${dl.id}/edit`}
           className="text-muted-foreground text-xs hover:underline"
         >
           edit
         </Link>
       </TableCell>
       <TableCell>
-        <button
-          className="text-muted-foreground cursor-pointer text-xs hover:underline"
-          onClick={() => toast.info("Not yet implemented")}
+        <Link
+          href={`/udaman/${universe}/downloads/${dl.id}/duplicate`}
+          className="text-muted-foreground text-xs hover:underline"
         >
           duplicate
-        </button>
+        </Link>
       </TableCell>
       <TableCell>
         <button
           className="text-destructive cursor-pointer text-xs hover:underline"
-          onClick={() => toast.info("Not yet implemented")}
+          onClick={() => setShowDeleteDialog(true)}
         >
           destroy
         </button>
+        <DeleteDownloadDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          handle={dl.handle}
+          onConfirm={handleDestroy}
+        />
       </TableCell>
       <TableCell>
         <button
-          className="text-muted-foreground cursor-pointer text-xs hover:underline"
-          onClick={() => toast.info("Not yet implemented")}
+          className="text-muted-foreground cursor-pointer text-xs hover:underline disabled:cursor-wait disabled:opacity-50"
+          disabled={isDownloading}
+          onClick={handleDownloadToServer}
         >
-          download-to-server
+          {isDownloading ? (
+            <Loader2 className="inline size-3 animate-spin" />
+          ) : (
+            "download-to-server"
+          )}
         </button>
       </TableCell>
       <TableCell>
