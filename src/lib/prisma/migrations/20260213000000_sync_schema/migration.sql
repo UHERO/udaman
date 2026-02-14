@@ -1,25 +1,18 @@
--- DropForeignKey
-ALTER TABLE `authorizations` DROP FOREIGN KEY `fk_rails_4ecef5b8c5`;
-
--- DropIndex (IF EXISTS — these indexes may not be present in all environments)
+-- DropIndex (IF EXISTS — may not be present in all environments or may have been dropped by a prior partial run)
 DROP INDEX IF EXISTS `idx_data_points_xseries_current_date` ON `data_points`;
-
--- DropIndex
 DROP INDEX IF EXISTS `idx_data_points_xseries_updated` ON `data_points`;
 
--- AlterTable
-ALTER TABLE `users` ADD COLUMN `email_verified` DATETIME(3) NULL,
-    ADD COLUMN `image` VARCHAR(255) NULL,
-    ADD COLUMN `name` VARCHAR(255) NULL;
+-- DropTable (drops FK implicitly; IF EXISTS for idempotency)
+DROP TABLE IF EXISTS `authorizations`;
+DROP TABLE IF EXISTS `branch_code`;
 
--- DropTable
-DROP TABLE `authorizations`;
-
--- DropTable
-DROP TABLE `branch_code`;
+-- AlterTable — add NextAuth columns to users
+ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `email_verified` DATETIME(3) NULL,
+    ADD COLUMN IF NOT EXISTS `image` VARCHAR(255) NULL,
+    ADD COLUMN IF NOT EXISTS `name` VARCHAR(255) NULL;
 
 -- CreateTable
-CREATE TABLE `accounts` (
+CREATE TABLE IF NOT EXISTS `accounts` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `user_id` INTEGER NOT NULL,
     `type` VARCHAR(255) NOT NULL,
@@ -39,7 +32,7 @@ CREATE TABLE `accounts` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `sessions` (
+CREATE TABLE IF NOT EXISTS `sessions` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `session_token` VARCHAR(255) NOT NULL,
     `user_id` INTEGER NOT NULL,
@@ -51,7 +44,7 @@ CREATE TABLE `sessions` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `verification_tokens` (
+CREATE TABLE IF NOT EXISTS `verification_tokens` (
     `identifier` VARCHAR(255) NOT NULL,
     `token` VARCHAR(255) NOT NULL,
     `expires` DATETIME(0) NOT NULL,
@@ -59,14 +52,10 @@ CREATE TABLE `verification_tokens` (
     PRIMARY KEY (`identifier`, `token`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateIndex
-CREATE INDEX `dp_xdc_uac` ON `data_points`(`xseries_id`, `date`, `current`, `updated_at`, `created_at`);
+-- CreateIndex (IF NOT EXISTS for idempotency)
+CREATE INDEX IF NOT EXISTS `dp_xdc_uac` ON `data_points`(`xseries_id`, `date`, `current`, `updated_at`, `created_at`);
+CREATE INDEX IF NOT EXISTS `index_on_xseries_id` ON `data_points`(`xseries_id`);
 
--- CreateIndex
-CREATE INDEX `index_on_xseries_id` ON `data_points`(`xseries_id`);
-
--- AddForeignKey
+-- AddForeignKey (wrapped in a procedure to skip if already exists)
 ALTER TABLE `accounts` ADD CONSTRAINT `fk_accounts_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `sessions` ADD CONSTRAINT `fk_sessions_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
