@@ -4,9 +4,10 @@ export default function ForecastUploadPage() {
   return (
     <div className="p-8">
       <H1>Forecast Series Upload</H1>
-      <Lead className="mt-4">Appears to be abandoned</Lead>
-      <p className="text-muted-foreground mt-2 text-lg">
-        Last used in 2021. Discuss with Peter before implementing or removing.
+      <Lead className="mt-4">Upload Forecast TSDs</Lead>
+      <p className="text-muted-foreground mt-2 max-w-xl text-lg">
+        Past forecast files currently exist in Google Drive. Configure this page
+        to allow uploads so that Forecasts can be reviewed, charted, etc.
       </p>
     </div>
   );

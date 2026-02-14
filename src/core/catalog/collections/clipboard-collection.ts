@@ -5,6 +5,7 @@ import type { SeasonalAdjustment } from "../types/shared";
 /** Row shape returned by the clipboard summary query. */
 export interface ClipboardSeriesRow {
   id: number;
+  xseriesId: number;
   name: string;
   frequency: string | null;
   seasonalAdjustment: SeasonalAdjustment | null;
@@ -15,9 +16,14 @@ export interface ClipboardSeriesRow {
   maxDate: Date | null;
 }
 
+/**
+ * The `clipboards` view (users ⨝ user_series ⨝ series) is used for reads.
+ * The underlying `user_series` table (user_id, series_id) is used for writes.
+ */
 class ClipboardCollection {
   /**
    * Get all series on the user's clipboard with summary info for display.
+   * Reads from the clipboards view and joins xseries for frequency/SA.
    */
   static async list(userId: number): Promise<ClipboardSeriesRow[]> {
     const rows = await mysql<{
@@ -72,6 +78,7 @@ class ClipboardCollection {
       const dateInfo = dateMap.get(r.xseries_id);
       return {
         id: r.id,
+        xseriesId: r.xseries_id,
         name: r.name,
         frequency: r.frequency,
         seasonalAdjustment: r.seasonal_adjustment as SeasonalAdjustment | null,
@@ -115,7 +122,6 @@ class ClipboardCollection {
 
     const before = await this.count(userId);
 
-    // Insert each one with INSERT IGNORE
     for (const sid of seriesIds) {
       await mysql`
         INSERT IGNORE INTO user_series (user_id, series_id)
@@ -203,12 +209,21 @@ class ClipboardCollection {
     return map;
   }
 
-  /** Get series IDs on the clipboard (for bulk operations). */
+  /**
+   * Get all series IDs for clipboard entries (for bulk operations).
+   * Returns series IDs across ALL universes for each xseries on the clipboard,
+   * so bulk operations apply cross-universe.
+   */
   static async getSeriesIds(userId: number): Promise<number[]> {
-    const rows = await mysql<{ series_id: number }>`
-      SELECT series_id FROM user_series WHERE user_id = ${userId}
+    const rows = await mysql<{ id: number }>`
+      SELECT s.id
+      FROM user_series us
+        JOIN series s ON s.xseries_id = (
+          SELECT xseries_id FROM series WHERE id = us.series_id
+        )
+      WHERE us.user_id = ${userId}
     `;
-    return rows.map((r) => Number(r.series_id));
+    return rows.map((r) => Number(r.id));
   }
 }
 
