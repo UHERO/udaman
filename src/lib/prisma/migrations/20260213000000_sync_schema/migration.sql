@@ -1,11 +1,11 @@
 -- DropForeignKey
 ALTER TABLE `authorizations` DROP FOREIGN KEY `fk_rails_4ecef5b8c5`;
 
--- DropIndex
-DROP INDEX `idx_data_points_xseries_current_date` ON `data_points`;
+-- DropIndex (IF EXISTS — these indexes may not be present in all environments)
+DROP INDEX IF EXISTS `idx_data_points_xseries_current_date` ON `data_points`;
 
 -- DropIndex
-DROP INDEX `idx_data_points_xseries_updated` ON `data_points`;
+DROP INDEX IF EXISTS `idx_data_points_xseries_updated` ON `data_points`;
 
 -- AlterTable
 ALTER TABLE `users` ADD COLUMN `email_verified` DATETIME(3) NULL,
