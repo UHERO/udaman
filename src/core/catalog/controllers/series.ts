@@ -1,3 +1,4 @@
+import "server-only";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";

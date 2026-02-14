@@ -1,3 +1,4 @@
+import "server-only";
 /*************************************************************************
  * EXPORTS Controller
  * For exporting series data as CSV, table, etc.

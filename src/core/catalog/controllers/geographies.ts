@@ -1,3 +1,4 @@
+import "server-only";
 import { createLogger } from "@/core/observability/logger";
 
 import GeographyCollection from "../collections/geography-collection";

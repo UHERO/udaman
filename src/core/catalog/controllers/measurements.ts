@@ -1,3 +1,4 @@
+import "server-only";
 import { createLogger } from "@/core/observability/logger";
 
 import MeasurementCollection from "../collections/measurement-collection";

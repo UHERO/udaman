@@ -1,3 +1,4 @@
+import "server-only";
 import { createLogger } from "@/core/observability/logger";
 
 import CategoryCollection from "../collections/category-collection";

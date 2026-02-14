@@ -1,3 +1,4 @@
+import "server-only";
 /*************************************************************************
  * DOWNLOADS Controller
  * For downloading the file a series is derived from.
