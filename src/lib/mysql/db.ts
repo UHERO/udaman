@@ -1,3 +1,4 @@
+import "server-only";
 import { SQL } from "bun";
 
 import { createLogger } from "@/core/observability/logger";
