@@ -4,7 +4,10 @@ const config = {
   singleQuote: false,
   tabWidth: 2,
   trailingComma: "all",
-  plugins: ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+  plugins: [
+    "@ianvs/prettier-plugin-sort-imports",
+    "prettier-plugin-tailwindcss",
+  ],
   importOrder: [
     "<BUILTIN_MODULES>",
     "",

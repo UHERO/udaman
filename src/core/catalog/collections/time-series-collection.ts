@@ -1,5 +1,6 @@
 import { mysql, rawQuery } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
+
 import TimeSeries from "../models/time-series";
 import type { TimeSeriesAttrs } from "../models/time-series";
 import type { SeasonalAdjustment } from "../types/shared";
@@ -104,14 +105,16 @@ class TimeSeriesCollection {
       ] as any[],
     );
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a TimeSeries record. Returns the updated model instance. */
   static async update(
     id: number,
-    payload: UpdateTimeSeriesPayload
+    payload: UpdateTimeSeriesPayload,
   ): Promise<TimeSeries> {
     const updateObj = buildUpdateObject(payload);
     const cols = Object.keys(updateObj);
@@ -136,7 +139,7 @@ class TimeSeriesCollection {
   /** Set the primary series for a TimeSeries. */
   static async setPrimarySeries(
     id: number,
-    seriesId: number
+    seriesId: number,
   ): Promise<TimeSeries> {
     return this.update(id, { primarySeriesId: seriesId });
   }
@@ -144,7 +147,7 @@ class TimeSeriesCollection {
   /** Update the base year for a TimeSeries. */
   static async setBaseYear(
     id: number,
-    baseYear: number | null
+    baseYear: number | null,
   ): Promise<TimeSeries> {
     return this.update(id, { baseYear });
   }

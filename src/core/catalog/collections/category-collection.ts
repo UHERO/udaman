@@ -3,7 +3,11 @@ import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Category from "../models/category";
 import type { CategoryAttrs } from "../models/category";
-import type { Universe, CreateCategoryPayload, UpdateCategoryPayload } from "../types/shared";
+import type {
+  CreateCategoryPayload,
+  Universe,
+  UpdateCategoryPayload,
+} from "../types/shared";
 
 export interface CategoryNode {
   category: Category;
@@ -12,7 +16,9 @@ export interface CategoryNode {
 
 class CategoryCollection {
   /** List categories by universe, optionally excluding one by ID */
-  static async list(options: { universe?: Universe; excludeId?: number } = {}): Promise<Category[]> {
+  static async list(
+    options: { universe?: Universe; excludeId?: number } = {},
+  ): Promise<Category[]> {
     const { universe = "UHERO", excludeId } = options;
     if (excludeId) {
       const rows = await mysql<CategoryAttrs>`
@@ -71,7 +77,8 @@ class CategoryCollection {
     const ancestry = parent ? parent.path : null;
     const listOrder = await this.nextListOrder(ancestry);
     const categoryUniverse = universe ?? parent?.universe ?? "UHERO";
-    const maskedValue = masked ?? (parent ? parent.masked || parent.hidden : false);
+    const maskedValue =
+      masked ?? (parent ? parent.masked || parent.hidden : false);
 
     await mysql`
       INSERT INTO categories (
@@ -86,12 +93,17 @@ class CategoryCollection {
       )
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a category with given fields */
-  static async update(id: number, updates: UpdateCategoryPayload): Promise<Category> {
+  static async update(
+    id: number,
+    updates: UpdateCategoryPayload,
+  ): Promise<Category> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);

@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { SeriesFormOptions } from "@catalog/types/form-options";
+import type { SeriesMetadata, Universe } from "@catalog/types/shared";
 import {
   ClipboardPlus,
   Copy,
@@ -13,10 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { SeriesMetadata, Universe } from "@catalog/types/shared";
-import type { SeriesFormOptions } from "@catalog/types/form-options";
 import { addSeriesToClipboard } from "@/actions/clipboard-actions";
-
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import {

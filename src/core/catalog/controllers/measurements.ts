@@ -1,7 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe } from "../types/shared";
+
 import MeasurementCollection from "../collections/measurement-collection";
-import type { CreateMeasurementPayload, UpdateMeasurementPayload } from "../collections/measurement-collection";
+import type {
+  CreateMeasurementPayload,
+  UpdateMeasurementPayload,
+} from "../collections/measurement-collection";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.measurements");
 
@@ -29,7 +33,13 @@ export async function getMeasurement({ id }: { id: number }) {
   return { data };
 }
 
-export async function getMeasurementByPrefix({ prefix, universe }: { prefix: string; universe?: Universe }) {
+export async function getMeasurementByPrefix({
+  prefix,
+  universe,
+}: {
+  prefix: string;
+  universe?: Universe;
+}) {
   log.info({ prefix, universe }, "fetching measurement by prefix");
   const data = await MeasurementCollection.getByPrefix(prefix, universe);
   return { data };
@@ -42,26 +52,48 @@ export async function getMeasurementSeriesIds({ id }: { id: number }) {
   return { data };
 }
 
-export async function addMeasurementSeries({ measurementId, seriesId }: { measurementId: number; seriesId: number }) {
+export async function addMeasurementSeries({
+  measurementId,
+  seriesId,
+}: {
+  measurementId: number;
+  seriesId: number;
+}) {
   log.info({ measurementId, seriesId }, "adding series to measurement");
   await MeasurementCollection.addSeries(measurementId, seriesId);
   log.info({ measurementId, seriesId }, "series added to measurement");
 }
 
-export async function removeMeasurementSeries({ measurementId, seriesId }: { measurementId: number; seriesId: number }) {
+export async function removeMeasurementSeries({
+  measurementId,
+  seriesId,
+}: {
+  measurementId: number;
+  seriesId: number;
+}) {
   log.info({ measurementId, seriesId }, "removing series from measurement");
   await MeasurementCollection.removeSeries(measurementId, seriesId);
   log.info({ measurementId, seriesId }, "series removed from measurement");
 }
 
-export async function createMeasurement({ payload }: { payload: CreateMeasurementPayload }) {
+export async function createMeasurement({
+  payload,
+}: {
+  payload: CreateMeasurementPayload;
+}) {
   log.info({ payload }, "creating measurement");
   const data = await MeasurementCollection.create(payload);
   log.info({ id: data.id }, "measurement created");
   return { message: "Measurement created", data };
 }
 
-export async function updateMeasurement({ id, payload }: { id: number; payload: UpdateMeasurementPayload }) {
+export async function updateMeasurement({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateMeasurementPayload;
+}) {
   log.info({ id, payload }, "updating measurement");
   const data = await MeasurementCollection.update(id, payload);
   log.info({ id }, "measurement updated");

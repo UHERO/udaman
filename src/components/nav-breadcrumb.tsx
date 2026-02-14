@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Fragment } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import {
@@ -72,7 +72,9 @@ export function NavBreadcrumb() {
           return (
             <Fragment key={crumb.href}>
               <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem className={!isLast ? "hidden md:block" : undefined}>
+              <BreadcrumbItem
+                className={!isLast ? "hidden md:block" : undefined}
+              >
                 {isLast ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                 ) : (

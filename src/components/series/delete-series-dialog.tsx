@@ -1,8 +1,8 @@
 "use client";
 
-import { Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteSeries } from "@/actions/series-actions";

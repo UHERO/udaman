@@ -1,46 +1,45 @@
 "use server";
 
-import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createLogger } from "@/core/observability/logger";
-import {
-  getSeries as fetchSeries,
-  getSeriesById as fetchSeriesById,
-  getSourceMap as fetchSourceMap,
-  deleteSeriesDataPoints as deleteDataPointsCtrl,
-  updateSeries as updateSeriesCtrl,
-  duplicateSeries as duplicateSeriesCtrl,
-  deleteSeries as deleteSeriesCtrl,
-  searchSeries,
-  getSeriesWithNullField as fetchSeriesWithNullField,
-  getQuarantinedSeries as fetchQuarantinedSeries,
-  unquarantineSeries as unquarantineSeriesCtrl,
-  emptyQuarantine as emptyQuarantineCtrl,
-  analyzeSeries as analyzeSeriesCtrl,
-  transformSeries as transformSeriesCtrl,
-} from "@catalog/controllers/series";
+import { notFound } from "next/navigation";
 import DataPointCollection from "@catalog/collections/data-point-collection";
+import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { CreateSeriesPayload } from "@catalog/collections/series-collection";
-import LoaderCollection from "@catalog/collections/loader-collection";
-import { transaction } from "@database/mysql";
+import {
+  analyzeSeries as analyzeSeriesCtrl,
+  deleteSeriesDataPoints as deleteDataPointsCtrl,
+  deleteSeries as deleteSeriesCtrl,
+  duplicateSeries as duplicateSeriesCtrl,
+  emptyQuarantine as emptyQuarantineCtrl,
+  getQuarantinedSeries as fetchQuarantinedSeries,
+  getSeries as fetchSeries,
+  getSeriesById as fetchSeriesById,
+  getSeriesWithNullField as fetchSeriesWithNullField,
+  getSourceMap as fetchSourceMap,
+  searchSeries,
+  transformSeries as transformSeriesCtrl,
+  unquarantineSeries as unquarantineSeriesCtrl,
+  updateSeries as updateSeriesCtrl,
+} from "@catalog/controllers/series";
 import type {
   AnalyzeResult,
   SeasonalAdjustment,
   SourceMapNode,
   Universe,
 } from "@catalog/types/shared";
+import { transaction } from "@database/mysql";
+
 import { getGeographies } from "@/core/catalog/controllers/geographies";
-import { getUnits } from "@/core/catalog/controllers/units";
-import { getSources } from "@/core/catalog/controllers/sources";
 import { getSourceDetails } from "@/core/catalog/controllers/source-details";
+import { getSources } from "@/core/catalog/controllers/sources";
+import { getUnits } from "@/core/catalog/controllers/units";
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.series");
 
 /** Used in series summary page */
-export async function getSeries(params: {
-  universe?: Universe;
-}) {
+export async function getSeries(params: { universe?: Universe }) {
   const universe = params.universe ?? "UHERO";
   log.info({ universe }, "getSeries action called");
   const result = await fetchSeries({ universe });
@@ -48,10 +47,16 @@ export async function getSeries(params: {
   return result.data;
 }
 
-export async function getSeriesById(id: number, _params?: { universe?: Universe }) {
+export async function getSeriesById(
+  id: number,
+  _params?: { universe?: Universe },
+) {
   log.info({ id }, "getSeriesById action called");
   const result = await fetchSeriesById({ id });
-  log.info({ id, dataPointCount: result.data.dataPoints.length }, "getSeriesById action completed");
+  log.info(
+    { id, dataPointCount: result.data.dataPoints.length },
+    "getSeriesById action completed",
+  );
   return {
     ...result.data,
     aliases: result.data.aliases,
@@ -60,7 +65,7 @@ export async function getSeriesById(id: number, _params?: { universe?: Universe 
 
 export async function getSourceMap(
   _id: number,
-  queryParams: { name: string | null }
+  queryParams: { name: string | null },
 ): Promise<SourceMapNode[]> {
   const { name } = queryParams;
   if (name === null) return notFound();
@@ -75,10 +80,13 @@ export async function deleteSeriesDataPoints(
     universe: string;
     date: string;
     deleteBy: "observationDate" | "vintageDate" | "none";
-  }
+  },
 ) {
   const { universe, date, deleteBy } = queryParams;
-  log.info({ id, universe, deleteBy, date }, "deleteSeriesDataPoints action called");
+  log.info(
+    { id, universe, deleteBy, date },
+    "deleteSeriesDataPoints action called",
+  );
   const result = await deleteDataPointsCtrl({
     id,
     u: universe as Universe,
@@ -93,12 +101,12 @@ export async function searchSeriesAction(term: string, universe: string) {
   return await searchSeries({ term, universe });
 }
 
-/** Returns 
+/** Returns
  * - Geographies
  * - Units
  * - Sources
  * - Source Details
- * 
+ *
  * Seasonal Adjustments and Frequencies can be kept in a constants.ts file somewhere.
  */
 export async function getFormOptions({ universe }: { universe: Universe }) {
@@ -106,34 +114,44 @@ export async function getFormOptions({ universe }: { universe: Universe }) {
     getGeographies({ u: universe }),
     getUnits({ u: universe }),
     getSources({ u: universe }),
-    getSourceDetails({ u: universe })
+    getSourceDetails({ u: universe }),
   ]);
 
   return {
-    geographies: geographies.data.map(g => g.toJSON()),
-    units: units.data.map(g => g.toJSON()),
-    sources: sources.data.map(g => g.toJSON()),
-    sourceDetails: sourceDetails.data.map(g => g.toJSON()),
-  }
-
+    geographies: geographies.data.map((g) => g.toJSON()),
+    units: units.data.map((g) => g.toJSON()),
+    sources: sources.data.map((g) => g.toJSON()),
+    sourceDetails: sourceDetails.data.map((g) => g.toJSON()),
+  };
 }
 
 export async function getDataPointVintages(xseriesId: number, date: string) {
   log.info({ xseriesId, date }, "getDataPointVintages action called");
-  const vintages = await DataPointCollection.getVintagesByDate({ xseriesId, date });
-  log.info({ xseriesId, date, count: vintages.length }, "getDataPointVintages action completed");
+  const vintages = await DataPointCollection.getVintagesByDate({
+    xseriesId,
+    date,
+  });
+  log.info(
+    { xseriesId, date, count: vintages.length },
+    "getDataPointVintages action completed",
+  );
   return vintages;
 }
 
 export async function getAllDataPointVintages(xseriesId: number) {
   log.info({ xseriesId }, "getAllDataPointVintages action called");
   const vintages = await DataPointCollection.getAllVintages({ xseriesId });
-  log.info({ xseriesId, dates: Object.keys(vintages).length }, "getAllDataPointVintages action completed");
+  log.info(
+    { xseriesId, dates: Object.keys(vintages).length },
+    "getAllDataPointVintages action completed",
+  );
   return vintages;
 }
 
 /** Resolve series names to their IDs. Returns a name→id map. */
-export async function resolveSeriesIds(names: string[]): Promise<Record<string, number>> {
+export async function resolveSeriesIds(
+  names: string[],
+): Promise<Record<string, number>> {
   return SeriesCollection.getIdsByNames(names);
 }
 
@@ -159,7 +177,10 @@ export interface CreateSeriesFormPayload {
 }
 
 export async function createSeries(payload: CreateSeriesFormPayload) {
-  log.info({ name: payload.name, universe: payload.universe }, "createSeries action called");
+  log.info(
+    { name: payload.name, universe: payload.universe },
+    "createSeries action called",
+  );
 
   const createPayload: CreateSeriesPayload = {
     name: payload.name,
@@ -181,7 +202,10 @@ export async function createSeries(payload: CreateSeriesFormPayload) {
   };
 
   const series = await SeriesCollection.create(createPayload);
-  log.info({ id: series.id, name: series.name }, "createSeries action completed");
+  log.info(
+    { id: series.id, name: series.name },
+    "createSeries action completed",
+  );
   revalidatePath(`/udaman/${payload.universe}/series`);
   return series.toJSON();
 }
@@ -218,7 +242,7 @@ export interface BulkCreatePayload {
 }
 
 export async function bulkCreateSeries(
-  payload: BulkCreatePayload
+  payload: BulkCreatePayload,
 ): Promise<{ successCount: number; errors: string[] }> {
   const { universe, definitions, ...optionalMeta } = payload;
   log.info({ universe }, "bulkCreateSeries action called");
@@ -238,7 +262,9 @@ export async function bulkCreateSeries(
   for (let i = 0; i < lines.length; i++) {
     const result = parseBulkLine(lines[i]);
     if (!result) {
-      parseErrors.push(`Line ${i + 1}: invalid format — ${lines[i].slice(0, 80)}`);
+      parseErrors.push(
+        `Line ${i + 1}: invalid format — ${lines[i].slice(0, 80)}`,
+      );
     } else {
       parsed.push(result);
     }
@@ -251,18 +277,27 @@ export async function bulkCreateSeries(
   // Build shared metadata (only non-empty values)
   const sharedMeta: Partial<CreateSeriesPayload> = {};
   if (optionalMeta.unitId != null) sharedMeta.unitId = optionalMeta.unitId;
-  if (optionalMeta.sourceId != null) sharedMeta.sourceId = optionalMeta.sourceId;
-  if (optionalMeta.sourceDetailId != null) sharedMeta.sourceDetailId = optionalMeta.sourceDetailId;
-  if (optionalMeta.decimals != null) sharedMeta.decimals = optionalMeta.decimals;
-  if (optionalMeta.description) sharedMeta.description = optionalMeta.description;
+  if (optionalMeta.sourceId != null)
+    sharedMeta.sourceId = optionalMeta.sourceId;
+  if (optionalMeta.sourceDetailId != null)
+    sharedMeta.sourceDetailId = optionalMeta.sourceDetailId;
+  if (optionalMeta.decimals != null)
+    sharedMeta.decimals = optionalMeta.decimals;
+  if (optionalMeta.description)
+    sharedMeta.description = optionalMeta.description;
   if (optionalMeta.sourceLink) sharedMeta.sourceLink = optionalMeta.sourceLink;
-  if (optionalMeta.seasonalAdjustment) sharedMeta.seasonalAdjustment = optionalMeta.seasonalAdjustment;
-  if (optionalMeta.frequencyTransform) sharedMeta.frequencyTransform = optionalMeta.frequencyTransform;
+  if (optionalMeta.seasonalAdjustment)
+    sharedMeta.seasonalAdjustment = optionalMeta.seasonalAdjustment;
+  if (optionalMeta.frequencyTransform)
+    sharedMeta.frequencyTransform = optionalMeta.frequencyTransform;
   if (optionalMeta.percent != null) sharedMeta.percent = optionalMeta.percent;
   if (optionalMeta.real != null) sharedMeta.real = optionalMeta.real;
-  if (optionalMeta.restricted != null) sharedMeta.restricted = optionalMeta.restricted;
-  if (optionalMeta.quarantined != null) sharedMeta.quarantined = optionalMeta.quarantined;
-  if (optionalMeta.investigationNotes) sharedMeta.investigationNotes = optionalMeta.investigationNotes;
+  if (optionalMeta.restricted != null)
+    sharedMeta.restricted = optionalMeta.restricted;
+  if (optionalMeta.quarantined != null)
+    sharedMeta.quarantined = optionalMeta.quarantined;
+  if (optionalMeta.investigationNotes)
+    sharedMeta.investigationNotes = optionalMeta.investigationNotes;
 
   // Process within a transaction
   const errors: string[] = [];

@@ -1,6 +1,7 @@
+import ClipboardCollection from "@catalog/collections/clipboard-collection";
+
 import { getCurrentUserId } from "@/lib/auth";
 import { scopedConnection } from "@/lib/mysql/db";
-import ClipboardCollection from "@catalog/collections/clipboard-collection";
 
 const MAX_SERIES = 500;
 const ROW_BATCH = 500;

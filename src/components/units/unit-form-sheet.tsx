@@ -1,11 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { Universe } from "@catalog/types/shared";
 import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -105,7 +105,9 @@ export function UnitFormSheet({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save unit");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save unit",
+      );
     }
   }
 
@@ -114,7 +116,7 @@ export function UnitFormSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader className="pb-0 pt-3">
+        <SheetHeader className="pt-3 pb-0">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
             {mode === "create"

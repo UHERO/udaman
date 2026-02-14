@@ -1,9 +1,9 @@
 "use client";
 
+import type { UseFormReturn } from "react-hook-form";
 import type { GeographyOption } from "@catalog/types/form-options";
 import type { Frequency } from "@catalog/types/shared";
 import { frequencies } from "@catalog/utils/validators";
-import type { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
 import {
@@ -67,7 +67,7 @@ export function parseSeriesName(name: string | null): {
 export function assembleSeriesName(
   prefix: string,
   geo: string,
-  freq: string
+  freq: string,
 ): string {
   return `${prefix.toUpperCase()}@${geo.toUpperCase()}.${freq.toUpperCase()}`;
 }
@@ -75,10 +75,10 @@ export function assembleSeriesName(
 /** Resolve a geography handle to its ID */
 export function resolveGeoId(
   handle: string,
-  geographies: GeographyOption[]
+  geographies: GeographyOption[],
 ): number | null {
   const geo = geographies.find(
-    (g) => g.handle?.toUpperCase() === handle.toUpperCase()
+    (g) => g.handle?.toUpperCase() === handle.toUpperCase(),
   );
   return geo?.id ?? null;
 }

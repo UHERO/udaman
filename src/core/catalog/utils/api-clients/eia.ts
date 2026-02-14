@@ -40,7 +40,9 @@ export async function fetchSeries(
 
   const apiData = response.response?.data;
   if (!apiData || apiData.length === 0) {
-    throw new Error("EIA API: Response is empty; check parameters, they are case-sensitive");
+    throw new Error(
+      "EIA API: Response is empty; check parameters, they are case-sensitive",
+    );
   }
 
   const data = new Map<string, number>();

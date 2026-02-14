@@ -3,6 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { SerializedLoader } from "@catalog/models/loader";
+import Series from "@catalog/models/series";
+import type { Universe } from "@catalog/types/shared";
+import { formatRuntime, uheroDate } from "@catalog/utils/time";
+import { format } from "date-fns";
+import { Clock10, ClockPlus } from "lucide-react";
+import { toast } from "sonner";
+
 import {
   clearLoader,
   deleteLoader,
@@ -14,15 +22,8 @@ import {
   deleteSeriesDataPoints,
   resolveSeriesIds,
 } from "@/actions/series-actions";
-import type { SerializedLoader } from "@catalog/models/loader";
-import Series from "@catalog/models/series";
-import type { Universe } from "@catalog/types/shared";
-import { formatRuntime, uheroDate } from "@catalog/utils/time";
-import { format } from "date-fns";
-import { Clock10, ClockPlus } from "lucide-react";
-import { toast } from "sonner";
-
-import { cn } from "@/lib/utils";
+import { LoaderCreateDialog } from "@/components/loaders/loader-create-dialog";
+import { LoaderEditSheet } from "@/components/loaders/loader-edit-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,16 +44,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LoaderCreateDialog } from "@/components/loaders/loader-create-dialog";
-import { LoaderEditSheet } from "@/components/loaders/loader-edit-sheet";
+import { cn } from "@/lib/utils";
 
 import { getColor } from "../helpers";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 
 /** Split text into segments, extracting HTML anchor tags as typed parts. */
-function splitTextSegments(text: string): Array<{ type: "text"; value: string } | { type: "link"; href: string; label: string }> {
-  const parts: Array<{ type: "text"; value: string } | { type: "link"; href: string; label: string }> = [];
+function splitTextSegments(
+  text: string,
+): Array<
+  | { type: "text"; value: string }
+  | { type: "link"; href: string; label: string }
+> {
+  const parts: Array<
+    | { type: "text"; value: string }
+    | { type: "link"; href: string; label: string }
+  > = [];
   const anchorRegex = /<a\s+href="([^"]*)"[^>]*>([^<]*)<\/a>/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -262,7 +270,7 @@ export const LoaderSection = ({
           <DisabledLoaderItem key={`data-loader-${i}`} loader={l} />
         ) : (
           <LoaderItem key={`data-loader-${i}`} universe={universe} loader={l} />
-        )
+        ),
       )}
 
       <LoaderCreateDialog
@@ -481,7 +489,7 @@ const LoaderItem = ({
         <span
           className={cn(
             "ml-auto",
-            parseInt(loader.scale) === 1 && "text-primary/60"
+            parseInt(loader.scale) === 1 && "text-primary/60",
           )}
         >{`scale: ${loader.scale}`}</span>
       </CardFooter>

@@ -1,7 +1,9 @@
-import { existsSync, readFileSync, mkdirSync } from "node:fs";
+import "server-only";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { mysql, buildUpdateObject } from "@/lib/mysql/helpers";
+import { buildUpdateObject, mysql } from "@/lib/mysql/helpers";
+
 import Download from "../models/download";
 import type { DownloadAttrs } from "../models/download";
 
@@ -11,7 +13,9 @@ class DownloadCollection {
    * Includes `hasRelatedSeries` — true if any data_sources.eval references the handle.
    * Date-sensitive downloads skip the check (they are never considered orphaned).
    */
-  static async list(): Promise<{ download: Download; hasRelatedSeries: boolean }[]> {
+  static async list(): Promise<
+    { download: Download; hasRelatedSeries: boolean }[]
+  > {
     // 1. Fetch all downloads
     const rows = await mysql<DownloadAttrs>`
       SELECT * FROM downloads ORDER BY handle ASC
@@ -102,7 +106,9 @@ class DownloadCollection {
    * Mirrors the Rails `Download#download` method.
    * Returns a summary of the result.
    */
-  static async downloadToServer(id: number): Promise<{ status: number; changed: boolean }> {
+  static async downloadToServer(
+    id: number,
+  ): Promise<{ status: number; changed: boolean }> {
     const dl = await this.getById(id);
     if (dl.freezeFile) {
       throw new Error(`Download "${dl.handle}" is temporarily frozen`);
@@ -112,7 +118,10 @@ class DownloadCollection {
     }
 
     const resp = await fetch(dl.url.trim(), {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)" },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; UDAMAN/1.0; UHERO Data Manager)",
+      },
       signal: AbortSignal.timeout(120_000),
     });
 
@@ -219,7 +228,10 @@ class DownloadCollection {
   }
 
   /** Update an existing download */
-  static async update(id: number, payload: UpdateDownloadPayload): Promise<Download> {
+  static async update(
+    id: number,
+    payload: UpdateDownloadPayload,
+  ): Promise<Download> {
     const updateObj = buildUpdateObject(payload);
     const cols = Object.keys(updateObj);
     if (cols.length === 0) return this.getById(id);

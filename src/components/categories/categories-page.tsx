@@ -24,7 +24,7 @@ export function Categories({
 
   // Find the root category for this universe to use as parent
   const rootCategory = data.find(
-    (cat) => cat.ancestry === null && cat.universe === (universe ?? "UHERO")
+    (cat) => cat.ancestry === null && cat.universe === (universe ?? "UHERO"),
   );
 
   const handleCreate = () => {

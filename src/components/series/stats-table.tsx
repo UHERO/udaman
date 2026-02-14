@@ -5,7 +5,12 @@ interface StatsTableProps {
   decimals: number;
 }
 
-export function StatsTable({ mean, median, standardDeviation, decimals }: StatsTableProps) {
+export function StatsTable({
+  mean,
+  median,
+  standardDeviation,
+  decimals,
+}: StatsTableProps) {
   const fmt = (n: number | null) => (n != null ? n.toFixed(decimals) : "-");
 
   return (

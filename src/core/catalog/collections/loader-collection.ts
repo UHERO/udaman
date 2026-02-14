@@ -1,11 +1,11 @@
+import { createLogger } from "@/core/observability/logger";
 import { mysql } from "@/lib/mysql/db";
 import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import Loader from "../models/loader";
 import type { LoaderAttrs } from "../models/loader";
-import type { Universe, SourceMapNode } from "../types/shared";
+import type { SourceMapNode, Universe } from "../types/shared";
 import type { CreateLoaderPayload } from "../types/sources";
-import { createLogger } from "@/core/observability/logger";
 import EvalExecutor from "../utils/eval-executor";
 import SeriesCollection from "./series-collection";
 
@@ -58,8 +58,6 @@ export type ReloadResult = {
 };
 
 class LoaderCollection {
-
-
   /** List all loaders, optionally filtered by universe */
   static async list(options: { universe?: Universe } = {}): Promise<Loader[]> {
     const { universe } = options;
@@ -133,7 +131,7 @@ class LoaderCollection {
     const optimalColor = await this.calculateColor(
       seriesId,
       loaderType,
-      colorPalette
+      colorPalette,
     );
     const dependencies = Loader.extractDependencies(description || "", code);
 
@@ -161,12 +159,17 @@ class LoaderCollection {
       )
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a loader */
-  static async update(id: number, updates: UpdateLoaderPayload): Promise<Loader> {
+  static async update(
+    id: number,
+    updates: UpdateLoaderPayload,
+  ): Promise<Loader> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);
@@ -216,14 +219,14 @@ class LoaderCollection {
    */
   static async getDependencyTree(
     seriesName: string,
-    options: { directOnly?: boolean } = {}
+    options: { directOnly?: boolean } = {},
   ): Promise<SourceMapNode[]> {
     const { directOnly = false } = options;
     const seen = new Set<string>();
 
     async function buildNodes(
       name: string,
-      level: number
+      level: number,
     ): Promise<SourceMapNode[]> {
       if (seen.has(name)) return [];
       seen.add(name);
@@ -299,7 +302,7 @@ class LoaderCollection {
   static async calculateColor(
     seriesId: number,
     loaderType: string,
-    palette: string[]
+    palette: string[],
   ): Promise<string> {
     const existing = await mysql<ColorUsageRow>`
       SELECT ds.color, COUNT(*) as usage_count
@@ -342,13 +345,21 @@ class LoaderCollection {
     return optimalColor;
   }
   /** Adapted from DataSource.reload_source */
-  static async reload({ loader, clearFirst }: { loader: Loader; clearFirst: boolean }): Promise<ReloadResult> {
-    if (loader.disabled) return { status: "skipped", message: "Loader is disabled" };
-    if (!loader.eval) return { status: "skipped", message: "Loader has no eval expression" };
+  static async reload({
+    loader,
+    clearFirst,
+  }: {
+    loader: Loader;
+    clearFirst: boolean;
+  }): Promise<ReloadResult> {
+    if (loader.disabled)
+      return { status: "skipped", message: "Loader is disabled" };
+    if (!loader.eval)
+      return { status: "skipped", message: "Loader has no eval expression" };
 
     log.info(
       { series: loader.seriesId },
-      `Begin reload of definition ${loader.id} for series ${loader.seriesId}. [${loader.description}]`
+      `Begin reload of definition ${loader.id} for series ${loader.seriesId}. [${loader.description}]`,
     );
 
     const t = new Date();
@@ -402,11 +413,17 @@ class LoaderCollection {
       updateProps.description = result.name ?? loader.description;
       updateProps.runtime = runtime;
 
-      log.info({ series: loader.seriesId, runtime }, `Completed reload of definition ${loader.id}`);
+      log.info(
+        { series: loader.seriesId, runtime },
+        `Completed reload of definition ${loader.id}`,
+      );
       return { status: "success", message: `Loaded in ${runtime.toFixed(1)}s` };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      log.error({ series: loader.seriesId, err: message }, `Reload failed for definition ${loader.id}`);
+      log.error(
+        { series: loader.seriesId, err: message },
+        `Reload failed for definition ${loader.id}`,
+      );
       updateProps.lastError = message.slice(0, 254);
       updateProps.lastErrorAt = t;
       return { status: "error", message };
@@ -418,7 +435,7 @@ class LoaderCollection {
   /** Delete data points for a loader, with optional date filters */
   static async deleteDataPoints(
     loader: Loader,
-    opts?: { dateFrom?: string; createFrom?: string }
+    opts?: { dateFrom?: string; createFrom?: string },
   ): Promise<void> {
     if (opts?.dateFrom && opts?.createFrom) {
       await mysql`
@@ -445,7 +462,10 @@ class LoaderCollection {
         WHERE data_source_id = ${loader.id}
       `;
     }
-    log.info({ loaderId: loader.id }, `Deleted data points for loader ${loader.id}`);
+    log.info(
+      { loaderId: loader.id },
+      `Deleted data points for loader ${loader.id}`,
+    );
   }
 
   /** Update dependencies for all UHERO loaders */
@@ -464,7 +484,7 @@ class LoaderCollection {
 
   /** Get current (active) data points for a series */
   static async getCurrentDataPoints(
-    xseriesId: number
+    xseriesId: number,
   ): Promise<Array<{ date: Date; value: number; dataSourceId: number }>> {
     const rows = await mysql<{
       date: Date;
@@ -498,7 +518,7 @@ class LoaderCollection {
       color = await this.calculateColor(
         loader.seriesId!,
         loader.loaderType,
-        palette
+        palette,
       );
     }
     return this.update(id, { color });
@@ -520,10 +540,7 @@ class LoaderCollection {
   }
 
   /** Set reload_nightly to a specific value */
-  static async setReloadNightly(
-    id: number,
-    value: boolean
-  ): Promise<Loader> {
+  static async setReloadNightly(id: number, value: boolean): Promise<Loader> {
     return this.update(id, { reloadNightly: value });
   }
 
@@ -536,7 +553,7 @@ class LoaderCollection {
   /** Mark all data points for a loader as pseudo_history */
   static async markDataAsPseudoHistory(
     id: number,
-    value = true
+    value = true,
   ): Promise<void> {
     await mysql`
       UPDATE data_points
@@ -546,10 +563,7 @@ class LoaderCollection {
   }
 
   /** Check if a loader has any current data points */
-  static async isCurrent(
-    id: number,
-    seriesId: number
-  ): Promise<boolean> {
+  static async isCurrent(id: number, seriesId: number): Promise<boolean> {
     const rows = await mysql<{ found: number }>`
       SELECT 1 as found
       FROM data_points

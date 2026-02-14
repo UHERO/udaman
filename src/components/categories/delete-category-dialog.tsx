@@ -1,20 +1,20 @@
 "use client";
 
-import { Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteCategory } from "@/actions/categories";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
 interface DeleteCategoryDialogProps {
@@ -43,7 +43,9 @@ export function DeleteCategoryDialog({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete category");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete category",
+      );
     } finally {
       setIsDeleting(false);
     }

@@ -2,21 +2,19 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
+import type {
+  SourceDetailOption,
+  SourceOption,
+  UnitOption,
+} from "@catalog/types/form-options";
+import type { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { SeasonalAdjustment, Universe } from "@catalog/types/shared";
-import type {
-  UnitOption,
-  SourceOption,
-  SourceDetailOption,
-} from "@catalog/types/form-options";
-
-import { getFormOptions } from "@/actions/series-actions";
 import { bulkUpdateClipboardMetadata } from "@/actions/clipboard-actions";
-
+import { getFormOptions } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -180,7 +178,11 @@ export function ClipboardMetadataDialog({
     for (const field of enabledFields) {
       const value = values[field];
       // Map empty strings to null for optional string fields
-      if (typeof value === "string" && value === "" && field !== "dataPortalName") {
+      if (
+        typeof value === "string" &&
+        value === "" &&
+        field !== "dataPortalName"
+      ) {
         payload[field] = null;
       } else if (field === "seasonalAdjustment" && value === "") {
         payload[field] = null;
@@ -215,8 +217,8 @@ export function ClipboardMetadataDialog({
         <DialogHeader>
           <DialogTitle>Bulk Metadata Update</DialogTitle>
           <DialogDescription>
-            Update metadata across {clipboardCount} clipboard series.
-            Check the fields you want to update — unchecked fields will be left unchanged.
+            Update metadata across {clipboardCount} clipboard series. Check the
+            fields you want to update — unchecked fields will be left unchanged.
           </DialogDescription>
         </DialogHeader>
 
@@ -341,10 +343,7 @@ export function ClipboardMetadataDialog({
                       disabled={!isEnabled("unitId")}
                       value={form.watch("unitId")?.toString() || "none"}
                       onValueChange={(v) =>
-                        form.setValue(
-                          "unitId",
-                          v === "none" ? null : Number(v),
-                        )
+                        form.setValue("unitId", v === "none" ? null : Number(v))
                       }
                     >
                       <SelectTrigger>
@@ -503,9 +502,7 @@ export function ClipboardMetadataDialog({
                 type="submit"
                 disabled={isPending || enabledFields.size === 0}
               >
-                {isPending
-                  ? "Updating..."
-                  : `Update ${clipboardCount} series`}
+                {isPending ? "Updating..." : `Update ${clipboardCount} series`}
               </Button>
             </DialogFooter>
           </form>
@@ -533,14 +530,10 @@ function ToggleableField({
   return (
     <Field className={enabled ? "" : "opacity-50"}>
       <div className="flex items-center gap-2">
-        <Checkbox
-          checked={enabled}
-          onCheckedChange={() => onToggle(field)}
-        />
+        <Checkbox checked={enabled} onCheckedChange={() => onToggle(field)} />
         <FieldLabel htmlFor={field}>{label}</FieldLabel>
       </div>
       {children}
     </Field>
   );
 }
-

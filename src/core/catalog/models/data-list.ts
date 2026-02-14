@@ -34,8 +34,12 @@ class DataList {
     this.createdBy = attrs.created_by ?? null;
     this.updatedBy = attrs.updated_by ?? null;
     this.ownedBy = attrs.owned_by ?? null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
   }
 
   toString(): string {

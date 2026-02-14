@@ -31,27 +31,29 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-
 # ToDo Notes For Later
+
 1. Implement a standard, response shape from controllers. Something like:
-    ```js
-    return { message: "Succesfully did action", data: payload }
-    ```
-    Doesn't need to be fancy, but controller seems like the appropriate layer to handle basic logging & messages. Messages can be used in Toasts in the UI to show confirmations/errors to the user.
+   ```js
+   return { message: "Succesfully did action", data: payload };
+   ```
+   Doesn't need to be fancy, but controller seems like the appropriate layer to handle basic logging & messages. Messages can be used in Toasts in the UI to show confirmations/errors to the user.
 2. Set consistent log levels, maybe info for controllers, debug for models & collections.
 
-3. Setup testing for the write methods, anything using CREATE, INSERT, DELETE, UPDATE. Much of this code has been ai generated, and before putting the app on prod it's important that these actions are reviewed carefully. 
-    - Note that Deletes need to be reviewed so that they aren't leaving orphaned records. 
-    - Updates, Insert, Creates need to be reviewed to ensure related records are also updated or created where relevant.
-    - Claude's gotten pretty great, but it still often misses the broader context when methods are interconnected.
-
+3. Setup testing for the write methods, anything using CREATE, INSERT, DELETE, UPDATE. Much of this code has been ai generated, and before putting the app on prod it's important that these actions are reviewed carefully.
+   - Note that Deletes need to be reviewed so that they aren't leaving orphaned records.
+   - Updates, Insert, Creates need to be reviewed to ensure related records are also updated or created where relevant.
+   - Claude's gotten pretty great, but it still often misses the broader context when methods are interconnected.
 
 # Migrations needed
+
 1. dataPortalName is appears to be the only camelCase name in a database of snake_case names. setup a migration to rename to data_portal_name.
-2. 
+2.
 
 # Questions for Peter
+
 1. Is Forecast Upload still used?
 2. Is FC Universe used (would it be if we added some new features?)
 3. Any Reason to keep AREMOS comparison fields/features like diff & missing
+
 - check for any other abandoned or deprecated items

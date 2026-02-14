@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
 import { isValidUniverse } from "@catalog/utils/validators";
-import { requireAuth } from "@/lib/auth/dal";
+
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { NavSearchInput } from "@/components/nav-search";
 import { Separator } from "@/components/ui/separator";
 import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { requireAuth } from "@/lib/auth/dal";
 
 export default async function UniverseLayout({
   children,
@@ -35,7 +36,7 @@ export default async function UniverseLayout({
     <SidebarProvider data-universe={universe.toUpperCase()}>
       <AppSidebar user={user} />
       <SidebarInset>
-        <header className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex w-full items-center justify-start gap-2 px-4">
             <div className="flex w-full items-center justify-start gap-2 px-4">
               <SidebarTrigger className="-ml-1" />

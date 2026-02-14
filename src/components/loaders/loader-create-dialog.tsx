@@ -1,14 +1,14 @@
 "use client";
 
-import type { Universe } from "@catalog/types/shared";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import type { Universe } from "@catalog/types/shared";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { createDataLoader } from "@/actions/data-loaders";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -92,12 +92,17 @@ export function LoaderCreateDialog({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await createDataLoader({ universe: universe as Universe, seriesId }, values);
+      const result = await createDataLoader(
+        { universe: universe as Universe, seriesId },
+        values,
+      );
       toast.success(result.message);
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create loader");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create loader",
+      );
     }
   }
 

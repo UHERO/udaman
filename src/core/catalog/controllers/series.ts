@@ -1,11 +1,13 @@
-import { createLogger } from "@/core/observability/logger";
-import type { Universe, AnalyzeResult } from "../types/shared";
-import LoaderCollection from "@catalog/collections/loader-collection";
 import DataPointCollection from "@catalog/collections/data-point-collection";
-import Measurements from "../models/measurements";
+import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import EvalExecutor from "@catalog/utils/eval-executor";
+
+import { createLogger } from "@/core/observability/logger";
+
+import Measurements from "../models/measurements";
+import type { AnalyzeResult, Universe } from "../types/shared";
 
 const log = createLogger("catalog.series");
 
@@ -13,9 +15,21 @@ const log = createLogger("catalog.series");
  * SERIES Controller
  *************************************************************************/
 
-export async function getSeries({ offset, limit, universe }: { offset?: number; limit?: number; universe: Universe }) {
+export async function getSeries({
+  offset,
+  limit,
+  universe,
+}: {
+  offset?: number;
+  limit?: number;
+  universe: Universe;
+}) {
   log.info({ offset, limit, universe }, "fetching series summary list");
-  const data = await SeriesCollection.getSummaryList({ offset, limit, universe });
+  const data = await SeriesCollection.getSummaryList({
+    offset,
+    limit,
+    universe,
+  });
   log.info({ count: data.length, universe }, "series summary list fetched");
   return { data, offset, limit };
 }
@@ -41,9 +55,9 @@ export async function getSeriesById({ id }: { id: number }) {
 
   return {
     data: {
-      aliases: aliases.map(d => d.toJSON()),
+      aliases: aliases.map((d) => d.toJSON()),
       dataPoints: dataPoints,
-      loaders: loaders.map(d => d.toJSON()),
+      loaders: loaders.map((d) => d.toJSON()),
       measurement: measurement,
       metadata: metadata,
     },
@@ -56,14 +70,24 @@ export async function getSourceMap({ name }: { name: string }) {
   return { data };
 }
 
-export async function deleteSeriesDataPoints({ id, u, date, deleteBy }: {
+export async function deleteSeriesDataPoints({
+  id,
+  u,
+  date,
+  deleteBy,
+}: {
   id: number;
   u: Universe;
   date?: string;
   deleteBy: "observationDate" | "vintageDate" | "none";
 }) {
   log.info({ id, universe: u, deleteBy, date }, "deleting series data points");
-  const data = await SeriesCollection.deleteDataPoints({ id, u, date, deleteBy });
+  const data = await SeriesCollection.deleteDataPoints({
+    id,
+    u,
+    date,
+    deleteBy,
+  });
   log.info({ id, deleteBy }, "series data points deleted");
   return { data };
 }
@@ -80,8 +104,16 @@ export async function getSeriesWithNullField({
   perPage?: number;
 }) {
   log.info({ universe, field, page }, "fetching series with null field");
-  const result = await SeriesCollection.getWithNullField(universe, field, page, perPage);
-  log.info({ universe, field, totalCount: result.totalCount }, "series with null field fetched");
+  const result = await SeriesCollection.getWithNullField(
+    universe,
+    field,
+    page,
+    perPage,
+  );
+  log.info(
+    { universe, field, totalCount: result.totalCount },
+    "series with null field fetched",
+  );
   return result;
 }
 
@@ -96,7 +128,10 @@ export async function getQuarantinedSeries({
 }) {
   log.info({ universe, page }, "fetching quarantined series");
   const result = await SeriesCollection.getQuarantined(universe, page, perPage);
-  log.info({ universe, totalCount: result.totalCount }, "quarantined series fetched");
+  log.info(
+    { universe, totalCount: result.totalCount },
+    "quarantined series fetched",
+  );
   return result;
 }
 
@@ -152,10 +187,16 @@ export async function duplicateSeries({
         pseudoHistory: loader.pseudoHistory,
       });
     }
-    log.info({ sourceId, newId: newSeries.id, loadersCopied: loaders.length }, "loaders copied");
+    log.info(
+      { sourceId, newId: newSeries.id, loadersCopied: loaders.length },
+      "loaders copied",
+    );
   }
 
-  log.info({ sourceId, newId: newSeries.id, name: newSeries.name }, "series duplicated");
+  log.info(
+    { sourceId, newId: newSeries.id, name: newSeries.name },
+    "series duplicated",
+  );
   return { message: "Series duplicated", data: newSeries };
 }
 
@@ -172,10 +213,24 @@ export async function deleteSeries({
   return { message: "Series deleted" };
 }
 
-export async function searchSeries({term, universe="uhero", limit}:{term: string, universe: string; limit?: number}) {
+export async function searchSeries({
+  term,
+  universe = "uhero",
+  limit,
+}: {
+  term: string;
+  universe: string;
+  limit?: number;
+}) {
   log.info({ term, universe, limit }, "search series");
-  const results = await SeriesCollection.search({text: term, universe, limit});
-  const ids = results.map((s) => s.id).filter((id): id is number => id !== null);
+  const results = await SeriesCollection.search({
+    text: term,
+    universe,
+    limit,
+  });
+  const ids = results
+    .map((s) => s.id)
+    .filter((id): id is number => id !== null);
   const summaries = await SeriesCollection.getSummaryByIds(ids);
   log.info({ found: summaries.length }, "search series");
   return summaries;
@@ -190,7 +245,11 @@ function mapToTuples(data: Map<string, number>): [string, number][] {
     .sort(([a], [b]) => a.localeCompare(b));
 }
 
-export async function analyzeSeries({ id }: { id: number }): Promise<AnalyzeResult> {
+export async function analyzeSeries({
+  id,
+}: {
+  id: number;
+}): Promise<AnalyzeResult> {
   log.info({ id }, "analyzing series");
 
   const series = await SeriesCollection.getById(id);
@@ -219,7 +278,11 @@ export async function analyzeSeries({ id }: { id: number }): Promise<AnalyzeResu
   };
 }
 
-export async function transformSeries({ evalStr }: { evalStr: string }): Promise<AnalyzeResult> {
+export async function transformSeries({
+  evalStr,
+}: {
+  evalStr: string;
+}): Promise<AnalyzeResult> {
   log.info({ evalStr }, "transforming series expression");
 
   // Preprocess: pad spaces around operators, wrap valid series names as "NAME".ts
@@ -237,9 +300,10 @@ export async function transformSeries({ evalStr }: { evalStr: string }): Promise
 
   // Extract series names from the original expression for linking
   const seriesNames = tokens.filter((t) => Series.isValidName(t));
-  const seriesLinks = seriesNames.length > 0
-    ? await SeriesCollection.getIdsByNames(seriesNames)
-    : {};
+  const seriesLinks =
+    seriesNames.length > 0
+      ? await SeriesCollection.getIdsByNames(seriesNames)
+      : {};
 
   // Load the most recent value for each referenced series
   const seriesLastValues: Record<string, number> = {};
@@ -259,9 +323,14 @@ export async function transformSeries({ evalStr }: { evalStr: string }): Promise
 
   // Get the last value of the computed result
   const resultLastDate = result.lastObservation;
-  const resultValue = resultLastDate ? result.data.get(resultLastDate) ?? null : null;
+  const resultValue = resultLastDate
+    ? (result.data.get(resultLastDate) ?? null)
+    : null;
 
-  log.info({ evalStr, observations: result.observationCount }, "series transformed");
+  log.info(
+    { evalStr, observations: result.observationCount },
+    "series transformed",
+  );
 
   return {
     series: {

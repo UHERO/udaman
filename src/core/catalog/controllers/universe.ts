@@ -1,4 +1,5 @@
 import { createLogger } from "@/core/observability/logger";
+
 import UniverseCollection from "../collections/universe-collection";
 
 const log = createLogger("catalog.universe");
@@ -27,7 +28,13 @@ export async function createUniverse({ name }: { name: string }) {
   return { data };
 }
 
-export async function renameUniverse({ oldName, newName }: { oldName: string; newName: string }) {
+export async function renameUniverse({
+  oldName,
+  newName,
+}: {
+  oldName: string;
+  newName: string;
+}) {
   log.info({ oldName, newName }, "renaming universe");
   const data = await UniverseCollection.rename(oldName, newName);
   log.info({ oldName, newName }, "universe renamed");

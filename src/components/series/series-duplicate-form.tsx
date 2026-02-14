@@ -1,21 +1,23 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { z } from "zod";
-
-import { duplicateSeries } from "@/actions/series-actions";
-import type { SeriesMetadata, Universe } from "@catalog/types/shared";
-import type { SeasonalAdjustment } from "@catalog/types/shared";
+import { useRouter } from "next/navigation";
 import type {
   GeographyOption,
   SourceDetailOption,
   SourceOption,
   UnitOption,
 } from "@catalog/types/form-options";
+import type {
+  SeasonalAdjustment,
+  SeriesMetadata,
+  Universe,
+} from "@catalog/types/shared";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { z } from "zod";
 
+import { duplicateSeries } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,9 +33,9 @@ import { Input } from "@/components/ui/input";
 import { H2 } from "../typography";
 import { MetadataFields, metadataSchema } from "./series-create-form";
 import {
-  SeriesNameFields,
-  nameFieldsSchema,
   assembleSeriesName,
+  nameFieldsSchema,
+  SeriesNameFields,
 } from "./series-name-fields";
 
 // ─── Schema ─────────────────────────────────────────────────────────
@@ -89,8 +91,7 @@ export function SeriesDuplicateForm({
       decimals: metadata.s_decimals ?? 1,
       description: metadata.s_description ?? "",
       sourceLink: metadata.s_source_link ?? "",
-      seasonalAdjustment:
-        metadata.xs_seasonal_adjustment ?? "not_applicable",
+      seasonalAdjustment: metadata.xs_seasonal_adjustment ?? "not_applicable",
       frequencyTransform: metadata.xs_frequency_transform ?? "",
       percent: !!metadata.xs_percent,
       real: !!metadata.xs_real,
@@ -153,8 +154,8 @@ export function SeriesDuplicateForm({
       <H2 className="mb-2">Duplicate Series</H2>
       <p className="text-muted-foreground mb-7 text-sm">
         Creating a copy of{" "}
-        <span className="font-mono font-medium">{metadata.s_name}</span>.
-        Change the name and adjust metadata as needed.
+        <span className="font-mono font-medium">{metadata.s_name}</span>. Change
+        the name and adjust metadata as needed.
       </p>
 
       <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -166,9 +167,7 @@ export function SeriesDuplicateForm({
               idPrefix="dup-"
             />
 
-            <Field
-              data-invalid={!!form.formState.errors.dataPortalName}
-            >
+            <Field data-invalid={!!form.formState.errors.dataPortalName}>
               <FieldLabel htmlFor="dataPortalName">
                 Data Portal Name *
               </FieldLabel>
@@ -177,9 +176,7 @@ export function SeriesDuplicateForm({
                 placeholder="Display name for data portal"
                 {...form.register("dataPortalName")}
               />
-              <FieldError
-                errors={[form.formState.errors.dataPortalName]}
-              />
+              <FieldError errors={[form.formState.errors.dataPortalName]} />
             </Field>
 
             <MetadataFields
@@ -212,19 +209,12 @@ export function SeriesDuplicateForm({
           </FieldGroup>
 
           <div className="mt-8 flex flex-row gap-x-4">
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
-            >
+            <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting
                 ? "Duplicating..."
                 : "Duplicate series"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => nav.back()}
-            >
+            <Button type="button" variant="outline" onClick={() => nav.back()}>
               Cancel
             </Button>
           </div>

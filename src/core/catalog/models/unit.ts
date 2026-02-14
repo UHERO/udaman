@@ -22,8 +22,12 @@ class Unit {
     this.universe = (attrs.universe as Universe) ?? "UHERO";
     this.shortLabel = attrs.short_label ?? null;
     this.longLabel = attrs.long_label ?? null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
   }
 
   toString(): string {

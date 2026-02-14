@@ -1,6 +1,7 @@
+import type { Universe } from "@catalog/types/shared";
+
 import { getFormOptions } from "@/actions/series-actions";
 import { SeriesCreateForm } from "@/components/series/series-create-form";
-import type { Universe } from "@catalog/types/shared";
 
 export default async function CreateSeriesPage({
   params,

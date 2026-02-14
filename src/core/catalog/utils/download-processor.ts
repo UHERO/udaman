@@ -1,3 +1,4 @@
+import "server-only";
 /**
  * Download Processor — reads downloaded files (CSV, XLS, XLSX, TXT) from disk,
  * navigates to specific cells using row/col/date patterns, iterates through
@@ -10,8 +11,10 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getDataDir } from "@/lib/data-dir";
+
 import XLSX from "xlsx";
+
+import { getDataDir } from "@/lib/data-dir";
 
 import DownloadCollection from "../collections/download-collection";
 import { splitCSVRow } from "./data-file-reader";
@@ -71,7 +74,9 @@ export class DatePatternProcessor {
         result = this.weekDateAtIndex(index, first);
         break;
       default:
-        throw new Error(`DatePatternProcessor: unknown frequency '${this.frequency}'`);
+        throw new Error(
+          `DatePatternProcessor: unknown frequency '${this.frequency}'`,
+        );
     }
 
     return formatDate(result);
@@ -102,12 +107,18 @@ export class DatePatternProcessor {
     const diffMonths = finishMonth - startMonth;
 
     switch (this.frequency) {
-      case "A": return Math.trunc(diffMonths / 12);
-      case "S": return Math.trunc(diffMonths / 6);
-      case "Q": return Math.trunc(diffMonths / 3);
-      case "M": return diffMonths;
-      case "W": return Math.trunc(daysBetween(startD, finishD) / 7);
-      case "D": return daysBetween(startD, finishD);
+      case "A":
+        return Math.trunc(diffMonths / 12);
+      case "S":
+        return Math.trunc(diffMonths / 6);
+      case "Q":
+        return Math.trunc(diffMonths / 3);
+      case "M":
+        return diffMonths;
+      case "W":
+        return Math.trunc(daysBetween(startD, finishD) / 7);
+      case "D":
+        return daysBetween(startD, finishD);
       case "WD": {
         const diff = daysBetween(startD, finishD);
         const cwday = ((startD.getDay() + 6) % 7) + 1;
@@ -115,7 +126,9 @@ export class DatePatternProcessor {
         return diff - 2 * weekendsPassed;
       }
       default:
-        throw new Error(`DatePatternProcessor: unknown frequency '${this.frequency}'`);
+        throw new Error(
+          `DatePatternProcessor: unknown frequency '${this.frequency}'`,
+        );
     }
   }
 }
@@ -217,7 +230,9 @@ export class IntegerPatternProcessor {
       }
 
       default:
-        throw new Error(`IntegerPatternProcessor: bad command word = ${command}`);
+        throw new Error(
+          `IntegerPatternProcessor: bad command word = ${command}`,
+        );
     }
   }
 
@@ -241,11 +256,9 @@ export class IntegerPatternProcessor {
     const sheet = opts.sheet2d;
 
     const searchStart = opts.searchStart ?? 1;
-    const searchEnd = opts.searchEnd ?? (
-      headerIn === "col"
-        ? sheet.length
-        : (sheet[0]?.length ?? 0)
-    );
+    const searchEnd =
+      opts.searchEnd ??
+      (headerIn === "col" ? sheet.length : (sheet[0]?.length ?? 0));
 
     for (let loc = searchStart; loc <= searchEnd; loc++) {
       let row: number, col: number;
@@ -269,7 +282,7 @@ export class IntegerPatternProcessor {
     }
 
     throw new Error(
-      `Cannot find header "${opts.headerName}" in handle ${opts.handle ?? "unknown"}`
+      `Cannot find header "${opts.headerName}" in handle ${opts.handle ?? "unknown"}`,
     );
   }
 }
@@ -389,7 +402,7 @@ function readXlsFile(
   const resolvedName = resolveSheetName(sheetSpec, sheetNames, date);
   if (!resolvedName) {
     throw new Error(
-      `No sheet matching "${sheetSpec}" found in file ${filePath} [sheets: ${sheetNames.join(", ")}]`
+      `No sheet matching "${sheetSpec}" found in file ${filePath} [sheets: ${sheetNames.join(", ")}]`,
     );
   }
 
@@ -423,23 +436,29 @@ function resolveSheetName(
   if (parts[0] === "sheet_name" && parts[1]?.toUpperCase() === "M3") {
     if (!date) return sheetNames[0] ?? null;
     const d = new Date(date + "T00:00:00");
-    const monthName = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
-    const idx = sheetNames.findIndex((s) => s.trim().toUpperCase() === monthName);
+    const monthName = d
+      .toLocaleString("en-US", { month: "short" })
+      .toUpperCase();
+    const idx = sheetNames.findIndex(
+      (s) => s.trim().toUpperCase() === monthName,
+    );
     return idx >= 0 ? sheetNames[idx] : null;
   }
 
   // [or] alternatives — first case-insensitive match
   if (/\[or\]/i.test(spec)) {
-    const alternatives = spec.split(/\[or\]/i).map((s) => s.trim().toLowerCase());
+    const alternatives = spec
+      .split(/\[or\]/i)
+      .map((s) => s.trim().toLowerCase());
     const idx = sheetNames.findIndex((s) =>
-      alternatives.includes(s.trim().toLowerCase())
+      alternatives.includes(s.trim().toLowerCase()),
     );
     return idx >= 0 ? sheetNames[idx] : null;
   }
 
   // Explicit name — case-insensitive match
   const idx = sheetNames.findIndex(
-    (s) => spec.toLowerCase() === s.trim().toLowerCase()
+    (s) => spec.toLowerCase() === s.trim().toLowerCase(),
   );
   return idx >= 0 ? sheetNames[idx] : null;
 }
@@ -522,7 +541,9 @@ class DownloadProcessor {
   ): Promise<Map<string, number>> {
     const fileType = String(options.file_type ?? "");
     if (!fileType) {
-      throw new Error("File type must be specified when using DownloadProcessor");
+      throw new Error(
+        "File type must be specified when using DownloadProcessor",
+      );
     }
     if (!["txt", "csv", "xls", "xlsx"].includes(fileType)) {
       throw new Error(`Not a valid file type option: ${fileType}`);
@@ -532,9 +553,10 @@ class DownloadProcessor {
 
     if (fileType === "txt") {
       // Text files are never date-sensitive in this way — resolve path upfront
-      const filePath = handle === ":manual"
-        ? resolveManualPath(options)
-        : await resolveHandlePath(handle);
+      const filePath =
+        handle === ":manual"
+          ? resolveManualPath(options)
+          : await resolveHandlePath(handle);
       const lines = readTextFile(filePath);
       return processTextFile(lines, options);
     }
@@ -562,8 +584,12 @@ class DownloadProcessor {
 
     // Create processors
     const handleProcessor = new StringDatePatternProcessor(handle);
-    const rowProcessor = new IntegerPatternProcessor(options.row as string | number);
-    const colProcessor = new IntegerPatternProcessor(options.col as string | number);
+    const rowProcessor = new IntegerPatternProcessor(
+      options.row as string | number,
+    );
+    const colProcessor = new IntegerPatternProcessor(
+      options.col as string | number,
+    );
     const sheetProcessor = options.sheet
       ? new StringDatePatternProcessor(String(options.sheet))
       : null;
@@ -610,7 +636,8 @@ class DownloadProcessor {
         // Date-sensitive handle: resolve handle → Download → file path
         try {
           currentPath = await resolveHandlePathCached(
-            currentHandle, downloadPathCache,
+            currentHandle,
+            downloadPathCache,
           );
         } catch (e) {
           // Handle not found in DB — for date-sensitive handles this means
@@ -629,12 +656,16 @@ class DownloadProcessor {
       let sheet2d: string[][];
       try {
         sheet2d = getCachedSheet(
-          fileCache, currentPath, fileType, currentSheet, date,
+          fileCache,
+          currentPath,
+          fileType,
+          currentSheet,
+          date,
         );
       } catch (e) {
         if (handleProcessor.isDateSensitive) {
           console.warn(
-            `[DownloadProcessor] skipping ${currentHandle} (${date}): ${(e as Error).message}`
+            `[DownloadProcessor] skipping ${currentHandle} (${date}): ${(e as Error).message}`,
           );
           index++;
           continue;
@@ -645,8 +676,18 @@ class DownloadProcessor {
       let value: number | null | "BREAK";
       try {
         // Resolve row and column
-        const row = rowProcessor.compute(index, sheet2d, currentHandle, currentSheet);
-        const col = colProcessor.compute(index, sheet2d, currentHandle, currentSheet);
+        const row = rowProcessor.compute(
+          index,
+          sheet2d,
+          currentHandle,
+          currentSheet,
+        );
+        const col = colProcessor.compute(
+          index,
+          sheet2d,
+          currentHandle,
+          currentSheet,
+        );
 
         // Read and parse cell
         const rawValue = sheet2d[row - 1]?.[col - 1];
@@ -654,7 +695,7 @@ class DownloadProcessor {
       } catch (e) {
         if (handleProcessor.isDateSensitive) {
           console.warn(
-            `[DownloadProcessor] skipping ${currentHandle} (${date}): ${(e as Error).message}`
+            `[DownloadProcessor] skipping ${currentHandle} (${date}): ${(e as Error).message}`,
           );
           index++;
           continue;
@@ -686,7 +727,7 @@ class DownloadProcessor {
     if (data.size === 0) {
       throw new Error(
         `No data found for handle "${handle}" (file_type=${fileType}, ` +
-        `frequency=${options.frequency}, start_date=${options.start_date ?? "from file"})`
+          `frequency=${options.frequency}, start_date=${options.start_date ?? "from file"})`,
       );
     }
 
@@ -720,7 +761,9 @@ async function resolveHandlePathCached(
 
 function resolveManualPath(options: DownloadOptions): string {
   if (!options.path) {
-    throw new Error("File path must be specified for manual download processing");
+    throw new Error(
+      "File path must be specified for manual download processing",
+    );
   }
   return resolveFullPath(String(options.path));
 }
@@ -731,10 +774,16 @@ function resolveFullPath(relativePath: string): string {
 
 // ─── Helper: validate spreadsheet options ────────────────────────────
 
-function validateSpreadsheetOptions(fileType: string, options: DownloadOptions): void {
+function validateSpreadsheetOptions(
+  fileType: string,
+  options: DownloadOptions,
+): void {
   const missing: string[] = [];
 
-  if (options.start_date == null && (options.start_row == null || options.start_col == null)) {
+  if (
+    options.start_date == null &&
+    (options.start_row == null || options.start_col == null)
+  ) {
     missing.push("start date information");
   }
   if (options.row == null) missing.push("row specification");
@@ -746,7 +795,7 @@ function validateSpreadsheetOptions(fileType: string, options: DownloadOptions):
 
   if (missing.length > 0) {
     throw new Error(
-      `Incomplete Download Processor specification — missing: ${missing.join(", ")}`
+      `Incomplete Download Processor specification — missing: ${missing.join(", ")}`,
     );
   }
 }
@@ -766,11 +815,13 @@ function parseDateOptions(
     // Read start date from file at start_row, start_col
     if (!filePath) {
       throw new Error(
-        "start_date option is required for date-sensitive download handles"
+        "start_date option is required for date-sensitive download handles",
       );
     }
     startDate = readDateFromFile(
-      filePath, fileType, options,
+      filePath,
+      fileType,
+      options,
       Number(options.start_row),
       Number(options.start_col),
     );
@@ -864,18 +915,30 @@ function normalizeMatchType(raw?: string): MatchType {
   if (!raw) return "equal";
   const normalized = raw.toLowerCase().replace(/-/g, "_");
   switch (normalized) {
-    case "hiwi": return "equal";
-    case "no_okina": return "equal";
-    case "prefix": return "prefix";
-    case "prefix_no_okina": return "prefix";
-    case "sub": return "substring";
-    case "sub_no_okina": return "substring";
-    case "trim_elipsis": return "trim_elipsis";
-    default: return "equal";
+    case "hiwi":
+      return "equal";
+    case "no_okina":
+      return "equal";
+    case "prefix":
+      return "prefix";
+    case "prefix_no_okina":
+      return "prefix";
+    case "sub":
+      return "substring";
+    case "sub_no_okina":
+      return "substring";
+    case "trim_elipsis":
+      return "trim_elipsis";
+    default:
+      return "equal";
   }
 }
 
-function matchCell(cellValue: string, header: string, matchType: MatchType): boolean {
+function matchCell(
+  cellValue: string,
+  header: string,
+  matchType: MatchType,
+): boolean {
   if (typeof cellValue !== "string") return false;
 
   let val = cellValue;
@@ -927,8 +990,18 @@ function convertToNumericPattern(pattern: string): string {
 // ─── Helper: strftime ────────────────────────────────────────────────
 
 const MONTH_ABBREVS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 function strftime(format: string, date: Date): string {

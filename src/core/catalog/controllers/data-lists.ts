@@ -1,7 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe } from "../types/shared";
+
 import DataListCollection from "../collections/data-list-collection";
-import type { CreateDataListPayload, UpdateDataListPayload } from "../collections/data-list-collection";
+import type {
+  CreateDataListPayload,
+  UpdateDataListPayload,
+} from "../collections/data-list-collection";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.data-lists");
 
@@ -48,7 +52,12 @@ export async function addDataListMeasurement({
   indent?: string;
 }) {
   log.info({ dataListId, measurementId }, "adding measurement to data list");
-  await DataListCollection.addMeasurement(dataListId, measurementId, listOrder, indent);
+  await DataListCollection.addMeasurement(
+    dataListId,
+    measurementId,
+    listOrder,
+    indent,
+  );
   log.info({ dataListId, measurementId }, "measurement added to data list");
 }
 
@@ -59,19 +68,32 @@ export async function removeDataListMeasurement({
   dataListId: number;
   measurementId: number;
 }) {
-  log.info({ dataListId, measurementId }, "removing measurement from data list");
+  log.info(
+    { dataListId, measurementId },
+    "removing measurement from data list",
+  );
   await DataListCollection.removeMeasurement(dataListId, measurementId);
   log.info({ dataListId, measurementId }, "measurement removed from data list");
 }
 
-export async function createDataList({ payload }: { payload: CreateDataListPayload }) {
+export async function createDataList({
+  payload,
+}: {
+  payload: CreateDataListPayload;
+}) {
   log.info({ payload }, "creating data list");
   const data = await DataListCollection.create(payload);
   log.info({ id: data.id }, "data list created");
   return { message: "Data list created", data };
 }
 
-export async function updateDataList({ id, payload }: { id: number; payload: UpdateDataListPayload }) {
+export async function updateDataList({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateDataListPayload;
+}) {
   log.info({ id, payload }, "updating data list");
   const data = await DataListCollection.update(id, payload);
   log.info({ id }, "data list updated");

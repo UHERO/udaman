@@ -1,8 +1,13 @@
 import { mysql } from "@/lib/mysql/db";
+
 import type { MeasurementRef } from "../types/shared";
 
 class Measurements {
-  static async getSeriesMeasurements({ seriesId }: { seriesId: number }): Promise<MeasurementRef[]> {
+  static async getSeriesMeasurements({
+    seriesId,
+  }: {
+    seriesId: number;
+  }): Promise<MeasurementRef[]> {
     return mysql<MeasurementRef>`
       SELECT m.id, m.prefix
       FROM measurements m

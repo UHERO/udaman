@@ -17,7 +17,9 @@ export function NavSearchInput() {
     e.preventDefault();
     const trimmed = term.trim();
     if (trimmed) {
-      router.push(`/udaman/${universe}/series?q=${encodeURIComponent(trimmed)}`);
+      router.push(
+        `/udaman/${universe}/series?q=${encodeURIComponent(trimmed)}`,
+      );
     } else {
       router.push(`/udaman/${universe}/series`);
     }

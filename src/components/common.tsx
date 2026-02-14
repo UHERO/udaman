@@ -1,5 +1,5 @@
-import { SeasonalAdjustment } from "@catalog/types/shared";
 import { ComponentProps } from "react";
+import { SeasonalAdjustment } from "@catalog/types/shared";
 
 import { cn } from "@/lib/utils";
 

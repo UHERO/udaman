@@ -1,4 +1,5 @@
 import { SQL } from "bun";
+
 import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("database");
@@ -12,7 +13,10 @@ const connection = new SQL({
   password: process.env.DB_PSWD ?? "",
 });
 
-function mysql<T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: any[]): Promise<T[]>;
+function mysql<T = Record<string, unknown>>(
+  strings: TemplateStringsArray,
+  ...values: any[]
+): Promise<T[]>;
 function mysql(value: any, ...keys: string[]): any;
 function mysql(...args: any[]) {
   const [first] = args;
@@ -34,7 +38,10 @@ function mysql(...args: any[]) {
 }
 
 /** Execute a raw SQL string with positional `?` parameters (for dynamic queries). */
-function rawQuery<T = Record<string, unknown>>(sql: string, params: (string | number | Date)[] = []): Promise<T[]> {
+function rawQuery<T = Record<string, unknown>>(
+  sql: string,
+  params: (string | number | Date)[] = [],
+): Promise<T[]> {
   const start = performance.now();
   return (connection as any).unsafe(sql, params).then((result: any[]) => {
     const durationMs = +(performance.now() - start).toFixed(2);
@@ -63,7 +70,9 @@ async function transaction<T>(fn: () => Promise<T>): Promise<T> {
  * created inside the callback are visible to subsequent queries.
  */
 async function scopedConnection<T>(
-  fn: (exec: (sql: string, params?: (string | number | Date)[]) => Promise<any[]>) => Promise<T>,
+  fn: (
+    exec: (sql: string, params?: (string | number | Date)[]) => Promise<any[]>,
+  ) => Promise<T>,
 ): Promise<T> {
   const start = performance.now();
   const [result] = await connection.begin(async (tx: any) => {

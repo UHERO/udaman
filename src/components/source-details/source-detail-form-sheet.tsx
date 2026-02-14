@@ -1,15 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { Universe } from "@catalog/types/shared";
 import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createSourceDetail, updateSourceDetail } from "@/actions/source-details";
+import {
+  createSourceDetail,
+  updateSourceDetail,
+} from "@/actions/source-details";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -75,7 +78,8 @@ export function SourceDetailFormSheet({
     if (open) {
       form.reset({
         description: sourceDetail?.description ?? "",
-        universe: (sourceDetail?.universe as Universe) ?? defaultUniverse ?? "UHERO",
+        universe:
+          (sourceDetail?.universe as Universe) ?? defaultUniverse ?? "UHERO",
       });
     }
   }, [open, sourceDetail, defaultUniverse, form]);
@@ -99,16 +103,19 @@ export function SourceDetailFormSheet({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save source detail");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save source detail",
+      );
     }
   }
 
-  const title = mode === "create" ? "Create Source Detail" : "Edit Source Detail";
+  const title =
+    mode === "create" ? "Create Source Detail" : "Edit Source Detail";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader className="pb-0 pt-3">
+        <SheetHeader className="pt-3 pb-0">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
             {mode === "create"

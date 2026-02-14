@@ -27,13 +27,17 @@ export async function fetchSeries(
   const json = await fetchJson<BlsV1Response>(url);
 
   if (!/succeeded/i.test(json.status ?? "")) {
-    const msg = Array.isArray(json.message) ? json.message.join(" ") : String(json.message ?? "Unknown error");
+    const msg = Array.isArray(json.message)
+      ? json.message.join(" ")
+      : String(json.message ?? "Unknown error");
     throw new Error(`BLS API error: ${msg}`);
   }
 
   const resultsData = json.Results?.series?.[0]?.data;
   if (!resultsData || resultsData.length === 0) {
-    const msg = Array.isArray(json.message) ? json.message.join(" ") : "No data returned";
+    const msg = Array.isArray(json.message)
+      ? json.message.join(" ")
+      : "No data returned";
     throw new Error(`BLS API error: ${msg}`);
   }
 
@@ -71,13 +75,17 @@ export async function fetchSeriesV2(
   const json = await fetchJson<BlsV1Response>(url);
 
   if (!/succeeded/i.test(json.status ?? "")) {
-    const msg = Array.isArray(json.message) ? json.message.join(" ") : String(json.message ?? "Unknown error");
+    const msg = Array.isArray(json.message)
+      ? json.message.join(" ")
+      : String(json.message ?? "Unknown error");
     throw new Error(`BLS V2 API error: ${msg}`);
   }
 
   const resultsData = json.Results?.series?.[0]?.data;
   if (!resultsData || resultsData.length === 0) {
-    const msg = Array.isArray(json.message) ? json.message.join(" ") : "No data returned";
+    const msg = Array.isArray(json.message)
+      ? json.message.join(" ")
+      : "No data returned";
     throw new Error(`BLS V2 API error: ${msg}`);
   }
 

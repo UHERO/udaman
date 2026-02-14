@@ -1,15 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createLogger } from "@/core/observability/logger";
+import type {
+  CreateMeasurementPayload,
+  UpdateMeasurementPayload,
+} from "@catalog/collections/measurement-collection";
 import {
-  getMeasurementsWithUnits as fetchMeasurements,
   createMeasurement as createMeasurementCtrl,
-  updateMeasurement as updateMeasurementCtrl,
   deleteMeasurement as deleteMeasurementCtrl,
+  getMeasurementsWithUnits as fetchMeasurements,
+  updateMeasurement as updateMeasurementCtrl,
 } from "@catalog/controllers/measurements";
-import type { CreateMeasurementPayload, UpdateMeasurementPayload } from "@catalog/collections/measurement-collection";
 import type { Universe } from "@catalog/types/shared";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.measurements");
 
@@ -28,7 +32,10 @@ export async function createMeasurement(payload: CreateMeasurementPayload) {
   return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function updateMeasurement(id: number, payload: UpdateMeasurementPayload) {
+export async function updateMeasurement(
+  id: number,
+  payload: UpdateMeasurementPayload,
+) {
   log.info({ id }, "updateMeasurement action called");
   const result = await updateMeasurementCtrl({ id, payload });
   revalidatePath("/measurement");

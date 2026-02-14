@@ -19,7 +19,7 @@ function generateDates(
   startDate: Date,
   endDate: Date,
   frequency: string, // "M" | "Q" | "A"
-  formatString?: string
+  formatString?: string,
 ): string[] {
   if (
     !startDate ||
@@ -32,7 +32,7 @@ function generateDates(
 
   if (isAfter(startDate, endDate)) {
     throw new Error(
-      "generateDates: startDate must be before or equal to endDate"
+      "generateDates: startDate must be before or equal to endDate",
     );
   }
 
@@ -51,7 +51,7 @@ function generateDates(
 function generateMonths(
   startDate: Date,
   endDate: Date,
-  formatString: string = "yyyy-MM"
+  formatString: string = "yyyy-MM",
 ): string[] {
   const months: string[] = [];
   let current = startOfMonth(startDate);
@@ -68,7 +68,7 @@ function generateMonths(
 function generateQuarters(
   startDate: Date,
   endDate: Date,
-  formatString: string = "yyyy-'Q'Q"
+  formatString: string = "yyyy-'Q'Q",
 ): string[] {
   const quarters: string[] = [];
   let current = startOfQuarter(startDate);
@@ -85,7 +85,7 @@ function generateQuarters(
 function generateYears(
   startDate: Date,
   endDate: Date,
-  formatString: string = "yyyy"
+  formatString: string = "yyyy",
 ): string[] {
   const years: string[] = [];
   let current = startOfYear(startDate);

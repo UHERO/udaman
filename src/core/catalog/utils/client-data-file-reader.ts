@@ -186,7 +186,7 @@ class ClientDataFileReader {
     const d0 = new Date(sortedDates[0]);
     const d1 = new Date(sortedDates[1]);
     const interval = Math.round(
-      (d1.getTime() - d0.getTime()) / (1000 * 60 * 60 * 24)
+      (d1.getTime() - d0.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (interval >= 365 && interval <= 366) this._frequency = "year";
@@ -197,7 +197,7 @@ class ClientDataFileReader {
     else if (interval === 1) this._frequency = "day";
     else
       throw new Error(
-        `Cannot compute frequency: date interval of ${interval} days`
+        `Cannot compute frequency: date interval of ${interval} days`,
       );
 
     return this._frequency;
@@ -228,7 +228,7 @@ class ClientDataFileReader {
     const index = this.headers.get(key);
     if (index === undefined) {
       throw new Error(
-        `Cannot find series name "${seriesName}" in file headers: [${[...this.headers.keys()].join(", ")}]`
+        `Cannot find series name "${seriesName}" in file headers: [${[...this.headers.keys()].join(", ")}]`,
       );
     }
 

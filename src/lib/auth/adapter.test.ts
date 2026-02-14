@@ -1,4 +1,5 @@
 import { mysql } from "@database/mysql";
+
 import { MySqlAdapter } from "./mysql-adapter";
 import { runBasicTests } from "./mysql-adapter.test";
 

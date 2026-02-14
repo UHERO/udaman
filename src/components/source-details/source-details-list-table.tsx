@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { Universe } from "@catalog/types/shared";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,8 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { SourceDetailFormSheet } from "./source-detail-form-sheet";
 import { DeleteSourceDetailDialog } from "./delete-source-detail-dialog";
+import { SourceDetailFormSheet } from "./source-detail-form-sheet";
 
 interface SourceDetail {
   id: number;

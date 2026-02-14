@@ -1,29 +1,29 @@
 "use client";
 
+import { Controller, useForm } from "react-hook-form";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { createDataLoader } from "@/actions/data-loaders";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldSet,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 import { H2 } from "../typography";
@@ -66,7 +66,10 @@ export function CreateLoaderForm({ universe }: { universe: string }) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    await createDataLoader({ universe: universe as Universe, seriesId: Number(seriesId) }, values);
+    await createDataLoader(
+      { universe: universe as Universe, seriesId: Number(seriesId) },
+      values,
+    );
     nav.push(`/udaman/${universe}/series/${seriesId}`);
   }
 

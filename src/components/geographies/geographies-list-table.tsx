@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Geography, Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { Geography, Universe } from "@catalog/types/shared";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,8 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { GeographyFormSheet } from "./geography-form-sheet";
 import { DeleteGeographyDialog } from "./delete-geography-dialog";
+import { GeographyFormSheet } from "./geography-form-sheet";
 
 interface GeographiesListTableProps {
   data: Geography[];
@@ -28,8 +28,9 @@ export function GeographiesListTable({
 }: GeographiesListTableProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [selectedGeography, setSelectedGeography] =
-    useState<Geography | null>(null);
+  const [selectedGeography, setSelectedGeography] = useState<Geography | null>(
+    null,
+  );
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [geoToDelete, setGeoToDelete] = useState<{

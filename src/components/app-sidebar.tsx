@@ -18,6 +18,9 @@ import {
   TableProperties,
 } from "lucide-react";
 
+import { NavMain } from "@/components/nav-main";
+import { NavDataPortals } from "@/components/nav-projects";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -25,9 +28,6 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { NavMain } from "@/components/nav-main";
-import { NavDataPortals } from "@/components/nav-projects";
-import { NavUser } from "@/components/nav-user";
 import { UniverseSwitcher } from "@/components/universe-switcher";
 
 const data = {
@@ -242,7 +242,7 @@ export function AppSidebar({
           url: prefixUrl(sub.url, universe),
         })),
       })),
-    [universe]
+    [universe],
   );
 
   const dataPortal = React.useMemo(
@@ -251,7 +251,7 @@ export function AppSidebar({
         ...item,
         url: prefixUrl(item.url, universe),
       })),
-    [universe]
+    [universe],
   );
 
   return (

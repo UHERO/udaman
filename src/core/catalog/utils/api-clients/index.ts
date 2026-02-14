@@ -16,7 +16,7 @@ export interface ApiResult {
 export async function fetchJson<T = unknown>(url: string): Promise<T> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(60_000),
-    headers: { "Accept": "application/json" },
+    headers: { Accept: "application/json" },
   });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText} (${url})`);
@@ -42,7 +42,10 @@ export async function fetchXml(url: string): Promise<string> {
 // ─── Date helpers ────────────────────────────────────────────────────
 
 const QUARTER_FIRST_MONTH: Record<string, string> = {
-  "1": "01", "2": "04", "3": "07", "4": "10",
+  "1": "01",
+  "2": "04",
+  "3": "07",
+  "4": "10",
 };
 
 /**

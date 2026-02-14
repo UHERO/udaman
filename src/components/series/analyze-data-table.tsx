@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -9,9 +9,9 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -20,7 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface AnalyzeRow {
@@ -59,7 +58,13 @@ export function AnalyzeDataTable({
   const rows = useMemo(() => {
     const map = new Map<string, AnalyzeRow>();
     for (const [date, value] of data) {
-      map.set(date, { date, level: value, levelChange: null, yoy: null, ytd: null });
+      map.set(date, {
+        date,
+        level: value,
+        levelChange: null,
+        yoy: null,
+        ytd: null,
+      });
     }
     for (const [date, value] of levelChange) {
       const row = map.get(date);
@@ -77,14 +82,11 @@ export function AnalyzeDataTable({
   }, [data, yoy, levelChange, ytd]);
 
   const FormattedCell = ({ n, unit }: { n: number | null; unit?: string }) => {
-    if (n == null || isNaN(n)) return <span className="text-muted-foreground">-</span>;
+    if (n == null || isNaN(n))
+      return <span className="text-muted-foreground">-</span>;
     let value = n.toFixed(decimals);
     if (unit === "perc") value += "%";
-    return (
-      <span className={cn("text-end text-xs", dpColor(n))}>
-        {value}
-      </span>
-    );
+    return <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>;
   };
 
   const columns: ColumnDef<AnalyzeRow>[] = [
@@ -123,12 +125,16 @@ export function AnalyzeDataTable({
     {
       accessorKey: "yoy",
       header: () => <span className="text-end">YOY %</span>,
-      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} unit="perc" />,
+      cell: ({ cell }) => (
+        <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
+      ),
     },
     {
       accessorKey: "ytd",
       header: () => <span className="text-end">YTD %</span>,
-      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} unit="perc" />,
+      cell: ({ cell }) => (
+        <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
+      ),
     },
   ];
 
@@ -151,7 +157,10 @@ export function AnalyzeDataTable({
                 <TableHead key={header.id} className="text-end">
                   {header.isPlaceholder
                     ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                 </TableHead>
               ))}
             </TableRow>

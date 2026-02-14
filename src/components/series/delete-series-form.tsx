@@ -1,20 +1,20 @@
 "use client";
 
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { isValidDate } from "@catalog/utils/time";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { deleteSeriesDataPoints } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
 import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldSet,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -81,7 +81,7 @@ export function DeleteSeriesForm({
                   />
                   <FieldLabel
                     htmlFor="observationDate"
-                    className="text-pretty font-normal"
+                    className="font-normal text-pretty"
                   >
                     <b>Observation date:</b> delete data points following given
                     date

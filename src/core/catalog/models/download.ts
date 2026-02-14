@@ -1,4 +1,6 @@
+import "server-only";
 import { join } from "node:path";
+
 import { getDataDir } from "@/lib/data-dir";
 
 export type DownloadAttrs = {
@@ -46,10 +48,18 @@ class Download {
     this.url = attrs.url ?? null;
     this.filenameExt = attrs.filename_ext ?? null;
     this.postParameters = attrs.post_parameters ?? null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
-    this.lastDownloadAt = attrs.last_download_at ? new Date(attrs.last_download_at as string | Date) : null;
-    this.lastChangeAt = attrs.last_change_at ? new Date(attrs.last_change_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
+    this.lastDownloadAt = attrs.last_download_at
+      ? new Date(attrs.last_download_at as string | Date)
+      : null;
+    this.lastChangeAt = attrs.last_change_at
+      ? new Date(attrs.last_change_at as string | Date)
+      : null;
     this.dateSensitive = Boolean(attrs.date_sensitive);
     this.freezeFile = Boolean(attrs.freeze_file);
     this.fileToExtract = attrs.file_to_extract ?? null;
@@ -72,7 +82,10 @@ class Download {
     if (noExt) {
       return join(Download.root, this.sanitizeHandle());
     }
-    return join(Download.root, `${this.sanitizeHandle()}.${this.filenameExt ?? "ext"}`);
+    return join(
+      Download.root,
+      `${this.sanitizeHandle()}.${this.filenameExt ?? "ext"}`,
+    );
   }
 
   /** Path after extraction (for zip files with file_to_extract set) */

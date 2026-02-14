@@ -9,8 +9,18 @@
 
 type Level = "debug" | "info" | "warn" | "error";
 
-const LEVEL_RANK: Record<Level, number> = { debug: 0, info: 1, warn: 2, error: 3 };
-const CONSOLE_FN: Record<Level, keyof Console> = { debug: "debug", info: "log", warn: "warn", error: "error" };
+const LEVEL_RANK: Record<Level, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+const CONSOLE_FN: Record<Level, keyof Console> = {
+  debug: "debug",
+  info: "log",
+  warn: "warn",
+  error: "error",
+};
 const MIN_LEVEL = (process.env.LOG_LEVEL ?? "info") as Level;
 
 interface Logger {
@@ -22,7 +32,11 @@ interface Logger {
 }
 
 function makeLogger(name?: string): Logger {
-  function log(level: Level, dataOrMsg: Record<string, unknown> | string, msg?: string) {
+  function log(
+    level: Level,
+    dataOrMsg: Record<string, unknown> | string,
+    msg?: string,
+  ) {
     if (LEVEL_RANK[level] < LEVEL_RANK[MIN_LEVEL]) return;
 
     const ts = new Date().toISOString();

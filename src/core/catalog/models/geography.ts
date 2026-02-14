@@ -34,8 +34,12 @@ class Geography {
     this.fips = attrs.fips ?? null;
     this.listOrder = attrs.list_order ?? null;
     this.geotype = attrs.geotype ?? null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
   }
 
   toString(): string {

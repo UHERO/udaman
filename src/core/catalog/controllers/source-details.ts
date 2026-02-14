@@ -1,7 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe } from "../types/shared";
+
 import SourceDetailCollection from "../collections/source-detail-collection";
-import type { CreateSourceDetailPayload, UpdateSourceDetailPayload } from "../collections/source-detail-collection";
+import type {
+  CreateSourceDetailPayload,
+  UpdateSourceDetailPayload,
+} from "../collections/source-detail-collection";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.source-details");
 
@@ -22,14 +26,24 @@ export async function getSourceDetail({ id }: { id: number }) {
   return { data };
 }
 
-export async function createSourceDetail({ payload }: { payload: CreateSourceDetailPayload }) {
+export async function createSourceDetail({
+  payload,
+}: {
+  payload: CreateSourceDetailPayload;
+}) {
   log.info({ payload }, "creating source detail");
   const data = await SourceDetailCollection.create(payload);
   log.info({ id: data.id }, "source detail created");
   return { message: "Source detail created", data };
 }
 
-export async function updateSourceDetail({ id, payload }: { id: number; payload: UpdateSourceDetailPayload }) {
+export async function updateSourceDetail({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateSourceDetailPayload;
+}) {
   log.info({ id, payload }, "updating source detail");
   const data = await SourceDetailCollection.update(id, payload);
   log.info({ id }, "source detail updated");

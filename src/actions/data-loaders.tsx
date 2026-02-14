@@ -1,23 +1,27 @@
 "use server";
 
-import { createLogger } from "@/core/observability/logger";
 import {
-  createDataLoader as createDataLoaderCtrl,
-  loadDataPoints as loadDataPointsCtrl,
   clearLoaderDataPoints as clearLoaderCtrl,
+  createDataLoader as createDataLoaderCtrl,
   deleteDataLoader as deleteLoaderCtrl,
   disableDataLoader as disableLoaderCtrl,
   enableDataLoader as enableLoaderCtrl,
+  loadDataPoints as loadDataPointsCtrl,
   updateDataLoader as updateDataLoaderCtrl,
 } from "@catalog/controllers/data-loaders";
 import type { Universe } from "@catalog/types/shared";
-import type { CreateLoaderFormData, UpdateLoaderFormData } from "@catalog/types/sources";
+import type {
+  CreateLoaderFormData,
+  UpdateLoaderFormData,
+} from "@catalog/types/sources";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.data-loaders");
 
 export async function createDataLoader(
   params: { seriesId: number; universe: Universe },
-  payload: CreateLoaderFormData
+  payload: CreateLoaderFormData,
 ) {
   const { seriesId, universe } = params;
   log.info({ seriesId, universe }, "createDataLoader action called");
@@ -63,7 +67,7 @@ export async function enableLoader(loaderId: number) {
 
 export async function updateDataLoader(
   loaderId: number,
-  payload: UpdateLoaderFormData
+  payload: UpdateLoaderFormData,
 ) {
   log.info({ loaderId }, "updateDataLoader action called");
   const result = await updateDataLoaderCtrl({ id: loaderId, payload });

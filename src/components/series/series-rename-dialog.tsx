@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import type { SeriesFormOptions } from "@catalog/types/form-options";
+import type { SeriesMetadata, Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { updateSeries } from "@/actions/series-actions";
-import type { SeriesMetadata, Universe } from "@catalog/types/shared";
-import type { SeriesFormOptions } from "@catalog/types/form-options";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,12 +27,12 @@ import {
 import { Input } from "@/components/ui/input";
 
 import {
-  SeriesNameFields,
-  nameFieldsSchema,
   assembleSeriesName,
+  freqCodeToLong,
+  nameFieldsSchema,
   parseSeriesName,
   resolveGeoId,
-  freqCodeToLong,
+  SeriesNameFields,
 } from "./series-name-fields";
 
 // ─── Schema ─────────────────────────────────────────────────────────
@@ -122,17 +121,13 @@ export function SeriesRenameDialog({
               />
 
               <Field data-invalid={!!form.formState.errors.dataPortalName}>
-                <FieldLabel htmlFor="rename-dpn">
-                  Data Portal Name *
-                </FieldLabel>
+                <FieldLabel htmlFor="rename-dpn">Data Portal Name *</FieldLabel>
                 <Input
                   id="rename-dpn"
                   placeholder="Display name for data portal"
                   {...form.register("dataPortalName")}
                 />
-                <FieldError
-                  errors={[form.formState.errors.dataPortalName]}
-                />
+                <FieldError errors={[form.formState.errors.dataPortalName]} />
               </Field>
             </FieldGroup>
           </FieldSet>

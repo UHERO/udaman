@@ -1,7 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe } from "../types/shared";
+
 import UnitCollection from "../collections/unit-collection";
-import type { CreateUnitPayload, UpdateUnitPayload } from "../collections/unit-collection";
+import type {
+  CreateUnitPayload,
+  UpdateUnitPayload,
+} from "../collections/unit-collection";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.units");
 
@@ -22,7 +26,13 @@ export async function getUnit({ id }: { id: number }) {
   return { data };
 }
 
-export async function getOrCreateUnit({ label, universe }: { label: string; universe?: Universe }) {
+export async function getOrCreateUnit({
+  label,
+  universe,
+}: {
+  label: string;
+  universe?: Universe;
+}) {
   log.info({ label, universe }, "get or create unit");
   const data = await UnitCollection.getOrCreate(label, universe);
   log.info({ id: data.id, label }, "unit resolved");
@@ -36,7 +46,13 @@ export async function createUnit({ payload }: { payload: CreateUnitPayload }) {
   return { message: "Unit created", data };
 }
 
-export async function updateUnit({ id, payload }: { id: number; payload: UpdateUnitPayload }) {
+export async function updateUnit({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateUnitPayload;
+}) {
   log.info({ id, payload }, "updating unit");
   const data = await UnitCollection.update(id, payload);
   log.info({ id }, "unit updated");

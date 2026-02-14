@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import type { SeriesAuditRow } from "@catalog/types/shared";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
 import {
   emptyQuarantine,
   getQuarantinedSeries,
   unquarantineSeries,
 } from "@/actions/series-actions";
-import type { SeriesAuditRow } from "@catalog/types/shared";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,7 +50,7 @@ export function QuarantineSeriesTable({ universe }: { universe: string }) {
         setTotalCount(result.totalCount);
       });
     },
-    [universe]
+    [universe],
   );
 
   useEffect(() => {

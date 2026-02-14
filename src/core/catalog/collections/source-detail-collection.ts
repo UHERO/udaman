@@ -14,7 +14,9 @@ export type UpdateSourceDetailPayload = Partial<CreateSourceDetailPayload>;
 
 class SourceDetailCollection {
   /** Fetch all source details, optionally filtered by universe */
-  static async list(options: { universe?: Universe } = {}): Promise<SourceDetail[]> {
+  static async list(
+    options: { universe?: Universe } = {},
+  ): Promise<SourceDetail[]> {
     const { universe } = options;
     if (universe) {
       const rows = await mysql<SourceDetailAttrs>`
@@ -39,7 +41,9 @@ class SourceDetailCollection {
   }
 
   /** Create a new source detail */
-  static async create(payload: CreateSourceDetailPayload): Promise<SourceDetail> {
+  static async create(
+    payload: CreateSourceDetailPayload,
+  ): Promise<SourceDetail> {
     const { description, universe = "UHERO" } = payload;
 
     await mysql`
@@ -47,12 +51,17 @@ class SourceDetailCollection {
       VALUES (${universe}, ${description ?? null}, NOW(), NOW())
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a source detail */
-  static async update(id: number, updates: UpdateSourceDetailPayload): Promise<SourceDetail> {
+  static async update(
+    id: number,
+    updates: UpdateSourceDetailPayload,
+  ): Promise<SourceDetail> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);
@@ -73,14 +82,18 @@ class SourceDetailCollection {
       SELECT COUNT(*) as cnt FROM series WHERE source_detail_id = ${id}
     `;
     if (seriesRefs[0].cnt > 0) {
-      throw new Error(`Cannot delete source detail (id=${id}): referenced by series`);
+      throw new Error(
+        `Cannot delete source detail (id=${id}): referenced by series`,
+      );
     }
 
     const measurementRefs = await mysql<{ cnt: number }>`
       SELECT COUNT(*) as cnt FROM measurements WHERE source_detail_id = ${id}
     `;
     if (measurementRefs[0].cnt > 0) {
-      throw new Error(`Cannot delete source detail (id=${id}): referenced by measurements`);
+      throw new Error(
+        `Cannot delete source detail (id=${id}): referenced by measurements`,
+      );
     }
 
     await mysql`DELETE FROM source_details WHERE id = ${id}`;

@@ -1,7 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe } from "../types/shared";
+
 import SourceCollection from "../collections/source-collection";
-import type { CreateSourcePayload, UpdateSourcePayload } from "../collections/source-collection";
+import type {
+  CreateSourcePayload,
+  UpdateSourcePayload,
+} from "../collections/source-collection";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.sources");
 
@@ -32,19 +36,33 @@ export async function getOrCreateSource({
   universe?: Universe;
 }) {
   log.info({ description, universe }, "get or create source");
-  const data = await SourceCollection.getOrCreate(description, link ?? null, universe);
+  const data = await SourceCollection.getOrCreate(
+    description,
+    link ?? null,
+    universe,
+  );
   log.info({ id: data.id, description }, "source resolved");
   return { data };
 }
 
-export async function createSource({ payload }: { payload: CreateSourcePayload }) {
+export async function createSource({
+  payload,
+}: {
+  payload: CreateSourcePayload;
+}) {
   log.info({ payload }, "creating source");
   const data = await SourceCollection.create(payload);
   log.info({ id: data.id }, "source created");
   return { message: "Source created", data };
 }
 
-export async function updateSource({ id, payload }: { id: number; payload: UpdateSourcePayload }) {
+export async function updateSource({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateSourcePayload;
+}) {
   log.info({ id, payload }, "updating source");
   const data = await SourceCollection.update(id, payload);
   log.info({ id }, "source updated");

@@ -40,7 +40,10 @@ class UnitCollection {
   }
 
   /** Find by short_label or create with that label (mirrors Rails Unit.get_or_new) */
-  static async getOrCreate(label: string, universe: Universe = "UHERO"): Promise<Unit> {
+  static async getOrCreate(
+    label: string,
+    universe: Universe = "UHERO",
+  ): Promise<Unit> {
     const rows = await mysql<UnitAttrs>`
       SELECT * FROM units
       WHERE universe = ${universe} AND short_label = ${label}
@@ -64,7 +67,9 @@ class UnitCollection {
       VALUES (${universe}, ${shortLabel ?? null}, ${longLabel ?? null}, NOW(), NOW())
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
@@ -97,7 +102,9 @@ class UnitCollection {
       SELECT COUNT(*) as cnt FROM measurements WHERE unit_id = ${id}
     `;
     if (measurementRefs[0].cnt > 0) {
-      throw new Error(`Cannot delete unit (id=${id}): referenced by measurements`);
+      throw new Error(
+        `Cannot delete unit (id=${id}): referenced by measurements`,
+      );
     }
 
     await mysql`DELETE FROM units WHERE id = ${id}`;

@@ -34,7 +34,7 @@ const SourceMap: React.FC<SourceMapProps> = ({ node, universe, depth = 0 }) => {
         className={cn(
           "min-w-2xs border border-gray-300 p-2 align-top",
           dataSource.disabled && "opacity-50",
-          getColor(dataSource.color)
+          getColor(dataSource.color),
         )}
       >
         <div className="space-y-1">

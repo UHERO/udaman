@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { createCategory, updateCategory } from "@/actions/categories";
 import {
   Category,
   Frequency,
@@ -11,10 +11,10 @@ import {
 } from "@catalog/types/shared";
 import { frequencies, universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { createCategory, updateCategory } from "@/actions/categories";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -139,7 +139,7 @@ export function CategoryFormSheet({
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save category"
+        error instanceof Error ? error.message : "Failed to save category",
       );
     }
   }
@@ -218,7 +218,7 @@ export function CategoryFormSheet({
                   onValueChange={(value) =>
                     form.setValue(
                       "defaultFreq",
-                      value === "none" ? "" : (value as Frequency)
+                      value === "none" ? "" : (value as Frequency),
                     )
                   }
                 >
@@ -244,7 +244,7 @@ export function CategoryFormSheet({
                   onValueChange={(value) =>
                     form.setValue(
                       "defaultGeoId",
-                      value === "none" ? null : Number(value)
+                      value === "none" ? null : Number(value),
                     )
                   }
                 >

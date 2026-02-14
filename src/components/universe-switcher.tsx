@@ -56,7 +56,7 @@ export function UniverseSwitcher({
       segments[2] = universe.name.toLowerCase(); // /udaman/[universe]/...
       router.replace(segments.join("/"));
     },
-    [pathname, router]
+    [pathname, router],
   );
 
   return (

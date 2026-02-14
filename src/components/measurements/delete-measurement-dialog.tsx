@@ -1,8 +1,8 @@
 "use client";
 
-import { Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteMeasurement } from "@/actions/measurements";
@@ -43,7 +43,9 @@ export function DeleteMeasurementDialog({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete measurement");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete measurement",
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -57,8 +59,8 @@ export function DeleteMeasurementDialog({
           <AlertDialogDescription>
             Are you sure you want to delete{" "}
             <strong>{measurementName || "this measurement"}</strong>? This will
-            also remove all series and data list associations. This action cannot
-            be undone.
+            also remove all series and data list associations. This action
+            cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -1,8 +1,8 @@
 "use client";
 
-import { Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteSourceDetail } from "@/actions/source-details";
@@ -43,7 +43,11 @@ export function DeleteSourceDetailDialog({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete source detail");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete source detail",
+      );
     } finally {
       setIsDeleting(false);
     }

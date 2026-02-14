@@ -60,12 +60,20 @@ class Measurement {
     this.real = attrs.real != null ? Boolean(attrs.real) : null;
     this.decimals = attrs.decimals ?? 1;
     this.restricted = Boolean(attrs.restricted);
-    this.seasonallyAdjusted = attrs.seasonally_adjusted != null ? Boolean(attrs.seasonally_adjusted) : null;
-    this.seasonalAdjustment = (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
+    this.seasonallyAdjusted =
+      attrs.seasonally_adjusted != null
+        ? Boolean(attrs.seasonally_adjusted)
+        : null;
+    this.seasonalAdjustment =
+      (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
     this.sourceLink = attrs.source_link ?? null;
     this.notes = attrs.notes ?? null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
   }
 
   get prefixAndName(): string {

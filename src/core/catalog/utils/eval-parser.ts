@@ -186,7 +186,10 @@ function tokenize(input: string): Token[] {
     }
 
     // Number literal (integer or float, possibly negative already handled as OP + NUMBER)
-    if (/[0-9]/.test(ch) || (ch === "-" && i + 1 < input.length && /[0-9]/.test(input[i + 1]))) {
+    if (
+      /[0-9]/.test(ch) ||
+      (ch === "-" && i + 1 < input.length && /[0-9]/.test(input[i + 1]))
+    ) {
       let num = "";
       if (ch === "-") {
         num += ch;
@@ -227,7 +230,9 @@ function tokenize(input: string): Token[] {
 
 // ─── Ruby Hash Parser ───────────────────────────────────────────────
 
-function parseRubyHash(hashStr: string): Record<string, string | number | boolean> {
+function parseRubyHash(
+  hashStr: string,
+): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
   // Match key-value pairs in both Ruby hash syntaxes:
   //   new-style:  `word: value`
@@ -288,7 +293,7 @@ class EvalParser {
     const tok = this.current();
     if (!tok || tok.type !== type) {
       throw new EvalParseError(
-        `Expected ${type}, got ${tok ? `${tok.type}(${tok.value})` : "EOF"}`
+        `Expected ${type}, got ${tok ? `${tok.type}(${tok.value})` : "EOF"}`,
       );
     }
     return this.advance();
@@ -298,7 +303,10 @@ class EvalParser {
   private parseExpression(): EvalNode {
     let left = this.parseTerm();
 
-    while (this.current()?.type === "OP" && (this.current()!.value === "+" || this.current()!.value === "-")) {
+    while (
+      this.current()?.type === "OP" &&
+      (this.current()!.value === "+" || this.current()!.value === "-")
+    ) {
       const op = this.advance().value as "+" | "-";
       const right = this.parseTerm();
       left = { type: "arithmetic", op, left, right };
@@ -313,7 +321,9 @@ class EvalParser {
 
     while (
       this.current()?.type === "OP" &&
-      (this.current()!.value === "*" || this.current()!.value === "/" || this.current()!.value === "**")
+      (this.current()!.value === "*" ||
+        this.current()!.value === "/" ||
+        this.current()!.value === "**")
     ) {
       const op = this.advance().value as "*" | "/" | "**";
       const right = this.parsePrimary();
@@ -352,9 +362,7 @@ class EvalParser {
       return { type: "scalar", value: Number(tok.value) };
     }
 
-    throw new EvalParseError(
-      `Unexpected token: ${tok.type}(${tok.value})`
-    );
+    throw new EvalParseError(`Unexpected token: ${tok.type}(${tok.value})`);
   }
 
   /** Parse postfix operators: .method(), .ts, .tsn, arithmetic */
@@ -389,7 +397,7 @@ class EvalParser {
     const methodTok = this.current();
     if (!methodTok || methodTok.type !== "DOT_IDENT") {
       throw new EvalParseError(
-        `Expected method name after Series., got ${methodTok ? `${methodTok.type}(${methodTok.value})` : "EOF"}`
+        `Expected method name after Series., got ${methodTok ? `${methodTok.type}(${methodTok.value})` : "EOF"}`,
       );
     }
     const method = this.advance().value;
@@ -402,9 +410,12 @@ class EvalParser {
     const nameTok = this.advance(); // QUOTED_STRING
     const resolverTok = this.current();
 
-    if (!resolverTok || (resolverTok.type !== "DOT_TS" && resolverTok.type !== "DOT_TSN")) {
+    if (
+      !resolverTok ||
+      (resolverTok.type !== "DOT_TS" && resolverTok.type !== "DOT_TSN")
+    ) {
       throw new EvalParseError(
-        `Expected .ts or .tsn after "${nameTok.value}", got ${resolverTok ? `${resolverTok.type}(${resolverTok.value})` : "EOF"}`
+        `Expected .ts or .tsn after "${nameTok.value}", got ${resolverTok ? `${resolverTok.type}(${resolverTok.value})` : "EOF"}`,
       );
     }
 
@@ -456,7 +467,8 @@ class EvalParser {
   /** Parse a single argument value */
   private parseOneArg(): EvalArg {
     const tok = this.current();
-    if (!tok) throw new EvalParseError("Unexpected end of input in argument list");
+    if (!tok)
+      throw new EvalParseError("Unexpected end of input in argument list");
 
     // Ruby symbol :word
     if (tok.type === "SYMBOL") {
@@ -500,19 +512,25 @@ class EvalParser {
       while (this.current()?.type === "HASH_KEY") {
         const key = this.advance().value;
         const valTok = this.current();
-        if (!valTok) throw new EvalParseError("Unexpected end of input after hash key");
+        if (!valTok)
+          throw new EvalParseError("Unexpected end of input after hash key");
 
         if (valTok.type === "STRING_ARG" || valTok.type === "QUOTED_STRING") {
           opts[key] = this.advance().value;
         } else if (valTok.type === "NUMBER") {
           opts[key] = Number(this.advance().value);
-        } else if (valTok.type === "DOT_IDENT" && (valTok.value === "true" || valTok.value === "false")) {
+        } else if (
+          valTok.type === "DOT_IDENT" &&
+          (valTok.value === "true" || valTok.value === "false")
+        ) {
           opts[key] = valTok.value === "true";
           this.advance();
         } else if (valTok.type === "SYMBOL") {
           opts[key] = this.advance().value;
         } else {
-          throw new EvalParseError(`Unexpected hash value for key "${key}": ${valTok.type}(${valTok.value})`);
+          throw new EvalParseError(
+            `Unexpected hash value for key "${key}": ${valTok.type}(${valTok.value})`,
+          );
         }
 
         if (this.current()?.type === "COMMA") this.advance();
@@ -521,7 +539,7 @@ class EvalParser {
     }
 
     throw new EvalParseError(
-      `Unexpected argument token: ${tok.type}(${tok.value})`
+      `Unexpected argument token: ${tok.type}(${tok.value})`,
     );
   }
 }

@@ -1,15 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createLogger } from "@/core/observability/logger";
+import type {
+  CreateSourceDetailPayload,
+  UpdateSourceDetailPayload,
+} from "@catalog/collections/source-detail-collection";
 import {
-  getSourceDetails as fetchSourceDetails,
   createSourceDetail as createSourceDetailCtrl,
-  updateSourceDetail as updateSourceDetailCtrl,
   deleteSourceDetail as deleteSourceDetailCtrl,
+  getSourceDetails as fetchSourceDetails,
+  updateSourceDetail as updateSourceDetailCtrl,
 } from "@catalog/controllers/source-details";
-import type { CreateSourceDetailPayload, UpdateSourceDetailPayload } from "@catalog/collections/source-detail-collection";
 import type { Universe } from "@catalog/types/shared";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.source-details");
 
@@ -28,7 +32,10 @@ export async function createSourceDetail(payload: CreateSourceDetailPayload) {
   return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function updateSourceDetail(id: number, payload: UpdateSourceDetailPayload) {
+export async function updateSourceDetail(
+  id: number,
+  payload: UpdateSourceDetailPayload,
+) {
   log.info({ id }, "updateSourceDetail action called");
   const result = await updateSourceDetailCtrl({ id, payload });
   revalidatePath("/source-details");

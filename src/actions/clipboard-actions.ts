@@ -1,18 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createLogger } from "@/core/observability/logger";
-import { getCurrentUserId } from "@/lib/auth";
 import {
-  getClipboard as fetchClipboard,
-  addToClipboard as addToClipboardCtrl,
   addMultipleToClipboard as addMultipleCtrl,
-  removeFromClipboard as removeFromClipboardCtrl,
+  addToClipboard as addToClipboardCtrl,
+  bulkUpdateMetadata as bulkUpdateMetadataCtrl,
   clearClipboard as clearClipboardCtrl,
   doClipboardAction as doClipboardActionCtrl,
-  bulkUpdateMetadata as bulkUpdateMetadataCtrl,
+  getClipboard as fetchClipboard,
+  removeFromClipboard as removeFromClipboardCtrl,
 } from "@catalog/controllers/clipboard";
-import type { ClipboardAction, BulkMetadataPayload } from "@catalog/controllers/clipboard";
+import type {
+  BulkMetadataPayload,
+  ClipboardAction,
+} from "@catalog/controllers/clipboard";
+
+import { createLogger } from "@/core/observability/logger";
+import { getCurrentUserId } from "@/lib/auth";
 
 const log = createLogger("action.clipboard");
 
@@ -32,7 +36,10 @@ export async function addSeriesToClipboard(seriesId: number) {
 
 export async function addMultipleSeriesToClipboard(seriesIds: number[]) {
   const userId = await getCurrentUserId();
-  log.info({ userId, count: seriesIds.length }, "addMultipleSeriesToClipboard action called");
+  log.info(
+    { userId, count: seriesIds.length },
+    "addMultipleSeriesToClipboard action called",
+  );
   const result = await addMultipleCtrl({ userId, seriesIds });
   return result;
 }
@@ -58,9 +65,14 @@ export async function executeClipboardAction(action: ClipboardAction) {
   return result;
 }
 
-export async function bulkUpdateClipboardMetadata(payload: BulkMetadataPayload) {
+export async function bulkUpdateClipboardMetadata(
+  payload: BulkMetadataPayload,
+) {
   const userId = await getCurrentUserId();
-  log.info({ userId, fields: Object.keys(payload) }, "bulkUpdateClipboardMetadata called");
+  log.info(
+    { userId, fields: Object.keys(payload) },
+    "bulkUpdateClipboardMetadata called",
+  );
   const result = await bulkUpdateMetadataCtrl({ userId, payload });
   return result;
 }

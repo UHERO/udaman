@@ -26,7 +26,9 @@ export type UpdateMeasurementPayload = Partial<CreateMeasurementPayload>;
 
 class MeasurementCollection {
   /** Fetch all measurements, optionally filtered by universe */
-  static async list(options: { universe?: Universe } = {}): Promise<Measurement[]> {
+  static async list(
+    options: { universe?: Universe } = {},
+  ): Promise<Measurement[]> {
     const { universe } = options;
     if (universe) {
       const rows = await mysql<MeasurementAttrs>`
@@ -74,7 +76,10 @@ class MeasurementCollection {
   }
 
   /** Fetch a measurement by prefix within a universe */
-  static async getByPrefix(prefix: string, universe: Universe = "UHERO"): Promise<Measurement> {
+  static async getByPrefix(
+    prefix: string,
+    universe: Universe = "UHERO",
+  ): Promise<Measurement> {
     const rows = await mysql<MeasurementAttrs>`
       SELECT * FROM measurements
       WHERE universe = ${universe} AND prefix = ${prefix}
@@ -119,12 +124,17 @@ class MeasurementCollection {
       )
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a measurement */
-  static async update(id: number, updates: UpdateMeasurementPayload): Promise<Measurement> {
+  static async update(
+    id: number,
+    updates: UpdateMeasurementPayload,
+  ): Promise<Measurement> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);
@@ -149,7 +159,10 @@ class MeasurementCollection {
   }
 
   /** Add a series to a measurement */
-  static async addSeries(measurementId: number, seriesId: number): Promise<void> {
+  static async addSeries(
+    measurementId: number,
+    seriesId: number,
+  ): Promise<void> {
     const existing = await mysql<{ id: number }>`
       SELECT id FROM measurement_series
       WHERE measurement_id = ${measurementId} AND series_id = ${seriesId}
@@ -164,7 +177,10 @@ class MeasurementCollection {
   }
 
   /** Remove a series from a measurement */
-  static async removeSeries(measurementId: number, seriesId: number): Promise<void> {
+  static async removeSeries(
+    measurementId: number,
+    seriesId: number,
+  ): Promise<void> {
     await mysql`
       DELETE FROM measurement_series
       WHERE measurement_id = ${measurementId} AND series_id = ${seriesId}

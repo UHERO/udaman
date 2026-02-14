@@ -5,8 +5,8 @@
 
 import DownloadCollection from "@catalog/collections/download-collection";
 import type {
-  RelatedSeries,
   CreateDownloadPayload,
+  RelatedSeries,
   UpdateDownloadPayload,
 } from "@catalog/collections/download-collection";
 
@@ -29,9 +29,10 @@ export type DomainGroup = {
   downloads: DownloadSummary[];
 };
 
-function toSummary(
-  dl: { download: { toJSON: () => Record<string, unknown>; domain: string | null }; hasRelatedSeries: boolean },
-): DownloadSummary {
+function toSummary(dl: {
+  download: { toJSON: () => Record<string, unknown>; domain: string | null };
+  hasRelatedSeries: boolean;
+}): DownloadSummary {
   const json = dl.download.toJSON() as DownloadSummary;
   return {
     ...json,
@@ -57,7 +58,9 @@ export async function getDownloads(): Promise<{ domains: DomainGroup[] }> {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([domain, downloads]) => ({
       domain,
-      hasOrphans: downloads.some((d) => !d.hasRelatedSeries && !d.dateSensitive),
+      hasOrphans: downloads.some(
+        (d) => !d.hasRelatedSeries && !d.dateSensitive,
+      ),
       downloads,
     }));
 
@@ -88,7 +91,11 @@ export type LogEntrySerialized = {
   dlChanged: boolean;
 };
 
-export async function getDownloadDetail({ id }: { id: number }): Promise<DownloadDetail> {
+export async function getDownloadDetail({
+  id,
+}: {
+  id: number;
+}): Promise<DownloadDetail> {
   const download = await DownloadCollection.getById(id);
 
   const [logEntries, relatedSeries] = await Promise.all([
@@ -139,7 +146,11 @@ export type DownloadFormData = {
   notes: string;
 };
 
-export async function getDownloadForEdit({ id }: { id: number }): Promise<DownloadFormData> {
+export async function getDownloadForEdit({
+  id,
+}: {
+  id: number;
+}): Promise<DownloadFormData> {
   const dl = await DownloadCollection.getById(id);
   return {
     id: dl.id,
@@ -162,7 +173,10 @@ export async function createDownload(payload: CreateDownloadPayload) {
   return { message: "Download created", data };
 }
 
-export async function updateDownload(id: number, payload: UpdateDownloadPayload) {
+export async function updateDownload(
+  id: number,
+  payload: UpdateDownloadPayload,
+) {
   const data = await DownloadCollection.update(id, payload);
   return { message: "Download updated", data };
 }
@@ -171,4 +185,3 @@ export async function deleteDownload(id: number) {
   await DownloadCollection.delete(id);
   return { message: "Download deleted" };
 }
-

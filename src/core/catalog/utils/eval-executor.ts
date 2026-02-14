@@ -1,14 +1,14 @@
-import EvalParser, { EvalParseError } from "./eval-parser";
-import type { EvalNode, EvalArg } from "./eval-parser";
-import DataFileReader from "./data-file-reader";
-import Series from "../models/series";
 import SeriesCollection from "../collections/series-collection";
+import Series from "../models/series";
+import DataFileReader from "./data-file-reader";
+import EvalParser, { EvalParseError } from "./eval-parser";
+import type { EvalArg, EvalNode } from "./eval-parser";
 
 // ─── Ruby → TypeScript method name mapping ──────────────────────────
 
 /** Explicit aliases for Ruby method names that don't follow snake_case conventions. */
 const METHOD_ALIASES: Record<string, string> = {
-  "load_api_bls_NEW": "loadApiBlsV2",
+  load_api_bls_NEW: "loadApiBlsV2",
 };
 
 function snakeToCamel(s: string): string {
@@ -84,8 +84,10 @@ const OP_TO_METHOD: Record<string, string> = {
 // ─── Argument Resolution ────────────────────────────────────────────
 
 async function resolveArg(
-  arg: EvalArg
-): Promise<string | number | boolean | Series | Record<string, string | number | boolean>> {
+  arg: EvalArg,
+): Promise<
+  string | number | boolean | Series | Record<string, string | number | boolean>
+> {
   switch (arg.type) {
     case "string":
       return arg.value;
@@ -106,7 +108,7 @@ async function resolveArg(
     case "options":
       // Coerce all values to strings — API methods expect Record<string, string>
       return Object.fromEntries(
-        Object.entries(arg.value).map(([k, v]) => [k, String(v)])
+        Object.entries(arg.value).map(([k, v]) => [k, String(v)]),
       );
   }
 }
@@ -150,7 +152,7 @@ class EvalExecutor {
 
         if (!ALLOWED_INSTANCE_METHODS.has(methodName)) {
           throw new EvalExecuteError(
-            `Instance method not allowed: ${node.method} (mapped to ${methodName})`
+            `Instance method not allowed: ${node.method} (mapped to ${methodName})`,
           );
         }
 
@@ -180,7 +182,7 @@ class EvalExecutor {
         const fn = (target as unknown as Record<string, unknown>)[methodName];
         if (typeof fn !== "function") {
           throw new EvalExecuteError(
-            `Series does not implement method: ${methodName}`
+            `Series does not implement method: ${methodName}`,
           );
         }
 
@@ -194,14 +196,16 @@ class EvalExecutor {
 
         if (!ALLOWED_STATIC_METHODS.has(methodName)) {
           throw new EvalExecuteError(
-            `Static method not allowed: ${node.method} (mapped to ${methodName})`
+            `Static method not allowed: ${node.method} (mapped to ${methodName})`,
           );
         }
 
-        const fn = (SeriesCollection as unknown as Record<string, unknown>)[methodName];
+        const fn = (SeriesCollection as unknown as Record<string, unknown>)[
+          methodName
+        ];
         if (typeof fn !== "function") {
           throw new EvalExecuteError(
-            `SeriesCollection does not implement method: ${methodName}`
+            `SeriesCollection does not implement method: ${methodName}`,
           );
         }
 
@@ -223,7 +227,7 @@ class EvalExecutor {
         const fn = (left as unknown as Record<string, unknown>)[methodName];
         if (typeof fn !== "function") {
           throw new EvalExecuteError(
-            `Series does not implement arithmetic method: ${methodName}`
+            `Series does not implement arithmetic method: ${methodName}`,
           );
         }
 

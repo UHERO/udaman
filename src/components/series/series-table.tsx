@@ -3,24 +3,24 @@
 import { DataPoint } from "@catalog/types/shared";
 import { dpAgeCode, uheroDate } from "@catalog/utils/time";
 import {
-    ColumnDef,
-    flexRender,
-    getCoreRowModel,
-    useReactTable,
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
-
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+
 import { getColor } from "../helpers";
 import { DataPointTooltip } from "./data-point-hover-card";
 import { useSeriesHover } from "./series-data-section";
@@ -154,75 +154,81 @@ export const SeriesDataTable = ({
   });
   return (
     <TooltipProvider delayDuration={200} skipDelayDuration={0}>
-    <div>
-      <Table className="border-separate border-spacing-1 font-mono text-gray-800">
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-end">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row, i) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-                className={cn("group", i % 2 === 0 ? "bg-muted" : "bg-none")}
-                onMouseEnter={() => setHoveredDate(row.getValue("date"))}
-                onMouseLeave={() => setHoveredDate(null)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    className={cn(
-                      "group-hover:bg-muted cursor-default border-b bg-white text-end",
-                      cell.column.id === "value" &&
-                        getColor(cell.row.getValue("color")),
-                    )}
-                  >
-                    {/* {cell.getValue() ?? "-"} */}
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
+      <div>
+        <Table className="border-separate border-spacing-1 font-mono text-gray-800">
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="text-end">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
                 ))}
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No data found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="h-5 text-end">
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row, i) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className={cn("group", i % 2 === 0 ? "bg-muted" : "bg-none")}
+                  onMouseEnter={() => setHoveredDate(row.getValue("date"))}
+                  onMouseLeave={() => setHoveredDate(null)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "group-hover:bg-muted cursor-default border-b bg-white text-end",
+                        cell.column.id === "value" &&
+                          getColor(cell.row.getValue("color")),
                       )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-      </Table>
-    </div>
+                    >
+                      {/* {cell.getValue() ?? "-"} */}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No data found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="h-5 text-end">
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+        </Table>
+      </div>
     </TooltipProvider>
   );
 };

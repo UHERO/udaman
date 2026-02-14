@@ -3,10 +3,15 @@ import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
 import Series from "../models/series";
 import type { SeriesAttrs } from "../models/series";
-import TimeSeriesCollection from "./time-series-collection";
-import type { SeriesAuditRow, SeasonalAdjustment, SeriesMetadata, Universe } from "../types/shared";
+import type {
+  SeasonalAdjustment,
+  SeriesAuditRow,
+  SeriesMetadata,
+  Universe,
+} from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
 import { isValidUniverse } from "../utils/validators";
+import TimeSeriesCollection from "./time-series-collection";
 
 /** Row shape returned by the summary SELECT (before date enrichment). */
 interface SeriesSummaryRow {
@@ -115,7 +120,9 @@ class SeriesCollection {
         LIMIT 1
       `;
       if (!geoRows[0]) {
-        throw new Error(`No ${universe} geography found for handle=${parsed.geo}`);
+        throw new Error(
+          `No ${universe} geography found for handle=${parsed.geo}`,
+        );
       }
       geoId = geoRows[0].id;
     }
@@ -187,7 +194,9 @@ class SeriesCollection {
       )
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
 
     // 3. Set primary_series_id back on xseries
     await TimeSeriesCollection.setPrimarySeries(timeSeries.id, insertId);
@@ -228,9 +237,10 @@ class SeriesCollection {
     const data = new Map<string, number>();
     for (const row of rows) {
       if (row.value == null) continue;
-      const dateStr = row.date instanceof Date
-        ? row.date.toISOString().slice(0, 10)
-        : String(row.date);
+      const dateStr =
+        row.date instanceof Date
+          ? row.date.toISOString().slice(0, 10)
+          : String(row.date);
       data.set(dateStr, row.value);
     }
     series.data = data;
@@ -261,7 +271,11 @@ class SeriesCollection {
   }
 
   /** Fetch the denormalized metadata view for a series (joined with geo, unit, source, etc.) */
-  static async getSeriesMetadata({ id }: { id: number }): Promise<SeriesMetadata> {
+  static async getSeriesMetadata({
+    id,
+  }: {
+    id: number;
+  }): Promise<SeriesMetadata> {
     const rows = await mysql<SeriesMetadata>`
       SELECT
         s.id as s_id,
@@ -316,8 +330,7 @@ class SeriesCollection {
       LEFT JOIN source_details sd ON s.source_detail_id = sd.id
       WHERE s.id = ${id}
     `;
-    if (rows.length === 0)
-      throw new Error("404 - Series not found: " + id);
+    if (rows.length === 0) throw new Error("404 - Series not found: " + id);
     return rows[0];
   }
 
@@ -474,25 +487,48 @@ class SeriesCollection {
    * (frequency, SA, percent, etc.) are only written when this series
    * is the primary — aliases don't own the shared data metadata.
    */
-  static async update(id: number, payload: UpdateSeriesPayload): Promise<Series> {
+  static async update(
+    id: number,
+    payload: UpdateSeriesPayload,
+  ): Promise<Series> {
     if (!Object.keys(payload).length) return this.getById(id);
 
     const series = await this.getById(id);
 
     // Separate series vs xseries fields
     const {
-      frequency, seasonalAdjustment, seasonallyAdjusted,
-      restricted, quarantined, percent, real, baseYear,
-      frequencyTransform, factorApplication, factors,
-      aremosMissing, aremosDiff, mult,
+      frequency,
+      seasonalAdjustment,
+      seasonallyAdjusted,
+      restricted,
+      quarantined,
+      percent,
+      real,
+      baseYear,
+      frequencyTransform,
+      factorApplication,
+      factors,
+      aremosMissing,
+      aremosDiff,
+      mult,
       ...seriesFields
     } = payload;
 
     const xseriesPayload = {
-      frequency, seasonalAdjustment, seasonallyAdjusted,
-      restricted, quarantined, percent, real, baseYear,
-      frequencyTransform, factorApplication, factors,
-      aremosMissing, aremosDiff, mult,
+      frequency,
+      seasonalAdjustment,
+      seasonallyAdjusted,
+      restricted,
+      quarantined,
+      percent,
+      real,
+      baseYear,
+      frequencyTransform,
+      factorApplication,
+      factors,
+      aremosMissing,
+      aremosDiff,
+      mult,
     };
 
     // Apply meta integrity rules
@@ -542,7 +578,7 @@ class SeriesCollection {
       if (Object.keys(cleanXs).length > 0) {
         await TimeSeriesCollection.update(
           series.xseriesId!,
-          cleanXs as Parameters<typeof TimeSeriesCollection.update>[1]
+          cleanXs as Parameters<typeof TimeSeriesCollection.update>[1],
         );
       }
     }
@@ -574,7 +610,7 @@ class SeriesCollection {
       });
       if (aliases.length > 0) {
         throw new SeriesDeleteError(
-          `Cannot delete primary series ${series.name} with ${aliases.length} alias(es). Delete aliases first.`
+          `Cannot delete primary series ${series.name} with ${aliases.length} alias(es). Delete aliases first.`,
         );
       }
     }
@@ -590,7 +626,7 @@ class SeriesCollection {
       `;
       if (dependentRows.length > 0) {
         throw new SeriesDeleteError(
-          `Cannot delete series ${series.name} — other series depend on it. Remove dependencies first.`
+          `Cannot delete series ${series.name} — other series depend on it. Remove dependencies first.`,
         );
       }
     }
@@ -637,15 +673,19 @@ class SeriesCollection {
    */
   static async createAlias(
     primarySeriesId: number,
-    opts: { universe: Universe; name?: string; geographyId?: number }
+    opts: { universe: Universe; name?: string; geographyId?: number },
   ): Promise<Series> {
     const primary = await this.getById(primarySeriesId);
 
     if (!primary.isPrimary) {
-      throw new Error(`${primary.name} is not a primary series, cannot be aliased`);
+      throw new Error(
+        `${primary.name} is not a primary series, cannot be aliased`,
+      );
     }
     if (opts.universe === primary.universe) {
-      throw new Error(`Cannot alias ${primary.name} into same universe ${opts.universe}`);
+      throw new Error(
+        `Cannot alias ${primary.name} into same universe ${opts.universe}`,
+      );
     }
 
     const aliasName = opts.name ?? primary.name;
@@ -670,7 +710,9 @@ class SeriesCollection {
         LIMIT 1
       `;
       if (!geoRows[0]) {
-        throw new Error(`No geography ${parsed.geo} in universe ${opts.universe}`);
+        throw new Error(
+          `No geography ${parsed.geo} in universe ${opts.universe}`,
+        );
       }
       geoId = geoRows[0].id;
     }
@@ -702,7 +744,9 @@ class SeriesCollection {
       )
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
@@ -793,7 +837,10 @@ class SeriesCollection {
   }
 
   /** Fetch aliases for a series, returned as Series model instances */
-  static async getAliases(opts: { sId: number; xsId: number }): Promise<Series[]> {
+  static async getAliases(opts: {
+    sId: number;
+    xsId: number;
+  }): Promise<Series[]> {
     const { sId, xsId } = opts;
     const rows = await mysql<SeriesAttrs>`
       SELECT
@@ -882,9 +929,13 @@ class SeriesCollection {
       if (isOp) {
         switch (op) {
           case "/": {
-            const abbrevs: Record<string, Universe> = { u: "UHERO", db: "DBEDT" };
+            const abbrevs: Record<string, Universe> = {
+              u: "UHERO",
+              db: "DBEDT",
+            };
             univ = abbrevs[val] ?? val;
-            if (!isValidUniverse(univ)) throw new Error(`Unknown universe ${univ}`);
+            if (!isValidUniverse(univ))
+              throw new Error(`Unknown universe ${univ}`);
             break;
           }
           case "+": {
@@ -898,16 +949,22 @@ class SeriesCollection {
             variables.push(val);
             break;
           case "^":
-            conditions.push(`substring_index(series.name,'@',1) ${negated}regexp ?`);
+            conditions.push(
+              `substring_index(series.name,'@',1) ${negated}regexp ?`,
+            );
             variables.push(`^(${convertCommas(val)})`);
             break;
           case "~":
-            conditions.push(`substring_index(series.name,'@',1) ${negated}regexp ?`);
+            conditions.push(
+              `substring_index(series.name,'@',1) ${negated}regexp ?`,
+            );
             variables.push(convertCommas(val));
             break;
           case ":":
             if (val.startsWith(":")) {
-              joins.push("LEFT OUTER JOIN sources ON sources.id = series.source_id");
+              joins.push(
+                "LEFT OUTER JOIN sources ON sources.id = series.source_id",
+              );
               conditions.push(
                 `concat(coalesce(source_link,''),'|',coalesce(sources.link,'')) ${negated}regexp ?`,
               );
@@ -919,27 +976,46 @@ class SeriesCollection {
             break;
           case "@": {
             const geoMap: Record<string, string[]> = {
-              HIALL: ["HI5", "NBI", "MOL", "MAUI", "LAN", "HAWH", "HAWK", "HIONLY"],
+              HIALL: [
+                "HI5",
+                "NBI",
+                "MOL",
+                "MAUI",
+                "LAN",
+                "HAWH",
+                "HAWK",
+                "HIONLY",
+              ],
               HI5: ["HI", "CNTY"],
               CNTY: ["HAW", "HON", "KAU", "MAU"],
             };
-            joins.push("INNER JOIN geographies ON geographies.id = series.geography_id");
+            joins.push(
+              "INNER JOIN geographies ON geographies.id = series.geography_id",
+            );
             const geos = val
               .split(",")
               .flatMap((g) => geoMap[g.toUpperCase()] ?? [g.toUpperCase()]);
-            conditions.push(`geographies.handle ${negated}in (${geos.map(() => "?").join(",")})`);
+            conditions.push(
+              `geographies.handle ${negated}in (${geos.map(() => "?").join(",")})`,
+            );
             variables.push(...geos);
             break;
           }
           case ".": {
             const freqs = val.replace(/,/g, "").split("");
-            conditions.push(`xseries.frequency ${negated}in (${freqs.map(() => "?").join(",")})`);
-            variables.push(...freqs.map((f) => Series.frequencyFromCode(f) ?? f));
+            conditions.push(
+              `xseries.frequency ${negated}in (${freqs.map(() => "?").join(",")})`,
+            );
+            variables.push(
+              ...freqs.map((f) => Series.frequencyFromCode(f) ?? f),
+            );
             break;
           }
           case "#": {
             if (negated) throw new Error("Cannot negate # search terms");
-            joins.push("INNER JOIN data_sources AS l1 ON l1.series_id = series.id AND NOT(l1.disabled)");
+            joins.push(
+              "INNER JOIN data_sources AS l1 ON l1.series_id = series.id AND NOT(l1.disabled)",
+            );
             const trailingOp = val.match(/([*/])(\d+)$/);
             const evalPattern = trailingOp
               ? `\\s*\\${trailingOp[1]}\\s*${trailingOp[2]}\\s*$`
@@ -950,25 +1026,42 @@ class SeriesCollection {
           }
           case "!":
             if (negated) throw new Error("Cannot negate ! search terms");
-            joins.push("INNER JOIN data_sources AS l2 ON l2.series_id = series.id AND NOT(l2.disabled)");
+            joins.push(
+              "INNER JOIN data_sources AS l2 ON l2.series_id = series.id AND NOT(l2.disabled)",
+            );
             conditions.push("l2.last_error regexp ?");
             variables.push(convertCommas(val));
             break;
           case ";": {
             const [res, idList] = val.split("=");
-            const resCol: Record<string, string> = { unit: "unit_id", src: "source_id", det: "source_detail_id" };
+            const resCol: Record<string, string> = {
+              unit: "unit_id",
+              src: "source_id",
+              det: "source_detail_id",
+            };
             const col = resCol[res];
             if (!col) throw new Error(`Unknown resource type ${res}`);
             const ids = idList.split(",").map(Number);
-            conditions.push(`${col} ${negated}in (${ids.map(() => "?").join(",")})`);
+            conditions.push(
+              `${col} ${negated}in (${ids.map(() => "?").join(",")})`,
+            );
             variables.push(...ids);
             break;
           }
           case "&": {
             const flag = val.toLowerCase();
-            if (flag === "pub") { conditions.push(`restricted IS ${negated}FALSE`); break; }
-            if (flag === "pct") { conditions.push(`percent IS ${negated}TRUE`); break; }
-            if (flag === "nodpn") { conditions.push(`dataPortalName IS ${negated}NULL`); break; }
+            if (flag === "pub") {
+              conditions.push(`restricted IS ${negated}FALSE`);
+              break;
+            }
+            if (flag === "pct") {
+              conditions.push(`percent IS ${negated}TRUE`);
+              break;
+            }
+            if (flag === "nodpn") {
+              conditions.push(`dataPortalName IS ${negated}NULL`);
+              break;
+            }
             if (flag === "sa") {
               if (negated) throw new Error("Cannot negate &sa");
               conditions.push("seasonal_adjustment = 'seasonally_adjusted'");
@@ -976,23 +1069,31 @@ class SeriesCollection {
             }
             if (flag === "ns") {
               if (negated) throw new Error("Cannot negate &ns");
-              conditions.push("seasonal_adjustment = 'not_seasonally_adjusted'");
+              conditions.push(
+                "seasonal_adjustment = 'not_seasonally_adjusted'",
+              );
               break;
             }
             if (flag === "nodata") {
               if (negated) throw new Error("Cannot negate &nodata");
-              conditions.push("(NOT EXISTS(SELECT * FROM data_points WHERE xseries_id = xseries.id AND current))");
+              conditions.push(
+                "(NOT EXISTS(SELECT * FROM data_points WHERE xseries_id = xseries.id AND current))",
+              );
               break;
             }
             if (flag === "noclock") {
               if (negated) throw new Error("Cannot negate &noclock");
-              joins.push("INNER JOIN data_sources AS l3 ON l3.series_id = series.id AND NOT(l3.disabled)");
+              joins.push(
+                "INNER JOIN data_sources AS l3 ON l3.series_id = series.id AND NOT(l3.disabled)",
+              );
               conditions.push("l3.reload_nightly IS FALSE");
               break;
             }
             if (flag === "hasph") {
               if (negated) throw new Error("Cannot negate &hasph");
-              joins.push("INNER JOIN data_sources AS l4 ON l4.series_id = series.id AND NOT(l4.disabled)");
+              joins.push(
+                "INNER JOIN data_sources AS l4 ON l4.series_id = series.id AND NOT(l4.disabled)",
+              );
               conditions.push("l4.pseudo_history IS TRUE");
               break;
             }
@@ -1060,7 +1161,8 @@ class SeriesCollection {
       variables.push(univ);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const sql = [
       `SELECT DISTINCT`,
       `  series.id, series.xseries_id, series.geography_id, series.unit_id,`,
@@ -1137,7 +1239,11 @@ class SeriesCollection {
     // Uses the latest data point regardless of current flag — another loader
     // may have set ours to current=0, but we still don't need to re-insert
     // if the value hasn't changed.
-    const ownRows = await mysql<{ date: Date; value: number | null; created_at: Date }>`
+    const ownRows = await mysql<{
+      date: Date;
+      value: number | null;
+      created_at: Date;
+    }>`
       SELECT date, value, created_at
       FROM data_points
       WHERE xseries_id = ${xseriesId} AND data_source_id = ${dataSourceId}
@@ -1145,9 +1251,10 @@ class SeriesCollection {
     `;
     const ownLatestByDate = new Map<string, number | null>();
     for (const row of ownRows) {
-      const dateStr = row.date instanceof Date
-        ? row.date.toISOString().slice(0, 10)
-        : String(row.date);
+      const dateStr =
+        row.date instanceof Date
+          ? row.date.toISOString().slice(0, 10)
+          : String(row.date);
       if (!ownLatestByDate.has(dateStr)) {
         ownLatestByDate.set(dateStr, row.value);
       }
@@ -1171,9 +1278,10 @@ class SeriesCollection {
       { value: number | null; dataSourceId: number; priority: number }
     >();
     for (const row of currentRows) {
-      const dateStr = row.date instanceof Date
-        ? row.date.toISOString().slice(0, 10)
-        : String(row.date);
+      const dateStr =
+        row.date instanceof Date
+          ? row.date.toISOString().slice(0, 10)
+          : String(row.date);
       const existing = currentByDate.get(dateStr);
       // Keep the highest priority current data point
       if (!existing || row.priority > existing.priority) {
@@ -1259,7 +1367,8 @@ class SeriesCollection {
     handle: string,
     options: Record<string, unknown> = {},
   ): Promise<Series> {
-    const { default: DownloadProcessor } = await import("../utils/download-processor");
+    const { default: DownloadProcessor } =
+      await import("../utils/download-processor");
     const data = await DownloadProcessor.getData(
       handle,
       options as Record<string, string | number | boolean>,
@@ -1277,13 +1386,17 @@ class SeriesCollection {
    *  Uses the same row/col/sheet/frequency options as loadFromDownload,
    *  but reads from a direct file path instead of a download handle.
    */
-  static async loadFromFile(path: string, options: Record<string, unknown> = {}): Promise<Series> {
-    const { default: DownloadProcessor } = await import("../utils/download-processor");
+  static async loadFromFile(
+    path: string,
+    options: Record<string, unknown> = {},
+  ): Promise<Series> {
+    const { default: DownloadProcessor } =
+      await import("../utils/download-processor");
     const isDateSensitive = path.includes("%");
-    const data = await DownloadProcessor.getData(
-      ":manual",
-      { ...options, path } as Record<string, string | number | boolean>,
-    );
+    const data = await DownloadProcessor.getData(":manual", {
+      ...options,
+      path,
+    } as Record<string, string | number | boolean>);
     const freqCode = options.frequency ? String(options.frequency) : null;
     const freq = Series.frequencyFromCode(freqCode);
     const description = isDateSensitive
@@ -1296,64 +1409,110 @@ class SeriesCollection {
   }
 
   /** Load from the BLS API (v1 legacy endpoint). */
-  static async loadApiBls(seriesId: string, frequency: string): Promise<Series> {
+  static async loadApiBls(
+    seriesId: string,
+    frequency: string,
+  ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/bls");
     const { data, url } = await fetchSeries(seriesId, frequency);
     return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the BLS API (v2 endpoint). */
-  static async loadApiBlsV2(seriesId: string, frequency: string): Promise<Series> {
+  static async loadApiBlsV2(
+    seriesId: string,
+    frequency: string,
+  ): Promise<Series> {
     const { fetchSeriesV2 } = await import("../utils/api-clients/bls");
     const { data, url } = await fetchSeriesV2(seriesId, frequency);
     return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the FRED API. */
-  static async loadApiFred(code: string, frequency?: string, aggMethod?: string): Promise<Series> {
+  static async loadApiFred(
+    code: string,
+    frequency?: string,
+    aggMethod?: string,
+  ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/fred");
     const { data, url } = await fetchSeries(code, frequency, aggMethod);
     return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the BEA API. */
-  static async loadApiBea(frequency: string, dataset: string, params: Record<string, string> = {}): Promise<Series> {
+  static async loadApiBea(
+    frequency: string,
+    dataset: string,
+    params: Record<string, string> = {},
+  ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/bea");
     const { data, url } = await fetchSeries(dataset, params);
     return this.wrapApiResult(data, url, frequency);
   }
 
   /** Load from the Japan e-Stat API (monthly data only). */
-  static async loadApiEstatjp(code: string, filters: Record<string, string> = {}): Promise<Series> {
+  static async loadApiEstatjp(
+    code: string,
+    filters: Record<string, string> = {},
+  ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/estat-jp");
     const { data, url } = await fetchSeries(code, filters);
     return this.wrapApiResult(data, url, "M");
   }
 
   /** Load from the EIA Annual Energy Outlook API. */
-  static async loadApiEiaAeo(options: Record<string, string> = {}): Promise<Series> {
-    const { route, scenario, seriesId, frequency = "annual", value_in = "value" } = options;
+  static async loadApiEiaAeo(
+    options: Record<string, string> = {},
+  ): Promise<Series> {
+    const {
+      route,
+      scenario,
+      seriesId,
+      frequency = "annual",
+      value_in = "value",
+    } = options;
     if (!route || !scenario || !seriesId) {
-      throw new Error("route, scenario, and seriesId are all required parameters");
+      throw new Error(
+        "route, scenario, and seriesId are all required parameters",
+      );
     }
     const { fetchSeries } = await import("../utils/api-clients/eia");
-    const { data, url } = await fetchSeries(route, scenario, seriesId, frequency, value_in);
+    const { data, url } = await fetchSeries(
+      route,
+      scenario,
+      seriesId,
+      frequency,
+      value_in,
+    );
     const freqCode = Series.codeFromFrequency(frequency);
     return this.wrapApiResult(data, url, freqCode);
   }
 
   /** Load from the EIA Short-Term Energy Outlook API. */
-  static async loadApiEiaSteo(options: Record<string, string> = {}): Promise<Series> {
+  static async loadApiEiaSteo(
+    options: Record<string, string> = {},
+  ): Promise<Series> {
     const { seriesId, frequency = "monthly", value_in = "value" } = options;
     if (!seriesId) throw new Error("seriesId is a required parameter");
     const { fetchSeries } = await import("../utils/api-clients/eia");
-    const { data, url } = await fetchSeries("steo", null, seriesId, frequency, value_in);
+    const { data, url } = await fetchSeries(
+      "steo",
+      null,
+      seriesId,
+      frequency,
+      value_in,
+    );
     const freqCode = Series.codeFromFrequency(frequency);
     return this.wrapApiResult(data, url, freqCode);
   }
 
   /** Load from the DVW API. */
-  static async loadApiDvw(mod: string, freq: string, indicator: string, dimensions: Record<string, string>): Promise<Series> {
+  static async loadApiDvw(
+    mod: string,
+    freq: string,
+    indicator: string,
+    dimensions: Record<string, string>,
+  ): Promise<Series> {
     const { fetchSeries } = await import("../utils/api-clients/dvw");
     const { data, url } = await fetchSeries(mod, freq, indicator, dimensions);
     return this.wrapApiResult(data, url, freq);
@@ -1366,9 +1525,10 @@ class SeriesCollection {
     freqCodeOrName?: string | null,
   ): Series {
     const link = `<a href="${url}">API URL</a>`;
-    const description = data.size > 0
-      ? `loaded data set from ${link} with parameters shown`
-      : `No data collected from ${link} - possibly redacted`;
+    const description =
+      data.size > 0
+        ? `loaded data set from ${link} with parameters shown`
+        : `No data collected from ${link} - possibly redacted`;
     const result = new Series({ name: description });
     result.data = data;
     const freq = Series.frequencyFromCode(freqCodeOrName ?? null);
@@ -1384,7 +1544,11 @@ class SeriesCollection {
     const candidateNames: string[] = [];
     for (const code of freqCodes) {
       try {
-        candidateNames.push(series.buildName({ freq: code as import("../models/series").FrequencyCode }));
+        candidateNames.push(
+          series.buildName({
+            freq: code as import("../models/series").FrequencyCode,
+          }),
+        );
       } catch {
         // name can't be built with this freq — skip
       }
@@ -1409,14 +1573,17 @@ class SeriesCollection {
   // ─── Null-field audit ───────────────────────────────────────────────
 
   /** Allowlisted field keys → SQL column expressions */
-  private static readonly NULL_FIELD_COLUMNS: Record<string, { column: string; isText: boolean }> = {
-    source_id:        { column: "s.source_id",        isText: false },
-    unit_id:          { column: "s.unit_id",          isText: false },
+  private static readonly NULL_FIELD_COLUMNS: Record<
+    string,
+    { column: string; isText: boolean }
+  > = {
+    source_id: { column: "s.source_id", isText: false },
+    unit_id: { column: "s.unit_id", isText: false },
     source_detail_id: { column: "s.source_detail_id", isText: false },
-    geography_id:     { column: "s.geography_id",     isText: false },
-    dataPortalName:   { column: "s.dataPortalName",   isText: true  },
-    description:      { column: "s.description",      isText: true  },
-    source_link:      { column: "s.source_link",      isText: true  },
+    geography_id: { column: "s.geography_id", isText: false },
+    dataPortalName: { column: "s.dataPortalName", isText: true },
+    description: { column: "s.description", isText: true },
+    source_link: { column: "s.source_link", isText: true },
   };
 
   static async getWithNullField(

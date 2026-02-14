@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+
 import { auth } from "@/lib/auth/index";
+
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage({

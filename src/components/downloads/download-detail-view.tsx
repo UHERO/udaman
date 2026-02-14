@@ -3,7 +3,6 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { downloadToServer } from "@/actions/download-actions";
 import type { RelatedSeries } from "@catalog/collections/download-collection";
 import type {
   DownloadDetail,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { downloadToServer } from "@/actions/download-actions";
 import {
   Table,
   TableBody,
@@ -200,7 +200,7 @@ export function DownloadDetailView({
           toast.success(
             result.changed
               ? "Downloaded — file content changed"
-              : "Downloaded — no changes detected"
+              : "Downloaded — no changes detected",
           );
         } else {
           toast.warning(`Download returned status ${result.status}`);

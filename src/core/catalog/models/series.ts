@@ -1,4 +1,8 @@
-import type { AnalyzeSeriesData, SeasonalAdjustment, Universe } from "../types/shared";
+import type {
+  AnalyzeSeriesData,
+  SeasonalAdjustment,
+  Universe,
+} from "../types/shared";
 
 // ─── Name parsing ────────────────────────────────────────────────────
 // Series names follow the pattern: PREFIX@GEO.FREQ
@@ -34,14 +38,23 @@ const FREQ_LONG_TO_CODE = Object.fromEntries(
 
 /** Numeric ordering of frequencies (higher number = higher frequency). */
 const FREQ_ORDER: Record<string, number> = {
-  year: 1, semi: 2, quarter: 4, month: 12, week: 52, day: 365,
+  year: 1,
+  semi: 2,
+  quarter: 4,
+  month: 12,
+  week: 52,
+  day: 365,
 };
 
 /** Return the numeric ordering for a frequency string or code. */
 function freqn(freq: string | null | undefined): number {
   if (!freq) return 0;
   const normalized = freq.toLowerCase().replace(/ly$/, "");
-  return FREQ_ORDER[normalized] ?? FREQ_ORDER[FREQ_CODE_TO_LONG[freq.toUpperCase() as FrequencyCode]] ?? 0;
+  return (
+    FREQ_ORDER[normalized] ??
+    FREQ_ORDER[FREQ_CODE_TO_LONG[freq.toUpperCase() as FrequencyCode]] ??
+    0
+  );
 }
 
 /**
@@ -53,10 +66,10 @@ function freqPerFreq(higher: string, lower: string): number | null {
   const l = normalizeFreq(lower);
   if (l === h) return 1;
   const table: Record<string, Record<string, number>> = {
-    year:    { semi: 2, quarter: 4, month: 12 },
-    semi:    { quarter: 2, month: 6 },
+    year: { semi: 2, quarter: 4, month: 12 },
+    semi: { quarter: 2, month: 6 },
     quarter: { month: 3 },
-    week:    { day: 7 },
+    week: { day: 7 },
   };
   return table[l]?.[h] ?? null;
 }
@@ -74,14 +87,17 @@ function periodStart(dateStr: string, freq: string): string {
   const y = d.getFullYear();
   const m = d.getMonth(); // 0-based
   switch (normalizeFreq(freq)) {
-    case "year":    return `${y}-01-01`;
-    case "semi":    return m < 6 ? `${y}-01-01` : `${y}-07-01`;
+    case "year":
+      return `${y}-01-01`;
+    case "semi":
+      return m < 6 ? `${y}-01-01` : `${y}-07-01`;
     case "quarter": {
       const qMonth = Math.floor(m / 3) * 3 + 1;
       return `${y}-${String(qMonth).padStart(2, "0")}-01`;
     }
-    case "month":   return `${y}-${String(m + 1).padStart(2, "0")}-01`;
-    case "week":    {
+    case "month":
+      return `${y}-${String(m + 1).padStart(2, "0")}-01`;
+    case "week": {
       // ISO week start (Monday)
       const day = d.getDay();
       const diff = (day + 6) % 7;
@@ -89,7 +105,8 @@ function periodStart(dateStr: string, freq: string): string {
       monday.setDate(d.getDate() - diff);
       return monday.toISOString().slice(0, 10);
     }
-    default:        return dateStr;
+    default:
+      return dateStr;
   }
 }
 
@@ -118,12 +135,18 @@ type AggOp = "sum" | "average" | "min" | "max" | "first" | "last";
 
 function applyAggOp(values: number[], op: AggOp): number {
   switch (op) {
-    case "sum":     return values.reduce((a, b) => a + b, 0);
-    case "average": return values.reduce((a, b) => a + b, 0) / values.length;
-    case "min":     return Math.min(...values);
-    case "max":     return Math.max(...values);
-    case "first":   return values[0];
-    case "last":    return values[values.length - 1];
+    case "sum":
+      return values.reduce((a, b) => a + b, 0);
+    case "average":
+      return values.reduce((a, b) => a + b, 0) / values.length;
+    case "min":
+      return Math.min(...values);
+    case "max":
+      return Math.max(...values);
+    case "first":
+      return values[0];
+    case "last":
+      return values[values.length - 1];
   }
 }
 
@@ -131,12 +154,23 @@ function applyAggOp(values: number[], op: AggOp): number {
 function doArithmetic(a: number, op: string, b: number): number | null {
   let result: number;
   switch (op) {
-    case "+":  result = a + b; break;
-    case "-":  result = a - b; break;
-    case "*":  result = a * b; break;
-    case "/":  result = a / b; break;
-    case "**": result = a ** b; break;
-    default: return null;
+    case "+":
+      result = a + b;
+      break;
+    case "-":
+      result = a - b;
+      break;
+    case "*":
+      result = a * b;
+      break;
+    case "/":
+      result = a / b;
+      break;
+    case "**":
+      result = a ** b;
+      break;
+    default:
+      return null;
   }
   if (!isFinite(result) || isNaN(result)) return null;
   return result;
@@ -250,16 +284,24 @@ class Series {
     this.investigationNotes = attrs.investigation_notes ?? null;
     this.dependencyDepth = attrs.dependency_depth ?? 0;
     this.scratch = attrs.scratch ?? 0;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
 
     // xseries
     this.primarySeriesId = attrs.primary_series_id ?? null;
     this.frequency = attrs.frequency ?? null;
     this.restricted = Boolean(attrs.restricted);
     this.quarantined = Boolean(attrs.quarantined);
-    this.seasonalAdjustment = (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
-    this.seasonallyAdjusted = attrs.seasonally_adjusted != null ? Boolean(attrs.seasonally_adjusted) : null;
+    this.seasonalAdjustment =
+      (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
+    this.seasonallyAdjusted =
+      attrs.seasonally_adjusted != null
+        ? Boolean(attrs.seasonally_adjusted)
+        : null;
     this.aremossMissing = attrs.aremos_missing ?? null;
     this.aremosDiff = attrs.aremos_diff ?? null;
     this.percent = attrs.percent != null ? Boolean(attrs.percent) : null;
@@ -286,11 +328,13 @@ class Series {
       prefixFull: m[1],
       prefix: m[2],
       forecast: m[4]?.toUpperCase() ?? null,
-      version: m[5]?.toUpperCase() === "F" ? (m[6]?.toUpperCase() ?? null) : null,
-      history: m[5]?.toUpperCase() === "H" ? (m[6]?.toUpperCase() ?? null) : null,
+      version:
+        m[5]?.toUpperCase() === "F" ? (m[6]?.toUpperCase() ?? null) : null,
+      history:
+        m[5]?.toUpperCase() === "H" ? (m[6]?.toUpperCase() ?? null) : null,
       geo: m[7].toUpperCase(),
       freq: freqCode ?? null,
-      freqLong: freqCode ? FREQ_CODE_TO_LONG[freqCode] ?? null : null,
+      freqLong: freqCode ? (FREQ_CODE_TO_LONG[freqCode] ?? null) : null,
     };
   }
 
@@ -300,7 +344,9 @@ class Series {
 
   static buildName(prefix: string, geo: string, freq?: string | null): string {
     if (!prefix?.trim() || !geo?.trim()) {
-      throw new Error(`Empty prefix ("${prefix}") and/or geography ("${geo}") not allowed`);
+      throw new Error(
+        `Empty prefix ("${prefix}") and/or geography ("${geo}") not allowed`,
+      );
     }
     let name = `${prefix.trim().toUpperCase()}@${geo.trim().toUpperCase()}`;
     if (freq) name += `.${freq.trim().toUpperCase()}`;
@@ -323,12 +369,16 @@ class Series {
 
   // ─── Frequency helpers ───────────────────────────────────────────
 
-  static frequencyFromCode(code: string | null | undefined): FrequencyLong | null {
+  static frequencyFromCode(
+    code: string | null | undefined,
+  ): FrequencyLong | null {
     if (!code) return null;
     return FREQ_CODE_TO_LONG[code.toUpperCase() as FrequencyCode] ?? null;
   }
 
-  static codeFromFrequency(freq: string | null | undefined): FrequencyCode | null {
+  static codeFromFrequency(
+    freq: string | null | undefined,
+  ): FrequencyCode | null {
     if (!freq) return null;
     const normalized = freq.toLowerCase().replace(/ly$/, "");
     return FREQ_LONG_TO_CODE[normalized as FrequencyLong] ?? null;
@@ -374,7 +424,9 @@ class Series {
   }
 
   get nonNsSeriesName(): string {
-    return this.buildName({ prefix: this.parseName().prefix.replace(/NS$/i, "") });
+    return this.buildName({
+      prefix: this.parseName().prefix.replace(/NS$/i, ""),
+    });
   }
 
   // ─── Validation ──────────────────────────────────────────────────
@@ -430,26 +482,38 @@ class Series {
   // ─── In-memory data (non-persisted) ──────────────────────────────
 
   get data(): Map<string, number> {
-    return this.#data ??= new Map();
+    return (this.#data ??= new Map());
   }
 
   set data(value: Map<string, number>) {
     this.#data = value;
   }
 
-  get trimPeriodStart(): Date | null { return this.#trimStart; }
-  set trimPeriodStart(d: Date | null) { this.#trimStart = d; }
+  get trimPeriodStart(): Date | null {
+    return this.#trimStart;
+  }
+  set trimPeriodStart(d: Date | null) {
+    this.#trimStart = d;
+  }
 
-  get trimPeriodEnd(): Date | null { return this.#trimEnd; }
-  set trimPeriodEnd(d: Date | null) { this.#trimEnd = d; }
+  get trimPeriodEnd(): Date | null {
+    return this.#trimEnd;
+  }
+  set trimPeriodEnd(d: Date | null) {
+    this.#trimEnd = d;
+  }
 
   get firstObservation(): string | null {
-    const dates = [...this.data.keys()].filter((k) => this.data.get(k) != null).sort();
+    const dates = [...this.data.keys()]
+      .filter((k) => this.data.get(k) != null)
+      .sort();
     return dates[0] ?? null;
   }
 
   get lastObservation(): string | null {
-    const dates = [...this.data.keys()].filter((k) => this.data.get(k) != null).sort();
+    const dates = [...this.data.keys()]
+      .filter((k) => this.data.get(k) != null)
+      .sort();
     return dates.at(-1) ?? null;
   }
 
@@ -482,16 +546,24 @@ class Series {
   // handles the DB side; these handle the business logic.
 
   /** Rename series, updating dependents' loader evals. */
-  rename(_newName: string): void { /* TODO */ }
+  rename(_newName: string): void {
+    /* TODO */
+  }
 
   /** Duplicate this series under a new name. */
-  duplicate(_newName: string, _overrides?: Partial<SeriesAttrs>): Series { /* TODO */ return this; }
+  duplicate(_newName: string, _overrides?: Partial<SeriesAttrs>): Series {
+    /* TODO */ return this;
+  }
 
   /** Create an alias of this series into another universe. */
-  createAlias(_props: { universe: Universe; name?: string }): Series { /* TODO */ return this; }
+  createAlias(_props: { universe: Universe; name?: string }): Series {
+    /* TODO */ return this;
+  }
 
   /** Reload all enabled data sources for this series. */
-  reloadSources(_opts?: { nightly?: boolean; clearFirst?: boolean }): void { /* TODO */ }
+  reloadSources(_opts?: { nightly?: boolean; clearFirst?: boolean }): void {
+    /* TODO */
+  }
 
   // ─── Arithmetic (series_arithmetic.rb) ────────────────────────────
 
@@ -501,7 +573,8 @@ class Series {
    * is missing are excluded from the result.
    */
   private performArithmetic(op: string, other: Series): Series {
-    const longerData = this.data.size >= other.data.size ? this.data : other.data;
+    const longerData =
+      this.data.size >= other.data.size ? this.data : other.data;
     const newData = new Map<string, number>();
 
     for (const date of longerData.keys()) {
@@ -573,7 +646,8 @@ class Series {
 
   /** Add with zero-fill: treat missing values as 0 before adding. */
   zeroAdd(other: Series): Series {
-    const longerData = this.data.size >= other.data.size ? this.data : other.data;
+    const longerData =
+      this.data.size >= other.data.size ? this.data : other.data;
     const newData = new Map<string, number>();
 
     for (const date of longerData.keys()) {
@@ -604,13 +678,19 @@ class Series {
   }
 
   /** Rebase the series so the given year equals 100. */
-  rebase(_year?: number): Series { /* TODO */ return this; }
+  rebase(_year?: number): Series {
+    /* TODO */ return this;
+  }
 
   /** Deflate nominal values using a price index series. */
-  convertToReal(_index?: string): Series { /* TODO */ return this; }
+  convertToReal(_index?: string): Series {
+    /* TODO */ return this;
+  }
 
   /** Per-capita transform: divide by population series. */
-  perCap(_options?: { pop?: string; multiplier?: number }): Series { /* TODO */ return this; }
+  perCap(_options?: { pop?: string; multiplier?: number }): Series {
+    /* TODO */ return this;
+  }
 
   /** Year-over-year percent change. */
   yoy(): Series {
@@ -620,7 +700,10 @@ class Series {
       const prevVal = this.data.get(prevDate);
       if (prevVal == null) continue;
       if (prevVal === 0 && value !== 0) continue;
-      if (prevVal === 0 && value === 0) { newData.set(dateStr, 0); continue; }
+      if (prevVal === 0 && value === 0) {
+        newData.set(dateStr, 0);
+        continue;
+      }
       newData.set(dateStr, ((value - prevVal) / prevVal) * 100);
     }
     const s = new Series({ name: `Annualized percentage change of ${this}` });
@@ -636,7 +719,9 @@ class Series {
 
   /** Year-to-date cumulative sum. */
   ytdSum(): Series {
-    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const newData = new Map<string, number>();
     let trackYear: number | null = null;
     let cumSum = 0;
@@ -659,7 +744,9 @@ class Series {
 
   /** Period-over-period difference (lag defaults to 1 observation). */
   diff(lag = 1): Series {
-    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const newData = new Map<string, number>();
 
     for (let i = lag; i < sorted.length; i++) {
@@ -686,12 +773,17 @@ class Series {
     for (const [dateStr, value] of this.data) {
       const { year } = parseYM(dateStr);
       const entry = annualSums.get(year);
-      if (entry) { entry.sum += value; entry.count++; }
-      else annualSums.set(year, { sum: value, count: 1 });
+      if (entry) {
+        entry.sum += value;
+        entry.count++;
+      } else annualSums.set(year, { sum: value, count: 1 });
     }
 
     // Prune incomplete years
-    const expectedPerYear = freqPerFreq(normalizeFreq(this.frequency ?? ""), "year");
+    const expectedPerYear = freqPerFreq(
+      normalizeFreq(this.frequency ?? ""),
+      "year",
+    );
     const newData = new Map<string, number>();
     for (const [dateStr] of this.data) {
       const { year } = parseYM(dateStr);
@@ -716,11 +808,16 @@ class Series {
     for (const [dateStr, value] of this.data) {
       const { year } = parseYM(dateStr);
       const entry = annualGroups.get(year);
-      if (entry) { entry.sum += value; entry.count++; }
-      else annualGroups.set(year, { sum: value, count: 1 });
+      if (entry) {
+        entry.sum += value;
+        entry.count++;
+      } else annualGroups.set(year, { sum: value, count: 1 });
     }
 
-    const expectedPerYear = freqPerFreq(normalizeFreq(this.frequency ?? ""), "year");
+    const expectedPerYear = freqPerFreq(
+      normalizeFreq(this.frequency ?? ""),
+      "year",
+    );
     const newData = new Map<string, number>();
     for (const [dateStr] of this.data) {
       const { year } = parseYM(dateStr);
@@ -738,7 +835,9 @@ class Series {
 
   /** Period-over-period percentage change. */
   percentageChange(): Series {
-    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const newData = new Map<string, number>();
 
     for (let i = 1; i < sorted.length; i++) {
@@ -746,7 +845,10 @@ class Series {
       const prev = sorted[i - 1][1];
       if (prev == null || current == null) continue;
       if (prev === 0 && current !== 0) continue;
-      if (prev === 0 && current === 0) { newData.set(date, 0); continue; }
+      if (prev === 0 && current === 0) {
+        newData.set(date, 0);
+        continue;
+      }
       newData.set(date, ((current - prev) / prev) * 100);
     }
 
@@ -846,7 +948,7 @@ class Series {
 
       const ym1 = parseYM(dateStr1);
       const ym2 = parseYM(dateStr2);
-      const gap = (ym2.year * 12 + ym2.month) - (ym1.year * 12 + ym1.month) - 1;
+      const gap = ym2.year * 12 + ym2.month - (ym1.year * 12 + ym1.month) - 1;
       const step = (val2 - val1) / (gap + 1);
 
       for (let m = 1; m <= gap; m++) {
@@ -886,14 +988,16 @@ class Series {
     }
 
     const allFactors: Record<string, Record<string, number[]>> = {
-      year:    { quarter: [-1.5, -0.5, 0.5, 1.5] },
-      semi:    { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
+      year: { quarter: [-1.5, -0.5, 0.5, 1.5] },
+      semi: { quarter: [-0.5, 0.5], month: [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5] },
       quarter: { month: [-1, 0, 1] },
     };
 
     const factors = allFactors[src]?.[target];
     if (!factors) {
-      throw new Error(`Interpolation from ${src} to ${target} not yet supported`);
+      throw new Error(
+        `Interpolation from ${src} to ${target} not yet supported`,
+      );
     }
 
     const sorted = [...this.data.entries()]
@@ -927,7 +1031,9 @@ class Series {
       }
     }
 
-    const s = new Series({ name: `Interpolated by ${method} method from ${this}` });
+    const s = new Series({
+      name: `Interpolated by ${method} method from ${this}`,
+    });
     s.data = newData;
     s.frequency = target;
     return s;
@@ -938,9 +1044,11 @@ class Series {
     const target = normalizeFreq(frequency);
     const src = normalizeFreq(this.frequency ?? "");
 
-    const valid = (src === "year" && target === "quarter")
-              || (src === "quarter" && target === "month");
-    if (!valid) throw new Error(`Cannot linear interpolate from ${src} to ${target}`);
+    const valid =
+      (src === "year" && target === "quarter") ||
+      (src === "quarter" && target === "month");
+    if (!valid)
+      throw new Error(`Cannot linear interpolate from ${src} to ${target}`);
 
     const sorted = [...this.data.entries()]
       .filter(([, v]) => v != null)
@@ -967,19 +1075,21 @@ class Series {
       const diff = val - sorted[i - 1][1];
 
       if (src === "year" && target === "quarter") {
-        newData.set(date,                  val - (diff / 4) * 3);
-        newData.set(addMonths(date, 3),    val - (diff / 4) * 2);
-        newData.set(addMonths(date, 6),    val - (diff / 4));
-        newData.set(addMonths(date, 9),    val);
+        newData.set(date, val - (diff / 4) * 3);
+        newData.set(addMonths(date, 3), val - (diff / 4) * 2);
+        newData.set(addMonths(date, 6), val - diff / 4);
+        newData.set(addMonths(date, 9), val);
       } else {
         // quarter → month
-        newData.set(date,                  val - (diff / 3) * 2);
-        newData.set(addMonths(date, 1),    val - (diff / 3));
-        newData.set(addMonths(date, 2),    val);
+        newData.set(date, val - (diff / 3) * 2);
+        newData.set(addMonths(date, 1), val - diff / 3);
+        newData.set(addMonths(date, 2), val);
       }
     }
 
-    const s = new Series({ name: `Interpolated (linear match last) from ${this}` });
+    const s = new Series({
+      name: `Interpolated (linear match last) from ${this}`,
+    });
     s.data = newData;
     s.frequency = target;
     return s;
@@ -991,7 +1101,9 @@ class Series {
     const src = normalizeFreq(this.frequency ?? "");
 
     if (src !== "year") {
-      throw new Error(`fill_interpolate_to only supports annual source, got ${src}`);
+      throw new Error(
+        `fill_interpolate_to only supports annual source, got ${src}`,
+      );
     }
 
     let monthValues: number[];
@@ -1011,7 +1123,9 @@ class Series {
       }
     }
 
-    const s = new Series({ name: `Interpolated by filling ${this} to ${target}` });
+    const s = new Series({
+      name: `Interpolated by filling ${this} to ${target}`,
+    });
     s.data = newData;
     s.frequency = target;
     return s;
@@ -1022,12 +1136,18 @@ class Series {
   /** Standard window size for moving averages based on frequency. */
   private get standardWindowSize(): number {
     switch (normalizeFreq(this.frequency ?? "")) {
-      case "day":     return 7;
-      case "month":   return 12;
+      case "day":
+        return 7;
+      case "month":
+        return 12;
       case "week":
       case "quarter":
-      case "year":    return 4;
-      default: throw new Error(`No window size defined for frequency ${this.frequency}`);
+      case "year":
+        return 4;
+      default:
+        throw new Error(
+          `No window size defined for frequency ${this.frequency}`,
+        );
     }
   }
 
@@ -1037,7 +1157,9 @@ class Series {
    */
   backwardLookingMovingAverage(window?: number): Series {
     const periods = window ?? this.standardWindowSize;
-    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const newData = new Map<string, number>();
 
     for (let i = 0; i < sorted.length; i++) {
@@ -1048,7 +1170,9 @@ class Series {
       newData.set(sorted[i][0], sum / periods);
     }
 
-    const s = new Series({ name: `Backward-looking moving average of ${this}` });
+    const s = new Series({
+      name: `Backward-looking moving average of ${this}`,
+    });
     s.data = newData;
     s.frequency = this.frequency;
     return s;
@@ -1057,7 +1181,9 @@ class Series {
   /** Forward-looking moving average. */
   forwardLookingMovingAverage(window?: number): Series {
     const periods = window ?? this.standardWindowSize;
-    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const newData = new Map<string, number>();
 
     for (let i = 0; i < sorted.length; i++) {
@@ -1078,7 +1204,9 @@ class Series {
   movingAverage(): Series {
     const periods = this.standardWindowSize;
     const half = Math.floor(periods / 2);
-    const sorted = [...this.data.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
     const last = sorted.length - 1;
     const newData = new Map<string, number>();
 
@@ -1086,13 +1214,16 @@ class Series {
       let start: number, end: number;
       if (i < half) {
         // left edge: forward-looking
-        start = i; end = i + periods - 1;
+        start = i;
+        end = i + periods - 1;
       } else if (i > last - half) {
         // right edge: backward-looking
-        start = i - periods + 1; end = i;
+        start = i - periods + 1;
+        end = i;
       } else {
         // centered
-        start = i - half; end = i + half;
+        start = i - half;
+        end = i + half;
       }
       if (start < 0 || end >= sorted.length) continue;
       let sum = 0;
@@ -1116,7 +1247,10 @@ class Series {
     }
     const { year, month } = parseYM(lastObs);
     const freq = normalizeFreq(this.frequency ?? "");
-    if ((freq === "month" && month === 12) || (freq === "quarter" && month === 10)) {
+    if (
+      (freq === "month" && month === 12) ||
+      (freq === "quarter" && month === 10)
+    ) {
       const s = new Series({ name: `No data because no incomplete year` });
       s.frequency = this.frequency;
       return s;
@@ -1158,10 +1292,14 @@ class Series {
   // executor recognizes them; actual dispatch is intercepted before reaching here.
 
   /** Load data from a static file into this series. */
-  loadFrom(_path: string): Series { throw new Error("loadFrom must be called via EvalExecutor"); }
+  loadFrom(_path: string): Series {
+    throw new Error("loadFrom must be called via EvalExecutor");
+  }
 
   /** Load seasonally-adjusted data from a static file. */
-  loadSaFrom(_path: string): Series { throw new Error("loadSaFrom must be called via EvalExecutor"); }
+  loadSaFrom(_path: string): Series {
+    throw new Error("loadSaFrom must be called via EvalExecutor");
+  }
 
   // ─── Statistics ──────────────────────────────────────────────────────
 
@@ -1199,7 +1337,9 @@ class Series {
 
   /** Median of non-null values. Returns null if empty. */
   median(): number | null {
-    const values = [...this.data.values()].filter((v) => v != null).sort((a, b) => a - b);
+    const values = [...this.data.values()]
+      .filter((v) => v != null)
+      .sort((a, b) => a - b);
     if (values.length === 0) return null;
     const mid = Math.floor(values.length / 2);
     return values.length % 2 === 1

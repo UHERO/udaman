@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import { DataPoint } from "@catalog/types/shared";
 import { Line, LineChart, ReferenceDot, XAxis, YAxis } from "recharts";
 
-import { DataPoint } from "@catalog/types/shared";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 import { useSeriesHover } from "./series-data-section";
@@ -54,7 +54,10 @@ export function SeriesChart({ data }: { data: DataPoint[] }) {
 
   return (
     <ChartContainer config={chartConfig} className="aspect-[4/3] w-full">
-      <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+      <LineChart
+        data={chartData}
+        margin={{ top: 4, right: 4, bottom: 0, left: 4 }}
+      >
         <XAxis
           dataKey="date"
           type="number"

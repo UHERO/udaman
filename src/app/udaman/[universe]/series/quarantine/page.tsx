@@ -1,12 +1,12 @@
 import { ChevronDown } from "lucide-react";
 
+import { QuarantineSeriesTable } from "@/components/series/quarantine-series-table";
+import { H1 } from "@/components/typography";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { QuarantineSeriesTable } from "@/components/series/quarantine-series-table";
-import { H1 } from "@/components/typography";
 
 export default async function QuarantinePage({
   params,

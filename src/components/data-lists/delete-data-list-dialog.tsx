@@ -1,8 +1,8 @@
 "use client";
 
-import { Trash } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteDataList } from "@/actions/data-lists";
@@ -43,7 +43,9 @@ export function DeleteDataListDialog({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete data list");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete data list",
+      );
     } finally {
       setIsDeleting(false);
     }

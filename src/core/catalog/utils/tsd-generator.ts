@@ -8,12 +8,7 @@
  *   Data:   5 values per line in scientific notation, 15 chars each, right-justified
  */
 
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  addYears,
-} from "date-fns";
+import { addDays, addMonths, addWeeks, addYears } from "date-fns";
 
 type TsdFrequency = "year" | "semi" | "quarter" | "month" | "week" | "day";
 

@@ -2,20 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
-import { createLogger } from "@/core/observability/logger";
 import {
+  createCategory as createCategoryCtrl,
+  deleteCategory as deleteCategoryCtrl,
   getCategories as fetchCategories,
   getCategory as fetchCategory,
-  createCategory as createCategoryCtrl,
   updateCategory as updateCategoryCtrl,
-  deleteCategory as deleteCategoryCtrl,
 } from "@catalog/controllers/categories";
 import type {
   Category,
   CreateCategoryPayload,
-  UpdateCategoryPayload,
   Universe,
+  UpdateCategoryPayload,
 } from "@catalog/types/shared";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.categories");
 
@@ -41,7 +42,7 @@ export async function swapCategoryOrder(
   id1: number,
   order1: number,
   id2: number,
-  order2: number
+  order2: number,
 ): Promise<void> {
   log.info({ id1, order1, id2, order2 }, "swapCategoryOrder action called");
   await Promise.all([
@@ -53,7 +54,7 @@ export async function swapCategoryOrder(
 
 export async function updateCategoryVisibility(
   id: number,
-  updates: { hidden?: boolean; masked?: boolean }
+  updates: { hidden?: boolean; masked?: boolean },
 ): Promise<void> {
   log.info({ id, updates }, "updateCategoryVisibility action called");
   await updateCategoryCtrl({ id, payload: updates });
@@ -61,7 +62,7 @@ export async function updateCategoryVisibility(
 }
 
 export async function createCategory(
-  payload: CreateCategoryPayload
+  payload: CreateCategoryPayload,
 ): Promise<{ message: string; data: Category }> {
   log.info("createCategory action called");
   const result = await createCategoryCtrl({ payload });
@@ -72,7 +73,7 @@ export async function createCategory(
 
 export async function updateCategory(
   id: number,
-  payload: UpdateCategoryPayload
+  payload: UpdateCategoryPayload,
 ): Promise<{ message: string; data: Category }> {
   log.info({ id }, "updateCategory action called");
   const result = await updateCategoryCtrl({ id, payload });

@@ -1,18 +1,18 @@
 import Link from "next/link";
-import {
-  getSeries,
-  searchSeriesAction,
-  getSeriesWithNullField,
-  getQuarantinedSeries,
-} from "@/actions/series-actions";
 import type { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
 
+import {
+  getQuarantinedSeries,
+  getSeries,
+  getSeriesWithNullField,
+  searchSeriesAction,
+} from "@/actions/series-actions";
+import { CalculateForm } from "@/components/series/calculate-form";
+import { SeriesListTable } from "@/components/series/series-list-table";
+import { H1 } from "@/components/typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SeriesListTable } from "@/components/series/series-list-table";
-import { CalculateForm } from "@/components/series/calculate-form";
-import { H1 } from "@/components/typography";
 
 export default async function Page({
   params,

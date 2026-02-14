@@ -1,6 +1,6 @@
 import { getClipboardSeries } from "@/actions/clipboard-actions";
-import { H1 } from "@/components/typography";
 import { ClipboardTable } from "@/components/clipboard/clipboard-table";
+import { H1 } from "@/components/typography";
 
 export default async function ClipboardPage({
   params,

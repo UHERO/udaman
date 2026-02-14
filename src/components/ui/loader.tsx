@@ -7,16 +7,16 @@ import { useId, useMemo } from "react";
  * Source: BEA / World Bank
  */
 const US_GDP = [
-  10.25, 10.58, 10.94, 11.46, 12.21, 13.04, 13.81, 14.45, 14.71, 14.45,
-  15.05, 15.60, 16.25, 16.88, 17.62, 18.24, 18.75, 19.61, 20.58, 21.43,
-  21.06, 23.32, 25.46, 27.36, 28.78,
+  10.25, 10.58, 10.94, 11.46, 12.21, 13.04, 13.81, 14.45, 14.71, 14.45, 15.05,
+  15.6, 16.25, 16.88, 17.62, 18.24, 18.75, 19.61, 20.58, 21.43, 21.06, 23.32,
+  25.46, 27.36, 28.78,
 ];
 
 function gdpToPoints(
   data: number[],
   width: number,
   height: number,
-  pad: number
+  pad: number,
 ) {
   const min = Math.min(...data);
   const max = Math.max(...data);

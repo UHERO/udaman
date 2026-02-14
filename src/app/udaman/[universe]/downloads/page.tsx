@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { listDownloads } from "@/actions/download-actions";
-
 import { DownloadsListTable } from "@/components/downloads/downloads-list-table";
 
 export default async function DownloadsPage({

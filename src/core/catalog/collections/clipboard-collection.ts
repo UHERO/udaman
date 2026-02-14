@@ -1,4 +1,5 @@
 import { mysql } from "@/lib/mysql/db";
+
 import type { SeasonalAdjustment } from "../types/shared";
 
 /** Row shape returned by the clipboard summary query. */
@@ -146,7 +147,9 @@ class ClipboardCollection {
    */
   static async getSeriesExportInfo(
     userId: number,
-  ): Promise<{ id: number; xseriesId: number; name: string; frequency: string | null }[]> {
+  ): Promise<
+    { id: number; xseriesId: number; name: string; frequency: string | null }[]
+  > {
     const rows = await mysql<{
       id: number;
       xseries_id: number;

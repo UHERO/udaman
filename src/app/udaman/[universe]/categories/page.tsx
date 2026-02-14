@@ -1,7 +1,7 @@
-import { getCategories } from "@/actions/categories";
-import { getGeographies } from "@/actions/geographies";
 import type { Universe } from "@catalog/types/shared";
 
+import { getCategories } from "@/actions/categories";
+import { getGeographies } from "@/actions/geographies";
 import { Categories } from "@/components/categories/categories-page";
 
 export default async function Page({

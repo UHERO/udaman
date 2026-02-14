@@ -1,15 +1,10 @@
-import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import { getCategory } from "@/actions/categories";
 import { getGeographies } from "@/actions/geographies";
 import { Badge } from "@/components/ui/badge";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 export default async function CategoryPage({
   params,
@@ -89,9 +84,7 @@ export default async function CategoryPage({
               </TableCell>
               <TableCell>
                 {defaultGeo
-                  ? defaultGeo.displayName ||
-                    defaultGeo.handle ||
-                    defaultGeo.id
+                  ? defaultGeo.displayName || defaultGeo.handle || defaultGeo.id
                   : "-"}
               </TableCell>
             </TableRow>

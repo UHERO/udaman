@@ -2,35 +2,31 @@
 
 import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
+import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
+import type { ClipboardAction } from "@catalog/controllers/clipboard";
 import { format } from "date-fns";
 import {
   ChevronDown,
-  Loader2,
-  RotateCw,
-  Trash2,
-  X,
-  Lock,
-  Unlock,
+  Eraser,
   FileSpreadsheet,
   FileText,
-  Eraser,
-  RefreshCw,
+  Loader2,
+  Lock,
   Pencil,
+  RefreshCw,
+  RotateCw,
+  Trash2,
+  Unlock,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { ClipboardAction } from "@catalog/controllers/clipboard";
-import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
-
 import {
-  getClipboardSeries,
-  removeSeriesFromClipboard,
   clearClipboard,
   executeClipboardAction,
+  getClipboardSeries,
+  removeSeriesFromClipboard,
 } from "@/actions/clipboard-actions";
-
-import { ClipboardMetadataDialog } from "./clipboard-metadata-dialog";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +55,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { ClipboardMetadataDialog } from "./clipboard-metadata-dialog";
+
 const CLIPBOARD_ACTIONS: {
   action: ClipboardAction;
   label: string;
@@ -67,7 +65,12 @@ const CLIPBOARD_ACTIONS: {
 }[] = [
   { action: "reload", label: "Reload", icon: RotateCw },
   { action: "reset", label: "Reset Loaders", icon: RefreshCw },
-  { action: "clear_data", label: "Clear Data Points", icon: Eraser, destructive: true },
+  {
+    action: "clear_data",
+    label: "Clear Data Points",
+    icon: Eraser,
+    destructive: true,
+  },
   { action: "restrict", label: "Restrict", icon: Lock },
   { action: "unrestrict", label: "Unrestrict", icon: Unlock },
   { action: "meta_update", label: "Bulk Metadata Update", icon: Pencil },
@@ -276,10 +279,14 @@ export function ClipboardTable({
                   {row.sourceDescription ?? "-"}
                 </TableCell>
                 <TableCell className="text-sm">
-                  {row.minDate ? format(new Date(row.minDate), "yyyy-MM-dd") : "-"}
+                  {row.minDate
+                    ? format(new Date(row.minDate), "yyyy-MM-dd")
+                    : "-"}
                 </TableCell>
                 <TableCell className="text-sm">
-                  {row.maxDate ? format(new Date(row.maxDate), "yyyy-MM-dd") : "-"}
+                  {row.maxDate
+                    ? format(new Date(row.maxDate), "yyyy-MM-dd")
+                    : "-"}
                 </TableCell>
                 <TableCell>
                   <Button

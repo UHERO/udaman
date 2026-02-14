@@ -1,7 +1,10 @@
+import "server-only";
 import { readFileSync } from "node:fs";
-import { join, extname } from "node:path";
-import { getDataDir } from "@/lib/data-dir";
+import { extname, join } from "node:path";
+
 import XLSX from "xlsx";
+
+import { getDataDir } from "@/lib/data-dir";
 
 import ClientDataFileReader, {
   parseCSVToRows,
@@ -39,10 +42,7 @@ class DataFileReader extends ClientDataFileReader {
   }
 
   /** Read an XLS/XLSX file and return a DataFileReader */
-  static fromSpreadsheet(
-    filePath: string,
-    sheetSpec?: string,
-  ): DataFileReader {
+  static fromSpreadsheet(filePath: string, sheetSpec?: string): DataFileReader {
     const buf = readFileSync(filePath);
     const workbook = XLSX.read(buf);
     const sheetNames = workbook.SheetNames;

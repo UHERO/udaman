@@ -125,11 +125,7 @@ class Loader {
 
   /** Parse serialized YAML/JSON dependency field from DB */
   static parseDependencies(raw: string | null): string[] {
-    if (
-      !raw ||
-      raw.trim() === "---" ||
-      raw.includes("--- []")
-    ) {
+    if (!raw || raw.trim() === "---" || raw.includes("--- []")) {
       return [];
     }
 
@@ -171,7 +167,7 @@ class Loader {
   static generateDescriptionFromEval(evalExpr: string): string {
     // Handle aggregation: "SERIES@GEO.FREQ".ts.aggregate(:frequency, :operation)
     const aggregateMatch = evalExpr.match(
-      /^"([^"]+)"\.ts\.aggregate\(:(\w+),\s*:(\w+)\)/
+      /^"([^"]+)"\.ts\.aggregate\(:(\w+),\s*:(\w+)\)/,
     );
     if (aggregateMatch) {
       const [, seriesName, , operation] = aggregateMatch;
@@ -180,7 +176,7 @@ class Loader {
 
     // Handle interpolation: "SERIES@GEO.FREQ".ts.fill_missing_months_linear
     const interpolateMatch = evalExpr.match(
-      /^"([^"]+)"\.ts\.fill_missing_months_linear/
+      /^"([^"]+)"\.ts\.fill_missing_months_linear/,
     );
     if (interpolateMatch) {
       const [, seriesName] = interpolateMatch;
@@ -189,7 +185,7 @@ class Loader {
 
     // Handle file loading: "SERIES@GEO.FREQ".tsn.load_from("path")
     const loadFromMatch = evalExpr.match(
-      /^"([^"]+)"\.tsn?\.load_from\("([^"]+)"\)/
+      /^"([^"]+)"\.tsn?\.load_from\("([^"]+)"\)/,
     );
     if (loadFromMatch) {
       const [, , filePath] = loadFromMatch;
@@ -198,7 +194,7 @@ class Loader {
 
     // Handle API loading: Series.load_api_bls_NEW("ID", "FREQ")
     const apiMatch = evalExpr.match(
-      /Series\.load_api_(\w+)(?:_NEW)?\("([^"]+)",\s*"([^"]+)"\)/
+      /Series\.load_api_(\w+)(?:_NEW)?\("([^"]+)",\s*"([^"]+)"\)/,
     );
     if (apiMatch) {
       const [, source] = apiMatch;
@@ -216,7 +212,7 @@ class Loader {
 
     // Handle division: ("SERIES1@GEO.FREQ".ts) / ("SERIES2@GEO.FREQ".ts) * 100
     const divisionMatch = evalExpr.match(
-      /\(\("([^"]+)"\.ts\)\s*\/\s*\("([^"]+)"\.ts\)\)\s*\*\s*([\d.]+)/
+      /\(\("([^"]+)"\.ts\)\s*\/\s*\("([^"]+)"\.ts\)\)\s*\*\s*([\d.]+)/,
     );
     if (divisionMatch) {
       const [, numerator, denominator, multiplier] = divisionMatch;
@@ -236,14 +232,16 @@ class Loader {
 
   /** Whether this loader is a history or pseudo_history type */
   get isHistory(): boolean {
-    return this.loaderType === "history" || this.loaderType === "pseudo_history";
+    return (
+      this.loaderType === "history" || this.loaderType === "pseudo_history"
+    );
   }
 
   /** Recompute dependencies from description and eval (in-memory only) */
   refreshDependencies(): void {
     this.dependencies = Loader.extractDependencies(
       this.description ?? "",
-      this.eval ?? ""
+      this.eval ?? "",
     );
   }
 
@@ -261,7 +259,8 @@ class Loader {
       const value = this[field];
       if (typeof value === "string") {
         const trimmed = value.trim();
-        (this as Record<string, unknown>)[field] = trimmed === "" ? null : trimmed;
+        (this as Record<string, unknown>)[field] =
+          trimmed === "" ? null : trimmed;
       }
     }
   }

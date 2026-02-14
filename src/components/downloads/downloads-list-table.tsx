@@ -1,16 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronsUpDown, Ban, Loader2 } from "lucide-react";
+import type {
+  DomainGroup,
+  DownloadSummary,
+} from "@catalog/controllers/downloads";
+import { Ban, ChevronsUpDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   deleteDownloadAction,
   downloadToServer,
 } from "@/actions/download-actions";
-import type { DomainGroup, DownloadSummary } from "@catalog/controllers/downloads";
 import { DeleteDownloadDialog } from "@/components/downloads/delete-download-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,12 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 function DownloadRow({
   dl,
@@ -48,7 +46,9 @@ function DownloadRow({
               : `${dl.handle}: Downloaded — no changes detected`,
           );
         } else {
-          toast.warning(`${dl.handle}: Download returned status ${result.status}`);
+          toast.warning(
+            `${dl.handle}: Download returned status ${result.status}`,
+          );
         }
         router.refresh();
       } catch (e) {
@@ -70,7 +70,10 @@ function DownloadRow({
   return (
     <TableRow>
       <TableCell className="max-w-[280px] truncate font-mono text-sm">
-        <span className={isOrphan ? "text-destructive" : ""} title={isOrphan ? `orphaned: ${dl.handle}` : dl.handle ?? ""}>
+        <span
+          className={isOrphan ? "text-destructive" : ""}
+          title={isOrphan ? `orphaned: ${dl.handle}` : (dl.handle ?? "")}
+        >
           <Link
             href={`/udaman/${universe}/downloads/${dl.id}`}
             className="hover:underline"
@@ -181,40 +184,42 @@ export function DownloadsListTable({ domains }: { domains: DomainGroup[] }) {
         ).length;
 
         return (
-        <Collapsible
-          key={group.domain}
-          open={openSet.has(group.domain)}
-          onOpenChange={() => toggleDomain(group.domain)}
-        >
-          <CollapsibleTrigger asChild>
-            <Button
-              variant="outline"
-              className="bg-muted/50 h-auto w-full justify-between py-2 text-left"
-            >
-              <div className="flex flex-col gap-0.5">
-                <span className="text-base font-semibold">{group.domain}</span>
-                <div className="text-muted-foreground text-xs font-normal">
-                  <span>{group.downloads.length} downloads</span>
-                  {orphanCount > 0 && (
-                    <span className="text-destructive ml-2">
-                      {orphanCount} orphan{orphanCount !== 1 && "s"}
-                    </span>
-                  )}
+          <Collapsible
+            key={group.domain}
+            open={openSet.has(group.domain)}
+            onOpenChange={() => toggleDomain(group.domain)}
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="outline"
+                className="bg-muted/50 h-auto w-full justify-between py-2 text-left"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-base font-semibold">
+                    {group.domain}
+                  </span>
+                  <div className="text-muted-foreground text-xs font-normal">
+                    <span>{group.downloads.length} downloads</span>
+                    {orphanCount > 0 && (
+                      <span className="text-destructive ml-2">
+                        {orphanCount} orphan{orphanCount !== 1 && "s"}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <ChevronsUpDown className="size-4 shrink-0" />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <Table>
-              <TableBody>
-                {group.downloads.map((dl) => (
-                  <DownloadRow key={dl.id} dl={dl} universe={universe} />
-                ))}
-              </TableBody>
-            </Table>
-          </CollapsibleContent>
-        </Collapsible>
+                <ChevronsUpDown className="size-4 shrink-0" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Table>
+                <TableBody>
+                  {group.downloads.map((dl) => (
+                    <DownloadRow key={dl.id} dl={dl} universe={universe} />
+                  ))}
+                </TableBody>
+              </Table>
+            </CollapsibleContent>
+          </Collapsible>
         );
       })}
     </div>

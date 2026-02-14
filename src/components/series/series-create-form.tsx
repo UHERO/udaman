@@ -1,7 +1,7 @@
 "use client";
 
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { bulkCreateSeries, createSeries } from "@/actions/series-actions";
 import type {
   GeographyOption,
   SourceDetailOption,
@@ -10,10 +10,10 @@ import type {
 } from "@catalog/types/form-options";
 import type { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { bulkCreateSeries, createSeries } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 import { H2 } from "../typography";
-import { SeriesNameFields, assembleSeriesName } from "./series-name-fields";
+import { assembleSeriesName, SeriesNameFields } from "./series-name-fields";
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -145,7 +145,8 @@ export function MetadataFields({
   nullFields,
   percentWarning,
 }: MetadataFieldsProps) {
-  const warn = (field: string) => nullFields?.has(field) && !form.formState.errors[field];
+  const warn = (field: string) =>
+    nullFields?.has(field) && !form.formState.errors[field];
 
   return (
     <>
@@ -183,7 +184,9 @@ export function MetadataFields({
           </SelectContent>
         </Select>
         <FieldError errors={[form.formState.errors.sourceId]} />
-        {warn("sourceId") && <FieldWarning>Was empty — please select a source</FieldWarning>}
+        {warn("sourceId") && (
+          <FieldWarning>Was empty — please select a source</FieldWarning>
+        )}
       </Field>
 
       <Field data-invalid={!!form.formState.errors.sourceLink}>
@@ -207,7 +210,7 @@ export function MetadataFields({
           onValueChange={(value) =>
             form.setValue(
               "sourceDetailId",
-              value === "none" ? null : Number(value)
+              value === "none" ? null : Number(value),
             )
           }
         >
@@ -252,7 +255,9 @@ export function MetadataFields({
             </SelectContent>
           </Select>
           <FieldError errors={[form.formState.errors.unitId]} />
-          {warn("unitId") && <FieldWarning>Was empty — please select a unit</FieldWarning>}
+          {warn("unitId") && (
+            <FieldWarning>Was empty — please select a unit</FieldWarning>
+          )}
         </Field>
 
         <Field
@@ -338,10 +343,7 @@ export function MetadataFields({
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-6">
-          <Field
-            orientation="horizontal"
-            data-warning={warn("percent")}
-          >
+          <Field orientation="horizontal" data-warning={warn("percent")}>
             <Checkbox
               id="percent"
               checked={form.watch("percent")}
@@ -363,10 +365,7 @@ export function MetadataFields({
             <FieldLabel htmlFor="real">Real</FieldLabel>
           </Field>
 
-          <Field
-            orientation="horizontal"
-            data-warning={warn("restricted")}
-          >
+          <Field orientation="horizontal" data-warning={warn("restricted")}>
             <Checkbox
               id="restricted"
               checked={form.watch("restricted")}
@@ -504,7 +503,7 @@ export function SeriesCreateForm({
         toast.error(result.errors.join("\n"));
       } else if (result.errors.length > 0) {
         toast.warning(
-          `Created ${result.successCount} series with errors:\n${result.errors.join("\n")}`
+          `Created ${result.successCount} series with errors:\n${result.errors.join("\n")}`,
         );
         nav.push(`/udaman/${universe}/series`);
       } else {

@@ -1,15 +1,15 @@
 "use client";
 
+import { useEffect, useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import Loader from "@catalog/models/loader";
 import type { SerializedLoader } from "@catalog/models/loader";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import { updateDataLoader } from "@/actions/data-loaders";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -85,7 +85,10 @@ export function LoaderEditSheet({
   const pseudoHistoryValue = form.watch("pseudoHistory");
 
   const colorOptions = useMemo(() => {
-    const loaderType = Loader.getLoaderType(evalValue || "", pseudoHistoryValue);
+    const loaderType = Loader.getLoaderType(
+      evalValue || "",
+      pseudoHistoryValue,
+    );
     return Loader.getColorPalette(loaderType);
   }, [evalValue, pseudoHistoryValue]);
 
@@ -112,7 +115,9 @@ export function LoaderEditSheet({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update loader");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update loader",
+      );
     }
   }
 
@@ -121,7 +126,7 @@ export function LoaderEditSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader className="pb-0 pt-3">
+        <SheetHeader className="pt-3 pb-0">
           <SheetTitle>Edit Loader {loader?.id}</SheetTitle>
           <SheetDescription>Update the loader configuration.</SheetDescription>
         </SheetHeader>
@@ -189,10 +194,10 @@ export function LoaderEditSheet({
                       type="button"
                       onClick={() => form.setValue("color", hex)}
                       className={cn(
-                        "flex h-12 w-16 items-center justify-center rounded-md border-2 text-xs font-mono transition-all",
+                        "flex h-12 w-16 items-center justify-center rounded-md border-2 font-mono text-xs transition-all",
                         selectedColor === hex
                           ? "border-primary ring-primary/30 ring-2"
-                          : "border-transparent opacity-70 hover:opacity-100"
+                          : "border-transparent opacity-70 hover:opacity-100",
                       )}
                       style={{ backgroundColor: `#${hex}` }}
                     >

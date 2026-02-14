@@ -3,7 +3,11 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import type { SeriesMetadata, SeriesAlias, MeasurementRef } from "@catalog/types/shared";
+import type {
+  MeasurementRef,
+  SeriesAlias,
+  SeriesMetadata,
+} from "@catalog/types/shared";
 import { numBool } from "@catalog/utils";
 import {
   ColumnDef,
@@ -22,8 +26,13 @@ type MetadataRow = {
   value: React.ReactNode;
 };
 
-export function MetaDataTable({ metadata }: {
-  metadata: SeriesMetadata & { aliases: SeriesAlias[]; measurement: MeasurementRef[] };
+export function MetaDataTable({
+  metadata,
+}: {
+  metadata: SeriesMetadata & {
+    aliases: SeriesAlias[];
+    measurement: MeasurementRef[];
+  };
 }) {
   const { universe } = useParams();
 
@@ -90,7 +99,7 @@ export function MetaDataTable({ metadata }: {
       { name: "XID (devs only)", value: metadata.xs_id },
       { name: "Internal ID", value: metadata.s_id },
     ],
-    [metadata]
+    [metadata],
   );
 
   const columns: ColumnDef<MetadataRow>[] = useMemo(
@@ -114,7 +123,7 @@ export function MetaDataTable({ metadata }: {
         cell: ({ cell }) => cell.getValue() as React.ReactNode,
       },
     ],
-    []
+    [],
   );
 
   const table = useReactTable({

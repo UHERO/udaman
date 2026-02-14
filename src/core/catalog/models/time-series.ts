@@ -59,7 +59,9 @@ class TimeSeries {
     this.quarantined = Boolean(attrs.quarantined);
     this.frequency = attrs.frequency ?? null;
     this.seasonallyAdjusted =
-      attrs.seasonally_adjusted != null ? Boolean(attrs.seasonally_adjusted) : null;
+      attrs.seasonally_adjusted != null
+        ? Boolean(attrs.seasonally_adjusted)
+        : null;
     this.seasonalAdjustment =
       (attrs.seasonal_adjustment as SeasonalAdjustment) ?? null;
     this.aremosMissing = attrs.aremos_missing ?? null;
@@ -88,7 +90,7 @@ class TimeSeries {
 
   /** Parse the serialized factors column (Rails `serialize :factors, Hash`). */
   private static parseFactors(
-    raw: string | null | undefined
+    raw: string | null | undefined,
   ): Record<string, unknown> | null {
     if (!raw) return null;
     try {
@@ -109,8 +111,10 @@ class TimeSeries {
     const errors: string[] = [];
     if (opts?.enforceFields !== false) {
       if (this.percent == null) errors.push("Percent is required");
-      if (!this.seasonalAdjustment) errors.push("Seasonal Adjustment is required");
-      if (!this.frequencyTransform) errors.push("Frequency Transform is required");
+      if (!this.seasonalAdjustment)
+        errors.push("Seasonal Adjustment is required");
+      if (!this.frequencyTransform)
+        errors.push("Frequency Transform is required");
       if (this.restricted == null) errors.push("Restricted is required");
     }
     return errors;

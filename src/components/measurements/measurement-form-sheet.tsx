@@ -1,11 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -60,7 +60,10 @@ interface OptionItem {
   label: string;
 }
 
-const seasonalAdjustmentOptions: { value: SeasonalAdjustment; label: string }[] = [
+const seasonalAdjustmentOptions: {
+  value: SeasonalAdjustment;
+  label: string;
+}[] = [
   { value: "not_seasonally_adjusted", label: "Not Seasonally Adjusted" },
   { value: "seasonally_adjusted", label: "Seasonally Adjusted" },
   { value: "not_applicable", label: "Not Applicable" },
@@ -142,7 +145,8 @@ export function MeasurementFormSheet({
         frequencyTransform: measurement?.frequencyTransform ?? "",
         sourceLink: measurement?.sourceLink ?? "",
         notes: measurement?.notes ?? "",
-        universe: (measurement?.universe as Universe) ?? defaultUniverse ?? "UHERO",
+        universe:
+          (measurement?.universe as Universe) ?? defaultUniverse ?? "UHERO",
       });
     }
   }, [open, measurement, defaultUniverse, form]);
@@ -159,7 +163,8 @@ export function MeasurementFormSheet({
         percent: values.percent,
         real: values.real,
         restricted: values.restricted,
-        seasonalAdjustment: (values.seasonalAdjustment || null) as SeasonalAdjustment | null,
+        seasonalAdjustment: (values.seasonalAdjustment ||
+          null) as SeasonalAdjustment | null,
         frequencyTransform: values.frequencyTransform || null,
         sourceLink: values.sourceLink || null,
         notes: values.notes || null,
@@ -177,7 +182,9 @@ export function MeasurementFormSheet({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save measurement");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save measurement",
+      );
     }
   }
 
@@ -186,7 +193,7 @@ export function MeasurementFormSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader className="pb-0 pt-3">
+        <SheetHeader className="pt-3 pb-0">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
             {mode === "create"
@@ -212,7 +219,9 @@ export function MeasurementFormSheet({
               </Field>
 
               <Field data-invalid={!!form.formState.errors.dataPortalName}>
-                <FieldLabel htmlFor="dataPortalName">Data Portal Name</FieldLabel>
+                <FieldLabel htmlFor="dataPortalName">
+                  Data Portal Name
+                </FieldLabel>
                 <Input
                   id="dataPortalName"
                   placeholder="Display name"
@@ -226,7 +235,10 @@ export function MeasurementFormSheet({
                 <Select
                   value={form.watch("unitId")?.toString() || "none"}
                   onValueChange={(value) =>
-                    form.setValue("unitId", value === "none" ? null : Number(value))
+                    form.setValue(
+                      "unitId",
+                      value === "none" ? null : Number(value),
+                    )
                   }
                 >
                   <SelectTrigger>
@@ -249,7 +261,10 @@ export function MeasurementFormSheet({
                 <Select
                   value={form.watch("sourceId")?.toString() || "none"}
                   onValueChange={(value) =>
-                    form.setValue("sourceId", value === "none" ? null : Number(value))
+                    form.setValue(
+                      "sourceId",
+                      value === "none" ? null : Number(value),
+                    )
                   }
                 >
                   <SelectTrigger>

@@ -1,15 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createLogger } from "@/core/observability/logger";
+import type {
+  CreateGeographyPayload,
+  UpdateGeographyPayload,
+} from "@catalog/collections/geography-collection";
 import {
-  getGeographies as fetchGeographies,
   createGeography as createGeographyCtrl,
-  updateGeography as updateGeographyCtrl,
   deleteGeography as deleteGeographyCtrl,
+  getGeographies as fetchGeographies,
+  updateGeography as updateGeographyCtrl,
 } from "@catalog/controllers/geographies";
-import type { CreateGeographyPayload, UpdateGeographyPayload } from "@catalog/collections/geography-collection";
 import type { Geography, Universe } from "@catalog/types/shared";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.geographies");
 
@@ -23,7 +27,7 @@ export async function getGeographies(params?: {
 }
 
 export async function createGeography(
-  payload: CreateGeographyPayload
+  payload: CreateGeographyPayload,
 ): Promise<{ message: string; data: Geography }> {
   log.info("createGeography action called");
   const result = await createGeographyCtrl({ payload });
@@ -34,7 +38,7 @@ export async function createGeography(
 
 export async function updateGeography(
   id: number,
-  payload: UpdateGeographyPayload
+  payload: UpdateGeographyPayload,
 ): Promise<{ message: string; data: Geography }> {
   log.info({ id }, "updateGeography action called");
   const result = await updateGeographyCtrl({ id, payload });
@@ -42,7 +46,9 @@ export async function updateGeography(
   return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function deleteGeography(id: number): Promise<{ message: string }> {
+export async function deleteGeography(
+  id: number,
+): Promise<{ message: string }> {
   log.info({ id }, "deleteGeography action called");
   const result = await deleteGeographyCtrl({ id });
   revalidatePath("/geographies");

@@ -12,9 +12,6 @@
 import * as readline from "node:readline/promises";
 import { inspect } from "node:util";
 
-// ─── Database ────────────────────────────────────────────────────────
-import { mysql, rawQuery } from "@database/mysql";
-
 // ─── Collections ─────────────────────────────────────────────────────
 import CategoryCollection from "@catalog/collections/category-collection";
 import DataListCollection from "@catalog/collections/data-list-collection";
@@ -24,10 +21,9 @@ import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import SourceCollection from "@catalog/collections/source-collection";
 import SourceDetailCollection from "@catalog/collections/source-detail-collection";
+import TimeSeriesCollection from "@catalog/collections/time-series-collection";
 import UnitCollection from "@catalog/collections/unit-collection";
 import UniverseCollection from "@catalog/collections/universe-collection";
-import TimeSeriesCollection from "@catalog/collections/time-series-collection";
-
 // ─── Models ──────────────────────────────────────────────────────────
 import Category from "@catalog/models/category";
 import DataList from "@catalog/models/data-list";
@@ -39,11 +35,12 @@ import Source from "@catalog/models/source";
 import SourceDetail from "@catalog/models/source-detail";
 import TimeSeries from "@catalog/models/time-series";
 import Unit from "@catalog/models/unit";
-
 // ─── Utilities ───────────────────────────────────────────────────────
 import EvalExecutor from "@catalog/utils/eval-executor";
 import EvalParser from "@catalog/utils/eval-parser";
-import { hash as hashPassword, compare as comparePassword } from "bcryptjs";
+// ─── Database ────────────────────────────────────────────────────────
+import { mysql, rawQuery } from "@database/mysql";
+import { compare as comparePassword, hash as hashPassword } from "bcryptjs";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -137,7 +134,9 @@ function completer(line: string): [string[], string] {
 // ─── REPL ───────────────────────────────────────────────────────────
 
 console.log("Udaman console ready.");
-console.log("Collections: SeriesCollection, LoaderCollection, MeasurementCollection, ...");
+console.log(
+  "Collections: SeriesCollection, LoaderCollection, MeasurementCollection, ...",
+);
 console.log("Models:      Series, Loader, Measurement, ...");
 console.log("Utils:       EvalParser, EvalExecutor, mysql, rawQuery");
 console.log("Auth:        hashPassword, comparePassword, resetAllPasswords");
@@ -167,14 +166,24 @@ rl.on("line", async (line: string) => {
   if (trimmed === ".help") {
     console.log("\nAvailable globals:\n");
     console.log("  DB:          mysql, rawQuery");
-    console.log("  Collections: CategoryCollection, DataListCollection, GeographyCollection,");
-    console.log("               LoaderCollection, MeasurementCollection, SeriesCollection,");
-    console.log("               SourceCollection, SourceDetailCollection, UnitCollection,");
+    console.log(
+      "  Collections: CategoryCollection, DataListCollection, GeographyCollection,",
+    );
+    console.log(
+      "               LoaderCollection, MeasurementCollection, SeriesCollection,",
+    );
+    console.log(
+      "               SourceCollection, SourceDetailCollection, UnitCollection,",
+    );
     console.log("               UniverseCollection");
-    console.log("  Models:      Category, DataList, Geography, Loader, Measurement,");
+    console.log(
+      "  Models:      Category, DataList, Geography, Loader, Measurement,",
+    );
     console.log("               Series, Source, SourceDetail, Unit");
     console.log("  Utils:       EvalExecutor, EvalParser");
-    console.log("  Auth:        hashPassword, comparePassword, resetAllPasswords");
+    console.log(
+      "  Auth:        hashPassword, comparePassword, resetAllPasswords",
+    );
     console.log("\n  .exit  quit\n");
     rl.prompt();
     return;

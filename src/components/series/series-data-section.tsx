@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getAllDataPointVintages } from "@/actions/series-actions";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import type { VintageDataPoint } from "@catalog/collections/data-point-collection";
+
+import { getAllDataPointVintages } from "@/actions/series-actions";
 
 type VintageMap = Record<string, VintageDataPoint[]>;
 
@@ -46,7 +53,9 @@ export function SeriesHoverProvider({
   }, [loadVintages]);
 
   return (
-    <HoverContext.Provider value={{ hoveredDate, setHoveredDate, vintages, vintagesLoaded }}>
+    <HoverContext.Provider
+      value={{ hoveredDate, setHoveredDate, vintages, vintagesLoaded }}
+    >
       {children}
     </HoverContext.Provider>
   );

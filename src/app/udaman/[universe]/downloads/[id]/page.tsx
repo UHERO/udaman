@@ -23,7 +23,7 @@ export default async function DownloadDetailPage({
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <div>
-        <h1 className="text-3xl font-bold font-mono">{detail.handle}</h1>
+        <h1 className="font-mono text-3xl font-bold">{detail.handle}</h1>
         <Link
           href={`/udaman/${universe}/downloads/${detail.id}/edit`}
           className="text-muted-foreground text-sm hover:underline"

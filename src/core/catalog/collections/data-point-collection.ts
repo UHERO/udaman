@@ -1,6 +1,7 @@
 import { mysql } from "@/lib/mysql/db";
-import type { DataPoint } from "../types/shared";
+
 import DataPointModel from "../models/data-point";
+import type { DataPoint } from "../types/shared";
 
 export type VintageDataPoint = {
   date: Date;
@@ -19,7 +20,9 @@ class DataPointCollection {
    * Returns the specialized projection type (not model instances) since the result
    * includes computed columns from the CTE query.
    */
-  static async getBySeriesId(opts: { xseriesId: number }): Promise<DataPoint[]> {
+  static async getBySeriesId(opts: {
+    xseriesId: number;
+  }): Promise<DataPoint[]> {
     const { xseriesId } = opts;
     const rows = await mysql<DataPoint>`
       WITH current_data AS (
@@ -156,9 +159,10 @@ class DataPointCollection {
 
     const map: Record<string, VintageDataPoint[]> = {};
     for (const row of rows) {
-      const dateStr = row.date instanceof Date
-        ? row.date.toISOString().slice(0, 10)
-        : String(row.date);
+      const dateStr =
+        row.date instanceof Date
+          ? row.date.toISOString().slice(0, 10)
+          : String(row.date);
       if (!map[dateStr]) map[dateStr] = [];
       map[dateStr].push(row);
     }

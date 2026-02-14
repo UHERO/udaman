@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
 import { AnalyzeChart, type BarMode } from "./analyze-chart";
 import { StatsTable } from "./stats-table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface AnalyzeControlsProps {
   data: [string, number][];
@@ -47,7 +49,9 @@ export function AnalyzeControls({
           <ToggleGroup
             type="single"
             value={barMode}
-            onValueChange={(v) => { if (v) setBarMode(v as BarMode); }}
+            onValueChange={(v) => {
+              if (v) setBarMode(v as BarMode);
+            }}
             variant="outline"
             size="sm"
             orientation="vertical"
@@ -68,9 +72,7 @@ export function AnalyzeControls({
         {/* Unit label */}
         <div className="flex flex-col items-end gap-1">
           <span className="text-muted-foreground text-xs">Units</span>
-          <span className="text-sm font-medium">
-            {unitLabel || "—"}
-          </span>
+          <span className="text-sm font-medium">{unitLabel || "—"}</span>
         </div>
       </div>
 

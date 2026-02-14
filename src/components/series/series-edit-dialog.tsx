@@ -1,17 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+import type { SeriesFormOptions } from "@catalog/types/form-options";
+import type {
+  SeasonalAdjustment,
+  SeriesMetadata,
+  Universe,
+} from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { updateSeries } from "@/actions/series-actions";
-import type { SeriesMetadata, Universe } from "@catalog/types/shared";
-import type { SeriesFormOptions } from "@catalog/types/form-options";
-import type { SeasonalAdjustment } from "@catalog/types/shared";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,12 +34,12 @@ import { Input } from "@/components/ui/input";
 
 import { MetadataFields } from "./series-create-form";
 import {
-  SeriesNameFields,
-  nameFieldsSchema,
   assembleSeriesName,
+  freqCodeToLong,
+  nameFieldsSchema,
   parseSeriesName,
   resolveGeoId,
-  freqCodeToLong,
+  SeriesNameFields,
 } from "./series-name-fields";
 
 // ─── NS series detection ────────────────────────────────────────────
@@ -118,8 +120,9 @@ function metadataToDefaults(m: SeriesMetadata): EditFormValues {
     decimals: m.s_decimals ?? 0,
     description: m.s_description ?? "",
     sourceLink: m.s_source_link ?? "",
-    seasonalAdjustment: m.xs_seasonal_adjustment
-      ?? (nsLocked ? "not_seasonally_adjusted" : "not_applicable"),
+    seasonalAdjustment:
+      m.xs_seasonal_adjustment ??
+      (nsLocked ? "not_seasonally_adjusted" : "not_applicable"),
     frequencyTransform: m.xs_frequency_transform ?? "",
     percent: !!m.xs_percent,
     real: !!m.xs_real,
@@ -139,7 +142,8 @@ function getPercentWarning(
   if (percent || unitId == null) return undefined;
   const unit = units.find((u) => u.id === unitId);
   if (!unit) return undefined;
-  const label = `${unit.shortLabel ?? ""} ${unit.longLabel ?? ""}`.toLowerCase();
+  const label =
+    `${unit.shortLabel ?? ""} ${unit.longLabel ?? ""}`.toLowerCase();
   if (label.includes("%") || label.includes("perc")) {
     return "Unit field indicates this may be a percent";
   }
@@ -260,12 +264,12 @@ export function SeriesEditDialog({
                   placeholder="Display name for data portal"
                   {...form.register("dataPortalName")}
                 />
-                <FieldError
-                  errors={[form.formState.errors.dataPortalName]}
-                />
+                <FieldError errors={[form.formState.errors.dataPortalName]} />
                 {nullFields.has("dataPortalName") &&
                   !form.formState.errors.dataPortalName && (
-                    <FieldWarning>Was empty — please provide a name</FieldWarning>
+                    <FieldWarning>
+                      Was empty — please provide a name
+                    </FieldWarning>
                   )}
               </Field>
 

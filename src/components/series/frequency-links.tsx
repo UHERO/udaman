@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const FREQ_LABELS: Record<string, string> = {
   A: "Annual",
@@ -45,7 +46,7 @@ export function FrequencyLinks({
             <Badge
               variant="outline"
               className={cn(
-                "text-xs hover:bg-accent cursor-pointer transition-colors",
+                "hover:bg-accent cursor-pointer text-xs transition-colors",
               )}
             >
               {label}

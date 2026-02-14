@@ -1,5 +1,6 @@
 "use client";
 
+import { useTheme } from "next-themes";
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -7,7 +8,6 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
@@ -26,8 +26,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       toastOptions={{
         classNames: {
-          success: "!bg-green-50 !text-green-900 !border-green-200 [&_[data-description]]:!text-green-800",
-          error: "!bg-red-50 !text-red-900 !border-red-200 [&_[data-description]]:!text-red-800",
+          success:
+            "!bg-green-50 !text-green-900 !border-green-200 [&_[data-description]]:!text-green-800",
+          error:
+            "!bg-red-50 !text-red-900 !border-red-200 [&_[data-description]]:!text-red-800",
         },
       }}
       style={

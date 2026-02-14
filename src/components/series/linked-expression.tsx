@@ -34,7 +34,7 @@ export function LinkedExpression({
             <Link
               key={i}
               href={`/udaman/${universe}/series/${id}`}
-              className="group inline-flex flex-col items-center hover:bg-blue-50 rounded px-1 transition-colors"
+              className="group inline-flex flex-col items-center rounded px-1 transition-colors hover:bg-blue-50"
             >
               <span className="text-[10px] leading-tight text-blue-500 group-hover:text-blue-700">
                 {token}

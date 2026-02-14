@@ -14,7 +14,9 @@ export type UpdateDataListPayload = Partial<CreateDataListPayload>;
 
 class DataListCollection {
   /** Fetch all data lists, optionally filtered by universe */
-  static async list(options: { universe?: Universe } = {}): Promise<DataList[]> {
+  static async list(
+    options: { universe?: Universe } = {},
+  ): Promise<DataList[]> {
     const { universe } = options;
     if (universe) {
       const rows = await mysql<DataListAttrs>`
@@ -64,7 +66,10 @@ class DataListCollection {
   }
 
   /** Fetch a single data list by name */
-  static async getByName(name: string, universe: Universe = "UHERO"): Promise<DataList> {
+  static async getByName(
+    name: string,
+    universe: Universe = "UHERO",
+  ): Promise<DataList> {
     const rows = await mysql<DataListAttrs>`
       SELECT * FROM data_lists
       WHERE universe = ${universe} AND name = ${name}
@@ -84,12 +89,17 @@ class DataListCollection {
       VALUES (${universe}, ${name ?? null}, NOW(), NOW())
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a data list */
-  static async update(id: number, updates: UpdateDataListPayload): Promise<DataList> {
+  static async update(
+    id: number,
+    updates: UpdateDataListPayload,
+  ): Promise<DataList> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);
@@ -110,7 +120,9 @@ class DataListCollection {
       SELECT COUNT(*) as cnt FROM categories WHERE data_list_id = ${id}
     `;
     if (categoryRefs[0].cnt > 0) {
-      throw new Error(`Cannot delete data list (id=${id}): referenced by categories`);
+      throw new Error(
+        `Cannot delete data list (id=${id}): referenced by categories`,
+      );
     }
 
     await mysql`DELETE FROM data_list_measurements WHERE data_list_id = ${id}`;
@@ -118,7 +130,9 @@ class DataListCollection {
   }
 
   /** Get measurement IDs associated with a data list, ordered by list_order */
-  static async getMeasurementIds(dataListId: number): Promise<{ measurementId: number; listOrder: number; indent: string }[]> {
+  static async getMeasurementIds(
+    dataListId: number,
+  ): Promise<{ measurementId: number; listOrder: number; indent: string }[]> {
     return mysql<{ measurementId: number; listOrder: number; indent: string }>`
       SELECT measurement_id as measurementId, list_order as listOrder, indent
       FROM data_list_measurements
@@ -158,7 +172,10 @@ class DataListCollection {
   }
 
   /** Remove a measurement from a data list */
-  static async removeMeasurement(dataListId: number, measurementId: number): Promise<void> {
+  static async removeMeasurement(
+    dataListId: number,
+    measurementId: number,
+  ): Promise<void> {
     await mysql`
       DELETE FROM data_list_measurements
       WHERE data_list_id = ${dataListId} AND measurement_id = ${measurementId}

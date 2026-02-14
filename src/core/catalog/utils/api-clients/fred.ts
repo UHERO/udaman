@@ -34,13 +34,16 @@ export async function fetchSeries(
   const xml = await fetchXml(url);
 
   // Check for API errors
-  const errorMatch = xml.match(/<error\s[^>]*message="([^"]*)"[^>]*code="([^"]*)"/);
+  const errorMatch = xml.match(
+    /<error\s[^>]*message="([^"]*)"[^>]*code="([^"]*)"/,
+  );
   if (errorMatch) {
     throw new Error(`FRED API Error: ${errorMatch[1]} (code=${errorMatch[2]})`);
   }
 
   const data = new Map<string, number>();
-  const obsRegex = /<observation\s[^>]*date="([^"]*)"[^>]*value="([^"]*)"[^>]*\/>/g;
+  const obsRegex =
+    /<observation\s[^>]*date="([^"]*)"[^>]*value="([^"]*)"[^>]*\/>/g;
   let match: RegExpExecArray | null;
 
   while ((match = obsRegex.exec(xml)) !== null) {

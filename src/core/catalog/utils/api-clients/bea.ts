@@ -3,7 +3,12 @@
  * https://apps.bea.gov/api/
  */
 
-import { fetchJson, grokDate, BEA_SUPPRESSED_VALUE, type ApiResult } from "./index";
+import {
+  BEA_SUPPRESSED_VALUE,
+  fetchJson,
+  grokDate,
+  type ApiResult,
+} from "./index";
 
 /**
  * Fetch a time series from the BEA API.
@@ -30,7 +35,7 @@ export async function fetchSeries(
   const err = beaapi.Error ?? beaapi.Results?.Error;
   if (err) {
     throw new Error(
-      `BEA API Error: ${err.APIErrorDescription} ${err.ErrorDetail?.Description ?? ""} (code=${err.APIErrorCode})`
+      `BEA API Error: ${err.APIErrorDescription} ${err.ErrorDetail?.Description ?? ""} (code=${err.APIErrorCode})`,
     );
   }
 
@@ -48,7 +53,10 @@ export async function fetchSeries(
     const rawValue = dp.DataValue?.trim().replace(/,/g, "") ?? null;
     let value: number;
 
-    if (rawValue === null || (dp.NoteRef && /^\(\w+\)/i.test(dp.NoteRef.trim()))) {
+    if (
+      rawValue === null ||
+      (dp.NoteRef && /^\(\w+\)/i.test(dp.NoteRef.trim()))
+    ) {
       value = BEA_SUPPRESSED_VALUE;
     } else {
       value = parseFloat(rawValue);
@@ -69,7 +77,7 @@ function requestMatch(
   dataPoint: Record<string, string | undefined>,
 ): boolean {
   const dpUpper = Object.fromEntries(
-    Object.entries(dataPoint).map(([k, v]) => [k.toUpperCase(), v])
+    Object.entries(dataPoint).map(([k, v]) => [k.toUpperCase(), v]),
   );
 
   for (const key of Object.keys(request)) {

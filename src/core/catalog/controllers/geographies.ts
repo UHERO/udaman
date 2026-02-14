@@ -1,7 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe } from "../types/shared";
+
 import GeographyCollection from "../collections/geography-collection";
-import type { CreateGeographyPayload, UpdateGeographyPayload } from "../collections/geography-collection";
+import type {
+  CreateGeographyPayload,
+  UpdateGeographyPayload,
+} from "../collections/geography-collection";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.geographies");
 
@@ -22,14 +26,24 @@ export async function getGeography({ id }: { id: number }) {
   return { data };
 }
 
-export async function createGeography({ payload }: { payload: CreateGeographyPayload }) {
+export async function createGeography({
+  payload,
+}: {
+  payload: CreateGeographyPayload;
+}) {
   log.info({ payload }, "creating geography");
   const data = await GeographyCollection.create(payload);
   log.info({ id: data.id }, "geography created");
   return { message: "Geography created", data };
 }
 
-export async function updateGeography({ id, payload }: { id: number; payload: UpdateGeographyPayload }) {
+export async function updateGeography({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateGeographyPayload;
+}) {
   log.info({ id, payload }, "updating geography");
   const data = await GeographyCollection.update(id, payload);
   log.info({ id }, "geography updated");

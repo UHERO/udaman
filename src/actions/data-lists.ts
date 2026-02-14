@@ -1,15 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createLogger } from "@/core/observability/logger";
+import type {
+  CreateDataListPayload,
+  UpdateDataListPayload,
+} from "@catalog/collections/data-list-collection";
 import {
-  getDataListsWithCounts as fetchDataLists,
   createDataList as createDataListCtrl,
-  updateDataList as updateDataListCtrl,
   deleteDataList as deleteDataListCtrl,
+  getDataListsWithCounts as fetchDataLists,
+  updateDataList as updateDataListCtrl,
 } from "@catalog/controllers/data-lists";
-import type { CreateDataListPayload, UpdateDataListPayload } from "@catalog/collections/data-list-collection";
 import type { Universe } from "@catalog/types/shared";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("action.data-lists");
 
@@ -28,7 +32,10 @@ export async function createDataList(payload: CreateDataListPayload) {
   return { message: result.message, data: result.data.toJSON() };
 }
 
-export async function updateDataList(id: number, payload: UpdateDataListPayload) {
+export async function updateDataList(
+  id: number,
+  payload: UpdateDataListPayload,
+) {
   log.info({ id }, "updateDataList action called");
   const result = await updateDataListCtrl({ id, payload });
   revalidatePath("/data-list");

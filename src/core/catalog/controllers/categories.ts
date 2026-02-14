@@ -1,6 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import type { Universe, CreateCategoryPayload, UpdateCategoryPayload } from "../types/shared";
+
 import CategoryCollection from "../collections/category-collection";
+import type {
+  CreateCategoryPayload,
+  Universe,
+  UpdateCategoryPayload,
+} from "../types/shared";
 
 const log = createLogger("catalog.categories");
 
@@ -8,7 +13,13 @@ const log = createLogger("catalog.categories");
  * CATEGORIES Controller
  *************************************************************************/
 
-export async function getCategories({ u, excludeId }: { u: Universe; excludeId?: number }) {
+export async function getCategories({
+  u,
+  excludeId,
+}: {
+  u: Universe;
+  excludeId?: number;
+}) {
   log.info({ universe: u, excludeId }, "fetching categories");
   const data = await CategoryCollection.list({ universe: u, excludeId });
   log.info({ count: data.length, universe: u }, "categories fetched");
@@ -27,14 +38,24 @@ export async function getCategoryTree({ id }: { id: number }) {
   return { data };
 }
 
-export async function createCategory({ payload }: { payload: CreateCategoryPayload }) {
+export async function createCategory({
+  payload,
+}: {
+  payload: CreateCategoryPayload;
+}) {
   log.info({ payload }, "creating category");
   const data = await CategoryCollection.create(payload);
   log.info({ id: data.id }, "category created");
   return { message: "Category created", data };
 }
 
-export async function updateCategory({ id, payload }: { id: number; payload: UpdateCategoryPayload }) {
+export async function updateCategory({
+  id,
+  payload,
+}: {
+  id: number;
+  payload: UpdateCategoryPayload;
+}) {
   log.info({ id, payload }, "updating category");
   const data = await CategoryCollection.update(id, payload);
   log.info({ id }, "category updated");

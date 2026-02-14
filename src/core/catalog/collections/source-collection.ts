@@ -77,12 +77,17 @@ class SourceCollection {
       VALUES (${universe}, ${description ?? null}, ${link ?? null}, NOW(), NOW())
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a source */
-  static async update(id: number, updates: UpdateSourcePayload): Promise<Source> {
+  static async update(
+    id: number,
+    updates: UpdateSourcePayload,
+  ): Promise<Source> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);
@@ -110,7 +115,9 @@ class SourceCollection {
       SELECT COUNT(*) as cnt FROM measurements WHERE source_id = ${id}
     `;
     if (measurementRefs[0].cnt > 0) {
-      throw new Error(`Cannot delete source (id=${id}): referenced by measurements`);
+      throw new Error(
+        `Cannot delete source (id=${id}): referenced by measurements`,
+      );
     }
 
     await mysql`DELETE FROM sources WHERE id = ${id}`;

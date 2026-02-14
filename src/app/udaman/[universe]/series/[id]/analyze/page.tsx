@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { analyzeSeriesAction } from "@/actions/series-actions";
-import { H2 } from "@/components/typography";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { AnalyzeDataTable } from "@/components/series/analyze-data-table";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { FrequencyLinks } from "@/components/series/frequency-links";
+import { H2 } from "@/components/typography";
 
 export default async function AnalyzeSeriesPage({
   params,
@@ -39,7 +39,9 @@ export default async function AnalyzeSeriesPage({
             </Link>
           </H2>
           {series.dataPortalName && (
-            <p className="text-muted-foreground text-sm">{series.dataPortalName}</p>
+            <p className="text-muted-foreground text-sm">
+              {series.dataPortalName}
+            </p>
           )}
 
           {siblings && siblings.length > 1 && (

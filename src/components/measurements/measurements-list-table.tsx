@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,8 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { MeasurementFormSheet } from "./measurement-form-sheet";
 import { DeleteMeasurementDialog } from "./delete-measurement-dialog";
+import { MeasurementFormSheet } from "./measurement-form-sheet";
 
 interface MeasurementRow {
   id: number;

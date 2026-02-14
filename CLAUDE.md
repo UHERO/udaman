@@ -74,4 +74,5 @@ Not yet ported (exist in Rails `tmp/models/` but not yet in TS): `data_point` (p
 - Lucide icons
 
 # General Instructions
+
 We're working on porting udaman (uhero data manageer) a time series management application from a legacy ruby on rails app to nextjs app router 16 with typescript, mariadb, bun and bun's sql driver. The server layout is as follows: Models contain purely business logic, Collections contain all database interactions and return Model instances, Controllers orchestrate Collections & Models and are called by nextjs server actions to get data to and from UI components. Server actions are thin wrappers around controllers. Messages returned by the controller are passed to the ui in toasts. When starting on a new feature, begin by evaluating the original approach in the rails code contained within the /tmp folder.

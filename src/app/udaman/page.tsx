@@ -2,8 +2,8 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { GalleryVerticalEnd } from "lucide-react";
 
-import { getSession } from "@/lib/auth/dal";
 import { LoginForm } from "@/components/login-form";
+import { getSession } from "@/lib/auth/dal";
 
 export default async function LoginPage() {
   const session = await getSession();

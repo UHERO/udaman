@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileSpreadsheet, Loader2, Upload } from "lucide-react";
-
 import ClientDataFileReader from "@catalog/utils/client-data-file-reader";
 import {
   generateTsd,
   type TsdFrequency,
   type TsdSeriesInput,
 } from "@catalog/utils/tsd-generator";
+import { FileSpreadsheet, Loader2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {

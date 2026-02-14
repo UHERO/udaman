@@ -19,7 +19,9 @@ export type UpdateGeographyPayload = Partial<CreateGeographyPayload>;
 
 class GeographyCollection {
   /** Fetch all geographies, optionally filtered by universe */
-  static async list(options: { universe?: Universe } = {}): Promise<Geography[]> {
+  static async list(
+    options: { universe?: Universe } = {},
+  ): Promise<Geography[]> {
     const { universe } = options;
     if (universe) {
       const rows = await mysql<GeographyAttrs>`
@@ -69,12 +71,17 @@ class GeographyCollection {
       )
     `;
 
-    const [{ insertId }] = await mysql<{ insertId: number }>`SELECT LAST_INSERT_ID() as insertId`;
+    const [{ insertId }] = await mysql<{
+      insertId: number;
+    }>`SELECT LAST_INSERT_ID() as insertId`;
     return this.getById(insertId);
   }
 
   /** Update a geography */
-  static async update(id: number, updates: UpdateGeographyPayload): Promise<Geography> {
+  static async update(
+    id: number,
+    updates: UpdateGeographyPayload,
+  ): Promise<Geography> {
     if (!Object.keys(updates).length) return this.getById(id);
 
     const updateObj = buildUpdateObject(updates);
@@ -95,7 +102,9 @@ class GeographyCollection {
       SELECT COUNT(*) as cnt FROM series WHERE geography_id = ${id}
     `;
     if (seriesRefs[0].cnt > 0) {
-      throw new Error(`Cannot delete geography (id=${id}): referenced by series`);
+      throw new Error(
+        `Cannot delete geography (id=${id}): referenced by series`,
+      );
     }
 
     await mysql`DELETE FROM geographies WHERE id = ${id}`;

@@ -1,8 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
-import { MySqlAdapter } from "./mysql-adapter";
 import { mysql } from "@database/mysql";
+import { compare } from "bcryptjs";
+
+import { MySqlAdapter } from "./mysql-adapter";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: MySqlAdapter(),

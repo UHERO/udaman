@@ -153,7 +153,8 @@ type CalculatedFields = {
   color: string;
 };
 
-export type DataPoint = DataPointsSelection & CalculatedFields & { loader_id: number };
+export type DataPoint = DataPointsSelection &
+  CalculatedFields & { loader_id: number };
 
 export interface SourceMapDataSource {
   id: number;
@@ -217,4 +218,3 @@ export interface AnalyzeResult {
   resultValue?: number | null;
   unitLabel?: string | null;
 }
-

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ export function LoginForm({
   const [error, setError] = useState(
     serverError === "CredentialsSignin"
       ? "Invalid email or password"
-      : serverError ?? "",
+      : (serverError ?? ""),
   );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -56,9 +56,7 @@ export function LoginForm({
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle className="text-2xl">Udaman</CardTitle>
-        <CardDescription>
-          Sign in to your account
-        </CardDescription>
+        <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -84,9 +82,7 @@ export function LoginForm({
             />
           </div>
 
-          {error && (
-            <p className="text-destructive text-sm">{error}</p>
-          )}
+          {error && <p className="text-destructive text-sm">{error}</p>}
 
           <Button type="submit" disabled={isPending} className="w-full">
             {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}

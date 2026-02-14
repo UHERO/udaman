@@ -52,8 +52,12 @@ class Category {
     this.defaultHandle = attrs.default_handle ?? null;
     this.defaultFreq = (attrs.default_freq as Frequency) ?? null;
     this.meta = attrs.meta ?? null;
-    this.createdAt = attrs.created_at ? new Date(attrs.created_at as string | Date) : null;
-    this.updatedAt = attrs.updated_at ? new Date(attrs.updated_at as string | Date) : null;
+    this.createdAt = attrs.created_at
+      ? new Date(attrs.created_at as string | Date)
+      : null;
+    this.updatedAt = attrs.updated_at
+      ? new Date(attrs.updated_at as string | Date)
+      : null;
   }
 
   /** The ancestry path including this node, e.g. "1/4/6" */

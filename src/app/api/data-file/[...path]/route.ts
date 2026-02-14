@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolve, extname } from "path";
 import { existsSync, statSync } from "fs";
+import { extname, resolve } from "path";
+
+import { NextRequest, NextResponse } from "next/server";
+
 import { getDataDir } from "@/lib/data-dir";
 
 const MIME_TYPES: Record<string, string> = {

@@ -1,9 +1,9 @@
 import { transformSeriesAction } from "@/actions/series-actions";
-import { H2 } from "@/components/typography";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { AnalyzeDataTable } from "@/components/series/analyze-data-table";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { LinkedExpression } from "@/components/series/linked-expression";
+import { H2 } from "@/components/typography";
 
 export default async function TransformSeriesPage({
   params,
@@ -31,7 +31,9 @@ export default async function TransformSeriesPage({
             <ul className="list-inside list-disc space-y-1 font-mono text-xs">
               <li>E_NF@HI.M + E_NF@MAU.M</li>
               <li>E_NF@HI.M / E_NF@HI.M.shift_by(12)</li>
-              <li>E_NF@HI.Q.aggregate(&quot;quarter&quot;, &quot;average&quot;)</li>
+              <li>
+                E_NF@HI.Q.aggregate(&quot;quarter&quot;, &quot;average&quot;)
+              </li>
             </ul>
           </div>
         </main>
@@ -61,7 +63,15 @@ export default async function TransformSeriesPage({
     );
   }
 
-  const { series, yoy, levelChange, ytd, seriesLinks, seriesLastValues, resultValue } = result;
+  const {
+    series,
+    yoy,
+    levelChange,
+    ytd,
+    seriesLinks,
+    seriesLastValues,
+    resultValue,
+  } = result;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { Universe } from "@catalog/types/shared";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -35,8 +35,9 @@ export function DataListsListTable({
 }: DataListsListTableProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [selectedDataList, setSelectedDataList] =
-    useState<DataListRow | null>(null);
+  const [selectedDataList, setSelectedDataList] = useState<DataListRow | null>(
+    null,
+  );
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [dlToDelete, setDlToDelete] = useState<{

@@ -1,4 +1,4 @@
-import { Universe, Frequency } from "../types/shared";
+import { Frequency, Universe } from "../types/shared";
 
 export const frequencies: Frequency[] = ["A", "S", "Q", "M", "W", "D"];
 export const universes: Universe[] = [

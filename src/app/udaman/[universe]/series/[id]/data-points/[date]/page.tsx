@@ -1,8 +1,10 @@
 import Link from "next/link";
+import type { Universe } from "@catalog/types/shared";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
-import { getSeriesById, getDataPointVintages } from "@/actions/series-actions";
-import type { Universe } from "@catalog/types/shared";
+
+import { getDataPointVintages, getSeriesById } from "@/actions/series-actions";
+import { getColor } from "@/components/helpers";
 import {
   Table,
   TableBody,
@@ -11,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getColor } from "@/components/helpers";
 
 export default async function DataPointVintagesPage({
   params,
@@ -20,7 +21,9 @@ export default async function DataPointVintagesPage({
 }) {
   const { universe, id, date } = await params;
   const seriesId = Number(id);
-  const series = await getSeriesById(seriesId, { universe: universe as Universe });
+  const series = await getSeriesById(seriesId, {
+    universe: universe as Universe,
+  });
   const { metadata } = series;
 
   const vintages = await getDataPointVintages(metadata.xs_id, date);
@@ -60,7 +63,7 @@ export default async function DataPointVintagesPage({
         <TableBody>
           {vintages.length > 0 ? (
             vintages.map((v, i) => (
-              <TableRow key={i} className={getColor(v.color)}>
+              <TableRow key={`vintage-${i}`} className={getColor(v.color)}>
                 <TableCell className="text-end font-semibold">
                   {v.value != null
                     ? Number(v.value).toFixed(metadata.s_decimals)

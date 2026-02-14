@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { getSeriesWithNullField } from "@/actions/series-actions";
 import type { SeriesAuditRow } from "@catalog/types/shared";
 import { Loader2 } from "lucide-react";
 
+import { getSeriesWithNullField } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -54,7 +54,7 @@ export function NullFieldSeriesTable({ universe }: { universe: string }) {
         setTotalCount(result.totalCount);
       });
     },
-    [universe]
+    [universe],
   );
 
   useEffect(() => {
@@ -128,7 +128,9 @@ export function NullFieldSeriesTable({ universe }: { universe: string }) {
               <TableRow
                 key={row.id}
                 className="group cursor-pointer"
-                onClick={() => window.location.href = `/udaman/${universe}/series/${row.id}`}
+                onClick={() =>
+                  (window.location.href = `/udaman/${universe}/series/${row.id}`)
+                }
               >
                 <TableCell className="text-muted-foreground w-8">
                   <span className="invisible group-hover:visible">&rarr;</span>

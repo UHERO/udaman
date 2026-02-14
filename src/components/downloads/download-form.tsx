@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
-import {
-  createDownloadAction,
-  updateDownloadAction,
-  deleteDownloadAction,
-} from "@/actions/download-actions";
+import { useForm } from "react-hook-form";
+import { useParams, useRouter } from "next/navigation";
 import type { DownloadFormData } from "@catalog/controllers/downloads";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import {
+  createDownloadAction,
+  deleteDownloadAction,
+  updateDownloadAction,
+} from "@/actions/download-actions";
 import { DeleteDownloadDialog } from "@/components/downloads/delete-download-dialog";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -72,7 +70,10 @@ interface DownloadFormProps {
 
 // ─── Component ──────────────────────────────────────────────────────
 
-export function DownloadForm({ download, mode = download ? "edit" : "create" }: DownloadFormProps) {
+export function DownloadForm({
+  download,
+  mode = download ? "edit" : "create",
+}: DownloadFormProps) {
   const router = useRouter();
   const params = useParams();
   const universe = params.universe as string;
@@ -125,7 +126,9 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Save failed";
       if (msg.includes("Duplicate entry")) {
-        form.setError("handle", { message: "A download with this handle already exists" });
+        form.setError("handle", {
+          message: "A download with this handle already exists",
+        });
       } else {
         toast.error(msg);
       }
@@ -155,7 +158,8 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
               {...form.register("handle")}
             />
             <FieldDescription>
-              Unique identifier for this download. Use date format codes (%Y, %m, %b) for date-sensitive handles.
+              Unique identifier for this download. Use date format codes (%Y,
+              %m, %b) for date-sensitive handles.
             </FieldDescription>
             <FieldError errors={[form.formState.errors.handle]} />
           </Field>
@@ -192,7 +196,10 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
                 type="number"
                 value={form.watch("sort1") ?? ""}
                 onChange={(e) =>
-                  form.setValue("sort1", e.target.value ? Number(e.target.value) : null)
+                  form.setValue(
+                    "sort1",
+                    e.target.value ? Number(e.target.value) : null,
+                  )
                 }
               />
             </Field>
@@ -203,7 +210,10 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
                 type="number"
                 value={form.watch("sort2") ?? ""}
                 onChange={(e) =>
-                  form.setValue("sort2", e.target.value ? Number(e.target.value) : null)
+                  form.setValue(
+                    "sort2",
+                    e.target.value ? Number(e.target.value) : null,
+                  )
                 }
               />
             </Field>
@@ -297,11 +307,7 @@ export function DownloadForm({ download, mode = download ? "edit" : "create" }: 
                   ? "Duplicate download"
                   : "Create download"}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-          >
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
           {isEdit && (

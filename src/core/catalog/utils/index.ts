@@ -12,7 +12,7 @@ type Failure<E> = {
 type Result<T, E = Error> = Success<T> | Failure<E>;
 
 export async function tryCatch<T, E = Error>(
-  promise: Promise<T>
+  promise: Promise<T>,
 ): Promise<Result<T, E>> {
   try {
     const data = await promise;
@@ -56,7 +56,7 @@ export function formatTimestamp(timestampSeconds: number): string {
 
 export function formatValue(
   value: number | null | undefined,
-  label: string
+  label: string,
 ): string {
   if (value === null || value === undefined) return `${label}: N/A`;
   return `${label}: ${value}`;

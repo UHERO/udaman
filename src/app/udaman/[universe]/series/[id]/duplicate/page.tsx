@@ -1,9 +1,7 @@
-import {
-  getSeriesById,
-  getFormOptions,
-} from "@/actions/series-actions";
-import { SeriesDuplicateForm } from "@/components/series/series-duplicate-form";
 import type { Universe } from "@catalog/types/shared";
+
+import { getFormOptions, getSeriesById } from "@/actions/series-actions";
+import { SeriesDuplicateForm } from "@/components/series/series-duplicate-form";
 
 export default async function DuplicateSeriesPage({
   params,
