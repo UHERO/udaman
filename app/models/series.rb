@@ -499,10 +499,11 @@ class Series < ApplicationRecord
     data.each_pair {|date, value| formatted_data[date.to_date] = value}
     data = formatted_data
     observation_dates = data.keys
-    current_data_points.each do |dp|
+    cdps = current_data_points
+    cdps.each do |dp|
       dp.upd(data[dp.date], source)
     end
-    observation_dates -= current_data_points.map(&:date)
+    observation_dates -= cdps.map(&:date)
     now = Time.now
     observation_dates.each do |date|
       next if data[date] == 1.00E+0015
