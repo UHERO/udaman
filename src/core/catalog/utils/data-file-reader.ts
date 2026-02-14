@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join, extname } from "node:path";
+import { getDataDir } from "@/lib/data-dir";
 import XLSX from "xlsx";
 
 import ClientDataFileReader, {
@@ -22,8 +23,7 @@ class DataFileReader extends ClientDataFileReader {
   /** Read a data file from DATA_DIR and return a DataFileReader.
    *  Supports .csv, .xls, .xlsx, and .txt formats. */
   static fromFile(path: string, sheetSpec?: string): DataFileReader {
-    const dataDir = process.env.DATA_DIR ?? "./data";
-    const fullPath = join(dataDir, path.trim());
+    const fullPath = join(getDataDir(), path.trim());
     const ext = extname(fullPath).toLowerCase();
 
     if (ext === ".csv" || ext === ".txt") {

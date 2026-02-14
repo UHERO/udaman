@@ -47,7 +47,7 @@ interface CategoryNode extends Category {
 
 interface DataTableProps {
   data: Category[];
-  universe?: Universe;
+  universe?: string;
   geographies: Geography[];
 }
 
@@ -394,7 +394,7 @@ export function CategoriesListTable({
     setSelectedCategory(null);
     setParentIdForCreate(parentId);
     setParentCategoryForCreate(parent ?? null);
-    setUniverseForCreate(parent?.universe ?? universe ?? "UHERO");
+    setUniverseForCreate((parent?.universe as Universe) ?? universe ?? "UHERO");
     setFormOpen(true);
   };
 

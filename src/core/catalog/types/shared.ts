@@ -159,7 +159,7 @@ export interface SourceMapDataSource {
   id: number;
   series_id: number;
   disabled: boolean;
-  universe: string;
+  universe: Universe;
   color: string;
   last_run_at: Date | null;
   last_run_in_seconds: number | null;
@@ -197,7 +197,7 @@ export interface AnalyzeSeriesData {
   id: number | null;
   name: string;
   dataPortalName: string | null;
-  universe: string;
+  universe: Universe;
   frequency: string | null;
   frequencyCode: string | null;
   decimals: number;

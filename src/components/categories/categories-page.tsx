@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Category, Geography, Universe } from "@catalog/types/shared";
 import { Plus } from "lucide-react";
-import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +24,7 @@ export function Categories({
 
   // Find the root category for this universe to use as parent
   const rootCategory = data.find(
-    (cat) => cat.ancestry === null && cat.universe === (universe ?? "UHERO"),
+    (cat) => cat.ancestry === null && cat.universe === (universe ?? "UHERO")
   );
 
   const handleCreate = () => {

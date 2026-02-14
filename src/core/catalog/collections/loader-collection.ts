@@ -276,7 +276,7 @@ class LoaderCollection {
             id: r.id,
             series_id: r.series_id,
             disabled: !!r.disabled,
-            universe: r.universe,
+            universe: r.universe as Universe,
             color: r.color,
             last_run_at: r.last_run_at,
             last_run_in_seconds: r.last_run_in_seconds,

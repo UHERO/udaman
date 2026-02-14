@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { join, resolve, extname } from "path";
-import { existsSync, statSync, createReadStream } from "fs";
+import { resolve, extname } from "path";
+import { existsSync, statSync } from "fs";
+import { getDataDir } from "@/lib/data-dir";
 
 const MIME_TYPES: Record<string, string> = {
   ".csv": "text/csv",
@@ -17,8 +18,8 @@ export async function GET(
   const { path: segments } = await params;
   const relativePath = segments.join("/");
 
-  const dataDir = resolve(process.env.DATA_DIR ?? "./data");
-  const fullPath = resolve(join(dataDir, relativePath));
+  const dataDir = getDataDir();
+  const fullPath = resolve(dataDir, relativePath);
 
   // Prevent directory traversal
   if (!fullPath.startsWith(dataDir)) {

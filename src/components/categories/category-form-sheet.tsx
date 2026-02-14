@@ -1,44 +1,44 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createCategory, updateCategory } from "@/actions/categories";
 import {
-    Category,
-    Frequency,
-    Geography,
-    Universe,
+  Category,
+  Frequency,
+  Geography,
+  Universe,
 } from "@catalog/types/shared";
 import { frequencies, universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createCategory, updateCategory } from "@/actions/categories";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldSet,
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 
 const formSchema = z.object({
@@ -138,7 +138,9 @@ export function CategoryFormSheet({
       router.refresh();
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save category");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save category"
+      );
     }
   }
 
@@ -152,7 +154,7 @@ export function CategoryFormSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader className="pb-0 pt-3">
+        <SheetHeader className="pt-3 pb-0">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
             {mode === "create"
@@ -216,7 +218,7 @@ export function CategoryFormSheet({
                   onValueChange={(value) =>
                     form.setValue(
                       "defaultFreq",
-                      value === "none" ? "" : (value as Frequency),
+                      value === "none" ? "" : (value as Frequency)
                     )
                   }
                 >
@@ -242,7 +244,7 @@ export function CategoryFormSheet({
                   onValueChange={(value) =>
                     form.setValue(
                       "defaultGeoId",
-                      value === "none" ? null : Number(value),
+                      value === "none" ? null : Number(value)
                     )
                   }
                 >
@@ -279,8 +281,7 @@ export function CategoryFormSheet({
                 (parentCategory.hidden || parentCategory.masked) ? (
                   <p className="text-muted-foreground text-sm">
                     This category will be automatically masked because its
-                    parent is{" "}
-                    {parentCategory.hidden ? "hidden" : "masked"}.
+                    parent is {parentCategory.hidden ? "hidden" : "masked"}.
                   </p>
                 ) : (
                   <div className="flex items-center gap-6">

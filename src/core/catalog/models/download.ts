@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { getDataDir } from "@/lib/data-dir";
 
 export type DownloadAttrs = {
   id: number;
@@ -58,8 +59,7 @@ class Download {
 
   /** Root directory for raw downloaded files */
   static get root(): string {
-    const dataDir = process.env.DATA_DIR ?? "./data";
-    return join(dataDir, "rawdata");
+    return join(getDataDir(), "rawdata");
   }
 
   /** Sanitize handle for use as a filename (replace @ with _) */

@@ -10,6 +10,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getDataDir } from "@/lib/data-dir";
 import XLSX from "xlsx";
 
 import DownloadCollection from "../collections/download-collection";
@@ -721,13 +722,11 @@ function resolveManualPath(options: DownloadOptions): string {
   if (!options.path) {
     throw new Error("File path must be specified for manual download processing");
   }
-  const dataDir = process.env.DATA_DIR ?? "./data";
-  return join(dataDir, String(options.path));
+  return resolveFullPath(String(options.path));
 }
 
 function resolveFullPath(relativePath: string): string {
-  const dataDir = process.env.DATA_DIR ?? "./data";
-  return join(dataDir, relativePath);
+  return join(getDataDir(), relativePath);
 }
 
 // ─── Helper: validate spreadsheet options ────────────────────────────

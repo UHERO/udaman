@@ -1,4 +1,4 @@
-import type { SeasonalAdjustment, Universe } from "../types/shared";
+import type { AnalyzeSeriesData, SeasonalAdjustment, Universe } from "../types/shared";
 
 // ─── Name parsing ────────────────────────────────────────────────────
 // Series names follow the pattern: PREFIX@GEO.FREQ
@@ -1210,17 +1210,7 @@ class Series {
   // ─── Analyze serialization ──────────────────────────────────────────
 
   /** Serialize for the analyze page: identity fields + sorted [date, value] tuples. */
-  toAnalyzeJSON(): {
-    id: number | null;
-    name: string;
-    dataPortalName: string | null;
-    universe: string;
-    frequency: string | null;
-    frequencyCode: string | null;
-    decimals: number;
-    observationCount: number;
-    data: [string, number][];
-  } {
+  toAnalyzeJSON(): AnalyzeSeriesData {
     const sorted = [...this.data.entries()]
       .filter(([, v]) => v != null)
       .sort(([a], [b]) => a.localeCompare(b));
