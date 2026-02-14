@@ -32,7 +32,7 @@ export default async function UniverseLayout({
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider data-universe={universe.toUpperCase()}>
       <AppSidebar user={user} />
       <SidebarInset>
         <header className="group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">

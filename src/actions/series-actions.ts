@@ -16,6 +16,8 @@ import {
   getQuarantinedSeries as fetchQuarantinedSeries,
   unquarantineSeries as unquarantineSeriesCtrl,
   emptyQuarantine as emptyQuarantineCtrl,
+  analyzeSeries as analyzeSeriesCtrl,
+  transformSeries as transformSeriesCtrl,
 } from "@catalog/controllers/series";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -23,6 +25,7 @@ import type { CreateSeriesPayload } from "@catalog/collections/series-collection
 import LoaderCollection from "@catalog/collections/loader-collection";
 import { transaction } from "@database/mysql";
 import type {
+  AnalyzeResult,
   SeasonalAdjustment,
   SourceMapNode,
   Universe,
@@ -440,4 +443,24 @@ export async function emptyQuarantine(universe: string) {
   const count = await emptyQuarantineCtrl({ universe });
   revalidatePath(`/udaman/${universe}/series/quarantine`);
   return count;
+}
+
+// ─── Analyze / Transform ─────────────────────────────────────────────
+
+export async function analyzeSeriesAction(id: number): Promise<AnalyzeResult> {
+  log.info({ id }, "analyzeSeriesAction called");
+  return analyzeSeriesCtrl({ id });
+}
+
+export async function transformSeriesAction(
+  evalStr: string,
+): Promise<AnalyzeResult | { error: string }> {
+  log.info({ evalStr }, "transformSeriesAction called");
+  try {
+    return await transformSeriesCtrl({ evalStr });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ evalStr, error: message }, "transformSeriesAction failed");
+    return { error: message };
+  }
 }

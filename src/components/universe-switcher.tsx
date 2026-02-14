@@ -1,23 +1,23 @@
 "use client";
 
-import { ChevronsUpDown, GalleryVerticalEnd, Plus } from "lucide-react";
-import { useParams, usePathname, useRouter } from "next/navigation";
 import * as React from "react";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { ChevronsUpDown, GalleryVerticalEnd, Plus } from "lucide-react";
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuShortcut,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    useSidebar,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 const defaultU = {
@@ -56,7 +56,7 @@ export function UniverseSwitcher({
       segments[2] = universe.name.toLowerCase(); // /udaman/[universe]/...
       router.replace(segments.join("/"));
     },
-    [pathname, router],
+    [pathname, router]
   );
 
   return (
@@ -68,7 +68,7 @@ export function UniverseSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              <div className="bg-theme text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <activeUniverse.logo className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">

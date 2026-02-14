@@ -1,0 +1,76 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { analyzeSeriesAction } from "@/actions/series-actions";
+import { H2 } from "@/components/typography";
+import { AnalyzeControls } from "@/components/series/analyze-controls";
+import { AnalyzeDataTable } from "@/components/series/analyze-data-table";
+import { CalculateForm } from "@/components/series/calculate-form";
+import { FrequencyLinks } from "@/components/series/frequency-links";
+
+export default async function AnalyzeSeriesPage({
+  params,
+}: {
+  params: Promise<{ universe: string; id: string }>;
+}) {
+  const { universe, id } = await params;
+  const numericId = Number(id);
+  if (isNaN(numericId)) return notFound();
+
+  let result;
+  try {
+    result = await analyzeSeriesAction(numericId);
+  } catch {
+    return notFound();
+  }
+
+  const { series, yoy, levelChange, ytd, stats, siblings, unitLabel } = result;
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <main className="m-4 max-w-5xl space-y-6">
+        <div className="space-y-2">
+          <H2>
+            <Link
+              href={`/udaman/${universe}/series/${id}`}
+              className="hover:underline"
+            >
+              {series.name}
+            </Link>
+          </H2>
+          {series.dataPortalName && (
+            <p className="text-muted-foreground text-sm">{series.dataPortalName}</p>
+          )}
+
+          {siblings && siblings.length > 1 && (
+            <FrequencyLinks
+              universe={universe}
+              currentFreqCode={series.frequencyCode}
+              siblings={siblings}
+            />
+          )}
+        </div>
+
+        <CalculateForm />
+
+        <AnalyzeControls
+          data={series.data}
+          yoy={yoy}
+          ytd={ytd}
+          levelChange={levelChange}
+          decimals={series.decimals}
+          stats={stats}
+          unitLabel={unitLabel}
+        />
+
+        <AnalyzeDataTable
+          data={series.data}
+          yoy={yoy}
+          levelChange={levelChange}
+          ytd={ytd}
+          decimals={series.decimals}
+        />
+      </main>
+    </div>
+  );
+}

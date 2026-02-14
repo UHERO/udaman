@@ -1,13 +1,17 @@
 import Link from "next/link";
-import { getSeries, searchSeriesAction } from "@/actions/series-actions";
+import {
+  getSeries,
+  searchSeriesAction,
+  getSeriesWithNullField,
+  getQuarantinedSeries,
+} from "@/actions/series-actions";
 import type { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SeriesListTable } from "@/components/series/series-list-table";
+import { CalculateForm } from "@/components/series/calculate-form";
 import { H1 } from "@/components/typography";
 
 export default async function Page({
@@ -20,9 +24,13 @@ export default async function Page({
   const { universe } = await params;
   const u = universe as Universe;
   const { q } = await searchParams;
-  const data = q
-    ? await searchSeriesAction(q, u)
-    : await getSeries({ universe: u });
+
+  const [data, noSourceResult, quarantineResult] = await Promise.all([
+    q ? searchSeriesAction(q, u) : getSeries({ universe: u }),
+    getSeriesWithNullField(u, "source_id", 1, 1),
+    getQuarantinedSeries(u, 1, 1),
+  ]);
+
   const count = data.length ?? 0;
   const isSearch = Boolean(q);
 
@@ -30,8 +38,14 @@ export default async function Page({
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="grid auto-rows-min gap-4 md:grid-cols-3">
         <SeriesCard count={count} isSearch={isSearch} />
-        <CalculateCard />
-        <TroubleCard />
+        <div className="flex items-end rounded-xl">
+          <CalculateForm />
+        </div>
+        <TroubleCard
+          universe={universe}
+          noSourceCount={noSourceResult.totalCount}
+          quarantineCount={quarantineResult.totalCount}
+        />
       </div>
       <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min">
         <SeriesListTable data={data} />
@@ -69,35 +83,31 @@ const SeriesCard = ({
   </div>
 );
 
-const TroubleCard = () => (
-  <div className="grid grid-rows-3 rounded-xl">
+const TroubleCard = ({
+  universe,
+  noSourceCount,
+  quarantineCount,
+}: {
+  universe: string;
+  noSourceCount: number;
+  quarantineCount: number;
+}) => (
+  <div className="flex flex-col gap-2 rounded-xl">
     <Button asChild className="max-w-80 justify-between" variant={"secondary"}>
-      <Link href="#">
-        Missing Source <Badge>+20</Badge>
+      <Link href={`/udaman/${universe}/series/no-source`}>
+        Missing Source{" "}
+        <Badge variant={noSourceCount > 0 ? "destructive" : "secondary"}>
+          {noSourceCount}
+        </Badge>
       </Link>
     </Button>
     <Button asChild className="max-w-80 justify-between" variant={"secondary"}>
-      <Link href="#">
-        Quarantined <Badge>+20</Badge>
+      <Link href={`/udaman/${universe}/series/quarantine`}>
+        Quarantined{" "}
+        <Badge variant={quarantineCount > 0 ? "destructive" : "secondary"}>
+          {quarantineCount}
+        </Badge>
       </Link>
     </Button>
-    <CalculateInput />
-  </div>
-);
-
-const CalculateCard = () => <div className="grid grid-rows-3 rounded-xl"></div>;
-
-const CalculateInput = () => (
-  <div className="row-3 flex flex-col">
-    <Label className="">Calculate</Label>
-    <div className="flex flex-row">
-      <Input className="max-w-64 rounded-r-none" />
-      <Button
-        variant={"secondary"}
-        className="rounded-l-none border border-l-0"
-      >
-        Show
-      </Button>
-    </div>
   </div>
 );

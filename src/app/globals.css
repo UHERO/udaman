@@ -41,6 +41,19 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* ─── UHERO brand palette ─── */
+  --color-ucyan: #7EC4CA;
+  --color-ublue: #1D667F;
+  --color-ubeige: #EEECE1;
+  --color-uorange: #F6A01B;
+  --color-ugray: #505050;
+  --color-ugreen: #9BBB59;
+  --color-upurple: #8064A2;
+  --color-uteal: #4BACC6;
+
+  /* ─── Universe theme color (text-theme, bg-theme, border-theme) ─── */
+  --color-theme: var(--theme);
 }
 
 :root {
@@ -76,7 +89,16 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  --theme: #1D667F;
 }
+
+/* ─── Universe theme color ─── */
+[data-universe="UHERO"]  { --theme: #1D667F; }
+[data-universe="DBEDT"]  { --theme: #8064A2; }
+[data-universe="FC"]     { --theme: #9BBB59; }
+[data-universe="NTA"]    { --theme: #F6A01B; }
+[data-universe="COH"]    { --theme: #4BACC6; }
+[data-universe="CCOM"]   { --theme: #7EC4CA; }
 
 .dark {
   --background: oklch(0.141 0.005 285.823);

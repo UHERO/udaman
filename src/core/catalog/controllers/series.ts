@@ -1,9 +1,11 @@
 import { createLogger } from "@/core/observability/logger";
-import { Universe } from "../types/shared";
+import type { Universe, AnalyzeResult } from "../types/shared";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import Measurements from "../models/measurements";
 import SeriesCollection from "@catalog/collections/series-collection";
+import Series from "@catalog/models/series";
+import EvalExecutor from "@catalog/utils/eval-executor";
 
 const log = createLogger("catalog.series");
 
@@ -177,4 +179,100 @@ export async function searchSeries({term, universe="uhero", limit}:{term: string
   const summaries = await SeriesCollection.getSummaryByIds(ids);
   log.info({ found: summaries.length }, "search series");
   return summaries;
+}
+
+// ─── Analyze / Transform ─────────────────────────────────────────────
+
+/** Convert a Series' data Map to sorted [date, value] tuples. */
+function mapToTuples(data: Map<string, number>): [string, number][] {
+  return [...data.entries()]
+    .filter(([, v]) => v != null)
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+export async function analyzeSeries({ id }: { id: number }): Promise<AnalyzeResult> {
+  log.info({ id }, "analyzing series");
+
+  const series = await SeriesCollection.getById(id);
+  await SeriesCollection.loadCurrentData(series);
+
+  const yoySeries = series.yoy();
+  const diffSeries = series.diff();
+  const ytdSeries = series.ytd();
+
+  const siblings = await SeriesCollection.getFrequencySiblings(series);
+
+  log.info({ id, observations: series.observationCount }, "series analyzed");
+
+  return {
+    series: series.toAnalyzeJSON(),
+    yoy: mapToTuples(yoySeries.data),
+    levelChange: mapToTuples(diffSeries.data),
+    ytd: mapToTuples(ytdSeries.data),
+    stats: {
+      mean: series.mean(),
+      median: series.median(),
+      standardDeviation: series.standardDeviation(),
+    },
+    siblings,
+    unitLabel: series.unitLabel,
+  };
+}
+
+export async function transformSeries({ evalStr }: { evalStr: string }): Promise<AnalyzeResult> {
+  log.info({ evalStr }, "transforming series expression");
+
+  // Preprocess: pad spaces around operators, wrap valid series names as "NAME".ts
+  const padded = evalStr.replace(/([+*\/()-])/g, " $1 ").trim();
+  const tokens = padded.split(/\s+/).filter(Boolean);
+  const evalStatement = tokens
+    .map((t) => (Series.isValidName(t) ? `"${t}".ts` : t))
+    .join(" ");
+
+  const result = await EvalExecutor.run(evalStatement);
+
+  const yoySeries = result.yoy();
+  const diffSeries = result.diff();
+  const ytdSeries = result.ytd();
+
+  // Extract series names from the original expression for linking
+  const seriesNames = tokens.filter((t) => Series.isValidName(t));
+  const seriesLinks = seriesNames.length > 0
+    ? await SeriesCollection.getIdsByNames(seriesNames)
+    : {};
+
+  // Load the most recent value for each referenced series
+  const seriesLastValues: Record<string, number> = {};
+  for (const name of seriesNames) {
+    try {
+      const s = await SeriesCollection.getByName(name);
+      await SeriesCollection.loadCurrentData(s);
+      const lastDate = s.lastObservation;
+      if (lastDate) {
+        const val = s.data.get(lastDate);
+        if (val != null) seriesLastValues[name] = val;
+      }
+    } catch {
+      // series not found — skip
+    }
+  }
+
+  // Get the last value of the computed result
+  const resultLastDate = result.lastObservation;
+  const resultValue = resultLastDate ? result.data.get(resultLastDate) ?? null : null;
+
+  log.info({ evalStr, observations: result.observationCount }, "series transformed");
+
+  return {
+    series: {
+      ...result.toAnalyzeJSON(),
+      name: evalStr,
+    },
+    yoy: mapToTuples(yoySeries.data),
+    levelChange: mapToTuples(diffSeries.data),
+    ytd: mapToTuples(ytdSeries.data),
+    seriesLinks,
+    seriesLastValues,
+    resultValue,
+  };
 }

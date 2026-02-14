@@ -186,6 +186,9 @@ export type SeriesAttrs = {
   aremos_diff?: number | null;
   percent?: boolean | number | null;
   real?: boolean | number | null;
+  // joined from units table (optional)
+  unit_short_label?: string | null;
+  unit_long_label?: string | null;
 };
 
 // ─── Model ───────────────────────────────────────────────────────────
@@ -221,6 +224,9 @@ class Series {
   aremosDiff: number | null;
   percent: boolean | null;
   real: boolean | null;
+
+  // joined from units table (may be null if not joined)
+  unitLabel: string | null;
 
   // in-memory state (not persisted)
   #data: Map<string, number> | null = null;
@@ -258,6 +264,9 @@ class Series {
     this.aremosDiff = attrs.aremos_diff ?? null;
     this.percent = attrs.percent != null ? Boolean(attrs.percent) : null;
     this.real = attrs.real != null ? Boolean(attrs.real) : null;
+
+    // joined unit label
+    this.unitLabel = attrs.unit_long_label || attrs.unit_short_label || null;
   }
 
   // ─── Display ─────────────────────────────────────────────────────
@@ -1153,6 +1162,80 @@ class Series {
 
   /** Load seasonally-adjusted data from a static file. */
   loadSaFrom(_path: string): Series { throw new Error("loadSaFrom must be called via EvalExecutor"); }
+
+  // ─── Statistics ──────────────────────────────────────────────────────
+
+  /** Sum all non-null values. */
+  sum(): number {
+    let total = 0;
+    for (const v of this.data.values()) {
+      if (v != null) total += v;
+    }
+    return total;
+  }
+
+  /** Arithmetic mean of non-null values. Returns 0 if empty. */
+  mean(): number {
+    const n = this.observationCount;
+    return n > 0 ? this.sum() / n : 0;
+  }
+
+  /** Sample variance (n-1 denominator). */
+  variance(): number {
+    const n = this.observationCount;
+    if (n <= 1) return 0;
+    const avg = this.mean();
+    let sumSq = 0;
+    for (const v of this.data.values()) {
+      if (v != null) sumSq += (v - avg) ** 2;
+    }
+    return sumSq / (n - 1);
+  }
+
+  /** Sample standard deviation. */
+  standardDeviation(): number {
+    return Math.sqrt(this.variance());
+  }
+
+  /** Median of non-null values. Returns null if empty. */
+  median(): number | null {
+    const values = [...this.data.values()].filter((v) => v != null).sort((a, b) => a - b);
+    if (values.length === 0) return null;
+    const mid = Math.floor(values.length / 2);
+    return values.length % 2 === 1
+      ? values[mid]
+      : (values[mid - 1] + values[mid]) / 2;
+  }
+
+  // ─── Analyze serialization ──────────────────────────────────────────
+
+  /** Serialize for the analyze page: identity fields + sorted [date, value] tuples. */
+  toAnalyzeJSON(): {
+    id: number | null;
+    name: string;
+    dataPortalName: string | null;
+    universe: string;
+    frequency: string | null;
+    frequencyCode: string | null;
+    decimals: number;
+    observationCount: number;
+    data: [string, number][];
+  } {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    return {
+      id: this.id,
+      name: this.name,
+      dataPortalName: this.dataPortalName,
+      universe: this.universe,
+      frequency: this.frequency,
+      frequencyCode: this.frequencyCode,
+      decimals: this.decimals,
+      observationCount: this.observationCount,
+      data: sorted,
+    };
+  }
 }
 
 // ─── Errors ──────────────────────────────────────────────────────────

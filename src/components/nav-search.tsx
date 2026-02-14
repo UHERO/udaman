@@ -26,7 +26,7 @@ export function NavSearchInput() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center justify-center self-end rounded-sm border"
+      className="flex w-full max-w-lg items-center justify-center self-end rounded-sm border"
     >
       <Button
         type="button"

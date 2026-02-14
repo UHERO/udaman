@@ -246,9 +246,12 @@ class SeriesCollection {
         s.source_link, s.investigation_notes, s.scratch,
         x.primary_series_id, x.frequency, x.restricted, x.quarantined,
         x.seasonal_adjustment, x.seasonally_adjusted, x.aremos_missing,
-        x.aremos_diff, x.percent, x.real
+        x.aremos_diff, x.percent, x.real,
+        u.short_label as unit_short_label,
+        u.long_label as unit_long_label
       FROM series s
       JOIN xseries x ON s.xseries_id = x.id
+      LEFT JOIN units u ON s.unit_id = u.id
       WHERE s.id = ${id}
       LIMIT 1
     `;
@@ -1371,6 +1374,32 @@ class SeriesCollection {
     const freq = Series.frequencyFromCode(freqCodeOrName ?? null);
     if (freq) result.frequency = freq;
     return result;
+  }
+
+  /** Find sibling series across all 6 frequency codes. */
+  static async getFrequencySiblings(
+    series: Series,
+  ): Promise<Array<{ freqCode: string; id: number; name: string }>> {
+    const freqCodes = ["A", "S", "Q", "M", "W", "D"] as const;
+    const candidateNames: string[] = [];
+    for (const code of freqCodes) {
+      try {
+        candidateNames.push(series.buildName({ freq: code as import("../models/series").FrequencyCode }));
+      } catch {
+        // name can't be built with this freq — skip
+      }
+    }
+    if (candidateNames.length === 0) return [];
+
+    const rows = await mysql<{ id: number; name: string }>`
+      SELECT id, name FROM series
+      WHERE name IN ${mysql(candidateNames)} AND universe = ${series.universe}
+    `;
+
+    return rows.map((row) => {
+      const parsed = Series.parseName(row.name);
+      return { freqCode: parsed.freq ?? "A", id: row.id, name: row.name };
+    });
   }
 
   // Delegate to model for name/universe validation

@@ -191,3 +191,30 @@ export interface SeriesAuditRow {
   loaderEvals: string[];
 }
 
+// ─── Analyze / Transform ─────────────────────────────────────────────
+
+export interface AnalyzeSeriesData {
+  id: number | null;
+  name: string;
+  dataPortalName: string | null;
+  universe: string;
+  frequency: string | null;
+  frequencyCode: string | null;
+  decimals: number;
+  observationCount: number;
+  data: [string, number][];
+}
+
+export interface AnalyzeResult {
+  series: AnalyzeSeriesData;
+  yoy: [string, number][];
+  levelChange: [string, number][];
+  ytd: [string, number][];
+  stats?: { mean: number; median: number | null; standardDeviation: number };
+  siblings?: Array<{ freqCode: string; id: number; name: string }>;
+  seriesLinks?: Record<string, number>;
+  seriesLastValues?: Record<string, number>;
+  resultValue?: number | null;
+  unitLabel?: string | null;
+}
+
