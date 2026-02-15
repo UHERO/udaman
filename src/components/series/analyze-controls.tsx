@@ -2,18 +2,29 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-
 import { formatLevel } from "@catalog/utils/format";
 
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  TooltipContent,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+import {
+  applyTransformation,
   ChangeChart,
+  computeOverlays,
+  computeSecondAxis,
   LevelChart,
+  TRANSFORMATION_LABELS,
   type BarMode,
   type ChartRow,
-  type StatsOverlay,
+  type Overlay,
+  type Transformation,
 } from "./analyze-chart";
+import { AnalyzeDataTable } from "./analyze-data-table";
 
 const FREQ_LABELS: Record<string, string> = {
   A: "Annual",
@@ -23,6 +34,40 @@ const FREQ_LABELS: Record<string, string> = {
   W: "Weekly",
   D: "Daily",
 };
+
+/* ------------------------------------------------------------------ */
+/*  Formula tooltip helper                                             */
+/*  Uses a <span> wrapper so TooltipTrigger's data-state doesn't       */
+/*  clobber the ToggleGroupItem's data-state="on"/"off".               */
+/* ------------------------------------------------------------------ */
+
+function FormulaTooltip({
+  formula,
+  description,
+  children,
+}: {
+  formula: React.ReactNode;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <TooltipRoot>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        sideOffset={6}
+        className="max-w-64 space-y-1 px-3 py-2"
+      >
+        <div className="font-mono text-[11px] leading-relaxed">{formula}</div>
+        {description && (
+          <div className="text-[10px] opacity-70">{description}</div>
+        )}
+      </TooltipContent>
+    </TooltipRoot>
+  );
+}
 
 interface AnalyzeControlsProps {
   data: [string, number][];
@@ -52,12 +97,30 @@ export function AnalyzeControls({
   siblings,
 }: AnalyzeControlsProps) {
   const [barMode, setBarMode] = useState<BarMode>("yoy");
-  const [statsOverlay, setStatsOverlay] = useState<StatsOverlay[]>([]);
+  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [transformation, setTransformation] = useState<Transformation | null>(
+    null,
+  );
+  const [secondAxis, setSecondAxis] = useState(false);
+  const [secondAxisTransformation, setSecondAxisTransformation] =
+    useState<Transformation | null>(null);
+
+  // When second axis is on, overlays are disabled
+  const effectiveOverlays = useMemo(
+    () => (secondAxis ? [] : overlays),
+    [secondAxis, overlays],
+  );
 
   const chartData = useMemo(() => {
     const map = new Map<string, ChartRow>();
     for (const [date, value] of data) {
-      map.set(date, { date, level: value, levelChange: null, yoy: null, ytd: null });
+      map.set(date, {
+        date,
+        level: value,
+        levelChange: null,
+        yoy: null,
+        ytd: null,
+      });
     }
     for (const [date, value] of levelChange) {
       const existing = map.get(date);
@@ -89,9 +152,47 @@ export function AnalyzeControls({
     [],
   );
 
+  // Visible data for the chart (brush-filtered, with transforms applied)
   const visibleData = useMemo(() => {
-    return chartData.slice(brushRange.startIndex, brushRange.endIndex + 1);
-  }, [chartData, brushRange]);
+    const sliced = chartData.slice(
+      brushRange.startIndex,
+      brushRange.endIndex + 1,
+    );
+    let result = sliced;
+    // Compute second axis transform first (reads original level)
+    if (secondAxis && secondAxisTransformation) {
+      result = computeSecondAxis(result, secondAxisTransformation);
+    }
+    // Apply main transformation (replaces level)
+    result = applyTransformation(result, transformation);
+    return result;
+  }, [chartData, brushRange, transformation, secondAxis, secondAxisTransformation]);
+
+  // Full data for the table (not brush-filtered, with overlays + transform computed)
+  const tableData = useMemo(() => {
+    let rows = computeOverlays(chartData, effectiveOverlays);
+    if (secondAxis && secondAxisTransformation) {
+      rows = computeSecondAxis(rows, secondAxisTransformation);
+    }
+    if (transformation) {
+      rows = applyTransformation(rows, transformation);
+    }
+    return rows;
+  }, [chartData, effectiveOverlays, transformation, secondAxis, secondAxisTransformation]);
+
+  // Overlay toggle handler: clicking "none" clears all; clicking an overlay removes "none"
+  const handleOverlayChange = useCallback(
+    (values: string[]) => {
+      // User just clicked "none" (it wasn't in the previous selection)
+      if (values.includes("none") && overlays.length > 0) {
+        setOverlays([]);
+        return;
+      }
+      // Otherwise strip "none" and keep the real overlay values
+      setOverlays(values.filter((v) => v !== "none") as Overlay[]);
+    },
+    [overlays],
+  );
 
   const hasSiblings = universe && siblings && siblings.length > 1;
 
@@ -152,33 +253,329 @@ export function AnalyzeControls({
         </div>
       </div>
 
-      {/* Stats overlay toggles — above the chart */}
+      {/* Overlays & Transforms toggle groups */}
       {stats && (
-        <ToggleGroup
-          type="multiple"
-          value={statsOverlay}
-          onValueChange={(v) => setStatsOverlay(v as StatsOverlay[])}
-          variant="outline"
-          size="sm"
-        >
-          <ToggleGroupItem value="mean" className="h-7 gap-1.5 px-2.5 text-xs">
-            <span className="text-muted-foreground">Mean</span>
-            <span className="font-mono">{fmt(stats.mean)}</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="median" className="h-7 gap-1.5 px-2.5 text-xs">
-            <span className="text-muted-foreground">Median</span>
-            <span className="font-mono">
-              {stats.median != null ? fmt(stats.median) : "—"}
-            </span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="stdDev" className="h-7 gap-1.5 px-2.5 text-xs">
-            <span className="text-muted-foreground">Std Dev</span>
-            <span className="font-mono">{fmt(stats.standardDeviation)}</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="trend" className="h-7 gap-1.5 px-2.5 text-xs">
-            <span className="text-muted-foreground">Trend</span>
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex flex-col gap-2 rounded-lg border bg-white px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
+                Overlays
+              </span>
+              <ToggleGroup
+                type="multiple"
+                value={
+                  secondAxis
+                    ? ["none"]
+                    : overlays.length === 0
+                      ? ["none"]
+                      : overlays
+                }
+                onValueChange={handleOverlayChange}
+                variant="outline"
+                size="sm"
+                className="flex-wrap"
+                disabled={secondAxis}
+              >
+                <ToggleGroupItem
+                  value="none"
+                  className="h-7 px-2.5 text-xs"
+                >
+                  None
+                </ToggleGroupItem>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      x̄ = <sup>1</sup>&frasl;<sub>n</sub> &Sigma;
+                      x<sub>i</sub>
+                    </span>
+                  }
+                  description="Arithmetic mean of all observations"
+                >
+                  <ToggleGroupItem
+                    value="mean"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">Mean</span>
+                    <span className="font-mono">{fmt(stats.mean)}</span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      x̄<sub>t</sub> = <sup>1</sup>&frasl;<sub>k</sub> &Sigma;
+                      <sub>i=t&minus;k+1</sub>
+                      <sup>t</sup> x<sub>i</sub>
+                    </span>
+                  }
+                  description="Backward-looking moving average (k=12)"
+                >
+                  <ToggleGroupItem
+                    value="rollingMean"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">Rolling x̄</span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      x̄<sub>t</sub> &plusmn; &sigma;<sub>t</sub> where &sigma;
+                      <sub>t</sub> = &radic;(
+                      <sup>1</sup>&frasl;<sub>k&minus;1</sub> &Sigma;(x
+                      <sub>i</sub> &minus; x̄<sub>t</sub>)&sup2;)
+                    </span>
+                  }
+                  description="Rolling mean ± 1 sample std dev (k=12)"
+                >
+                  <ToggleGroupItem
+                    value="rollingStdDev"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">
+                      &plusmn;&sigma; Band
+                    </span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      ŷ = &alpha; + &beta;t where &beta; = (n&Sigma;ty &minus;
+                      &Sigma;t&Sigma;y) / (n&Sigma;t&sup2; &minus;
+                      (&Sigma;t)&sup2;)
+                    </span>
+                  }
+                  description="OLS linear trend on observation index"
+                >
+                  <ToggleGroupItem
+                    value="linearTrend"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">Linear</span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      ŷ = e<sup>&alpha; + &beta;t</sup> &mdash; regress ln(y)
+                      on t
+                    </span>
+                  }
+                  description="Exponential trend via log-linear regression"
+                >
+                  <ToggleGroupItem
+                    value="logLinearTrend"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">Log-Linear</span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      min<sub>&tau;</sub> &Sigma;(y<sub>t</sub> &minus; &tau;
+                      <sub>t</sub>)&sup2; + &lambda;&Sigma;(&Delta;&sup2; &tau;
+                      <sub>t</sub>)&sup2;
+                    </span>
+                  }
+                  description="Hodrick-Prescott filter (&lambda; auto by frequency)"
+                >
+                  <ToggleGroupItem
+                    value="hpTrend"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">HP Trend</span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={<span>NBER recession shading</span>}
+                  description="Peak-to-trough dates from the National Bureau of Economic Research"
+                >
+                  <ToggleGroupItem
+                    value="recessions"
+                    className="h-7 gap-1.5 px-2.5 text-xs"
+                  >
+                    <span className="text-muted-foreground">Recessions</span>
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+              </ToggleGroup>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
+                Transform
+              </span>
+              <ToggleGroup
+                type="single"
+                value={transformation ?? "none"}
+                onValueChange={(v) =>
+                  setTransformation(
+                    v === "none" || !v ? null : (v as Transformation),
+                  )
+                }
+                variant="outline"
+                size="sm"
+              >
+                <ToggleGroupItem
+                  value="none"
+                  className="h-7 px-2.5 text-xs"
+                >
+                  None
+                </ToggleGroupItem>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
+                    </span>
+                  }
+                  description="Standard score: how many std devs from the mean"
+                >
+                  <ToggleGroupItem
+                    value="zScore"
+                    className="h-7 px-2.5 text-xs"
+                  >
+                    Z-Score
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
+                    </span>
+                  }
+                  description="Residual from OLS linear trend"
+                >
+                  <ToggleGroupItem
+                    value="deviationFromTrend"
+                    className="h-7 px-2.5 text-xs"
+                  >
+                    Dev. from Trend
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
+                    </span>
+                  }
+                  description="Natural logarithm of level values"
+                >
+                  <ToggleGroupItem
+                    value="logLevel"
+                    className="h-7 px-2.5 text-xs"
+                  >
+                    Log Level
+                  </ToggleGroupItem>
+                </FormulaTooltip>
+              </ToggleGroup>
+              <div className="ml-auto">
+                <FormulaTooltip
+                  formula={
+                    <span>
+                      Plot a second transformation on a right Y-axis
+                    </span>
+                  }
+                  description="Disables overlays when active"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSecondAxis((v) => !v)}
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                      secondAxis
+                        ? "border-rose-300 bg-rose-50 text-rose-700"
+                        : "border-input bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="20" x2="18" y2="4" />
+                      <polyline points="14 8 18 4 22 8" />
+                      <line x1="6" y1="4" x2="6" y2="20" />
+                      <polyline points="10 16 6 20 2 16" />
+                    </svg>
+                    2nd Axis
+                  </button>
+                </FormulaTooltip>
+              </div>
+            </div>
+            {secondAxis && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
+                  2nd Axis
+                </span>
+                <ToggleGroup
+                  type="single"
+                  value={secondAxisTransformation ?? "none"}
+                  onValueChange={(v) =>
+                    setSecondAxisTransformation(
+                      v === "none" || !v ? null : (v as Transformation),
+                    )
+                  }
+                  variant="outline"
+                  size="sm"
+                >
+                  <ToggleGroupItem
+                    value="none"
+                    className="h-7 px-2.5 text-xs"
+                  >
+                    None
+                  </ToggleGroupItem>
+                  <FormulaTooltip
+                    formula={
+                      <span>
+                        z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
+                      </span>
+                    }
+                    description="Standard score: how many std devs from the mean"
+                  >
+                    <ToggleGroupItem
+                      value="zScore"
+                      className="h-7 px-2.5 text-xs"
+                    >
+                      Z-Score
+                    </ToggleGroupItem>
+                  </FormulaTooltip>
+                  <FormulaTooltip
+                    formula={
+                      <span>
+                        d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
+                      </span>
+                    }
+                    description="Residual from OLS linear trend"
+                  >
+                    <ToggleGroupItem
+                      value="deviationFromTrend"
+                      className="h-7 px-2.5 text-xs"
+                    >
+                      Dev. from Trend
+                    </ToggleGroupItem>
+                  </FormulaTooltip>
+                  <FormulaTooltip
+                    formula={
+                      <span>
+                        y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
+                      </span>
+                    }
+                    description="Natural logarithm of level values"
+                  >
+                    <ToggleGroupItem
+                      value="logLevel"
+                      className="h-7 px-2.5 text-xs"
+                    >
+                      Log Level
+                    </ToggleGroupItem>
+                  </FormulaTooltip>
+                </ToggleGroup>
+              </div>
+            )}
+          </div>
+        </TooltipProvider>
       )}
 
       {/* Level line chart */}
@@ -187,8 +584,14 @@ export function AnalyzeControls({
           data={visibleData}
           decimals={decimals}
           stats={stats}
-          overlays={statsOverlay}
+          overlays={effectiveOverlays}
           unitShortLabel={unitShortLabel}
+          secondAxis={secondAxis}
+          transformationLabel={
+            secondAxisTransformation
+              ? TRANSFORMATION_LABELS[secondAxisTransformation]
+              : undefined
+          }
         />
       </div>
 
@@ -204,13 +607,22 @@ export function AnalyzeControls({
             variant="outline"
             size="sm"
           >
-            <ToggleGroupItem value="yoy" className="h-7 px-2.5 text-xs">
+            <ToggleGroupItem
+              value="yoy"
+              className="h-7 px-2.5 text-xs"
+            >
               YOY %
             </ToggleGroupItem>
-            <ToggleGroupItem value="ytd" className="h-7 px-2.5 text-xs">
+            <ToggleGroupItem
+              value="ytd"
+              className="h-7 px-2.5 text-xs"
+            >
               YTD %
             </ToggleGroupItem>
-            <ToggleGroupItem value="levelChange" className="h-7 px-2.5 text-xs">
+            <ToggleGroupItem
+              value="levelChange"
+              className="h-7 px-2.5 text-xs"
+            >
               LVL Chg
             </ToggleGroupItem>
           </ToggleGroup>
@@ -225,6 +637,16 @@ export function AnalyzeControls({
           onBrushChange={handleBrushChange}
         />
       </div>
+
+      {/* Data table — shares overlay/transform state with charts */}
+      <AnalyzeDataTable
+        rows={tableData}
+        decimals={decimals}
+        unitShortLabel={unitShortLabel}
+        activeOverlays={effectiveOverlays}
+        activeTransformation={secondAxis ? secondAxisTransformation : null}
+        secondAxis={secondAxis}
+      />
     </div>
   );
 }

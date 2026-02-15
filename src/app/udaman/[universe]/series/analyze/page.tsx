@@ -1,6 +1,5 @@
 import { transformSeriesAction } from "@/actions/series-actions";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
-import { AnalyzeDataTable } from "@/components/series/analyze-data-table";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { LinkedExpression } from "@/components/series/linked-expression";
 import { H2 } from "@/components/typography";
@@ -103,13 +102,6 @@ export default async function TransformSeriesPage({
           stats={stats}
         />
 
-        <AnalyzeDataTable
-          data={series.data}
-          yoy={yoy}
-          levelChange={levelChange}
-          ytd={ytd}
-          decimals={series.decimals}
-        />
       </main>
     </div>
   );

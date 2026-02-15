@@ -23,21 +23,35 @@ import {
 import { formatLevel } from "@catalog/utils/format";
 import { cn } from "@/lib/utils";
 
-interface AnalyzeRow {
-  date: string;
-  level: number | null;
-  levelChange: number | null;
-  yoy: number | null;
-  ytd: number | null;
-}
+import {
+  TRANSFORMATION_LABELS,
+  type ChartRow,
+  type Overlay,
+  type Transformation,
+} from "./analyze-chart";
+
+/** Column labels for overlay data keys */
+const OVERLAY_COLUMN_LABELS: Partial<Record<Overlay, { key: keyof ChartRow; label: string }>> = {
+  rollingMean: { key: "rollingMean", label: "Rolling x̄" },
+  linearTrend: { key: "linearTrend", label: "Linear" },
+  logLinearTrend: { key: "logLinearTrend", label: "Log-Lin" },
+  hpTrend: { key: "hpTrend", label: "HP Trend" },
+  rollingStdDev: { key: "rollingStdUpper", label: "±σ Upper" },
+};
+
+/** For rolling std dev we show two columns */
+const OVERLAY_EXTRA_COLUMNS: Partial<Record<Overlay, { key: keyof ChartRow; label: string }>> = {
+  rollingStdDev: { key: "rollingStdLower", label: "±σ Lower" },
+};
 
 interface AnalyzeDataTableProps {
-  data: [string, number][];
-  yoy: [string, number][];
-  levelChange: [string, number][];
-  ytd: [string, number][];
+  /** Pre-built rows with overlay/transform fields already computed */
+  rows: ChartRow[];
   decimals: number;
   unitShortLabel?: string | null;
+  activeOverlays?: Overlay[];
+  activeTransformation?: Transformation | null;
+  secondAxis?: boolean;
 }
 
 const dpColor = (n: number) => {
@@ -47,105 +61,161 @@ const dpColor = (n: number) => {
 };
 
 export function AnalyzeDataTable({
-  data,
-  yoy,
-  levelChange,
-  ytd,
+  rows,
   decimals,
   unitShortLabel,
+  activeOverlays = [],
+  activeTransformation = null,
+  secondAxis = false,
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
   ]);
   const [copied, setCopied] = useState(false);
 
-  const rows = useMemo(() => {
-    const map = new Map<string, AnalyzeRow>();
-    for (const [date, value] of data) {
-      map.set(date, {
-        date,
-        level: value,
-        levelChange: null,
-        yoy: null,
-        ytd: null,
-      });
-    }
-    for (const [date, value] of levelChange) {
-      const row = map.get(date);
-      if (row) row.levelChange = value;
-    }
-    for (const [date, value] of yoy) {
-      const row = map.get(date);
-      if (row) row.yoy = value;
-    }
-    for (const [date, value] of ytd) {
-      const row = map.get(date);
-      if (row) row.ytd = value;
-    }
-    return [...map.values()];
-  }, [data, yoy, levelChange, ytd]);
-
-  const copyAsCsv = useCallback(() => {
-    const header = "Date,Level,LVL Chg,YOY %,YTD %";
-    const raw = (v: number | null) => (v != null ? String(v) : "");
-    const csvRows = rows.map((r) =>
-      `${r.date},${raw(r.level)},${raw(r.levelChange)},${raw(r.yoy)},${raw(r.ytd)}`,
-    );
-    navigator.clipboard.writeText([header, ...csvRows].join("\n"));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [rows]);
-
   const fmtLevel = (n: number) => formatLevel(n, decimals, unitShortLabel);
 
-  const FormattedCell = ({ n, unit, isLevel }: { n: number | null; unit?: string; isLevel?: boolean }) => {
+  const FormattedCell = ({
+    n,
+    unit,
+    isLevel,
+  }: {
+    n: number | null | undefined;
+    unit?: string;
+    isLevel?: boolean;
+  }) => {
     if (n == null || isNaN(n))
       return <span className="text-muted-foreground">-</span>;
-    const value = isLevel ? fmtLevel(n) : unit === "perc" ? `${n.toFixed(decimals)}%` : n.toFixed(decimals);
-    return <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>;
+    const value = isLevel
+      ? fmtLevel(n)
+      : unit === "perc"
+        ? `${n.toFixed(decimals)}%`
+        : n.toFixed(decimals);
+    return (
+      <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>
+    );
   };
 
-  const columns: ColumnDef<AnalyzeRow>[] = [
-    {
-      accessorKey: "date",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="-ml-3 h-8"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Date
-          <ArrowUpDown className="ml-1 h-3 w-3" />
-        </Button>
-      ),
-      cell: ({ row }) => row.getValue<string>("date"),
-    },
-    {
-      accessorKey: "level",
-      header: () => <span className="text-end">Level</span>,
-      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} isLevel />,
-    },
-    {
-      accessorKey: "levelChange",
-      header: () => <span className="text-end">LVL Chg</span>,
-      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} isLevel />,
-    },
-    {
-      accessorKey: "yoy",
-      header: () => <span className="text-end">YOY %</span>,
-      cell: ({ cell }) => (
-        <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
-      ),
-    },
-    {
-      accessorKey: "ytd",
-      header: () => <span className="text-end">YTD %</span>,
-      cell: ({ cell }) => (
-        <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
-      ),
-    },
-  ];
+  const columns = useMemo(() => {
+    const cols: ColumnDef<ChartRow>[] = [
+      {
+        accessorKey: "date",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-8"
+            onClick={() =>
+              column.toggleSorting(column.getIsSorted() === "asc")
+            }
+          >
+            Date
+            <ArrowUpDown className="ml-1 h-3 w-3" />
+          </Button>
+        ),
+        cell: ({ row }) => row.getValue<string>("date"),
+      },
+      {
+        accessorKey: "level",
+        header: () => <span className="text-end">Level</span>,
+        cell: ({ cell }) => (
+          <FormattedCell n={cell.getValue<number | null>()} isLevel />
+        ),
+      },
+      {
+        accessorKey: "levelChange",
+        header: () => <span className="text-end">LVL Chg</span>,
+        cell: ({ cell }) => (
+          <FormattedCell n={cell.getValue<number | null>()} isLevel />
+        ),
+      },
+      {
+        accessorKey: "yoy",
+        header: () => <span className="text-end">YOY %</span>,
+        cell: ({ cell }) => (
+          <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
+        ),
+      },
+      {
+        accessorKey: "ytd",
+        header: () => <span className="text-end">YTD %</span>,
+        cell: ({ cell }) => (
+          <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
+        ),
+      },
+    ];
+
+    // Add overlay columns
+    for (const overlay of activeOverlays) {
+      const info = OVERLAY_COLUMN_LABELS[overlay];
+      if (info) {
+        cols.push({
+          accessorKey: info.key,
+          header: () => (
+            <span className="text-end text-blue-600">{info.label}</span>
+          ),
+          cell: ({ cell }) => (
+            <FormattedCell n={cell.getValue<number | null>()} isLevel />
+          ),
+        });
+      }
+      const extra = OVERLAY_EXTRA_COLUMNS[overlay];
+      if (extra) {
+        cols.push({
+          accessorKey: extra.key,
+          header: () => (
+            <span className="text-end text-blue-600">{extra.label}</span>
+          ),
+          cell: ({ cell }) => (
+            <FormattedCell n={cell.getValue<number | null>()} isLevel />
+          ),
+        });
+      }
+    }
+
+    // Add transformation column (second axis keeps original level, so show the transform separately)
+    if (activeTransformation && secondAxis) {
+      cols.push({
+        accessorKey: "transformedLevel",
+        header: () => (
+          <span className="text-end text-rose-600">
+            {TRANSFORMATION_LABELS[activeTransformation]}
+          </span>
+        ),
+        cell: ({ cell }) => {
+          const v = cell.getValue<number | null>();
+          if (v == null || isNaN(v))
+            return <span className="text-muted-foreground">-</span>;
+          return (
+            <span className={cn("text-end text-xs", dpColor(v))}>
+              {v.toFixed(decimals)}
+            </span>
+          );
+        },
+      });
+    }
+
+    return cols;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOverlays, activeTransformation, secondAxis, decimals, unitShortLabel]);
+
+  const copyAsCsv = useCallback(() => {
+    const headers = columns.map((c) => {
+      const key = (c as { accessorKey?: string }).accessorKey ?? "";
+      return key;
+    });
+    const csvHeader = headers.join(",");
+    const raw = (v: unknown) =>
+      v != null && typeof v === "number" && !isNaN(v) ? String(v) : "";
+    const csvRows = rows.map((r) =>
+      headers
+        .map((h) => raw((r as unknown as Record<string, unknown>)[h]))
+        .join(","),
+    );
+    navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [rows, columns]);
 
   const table = useReactTable({
     data: rows,
@@ -211,7 +281,10 @@ export function AnalyzeDataTable({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center"
+              >
                 No data found.
               </TableCell>
             </TableRow>

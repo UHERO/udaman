@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { analyzeSeriesAction } from "@/actions/series-actions";
 
 import { AnalyzeControls } from "@/components/series/analyze-controls";
-import { AnalyzeDataTable } from "@/components/series/analyze-data-table";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { H2 } from "@/components/typography";
 
@@ -60,14 +59,6 @@ export default async function AnalyzeSeriesPage({
           siblings={siblings}
         />
 
-        <AnalyzeDataTable
-          data={series.data}
-          yoy={yoy}
-          levelChange={levelChange}
-          ytd={ytd}
-          decimals={series.decimals}
-          unitShortLabel={unitShortLabel}
-        />
       </main>
     </div>
   );

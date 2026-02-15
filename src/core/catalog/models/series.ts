@@ -1349,6 +1349,259 @@ class Series {
       : (values[mid - 1] + values[mid]) / 2;
   }
 
+  // ─── Trend & filter methods ─────────────────────────────────────────
+
+  /**
+   * Backward-looking rolling standard deviation.
+   * Matches the pattern of backwardLookingMovingAverage.
+   */
+  rollingStdDev(window?: number): Series {
+    const periods = window ?? this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+
+    for (let i = periods - 1; i < sorted.length; i++) {
+      let sum = 0;
+      for (let j = i - periods + 1; j <= i; j++) sum += sorted[j][1];
+      const mean = sum / periods;
+      let sumSq = 0;
+      for (let j = i - periods + 1; j <= i; j++)
+        sumSq += (sorted[j][1] - mean) ** 2;
+      newData.set(sorted[i][0], Math.sqrt(sumSq / (periods - 1)));
+    }
+
+    const s = new Series({ name: `Rolling std dev of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Least-squares linear trend: fitted values from regression on index. */
+  linearTrend(): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) return this;
+
+    const n = sorted.length;
+    let sumX = 0,
+      sumY = 0,
+      sumXY = 0,
+      sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += i;
+      sumY += sorted[i][1];
+      sumXY += i * sorted[i][1];
+      sumXX += i * i;
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      newData.set(sorted[i][0], intercept + slope * i);
+    }
+
+    const s = new Series({ name: `Linear trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Log-linear trend: regress on ln(values), exp() the result. Skips non-positive values. */
+  logLinearTrend(): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null && v > 0)
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (sorted.length < 2) return this;
+
+    const n = sorted.length;
+    let sumX = 0,
+      sumY = 0,
+      sumXY = 0,
+      sumXX = 0;
+    for (let i = 0; i < n; i++) {
+      const lnV = Math.log(sorted[i][1]);
+      sumX += i;
+      sumY += lnV;
+      sumXY += i * lnV;
+      sumXX += i * i;
+    }
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < n; i++) {
+      newData.set(sorted[i][0], Math.exp(intercept + slope * i));
+    }
+
+    const s = new Series({ name: `Log-linear trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Hodrick-Prescott filter.
+   * Solves (I + λ·K'K)·τ = y where K is the second-difference matrix.
+   * The resulting system is symmetric pentadiagonal, solved via LDL' decomposition.
+   * Auto-lambda: 14400 monthly, 1600 quarterly, 100 annual.
+   */
+  hpTrend(lambda?: number): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+    const n = sorted.length;
+    if (n < 3) return this;
+
+    const lam =
+      lambda ??
+      (() => {
+        switch (normalizeFreq(this.frequency ?? "")) {
+          case "month":
+            return 14400;
+          case "quarter":
+            return 1600;
+          case "year":
+            return 100;
+          default:
+            return 1600;
+        }
+      })();
+
+    const y = sorted.map(([, v]) => v);
+
+    // Build symmetric pentadiagonal A = I + λ·K'K
+    // Three unique diagonals: main (diag), sub/super-1 (off1), sub/super-2 (off2)
+    const diag = new Float64Array(n);
+    const off1 = new Float64Array(n); // A[i+1,i] = A[i,i+1]
+    const off2 = new Float64Array(n); // A[i+2,i] = A[i,i+2]
+
+    for (let i = 0; i < n; i++) {
+      let v = 1;
+      if (i === 0 || i === n - 1) v += lam;
+      else if (i === 1 || i === n - 2) v += 5 * lam;
+      else v += 6 * lam;
+      diag[i] = v;
+    }
+    for (let i = 0; i < n - 1; i++) {
+      off1[i] = i === 0 || i === n - 2 ? -2 * lam : -4 * lam;
+    }
+    for (let i = 0; i < n - 2; i++) {
+      off2[i] = lam;
+    }
+
+    // LDL' decomposition: A = L D L^T
+    // L is unit lower banded; l1[i] = L[i+1,i], l2[i] = L[i+2,i]
+    const dd = new Float64Array(n);
+    const l1 = new Float64Array(n);
+    const l2 = new Float64Array(n);
+
+    dd[0] = diag[0];
+    if (n > 1) {
+      l1[0] = off1[0] / dd[0];
+      if (n > 2) l2[0] = off2[0] / dd[0];
+    }
+    if (n > 1) {
+      dd[1] = diag[1] - l1[0] * l1[0] * dd[0];
+      if (n > 2) {
+        l1[1] = (off1[1] - l2[0] * l1[0] * dd[0]) / dd[1];
+        if (n > 3) l2[1] = off2[1] / dd[1];
+      }
+    }
+    for (let i = 2; i < n; i++) {
+      dd[i] =
+        diag[i] -
+        l1[i - 1] * l1[i - 1] * dd[i - 1] -
+        l2[i - 2] * l2[i - 2] * dd[i - 2];
+      if (i < n - 1) {
+        l1[i] = (off1[i] - l2[i - 1] * l1[i - 1] * dd[i - 1]) / dd[i];
+      }
+      if (i < n - 2) {
+        l2[i] = off2[i] / dd[i];
+      }
+    }
+
+    // Forward substitution: L z = y
+    const z = Float64Array.from(y);
+    for (let i = 1; i < n; i++) {
+      z[i] -= l1[i - 1] * z[i - 1];
+      if (i >= 2) z[i] -= l2[i - 2] * z[i - 2];
+    }
+
+    // Diagonal solve: D w = z
+    const w = new Float64Array(n);
+    for (let i = 0; i < n; i++) w[i] = z[i] / dd[i];
+
+    // Back substitution: L^T τ = w
+    const tau = new Float64Array(n);
+    tau[n - 1] = w[n - 1];
+    if (n > 1) tau[n - 2] = w[n - 2] - l1[n - 2] * tau[n - 1];
+    for (let i = n - 3; i >= 0; i--) {
+      tau[i] = w[i] - l1[i] * tau[i + 1] - l2[i] * tau[i + 2];
+    }
+
+    const newData = new Map<string, number>();
+    for (let i = 0; i < n; i++) newData.set(sorted[i][0], tau[i]);
+
+    const s = new Series({ name: `HP trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Z-score: (x - mean) / stdDev per point. */
+  zScore(): Series {
+    const avg = this.mean();
+    const sd = this.standardDeviation();
+    if (sd === 0) return this;
+
+    const newData = new Map<string, number>();
+    for (const [date, value] of this.data) {
+      if (value != null) newData.set(date, (value - avg) / sd);
+    }
+
+    const s = new Series({ name: `Z-score of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Deviation from linear trend: x - linearTrend(x) per point. */
+  deviationFromTrend(): Series {
+    const trend = this.linearTrend();
+    const newData = new Map<string, number>();
+
+    for (const [date, value] of this.data) {
+      const trendVal = trend.data.get(date);
+      if (value != null && trendVal != null) {
+        newData.set(date, value - trendVal);
+      }
+    }
+
+    const s = new Series({ name: `Deviation from trend of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Natural log of level values. Skips x <= 0. */
+  logLevel(): Series {
+    const newData = new Map<string, number>();
+    for (const [date, value] of this.data) {
+      if (value != null && value > 0) {
+        newData.set(date, Math.log(value));
+      }
+    }
+
+    const s = new Series({ name: `Log level of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
   // ─── Analyze serialization ──────────────────────────────────────────
 
   /** Serialize for the analyze page: identity fields + sorted [date, value] tuples. */
