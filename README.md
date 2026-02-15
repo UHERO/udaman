@@ -22,14 +22,17 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+## Getting The DB Ready
+App is intended to replace udaman as-is, but there have been a few minor db changes. When ready to deploy, check for prisma install then run the following on the server.
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+  # 1. Generate the baseline from current DB state and mark as applied
+  #    (tells Prisma "these tables already exist, don't try to create them")
+  bunx prisma migrate resolve --applied 0_init
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+  # 2. Apply all remaining migrations (universe table, join table PKs, auth tables)
+  bunx prisma migrate deploy
+```
 
 # ToDo Notes For Later
 
@@ -45,10 +48,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
    - Updates, Insert, Creates need to be reviewed to ensure related records are also updated or created where relevant.
    - Claude's gotten pretty great, but it still often misses the broader context when methods are interconnected.
 
+4. Better Series Lists.
+   - A Offer a few preset lists the user can choose, 'most recently created', 'most recently updated' (jobs data after a job update), series with problems, or specific data lists. OR
+   - Let user's pick measurements to show.
+   - Maybe do #1 first and do #2 after scraping completed.
+
 # Migrations needed
 
 1. dataPortalName is appears to be the only camelCase name in a database of snake_case names. setup a migration to rename to data_portal_name.
-2.
+2. yoy,ytd,change fields in the database are unused. Remove them. These are calculated each time, probably better that way.
 
 # Questions for Peter
 

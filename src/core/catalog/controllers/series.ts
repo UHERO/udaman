@@ -276,6 +276,7 @@ export async function analyzeSeries({
     },
     siblings,
     unitLabel: series.unitLabel,
+    unitShortLabel: series.unitShortLabel,
   };
 }
 
@@ -287,7 +288,7 @@ export async function transformSeries({
   log.info({ evalStr }, "transforming series expression");
 
   // Preprocess: pad spaces around operators, wrap valid series names as "NAME".ts
-  const padded = evalStr.replace(/([+*\/()-])/g, " $1 ").trim();
+  const padded = evalStr.replace(/([+*/()-])/g, " $1 ").trim();
   const tokens = padded.split(/\s+/).filter(Boolean);
   const evalStatement = tokens
     .map((t) => (Series.isValidName(t) ? `"${t}".ts` : t))
@@ -341,8 +342,14 @@ export async function transformSeries({
     yoy: mapToTuples(yoySeries.data),
     levelChange: mapToTuples(diffSeries.data),
     ytd: mapToTuples(ytdSeries.data),
+    stats: {
+      mean: result.mean(),
+      median: result.median(),
+      standardDeviation: result.standardDeviation(),
+    },
     seriesLinks,
     seriesLastValues,
     resultValue,
+    resultDate: resultLastDate ?? null,
   };
 }

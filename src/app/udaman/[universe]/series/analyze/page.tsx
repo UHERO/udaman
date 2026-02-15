@@ -68,9 +68,11 @@ export default async function TransformSeriesPage({
     yoy,
     levelChange,
     ytd,
+    stats,
     seriesLinks,
     seriesLastValues,
     resultValue,
+    resultDate,
   } = result;
 
   return (
@@ -87,6 +89,7 @@ export default async function TransformSeriesPage({
             seriesLinks={seriesLinks}
             seriesLastValues={seriesLastValues}
             resultValue={resultValue}
+            resultDate={resultDate}
             decimals={series.decimals}
           />
         )}
@@ -97,6 +100,7 @@ export default async function TransformSeriesPage({
           ytd={ytd}
           levelChange={levelChange}
           decimals={series.decimals}
+          stats={stats}
         />
 
         <AnalyzeDataTable

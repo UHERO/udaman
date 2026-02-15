@@ -1,20 +1,24 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { mysql } from "@database/mysql";
 import { compare } from "bcryptjs";
 
 import { MySqlAdapter } from "./mysql-adapter";
+import { isEmailAllowed } from "./auth-whitelist";
+
+const adapter = MySqlAdapter();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: MySqlAdapter(),
-  // Credentials provider requires JWT strategy — database sessions are only
-  // auto-created for OAuth/magic-link flows. The adapter is still used for
-  // user lookup (getUserByEmail, etc.) and will be used when we add OAuth later.
+  adapter,
+  // Credentials provider requires JWT strategy. The adapter is still used
+  // for user/account CRUD (linking OAuth accounts, looking up users, etc.).
   session: { strategy: "jwt" },
   pages: {
     signIn: "/udaman",
   },
   providers: [
+    Google,
     Credentials({
       name: "Email & Password",
       credentials: {
@@ -25,6 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
+        if (!isEmailAllowed(email)) return null;
 
         const rows = await mysql<{
           id: number;
@@ -55,6 +60,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      // Credentials sign-in: already validated in authorize(), allow through
+      if (!account || account.provider === "credentials") return true;
+
+      // OAuth sign-in: link to existing user if one exists with the same email.
+      // With JWT strategy Auth.js doesn't auto-link, so we do it manually.
+      if (!user.email || !isEmailAllowed(user.email)) return false;
+
+      const existing = await adapter.getUserByEmail!(user.email);
+      if (existing) {
+        // Check if this OAuth account is already linked
+        const linked = await adapter.getUserByAccount!({
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+        });
+
+        if (!linked) {
+          // Link the OAuth account to the existing user
+          await adapter.linkAccount!({
+            ...account,
+            userId: existing.id,
+            type: account.type as "oauth" | "oidc" | "email" | "webauthn",
+          });
+        }
+
+        // Use the existing user's ID so the JWT gets the right ID
+        user.id = existing.id;
+        user.name = existing.name ?? user.name;
+      }
+      // If no existing user, Auth.js will call createUser + linkAccount via the adapter
+
+      return true;
+    },
     async jwt({ token, user }) {
       // On sign-in, persist user ID into the JWT
       if (user) {

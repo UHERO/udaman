@@ -8,6 +8,7 @@ interface LinkedExpressionProps {
   seriesLinks: Record<string, number>;
   seriesLastValues?: Record<string, number>;
   resultValue?: number | null;
+  resultDate?: string | null;
   decimals?: number;
 }
 
@@ -17,13 +18,20 @@ export function LinkedExpression({
   seriesLinks,
   seriesLastValues = {},
   resultValue,
+  resultDate,
   decimals = 1,
 }: LinkedExpressionProps) {
-  const tokens = expression.split(/(\s+|[+*\/()-])/).filter(Boolean);
+  const tokens = expression.split(/(\s+|[+*/()-])/).filter(Boolean);
   const hasValues = Object.keys(seriesLastValues).length > 0;
 
   return (
-    <div className="flex flex-wrap items-end gap-1 rounded-lg border bg-white p-4 font-mono text-sm">
+    <div className="rounded-lg border bg-white p-4">
+      {resultDate && (
+        <p className="text-muted-foreground mb-2 text-xs">
+          Calculation for {resultDate}
+        </p>
+      )}
+      <div className="flex flex-wrap items-end gap-1 font-mono text-sm">
       {tokens.map((token, i) => {
         const id = seriesLinks[token];
         const isSeriesName = id != null && NAME_REGEX.test(token);
@@ -68,6 +76,7 @@ export function LinkedExpression({
           <span className="font-semibold">{resultValue.toFixed(decimals)}</span>
         </>
       )}
+      </div>
     </div>
   );
 }

@@ -261,6 +261,7 @@ class Series {
 
   // joined from units table (may be null if not joined)
   unitLabel: string | null;
+  unitShortLabel: string | null;
 
   // in-memory state (not persisted)
   #data: Map<string, number> | null = null;
@@ -309,6 +310,7 @@ class Series {
 
     // joined unit label
     this.unitLabel = attrs.unit_long_label || attrs.unit_short_label || null;
+    this.unitShortLabel = attrs.unit_short_label ?? null;
   }
 
   // ─── Display ─────────────────────────────────────────────────────

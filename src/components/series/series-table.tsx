@@ -1,6 +1,7 @@
 "use client";
 
 import { DataPoint } from "@catalog/types/shared";
+import { formatLevel } from "@catalog/utils/format";
 import { dpAgeCode, uheroDate } from "@catalog/utils/time";
 import {
   ColumnDef,
@@ -49,15 +50,21 @@ export const SeriesDataTable = ({
     xseriesId: number;
     universe: string;
     seriesId: number;
+    unitShortLabel?: string | null;
   };
 }) => {
   const { setHoveredDate } = useSeriesHover();
   const { decimals } = options;
 
-  const FormattedCell = ({ n, unit }: { n: number | null; unit?: string }) => {
+  const { unitShortLabel } = options;
+
+  const FormattedCell = ({ n, unit, isLevel }: { n: number | null; unit?: string; isLevel?: boolean }) => {
     if (!isNumber(n)) return "-";
-    let value = n.toFixed(decimals);
-    if (unit === "perc") value += "%";
+    const value = isLevel
+      ? formatLevel(n, decimals, unitShortLabel)
+      : unit === "perc"
+        ? `${n.toFixed(decimals)}%`
+        : n.toFixed(decimals);
     return (
       <span
         className={cn("w-full text-end text-xs text-slate-600", dpColor(n))}
@@ -78,7 +85,7 @@ export const SeriesDataTable = ({
       header: "Value",
       cell: ({ cell, row }) => {
         const val = cell.getValue() as number | null;
-        const displayValue = isNumber(val) ? val.toFixed(decimals) : "-";
+        const displayValue = isNumber(val) ? formatLevel(val, decimals, unitShortLabel) : "-";
         const rowDate = row.getValue("date") as Date;
         const dateStr = format(rowDate, "yyyy-MM-dd");
         return (
@@ -117,7 +124,7 @@ export const SeriesDataTable = ({
       header: "LVL",
       cell: ({ cell }) => {
         const val = cell.getValue() as number | null;
-        return <FormattedCell n={val} />;
+        return <FormattedCell n={val} isLevel />;
       },
     },
     {

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import { ChevronsUpDown, KeyRound, LogOut } from "lucide-react";
 
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,12 +25,15 @@ export function NavUser({
   user,
 }: {
   user: {
+    id: string;
     name: string;
     email: string;
     avatar: string;
+    createdAt: string;
   };
 }) {
   const { isMobile } = useSidebar();
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
 
   return (
     <SidebarMenu>
@@ -69,6 +74,10 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setPasswordDialogOpen(true)}>
+              <KeyRound />
+              Change Password
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => signOut({ callbackUrl: "/udaman" })}
             >
@@ -78,6 +87,15 @@ export function NavUser({
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      <ChangePasswordDialog
+        open={passwordDialogOpen}
+        onOpenChange={setPasswordDialogOpen}
+        user={{
+          name: user.name,
+          email: user.email,
+          createdAt: user.createdAt,
+        }}
+      />
     </SidebarMenu>
   );
 }

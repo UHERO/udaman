@@ -1,8 +1,10 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { LoginForm } from "@/components/login-form";
+import { SurfWidget } from "@/components/surf-widget";
 import { getSession } from "@/lib/auth/dal";
 
 export default async function LoginPage() {
@@ -36,6 +38,9 @@ export default async function LoginPage() {
           fill
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
+        <Suspense>
+          <SurfWidget />
+        </Suspense>
       </div>
     </div>
   );

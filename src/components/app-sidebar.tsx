@@ -227,7 +227,7 @@ export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  user: { name: string; email: string; avatar: string };
+  user: { id: string; name: string; email: string; avatar: string; createdAt: string };
 }) {
   const params = useParams();
   const universe = (params.universe as string) || "uhero";

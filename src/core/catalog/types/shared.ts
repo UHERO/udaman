@@ -216,5 +216,7 @@ export interface AnalyzeResult {
   seriesLinks?: Record<string, number>;
   seriesLastValues?: Record<string, number>;
   resultValue?: number | null;
+  resultDate?: string | null;
   unitLabel?: string | null;
+  unitShortLabel?: string | null;
 }

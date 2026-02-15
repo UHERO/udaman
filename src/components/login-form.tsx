@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+
+import { H1, Lead } from "./typography";
 
 export function LoginForm({
   className,
@@ -47,10 +49,8 @@ export function LoginForm({
       {...props}
     >
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold">Login to your account</h1>
-        <p className="text-muted-foreground text-sm text-balance">
-          Enter your email below to login to your account
-        </p>
+        <H1>UDAMAN</H1>
+        <Lead className="text-2xl">UHERO Data Manager</Lead>
       </div>
       <div className="grid gap-6">
         <div className="grid gap-3">
@@ -100,7 +100,10 @@ export function LoginForm({
           type="button"
           variant="outline"
           className="w-full"
-          onClick={() => toast.info("Not yet implemented")}
+          disabled={isPending}
+          onClick={() =>
+            signIn("google", { callbackUrl: "/udaman/UHERO/series" })
+          }
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path

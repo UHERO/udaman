@@ -11,6 +11,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { requireAuth } from "@/lib/auth/dal";
+import { mysql } from "@database/mysql";
 
 export default async function UniverseLayout({
   children,
@@ -26,10 +27,24 @@ export default async function UniverseLayout({
   }
 
   const session = await requireAuth();
+  const userId = session.user?.id;
+
+  let createdAt = "";
+  if (userId) {
+    const rows = await mysql<{ created_at: Date | string | null }>`
+      SELECT created_at FROM users WHERE id = ${userId}
+    `;
+    if (rows[0]?.created_at) {
+      createdAt = new Date(rows[0].created_at as string | Date).toISOString();
+    }
+  }
+
   const user = {
+    id: userId ?? "",
     name: session.user?.name ?? session.user?.email ?? "User",
     email: session.user?.email ?? "",
     avatar: session.user?.image ?? "",
+    createdAt,
   };
 
   return (

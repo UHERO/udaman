@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ColumnDef,
   flexRender,
@@ -9,7 +9,7 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Check, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatLevel } from "@catalog/utils/format";
 import { cn } from "@/lib/utils";
 
 interface AnalyzeRow {
@@ -36,6 +37,7 @@ interface AnalyzeDataTableProps {
   levelChange: [string, number][];
   ytd: [string, number][];
   decimals: number;
+  unitShortLabel?: string | null;
 }
 
 const dpColor = (n: number) => {
@@ -50,10 +52,12 @@ export function AnalyzeDataTable({
   levelChange,
   ytd,
   decimals,
+  unitShortLabel,
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
   ]);
+  const [copied, setCopied] = useState(false);
 
   const rows = useMemo(() => {
     const map = new Map<string, AnalyzeRow>();
@@ -81,11 +85,23 @@ export function AnalyzeDataTable({
     return [...map.values()];
   }, [data, yoy, levelChange, ytd]);
 
-  const FormattedCell = ({ n, unit }: { n: number | null; unit?: string }) => {
+  const copyAsCsv = useCallback(() => {
+    const header = "Date,Level,LVL Chg,YOY %,YTD %";
+    const raw = (v: number | null) => (v != null ? String(v) : "");
+    const csvRows = rows.map((r) =>
+      `${r.date},${raw(r.level)},${raw(r.levelChange)},${raw(r.yoy)},${raw(r.ytd)}`,
+    );
+    navigator.clipboard.writeText([header, ...csvRows].join("\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [rows]);
+
+  const fmtLevel = (n: number) => formatLevel(n, decimals, unitShortLabel);
+
+  const FormattedCell = ({ n, unit, isLevel }: { n: number | null; unit?: string; isLevel?: boolean }) => {
     if (n == null || isNaN(n))
       return <span className="text-muted-foreground">-</span>;
-    let value = n.toFixed(decimals);
-    if (unit === "perc") value += "%";
+    const value = isLevel ? fmtLevel(n) : unit === "perc" ? `${n.toFixed(decimals)}%` : n.toFixed(decimals);
     return <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>;
   };
 
@@ -103,24 +119,17 @@ export function AnalyzeDataTable({
           <ArrowUpDown className="ml-1 h-3 w-3" />
         </Button>
       ),
-      cell: ({ row }) => {
-        const d = new Date(row.getValue<string>("date") + "T00:00:00");
-        return d.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: undefined,
-        });
-      },
+      cell: ({ row }) => row.getValue<string>("date"),
     },
     {
       accessorKey: "level",
       header: () => <span className="text-end">Level</span>,
-      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} />,
+      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} isLevel />,
     },
     {
       accessorKey: "levelChange",
       header: () => <span className="text-end">LVL Chg</span>,
-      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} />,
+      cell: ({ cell }) => <FormattedCell n={cell.getValue<number | null>()} isLevel />,
     },
     {
       accessorKey: "yoy",
@@ -149,6 +158,26 @@ export function AnalyzeDataTable({
 
   return (
     <div className="rounded-lg border bg-white">
+      <div className="flex items-center justify-end px-4 pt-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 text-xs"
+          onClick={copyAsCsv}
+        >
+          {copied ? (
+            <>
+              <Check className="h-3 w-3" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="h-3 w-3" />
+              Copy
+            </>
+          )}
+        </Button>
+      </div>
       <Table className="font-mono text-gray-800">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

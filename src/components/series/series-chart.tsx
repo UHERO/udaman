@@ -53,7 +53,7 @@ export function SeriesChart({ data }: { data: DataPoint[] }) {
   if (!chartData.length) return null;
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-[4/3] w-full">
+    <ChartContainer config={chartConfig} className="h-42 w-full">
       <LineChart
         data={chartData}
         margin={{ top: 4, right: 4, bottom: 0, left: 4 }}

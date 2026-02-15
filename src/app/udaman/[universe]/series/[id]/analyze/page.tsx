@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-
 import { analyzeSeriesAction } from "@/actions/series-actions";
+
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { AnalyzeDataTable } from "@/components/series/analyze-data-table";
 import { CalculateForm } from "@/components/series/calculate-form";
-import { FrequencyLinks } from "@/components/series/frequency-links";
 import { H2 } from "@/components/typography";
 
 export default async function AnalyzeSeriesPage({
@@ -24,7 +23,7 @@ export default async function AnalyzeSeriesPage({
     return notFound();
   }
 
-  const { series, yoy, levelChange, ytd, stats, siblings, unitLabel } = result;
+  const { series, yoy, levelChange, ytd, stats, siblings, unitLabel, unitShortLabel } = result;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -43,14 +42,6 @@ export default async function AnalyzeSeriesPage({
               {series.dataPortalName}
             </p>
           )}
-
-          {siblings && siblings.length > 1 && (
-            <FrequencyLinks
-              universe={universe}
-              currentFreqCode={series.frequencyCode}
-              siblings={siblings}
-            />
-          )}
         </div>
 
         <CalculateForm />
@@ -63,6 +54,10 @@ export default async function AnalyzeSeriesPage({
           decimals={series.decimals}
           stats={stats}
           unitLabel={unitLabel}
+          unitShortLabel={unitShortLabel}
+          universe={universe}
+          currentFreqCode={series.frequencyCode}
+          siblings={siblings}
         />
 
         <AnalyzeDataTable
@@ -71,6 +66,7 @@ export default async function AnalyzeSeriesPage({
           levelChange={levelChange}
           ytd={ytd}
           decimals={series.decimals}
+          unitShortLabel={unitShortLabel}
         />
       </main>
     </div>
