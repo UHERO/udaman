@@ -1,5 +1,6 @@
 import "server-only";
 import DataPointCollection from "@catalog/collections/data-point-collection";
+import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
@@ -8,7 +9,11 @@ import EvalExecutor from "@catalog/utils/eval-executor";
 import { createLogger } from "@/core/observability/logger";
 
 import Measurements from "../models/measurements";
-import type { AnalyzeResult, Universe } from "../types/shared";
+import type {
+  AnalyzeResult,
+  CompareResult,
+  Universe,
+} from "../types/shared";
 
 const log = createLogger("catalog.series");
 
@@ -352,4 +357,114 @@ export async function transformSeries({
     resultValue,
     resultDate: resultLastDate ?? null,
   };
+}
+
+// ─── Compare (multi-series) ─────────────────────────────────────────
+
+export async function compareSeries({
+  names,
+}: {
+  names: string[];
+}): Promise<CompareResult> {
+  log.info({ names }, "comparing series");
+
+  const entries = await Promise.all(
+    names.map(async (name) => {
+      const s = await SeriesCollection.getByName(name);
+      await SeriesCollection.loadCurrentData(s);
+      const json = s.toAnalyzeJSON();
+      return {
+        name,
+        data: json.data,
+        decimals: json.decimals,
+        frequencyCode: json.frequencyCode,
+      };
+    }),
+  );
+
+  const seriesLinks = await SeriesCollection.getIdsByNames(names);
+
+  log.info(
+    { count: entries.length, names },
+    "series compared",
+  );
+
+  return { series: entries, seriesLinks };
+}
+
+// ─── Compare suggestions ────────────────────────────────────────────
+
+/**
+ * Given a series name, find all geo variants that exist in the DB.
+ * Returns the list of existing names (preserving geo list_order), or null if ≤1.
+ */
+export async function getCompareAllGeos({
+  name,
+  universe,
+}: {
+  name: string;
+  universe: string;
+}): Promise<string[] | null> {
+  log.info({ name, universe }, "getCompareAllGeos");
+
+  const parsed = Series.parseName(name);
+  const geos = await GeographyCollection.list({
+    universe: universe as Universe,
+  });
+
+  const candidates = geos
+    .filter((g) => g.handle)
+    .map((g) => {
+      try {
+        return Series.buildName(parsed.prefix, g.handle!, parsed.freq);
+      } catch {
+        return null;
+      }
+    })
+    .filter((n): n is string => n !== null);
+
+  if (candidates.length === 0) return null;
+
+  const existing = await SeriesCollection.getIdsByNames(candidates);
+  // Preserve geo list_order by filtering candidates (already ordered)
+  const result = candidates.filter((n) => n in existing);
+
+  return result.length > 1 ? result : null;
+}
+
+/**
+ * Given a series name, find its SA/NSA counterpart.
+ * Returns [name, counterpart] if counterpart exists, null otherwise.
+ */
+export async function getCompareSANS({
+  name,
+}: {
+  name: string;
+}): Promise<string[] | null> {
+  log.info({ name }, "getCompareSANS");
+
+  const parsed = Series.parseName(name);
+  let counterpartPrefix: string;
+
+  if (/NS$/i.test(parsed.prefix)) {
+    counterpartPrefix = parsed.prefix.replace(/NS$/i, "");
+  } else {
+    counterpartPrefix = parsed.prefix + "NS";
+  }
+
+  let counterpartName: string;
+  try {
+    counterpartName = Series.buildName(
+      counterpartPrefix,
+      parsed.geo,
+      parsed.freq,
+    );
+  } catch {
+    return null;
+  }
+
+  const existing = await SeriesCollection.getIdsByNames([counterpartName]);
+  if (!(counterpartName in existing)) return null;
+
+  return [name, counterpartName];
 }

@@ -8,10 +8,13 @@ import SeriesCollection from "@catalog/collections/series-collection";
 import type { CreateSeriesPayload } from "@catalog/collections/series-collection";
 import {
   analyzeSeries as analyzeSeriesCtrl,
+  compareSeries as compareSeriesCtrl,
   deleteSeriesDataPoints as deleteDataPointsCtrl,
   deleteSeries as deleteSeriesCtrl,
   duplicateSeries as duplicateSeriesCtrl,
   emptyQuarantine as emptyQuarantineCtrl,
+  getCompareAllGeos as getCompareAllGeosCtrl,
+  getCompareSANS as getCompareSANSCtrl,
   getQuarantinedSeries as fetchQuarantinedSeries,
   getSeries as fetchSeries,
   getSeriesById as fetchSeriesById,
@@ -24,6 +27,7 @@ import {
 } from "@catalog/controllers/series";
 import type {
   AnalyzeResult,
+  CompareResult,
   SeasonalAdjustment,
   SourceMapNode,
   Universe,
@@ -497,5 +501,41 @@ export async function transformSeriesAction(
     const message = e instanceof Error ? e.message : String(e);
     log.error({ evalStr, error: message }, "transformSeriesAction failed");
     return { error: message };
+  }
+}
+
+export async function compareSeriesAction(
+  names: string[],
+): Promise<CompareResult | { error: string }> {
+  log.info({ names }, "compareSeriesAction called");
+  try {
+    return await compareSeriesCtrl({ names });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    log.error({ names, error: message }, "compareSeriesAction failed");
+    return { error: message };
+  }
+}
+
+// ─── Compare suggestions ─────────────────────────────────────────────
+
+export async function getCompareAllGeosAction(
+  name: string,
+  universe: string,
+): Promise<string[] | null> {
+  try {
+    return await getCompareAllGeosCtrl({ name, universe });
+  } catch {
+    return null;
+  }
+}
+
+export async function getCompareSANSAction(
+  name: string,
+): Promise<string[] | null> {
+  try {
+    return await getCompareSANSCtrl({ name });
+  } catch {
+    return null;
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { formatLevel } from "@catalog/utils/format";
 import {
   ColumnDef,
   flexRender,
@@ -11,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, Check, Copy } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -20,10 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatLevel } from "@catalog/utils/format";
-import { cn } from "@/lib/utils";
 
 import {
+  SERIES_COLORS,
   TRANSFORMATION_LABELS,
   type ChartRow,
   type Overlay,
@@ -31,7 +32,9 @@ import {
 } from "./analyze-chart";
 
 /** Column labels for overlay data keys */
-const OVERLAY_COLUMN_LABELS: Partial<Record<Overlay, { key: keyof ChartRow; label: string }>> = {
+const OVERLAY_COLUMN_LABELS: Partial<
+  Record<Overlay, { key: keyof ChartRow; label: string }>
+> = {
   rollingMean: { key: "rollingMean", label: "Rolling x̄" },
   linearTrend: { key: "linearTrend", label: "Linear" },
   logLinearTrend: { key: "logLinearTrend", label: "Log-Lin" },
@@ -40,7 +43,9 @@ const OVERLAY_COLUMN_LABELS: Partial<Record<Overlay, { key: keyof ChartRow; labe
 };
 
 /** For rolling std dev we show two columns */
-const OVERLAY_EXTRA_COLUMNS: Partial<Record<Overlay, { key: keyof ChartRow; label: string }>> = {
+const OVERLAY_EXTRA_COLUMNS: Partial<
+  Record<Overlay, { key: keyof ChartRow; label: string }>
+> = {
   rollingStdDev: { key: "rollingStdLower", label: "±σ Lower" },
 };
 
@@ -52,6 +57,8 @@ interface AnalyzeDataTableProps {
   activeOverlays?: Overlay[];
   activeTransformation?: Transformation | null;
   secondAxis?: boolean;
+  /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
+  seriesNames?: string[];
 }
 
 const dpColor = (n: number) => {
@@ -67,6 +74,7 @@ export function AnalyzeDataTable({
   activeOverlays = [],
   activeTransformation = null,
   secondAxis = false,
+  seriesNames,
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "date", desc: true },
@@ -91,10 +99,10 @@ export function AnalyzeDataTable({
       : unit === "perc"
         ? `${n.toFixed(decimals)}%`
         : n.toFixed(decimals);
-    return (
-      <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>
-    );
+    return <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>;
   };
+
+  const isCompareMode = seriesNames && seriesNames.length >= 2;
 
   const columns = useMemo(() => {
     const cols: ColumnDef<ChartRow>[] = [
@@ -105,9 +113,7 @@ export function AnalyzeDataTable({
             variant="ghost"
             size="sm"
             className="-ml-3 h-8"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Date
             <ArrowUpDown className="ml-1 h-3 w-3" />
@@ -115,6 +121,36 @@ export function AnalyzeDataTable({
         ),
         cell: ({ row }) => row.getValue<string>("date"),
       },
+    ];
+
+    // ── Compare mode: one column per series ──────────────────────────
+    if (isCompareMode) {
+      for (let i = 0; i < seriesNames.length; i++) {
+        const key = `series_${i}`;
+        const name = seriesNames[i];
+        const color = SERIES_COLORS[i % SERIES_COLORS.length];
+        cols.push({
+          id: key,
+          accessorFn: (row) =>
+            (row as unknown as Record<string, unknown>)[key] as
+              | number
+              | null
+              | undefined,
+          header: () => (
+            <span className="text-end text-xs font-medium" style={{ color }}>
+              {name}
+            </span>
+          ),
+          cell: ({ cell }) => (
+            <FormattedCell n={cell.getValue<number | null>()} isLevel />
+          ),
+        });
+      }
+      return cols;
+    }
+
+    // ── Standard columns ─────────────────────────────────────────────
+    cols.push(
       {
         accessorKey: "level",
         header: () => <span className="text-end">Level</span>,
@@ -143,7 +179,7 @@ export function AnalyzeDataTable({
           <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
         ),
       },
-    ];
+    );
 
     // Add overlay columns
     for (const overlay of activeOverlays) {
@@ -197,7 +233,15 @@ export function AnalyzeDataTable({
 
     return cols;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeOverlays, activeTransformation, secondAxis, decimals, unitShortLabel]);
+  }, [
+    isCompareMode,
+    seriesNames,
+    activeOverlays,
+    activeTransformation,
+    secondAxis,
+    decimals,
+    unitShortLabel,
+  ]);
 
   const copyAsCsv = useCallback(() => {
     const headers = columns.map((c) => {
@@ -210,7 +254,7 @@ export function AnalyzeDataTable({
     const csvRows = rows.map((r) =>
       headers
         .map((h) => raw((r as unknown as Record<string, unknown>)[h]))
-        .join(","),
+        .join(",")
     );
     navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
     setCopied(true);
@@ -243,7 +287,7 @@ export function AnalyzeDataTable({
           ) : (
             <>
               <Copy className="h-3 w-3" />
-              Copy
+              Copy to Clipboard
             </>
           )}
         </Button>
@@ -258,7 +302,7 @@ export function AnalyzeDataTable({
                     ? null
                     : flexRender(
                         header.column.columnDef.header,
-                        header.getContext(),
+                        header.getContext()
                       )}
                 </TableHead>
               ))}
@@ -281,10 +325,7 @@ export function AnalyzeDataTable({
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center"
-              >
+              <TableCell colSpan={columns.length} className="h-24 text-center">
                 No data found.
               </TableCell>
             </TableRow>

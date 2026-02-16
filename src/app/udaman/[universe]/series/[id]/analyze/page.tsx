@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { analyzeSeriesAction } from "@/actions/series-actions";
 
 import { AnalyzeControls } from "@/components/series/analyze-controls";
+import { AnalyzeLayout } from "@/components/series/analyze-layout";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { H2 } from "@/components/typography";
 
@@ -26,7 +27,7 @@ export default async function AnalyzeSeriesPage({
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <main className="m-4 max-w-5xl space-y-6">
+      <AnalyzeLayout>
         <div className="space-y-2">
           <H2>
             <Link
@@ -51,15 +52,12 @@ export default async function AnalyzeSeriesPage({
           ytd={ytd}
           levelChange={levelChange}
           decimals={series.decimals}
-          stats={stats}
           unitLabel={unitLabel}
           unitShortLabel={unitShortLabel}
-          universe={universe}
           currentFreqCode={series.frequencyCode}
-          siblings={siblings}
         />
 
-      </main>
+      </AnalyzeLayout>
     </div>
   );
 }

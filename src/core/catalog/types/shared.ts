@@ -220,3 +220,17 @@ export interface AnalyzeResult {
   unitLabel?: string | null;
   unitShortLabel?: string | null;
 }
+
+// ─── Compare / Multi-series ─────────────────────────────────────────
+
+export interface CompareSeriesEntry {
+  name: string;
+  data: [string, number][];
+  decimals: number;
+  frequencyCode: string | null;
+}
+
+export interface CompareResult {
+  series: CompareSeriesEntry[];
+  seriesLinks: Record<string, number>;
+}
