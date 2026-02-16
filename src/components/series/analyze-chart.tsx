@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-
 import { formatLevel } from "@catalog/utils/format";
-
 import {
   Area,
   Bar,
@@ -58,8 +56,12 @@ export interface ChartRow {
   rollingStdBand?: number | null;
   // Second-axis transformation (populated when secondAxis mode is active)
   transformedLevel?: number | null;
+  // Main transformation stored separately so the table can show original level + transform column
+  mainTransformed?: number | null;
   // Dynamic series columns for multi-series compare mode (series_0, series_1, ...)
   [key: `series_${number}`]: number | null | undefined;
+  // Transformed series columns for compare mode table (transformed_0, transformed_1, ...)
+  [key: `transformed_${number}`]: number | null | undefined;
 }
 
 export type Overlay =
@@ -72,7 +74,15 @@ export type Overlay =
   | "rollingStdDev"
   | "recessions";
 
-export type Transformation = "zScore" | "deviationFromTrend" | "logLevel";
+export type Transformation =
+  | "zScore"
+  | "deviationFromTrend"
+  | "logLevel"
+  | "indexToYear"
+  | "rollingMean"
+  | "linearTrend"
+  | "logLinearTrend"
+  | "hpTrend";
 
 export const formatDate = (d: string) => d;
 
@@ -81,8 +91,18 @@ export const formatDate = (d: string) => d;
 /* ------------------------------------------------------------------ */
 
 const SHORT_MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 /** Auto-detect frequency from date spacing when freq code isn't available */
@@ -99,10 +119,7 @@ function detectFrequency(dates: string[]): string {
 }
 
 /** Select which dates get axis ticks — aims for ~12–15 labels */
-function computeAxisTicks(
-  dates: string[],
-  freqCode: string,
-): string[] {
+function computeAxisTicks(dates: string[], freqCode: string): string[] {
   if (dates.length === 0) return [];
   const max = 15;
 
@@ -148,7 +165,7 @@ function computeAxisTicks(
  */
 function makeAxisTickFormatter(
   freqCode: string,
-  ticks: string[],
+  ticks: string[]
 ): (dateStr: string) => string {
   // Pre-compute which ticks start a new year
   const isFirstOfYear = new Set<string>();
@@ -208,7 +225,7 @@ export const NBER_RECESSIONS = [
 /* ------------------------------------------------------------------ */
 
 function linearRegression(
-  data: ChartRow[],
+  data: ChartRow[]
 ): { slope: number; intercept: number } | null {
   const points: { i: number; v: number }[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -233,7 +250,7 @@ function linearRegression(
 }
 
 function logLinearRegression(
-  data: ChartRow[],
+  data: ChartRow[]
 ): { slope: number; intercept: number } | null {
   const points: { i: number; v: number }[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -258,19 +275,11 @@ function logLinearRegression(
   return { slope, intercept };
 }
 
-function computeHpTrend(data: ChartRow[], lambda = 14400): number[] {
-  const values: number[] = [];
-  const indices: number[] = [];
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].level != null) {
-      values.push(data[i].level!);
-      indices.push(i);
-    }
-  }
-  const n = values.length;
-  if (n < 3) return [];
+/** HP filter on a plain number array — returns trend values (same length). */
+function hpFilterValues(y: number[], lambda = 14400): number[] {
+  const n = y.length;
+  if (n < 3) return [...y];
 
-  const y = values;
   const lam = lambda;
 
   // Build symmetric pentadiagonal A = I + λ·K'K
@@ -338,16 +347,33 @@ function computeHpTrend(data: ChartRow[], lambda = 14400): number[] {
     tau[i] = w[i] - l1[i] * tau[i + 1] - l2[i] * tau[i + 2];
   }
 
-  // Map back to full-length array (null for missing level rows)
+  return Array.from(tau);
+}
+
+/** HP filter for ChartRow[] — maps non-null level values through hpFilterValues. */
+function computeHpTrend(data: ChartRow[], lambda = 14400): number[] {
+  const values: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].level != null) {
+      values.push(data[i].level!);
+      indices.push(i);
+    }
+  }
+  if (values.length < 3) return [];
+
+  const tau = hpFilterValues(values, lambda);
+
+  // Map back to full-length array (NaN for missing level rows)
   const result = new Array<number>(data.length).fill(NaN);
-  for (let j = 0; j < n; j++) result[indices[j]] = tau[j];
+  for (let j = 0; j < values.length; j++) result[indices[j]] = tau[j];
   return result;
 }
 
 export function computeOverlays(
   data: ChartRow[],
   overlays: Overlay[],
-  window = 12,
+  window = 12
 ): ChartRow[] {
   if (overlays.length === 0) return data;
 
@@ -418,6 +444,8 @@ export function computeOverlays(
 export function applyTransformation(
   data: ChartRow[],
   transform: Transformation | null,
+  indexBaseYear?: number,
+  rollingWindow = 12
 ): ChartRow[] {
   if (!transform) return data;
 
@@ -442,13 +470,64 @@ export function applyTransformation(
       return data.map((row, i) => ({
         ...row,
         level:
-          row.level != null ? row.level - (reg.intercept + reg.slope * i) : null,
+          row.level != null
+            ? row.level - (reg.intercept + reg.slope * i)
+            : null,
       }));
     }
     case "logLevel": {
       return data.map((row) => ({
         ...row,
         level: row.level != null && row.level > 0 ? Math.log(row.level) : null,
+      }));
+    }
+    case "indexToYear": {
+      const year = indexBaseYear ?? 2015;
+      const baseRow = data.find(
+        (r) => r.date.startsWith(String(year)) && r.level != null
+      );
+      if (!baseRow || baseRow.level === null || baseRow.level === 0)
+        return data;
+      const base = baseRow.level;
+      return data.map((row) => ({
+        ...row,
+        level: row.level != null ? (row.level / base) * 100 : null,
+      }));
+    }
+    case "rollingMean": {
+      const k = Math.max(2, rollingWindow);
+      return data.map((row, i) => {
+        if (i < k - 1 || row.level == null) return row;
+        let sum = 0;
+        let count = 0;
+        for (let j = i - k + 1; j <= i; j++) {
+          if (data[j].level != null) { sum += data[j].level!; count++; }
+        }
+        return { ...row, level: count === k ? sum / count : null };
+      });
+    }
+    case "linearTrend": {
+      const reg = linearRegression(data);
+      if (!reg) return data;
+      return data.map((row, i) => ({
+        ...row,
+        level: row.level != null ? reg.intercept + reg.slope * i : null,
+      }));
+    }
+    case "logLinearTrend": {
+      const reg = logLinearRegression(data);
+      if (!reg) return data;
+      return data.map((row, i) => ({
+        ...row,
+        level: row.level != null ? Math.exp(reg.intercept + reg.slope * i) : null,
+      }));
+    }
+    case "hpTrend": {
+      const hp = computeHpTrend(data);
+      if (hp.length === 0) return data;
+      return data.map((row, i) => ({
+        ...row,
+        level: !isNaN(hp[i]) ? hp[i] : null,
       }));
     }
   }
@@ -458,6 +537,8 @@ export function applyTransformation(
 export function computeSecondAxis(
   data: ChartRow[],
   transform: Transformation,
+  indexBaseYear?: number,
+  rollingWindow = 12
 ): ChartRow[] {
   const levels = data.map((r) => r.level).filter((v): v is number => v != null);
   if (levels.length === 0) return data;
@@ -492,6 +573,55 @@ export function computeSecondAxis(
           row.level != null && row.level > 0 ? Math.log(row.level) : null,
       }));
     }
+    case "indexToYear": {
+      const year = indexBaseYear ?? 2015;
+      const baseRow = data.find(
+        (r) => r.date.startsWith(String(year)) && r.level != null
+      );
+      if (!baseRow || baseRow.level === null || baseRow.level === 0)
+        return data;
+      const base = baseRow.level;
+      return data.map((row) => ({
+        ...row,
+        transformedLevel: row.level != null ? (row.level / base) * 100 : null,
+      }));
+    }
+    case "rollingMean": {
+      const k = Math.max(2, rollingWindow);
+      return data.map((row, i) => {
+        if (i < k - 1 || row.level == null) return row;
+        let sum = 0;
+        let count = 0;
+        for (let j = i - k + 1; j <= i; j++) {
+          if (data[j].level != null) { sum += data[j].level!; count++; }
+        }
+        return { ...row, transformedLevel: count === k ? sum / count : null };
+      });
+    }
+    case "linearTrend": {
+      const reg = linearRegression(data);
+      if (!reg) return data;
+      return data.map((row, i) => ({
+        ...row,
+        transformedLevel: row.level != null ? reg.intercept + reg.slope * i : null,
+      }));
+    }
+    case "logLinearTrend": {
+      const reg = logLinearRegression(data);
+      if (!reg) return data;
+      return data.map((row, i) => ({
+        ...row,
+        transformedLevel: row.level != null ? Math.exp(reg.intercept + reg.slope * i) : null,
+      }));
+    }
+    case "hpTrend": {
+      const hp = computeHpTrend(data);
+      if (hp.length === 0) return data;
+      return data.map((row, i) => ({
+        ...row,
+        transformedLevel: !isNaN(hp[i]) ? hp[i] : null,
+      }));
+    }
   }
 }
 
@@ -500,6 +630,8 @@ export function applyTransformationMulti(
   data: ChartRow[],
   transform: Transformation | null,
   seriesCount: number,
+  indexBaseYear?: number,
+  rollingWindow = 12
 ): ChartRow[] {
   if (!transform || seriesCount === 0) return data;
 
@@ -535,7 +667,10 @@ export function applyTransformationMulti(
         }
         if (points.length < 2) continue;
         const n = points.length;
-        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        let sumX = 0,
+          sumY = 0,
+          sumXY = 0,
+          sumXX = 0;
         for (const p of points) {
           sumX += p.i;
           sumY += p.v;
@@ -546,17 +681,111 @@ export function applyTransformationMulti(
         const intercept = (sumY - slope * sumX) / n;
         rows = rows.map((row, i) => ({
           ...row,
-          [key]: row[key] != null ? (row[key] as number) - (intercept + slope * i) : null,
+          [key]:
+            row[key] != null
+              ? (row[key] as number) - (intercept + slope * i)
+              : null,
         }));
         break;
       }
       case "logLevel": {
         rows = rows.map((row) => ({
           ...row,
-          [key]: row[key] != null && (row[key] as number) > 0
-            ? Math.log(row[key] as number)
-            : null,
+          [key]:
+            row[key] != null && (row[key] as number) > 0
+              ? Math.log(row[key] as number)
+              : null,
         }));
+        break;
+      }
+      case "indexToYear": {
+        const year = indexBaseYear ?? 2015;
+        const baseRow = rows.find(
+          (r) =>
+            r.date.startsWith(String(year)) &&
+            r[key] != null &&
+            !isNaN(r[key] as number)
+        );
+        if (!baseRow || baseRow[key] == null || (baseRow[key] as number) === 0)
+          continue;
+        const base = baseRow[key] as number;
+        rows = rows.map((row) => ({
+          ...row,
+          [key]: row[key] != null ? ((row[key] as number) / base) * 100 : null,
+        }));
+        break;
+      }
+      case "rollingMean": {
+        const k = Math.max(2, rollingWindow);
+        rows = rows.map((row, i) => {
+          if (i < k - 1 || row[key] == null) return row;
+          let sum = 0;
+          let count = 0;
+          for (let j = i - k + 1; j <= i; j++) {
+            const v = rows[j][key];
+            if (v != null && !isNaN(v as number)) {
+              sum += v as number;
+              count++;
+            }
+          }
+          return { ...row, [key]: count === k ? sum / count : null };
+        });
+        break;
+      }
+      case "linearTrend": {
+        const points: { i: number; v: number }[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          const v = rows[i][key];
+          if (v != null && !isNaN(v as number)) points.push({ i, v: v as number });
+        }
+        if (points.length < 2) continue;
+        const pn = points.length;
+        let sX = 0, sY = 0, sXY = 0, sXX = 0;
+        for (const p of points) { sX += p.i; sY += p.v; sXY += p.i * p.v; sXX += p.i * p.i; }
+        const slope = (pn * sXY - sX * sY) / (pn * sXX - sX * sX);
+        const intercept = (sY - slope * sX) / pn;
+        rows = rows.map((row, i) => ({
+          ...row,
+          [key]: row[key] != null ? intercept + slope * i : null,
+        }));
+        break;
+      }
+      case "logLinearTrend": {
+        const points: { i: number; v: number }[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          const v = rows[i][key];
+          if (v != null && !isNaN(v as number) && (v as number) > 0)
+            points.push({ i, v: Math.log(v as number) });
+        }
+        if (points.length < 2) continue;
+        const pn = points.length;
+        let sX = 0, sY = 0, sXY = 0, sXX = 0;
+        for (const p of points) { sX += p.i; sY += p.v; sXY += p.i * p.v; sXX += p.i * p.i; }
+        const slope = (pn * sXY - sX * sY) / (pn * sXX - sX * sX);
+        const intercept = (sY - slope * sX) / pn;
+        rows = rows.map((row, i) => ({
+          ...row,
+          [key]: row[key] != null ? Math.exp(intercept + slope * i) : null,
+        }));
+        break;
+      }
+      case "hpTrend": {
+        // Extract non-null values and their indices for this series
+        const seriesValues: number[] = [];
+        const seriesIndices: number[] = [];
+        for (let i = 0; i < rows.length; i++) {
+          const v = rows[i][key];
+          if (v != null && !isNaN(v as number)) {
+            seriesValues.push(v as number);
+            seriesIndices.push(i);
+          }
+        }
+        if (seriesValues.length < 3) continue;
+        const trend = hpFilterValues(seriesValues);
+        rows = rows.map((row, i) => {
+          const idx = seriesIndices.indexOf(i);
+          return { ...row, [key]: idx >= 0 ? trend[idx] : null };
+        });
         break;
       }
     }
@@ -569,6 +798,11 @@ export const TRANSFORMATION_LABELS: Record<Transformation, string> = {
   zScore: "Z-Score",
   deviationFromTrend: "Dev. from Trend",
   logLevel: "Log Level",
+  indexToYear: "Index",
+  rollingMean: "Rolling x̄",
+  linearTrend: "Linear Trend",
+  logLinearTrend: "Log-Linear Trend",
+  hpTrend: "HP Trend",
 };
 
 /* ------------------------------------------------------------------ */
@@ -582,12 +816,37 @@ const OVERLAY_TOOLTIP_FIELDS: {
   label: string;
   color: string;
 }[] = [
-  { overlay: "rollingMean", key: "rollingMean", label: "Rolling x̄", color: "#f59e0b" },
-  { overlay: "linearTrend", key: "linearTrend", label: "Linear", color: "#8b5cf6" },
-  { overlay: "logLinearTrend", key: "logLinearTrend", label: "Log-Linear", color: "#8b5cf6" },
+  {
+    overlay: "rollingMean",
+    key: "rollingMean",
+    label: "Rolling x̄",
+    color: "#f59e0b",
+  },
+  {
+    overlay: "linearTrend",
+    key: "linearTrend",
+    label: "Linear",
+    color: "#8b5cf6",
+  },
+  {
+    overlay: "logLinearTrend",
+    key: "logLinearTrend",
+    label: "Log-Linear",
+    color: "#8b5cf6",
+  },
   { overlay: "hpTrend", key: "hpTrend", label: "HP Trend", color: "#0d9488" },
-  { overlay: "rollingStdDev", key: "rollingStdUpper", label: "+σ", color: "#94a3b8" },
-  { overlay: "rollingStdDev", key: "rollingStdLower", label: "−σ", color: "#94a3b8" },
+  {
+    overlay: "rollingStdDev",
+    key: "rollingStdUpper",
+    label: "+σ",
+    color: "#94a3b8",
+  },
+  {
+    overlay: "rollingStdDev",
+    key: "rollingStdLower",
+    label: "−σ",
+    color: "#94a3b8",
+  },
 ];
 
 interface ChartTooltipProps {
@@ -620,8 +879,7 @@ function ChartTooltip({
     v != null && !isNaN(v) ? formatLevel(v, decimals, unitShortLabel) : "—";
   const fmtPlain = (v: number | null | undefined) =>
     v != null && !isNaN(v) ? v.toFixed(decimals) : "—";
-  const fmtPct = (v: number | null) =>
-    v != null ? `${v.toFixed(2)}%` : "—";
+  const fmtPct = (v: number | null) => (v != null ? `${v.toFixed(2)}%` : "—");
 
   const activeOverlayFields = OVERLAY_TOOLTIP_FIELDS.filter(
     (f) => overlays.includes(f.overlay) && row[f.key] != null
@@ -632,7 +890,10 @@ function ChartTooltip({
       <p className="mb-1 text-xs font-medium text-slate-500">
         {formatDate(label)}
       </p>
-      <p className="text-sm font-semibold" style={{ color: "var(--color-ublue)" }}>
+      <p
+        className="text-sm font-semibold"
+        style={{ color: "var(--color-ublue)" }}
+      >
         Level: {fmt(row.level)}
       </p>
       {secondAxis && row.transformedLevel != null && (
@@ -717,6 +978,8 @@ interface LevelChartProps {
   transformationLabel?: string;
   freqCode?: string | null;
   rollingWindow?: number;
+  /** When indexToYear transform is active, draw a vertical reference line at this year */
+  indexBaseYear?: number;
   /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
   seriesNames?: string[];
   /** Brush props for compare mode (brush rendered inside LevelChart) */
@@ -735,6 +998,7 @@ export function LevelChart({
   transformationLabel,
   freqCode,
   rollingWindow = 12,
+  indexBaseYear,
   seriesNames,
   brushStartIndex,
   brushEndIndex,
@@ -743,8 +1007,9 @@ export function LevelChart({
   const isCompareMode = seriesNames && seriesNames.length >= 2;
 
   const chartData = useMemo(
-    () => (isCompareMode ? data : computeOverlays(data, overlays, rollingWindow)),
-    [data, overlays, rollingWindow, isCompareMode],
+    () =>
+      isCompareMode ? data : computeOverlays(data, overlays, rollingWindow),
+    [data, overlays, rollingWindow, isCompareMode]
   );
 
   const { ticks, tickFormatter } = useMemo(() => {
@@ -756,13 +1021,23 @@ export function LevelChart({
 
   if (chartData.length === 0) return null;
 
+  // Find the date string for the index base year reference line
+  const indexBaseDate = indexBaseYear
+    ? chartData.find((r) => r.date.startsWith(String(indexBaseYear)))?.date
+    : undefined;
+
   // ── Multi-series compare mode ──────────────────────────────────────
   if (isCompareMode) {
     return (
       <ResponsiveContainer width="100%" height={360}>
         <ComposedChart
           data={chartData}
-          margin={{ top: 10, right: 10, bottom: 0, left: 0 }}
+          margin={{
+            top: indexBaseDate ? 24 : 10,
+            right: 10,
+            bottom: 0,
+            left: 0,
+          }}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis
@@ -780,10 +1055,7 @@ export function LevelChart({
           />
           <Tooltip
             content={
-              <CompareTooltip
-                decimals={decimals}
-                seriesNames={seriesNames}
-              />
+              <CompareTooltip decimals={decimals} seriesNames={seriesNames} />
             }
           />
           <Legend
@@ -806,6 +1078,32 @@ export function LevelChart({
               connectNulls
             />
           ))}
+          {indexBaseDate && (
+            <ReferenceLine
+              x={indexBaseDate}
+              yAxisId="left"
+              stroke="#6366f1"
+              strokeDasharray="4 3"
+              strokeWidth={1.5}
+              label={{
+                value: String(indexBaseYear),
+                position: "top",
+                fontSize: 11,
+                fill: "#6366f1",
+                fontWeight: 600,
+              }}
+            />
+          )}
+          {indexBaseDate && (
+            <ReferenceLine
+              y={100}
+              yAxisId="left"
+              stroke="#6366f1"
+              strokeDasharray="3 4"
+              strokeWidth={1}
+              strokeOpacity={0.4}
+            />
+          )}
           {chartData.length > 24 && onBrushChange && (
             <Brush
               dataKey="date"
@@ -830,13 +1128,19 @@ export function LevelChart({
     ? NBER_RECESSIONS.filter((r) => r.start <= lastDate && r.end >= firstDate)
     : [];
 
-  const hasSecondAxis = secondAxis && data.some((r) => r.transformedLevel != null);
+  const hasSecondAxis =
+    secondAxis && data.some((r) => r.transformedLevel != null);
 
   return (
     <ResponsiveContainer width="100%" height={320}>
       <ComposedChart
         data={chartData}
-        margin={{ top: 10, right: hasSecondAxis ? 10 : 10, bottom: 0, left: 0 }}
+        margin={{
+          top: indexBaseDate ? 24 : 10,
+          right: hasSecondAxis ? 10 : 10,
+          bottom: 0,
+          left: 0,
+        }}
       >
         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
         <XAxis
@@ -880,6 +1184,35 @@ export function LevelChart({
             />
           }
         />
+        {/* Main level line — rendered first so overlays don't shift its
+             position in the React children array (which would cause remount
+             and replay its entry animation) */}
+        <Line
+          type="monotone"
+          dataKey="level"
+          yAxisId="left"
+          stroke="var(--color-ublue)"
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={true}
+          animationDuration={400}
+          connectNulls
+        />
+        {/* Second axis: transformed level */}
+        {hasSecondAxis && (
+          <Line
+            type="monotone"
+            dataKey="transformedLevel"
+            yAxisId="right"
+            stroke="#e11d48"
+            strokeWidth={1.5}
+            strokeDasharray="6 3"
+            dot={false}
+            isAnimationActive={true}
+            animationDuration={400}
+            connectNulls
+          />
+        )}
         {/* Recession shading */}
         {visibleRecessions.map((r) => (
           <ReferenceArea
@@ -980,31 +1313,32 @@ export function LevelChart({
             connectNulls
           />
         )}
-        {/* Main level line */}
-        <Line
-          type="monotone"
-          dataKey="level"
-          yAxisId="left"
-          stroke="var(--color-ublue)"
-          strokeWidth={2}
-          dot={false}
-          isAnimationActive={true}
-          animationDuration={400}
-          connectNulls
-        />
-        {/* Second axis: transformed level */}
-        {hasSecondAxis && (
-          <Line
-            type="monotone"
-            dataKey="transformedLevel"
-            yAxisId="right"
-            stroke="#e11d48"
+        {/* Index base year reference line */}
+        {indexBaseDate && (
+          <ReferenceLine
+            x={indexBaseDate}
+            yAxisId="left"
+            stroke="#6366f1"
+            strokeDasharray="4 3"
             strokeWidth={1.5}
-            strokeDasharray="6 3"
-            dot={false}
-            isAnimationActive={true}
-            animationDuration={400}
-            connectNulls
+            label={{
+              value: String(indexBaseYear),
+              position: "top",
+              fontSize: 11,
+              fill: "#6366f1",
+              fontWeight: 600,
+            }}
+          />
+        )}
+        {/* Index = 100 baseline */}
+        {indexBaseDate && (
+          <ReferenceLine
+            y={100}
+            yAxisId="left"
+            stroke="#6366f1"
+            strokeDasharray="3 4"
+            strokeWidth={1}
+            strokeOpacity={0.4}
           />
         )}
         {/* Rolling mean */}
@@ -1108,10 +1442,7 @@ export function ChangeChart({
 
   return (
     <ResponsiveContainer width="100%" height={180}>
-      <BarChart
-        data={data}
-        margin={{ top: 5, right: 10, bottom: 0, left: 0 }}
-      >
+      <BarChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
         <XAxis
           dataKey="date"

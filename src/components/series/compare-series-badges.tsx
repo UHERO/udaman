@@ -20,7 +20,7 @@ export function CompareSeriesBadges({
     const remaining = names.filter((n) => n !== nameToRemove);
     const expr = remaining.join(",");
     router.push(
-      `/udaman/${universe}/series/analyze?eval=${encodeURIComponent(expr)}`,
+      `/udaman/${universe}/series/compare?names=${encodeURIComponent(expr)}`,
     );
   };
 

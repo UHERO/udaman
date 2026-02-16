@@ -80,7 +80,7 @@ export function SeriesActionsBar({
       label: "Analyze",
       icon: LineChart,
       onClick: () =>
-        router.push(`/udaman/${universe}/series/${seriesId}/analyze`),
+        router.push(`/udaman/${universe}/series/analyze?id=${seriesId}`),
     },
     {
       label: "CSV",

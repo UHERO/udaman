@@ -228,6 +228,7 @@ export interface CompareSeriesEntry {
   data: [string, number][];
   decimals: number;
   frequencyCode: string | null;
+  unitShortLabel: string | null;
 }
 
 export interface CompareResult {

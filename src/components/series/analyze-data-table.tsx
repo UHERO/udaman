@@ -57,11 +57,12 @@ interface AnalyzeDataTableProps {
   activeOverlays?: Overlay[];
   activeTransformation?: Transformation | null;
   secondAxis?: boolean;
+  secondAxisTransformation?: Transformation | null;
   /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
   seriesNames?: string[];
 }
 
-const dpColor = (n: number) => {
+const changeColor = (n: number) => {
   if (n === 0) return "text-slate-700";
   if (n > 0) return "text-green-800";
   return "text-red-800";
@@ -74,6 +75,7 @@ export function AnalyzeDataTable({
   activeOverlays = [],
   activeTransformation = null,
   secondAxis = false,
+  secondAxisTransformation = null,
   seriesNames,
 }: AnalyzeDataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
@@ -87,10 +89,12 @@ export function AnalyzeDataTable({
     n,
     unit,
     isLevel,
+    colored,
   }: {
     n: number | null | undefined;
     unit?: string;
     isLevel?: boolean;
+    colored?: boolean;
   }) => {
     if (n == null || isNaN(n))
       return <span className="text-muted-foreground">-</span>;
@@ -99,7 +103,11 @@ export function AnalyzeDataTable({
       : unit === "perc"
         ? `${n.toFixed(decimals)}%`
         : n.toFixed(decimals);
-    return <span className={cn("text-end text-xs", dpColor(n))}>{value}</span>;
+    return (
+      <span className={cn("text-end text-xs", colored && changeColor(n))}>
+        {value}
+      </span>
+    );
   };
 
   const isCompareMode = seriesNames && seriesNames.length >= 2;
@@ -146,6 +154,36 @@ export function AnalyzeDataTable({
           ),
         });
       }
+
+      // Add transform columns for each series
+      if (activeTransformation) {
+        const transformLabel = TRANSFORMATION_LABELS[activeTransformation];
+        for (let i = 0; i < seriesNames.length; i++) {
+          const tKey = `transformed_${i}`;
+          const name = seriesNames[i];
+          const color = SERIES_COLORS[i % SERIES_COLORS.length];
+          cols.push({
+            id: tKey,
+            accessorFn: (row) =>
+              (row as unknown as Record<string, unknown>)[tKey] as
+                | number
+                | null
+                | undefined,
+            header: () => (
+              <span className="text-end text-xs font-medium" style={{ color }}>
+                {transformLabel} ({name})
+              </span>
+            ),
+            cell: ({ cell }) => {
+              const v = cell.getValue<number | null>();
+              if (v == null || isNaN(v))
+                return <span className="text-muted-foreground">-</span>;
+              return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+            },
+          });
+        }
+      }
+
       return cols;
     }
 
@@ -162,21 +200,29 @@ export function AnalyzeDataTable({
         accessorKey: "levelChange",
         header: () => <span className="text-end">LVL Chg</span>,
         cell: ({ cell }) => (
-          <FormattedCell n={cell.getValue<number | null>()} isLevel />
+          <FormattedCell n={cell.getValue<number | null>()} colored />
         ),
       },
       {
         accessorKey: "yoy",
         header: () => <span className="text-end">YOY %</span>,
         cell: ({ cell }) => (
-          <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
+          <FormattedCell
+            n={cell.getValue<number | null>()}
+            unit="perc"
+            colored
+          />
         ),
       },
       {
         accessorKey: "ytd",
         header: () => <span className="text-end">YTD %</span>,
         cell: ({ cell }) => (
-          <FormattedCell n={cell.getValue<number | null>()} unit="perc" />
+          <FormattedCell
+            n={cell.getValue<number | null>()}
+            unit="perc"
+            colored
+          />
         ),
       },
     );
@@ -209,12 +255,12 @@ export function AnalyzeDataTable({
       }
     }
 
-    // Add transformation column (second axis keeps original level, so show the transform separately)
-    if (activeTransformation && secondAxis) {
+    // Main transformation column (stored in mainTransformed, level stays original)
+    if (activeTransformation) {
       cols.push({
-        accessorKey: "transformedLevel",
+        accessorKey: "mainTransformed",
         header: () => (
-          <span className="text-end text-rose-600">
+          <span className="text-end text-violet-600">
             {TRANSFORMATION_LABELS[activeTransformation]}
           </span>
         ),
@@ -222,11 +268,25 @@ export function AnalyzeDataTable({
           const v = cell.getValue<number | null>();
           if (v == null || isNaN(v))
             return <span className="text-muted-foreground">-</span>;
-          return (
-            <span className={cn("text-end text-xs", dpColor(v))}>
-              {v.toFixed(decimals)}
-            </span>
-          );
+          return <span className="text-end text-xs">{v.toFixed(2)}</span>;
+        },
+      });
+    }
+
+    // Second axis transformation column
+    if (secondAxis && secondAxisTransformation) {
+      cols.push({
+        accessorKey: "transformedLevel",
+        header: () => (
+          <span className="text-end text-rose-600">
+            {TRANSFORMATION_LABELS[secondAxisTransformation]}
+          </span>
+        ),
+        cell: ({ cell }) => {
+          const v = cell.getValue<number | null>();
+          if (v == null || isNaN(v))
+            return <span className="text-muted-foreground">-</span>;
+          return <span className="text-end text-xs">{v.toFixed(2)}</span>;
         },
       });
     }
@@ -239,13 +299,17 @@ export function AnalyzeDataTable({
     activeOverlays,
     activeTransformation,
     secondAxis,
+    secondAxisTransformation,
     decimals,
     unitShortLabel,
   ]);
 
   const copyAsCsv = useCallback(() => {
     const headers = columns.map((c) => {
-      const key = (c as { accessorKey?: string }).accessorKey ?? "";
+      const key =
+        (c as { accessorKey?: string }).accessorKey ??
+        (c as { id?: string }).id ??
+        "";
       return key;
     });
     const csvHeader = headers.join(",");
@@ -271,8 +335,8 @@ export function AnalyzeDataTable({
   });
 
   return (
-    <div className="rounded-lg border bg-white">
-      <div className="flex items-center justify-end px-4 pt-3">
+    <div className="w-fit">
+      <div className="flex items-center justify-end pb-2">
         <Button
           variant="outline"
           size="sm"
@@ -292,12 +356,15 @@ export function AnalyzeDataTable({
           )}
         </Button>
       </div>
-      <Table className="font-mono text-gray-800">
+      <Table className="w-auto font-mono text-gray-800">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-end">
+                <TableHead
+                  key={header.id}
+                  className="text-end"
+                >
                   {header.isPlaceholder
                     ? null
                     : flexRender(

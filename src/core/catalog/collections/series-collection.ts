@@ -214,9 +214,12 @@ class SeriesCollection {
         s.source_link, s.investigation_notes, s.scratch,
         x.primary_series_id, x.frequency, x.restricted, x.quarantined,
         x.seasonal_adjustment, x.seasonally_adjusted, x.aremos_missing,
-        x.aremos_diff, x.percent, x.real
+        x.aremos_diff, x.percent, x.real,
+        u.short_label as unit_short_label,
+        u.long_label as unit_long_label
       FROM series s
       JOIN xseries x ON s.xseries_id = x.id
+      LEFT JOIN units u ON s.unit_id = u.id
       WHERE s.name = ${seriesName}
       LIMIT 1
     `;

@@ -378,6 +378,7 @@ export async function compareSeries({
         data: json.data,
         decimals: json.decimals,
         frequencyCode: json.frequencyCode,
+        unitShortLabel: s.unitShortLabel,
       };
     }),
   );

@@ -15,7 +15,6 @@ const METHOD_CALL_REGEX = /^\.\w+$/;
 
 interface CalculateFormProps {
   initialExpression?: string;
-  children?: React.ReactNode;
 }
 
 function validateExpression(expr: string): string | null {
@@ -56,7 +55,7 @@ function validateExpression(expr: string): string | null {
   return null;
 }
 
-export function CalculateForm({ initialExpression, children }: CalculateFormProps) {
+export function CalculateForm({ initialExpression }: CalculateFormProps) {
   const [expression, setExpression] = useState(initialExpression ?? "");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -75,7 +74,7 @@ export function CalculateForm({ initialExpression, children }: CalculateFormProp
 
     setError(null);
     router.push(
-      `/udaman/${universe}/series/analyze?eval=${encodeURIComponent(trimmed)}`,
+      `/udaman/${universe}/series/calculate?eval=${encodeURIComponent(trimmed)}`,
     );
   };
 
@@ -95,7 +94,6 @@ export function CalculateForm({ initialExpression, children }: CalculateFormProp
           <Calculator className="mr-1.5 h-4 w-4" />
           Calculate
         </Button>
-        {children}
       </form>
       {error && (
         <p className="text-sm text-red-600">{error}</p>

@@ -11,6 +11,7 @@ import { SeriesActionsBar } from "@/components/series/series-actions-bar";
 import { SeriesChart } from "@/components/series/series-chart";
 import { SeriesHoverProvider } from "@/components/series/series-data-section";
 import { SeriesDataTable } from "@/components/series/series-table";
+import { RecordSeriesView } from "@/components/series/record-series-view";
 import { SourceMapTable } from "@/components/series/source-map";
 
 export default async function SeriesPage({
@@ -31,6 +32,13 @@ export default async function SeriesPage({
 
   return (
     <div className="">
+      <RecordSeriesView
+        id={id}
+        name={metadata.s_name}
+        universe={universe}
+        description={metadata.s_description}
+        dataPortalName={metadata.s_dataPortalName}
+      />
       <SeriesHoverProvider xseriesId={metadata.xs_id}>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-1 rounded"></div>

@@ -41,7 +41,7 @@ export function FrequencyLinks({
         return (
           <Link
             key={s.freqCode}
-            href={`/udaman/${universe}/series/${s.id}/analyze`}
+            href={`/udaman/${universe}/series/analyze?id=${s.id}`}
           >
             <Badge
               variant="outline"

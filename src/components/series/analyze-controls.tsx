@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { formatLevel } from "@catalog/utils/format";
 
+import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   TooltipContent,
@@ -28,9 +30,7 @@ import {
 import { AnalyzeDataTable } from "./analyze-data-table";
 
 /* ------------------------------------------------------------------ */
-/*  Formula tooltip helper                                             */
-/*  Uses a <span> wrapper so TooltipTrigger's data-state doesn't       */
-/*  clobber the ToggleGroupItem's data-state="on"/"off".               */
+/*  Formula tooltip helper (for non-toggle elements like buttons)      */
 /* ------------------------------------------------------------------ */
 
 function FormulaTooltip({
@@ -62,13 +62,53 @@ function FormulaTooltip({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Toggle item with built-in tooltip                                  */
+/*  Tooltip trigger is INSIDE the ToggleGroupItem so the item remains  */
+/*  a direct child of the group — preserving first/last CSS rounding.  */
+/* ------------------------------------------------------------------ */
+
+function TooltipToggleItem({
+  value,
+  formula,
+  description,
+  className,
+  children,
+}: {
+  value: string;
+  formula: React.ReactNode;
+  description?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <ToggleGroupItem value={value} className={className}>
+      <TooltipRoot>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center gap-1.5">{children}</span>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          sideOffset={6}
+          className="max-w-64 space-y-1 px-3 py-2"
+        >
+          <div className="font-mono text-[11px] leading-relaxed">{formula}</div>
+          {description && (
+            <div className="text-[10px] opacity-70">{description}</div>
+          )}
+        </TooltipContent>
+      </TooltipRoot>
+    </ToggleGroupItem>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Toggle panel sub-components                                        */
 /* ------------------------------------------------------------------ */
 
 function ControlPanel({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex flex-col gap-2 rounded-lg border bg-white px-4 py-3">
+      <div className="flex flex-col gap-2 py-1">
         {children}
       </div>
     </TooltipProvider>
@@ -76,13 +116,28 @@ function ControlPanel({ children }: { children: React.ReactNode }) {
 }
 
 /** Shared toggle items for Transform and 2nd Axis groups */
-function TransformItems() {
+function TransformItems({
+  indexBaseYear,
+  onIndexBaseYearChange,
+  minYear,
+  maxYear,
+  isActive,
+}: {
+  indexBaseYear: number;
+  onIndexBaseYearChange: (year: number) => void;
+  minYear: number;
+  maxYear: number;
+  /** Whether the "indexToYear" transform is currently selected */
+  isActive: boolean;
+}) {
   return (
     <>
       <ToggleGroupItem value="none" className="h-7 px-2.5 text-xs">
         None
       </ToggleGroupItem>
-      <FormulaTooltip
+      <TooltipToggleItem
+        value="zScore"
+        className="h-7 px-2.5 text-xs"
         formula={
           <span>
             z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
@@ -90,11 +145,11 @@ function TransformItems() {
         }
         description="Standard score: how many std devs from the mean"
       >
-        <ToggleGroupItem value="zScore" className="h-7 px-2.5 text-xs">
-          Z-Score
-        </ToggleGroupItem>
-      </FormulaTooltip>
-      <FormulaTooltip
+        Z-Score
+      </TooltipToggleItem>
+      <TooltipToggleItem
+        value="deviationFromTrend"
+        className="h-7 px-2.5 text-xs"
         formula={
           <span>
             d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
@@ -102,14 +157,11 @@ function TransformItems() {
         }
         description="Residual from OLS linear trend"
       >
-        <ToggleGroupItem
-          value="deviationFromTrend"
-          className="h-7 px-2.5 text-xs"
-        >
-          Dev. from Trend
-        </ToggleGroupItem>
-      </FormulaTooltip>
-      <FormulaTooltip
+        Dev. from Trend
+      </TooltipToggleItem>
+      <TooltipToggleItem
+        value="logLevel"
+        className="h-7 px-2.5 text-xs"
         formula={
           <span>
             y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
@@ -117,10 +169,35 @@ function TransformItems() {
         }
         description="Natural logarithm of level values"
       >
-        <ToggleGroupItem value="logLevel" className="h-7 px-2.5 text-xs">
-          Log Level
-        </ToggleGroupItem>
-      </FormulaTooltip>
+        Log Level
+      </TooltipToggleItem>
+      <TooltipToggleItem
+        value="indexToYear"
+        className="h-7 px-2.5 text-xs"
+        formula={
+          <span>
+            y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100
+          </span>
+        }
+        description="Index all values relative to the first observation in the base year"
+      >
+        Index
+        {isActive && (
+          <input
+            type="number"
+            value={indexBaseYear}
+            min={minYear}
+            max={maxYear}
+            onChange={(e) => {
+              e.stopPropagation();
+              const v = parseInt(e.target.value, 10);
+              if (!isNaN(v)) onIndexBaseYearChange(v);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="border-input bg-background ml-0.5 h-5 w-14 rounded border px-1 text-center font-mono text-[11px]"
+          />
+        )}
+      </TooltipToggleItem>
     </>
   );
 }
@@ -146,6 +223,69 @@ const RANGE_PRESETS = [
   { label: "20Y", years: 20, minPPY: 0 },
   { label: "MAX", years: Infinity, minPPY: 0 },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  URL sync helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+const MANAGED_PARAMS = [
+  "overlays",
+  "transform",
+  "secondAxis",
+  "secondAxisTransform",
+  "barMode",
+  "rollingWindow",
+  "indexYear",
+  "range",
+] as const;
+
+const VALID_OVERLAYS = new Set<Overlay>([
+  "rollingMean",
+  "linearTrend",
+  "logLinearTrend",
+  "hpTrend",
+  "mean",
+  "stdDev",
+  "rollingStdDev",
+  "recessions",
+]);
+
+const VALID_TRANSFORMATIONS = new Set<Transformation>([
+  "zScore",
+  "deviationFromTrend",
+  "logLevel",
+  "indexToYear",
+  "rollingMean",
+  "linearTrend",
+  "logLinearTrend",
+  "hpTrend",
+]);
+
+const VALID_BAR_MODES = new Set<BarMode>(["yoy", "ytd", "levelChange"]);
+
+function parseOverlays(v: string | null): Overlay[] {
+  if (!v) return [];
+  return v.split(",").filter((s): s is Overlay => VALID_OVERLAYS.has(s as Overlay));
+}
+
+function parseTransformation(v: string | null): Transformation | null {
+  if (!v) return null;
+  return VALID_TRANSFORMATIONS.has(v as Transformation) ? (v as Transformation) : null;
+}
+
+function parseBarMode(v: string | null): BarMode {
+  if (!v) return "yoy";
+  return VALID_BAR_MODES.has(v as BarMode) ? (v as BarMode) : "yoy";
+}
+
+function syncParamsToUrl(params: Record<string, string | undefined>) {
+  const url = new URL(window.location.href);
+  for (const key of MANAGED_PARAMS) url.searchParams.delete(key);
+  for (const [k, v] of Object.entries(params)) {
+    if (v) url.searchParams.set(k, v);
+  }
+  window.history.replaceState(null, "", url.toString());
+}
 
 /** Find the start index for showing the last N years of data */
 function getRangeStartIndex(chartData: ChartRow[], years: number): number {
@@ -212,7 +352,9 @@ function OverlaysToggle({
         <ToggleGroupItem value="none" className="h-7 px-2.5 text-xs">
           None
         </ToggleGroupItem>
-        <FormulaTooltip
+        <TooltipToggleItem
+          value="mean"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               x̄ = <sup>1</sup>&frasl;<sub>n</sub> &Sigma; x<sub>i</sub>
@@ -220,12 +362,12 @@ function OverlaysToggle({
           }
           description="Arithmetic mean of all observations"
         >
-          <ToggleGroupItem value="mean" className="h-7 gap-1.5 px-2.5 text-xs">
-            <span className="text-muted-foreground">x̄</span>
-            <span className="font-mono">{fmtMean(stats.mean)}</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-        <FormulaTooltip
+          <span className="text-muted-foreground">x̄</span>
+          <span className="font-mono">{fmtMean(stats.mean)}</span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="rollingMean"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               x̄<sub>t</sub> = <sup>1</sup>&frasl;<sub>k</sub> &Sigma;
@@ -235,14 +377,11 @@ function OverlaysToggle({
           }
           description={`Backward-looking moving average (k=${rollingWindow})`}
         >
-          <ToggleGroupItem
-            value="rollingMean"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">Rolling x̄</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-        <FormulaTooltip
+          <span className="text-muted-foreground">Rolling x̄</span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="stdDev"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               x̄ &plusmn; &sigma; where &sigma; = &radic;(&Sigma;(x
@@ -251,14 +390,11 @@ function OverlaysToggle({
           }
           description="Full-sample mean ± 1 std dev (Bessel-corrected)"
         >
-          <ToggleGroupItem
-            value="stdDev"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">&plusmn;&sigma;</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-        <FormulaTooltip
+          <span className="text-muted-foreground">&plusmn;&sigma;</span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="rollingStdDev"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               x̄<sub>t</sub> &plusmn; &sigma;<sub>t</sub> where &sigma;
@@ -269,17 +405,13 @@ function OverlaysToggle({
           }
           description={`Rolling mean ± 1 sample std dev (k=${rollingWindow})`}
         >
-          <ToggleGroupItem
-            value="rollingStdDev"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">
-              Rolling &plusmn;&sigma;
-            </span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-
-        <FormulaTooltip
+          <span className="text-muted-foreground">
+            Rolling &plusmn;&sigma;
+          </span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="linearTrend"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               ŷ = &alpha; + &beta;t where &beta; = (n&Sigma;ty &minus;
@@ -288,14 +420,11 @@ function OverlaysToggle({
           }
           description="OLS linear trend on observation index"
         >
-          <ToggleGroupItem
-            value="linearTrend"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">Linear</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-        <FormulaTooltip
+          <span className="text-muted-foreground">Linear</span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="logLinearTrend"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               ŷ = e<sup>&alpha; + &beta;t</sup> &mdash; regress ln(y) on t
@@ -303,14 +432,11 @@ function OverlaysToggle({
           }
           description="Exponential trend via log-linear regression"
         >
-          <ToggleGroupItem
-            value="logLinearTrend"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">Log-Linear</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-        <FormulaTooltip
+          <span className="text-muted-foreground">Log-Linear</span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="hpTrend"
+          className="h-7 px-2.5 text-xs"
           formula={
             <span>
               min<sub>&tau;</sub> &Sigma;(y<sub>t</sub> &minus; &tau;
@@ -320,24 +446,16 @@ function OverlaysToggle({
           }
           description="Hodrick-Prescott filter (&lambda; auto by frequency)"
         >
-          <ToggleGroupItem
-            value="hpTrend"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">HP Trend</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
-        <FormulaTooltip
+          <span className="text-muted-foreground">HP Trend</span>
+        </TooltipToggleItem>
+        <TooltipToggleItem
+          value="recessions"
+          className="h-7 px-2.5 text-xs"
           formula={<span>NBER recession shading</span>}
           description="Peak-to-trough dates from the National Bureau of Economic Research"
         >
-          <ToggleGroupItem
-            value="recessions"
-            className="h-7 gap-1.5 px-2.5 text-xs"
-          >
-            <span className="text-muted-foreground">Recessions</span>
-          </ToggleGroupItem>
-        </FormulaTooltip>
+          <span className="text-muted-foreground">Recessions</span>
+        </TooltipToggleItem>
       </ToggleGroup>
       {showWindowInput && windowPresets.length > 0 && (
         <div className="ml-auto flex items-center gap-1">
@@ -370,6 +488,10 @@ function TransformToggle({
   onSecondAxisToggle,
   secondAxisValue,
   onSecondAxisValueChange,
+  indexBaseYear,
+  onIndexBaseYearChange,
+  minYear,
+  maxYear,
 }: {
   value: Transformation | null;
   onValueChange: (t: Transformation | null) => void;
@@ -377,6 +499,10 @@ function TransformToggle({
   onSecondAxisToggle: () => void;
   secondAxisValue: Transformation | null;
   onSecondAxisValueChange: (t: Transformation | null) => void;
+  indexBaseYear: number;
+  onIndexBaseYearChange: (year: number) => void;
+  minYear: number;
+  maxYear: number;
 }) {
   /** Enforce single-selection from a type="multiple" toggle group */
   const makeSingleHandler =
@@ -410,7 +536,13 @@ function TransformToggle({
           variant="default"
           size="sm"
         >
-          <TransformItems />
+          <TransformItems
+            indexBaseYear={indexBaseYear}
+            onIndexBaseYearChange={onIndexBaseYearChange}
+            minYear={minYear}
+            maxYear={maxYear}
+            isActive={value === "indexToYear"}
+          />
         </ToggleGroup>
       </div>
 
@@ -426,11 +558,12 @@ function TransformToggle({
             variant="default"
             size="sm"
           >
-            {/* <TransformItems /> */}
             <ToggleGroupItem value="none" className="h-7 px-2.5 text-xs">
               None
             </ToggleGroupItem>
-            <FormulaTooltip
+            <TooltipToggleItem
+              value="zScore"
+              className="h-7 px-2.5 text-xs"
               formula={
                 <span>
                   z<sub>t</sub> = (x<sub>t</sub> &minus; x̄) / &sigma;
@@ -438,11 +571,11 @@ function TransformToggle({
               }
               description="Standard score: how many std devs from the mean"
             >
-              <ToggleGroupItem value="zScore" className="h-7 px-2.5 text-xs">
-                Z-Score
-              </ToggleGroupItem>
-            </FormulaTooltip>
-            <FormulaTooltip
+              Z-Score
+            </TooltipToggleItem>
+            <TooltipToggleItem
+              value="deviationFromTrend"
+              className="h-7 px-2.5 text-xs"
               formula={
                 <span>
                   d<sub>t</sub> = x<sub>t</sub> &minus; (&alpha; + &beta;t)
@@ -450,14 +583,11 @@ function TransformToggle({
               }
               description="Residual from OLS linear trend"
             >
-              <ToggleGroupItem
-                value="deviationFromTrend"
-                className="h-7 px-2.5 text-xs"
-              >
-                Dev. from Trend
-              </ToggleGroupItem>
-            </FormulaTooltip>
-            <FormulaTooltip
+              Dev. from Trend
+            </TooltipToggleItem>
+            <TooltipToggleItem
+              value="logLevel"
+              className="h-7 px-2.5 text-xs"
               formula={
                 <span>
                   y<sub>t</sub> = ln(x<sub>t</sub>), x &gt; 0
@@ -465,10 +595,36 @@ function TransformToggle({
               }
               description="Natural logarithm of level values"
             >
-              <ToggleGroupItem value="logLevel" className="h-7 px-2.5 text-xs">
-                Log Level
-              </ToggleGroupItem>
-            </FormulaTooltip>
+              Log Level
+            </TooltipToggleItem>
+            <TooltipToggleItem
+              value="indexToYear"
+              className="h-7 px-2.5 text-xs"
+              formula={
+                <span>
+                  y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times;
+                  100
+                </span>
+              }
+              description="Index all values relative to the first observation in the base year"
+            >
+              Index
+              {secondAxisValue === "indexToYear" && (
+                <input
+                  type="number"
+                  value={indexBaseYear}
+                  min={minYear}
+                  max={maxYear}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v)) onIndexBaseYearChange(v);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="border-input bg-background ml-0.5 h-5 w-14 rounded border px-1 text-center font-mono text-[11px]"
+                />
+              )}
+            </TooltipToggleItem>
           </ToggleGroup>
         )}
         <div className="ml-auto">
@@ -525,7 +681,7 @@ interface AnalyzeControlsProps {
   unitShortLabel?: string | null;
   currentFreqCode?: string | null;
   /** Multi-series compare mode */
-  compareSeries?: Array<{ name: string; data: [string, number][] }>;
+  compareSeries?: Array<{ name: string; data: [string, number][]; unitShortLabel?: string | null }>;
 }
 
 export function AnalyzeControls({
@@ -539,17 +695,34 @@ export function AnalyzeControls({
   currentFreqCode,
   compareSeries: compareSeriesData,
 }: AnalyzeControlsProps) {
-  const isCompareMode = !!(compareSeriesData && compareSeriesData.length >= 2);
+  const isCompareMode = !!(compareSeriesData && compareSeriesData.length >= 1);
 
-  const [barMode, setBarMode] = useState<BarMode>("yoy");
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
-  const [transformation, setTransformation] = useState<Transformation | null>(
-    null
+  const searchParams = useSearchParams();
+
+  const [barMode, setBarMode] = useState<BarMode>(
+    () => parseBarMode(searchParams.get("barMode"))
   );
-  const [secondAxis, setSecondAxis] = useState(false);
+  const [overlays, setOverlays] = useState<Overlay[]>(
+    () => parseOverlays(searchParams.get("overlays"))
+  );
+  const [transformation, setTransformation] = useState<Transformation | null>(
+    () => parseTransformation(searchParams.get("transform"))
+  );
+  const [secondAxis, setSecondAxis] = useState(
+    () => searchParams.get("secondAxis") === "1"
+  );
   const [secondAxisTransformation, setSecondAxisTransformation] =
-    useState<Transformation | null>(null);
-  const [rollingWindow, setRollingWindow] = useState(12);
+    useState<Transformation | null>(
+      () => parseTransformation(searchParams.get("secondAxisTransform"))
+    );
+  const [rollingWindow, setRollingWindow] = useState(() => {
+    const v = parseInt(searchParams.get("rollingWindow") ?? "", 10);
+    return !isNaN(v) && v >= 2 ? v : 12;
+  });
+  const [indexBaseYear, setIndexBaseYear] = useState(() => {
+    const v = parseInt(searchParams.get("indexYear") ?? "", 10);
+    return !isNaN(v) ? v : 2015;
+  });
 
   // When second axis is on, overlays are disabled
   const effectiveOverlays = useMemo(
@@ -584,6 +757,19 @@ export function AnalyzeControls({
     [isCompareMode, compareSeriesData]
   );
 
+  /** Group series indices by unit label for the compare stats bar */
+  const compareUnits = useMemo(() => {
+    if (!isCompareMode) return [];
+    const map = new Map<string, number[]>();
+    for (let i = 0; i < compareSeriesData.length; i++) {
+      const label = compareSeriesData[i].unitShortLabel ?? "—";
+      const indices = map.get(label);
+      if (indices) indices.push(i);
+      else map.set(label, [i]);
+    }
+    return [...map.entries()]; // [label, seriesIndices[]]
+  }, [isCompareMode, compareSeriesData]);
+
   // ── Standard single-series chart data ──────────────────────────────
   const chartData = useMemo(() => {
     if (isCompareMode) return compareChartData;
@@ -613,11 +799,27 @@ export function AnalyzeControls({
   }, [isCompareMode, compareChartData, data, yoy, ytd, levelChange]);
 
   const endIdx = Math.max(0, chartData.length - 1);
-  const [rangePreset, setRangePreset] = useState("10Y");
+  const [rangePreset, setRangePreset] = useState(() => {
+    const v = searchParams.get("range");
+    if (v) {
+      const preset = RANGE_PRESETS.find((p) => p.label === v);
+      if (preset) return v;
+    }
+    return "10Y";
+  });
   const [brushRange, setBrushRange] = useState<{
     startIndex: number;
     endIndex: number;
-  }>({ startIndex: getRangeStartIndex(chartData, 10), endIndex: endIdx });
+  }>(() => {
+    const rangeParam = searchParams.get("range");
+    if (rangeParam) {
+      const preset = RANGE_PRESETS.find((p) => p.label === rangeParam);
+      if (preset) {
+        return { startIndex: getRangeStartIndex(chartData, preset.years), endIndex: endIdx };
+      }
+    }
+    return { startIndex: getRangeStartIndex(chartData, 10), endIndex: endIdx };
+  });
 
   const handlePresetClick = useCallback(
     (years: number, label: string) => {
@@ -643,11 +845,36 @@ export function AnalyzeControls({
     []
   );
 
+  // ── Sync chart state → URL search params ────────────────────────────
+  useEffect(() => {
+    syncParamsToUrl({
+      overlays: overlays.length > 0 ? overlays.join(",") : undefined,
+      transform: transformation ?? undefined,
+      secondAxis: secondAxis ? "1" : undefined,
+      secondAxisTransform: secondAxis ? (secondAxisTransformation ?? undefined) : undefined,
+      barMode: barMode !== "yoy" ? barMode : undefined,
+      rollingWindow: rollingWindow !== 12 ? String(rollingWindow) : undefined,
+      indexYear: indexBaseYear !== 2015 ? String(indexBaseYear) : undefined,
+      range: rangePreset && rangePreset !== "10Y" ? rangePreset : undefined,
+    });
+  }, [overlays, transformation, secondAxis, secondAxisTransformation, barMode, rollingWindow, indexBaseYear, rangePreset]);
+
+  // ── Min/max year from brush-selected date range ─────────────────────
+  const { minYear, maxYear } = useMemo(() => {
+    if (chartData.length === 0) return { minYear: 2000, maxYear: 2030 };
+    const startDate = chartData[brushRange.startIndex]?.date ?? chartData[0].date;
+    const endDate = chartData[brushRange.endIndex]?.date ?? chartData[chartData.length - 1].date;
+    return {
+      minYear: parseInt(startDate.slice(0, 4), 10),
+      maxYear: parseInt(endDate.slice(0, 4), 10),
+    };
+  }, [chartData, brushRange]);
+
   // ── Compare mode: full data with transforms (for chart + brush) ────
   const compareFullData = useMemo(() => {
     if (!isCompareMode) return [];
-    return applyTransformationMulti(chartData, transformation, compareSeriesNames.length);
-  }, [isCompareMode, chartData, transformation, compareSeriesNames.length]);
+    return applyTransformationMulti(chartData, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow);
+  }, [isCompareMode, chartData, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow]);
 
   // ── Compare mode: sliced data with transforms (for table) ──────────
   const compareVisibleData = useMemo(() => {
@@ -668,10 +895,10 @@ export function AnalyzeControls({
     let result = sliced;
     // Compute second axis transform first (reads original level)
     if (secondAxis && secondAxisTransformation) {
-      result = computeSecondAxis(result, secondAxisTransformation);
+      result = computeSecondAxis(result, secondAxisTransformation, indexBaseYear);
     }
     // Apply main transformation (replaces level)
-    result = applyTransformation(result, transformation);
+    result = applyTransformation(result, transformation, indexBaseYear);
     return result;
   }, [
     isCompareMode,
@@ -681,26 +908,50 @@ export function AnalyzeControls({
     transformation,
     secondAxis,
     secondAxisTransformation,
+    indexBaseYear,
   ]);
 
-  // Table data — filtered to brush range, with overlays + transform computed
+  // ── Compare mode: table data preserving original levels ─────────────
+  const compareTableData = useMemo(() => {
+    if (!isCompareMode) return [];
+    const sliced = chartData.slice(brushRange.startIndex, brushRange.endIndex + 1);
+    if (!transformation) return sliced;
+    const transformed = applyTransformationMulti(
+      sliced, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow
+    );
+    return sliced.map((row, i) => {
+      const result = { ...row };
+      for (let s = 0; s < compareSeriesNames.length; s++) {
+        const sKey = `series_${s}` as const;
+        (result as unknown as Record<string, unknown>)[`transformed_${s}`] =
+          transformed[i][sKey];
+      }
+      return result;
+    });
+  }, [isCompareMode, chartData, brushRange, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow]);
+
+  // Table data — filtered to brush range, with overlays; transforms stored separately
   const tableData = useMemo(() => {
-    if (isCompareMode) return compareVisibleData;
+    if (isCompareMode) return compareTableData;
     const sliced = chartData.slice(
       brushRange.startIndex,
       brushRange.endIndex + 1
     );
     let rows = computeOverlays(sliced, effectiveOverlays, rollingWindow);
     if (secondAxis && secondAxisTransformation) {
-      rows = computeSecondAxis(rows, secondAxisTransformation);
+      rows = computeSecondAxis(rows, secondAxisTransformation, indexBaseYear);
     }
     if (transformation) {
-      rows = applyTransformation(rows, transformation);
+      const transformed = applyTransformation(rows, transformation, indexBaseYear);
+      rows = rows.map((row, i) => ({
+        ...row,
+        mainTransformed: transformed[i].level,
+      }));
     }
     return rows;
   }, [
     isCompareMode,
-    compareVisibleData,
+    compareTableData,
     chartData,
     brushRange,
     effectiveOverlays,
@@ -708,6 +959,7 @@ export function AnalyzeControls({
     transformation,
     secondAxis,
     secondAxisTransformation,
+    indexBaseYear,
   ]);
 
   // Overlay toggle handler: clicking "none" clears all; clicking an overlay removes "none"
@@ -784,9 +1036,9 @@ export function AnalyzeControls({
   // ── Compare mode render ────────────────────────────────────────────
   if (isCompareMode) {
     return (
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {/* Stats & range bar */}
-        <div className="flex items-start justify-between gap-4 rounded-lg border bg-white px-4 py-3">
+        <div className="flex items-start gap-6 py-1">
           <div className="flex gap-6">
             <div className="flex flex-col gap-0.5">
               <span className="text-muted-foreground text-[10px]">
@@ -809,6 +1061,7 @@ export function AnalyzeControls({
               </span>
             </div>
           </div>
+          <Separator orientation="vertical" className="h-auto self-stretch" />
           <div className="flex flex-col gap-1">
             <span className="text-muted-foreground text-xs">Range</span>
             <div className="flex gap-1">
@@ -831,22 +1084,29 @@ export function AnalyzeControls({
               ))}
             </div>
           </div>
-          {/* Legend showing color swatches */}
+          <Separator orientation="vertical" className="h-auto self-stretch" />
+          {/* Units for compared series */}
           <div className="flex flex-col gap-1">
-            <span className="text-muted-foreground text-xs">Series</span>
+            <span className="text-muted-foreground text-xs">Units</span>
             <div className="flex flex-wrap gap-2">
-              {compareSeriesNames.map((name, i) => (
-                <span key={name} className="flex items-center gap-1 text-xs">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}
-                  />
-                  {name}
+              {compareUnits.map(([label, indices]) => (
+                <span key={label} className="flex items-center gap-1 text-sm font-medium">
+                  {compareUnits.length > 1 &&
+                    indices.map((i) => (
+                      <span
+                        key={i}
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}
+                      />
+                    ))}
+                  {label}
                 </span>
               ))}
             </div>
           </div>
         </div>
+
+        <Separator />
 
         {/* Transform only (no overlays, no 2nd axis) */}
         <ControlPanel>
@@ -860,14 +1120,105 @@ export function AnalyzeControls({
               onValueChange={makeTransformHandler(transformation, setTransformation)}
               variant="default"
               size="sm"
+              className="flex-wrap"
             >
-              <TransformItems />
+              <TransformItems
+                indexBaseYear={indexBaseYear}
+                onIndexBaseYearChange={setIndexBaseYear}
+                minYear={minYear}
+                maxYear={maxYear}
+                isActive={transformation === "indexToYear"}
+              />
+              <TooltipToggleItem
+                value="rollingMean"
+                className="h-7 px-2.5 text-xs"
+                formula={
+                  <span>
+                    x̄<sub>t</sub> = <sup>1</sup>&frasl;<sub>k</sub> &Sigma;
+                    <sub>i=t&minus;k+1</sub>
+                    <sup>t</sup> x<sub>i</sub>
+                  </span>
+                }
+                description={`Backward-looking moving average (k=${rollingWindow})`}
+              >
+                Rolling x̄
+              </TooltipToggleItem>
+              <TooltipToggleItem
+                value="linearTrend"
+                className="h-7 px-2.5 text-xs"
+                formula={
+                  <span>
+                    ŷ = &alpha; + &beta;t
+                  </span>
+                }
+                description="OLS linear trend on observation index"
+              >
+                Linear
+              </TooltipToggleItem>
+              <TooltipToggleItem
+                value="logLinearTrend"
+                className="h-7 px-2.5 text-xs"
+                formula={
+                  <span>
+                    ŷ = e<sup>&alpha; + &beta;t</sup>
+                  </span>
+                }
+                description="Exponential trend via log-linear regression"
+              >
+                Log-Linear
+              </TooltipToggleItem>
+              <TooltipToggleItem
+                value="hpTrend"
+                className="h-7 px-2.5 text-xs"
+                formula={
+                  <span>
+                    min<sub>&tau;</sub> &Sigma;(y<sub>t</sub> &minus; &tau;
+                    <sub>t</sub>)&sup2; + &lambda;&Sigma;(&Delta;&sup2; &tau;
+                    <sub>t</sub>)&sup2;
+                  </span>
+                }
+                description="Hodrick-Prescott filter (λ auto by frequency)"
+              >
+                HP Trend
+              </TooltipToggleItem>
             </ToggleGroup>
+            {transformation === "rollingMean" && (() => {
+              const dataPPY = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
+              const windowPresets = [
+                { label: "W", ppy: 52 },
+                { label: "M", ppy: 12 },
+                { label: "Q", ppy: 4 },
+                { label: "S", ppy: 2 },
+                { label: "A", ppy: 1 },
+              ]
+                .map((p) => ({ ...p, k: Math.round(dataPPY / p.ppy) }))
+                .filter((p) => p.k >= 2);
+              return windowPresets.length > 0 ? (
+                <div className="ml-auto flex items-center gap-1">
+                  <span className="text-muted-foreground text-[10px]">k</span>
+                  {windowPresets.map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setRollingWindow(p.k)}
+                      className={`h-7 rounded-md border px-2 text-xs font-medium transition-colors ${
+                        rollingWindow === p.k
+                          ? "border-blue-300 bg-blue-50 text-blue-700"
+                          : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                      }`}
+                      title={`k=${p.k}`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null;
+            })()}
           </div>
         </ControlPanel>
 
         {/* Multi-series level chart with brush */}
-        <div className="w-full rounded-lg border bg-white p-4">
+        <div className="w-full py-2">
           <LevelChart
             data={compareFullData}
             decimals={decimals}
@@ -876,8 +1227,11 @@ export function AnalyzeControls({
             brushStartIndex={brushRange.startIndex}
             brushEndIndex={brushRange.endIndex}
             onBrushChange={handleBrushChange}
+            indexBaseYear={transformation === "indexToYear" ? indexBaseYear : undefined}
           />
         </div>
+
+        <Separator />
 
         {/* Multi-series data table */}
         <AnalyzeDataTable
@@ -885,6 +1239,7 @@ export function AnalyzeControls({
           decimals={decimals}
           unitShortLabel={unitShortLabel}
           seriesNames={compareSeriesNames}
+          activeTransformation={transformation}
         />
       </div>
     );
@@ -895,7 +1250,7 @@ export function AnalyzeControls({
   return (
     <div className="space-y-3">
       {/* FRED-style control bar */}
-      <div className="flex items-start justify-between gap-4 rounded-lg border bg-white px-4 py-3">
+      <div className="flex items-start gap-6 py-1">
         {/* Col 1: Summary stats for selected range */}
         <div className="flex gap-6">
           <div className="flex flex-col gap-0.5">
@@ -917,6 +1272,7 @@ export function AnalyzeControls({
             </span>
           </div>
         </div>
+        <Separator orientation="vertical" className="h-auto self-stretch" />
 
         {/* Col 2: Range presets */}
         <div className="flex flex-col gap-1">
@@ -941,13 +1297,16 @@ export function AnalyzeControls({
             ))}
           </div>
         </div>
+        <Separator orientation="vertical" className="h-auto self-stretch" />
 
         {/* Col 3: Units */}
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs">Units</span>
           <span className="text-sm font-medium">{unitLabel || "—"}</span>
         </div>
       </div>
+
+      <Separator />
 
       {/* Overlays & Transforms toggle groups */}
       {chartStats && (
@@ -969,12 +1328,16 @@ export function AnalyzeControls({
             onSecondAxisToggle={() => setSecondAxis((v) => !v)}
             secondAxisValue={secondAxisTransformation}
             onSecondAxisValueChange={setSecondAxisTransformation}
+            indexBaseYear={indexBaseYear}
+            onIndexBaseYearChange={setIndexBaseYear}
+            minYear={minYear}
+            maxYear={maxYear}
           />
         </ControlPanel>
       )}
 
       {/* Level line chart */}
-      <div className="w-full rounded-lg border bg-white p-4">
+      <div className="w-full py-2">
         <LevelChart
           data={visibleData}
           decimals={decimals}
@@ -989,19 +1352,29 @@ export function AnalyzeControls({
           }
           freqCode={currentFreqCode}
           rollingWindow={rollingWindow}
+          indexBaseYear={
+            transformation === "indexToYear" || secondAxisTransformation === "indexToYear"
+              ? indexBaseYear
+              : undefined
+          }
         />
       </div>
 
+      <Separator />
+
       {/* Bar chart with mode toggle */}
-      <div className="w-full rounded-lg border bg-white p-4">
+      <div className="w-full py-2">
         <div className="mb-2 flex items-center gap-2">
+          <span className="text-muted-foreground w-16 shrink-0 text-xs font-medium">
+            Changes
+          </span>
           <ToggleGroup
             type="single"
             value={barMode}
             onValueChange={(v) => {
               if (v) setBarMode(v as BarMode);
             }}
-            variant="outline"
+            variant="default"
             size="sm"
           >
             <ToggleGroupItem value="yoy" className="h-7 px-2.5 text-xs">
@@ -1027,14 +1400,17 @@ export function AnalyzeControls({
         />
       </div>
 
+      <Separator />
+
       {/* Data table — shares overlay/transform state with charts */}
       <AnalyzeDataTable
         rows={tableData}
         decimals={decimals}
         unitShortLabel={unitShortLabel}
         activeOverlays={effectiveOverlays}
-        activeTransformation={secondAxis ? secondAxisTransformation : null}
+        activeTransformation={transformation}
         secondAxis={secondAxis}
+        secondAxisTransformation={secondAxisTransformation}
       />
     </div>
   );

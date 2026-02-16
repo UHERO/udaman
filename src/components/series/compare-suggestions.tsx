@@ -36,7 +36,7 @@ export function CompareSuggestions({
     }
     const expr = names.join(",");
     router.push(
-      `/udaman/${universe}/series/analyze?eval=${encodeURIComponent(expr)}`
+      `/udaman/${universe}/series/compare?names=${encodeURIComponent(expr)}`
     );
   };
 
