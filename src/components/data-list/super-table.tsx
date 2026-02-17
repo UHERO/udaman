@@ -239,14 +239,14 @@ export function SuperTable({ data }: SuperTableProps) {
       {/* Action buttons — inline */}
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/udaman/${dataList.universe}/data-list`}>
+          <Link href={`/udaman/${dataList.universe}/catalog/data-lists`}>
             <ArrowLeft className="mr-1.5 size-4" />
             Back
           </Link>
         </Button>
         <Button variant="outline" size="sm" asChild>
           <Link
-            href={`/udaman/${dataList.universe}/data-list/${dataList.id}/edit`}
+            href={`/udaman/${dataList.universe}/catalog/data-lists/${dataList.id}/edit`}
           >
             <Pencil className="mr-1.5 size-4" />
             Edit

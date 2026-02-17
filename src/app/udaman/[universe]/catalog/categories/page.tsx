@@ -17,8 +17,14 @@ export default async function Page({
   ]);
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <Categories data={data} universe={u} geographies={geographies} />
+    <div>
+      <h1 className="text-3xl font-bold">Categories</h1>
+      <p className="text-muted-foreground text-sm">
+        Manage category definitions for the data portal.
+      </p>
+      <div className="mt-4">
+        <Categories data={data} universe={u} geographies={geographies} />
+      </div>
     </div>
   );
 }

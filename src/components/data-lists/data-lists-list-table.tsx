@@ -99,7 +99,7 @@ export function DataListsListTable({
                 <TableRow key={dl.id} className="odd:bg-muted">
                   <TableCell className="font-medium">
                     <Link
-                      href={`/udaman/${dl.universe}/data-list/${dl.id}`}
+                      href={`/udaman/${dl.universe}/catalog/data-lists/${dl.id}`}
                       className="text-primary hover:underline"
                     >
                       {dl.name || "-"}

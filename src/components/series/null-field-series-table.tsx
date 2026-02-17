@@ -102,7 +102,7 @@ export function NullFieldSeriesTable({ universe }: { universe: string }) {
       </div>
       <p>
         {`Edit individual series on their page or in bulk through their `}
-        <Link href="/udaman/uhero/measurement">Measurement.</Link>
+        <Link href="/udaman/uhero/catalog/measurements">Measurement.</Link>
       </p>
       <Table>
         <TableHeader>

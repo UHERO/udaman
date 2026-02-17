@@ -122,38 +122,8 @@ const data = {
     },
     {
       title: "Data Portal",
-      url: "#",
+      url: "/catalog",
       icon: ChartLine,
-      items: [
-        {
-          title: "Categories",
-          url: "/categories",
-        },
-        {
-          title: "Geographies",
-          url: "/geographies",
-        },
-        {
-          title: "Data Lists",
-          url: "/data-list",
-        },
-        {
-          title: "Measurements",
-          url: "/measurement",
-        },
-        {
-          title: "Sources",
-          url: "/sources",
-        },
-        {
-          title: "Source Details",
-          url: "/source-details",
-        },
-        {
-          title: "Units",
-          url: "/units",
-        },
-      ],
     },
     {
       title: "Forecast Snapshots",

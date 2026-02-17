@@ -15,8 +15,14 @@ import {
 
 const segmentLabels: Record<string, string> = {
   series: "Series",
+  catalog: "Catalog",
   categories: "Categories",
   geographies: "Geographies",
+  "data-lists": "Data Lists",
+  measurements: "Measurements",
+  units: "Units",
+  sources: "Sources",
+  "source-details": "Source Details",
   "data-loaders": "Data Loaders",
   clipboard: "Clipboard",
   downloads: "Downloads",
@@ -28,6 +34,14 @@ const segmentLabels: Record<string, string> = {
   duplicate: "Duplicate",
   create: "Create",
 };
+
+/** Fallback: convert kebab-case segment to Title Case */
+function formatSegment(segment: string): string {
+  return segment
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 export function NavBreadcrumb() {
   const pathname = usePathname();
@@ -55,7 +69,7 @@ export function NavBreadcrumb() {
   }
 
   const crumbs = crumbSegments.map((segment, i) => ({
-    label: segmentLabels[segment] ?? segment,
+    label: segmentLabels[segment] ?? formatSegment(segment),
     href: `/udaman/${universe}/${crumbSegments.slice(0, i + 1).join("/")}`,
   }));
 

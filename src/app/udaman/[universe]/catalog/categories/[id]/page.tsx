@@ -21,10 +21,10 @@ export default async function CategoryPage({
     : null;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div>
       <div className="flex items-center gap-4">
         <Link
-          href={`/udaman/${universe}/categories`}
+          href={`/udaman/${universe}/catalog/categories`}
           className="text-muted-foreground hover:text-foreground flex items-center gap-1"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -32,7 +32,7 @@ export default async function CategoryPage({
         </Link>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3">
         <h1 className="text-3xl font-bold">
           {category.name || "Unnamed Category"}
         </h1>
@@ -42,10 +42,10 @@ export default async function CategoryPage({
       </div>
 
       {category.description && (
-        <p className="text-muted-foreground">{category.description}</p>
+        <p className="text-muted-foreground mt-2">{category.description}</p>
       )}
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="mt-4 overflow-hidden rounded-md border">
         <Table>
           <TableBody>
             <TableRow className="odd:bg-muted">

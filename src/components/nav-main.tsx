@@ -49,7 +49,7 @@ export function NavMain({
             />
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild isActive={pathname === item.url}>
+              <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)}>
                 <Link href={item.url}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>

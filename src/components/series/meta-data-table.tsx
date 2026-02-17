@@ -48,7 +48,7 @@ export function MetaDataTable({
         value: metadata.measurement.map((m) => (
           <Link
             key={`${m.id}`}
-            href={`/udaman/${universe}/measurements/${m.id}`}
+            href={`/udaman/${universe}/catalog/measurements/${m.id}`}
             className="block hover:underline"
           >
             {m.prefix}

@@ -52,7 +52,7 @@ export default async function EditDataListPage({
   }));
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-6">
       <H1>Edit Data List: {data.dataList.name ?? `#${id}`}</H1>
       <DataListEditForm
         dataList={data.dataList}

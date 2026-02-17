@@ -125,7 +125,7 @@ export function MeasurementsListTable({
                 <TableRow key={m.id} className="odd:bg-muted">
                   <TableCell className="font-medium">
                     <Link
-                      href={`/udaman/${m.universe}/measurements/${m.id}`}
+                      href={`/udaman/${m.universe}/catalog/measurements/${m.id}`}
                       className="text-primary hover:underline"
                     >
                       {m.prefix}

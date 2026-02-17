@@ -12,9 +12,12 @@ export default async function Page({
   const data = await getSources({ universe: universe as Universe });
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div>
       <h1 className="text-3xl font-bold">Sources</h1>
-      <div className="min-h-screen flex-1 rounded-xl md:min-h-min">
+      <p className="text-muted-foreground text-sm">
+        Manage source definitions for the data portal.
+      </p>
+      <div className="mt-4 min-h-screen flex-1 rounded-xl md:min-h-min">
         <SourcesListTable data={data} universe={universe as Universe} />
       </div>
     </div>

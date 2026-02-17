@@ -294,12 +294,12 @@ export function DataListEditForm({
       {/* Navigation */}
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/udaman/${universe}/data-list/${dataList.id}`}>
+          <Link href={`/udaman/${universe}/catalog/data-lists/${dataList.id}`}>
             Show (Super Table)
           </Link>
         </Button>
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/udaman/${universe}/data-list`}>
+          <Link href={`/udaman/${universe}/catalog/data-lists`}>
             <ArrowLeft className="mr-1.5 size-4" />
             Back to Data Lists
           </Link>
@@ -353,7 +353,7 @@ export function DataListEditForm({
                   <TableRow key={m.measurementId}>
                     <TableCell className="font-mono text-sm">
                       <Link
-                        href={`/udaman/${universe}/measurements/${m.measurementId}`}
+                        href={`/udaman/${universe}/catalog/measurements/${m.measurementId}`}
                         className="text-primary hover:underline"
                       >
                         {m.prefix}
