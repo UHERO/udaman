@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -122,7 +123,14 @@ export function MeasurementsListTable({
             {data.length ? (
               data.map((m) => (
                 <TableRow key={m.id} className="odd:bg-muted">
-                  <TableCell className="font-medium">{m.prefix}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/udaman/${m.universe}/measurements/${m.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {m.prefix}
+                    </Link>
+                  </TableCell>
                   <TableCell>{m.dataPortalName || "-"}</TableCell>
                   <TableCell>{m.unitShortLabel || "-"}</TableCell>
                   <TableCell>{m.percent ? "Yes" : "-"}</TableCell>

@@ -6,6 +6,8 @@ import type {
   CreateMeasurementPayload,
   UpdateMeasurementPayload,
 } from "../collections/measurement-collection";
+import SeriesCollection from "../collections/series-collection";
+import type { UpdateSeriesPayload } from "../collections/series-collection";
 import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.measurements");
@@ -31,6 +33,12 @@ export async function getMeasurementsWithUnits({ u }: { u?: Universe }) {
 export async function getMeasurement({ id }: { id: number }) {
   log.info({ id }, "fetching measurement");
   const data = await MeasurementCollection.getById(id);
+  return { data };
+}
+
+export async function getMeasurementWithLabels({ id }: { id: number }) {
+  log.info({ id }, "fetching measurement with labels");
+  const data = await MeasurementCollection.getByIdWithLabels(id);
   return { data };
 }
 
@@ -99,6 +107,82 @@ export async function updateMeasurement({
   const data = await MeasurementCollection.update(id, payload);
   log.info({ id }, "measurement updated");
   return { message: "Measurement updated", data };
+}
+
+export async function getMeasurementSeriesWithMetadata({
+  id,
+}: {
+  id: number;
+}) {
+  log.info({ id }, "fetching measurement series with metadata");
+  const data = await MeasurementCollection.getSeriesWithMetadata(id);
+  log.info({ count: data.length }, "measurement series with metadata fetched");
+  return { data };
+}
+
+/** Propagatable field names that map from measurement to series */
+const PROPAGATABLE_FIELDS = [
+  "dataPortalName",
+  "unitId",
+  "sourceId",
+  "sourceDetailId",
+  "sourceLink",
+  "seasonalAdjustment",
+  "percent",
+  "real",
+  "decimals",
+  "frequencyTransform",
+  "restricted",
+] as const;
+
+type PropagatableField = (typeof PROPAGATABLE_FIELDS)[number];
+
+export async function propagateFields({
+  measurementId,
+  fieldNames,
+  seriesNames,
+}: {
+  measurementId: number;
+  fieldNames: string[];
+  seriesNames: string[];
+}) {
+  log.info(
+    { measurementId, fieldCount: fieldNames.length, seriesCount: seriesNames.length },
+    "propagating measurement fields to series",
+  );
+
+  const measurement = await MeasurementCollection.getById(measurementId);
+
+  // Build the update payload from selected measurement fields
+  const updatePayload: UpdateSeriesPayload = {};
+  for (const field of fieldNames) {
+    if (!PROPAGATABLE_FIELDS.includes(field as PropagatableField)) {
+      log.warn({ field }, "skipping unknown propagatable field");
+      continue;
+    }
+    const key = field as PropagatableField;
+    const value = measurement[key];
+    (updatePayload as Record<string, unknown>)[key] = value;
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return { message: "No valid fields selected for propagation" };
+  }
+
+  let updatedCount = 0;
+  for (const name of seriesNames) {
+    try {
+      const series = await SeriesCollection.getByName(name);
+      await SeriesCollection.update(series.id!, updatePayload);
+      updatedCount++;
+    } catch (e) {
+      log.warn({ name, error: e }, "failed to propagate to series");
+    }
+  }
+
+  const message = `Propagated ${fieldNames.length} field(s) to ${updatedCount} series`;
+  log.info({ measurementId, updatedCount }, message);
+  return { message };
 }
 
 export async function deleteMeasurement({ id }: { id: number }) {

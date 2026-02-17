@@ -6,9 +6,14 @@ import type {
   UpdateMeasurementPayload,
 } from "@catalog/collections/measurement-collection";
 import {
+  addMeasurementSeries as addMeasurementSeriesCtrl,
   createMeasurement as createMeasurementCtrl,
   deleteMeasurement as deleteMeasurementCtrl,
+  getMeasurementSeriesWithMetadata as getMeasurementSeriesCtrl,
+  getMeasurementWithLabels as getMeasurementWithLabelsCtrl,
   getMeasurementsWithUnits as fetchMeasurements,
+  propagateFields as propagateFieldsCtrl,
+  removeMeasurementSeries as removeMeasurementSeriesCtrl,
   updateMeasurement as updateMeasurementCtrl,
 } from "@catalog/controllers/measurements";
 import type { Universe } from "@catalog/types/shared";
@@ -40,6 +45,55 @@ export async function updateMeasurement(
   const result = await updateMeasurementCtrl({ id, payload });
   revalidatePath("/measurement");
   return { message: result.message, data: result.data.toJSON() };
+}
+
+export async function getMeasurementDetail(id: number) {
+  log.info({ id }, "getMeasurementDetail action called");
+  const { data: measurement } = await getMeasurementWithLabelsCtrl({ id });
+  const { data: series } = await getMeasurementSeriesCtrl({ id });
+  return { measurement, series };
+}
+
+export async function propagateFieldsAction(
+  measurementId: number,
+  fieldNames: string[],
+  seriesNames: string[],
+) {
+  log.info({ measurementId }, "propagateFieldsAction called");
+  const result = await propagateFieldsCtrl({
+    measurementId,
+    fieldNames,
+    seriesNames,
+  });
+  revalidatePath("/measurement");
+  return { message: result.message };
+}
+
+export async function addSeriesAction(
+  measurementId: number,
+  seriesName: string,
+) {
+  log.info({ measurementId, seriesName }, "addSeriesAction called");
+  const { default: SeriesCollection } = await import(
+    "@catalog/collections/series-collection"
+  );
+  const series = await SeriesCollection.getByName(seriesName);
+  await addMeasurementSeriesCtrl({
+    measurementId,
+    seriesId: series.id!,
+  });
+  revalidatePath("/measurement");
+  return { message: `Added ${seriesName}` };
+}
+
+export async function removeSeriesAction(
+  measurementId: number,
+  seriesId: number,
+) {
+  log.info({ measurementId, seriesId }, "removeSeriesAction called");
+  await removeMeasurementSeriesCtrl({ measurementId, seriesId });
+  revalidatePath("/measurement");
+  return { message: "Series removed" };
 }
 
 export async function deleteMeasurement(id: number) {

@@ -95,6 +95,8 @@ interface MeasurementFormSheetProps {
   units: OptionItem[];
   sources: OptionItem[];
   sourceDetails: OptionItem[];
+  /** Optional override for create mode — called with the payload instead of the default createMeasurement action */
+  onCreated?: (payload: Record<string, unknown>) => Promise<void>;
 }
 
 export function MeasurementFormSheet({
@@ -106,6 +108,7 @@ export function MeasurementFormSheet({
   units,
   sources,
   sourceDetails,
+  onCreated,
 }: MeasurementFormSheetProps) {
   const router = useRouter();
 
@@ -171,7 +174,10 @@ export function MeasurementFormSheet({
         universe: values.universe,
       };
 
-      if (mode === "create") {
+      if (mode === "create" && onCreated) {
+        await onCreated(payload);
+        return;
+      } else if (mode === "create") {
         const result = await createMeasurement(payload);
         toast.success(result.message);
       } else if (measurement) {

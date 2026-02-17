@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Universe } from "@catalog/types/shared";
 import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -97,7 +98,12 @@ export function DataListsListTable({
               data.map((dl) => (
                 <TableRow key={dl.id} className="odd:bg-muted">
                   <TableCell className="font-medium">
-                    {dl.name || "-"}
+                    <Link
+                      href={`/udaman/${dl.universe}/data-list/${dl.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {dl.name || "-"}
+                    </Link>
                   </TableCell>
                   <TableCell>{dl.measurementCount}</TableCell>
                   <TableCell>

@@ -21,7 +21,7 @@ import {
   FieldLabel,
   FieldSet,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -130,16 +130,6 @@ export function SourceDetailFormSheet({
         >
           <FieldSet className="m-0 gap-1 p-0">
             <FieldGroup className="gap-2">
-              <Field data-invalid={!!form.formState.errors.description}>
-                <FieldLabel htmlFor="description">Description</FieldLabel>
-                <Input
-                  id="description"
-                  placeholder="Source detail description"
-                  {...form.register("description")}
-                />
-                <FieldError errors={[form.formState.errors.description]} />
-              </Field>
-
               <Field data-invalid={!!form.formState.errors.universe}>
                 <FieldLabel htmlFor="universe">Universe</FieldLabel>
                 <Select
@@ -160,6 +150,17 @@ export function SourceDetailFormSheet({
                   </SelectContent>
                 </Select>
                 <FieldError errors={[form.formState.errors.universe]} />
+              </Field>
+
+              <Field data-invalid={!!form.formState.errors.description}>
+                <FieldLabel htmlFor="description">Description</FieldLabel>
+                <Textarea
+                  id="description"
+                  placeholder="Source detail description"
+                  rows={3}
+                  {...form.register("description")}
+                />
+                <FieldError errors={[form.formState.errors.description]} />
               </Field>
             </FieldGroup>
           </FieldSet>
