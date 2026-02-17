@@ -1,6 +1,5 @@
 import { getClipboardSeries } from "@/actions/clipboard-actions";
 import { ClipboardTable } from "@/components/clipboard/clipboard-table";
-import { H1 } from "@/components/typography";
 
 export default async function ClipboardPage({
   params,
@@ -11,13 +10,18 @@ export default async function ClipboardPage({
   const { data, count } = await getClipboardSeries();
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <H1>Clipboard</H1>
+    <>
+      <div>
+        <h1 className="text-3xl font-bold">Clipboard</h1>
+        <p className="text-muted-foreground text-sm">
+          Series saved for quick access.
+        </p>
+      </div>
       <ClipboardTable
         universe={universe}
         initialData={data}
         initialCount={count}
       />
-    </div>
+    </>
   );
 }

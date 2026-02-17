@@ -15,14 +15,12 @@ export default async function CreateSeriesPage({
   });
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <SeriesCreateForm
-        universe={universe}
-        geographies={geographies}
-        units={units}
-        sources={sources}
-        sourceDetails={sourceDetails}
-      />
-    </div>
+    <SeriesCreateForm
+      universe={universe}
+      geographies={geographies}
+      units={units}
+      sources={sources}
+      sourceDetails={sourceDetails}
+    />
   );
 }

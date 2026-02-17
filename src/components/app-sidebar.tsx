@@ -9,8 +9,8 @@ import {
   AudioWaveform,
   BookOpen,
   ChartLine,
-  ClipboardList,
   Command,
+  FileSpreadsheet,
   GalleryVerticalEnd,
   HatGlasses,
   Settings,
@@ -68,37 +68,16 @@ const data = {
       title: "Data Series",
       url: "/series",
       icon: TableProperties,
-      items: [
-        {
-          title: "List Series",
-          url: "/series",
-        },
-        {
-          title: "Create Series",
-          url: "/series/create",
-        },
-        {
-          title: "Forecast Upload",
-          url: "/series/forecast-upload",
-        },
-        {
-          title: "CSV-to-TSD",
-          url: "/series/csv-to-tsd",
-        },
-        {
-          title: "Missing Metadata",
-          url: "/series/no-source",
-        },
-        {
-          title: "Quarantine",
-          url: "/series/quarantine",
-        },
-      ],
     },
     {
-      title: "Clipboard",
-      url: "/clipboard",
-      icon: ClipboardList,
+      title: "Forecast Upload",
+      url: "/forecast-upload",
+      icon: ArrowUpToLine,
+    },
+    {
+      title: "CSV-to-TSD",
+      url: "/csv-to-tsd",
+      icon: FileSpreadsheet,
     },
     {
       title: "Downloads",
@@ -172,7 +151,7 @@ const data = {
     },
     {
       name: "CSV-to-TSD file conversion",
-      url: "/series/csv-to-tsd",
+      url: "/csv-to-tsd",
       icon: Settings2,
     },
     {

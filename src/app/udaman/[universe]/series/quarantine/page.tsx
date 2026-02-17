@@ -1,7 +1,6 @@
 import { ChevronDown } from "lucide-react";
 
 import { QuarantineSeriesTable } from "@/components/series/quarantine-series-table";
-import { H1 } from "@/components/typography";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,8 +15,13 @@ export default async function QuarantinePage({
   const { universe } = await params;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <H1>Quarantined Series</H1>
+    <>
+      <div>
+        <h1 className="text-3xl font-bold">Quarantine</h1>
+        <p className="text-muted-foreground text-sm">
+          Series flagged for review before publishing.
+        </p>
+      </div>
       <Collapsible>
         <CollapsibleTrigger className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-colors [&[data-state=open]>svg]:rotate-180">
           What is Quarantine?
@@ -65,6 +69,6 @@ export default async function QuarantinePage({
         </CollapsibleContent>
       </Collapsible>
       <QuarantineSeriesTable universe={universe} />
-    </div>
+    </>
   );
 }

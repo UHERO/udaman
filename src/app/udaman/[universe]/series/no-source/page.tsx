@@ -1,5 +1,4 @@
 import { NullFieldSeriesTable } from "@/components/series/null-field-series-table";
-import { H1 } from "@/components/typography";
 
 export default async function NoSourcePage({
   params,
@@ -9,10 +8,14 @@ export default async function NoSourcePage({
   const { universe } = await params;
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <H1>Missing Metadata</H1>
-      <p className="font-mono text-4xl">Goal is 0, across all fields</p>
+    <>
+      <div>
+        <h1 className="text-3xl font-bold">Missing Metadata</h1>
+        <p className="text-muted-foreground text-sm">
+          Goal is 0, across all fields.
+        </p>
+      </div>
       <NullFieldSeriesTable universe={universe} />
-    </div>
+    </>
   );
 }

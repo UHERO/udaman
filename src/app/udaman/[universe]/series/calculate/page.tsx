@@ -1,11 +1,8 @@
 import { transformSeriesAction } from "@/actions/series-actions";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
-import { AnalyzeLayout } from "@/components/series/analyze-layout";
-import { AnalyzeTabs } from "@/components/series/analyze-tabs";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { LinkedExpression } from "@/components/series/linked-expression";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
-import { H2 } from "@/components/typography";
 
 const NAME_REGEX =
   /^(([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)\.([ASQMWD])$/i;
@@ -33,25 +30,27 @@ export default async function CalculatePage({
   // No expression — show form + instructions + recent series
   if (!expression) {
     return (
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <AnalyzeLayout>
-          <AnalyzeTabs />
-          <H2>Calculate</H2>
-          <CalculateForm />
-          <div className="text-muted-foreground space-y-2 text-sm">
-            <p>
-              Enter an expression using series names and operators to compute a
-              derived series. For example:
-            </p>
-            <ul className="list-inside list-disc space-y-1 font-mono text-xs">
-              <li>E_NF@HI.M + E_NF@MAU.M</li>
-              <li>E_NF@HI.M / E_NF@HI.M.shift_by(12)</li>
-              <li>E_NF@HI.M * 100</li>
-            </ul>
-          </div>
-          <RecentSeriesList mode="calculate" />
-        </AnalyzeLayout>
-      </div>
+      <>
+        <div>
+          <h1 className="text-3xl font-bold">Calculate</h1>
+          <p className="text-muted-foreground text-sm">
+            Compute a derived series from an expression.
+          </p>
+        </div>
+        <CalculateForm />
+        <div className="text-muted-foreground space-y-2 text-sm">
+          <p>
+            Enter an expression using series names and operators to compute a
+            derived series. For example:
+          </p>
+          <ul className="list-inside list-disc space-y-1 font-mono text-xs">
+            <li>E_NF@HI.M + E_NF@MAU.M</li>
+            <li>E_NF@HI.M / E_NF@HI.M.shift_by(12)</li>
+            <li>E_NF@HI.M * 100</li>
+          </ul>
+        </div>
+        <RecentSeriesList mode="calculate" />
+      </>
     );
   }
 
@@ -61,21 +60,23 @@ export default async function CalculatePage({
 
   if ("error" in result) {
     return (
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <AnalyzeLayout>
-          <AnalyzeTabs firstSeriesName={firstName} hasParams />
-          <H2>Calculate</H2>
-          <CalculateForm initialExpression={expression} />
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800">
-              Error evaluating expression
-            </p>
-            <p className="mt-1 font-mono text-xs text-red-600">
-              {result.error}
-            </p>
-          </div>
-        </AnalyzeLayout>
-      </div>
+      <>
+        <div>
+          <h1 className="text-3xl font-bold">Calculate</h1>
+          <p className="text-muted-foreground text-sm">
+            Compute a derived series from an expression.
+          </p>
+        </div>
+        <CalculateForm initialExpression={expression} />
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-medium text-red-800">
+            Error evaluating expression
+          </p>
+          <p className="mt-1 font-mono text-xs text-red-600">
+            {result.error}
+          </p>
+        </div>
+      </>
     );
   }
 
@@ -91,37 +92,35 @@ export default async function CalculatePage({
   } = result;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <AnalyzeLayout>
-        <AnalyzeTabs
-          firstSeriesId={series.id}
-          firstSeriesName={firstName}
-          hasParams
-        />
-        <H2>Calculate</H2>
+    <>
+      <div>
+        <h1 className="text-3xl font-bold">Calculate</h1>
+        <p className="text-muted-foreground text-sm">
+          Compute a derived series from an expression.
+        </p>
+      </div>
 
-        <CalculateForm initialExpression={expression} />
+      <CalculateForm initialExpression={expression} />
 
-        {seriesLinks && Object.keys(seriesLinks).length > 0 && (
-          <LinkedExpression
-            expression={expression}
-            universe={universe}
-            seriesLinks={seriesLinks}
-            seriesLastValues={seriesLastValues}
-            resultValue={resultValue}
-            resultDate={resultDate}
-            decimals={series.decimals}
-          />
-        )}
-
-        <AnalyzeControls
-          data={series.data}
-          yoy={yoy}
-          ytd={ytd}
-          levelChange={levelChange}
+      {seriesLinks && Object.keys(seriesLinks).length > 0 && (
+        <LinkedExpression
+          expression={expression}
+          universe={universe}
+          seriesLinks={seriesLinks}
+          seriesLastValues={seriesLastValues}
+          resultValue={resultValue}
+          resultDate={resultDate}
           decimals={series.decimals}
         />
-      </AnalyzeLayout>
-    </div>
+      )}
+
+      <AnalyzeControls
+        data={series.data}
+        yoy={yoy}
+        ytd={ytd}
+        levelChange={levelChange}
+        decimals={series.decimals}
+      />
+    </>
   );
 }

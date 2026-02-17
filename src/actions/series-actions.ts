@@ -539,3 +539,17 @@ export async function getCompareSANSAction(
     return null;
   }
 }
+
+// ─── Lookup by name ─────────────────────────────────────────────────
+
+export async function lookupSeriesIdByName(
+  name: string,
+): Promise<{ id: number } | { error: string }> {
+  try {
+    const series = await SeriesCollection.getByName(name);
+    if (!series.id) return { error: `Series "${name}" not found` };
+    return { id: series.id };
+  } catch {
+    return { error: `Series "${name}" not found` };
+  }
+}
