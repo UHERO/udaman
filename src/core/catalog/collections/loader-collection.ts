@@ -584,12 +584,12 @@ class LoaderCollection {
       series_id: number;
       error_count: number;
     }>`
-      SELECT last_error, series_id, COUNT(*) as error_count
+      SELECT last_error, MIN(series_id) AS series_id, COUNT(*) as error_count
       FROM data_sources
       WHERE universe = 'UHERO'
         AND disabled = 0
         AND last_error IS NOT NULL
-      GROUP BY last_error, series_id
+      GROUP BY last_error
       ORDER BY error_count DESC, last_error
     `;
     return rows.map((r) => ({

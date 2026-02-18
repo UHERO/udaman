@@ -19,6 +19,7 @@ import {
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.measurements");
 
@@ -30,6 +31,7 @@ export async function getMeasurements(params?: { universe?: Universe }) {
 }
 
 export async function createMeasurement(payload: CreateMeasurementPayload) {
+  await requirePermission("measurement", "create");
   log.info("createMeasurement action called");
   const result = await createMeasurementCtrl({ payload });
   revalidatePath("/measurement");
@@ -41,6 +43,7 @@ export async function updateMeasurement(
   id: number,
   payload: UpdateMeasurementPayload,
 ) {
+  await requirePermission("measurement", "update");
   log.info({ id }, "updateMeasurement action called");
   const result = await updateMeasurementCtrl({ id, payload });
   revalidatePath("/measurement");
@@ -59,6 +62,7 @@ export async function propagateFieldsAction(
   fieldNames: string[],
   seriesNames: string[],
 ) {
+  await requirePermission("measurement", "update");
   log.info({ measurementId }, "propagateFieldsAction called");
   const result = await propagateFieldsCtrl({
     measurementId,
@@ -73,6 +77,7 @@ export async function addSeriesAction(
   measurementId: number,
   seriesName: string,
 ) {
+  await requirePermission("measurement", "update");
   log.info({ measurementId, seriesName }, "addSeriesAction called");
   const { default: SeriesCollection } = await import(
     "@catalog/collections/series-collection"
@@ -90,6 +95,7 @@ export async function removeSeriesAction(
   measurementId: number,
   seriesId: number,
 ) {
+  await requirePermission("measurement", "update");
   log.info({ measurementId, seriesId }, "removeSeriesAction called");
   await removeMeasurementSeriesCtrl({ measurementId, seriesId });
   revalidatePath("/measurement");
@@ -97,6 +103,7 @@ export async function removeSeriesAction(
 }
 
 export async function deleteMeasurement(id: number) {
+  await requirePermission("measurement", "delete");
   log.info({ id }, "deleteMeasurement action called");
   const result = await deleteMeasurementCtrl({ id });
   revalidatePath("/measurement");

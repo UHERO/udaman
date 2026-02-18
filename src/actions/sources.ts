@@ -14,6 +14,7 @@ import {
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.sources");
 
@@ -25,6 +26,7 @@ export async function getSources(params?: { universe?: Universe }) {
 }
 
 export async function createSource(payload: CreateSourcePayload) {
+  await requirePermission("source", "create");
   log.info("createSource action called");
   const result = await createSourceCtrl({ payload });
   revalidatePath("/sources");
@@ -33,6 +35,7 @@ export async function createSource(payload: CreateSourcePayload) {
 }
 
 export async function updateSource(id: number, payload: UpdateSourcePayload) {
+  await requirePermission("source", "update");
   log.info({ id }, "updateSource action called");
   const result = await updateSourceCtrl({ id, payload });
   revalidatePath("/sources");
@@ -40,6 +43,7 @@ export async function updateSource(id: number, payload: UpdateSourcePayload) {
 }
 
 export async function deleteSource(id: number) {
+  await requirePermission("source", "delete");
   log.info({ id }, "deleteSource action called");
   const result = await deleteSourceCtrl({ id });
   revalidatePath("/sources");

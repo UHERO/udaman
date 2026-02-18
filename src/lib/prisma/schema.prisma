@@ -613,6 +613,18 @@ model users {
   @@index([universe], map: "index_users_on_universe")
 }
 
+model role_permissions {
+  id         Int        @id @default(autoincrement())
+  role       users_role
+  resource   String     @default("*") @db.VarChar(50)
+  action     String     @default("*") @db.VarChar(50)
+  allowed    Boolean    @default(false)
+  created_at DateTime?  @default(now()) @db.DateTime(0)
+  updated_at DateTime?  @default(now()) @db.DateTime(0)
+
+  @@unique([role, resource, action], map: "uq_role_resource_action")
+}
+
 model accounts {
   id                  Int     @id @default(autoincrement())
   user_id             Int

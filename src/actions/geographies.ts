@@ -14,6 +14,7 @@ import {
 import type { Geography, Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.geographies");
 
@@ -29,6 +30,7 @@ export async function getGeographies(params?: {
 export async function createGeography(
   payload: CreateGeographyPayload,
 ): Promise<{ message: string; data: Geography }> {
+  await requirePermission("geography", "create");
   log.info("createGeography action called");
   const result = await createGeographyCtrl({ payload });
   revalidatePath("/geographies");
@@ -40,6 +42,7 @@ export async function updateGeography(
   id: number,
   payload: UpdateGeographyPayload,
 ): Promise<{ message: string; data: Geography }> {
+  await requirePermission("geography", "update");
   log.info({ id }, "updateGeography action called");
   const result = await updateGeographyCtrl({ id, payload });
   revalidatePath("/geographies");
@@ -49,6 +52,7 @@ export async function updateGeography(
 export async function deleteGeography(
   id: number,
 ): Promise<{ message: string }> {
+  await requirePermission("geography", "delete");
   log.info({ id }, "deleteGeography action called");
   const result = await deleteGeographyCtrl({ id });
   revalidatePath("/geographies");

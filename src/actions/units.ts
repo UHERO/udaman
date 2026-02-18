@@ -14,6 +14,7 @@ import {
 import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.units");
 
@@ -25,6 +26,7 @@ export async function getUnits(params?: { universe?: Universe }) {
 }
 
 export async function createUnit(payload: CreateUnitPayload) {
+  await requirePermission("unit", "create");
   log.info("createUnit action called");
   const result = await createUnitCtrl({ payload });
   revalidatePath("/units");
@@ -33,6 +35,7 @@ export async function createUnit(payload: CreateUnitPayload) {
 }
 
 export async function updateUnit(id: number, payload: UpdateUnitPayload) {
+  await requirePermission("unit", "update");
   log.info({ id }, "updateUnit action called");
   const result = await updateUnitCtrl({ id, payload });
   revalidatePath("/units");
@@ -40,6 +43,7 @@ export async function updateUnit(id: number, payload: UpdateUnitPayload) {
 }
 
 export async function deleteUnit(id: number) {
+  await requirePermission("unit", "delete");
   log.info({ id }, "deleteUnit action called");
   const result = await deleteUnitCtrl({ id });
   revalidatePath("/units");

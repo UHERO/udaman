@@ -18,9 +18,6 @@ import {
   TableProperties,
 } from "lucide-react";
 
-import { NavMain } from "@/components/nav-main";
-import { NavDataPortals } from "@/components/nav-projects";
-import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +25,9 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { NavMain } from "@/components/nav-main";
+import { NavDataPortals } from "@/components/nav-projects";
+import { NavUser } from "@/components/nav-user";
 import { UniverseSwitcher } from "@/components/universe-switcher";
 
 const data = {
@@ -70,6 +70,11 @@ const data = {
       icon: TableProperties,
     },
     {
+      title: "Data Portal",
+      url: "/catalog",
+      icon: ChartLine,
+    },
+    {
       title: "Forecast Upload",
       url: "/forecast-upload",
       icon: ArrowUpToLine,
@@ -91,22 +96,17 @@ const data = {
     },
     {
       title: "Investigations",
-      url: "#",
+      url: "/udaman/admin/investigations",
       icon: HatGlasses,
     },
     {
       title: "Docs",
-      url: "#",
+      url: "/docs",
       icon: BookOpen,
     },
     {
-      title: "Data Portal",
-      url: "/catalog",
-      icon: ChartLine,
-    },
-    {
       title: "Forecast Snapshots",
-      url: "forecast-snapshots",
+      url: "/forecast-snapshots",
       icon: BookOpen,
       items: [
         {
@@ -117,12 +117,12 @@ const data = {
     },
     {
       title: "Feature Toggles",
-      url: "feature-toggles",
+      url: "/feature-toggles",
       icon: Settings,
     },
     {
       title: "Uploads",
-      url: "feature-toggles",
+      url: "/uploads",
       icon: ArrowUpToLine,
       items: [
         {
@@ -168,6 +168,7 @@ const data = {
 };
 
 function prefixUrl(url: string, universe: string): string {
+  if (url.startsWith("/udaman/")) return url;
   if (url.startsWith("/")) return `/udaman/${universe}${url}`;
   return url;
 }
@@ -176,7 +177,14 @@ export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  user: { id: string; name: string; email: string; avatar: string; createdAt: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    createdAt: string;
+    role: string;
+  };
 }) {
   const params = useParams();
   const universe = (params.universe as string) || "uhero";
@@ -191,7 +199,7 @@ export function AppSidebar({
           url: prefixUrl(sub.url, universe),
         })),
       })),
-    [universe],
+    [universe]
   );
 
   const dataPortal = React.useMemo(
@@ -200,7 +208,7 @@ export function AppSidebar({
         ...item,
         url: prefixUrl(item.url, universe),
       })),
-    [universe],
+    [universe]
   );
 
   return (

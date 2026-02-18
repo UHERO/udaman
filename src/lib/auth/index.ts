@@ -36,8 +36,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: string;
           name: string | null;
           encrypted_password: string;
+          role: string;
         }>`
-          SELECT id, email, name, encrypted_password
+          SELECT id, email, name, encrypted_password, role
           FROM users WHERE email = ${email}
         `;
 
@@ -55,6 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: String(user.id),
           email: user.email,
           name: user.name,
+          role: user.role,
         };
       },
     }),
@@ -85,24 +87,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
         }
 
-        // Use the existing user's ID so the JWT gets the right ID
+        // Use the existing user's ID and role so the JWT gets the right values
         user.id = existing.id;
         user.name = existing.name ?? user.name;
+
+        // Fetch role from DB for the linked user
+        const roleRows = await mysql<{ role: string }>`
+          SELECT role FROM users WHERE id = ${Number(existing.id)} LIMIT 1
+        `;
+        if (roleRows[0]) {
+          user.role = roleRows[0].role;
+        }
       }
       // If no existing user, Auth.js will call createUser + linkAccount via the adapter
 
       return true;
     },
     async jwt({ token, user }) {
-      // On sign-in, persist user ID into the JWT
+      // On sign-in, persist user ID and role into the JWT
       if (user) {
         token.id = user.id;
+        token.role = user.role;
+      }
+      // Backfill: if existing session has id but no role, fetch it once
+      if (token.id && !token.role) {
+        const roleRows = await mysql<{ role: string }>`
+          SELECT role FROM users WHERE id = ${Number(token.id)} LIMIT 1
+        `;
+        token.role = roleRows[0]?.role ?? "external";
       }
       return token;
     },
     async session({ session, token }) {
-      // Expose user ID from JWT in the session object
+      // Expose user ID and role from JWT in the session object
       session.user.id = token.id as string;
+      session.user.role = (token.role as string) ?? "external";
       return session;
     },
   },

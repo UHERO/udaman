@@ -17,6 +17,7 @@ import type {
 } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.categories");
 
@@ -44,6 +45,7 @@ export async function swapCategoryOrder(
   id2: number,
   order2: number,
 ): Promise<void> {
+  await requirePermission("category", "update");
   log.info({ id1, order1, id2, order2 }, "swapCategoryOrder action called");
   await Promise.all([
     updateCategoryCtrl({ id: id1, payload: { listOrder: order2 } }),
@@ -56,6 +58,7 @@ export async function updateCategoryVisibility(
   id: number,
   updates: { hidden?: boolean; masked?: boolean },
 ): Promise<void> {
+  await requirePermission("category", "update");
   log.info({ id, updates }, "updateCategoryVisibility action called");
   await updateCategoryCtrl({ id, payload: updates });
   revalidatePath("/categories");
@@ -64,6 +67,7 @@ export async function updateCategoryVisibility(
 export async function createCategory(
   payload: CreateCategoryPayload,
 ): Promise<{ message: string; data: Category }> {
+  await requirePermission("category", "create");
   log.info("createCategory action called");
   const result = await createCategoryCtrl({ payload });
   revalidatePath("/categories");
@@ -75,6 +79,7 @@ export async function updateCategory(
   id: number,
   payload: UpdateCategoryPayload,
 ): Promise<{ message: string; data: Category }> {
+  await requirePermission("category", "update");
   log.info({ id }, "updateCategory action called");
   const result = await updateCategoryCtrl({ id, payload });
   revalidatePath("/categories");
@@ -82,6 +87,7 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: number): Promise<{ message: string }> {
+  await requirePermission("category", "delete");
   log.info({ id }, "deleteCategory action called");
   const result = await deleteCategoryCtrl({ id });
   revalidatePath("/categories");

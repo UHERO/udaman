@@ -26,6 +26,7 @@ import type { Universe } from "@catalog/types/shared";
 
 import { addMultipleSeriesToClipboard } from "@/actions/clipboard-actions";
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.data-lists");
 
@@ -37,6 +38,7 @@ export async function getDataLists(params?: { universe?: Universe }) {
 }
 
 export async function createDataList(payload: CreateDataListPayload) {
+  await requirePermission("data-list", "create");
   log.info("createDataList action called");
   const result = await createDataListCtrl({ payload });
   revalidatePath("/data-list");
@@ -48,6 +50,7 @@ export async function updateDataList(
   id: number,
   payload: UpdateDataListPayload,
 ) {
+  await requirePermission("data-list", "update");
   log.info({ id }, "updateDataList action called");
   const result = await updateDataListCtrl({ id, payload });
   revalidatePath("/data-list");
@@ -55,6 +58,7 @@ export async function updateDataList(
 }
 
 export async function deleteDataList(id: number) {
+  await requirePermission("data-list", "delete");
   log.info({ id }, "deleteDataList action called");
   const result = await deleteDataListCtrl({ id });
   revalidatePath("/data-list");
@@ -102,6 +106,7 @@ export async function moveMeasurementAction(
   measurementId: number,
   direction: "up" | "down",
 ) {
+  await requirePermission("data-list", "update");
   log.info({ dataListId, measurementId, direction }, "moveMeasurement action called");
   await moveMeasurementCtrl({ dataListId, measurementId, direction });
   revalidatePath("/data-list");
@@ -113,6 +118,7 @@ export async function setMeasurementIndentAction(
   measurementId: number,
   direction: "in" | "out",
 ) {
+  await requirePermission("data-list", "update");
   log.info({ dataListId, measurementId, direction }, "setMeasurementIndent action called");
   await setMeasurementIndentCtrl({ dataListId, measurementId, direction });
   revalidatePath("/data-list");
@@ -123,6 +129,7 @@ export async function removeMeasurementAction(
   dataListId: number,
   measurementId: number,
 ) {
+  await requirePermission("data-list", "update");
   log.info({ dataListId, measurementId }, "removeMeasurement action called");
   await removeDataListMeasurementCtrl({ dataListId, measurementId });
   revalidatePath("/data-list");
@@ -133,6 +140,7 @@ export async function addMeasurementAction(
   dataListId: number,
   measurementId: number,
 ) {
+  await requirePermission("data-list", "update");
   log.info({ dataListId, measurementId }, "addMeasurement action called");
   await addDataListMeasurementCtrl({ dataListId, measurementId });
   revalidatePath("/data-list");
@@ -143,6 +151,7 @@ export async function createMeasurementForDataList(
   dataListId: number,
   payload: CreateMeasurementPayload,
 ) {
+  await requirePermission("data-list", "create");
   log.info({ dataListId }, "createMeasurementForDataList action called");
   const result = await createMeasurementCtrl({ payload });
   await addDataListMeasurementCtrl({
@@ -158,6 +167,7 @@ export async function replaceAllMeasurementsAction(
   prefixes: string[],
   universe: Universe,
 ) {
+  await requirePermission("data-list", "update");
   log.info(
     { dataListId, prefixCount: prefixes.length },
     "replaceAllMeasurements action called",

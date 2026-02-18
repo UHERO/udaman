@@ -5,6 +5,17 @@ import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("database");
 
+const READ_ONLY = process.env.UDAMAN_READ_ONLY === "true";
+const WRITE_PATTERN = /^\s*(INSERT|UPDATE|DELETE|ALTER|DROP|TRUNCATE|REPLACE)\b/i;
+
+function assertNotReadOnly(sql: string): void {
+  if (READ_ONLY && WRITE_PATTERN.test(sql)) {
+    throw new Error(
+      "UDAMAN_READ_ONLY is enabled — write operations are blocked",
+    );
+  }
+}
+
 const connection = new SQL({
   adapter: "mysql",
   hostname: process.env.DB_HOST ?? "localhost",
@@ -30,6 +41,7 @@ function mysql(...args: any[]) {
   // Tagged template: mysql`SELECT ...`
   const strings = first as TemplateStringsArray;
   const values = args.slice(1);
+  assertNotReadOnly(strings.join("?"));
   const start = performance.now();
   return (connection(strings, ...values) as Promise<any[]>).then((result) => {
     const durationMs = +(performance.now() - start).toFixed(2);
@@ -43,6 +55,7 @@ function rawQuery<T = Record<string, unknown>>(
   sql: string,
   params: (string | number | Date)[] = [],
 ): Promise<T[]> {
+  assertNotReadOnly(sql);
   const start = performance.now();
   return (connection as any).unsafe(sql, params).then((result: any[]) => {
     const durationMs = +(performance.now() - start).toFixed(2);

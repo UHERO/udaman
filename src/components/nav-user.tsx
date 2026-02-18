@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { ChevronsUpDown, KeyRound, LogOut } from "lucide-react";
+import Link from "next/link";
+import { ChevronsUpDown, KeyRound, LogOut, Shield } from "lucide-react";
 
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +31,7 @@ export function NavUser({
     email: string;
     avatar: string;
     createdAt: string;
+    role: string;
   };
 }) {
   const { isMobile } = useSidebar();
@@ -74,6 +76,14 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {user.role === "dev" && (
+              <DropdownMenuItem asChild>
+                <Link href="/udaman/admin">
+                  <Shield />
+                  Admin
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setPasswordDialogOpen(true)}>
               <KeyRound />
               Change Password

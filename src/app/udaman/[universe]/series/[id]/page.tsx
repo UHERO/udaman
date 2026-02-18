@@ -34,7 +34,7 @@ export default async function SeriesPage({
     <div className="">
       <RecordSeriesView
         id={id}
-        name={metadata.s_name}
+        name={metadata.s_name ?? ""}
         universe={universe}
         description={metadata.s_description}
         dataPortalName={metadata.s_dataPortalName}

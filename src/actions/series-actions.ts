@@ -39,6 +39,7 @@ import { getSourceDetails } from "@/core/catalog/controllers/source-details";
 import { getSources } from "@/core/catalog/controllers/sources";
 import { getUnits } from "@/core/catalog/controllers/units";
 import { createLogger } from "@/core/observability/logger";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.series");
 
@@ -86,6 +87,7 @@ export async function deleteSeriesDataPoints(
     deleteBy: "observationDate" | "vintageDate" | "none";
   },
 ) {
+  await requirePermission("series", "delete");
   const { universe, date, deleteBy } = queryParams;
   log.info(
     { id, universe, deleteBy, date },
@@ -181,6 +183,7 @@ export interface CreateSeriesFormPayload {
 }
 
 export async function createSeries(payload: CreateSeriesFormPayload) {
+  await requirePermission("series", "create");
   log.info(
     { name: payload.name, universe: payload.universe },
     "createSeries action called",
@@ -248,6 +251,7 @@ export interface BulkCreatePayload {
 export async function bulkCreateSeries(
   payload: BulkCreatePayload,
 ): Promise<{ successCount: number; errors: string[] }> {
+  await requirePermission("series", "create");
   const { universe, definitions, ...optionalMeta } = payload;
   log.info({ universe }, "bulkCreateSeries action called");
 
@@ -379,6 +383,7 @@ export async function updateSeries(
   universe: Universe,
   payload: UpdateSeriesFormPayload,
 ) {
+  await requirePermission("series", "update");
   const result = await updateSeriesCtrl({
     id,
     payload: {
@@ -414,6 +419,7 @@ export async function duplicateSeries(
   copyLoaders: boolean,
   payload: CreateSeriesFormPayload,
 ) {
+  await requirePermission("series", "create");
   const result = await duplicateSeriesCtrl({
     sourceId: originSeriesId,
     payload: {
@@ -448,6 +454,7 @@ export async function deleteSeries(
   universe: string,
   opts?: { force?: boolean },
 ) {
+  await requirePermission("series", "delete");
   await deleteSeriesCtrl({ id, force: opts?.force });
   revalidatePath(`/udaman/${universe}/series`);
 }
@@ -474,11 +481,13 @@ export async function getQuarantinedSeries(
 }
 
 export async function unquarantineSeries(seriesId: number, universe: string) {
+  await requirePermission("series", "update");
   await unquarantineSeriesCtrl({ seriesId });
   revalidatePath(`/udaman/${universe}/series/quarantine`);
 }
 
 export async function emptyQuarantine(universe: string) {
+  await requirePermission("series", "delete");
   const count = await emptyQuarantineCtrl({ universe });
   revalidatePath(`/udaman/${universe}/series/quarantine`);
   return count;

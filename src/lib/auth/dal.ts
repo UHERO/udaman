@@ -32,3 +32,13 @@ export async function getCurrentUserId(): Promise<number> {
   const session = await requireAuth();
   return parseInt(session.user!.id!);
 }
+
+/**
+ * Get the current authenticated user's role.
+ * Redirects to /udaman if not authenticated.
+ * Defaults to "external" if role is not set in the session.
+ */
+export async function getCurrentUserRole(): Promise<string> {
+  const session = await requireAuth();
+  return session.user.role ?? "external";
+}

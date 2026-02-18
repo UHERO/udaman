@@ -17,6 +17,7 @@ import type {
 
 import { createLogger } from "@/core/observability/logger";
 import { getCurrentUserId } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.clipboard");
 
@@ -28,6 +29,7 @@ export async function getClipboardSeries() {
 }
 
 export async function addSeriesToClipboard(seriesId: number) {
+  await requirePermission("clipboard", "update");
   const userId = await getCurrentUserId();
   log.info({ userId, seriesId }, "addSeriesToClipboard action called");
   const result = await addToClipboardCtrl({ userId, seriesId });
@@ -35,6 +37,7 @@ export async function addSeriesToClipboard(seriesId: number) {
 }
 
 export async function addMultipleSeriesToClipboard(seriesIds: number[]) {
+  await requirePermission("clipboard", "update");
   const userId = await getCurrentUserId();
   log.info(
     { userId, count: seriesIds.length },
@@ -45,6 +48,7 @@ export async function addMultipleSeriesToClipboard(seriesIds: number[]) {
 }
 
 export async function removeSeriesFromClipboard(seriesId: number) {
+  await requirePermission("clipboard", "update");
   const userId = await getCurrentUserId();
   log.info({ userId, seriesId }, "removeSeriesFromClipboard action called");
   const result = await removeFromClipboardCtrl({ userId, seriesId });
@@ -52,6 +56,7 @@ export async function removeSeriesFromClipboard(seriesId: number) {
 }
 
 export async function clearClipboard() {
+  await requirePermission("clipboard", "delete");
   const userId = await getCurrentUserId();
   log.info({ userId }, "clearClipboard action called");
   const result = await clearClipboardCtrl({ userId });
@@ -59,6 +64,7 @@ export async function clearClipboard() {
 }
 
 export async function executeClipboardAction(action: ClipboardAction) {
+  await requirePermission("clipboard", "execute");
   const userId = await getCurrentUserId();
   log.info({ userId, action }, "executeClipboardAction called");
   const result = await doClipboardActionCtrl({ userId, action });
@@ -68,6 +74,7 @@ export async function executeClipboardAction(action: ClipboardAction) {
 export async function bulkUpdateClipboardMetadata(
   payload: BulkMetadataPayload,
 ) {
+  await requirePermission("clipboard", "update");
   const userId = await getCurrentUserId();
   log.info(
     { userId, fields: Object.keys(payload) },
