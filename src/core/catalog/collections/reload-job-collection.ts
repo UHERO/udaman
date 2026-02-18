@@ -4,8 +4,10 @@ import { promisify } from "util";
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
+import DataPointCollection from "./data-point-collection";
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
+import { runTsdExport } from "../utils/tsd-export";
 
 const log = createLogger("catalog.reload-job-collection");
 const execAsync = promisify(exec);
@@ -96,10 +98,14 @@ class ReloadJobCollection {
   ): Promise<{ success: boolean; message: string }> {
     log.info({ action }, `Running admin action: ${action}`);
 
+    const isProd = process.env.APP_ENV === "production";
+    if (!isProd && action !== "update_public") {
+      return { success: false, message: "Action not available — requires production environment" };
+    }
+
     switch (action) {
       case "export_tsd": {
-        // TODO: implement TSD export (requires porting ExportWorker)
-        return { success: false, message: "TSD export not yet implemented" };
+        return runTsdExport();
       }
       case "restart_rest": {
         try {
@@ -128,11 +134,14 @@ class ReloadJobCollection {
         }
       }
       case "update_public": {
-        // TODO: implement update public data points (requires DataPoint porting)
-        return {
-          success: false,
-          message: "Update public data points not yet implemented",
-        };
+        try {
+          await DataPointCollection.updatePublicAllUniverses();
+          return { success: true, message: "Public data points updated for all universes" };
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          log.error({ error: msg }, "update_public failed");
+          return { success: false, message: `Update public FAIL: ${msg}` };
+        }
       }
       case "sync_nas": {
         try {

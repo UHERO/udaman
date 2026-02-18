@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -35,10 +36,27 @@ const ADMIN_ACTIONS: { action: AdminAction; label: string }[] = [
   { action: "sync_nas", label: "Sync files from NAS" },
 ];
 
+const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 function formatDate(date: Date | string | null): string {
   if (!date) return "";
   const d = new Date(date);
-  return d.toLocaleString();
+  const mon = SHORT_MONTHS[d.getMonth()];
+  const day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${mon} ${day}, ${hh}:${mm}`;
+}
+
+function formatDuration(start: Date | string | null, end: Date | string | null): string {
+  if (!start || !end) return "";
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  if (ms < 0) return "";
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (min === 0) return `${sec}s`;
+  return `${min}m ${sec}s`;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -79,8 +97,10 @@ export default function InvestigationsPanel({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [activeAction, setActiveAction] = useState<AdminAction | null>(null);
 
   function handleAdminAction(action: AdminAction, label: string) {
+    setActiveAction(action);
     startTransition(async () => {
       try {
         const result = await runAdminAction(action);
@@ -91,6 +111,8 @@ export default function InvestigationsPanel({
         }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : `Failed: ${label}`);
+      } finally {
+        setActiveAction(null);
       }
     });
   }
@@ -116,17 +138,23 @@ export default function InvestigationsPanel({
           System maintenance and administration tasks.
         </p>
         <div className="flex flex-wrap gap-2">
-          {ADMIN_ACTIONS.map(({ action, label }) => (
-            <Button
-              key={action}
-              variant="outline"
-              size="sm"
-              disabled={isPending}
-              onClick={() => handleAdminAction(action, label)}
-            >
-              {label}
-            </Button>
-          ))}
+          {ADMIN_ACTIONS.map(({ action, label }) => {
+            const isActive = activeAction === action;
+            return (
+              <Button
+                key={action}
+                variant="outline"
+                size="sm"
+                disabled={isPending}
+                onClick={() => handleAdminAction(action, label)}
+              >
+                {isActive && (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                )}
+                {label}
+              </Button>
+            );
+          })}
         </div>
       </section>
 
@@ -146,8 +174,8 @@ export default function InvestigationsPanel({
                   <TableHead className="w-16">Id</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead className="w-24">Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Finished</TableHead>
+                  <TableHead>Started</TableHead>
+                  <TableHead className="w-20">Time</TableHead>
                   <TableHead className="w-16 text-right">Count</TableHead>
                   <TableHead>Series</TableHead>
                   <TableHead>Error</TableHead>
@@ -167,8 +195,8 @@ export default function InvestigationsPanel({
                     <TableCell className="text-xs">
                       {formatDate(job.createdAt)}
                     </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(job.finishedAt)}
+                    <TableCell className="font-mono text-xs">
+                      {formatDuration(job.createdAt, job.finishedAt)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs">
                       {seriesCount}

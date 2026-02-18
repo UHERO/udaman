@@ -31,7 +31,7 @@ export default async function SeriesPage({
   ]);
 
   return (
-    <div className="">
+    <div>
       <RecordSeriesView
         id={id}
         name={metadata.s_name ?? ""}
@@ -40,9 +40,8 @@ export default async function SeriesPage({
         dataPortalName={metadata.s_dataPortalName}
       />
       <SeriesHoverProvider xseriesId={metadata.xs_id}>
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-1 rounded"></div>
-          <div className="col-span-6 rounded">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_minmax(320px,400px)]">
+          <div className="min-w-0">
             <LoaderSection
               universe={universe}
               seriesId={id}
@@ -60,7 +59,7 @@ export default async function SeriesPage({
               }}
             />
           </div>
-          <div className="sticky top-4 col-span-4 self-start rounded">
+          <div className="sticky top-4 self-start">
             <MetaDataTable metadata={{ ...metadata, measurement, aliases }} />
             <SeriesActionsBar
               seriesId={id}
@@ -71,11 +70,7 @@ export default async function SeriesPage({
           </div>
         </div>
       </SeriesHoverProvider>
-      <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-11 col-start-2">
-          <SourceMapTable data={sourceMap} universe={universe} />
-        </div>
-      </div>
+      <SourceMapTable data={sourceMap} universe={universe} />
     </div>
   );
 }

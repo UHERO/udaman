@@ -1,7 +1,10 @@
-import { mysql } from "@/lib/mysql/db";
+import { mysql, rawQuery } from "@/lib/mysql/db";
+import { createLogger } from "@/core/observability/logger";
 
 import DataPointModel from "../models/data-point";
 import type { DataPoint } from "../types/shared";
+
+const log = createLogger("catalog.data-point-collection");
 
 export type VintageDataPoint = {
   date: Date;
@@ -167,6 +170,93 @@ class DataPointCollection {
       map[dateStr].push(row);
     }
     return map;
+  }
+  /**
+   * Sync the public_data_points table for a given universe.
+   * Ported from Rails DataPoint.update_public_data_points.
+   *
+   * Three-step transaction:
+   *   1. UPDATE existing rows where source data changed
+   *   2. INSERT new rows that don't exist yet
+   *   3. DELETE rows whose source data no longer exists (or series is quarantined)
+   *
+   * NOTE: In the future this will be dispatched to a job queue
+   * rather than executed on the main thread.
+   */
+  static async updatePublicDataPoints(universe: string): Promise<void> {
+    log.info({ universe }, "updatePublicDataPoints: starting");
+
+    // Check if quarantined series should be removed from public
+    const toggleRows = await mysql<{ status: boolean | number | null }>`
+      SELECT status FROM feature_toggles
+      WHERE name = 'remove_quarantined_from_public' AND universe = ${universe}
+      LIMIT 1
+    `;
+    const removeQuarantine = Boolean(toggleRows[0]?.status);
+
+    const quarantineClause = removeQuarantine ? "OR xs.quarantined = 1" : "";
+
+    // 1. UPDATE existing public data points where source data has changed
+    await rawQuery(
+      `UPDATE public_data_points p
+       JOIN (
+         SELECT s.id, s.xseries_id
+         FROM series s
+         JOIN xseries xs ON xs.id = s.xseries_id
+         WHERE s.universe = ?
+         AND COALESCE(xs.quarantined, 0) = 0
+       ) sub ON sub.id = p.series_id
+       JOIN data_points d
+         ON d.xseries_id = sub.xseries_id
+         AND d.date = p.date
+         AND d.current = 1
+       SET p.value = d.value,
+           p.pseudo_history = d.pseudo_history,
+           p.updated_at = COALESCE(d.updated_at, d.created_at)
+       WHERE COALESCE(d.updated_at, d.created_at) > p.updated_at`,
+      [universe],
+    );
+    log.info({ universe }, "updatePublicDataPoints: update done");
+
+    // 2. INSERT new public data points
+    await rawQuery(
+      `INSERT INTO public_data_points (series_id, date, value, pseudo_history, created_at, updated_at)
+       SELECT s.id, d.date, d.value, d.pseudo_history, d.created_at, COALESCE(d.updated_at, d.created_at)
+       FROM series s
+       JOIN xseries xs ON xs.id = s.xseries_id
+       JOIN data_points d ON d.xseries_id = s.xseries_id
+       LEFT JOIN public_data_points p ON p.series_id = s.id AND p.date = d.date
+       WHERE s.universe = ?
+         AND NOT xs.quarantined
+         AND d.current = 1
+         AND p.created_at IS NULL`,
+      [universe],
+    );
+    log.info({ universe }, "updatePublicDataPoints: insert done");
+
+    // 3. DELETE stale public data points
+    await rawQuery(
+      `DELETE p
+       FROM public_data_points p
+       JOIN series s ON s.id = p.series_id
+       JOIN xseries xs ON xs.id = s.xseries_id
+       LEFT JOIN data_points d ON d.xseries_id = xs.id AND d.date = p.date AND d.current = 1
+       WHERE s.universe = ?
+         AND (d.created_at IS NULL ${quarantineClause})`,
+      [universe],
+    );
+    log.info({ universe }, "updatePublicDataPoints: delete done");
+  }
+
+  /**
+   * Update public data points for all universes.
+   * Ported from Rails DataPoint.update_public_all_universes.
+   */
+  static async updatePublicAllUniverses(): Promise<void> {
+    const universes = ["UHERO", "FC", "COH", "CCOM"];
+    for (const u of universes) {
+      await this.updatePublicDataPoints(u);
+    }
   }
 }
 
