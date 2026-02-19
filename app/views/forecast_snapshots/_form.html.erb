@@ -26,24 +26,36 @@
     <%= f.text_area :comments %>
 </div>
 <div class="field">
+    <% if @forecast_snapshot.persisted? %>
     <%= link_to 'New Forecast', pull_file_forecast_snapshot_path(@forecast_snapshot, type: :new_forecast_tsd_filename),
                 title: @forecast_snapshot.filename_title(:new_forecast_tsd_filename) %>
+    <% else %>
+    New Forecast
+    <% end %>
     <%= f.text_field :new_forecast_tsd_filename, :disabled => true, size: 30 %>
     Label
     <%= f.text_field :new_forecast_tsd_label, size: 30 %>
     <%= f.file_field :new_forecast_tsd_filename %>
 </div>
 <div class="field">
+    <% if @forecast_snapshot.persisted? %>
     <%= link_to 'Old Forecast', pull_file_forecast_snapshot_path(@forecast_snapshot, type: :old_forecast_tsd_filename),
                 title: @forecast_snapshot.filename_title(:old_forecast_tsd_filename) %>
+    <% else %>
+    Old Forecast
+    <% end %>
     <%= f.text_field :old_forecast_tsd_filename, :disabled => true, size: 30 %>
     Label
     <%= f.text_field :old_forecast_tsd_label, size: 30 %>
     <%= f.file_field :old_forecast_tsd_filename %>
 </div>
 <div class="field">
+    <% if @forecast_snapshot.persisted? %>
     <%= link_to 'History', pull_file_forecast_snapshot_path(@forecast_snapshot, type: :history_tsd_filename),
                 title: @forecast_snapshot.filename_title(:history_tsd_filename) %>
+    <% else %>
+    History
+    <% end %>
     <%= f.text_field :history_tsd_filename, :disabled => true, size: 30 %>
     Label
     <%= f.text_field :history_tsd_label, size: 30 %>

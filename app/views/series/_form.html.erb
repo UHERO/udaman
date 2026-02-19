@@ -16,7 +16,7 @@
 </div>
 <% end %>
 
-<% backlink = series_path(@series) %>
+<% backlink = @series.persisted? ? series_path(@series) : :back %>
 <% if (@series.name.blank? rescue true) %>
 <div class="field">
     <%= f.label :name, 'Name: Prefix' %><br />
