@@ -387,11 +387,72 @@ export function ForecastSnapshotCharts({
                     }}
                   />
                   <Tooltip
-                    formatter={(value: number, dataKey: string) => {
-                      if (dataKey === "newYoy" || dataKey === "oldYoy") {
-                        return [`${value.toFixed(2)}%`, "%ch"];
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null;
+                      const byKey = new Map<string, number>();
+                      for (const p of payload) {
+                        if (p.value != null) byKey.set(p.dataKey as string, p.value as number);
                       }
-                      return [value.toLocaleString(undefined, { maximumFractionDigits: 2 }), undefined];
+                      const rows: Array<{ name: string; color: string; level?: number; pct?: number }> = [];
+                      if (byKey.has("newForecast")) {
+                        rows.push({
+                          name: newForecastLabel,
+                          color: COLORS.newForecast,
+                          level: byKey.get("newForecast"),
+                          pct: byKey.get("newYoy"),
+                        });
+                      }
+                      if (byKey.has("oldForecast")) {
+                        rows.push({
+                          name: oldForecastLabel,
+                          color: COLORS.oldForecast,
+                          level: byKey.get("oldForecast"),
+                          pct: byKey.get("oldYoy"),
+                        });
+                      }
+                      if (byKey.has("history")) {
+                        rows.push({
+                          name: historyLabel,
+                          color: COLORS.history,
+                          level: byKey.get("history"),
+                        });
+                      }
+                      if (!rows.length) return null;
+                      return (
+                        <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-md">
+                          <div className="mb-1 font-semibold">{label}</div>
+                          <table className="border-separate border-spacing-x-2">
+                            <thead>
+                              <tr className="text-muted-foreground">
+                                <th className="text-left font-medium">Series</th>
+                                <th className="text-right font-medium">Level</th>
+                                <th className="text-right font-medium">% Chg</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.map((r) => (
+                                <tr key={r.name}>
+                                  <td className="flex items-center gap-1">
+                                    <span
+                                      className="inline-block h-2 w-2 rounded-full"
+                                      style={{ backgroundColor: r.color }}
+                                    />
+                                    {r.name}
+                                  </td>
+                                  <td className="text-right font-mono">
+                                    {r.level != null
+                                      ? r.level.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                      : ""}
+                                  </td>
+                                  <td className="text-right font-mono">
+                                    {r.pct != null ? `${r.pct.toFixed(2)}%` : ""}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
                     }}
                   />
                   <Legend />
