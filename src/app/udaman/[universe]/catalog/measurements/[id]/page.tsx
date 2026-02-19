@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 
 import { getMeasurementDetail } from "@/actions/measurements";
@@ -12,15 +13,22 @@ export default async function MeasurementDetailPage({
   params: Promise<{ universe: string; id: string }>;
 }) {
   const { universe, id } = await params;
-  const u = universe as Universe;
+  const u = universe.toUpperCase() as Universe;
+  const numericId = parseInt(id);
+  if (isNaN(numericId)) notFound();
 
-  const [{ measurement, series }, unitsList, sourcesList, sourceDetailsList] =
-    await Promise.all([
-      getMeasurementDetail(Number(id)),
-      getUnits({ universe: u }),
-      getSources({ universe: u }),
-      getSourceDetails({ universe: u }),
-    ]);
+  let measurement, series, unitsList, sourcesList, sourceDetailsList;
+  try {
+    [{ measurement, series }, unitsList, sourcesList, sourceDetailsList] =
+      await Promise.all([
+        getMeasurementDetail(numericId),
+        getUnits({ universe: u }),
+        getSources({ universe: u }),
+        getSourceDetails({ universe: u }),
+      ]);
+  } catch {
+    notFound();
+  }
 
   const units = unitsList.map((unit) => ({
     id: unit.id,

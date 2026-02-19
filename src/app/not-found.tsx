@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CartesianGrid,
@@ -125,12 +126,12 @@ export default function NotFound() {
         >
           {/* Actions */}
           <div className="flex justify-center gap-4">
-            <Button
-              onClick={() => (window.location.href = "/")}
+            <Link
+              href="/udaman/uhero/series"
               className="bg-[#1a1a1a] text-white hover:bg-[#404040]"
             >
               Return Home
-            </Button>
+            </Link>
             <Button
               onClick={() => window.history.back()}
               variant="outline"

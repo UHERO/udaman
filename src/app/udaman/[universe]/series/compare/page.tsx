@@ -1,12 +1,7 @@
-import {
-  compareSeriesAction,
-  getCompareAllGeosAction,
-  getCompareMeasurementAction,
-  getCompareSANSAction,
-} from "@/actions/series-actions";
+import { getFilterOptionsAction } from "@/actions/compare-filters";
+import { compareSeriesAction } from "@/actions/series-actions";
+import { CompareToolbar } from "@/components/compare/compare-toolbar";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
-import { CompareAddInput } from "@/components/series/compare-add-input";
-import { CompareSuggestions } from "@/components/series/compare-suggestions";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
 
 export default async function ComparePage({
@@ -26,6 +21,8 @@ export default async function ComparePage({
         .filter(Boolean)
     : [];
 
+  const filterOptions = await getFilterOptionsAction(universe);
+
   // Landing state — no names at all
   if (names.length === 0) {
     return (
@@ -36,17 +33,13 @@ export default async function ComparePage({
             Compare two or more series side by side.
           </p>
         </div>
-        <CompareAddInput currentNames={names} />
-        <div className="text-muted-foreground space-y-2 text-sm">
-          <p>
-            Enter two or more series names to compare them side by side.
-            For example:
-          </p>
-          <ul className="list-inside list-disc space-y-1 font-mono text-xs">
-            <li>E_NF@HI.M, E_NF@MAU.M</li>
-            <li>VISRESNS@NBI.M, VISRESNS@HAW.M</li>
-          </ul>
-        </div>
+        <CompareToolbar
+          initialMeasurements={filterOptions.measurements}
+          initialGeos={filterOptions.geos}
+          currentUniverse={universe}
+          currentFrequency="Q"
+          currentNames={names}
+        />
         <RecentSeriesList mode="compare" currentNames={names} />
       </>
     );
@@ -64,7 +57,13 @@ export default async function ComparePage({
             Compare two or more series side by side.
           </p>
         </div>
-        <CompareAddInput currentNames={names} />
+        <CompareToolbar
+          initialMeasurements={filterOptions.measurements}
+          initialGeos={filterOptions.geos}
+          currentUniverse={universe}
+          currentFrequency="Q"
+          currentNames={names}
+        />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-medium text-red-800">
             Error loading series
@@ -79,13 +78,6 @@ export default async function ComparePage({
 
   const { series, seriesLinks } = result;
   const firstDecimals = series[0]?.decimals ?? 1;
-  const suggestionName = names[0];
-
-  const [allGeosNames, saNsNames, measurementResult] = await Promise.all([
-    getCompareAllGeosAction(suggestionName, universe),
-    getCompareSANSAction(suggestionName),
-    getCompareMeasurementAction(suggestionName, universe),
-  ]);
 
   return (
     <>
@@ -96,17 +88,13 @@ export default async function ComparePage({
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <CompareAddInput currentNames={names} />
-        <CompareSuggestions
-          allGeosNames={allGeosNames}
-          saNsNames={saNsNames}
-          measurementNames={measurementResult.names}
-          measurementCounterpartNames={measurementResult.counterpartNames}
-          counterpartLabel={measurementResult.counterpartLabel}
-          universe={universe}
-        />
-      </div>
+      <CompareToolbar
+        initialMeasurements={filterOptions.measurements}
+        initialGeos={filterOptions.geos}
+        currentUniverse={universe}
+        currentFrequency={series[0]?.frequencyCode ?? "Q"}
+        currentNames={names}
+      />
 
       {/* With only 1 series, show recent series as pills to quickly add more */}
       {names.length === 1 && (

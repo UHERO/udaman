@@ -1006,7 +1006,7 @@ export function LevelChart({
   brushEndIndex,
   onBrushChange,
 }: LevelChartProps) {
-  const isCompareMode = seriesNames && seriesNames.length >= 2;
+  const isCompareMode = seriesNames && seriesNames.length >= 1;
 
   const chartData = useMemo(
     () =>
@@ -1069,9 +1069,9 @@ export function LevelChart({
                 dataKey={`series_${i}`}
                 name={name}
                 yAxisId="left"
-                stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
+                stroke={isHidden ? "#94a3b8" : SERIES_COLORS[i % SERIES_COLORS.length]}
                 strokeWidth={isHidden ? 1 : 2}
-                strokeOpacity={isHidden ? 0.15 : 1}
+                strokeOpacity={isHidden ? 0.4 : 1}
                 dot={false}
                 isAnimationActive={true}
                 animationDuration={400}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import { formatLevel } from "@catalog/utils/format";
 
 import { Separator } from "@/components/ui/separator";
@@ -1114,6 +1114,14 @@ export function AnalyzeControls({
               ))}
             </div>
           </div>
+          {compareUnits.length > 1 && (
+            <div className="flex items-center gap-1.5 text-amber-600">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <span className="text-xs">
+                Mixed units — values may not be directly comparable
+              </span>
+            </div>
+          )}
         </div>
 
         <Separator />
@@ -1247,7 +1255,6 @@ export function AnalyzeControls({
           {compareSeriesNames.map((name, i) => {
             const isHidden = hiddenSeries.has(i);
             const color = SERIES_COLORS[i % SERIES_COLORS.length];
-            const seriesId = seriesLinks?.[name];
             return (
               <span
                 key={name}
@@ -1264,24 +1271,16 @@ export function AnalyzeControls({
                     });
                   }}
                   className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80"
-                  style={{ opacity: isHidden ? 0.35 : 1 }}
+                  style={{ opacity: isHidden ? 0.5 : 1 }}
                   title={isHidden ? `Show ${name}` : `Hide ${name}`}
                 >
                   <span
                     className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: color }}
+                    style={{
+                      backgroundColor: isHidden ? "#94a3b8" : color,
+                    }}
                   />
-                  {seriesId ? (
-                    <a
-                      href={`/udaman/${universe}/series/${seriesId}`}
-                      className="hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {name}
-                    </a>
-                  ) : (
-                    name
-                  )}
+                  {name}
                 </button>
                 {universe && compareSeriesNames.length > 1 && (
                   <button
@@ -1290,10 +1289,9 @@ export function AnalyzeControls({
                       const remaining = compareSeriesNames.filter(
                         (n) => n !== name,
                       );
-                      const expr = remaining.join(",");
-                      router.push(
-                        `/udaman/${universe}/series/compare?names=${encodeURIComponent(expr)}`,
-                      );
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("names", remaining.join(","));
+                      router.push(url.pathname + url.search);
                     }}
                     className="text-muted-foreground hover:text-foreground rounded p-0.5"
                     aria-label={`Remove ${name}`}
