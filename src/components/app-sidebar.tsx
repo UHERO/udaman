@@ -106,14 +106,8 @@ const data = {
     },
     {
       title: "Forecast Snapshots",
-      url: "/forecast-snapshots",
+      url: "/forecast/snapshots",
       icon: BookOpen,
-      items: [
-        {
-          title: "New Export",
-          url: "#",
-        },
-      ],
     },
     {
       title: "Feature Toggles",
