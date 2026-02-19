@@ -14,6 +14,7 @@ import {
   duplicateSeries as duplicateSeriesCtrl,
   emptyQuarantine as emptyQuarantineCtrl,
   getCompareAllGeos as getCompareAllGeosCtrl,
+  getCompareMeasurement as getCompareMeasurementCtrl,
   getCompareSANS as getCompareSANSCtrl,
   getQuarantinedSeries as fetchQuarantinedSeries,
   getSeries as fetchSeries,
@@ -546,6 +547,17 @@ export async function getCompareSANSAction(
     return await getCompareSANSCtrl({ name });
   } catch {
     return null;
+  }
+}
+
+export async function getCompareMeasurementAction(
+  name: string,
+  universe: string,
+) {
+  try {
+    return await getCompareMeasurementCtrl({ name, universe });
+  } catch {
+    return { names: null, counterpartNames: null, counterpartLabel: null };
   }
 }
 

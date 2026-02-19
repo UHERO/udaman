@@ -228,6 +228,33 @@ class SeriesCollection {
     return new Series(row);
   }
 
+  /** Fetch a single series by name and universe, returning null if not found. */
+  static async findByNameAndUniverse(
+    name: string,
+    universe: Universe,
+  ): Promise<Series | null> {
+    const rows = await mysql<SeriesAttrs>`
+      SELECT
+        s.id, s.xseries_id, s.geography_id, s.unit_id, s.source_id,
+        s.source_detail_id, s.universe, s.decimals, s.name, s.dataPortalName,
+        s.description, s.created_at, s.updated_at, s.dependency_depth,
+        s.source_link, s.investigation_notes, s.scratch,
+        x.primary_series_id, x.frequency, x.restricted, x.quarantined,
+        x.seasonal_adjustment, x.seasonally_adjusted, x.aremos_missing,
+        x.aremos_diff, x.percent, x.real,
+        u.short_label as unit_short_label,
+        u.long_label as unit_long_label
+      FROM series s
+      JOIN xseries x ON s.xseries_id = x.id
+      LEFT JOIN units u ON s.unit_id = u.id
+      WHERE s.name = ${name} AND s.universe = ${universe}
+      LIMIT 1
+    `;
+    const row = rows[0];
+    if (!row) return null;
+    return new Series(row);
+  }
+
   /** Load current data points from the database into a Series' in-memory data map. */
   static async loadCurrentData(series: Series): Promise<void> {
     if (!series.xseriesId) return;

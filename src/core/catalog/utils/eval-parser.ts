@@ -50,7 +50,7 @@ interface Token {
 // ─── Tokenizer ──────────────────────────────────────────────────────
 
 /** Series name pattern: PREFIX@GEO.FREQ */
-const SERIES_NAME_PATTERN = /^[%$\w]+(?:&[0-9Q]+[FH]\d+)?@\w+\.\w$/;
+const SERIES_NAME_PATTERN = /^[%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.\w$/;
 
 function isSeriesName(s: string): boolean {
   return SERIES_NAME_PATTERN.test(s);

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 import { formatLevel } from "@catalog/utils/format";
 
 import { Separator } from "@/components/ui/separator";
@@ -682,6 +683,10 @@ interface AnalyzeControlsProps {
   currentFreqCode?: string | null;
   /** Multi-series compare mode */
   compareSeries?: Array<{ name: string; data: [string, number][]; unitShortLabel?: string | null }>;
+  /** Series name → ID map for linking to detail pages (compare mode) */
+  seriesLinks?: Record<string, number>;
+  /** Universe slug for building URLs (compare mode) */
+  universe?: string;
 }
 
 export function AnalyzeControls({
@@ -694,10 +699,15 @@ export function AnalyzeControls({
   unitShortLabel,
   currentFreqCode,
   compareSeries: compareSeriesData,
+  seriesLinks,
+  universe,
 }: AnalyzeControlsProps) {
   const isCompareMode = !!(compareSeriesData && compareSeriesData.length >= 1);
+  const router = useRouter();
 
   const searchParams = useSearchParams();
+
+  const [hiddenSeries, setHiddenSeries] = useState<Set<number>>(new Set());
 
   const [barMode, setBarMode] = useState<BarMode>(
     () => parseBarMode(searchParams.get("barMode"))
@@ -1224,11 +1234,76 @@ export function AnalyzeControls({
             decimals={decimals}
             freqCode={currentFreqCode}
             seriesNames={compareSeriesNames}
+            hiddenSeries={hiddenSeries}
             brushStartIndex={brushRange.startIndex}
             brushEndIndex={brushRange.endIndex}
             onBrushChange={handleBrushChange}
             indexBaseYear={transformation === "indexToYear" ? indexBaseYear : undefined}
           />
+        </div>
+
+        {/* Interactive legend: click name to toggle, X to remove */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+          {compareSeriesNames.map((name, i) => {
+            const isHidden = hiddenSeries.has(i);
+            const color = SERIES_COLORS[i % SERIES_COLORS.length];
+            const seriesId = seriesLinks?.[name];
+            return (
+              <span
+                key={name}
+                className="inline-flex items-center gap-1.5 font-mono text-xs"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHiddenSeries((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(i)) next.delete(i);
+                      else next.add(i);
+                      return next;
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                  style={{ opacity: isHidden ? 0.35 : 1 }}
+                  title={isHidden ? `Show ${name}` : `Hide ${name}`}
+                >
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  {seriesId ? (
+                    <a
+                      href={`/udaman/${universe}/series/${seriesId}`}
+                      className="hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {name}
+                    </a>
+                  ) : (
+                    name
+                  )}
+                </button>
+                {universe && compareSeriesNames.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const remaining = compareSeriesNames.filter(
+                        (n) => n !== name,
+                      );
+                      const expr = remaining.join(",");
+                      router.push(
+                        `/udaman/${universe}/series/compare?names=${encodeURIComponent(expr)}`,
+                      );
+                    }}
+                    className="text-muted-foreground hover:text-foreground rounded p-0.5"
+                    aria-label={`Remove ${name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </span>
+            );
+          })}
         </div>
 
         <Separator />

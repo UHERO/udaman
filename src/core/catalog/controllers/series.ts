@@ -2,6 +2,7 @@ import "server-only";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
+import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import EvalExecutor from "@catalog/utils/eval-executor";
@@ -468,4 +469,81 @@ export async function getCompareSANS({
   if (!(counterpartName in existing)) return null;
 
   return [name, counterpartName];
+}
+
+export type CompareMeasurementResult = {
+  names: string[] | null;
+  counterpartNames: string[] | null;
+  counterpartLabel: string | null; // "SA" or "NS"
+};
+
+/**
+ * Given a series name, find all series in the same measurement with matching
+ * frequency. For Q/M frequencies, also find the SA/NS counterpart measurement.
+ */
+export async function getCompareMeasurement({
+  name,
+  universe,
+}: {
+  name: string;
+  universe: string;
+}): Promise<CompareMeasurementResult> {
+  log.info({ name, universe }, "getCompareMeasurement");
+
+  const parsed = Series.parseName(name);
+  const result: CompareMeasurementResult = {
+    names: null,
+    counterpartNames: null,
+    counterpartLabel: null,
+  };
+
+  // Get series in same measurement at matching frequency
+  try {
+    const measurement = await MeasurementCollection.getByPrefix(
+      parsed.prefix,
+      universe as Universe,
+    );
+    const allNames = await MeasurementCollection.getSeriesNames(measurement.id);
+    const filtered = allNames.filter((n) => {
+      try {
+        return Series.parseName(n).freq === parsed.freq;
+      } catch {
+        return false;
+      }
+    });
+    result.names = filtered.length > 1 ? filtered : null;
+  } catch {
+    // No measurement for this prefix
+  }
+
+  // For Q and M, find the SA/NS counterpart measurement
+  if (parsed.freq === "Q" || parsed.freq === "M") {
+    const isNS = /NS$/i.test(parsed.prefix);
+    const counterpartPrefix = isNS
+      ? parsed.prefix.replace(/NS$/i, "")
+      : parsed.prefix + "NS";
+    result.counterpartLabel = isNS ? "SA" : "NS";
+
+    try {
+      const counterpartMeasurement = await MeasurementCollection.getByPrefix(
+        counterpartPrefix,
+        universe as Universe,
+      );
+      const counterpartAllNames =
+        await MeasurementCollection.getSeriesNames(counterpartMeasurement.id);
+      const counterpartFiltered = counterpartAllNames.filter((n) => {
+        try {
+          return Series.parseName(n).freq === parsed.freq;
+        } catch {
+          return false;
+        }
+      });
+      result.counterpartNames =
+        counterpartFiltered.length > 0 ? counterpartFiltered : null;
+    } catch {
+      // No counterpart measurement
+    }
+  }
+
+  return result;
 }

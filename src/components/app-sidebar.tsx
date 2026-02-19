@@ -76,7 +76,7 @@ const data = {
     },
     {
       title: "Forecast Upload",
-      url: "/forecast-upload",
+      url: "/series/forecast-upload",
       icon: ArrowUpToLine,
     },
     {

@@ -9,7 +9,6 @@ import {
   Brush,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ReferenceArea,
   ReferenceLine,
@@ -982,6 +981,8 @@ interface LevelChartProps {
   indexBaseYear?: number;
   /** Multi-series compare mode: series names corresponding to series_0, series_1, ... */
   seriesNames?: string[];
+  /** Indices of series to visually mute (hidden by legend toggle) */
+  hiddenSeries?: Set<number>;
   /** Brush props for compare mode (brush rendered inside LevelChart) */
   brushStartIndex?: number;
   brushEndIndex?: number;
@@ -1000,6 +1001,7 @@ export function LevelChart({
   rollingWindow = 12,
   indexBaseYear,
   seriesNames,
+  hiddenSeries,
   brushStartIndex,
   brushEndIndex,
   onBrushChange,
@@ -1058,26 +1060,25 @@ export function LevelChart({
               <CompareTooltip decimals={decimals} seriesNames={seriesNames} />
             }
           />
-          <Legend
-            formatter={(value: string) => (
-              <span className="text-xs">{value}</span>
-            )}
-          />
-          {seriesNames.map((name, i) => (
-            <Line
-              key={name}
-              type="monotone"
-              dataKey={`series_${i}`}
-              name={name}
-              yAxisId="left"
-              stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={true}
-              animationDuration={400}
-              connectNulls
-            />
-          ))}
+          {seriesNames.map((name, i) => {
+            const isHidden = hiddenSeries?.has(i) ?? false;
+            return (
+              <Line
+                key={name}
+                type="monotone"
+                dataKey={`series_${i}`}
+                name={name}
+                yAxisId="left"
+                stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
+                strokeWidth={isHidden ? 1 : 2}
+                strokeOpacity={isHidden ? 0.15 : 1}
+                dot={false}
+                isAnimationActive={true}
+                animationDuration={400}
+                connectNulls
+              />
+            );
+          })}
           {indexBaseDate && (
             <ReferenceLine
               x={indexBaseDate}

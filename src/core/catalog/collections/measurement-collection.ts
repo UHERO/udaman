@@ -229,6 +229,17 @@ class MeasurementCollection {
     return rows.map((row) => row.series_id);
   }
 
+  /** Get series names associated with a measurement */
+  static async getSeriesNames(measurementId: number): Promise<string[]> {
+    const rows = await mysql<{ name: string }>`
+      SELECT s.name FROM measurement_series ms
+      JOIN series s ON s.id = ms.series_id
+      WHERE ms.measurement_id = ${measurementId}
+      ORDER BY s.name ASC
+    `;
+    return rows.map((row) => row.name);
+  }
+
   /** Add a series to a measurement */
   static async addSeries(
     measurementId: number,

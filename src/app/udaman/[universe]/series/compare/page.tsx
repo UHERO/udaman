@@ -1,11 +1,11 @@
 import {
   compareSeriesAction,
   getCompareAllGeosAction,
+  getCompareMeasurementAction,
   getCompareSANSAction,
 } from "@/actions/series-actions";
 import { AnalyzeControls } from "@/components/series/analyze-controls";
 import { CompareAddInput } from "@/components/series/compare-add-input";
-import { CompareSeriesBadges } from "@/components/series/compare-series-badges";
 import { CompareSuggestions } from "@/components/series/compare-suggestions";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
 
@@ -81,9 +81,10 @@ export default async function ComparePage({
   const firstDecimals = series[0]?.decimals ?? 1;
   const suggestionName = names[0];
 
-  const [allGeosNames, saNsNames] = await Promise.all([
+  const [allGeosNames, saNsNames, measurementResult] = await Promise.all([
     getCompareAllGeosAction(suggestionName, universe),
     getCompareSANSAction(suggestionName),
+    getCompareMeasurementAction(suggestionName, universe),
   ]);
 
   return (
@@ -100,17 +101,12 @@ export default async function ComparePage({
         <CompareSuggestions
           allGeosNames={allGeosNames}
           saNsNames={saNsNames}
+          measurementNames={measurementResult.names}
+          measurementCounterpartNames={measurementResult.counterpartNames}
+          counterpartLabel={measurementResult.counterpartLabel}
           universe={universe}
         />
       </div>
-
-      {seriesLinks && Object.keys(seriesLinks).length > 0 && (
-        <CompareSeriesBadges
-          names={names}
-          seriesLinks={seriesLinks}
-          universe={universe}
-        />
-      )}
 
       {/* With only 1 series, show recent series as pills to quickly add more */}
       {names.length === 1 && (
@@ -129,6 +125,8 @@ export default async function ComparePage({
           unitShortLabel: s.unitShortLabel,
         }))}
         currentFreqCode={series[0]?.frequencyCode}
+        seriesLinks={seriesLinks}
+        universe={universe}
       />
     </>
   );
