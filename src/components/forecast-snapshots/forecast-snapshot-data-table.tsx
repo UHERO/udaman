@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
+import { Fragment, useMemo, useState } from "react";
 import type { TsdSeries } from "@catalog/utils/tsd-reader";
-import { Button } from "@/components/ui/button";
+
 import {
   Select,
   SelectContent,
@@ -11,20 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ForecastSnapshotActions } from "@/components/forecast-snapshots/forecast-snapshot-actions";
 
 interface Props {
   newForecast: TsdSeries[];
   oldForecast: TsdSeries[];
   history: TsdSeries[];
   allDates: string[];
+  displayNames: Record<string, string>;
+  seriesIds: Record<string, number>;
+  snapshotId: number;
+  snapshotName: string;
 }
 
 function detectFrequency(dates: string[]): "annual" | "quarterly" | "monthly" {
@@ -45,7 +41,7 @@ function formatDate(date: string, freq: "annual" | "quarterly" | "monthly") {
 
 function defaultRange(
   allDates: string[],
-  freq: "annual" | "quarterly" | "monthly",
+  freq: "annual" | "quarterly" | "monthly"
 ) {
   const year = new Date().getFullYear();
   let yearsPast: number, yearsFut: number, endMonth: number;
@@ -69,21 +65,46 @@ function defaultRange(
   return { from, to };
 }
 
-function getSeriesNames(
-  newF: TsdSeries[],
-  oldF: TsdSeries[],
-  hist: TsdSeries[],
+function getOrderedSeriesNames(
+  histSeries: TsdSeries[],
+  newSeries: TsdSeries[],
+  oldSeries: TsdSeries[]
 ): string[] {
-  const names = new Set<string>();
-  for (const s of newF) names.add(s.name);
-  for (const s of oldF) names.add(s.name);
-  for (const s of hist) names.add(s.name);
-  return [...names].sort();
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const s of histSeries) {
+    if (!seen.has(s.name)) {
+      seen.add(s.name);
+      ordered.push(s.name);
+    }
+  }
+  for (const s of oldSeries) {
+    if (!seen.has(s.name)) {
+      seen.add(s.name);
+      ordered.push(s.name);
+    }
+  }
+  for (const s of newSeries) {
+    if (!seen.has(s.name)) {
+      seen.add(s.name);
+      ordered.push(s.name);
+    }
+  }
+  return ordered;
 }
 
 function formatValue(val: number | null | undefined): string {
   if (val === null || val === undefined) return "";
-  return val.toFixed(3);
+  // Use commas + 1 decimal for clean display
+  return val.toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function formatPct(val: number | null | undefined): string {
+  if (val === null || val === undefined) return "";
+  return val.toFixed(1);
 }
 
 export function ForecastSnapshotDataTable({
@@ -91,75 +112,36 @@ export function ForecastSnapshotDataTable({
   oldForecast,
   history,
   allDates,
+  displayNames,
+  seriesIds,
+  snapshotId,
+  snapshotName,
 }: Props) {
   const freq = useMemo(() => detectFrequency(allDates), [allDates]);
   const defaults = useMemo(
     () => defaultRange(allDates, freq),
-    [allDates, freq],
+    [allDates, freq]
   );
 
   const [dateFrom, setDateFrom] = useState(defaults.from);
   const [dateTo, setDateTo] = useState(defaults.to);
 
   const seriesNames = useMemo(
-    () => getSeriesNames(newForecast, oldForecast, history),
-    [newForecast, oldForecast, history],
+    () => getOrderedSeriesNames(history, newForecast, oldForecast),
+    [history, newForecast, oldForecast]
   );
 
   const newMap = useMemo(
     () => new Map(newForecast.map((s) => [s.name, s])),
-    [newForecast],
-  );
-  const oldMap = useMemo(
-    () => new Map(oldForecast.map((s) => [s.name, s])),
-    [oldForecast],
-  );
-  const histMap = useMemo(
-    () => new Map(history.map((s) => [s.name, s])),
-    [history],
+    [newForecast]
   );
 
   const filteredDates = useMemo(
     () => allDates.filter((d) => d >= dateFrom && d <= dateTo),
-    [allDates, dateFrom, dateTo],
+    [allDates, dateFrom, dateTo]
   );
 
-  // Rows: for each series name → up to 3 rows (new, old, history)
-  const rows = useMemo(() => {
-    const result: Array<{
-      name: string;
-      type: "new" | "old" | "history";
-      label: string;
-      series: TsdSeries;
-    }> = [];
-    for (const name of seriesNames) {
-      const newS = newMap.get(name);
-      const oldS = oldMap.get(name);
-      const histS = histMap.get(name);
-      if (newS) result.push({ name, type: "new", label: `${name} (new)`, series: newS });
-      if (oldS) result.push({ name, type: "old", label: `${name} (old)`, series: oldS });
-      if (histS)
-        result.push({ name, type: "history", label: `${name} (his)`, series: histS });
-    }
-    return result;
-  }, [seriesNames, newMap, oldMap, histMap]);
-
-  const handleExportCsv = () => {
-    const header = ["Series", ...filteredDates.map((d) => formatDate(d, freq))];
-    const csvRows = rows.map((row) => {
-      const vals = filteredDates.map((date) => formatValue(row.series.dataHash.get(date)));
-      return [row.label, ...vals];
-    });
-
-    const csvContent = [header, ...csvRows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "forecast_snapshot.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
 
   if (seriesNames.length === 0) {
     return (
@@ -171,77 +153,135 @@ export function ForecastSnapshotDataTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm">From:</span>
-          <Select value={dateFrom} onValueChange={setDateFrom}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {allDates.map((d) => (
-                <SelectItem key={d} value={d}>
-                  {formatDate(d, freq)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">From:</span>
+            <Select value={dateFrom} onValueChange={setDateFrom}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {allDates.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {formatDate(d, freq)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">To:</span>
+            <Select value={dateTo} onValueChange={setDateTo}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {allDates.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {formatDate(d, freq)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm">To:</span>
-          <Select value={dateTo} onValueChange={setDateTo}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {allDates.map((d) => (
-                <SelectItem key={d} value={d}>
-                  {formatDate(d, freq)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ForecastSnapshotActions
+            snapshotId={snapshotId}
+            snapshotName={snapshotName}
+            view="table"
+            newForecast={newForecast}
+            oldForecast={oldForecast}
+            history={history}
+            allDates={allDates}
+          />
         </div>
-        <Button variant="outline" size="sm" onClick={handleExportCsv}>
-          Export CSV
-        </Button>
       </div>
 
-      <div className="overflow-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="sticky left-0 z-10 bg-background">
-                Series
-              </TableHead>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr>
+              <th className="bg-background sticky left-0 z-10 pr-4 text-left font-normal" />
               {filteredDates.map((date) => (
-                <TableHead key={date} className="text-right whitespace-nowrap">
+                <th
+                  key={date}
+                  className="text-ublue text-md px-3 pb-1 text-center font-bold whitespace-nowrap"
+                >
                   {formatDate(date, freq)}
-                </TableHead>
+                </th>
               ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.label} className="odd:bg-muted">
-                <TableCell className="sticky left-0 z-10 bg-inherit whitespace-nowrap font-medium">
-                  {row.label}
-                </TableCell>
-                {filteredDates.map((date) => {
-                  const val = row.series.dataHash.get(date);
-                  return (
-                    <TableCell
-                      key={date}
-                      className="text-right font-mono text-sm whitespace-nowrap"
-                    >
-                      {formatValue(val)}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </tr>
+          </thead>
+          <tbody>
+            {seriesNames.map((name) => {
+              const series = newMap.get(name);
+              if (!series) return null;
+              const label = displayNames[name] || name;
+              const sid = seriesIds[name];
+              const portalUrl = sid
+                ? `https://data.uhero.hawaii.edu/#/series?id=${sid}`
+                : undefined;
+
+              // Build value array for YoY
+              const vals = filteredDates.map(
+                (d) => series.dataHash.get(d) ?? null
+              );
+              const pctChange = vals.map((val, idx) => {
+                if (idx < yoyLag) return null;
+                const prev = vals[idx - yoyLag];
+                if (val == null || prev == null || prev === 0) return null;
+                return ((val - prev) / prev) * 100;
+              });
+
+              return (
+                <Fragment key={name}>
+                  {/* Value row */}
+                  <tr>
+                    <td className="bg-background sticky left-0 z-10 pt-2 pr-4 align-baseline font-medium whitespace-nowrap">
+                      {label}{" "}
+                      {portalUrl ? (
+                        <a
+                          href={portalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          ({name})
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">({name})</span>
+                      )}
+                    </td>
+                    {vals.map((val, idx) => (
+                      <td
+                        key={filteredDates[idx]}
+                        className="px-3 pt-2 text-right font-mono whitespace-nowrap"
+                      >
+                        {formatValue(val)}
+                      </td>
+                    ))}
+                  </tr>
+                  {/* % Change row */}
+                  <tr>
+                    <td className="text-muted-foreground bg-background sticky left-0 z-10 pr-4 pb-1 pl-4 align-baseline text-xs whitespace-nowrap">
+                      % Change
+                    </td>
+                    {pctChange.map((pct, idx) => (
+                      <td
+                        key={filteredDates[idx]}
+                        className="text-muted-foreground px-3 pb-1 text-right font-mono text-xs whitespace-nowrap"
+                      >
+                        {formatPct(pct)}
+                      </td>
+                    ))}
+                  </tr>
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

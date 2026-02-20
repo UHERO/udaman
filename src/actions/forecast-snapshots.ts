@@ -9,6 +9,7 @@ import {
   createSnapshot,
   updateSnapshot,
   deleteSnapshot,
+  duplicateSnapshot,
   getSnapshotData,
 } from "@catalog/controllers/forecast-snapshots";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -143,6 +144,28 @@ export async function deleteSnapshotAction(id: number): Promise<{
     const message = err instanceof Error ? err.message : String(err);
     log.error({ err: message }, "deleteSnapshotAction failed");
     return { success: false, message: `Failed to delete snapshot: ${message}` };
+  }
+}
+
+export async function duplicateSnapshotAction(id: number): Promise<{
+  success: boolean;
+  message: string;
+  id?: number;
+}> {
+  await requirePermission("series", "create");
+
+  try {
+    const result = await duplicateSnapshot({ id });
+    revalidatePath("/udaman", "layout");
+    log.info({ id, copyId: result.id }, "duplicateSnapshotAction completed");
+    return { success: true, message: "Snapshot duplicated", id: result.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error({ err: message }, "duplicateSnapshotAction failed");
+    return {
+      success: false,
+      message: `Failed to duplicate snapshot: ${message}`,
+    };
   }
 }
 

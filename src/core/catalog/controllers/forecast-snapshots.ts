@@ -1,4 +1,5 @@
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -14,6 +15,7 @@ import type {
   CreateForecastSnapshotPayload,
   UpdateForecastSnapshotPayload,
 } from "../collections/forecast-snapshot-collection";
+import SeriesCollection from "../collections/series-collection";
 import type ForecastSnapshot from "../models/forecast-snapshot";
 import { parseTsdContent, getAllDates } from "../utils/tsd-reader";
 import type { TsdSeries } from "../utils/tsd-reader";
@@ -26,6 +28,10 @@ export interface SnapshotData {
   oldForecast: TsdSeries[];
   history: TsdSeries[];
   allDates: string[];
+  /** Map of TSD series name → human-readable display name from DB */
+  displayNames: Record<string, string>;
+  /** Map of TSD series name → series ID for portal links */
+  seriesIds: Record<string, number>;
 }
 
 /** List all forecast snapshots */
@@ -192,6 +198,75 @@ export async function deleteSnapshot({ id }: { id: number }) {
   return { success: true };
 }
 
+/** Duplicate a snapshot: copy record with " Copy" name, incremented version, copy files */
+export async function duplicateSnapshot({ id }: { id: number }) {
+  const original = await ForecastSnapshotCollection.getById(id);
+
+  if (original.name && /Copy/i.test(original.name)) {
+    throw new Error(
+      "Please do not duplicate a snapshot that already has Copy in the name. Rename first?",
+    );
+  }
+
+  // Increment version: strip last .N, find max, add 1
+  const version = original.version ?? "1.0";
+  const lastDotIdx = version.lastIndexOf(".");
+  const versBase = lastDotIdx >= 0 ? version.substring(0, lastDotIdx) : version;
+  const existingVersions = await ForecastSnapshotCollection.findVersions(
+    original.name ?? "",
+    versBase,
+  );
+  let max = 0;
+  for (const v of existingVersions) {
+    const match = v.match(/\.(\d+)$/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > max) max = n;
+    }
+  }
+  const newVersion = `${versBase}.${max + 1}`;
+
+  // Create the copy in DB
+  const copy = await ForecastSnapshotCollection.create({
+    name: (original.name ?? "") + " Copy",
+    version: newVersion,
+    published: false,
+    comments: original.comments,
+    newForecastTsdFilename: original.newForecastTsdFilename,
+    newForecastTsdLabel: original.newForecastTsdLabel,
+    oldForecastTsdFilename: original.oldForecastTsdFilename,
+    oldForecastTsdLabel: original.oldForecastTsdLabel,
+    historyTsdFilename: original.historyTsdFilename,
+    historyTsdLabel: original.historyTsdLabel,
+  });
+
+  // Copy files from original to new snapshot's disk locations
+  const filenames = [
+    original.newForecastTsdFilename,
+    original.oldForecastTsdFilename,
+    original.historyTsdFilename,
+  ];
+  for (const filename of filenames) {
+    if (filename) {
+      try {
+        const srcPath = original.filePath(filename);
+        const destPath = copy.filePath(filename);
+        const dir = dirname(destPath);
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        copyFileSync(srcPath, destPath);
+      } catch (err) {
+        log.error({ err, filename }, "Failed to copy TSD file during duplicate");
+      }
+    }
+  }
+
+  log.info(
+    { originalId: id, copyId: copy.id },
+    `Duplicated forecast snapshot: ${original.name} → ${copy.name} v${newVersion}`,
+  );
+  return copy.toJSON();
+}
+
 /** Read and parse all 3 TSD files for chart/table rendering */
 export async function getSnapshotData({
   id,
@@ -207,12 +282,24 @@ export async function getSnapshotData({
   const allSeries = [...newForecast, ...oldForecast, ...history];
   const allDates = getAllDates(allSeries);
 
+  // Look up human-readable display names and series IDs from the database
+  const uniqueNames = [...new Set(allSeries.map((s) => s.name))];
+  const seriesInfoMap = await SeriesCollection.lookupSeriesInfo(uniqueNames);
+  const displayNames: Record<string, string> = {};
+  const seriesIds: Record<string, number> = {};
+  for (const [k, v] of seriesInfoMap) {
+    displayNames[k] = v.displayName;
+    seriesIds[k] = v.id;
+  }
+
   return {
     snapshot: snapshot.toJSON(),
     newForecast,
     oldForecast,
     history,
     allDates,
+    displayNames,
+    seriesIds,
   };
 }
 

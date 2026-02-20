@@ -88,6 +88,19 @@ class ForecastSnapshotCollection {
   static async delete(id: number): Promise<void> {
     await mysql`DELETE FROM forecast_snapshots WHERE id = ${id}`;
   }
+
+  /** Find all versions for a given snapshot name matching a version prefix (e.g. "1.") */
+  static async findVersions(
+    name: string,
+    versionPrefix: string,
+  ): Promise<string[]> {
+    const pattern = `${versionPrefix}.%`;
+    const rows = await mysql<{ version: string }>`
+      SELECT version FROM forecast_snapshots
+      WHERE name = ${name} AND version LIKE ${pattern}
+    `;
+    return rows.map((r) => r.version ?? "");
+  }
 }
 
 export default ForecastSnapshotCollection;

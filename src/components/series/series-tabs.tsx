@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const WIDTH_STORAGE_KEY = "series-full-width";
+const WIDTH_STORAGE_KEY = "udaman-full-width";
 
 const TABS: {
   label: string;
@@ -59,7 +59,7 @@ export function SeriesTabs({ badgeCounts }: SeriesTabsProps) {
     const next = !fullWidth;
     setFullWidth(next);
     localStorage.setItem(WIDTH_STORAGE_KEY, String(next));
-    window.dispatchEvent(new Event("series-width-change"));
+    window.dispatchEvent(new Event("udaman-width-change"));
   };
 
   return (

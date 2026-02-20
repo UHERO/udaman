@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const WIDTH_STORAGE_KEY = "catalog-full-width";
+const WIDTH_STORAGE_KEY = "udaman-full-width";
 
 const TABS = [
   { label: "Universe", icon: Star, segment: "" },
@@ -47,7 +47,7 @@ export function CatalogTabs() {
     const next = !fullWidth;
     setFullWidth(next);
     localStorage.setItem(WIDTH_STORAGE_KEY, String(next));
-    window.dispatchEvent(new Event("catalog-width-change"));
+    window.dispatchEvent(new Event("udaman-width-change"));
   };
 
   return (

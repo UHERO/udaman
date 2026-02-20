@@ -228,6 +228,60 @@ class SeriesCollection {
     return new Series(row);
   }
 
+  /**
+   * Bulk-lookup display names and IDs for a list of series names (e.g. "N@US", "LFP@US").
+   * First tries exact name match, then falls back to prefix-based UHERO lookup.
+   * Returns a map of series name → { displayName, id }.
+   */
+  static async lookupSeriesInfo(
+    names: string[],
+  ): Promise<Map<string, { displayName: string; id: number }>> {
+    const result = new Map<string, { displayName: string; id: number }>();
+    if (!names.length) return result;
+
+    // Exact name match
+    const placeholders = names.map(() => "?").join(",");
+    const rows = await rawQuery<{
+      id: number;
+      name: string;
+      dataPortalName: string | null;
+    }>(
+      `SELECT id, name, dataPortalName FROM series
+       WHERE name IN (${placeholders}) AND dataPortalName IS NOT NULL`,
+      names,
+    );
+    for (const row of rows) {
+      if (row.dataPortalName) {
+        result.set(row.name, { displayName: row.dataPortalName, id: row.id });
+      }
+    }
+
+    // For names not found, try prefix-based lookup in UHERO universe
+    const missing = names.filter((n) => !result.has(n));
+    for (const name of missing) {
+      const atIdx = name.indexOf("@");
+      if (atIdx < 0) continue;
+      const prefix = name.substring(0, atIdx);
+      const prefixRows = await mysql<{
+        id: number;
+        dataPortalName: string | null;
+      }>`
+        SELECT id, dataPortalName FROM series
+        WHERE universe = 'UHERO' AND name LIKE ${prefix + "@%"}
+          AND dataPortalName IS NOT NULL
+        LIMIT 1
+      `;
+      if (prefixRows[0]?.dataPortalName) {
+        result.set(name, {
+          displayName: prefixRows[0].dataPortalName,
+          id: prefixRows[0].id,
+        });
+      }
+    }
+
+    return result;
+  }
+
   /** Fetch a single series by name and universe, returning null if not found. */
   static async findByNameAndUniverse(
     name: string,

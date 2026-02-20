@@ -1,59 +1,36 @@
-import Link from "next/link";
-
 import { getSnapshotDataAction } from "@/actions/forecast-snapshots";
+
 import { ForecastSnapshotCharts } from "@/components/forecast-snapshots/forecast-snapshot-charts";
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ universe: string; id: string }>;
+  searchParams: Promise<{ sample_from?: string; sample_to?: string }>;
 }) {
-  const { universe, id } = await params;
+  const { id } = await params;
+  const { sample_from, sample_to } = await searchParams;
   const data = await getSnapshotDataAction(Number(id));
 
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">
-            {data.snapshot.name}{" "}
-            <span className="text-muted-foreground text-xl">
-              v{data.snapshot.version}
-            </span>
-          </h1>
-          {data.snapshot.comments && (
-            <p className="text-muted-foreground mt-1 text-sm">
-              {data.snapshot.comments}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/udaman/${universe}/forecast/snapshots/${id}/table`}
-            className="text-sm underline"
-          >
-            Table View
-          </Link>
-          <Link
-            href={`/udaman/${universe}/forecast/snapshots/${id}/edit`}
-            className="text-sm underline"
-          >
-            Edit
-          </Link>
-        </div>
-      </div>
-
-      <div className="text-muted-foreground mb-4 flex gap-6 text-sm">
-        {data.snapshot.newForecastTsdLabel && (
-          <span>New Forecast: {data.snapshot.newForecastTsdLabel}</span>
-        )}
-        {data.snapshot.oldForecastTsdLabel && (
-          <span>Old Forecast: {data.snapshot.oldForecastTsdLabel}</span>
-        )}
-        {data.snapshot.historyTsdLabel && (
-          <span>History: {data.snapshot.historyTsdLabel}</span>
-        )}
-      </div>
+    <div className="flex flex-col gap-y-2">
+      <h1 className="text-3xl font-bold">
+        {data.snapshot.name}{" "}
+        <span className="text-muted-foreground text-xl">
+          {data.snapshot.version}
+        </span>
+      </h1>
+      {data.snapshot.updatedAt && (
+        <p className="text-muted-foreground text-xs">
+          Last update: {new Date(data.snapshot.updatedAt).toLocaleDateString()}
+        </p>
+      )}
+      {data.snapshot.comments && (
+        <p className="text-muted-foreground mt-1 text-sm">
+          {data.snapshot.comments}
+        </p>
+      )}
 
       <ForecastSnapshotCharts
         newForecast={data.newForecast}
@@ -63,6 +40,11 @@ export default async function Page({
         newForecastLabel={data.snapshot.newForecastTsdLabel ?? "New Forecast"}
         oldForecastLabel={data.snapshot.oldForecastTsdLabel ?? "Old Forecast"}
         historyLabel={data.snapshot.historyTsdLabel ?? "History"}
+        initialFrom={sample_from}
+        initialTo={sample_to}
+        displayNames={data.displayNames}
+        snapshotId={Number(id)}
+        snapshotName={data.snapshot.name ?? ""}
       />
     </div>
   );

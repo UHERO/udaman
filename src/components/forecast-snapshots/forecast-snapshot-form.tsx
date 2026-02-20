@@ -2,13 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { toast } from "sonner";
-
 import {
   createSnapshotAction,
   updateSnapshotAction,
 } from "@/actions/forecast-snapshots";
 import type { SerializedForecastSnapshot } from "@catalog/models/forecast-snapshot";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +50,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
           router.push(
             result.id
               ? `/udaman/${universe}/forecast/snapshots/${result.id}`
-              : `/udaman/${universe}/forecast/snapshots`,
+              : `/udaman/${universe}/forecast/snapshots`
           );
         } else {
           toast.error(result.message);
@@ -65,8 +65,8 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+      <div className="flex flex-row gap-4">
+        <div className="basis-1/3 space-y-2">
           <Label htmlFor="name">Name *</Label>
           <Input
             id="name"
@@ -75,7 +75,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
             required
           />
         </div>
-        <div className="space-y-2">
+        <div className="basis-1/3 space-y-2">
           <Label htmlFor="version">Version *</Label>
           <Input
             id="version"
@@ -83,6 +83,24 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
             defaultValue={snapshot?.version ?? ""}
             required
           />
+        </div>
+        <div className="flex basis-1/3 items-center gap-2">
+          <Switch
+            id="published-switch"
+            defaultChecked={snapshot?.published ?? false}
+            onCheckedChange={(checked) => {
+              const hidden = formRef.current?.querySelector(
+                'input[name="published"]'
+              ) as HTMLInputElement | null;
+              if (hidden) hidden.value = String(checked);
+            }}
+          />
+          <input
+            type="hidden"
+            name="published"
+            defaultValue={String(snapshot?.published ?? false)}
+          />
+          <Label htmlFor="published-switch">Published</Label>
         </div>
       </div>
 
@@ -96,109 +114,97 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Switch
-          id="published-switch"
-          defaultChecked={snapshot?.published ?? false}
-          onCheckedChange={(checked) => {
-            const hidden = formRef.current?.querySelector(
-              'input[name="published"]',
-            ) as HTMLInputElement | null;
-            if (hidden) hidden.value = String(checked);
-          }}
-        />
-        <input
-          type="hidden"
-          name="published"
-          defaultValue={String(snapshot?.published ?? false)}
-        />
-        <Label htmlFor="published-switch">Published</Label>
-      </div>
-
       <fieldset className="space-y-4 rounded-md border p-4">
         <legend className="px-2 text-sm font-medium">New Forecast TSD</legend>
-        <div className="space-y-2">
-          <Label htmlFor="newForecastFile">
-            File (.tsd)
-            {isEdit && snapshot?.newForecastTsdFilename && (
-              <span className="text-muted-foreground ml-2 text-xs">
-                Current: {snapshot.newForecastTsdFilename}
-              </span>
-            )}
-          </Label>
-          <Input
-            id="newForecastFile"
-            name="newForecastFile"
-            type="file"
-            accept=".tsd"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="newForecastLabel">Label</Label>
-          <Input
-            id="newForecastLabel"
-            name="newForecastLabel"
-            defaultValue={snapshot?.newForecastTsdLabel ?? ""}
-            placeholder="e.g. Q3 2025 Forecast"
-          />
+        <div className="flex flex-row items-center space-x-4">
+          <div className="basis-2/3 space-y-2">
+            <Label htmlFor="newForecastFile">
+              File (.tsd)
+              {isEdit && snapshot?.newForecastTsdFilename && (
+                <span className="text-muted-foreground ml-2 text-xs">
+                  Current: {snapshot.newForecastTsdFilename}
+                </span>
+              )}
+            </Label>
+            <Input
+              id="newForecastFile"
+              name="newForecastFile"
+              type="file"
+              accept=".tsd"
+            />
+          </div>
+          <div className="basis-1/3 space-y-2">
+            <Label htmlFor="newForecastLabel">Label</Label>
+            <Input
+              id="newForecastLabel"
+              name="newForecastLabel"
+              className=""
+              defaultValue={snapshot?.newForecastTsdLabel ?? ""}
+              placeholder="e.g. Q3 2025 Forecast"
+            />
+          </div>
         </div>
       </fieldset>
 
       <fieldset className="space-y-4 rounded-md border p-4">
         <legend className="px-2 text-sm font-medium">Old Forecast TSD</legend>
-        <div className="space-y-2">
-          <Label htmlFor="oldForecastFile">
-            File (.tsd)
-            {isEdit && snapshot?.oldForecastTsdFilename && (
-              <span className="text-muted-foreground ml-2 text-xs">
-                Current: {snapshot.oldForecastTsdFilename}
-              </span>
-            )}
-          </Label>
-          <Input
-            id="oldForecastFile"
-            name="oldForecastFile"
-            type="file"
-            accept=".tsd"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="oldForecastLabel">Label</Label>
-          <Input
-            id="oldForecastLabel"
-            name="oldForecastLabel"
-            defaultValue={snapshot?.oldForecastTsdLabel ?? ""}
-            placeholder="e.g. Q2 2025 Forecast"
-          />
+        <div className="flex flex-row items-center space-x-4">
+          <div className="basis-2/3 space-y-2">
+            <Label htmlFor="oldForecastFile">
+              File (.tsd)
+              {isEdit && snapshot?.oldForecastTsdFilename && (
+                <span className="text-muted-foreground ml-2 text-xs">
+                  Current: {snapshot.oldForecastTsdFilename}
+                </span>
+              )}
+            </Label>
+            <Input
+              id="oldForecastFile"
+              name="oldForecastFile"
+              type="file"
+              accept=".tsd"
+            />
+          </div>
+          <div className="basis-1/3 space-y-2">
+            <Label htmlFor="oldForecastLabel">Label</Label>
+            <Input
+              id="oldForecastLabel"
+              name="oldForecastLabel"
+              defaultValue={snapshot?.oldForecastTsdLabel ?? ""}
+              placeholder="e.g. Q2 2025 Forecast"
+            />
+          </div>
         </div>
       </fieldset>
 
       <fieldset className="space-y-4 rounded-md border p-4">
         <legend className="px-2 text-sm font-medium">History TSD</legend>
-        <div className="space-y-2">
-          <Label htmlFor="historyFile">
-            File (.tsd)
-            {isEdit && snapshot?.historyTsdFilename && (
-              <span className="text-muted-foreground ml-2 text-xs">
-                Current: {snapshot.historyTsdFilename}
-              </span>
-            )}
-          </Label>
-          <Input
-            id="historyFile"
-            name="historyFile"
-            type="file"
-            accept=".tsd"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="historyLabel">Label</Label>
-          <Input
-            id="historyLabel"
-            name="historyLabel"
-            defaultValue={snapshot?.historyTsdLabel ?? ""}
-            placeholder="e.g. History"
-          />
+        <div className="flex flex-row items-center space-x-4">
+          <div className="basis-2/3 space-y-2">
+            <Label htmlFor="historyFile">
+              File (.tsd)
+              {isEdit && snapshot?.historyTsdFilename && (
+                <span className="text-muted-foreground ml-2 text-xs">
+                  Current: {snapshot.historyTsdFilename}
+                </span>
+              )}
+            </Label>
+            <Input
+              id="historyFile"
+              name="historyFile"
+              type="file"
+              accept=".tsd"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="historyLabel">Label</Label>
+            <Input
+              id="historyLabel"
+              name="historyLabel"
+              defaultValue={snapshot?.historyTsdLabel ?? ""}
+              placeholder="e.g. History"
+            />
+          </div>
         </div>
       </fieldset>
 
@@ -212,11 +218,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
               ? "Update Snapshot"
               : "Create Snapshot"}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
       </div>

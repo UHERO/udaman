@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TsdSeries } from "@catalog/utils/tsd-reader";
 import {
   Bar,
   CartesianGrid,
@@ -13,13 +14,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { TsdSeries } from "@catalog/utils/tsd-reader";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import {
   Select,
@@ -28,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ForecastSnapshotActions } from "@/components/forecast-snapshots/forecast-snapshot-actions";
 
 interface Props {
   newForecast: TsdSeries[];
@@ -37,6 +33,11 @@ interface Props {
   newForecastLabel: string;
   oldForecastLabel: string;
   historyLabel: string;
+  initialFrom?: string;
+  initialTo?: string;
+  displayNames?: Record<string, string>;
+  snapshotId: number;
+  snapshotName: string;
 }
 
 const COLORS = {
@@ -67,7 +68,7 @@ function formatDate(date: string, freq: "annual" | "quarterly" | "monthly") {
 /** Compute default date range based on frequency */
 function defaultRange(
   allDates: string[],
-  freq: "annual" | "quarterly" | "monthly",
+  freq: "annual" | "quarterly" | "monthly"
 ) {
   const now = new Date();
   const year = now.getFullYear();
@@ -103,7 +104,7 @@ function defaultRange(
 function getOrderedSeriesNames(
   histSeries: TsdSeries[],
   newSeries: TsdSeries[],
-  oldSeries: TsdSeries[],
+  oldSeries: TsdSeries[]
 ): string[] {
   const seen = new Set<string>();
   const ordered: string[] = [];
@@ -134,9 +135,7 @@ function getOrderedSeriesNames(
  * Compute a nice Y-axis domain with rounded min/max and ~5 evenly spaced ticks.
  * Rounds to a "nice" interval based on magnitude (e.g. 10000 for values ~300k).
  */
-function niceYDomain(
-  values: number[],
-): [number, number] | undefined {
+function niceYDomain(values: number[]): [number, number] | undefined {
   if (!values.length) return undefined;
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
@@ -160,7 +159,7 @@ function niceYDomain(
 /** Compute YoY % change: (val - val_lag) / val_lag * 100 */
 function computeYoy(
   values: (number | null | undefined)[],
-  lag: number,
+  lag: number
 ): (number | null)[] {
   return values.map((val, idx) => {
     if (idx < lag) return null;
@@ -178,37 +177,65 @@ export function ForecastSnapshotCharts({
   newForecastLabel,
   oldForecastLabel,
   historyLabel,
+  initialFrom,
+  initialTo,
+  displayNames = {},
+  snapshotId,
+  snapshotName,
 }: Props) {
   const freq = useMemo(() => detectFrequency(allDates), [allDates]);
   const defaults = useMemo(
     () => defaultRange(allDates, freq),
-    [allDates, freq],
+    [allDates, freq]
   );
 
-  const [dateFrom, setDateFrom] = useState(defaults.from);
-  const [dateTo, setDateTo] = useState(defaults.to);
+  const [dateFrom, setDateFrom] = useState(
+    initialFrom && allDates.includes(initialFrom) ? initialFrom : defaults.from
+  );
+  const [dateTo, setDateTo] = useState(
+    initialTo && allDates.includes(initialTo) ? initialTo : defaults.to
+  );
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [allExpanded, setAllExpanded] = useState(false);
+
+  // Silently update URL search params when date range changes (for permalink)
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("sample_from", dateFrom);
+    url.searchParams.set("sample_to", dateTo);
+    window.history.replaceState(null, "", url.toString());
+  }, [dateFrom, dateTo]);
+
+  const toggleAll = useCallback(() => {
+    if (!containerRef.current) return;
+    const details = containerRef.current.querySelectorAll("details");
+    const newState = !allExpanded;
+    details.forEach((d) => (d.open = newState));
+    setAllExpanded(newState);
+  }, [allExpanded]);
 
   const seriesNames = useMemo(
     () => getOrderedSeriesNames(history, newForecast, oldForecast),
-    [history, newForecast, oldForecast],
+    [history, newForecast, oldForecast]
   );
 
   const newMap = useMemo(
     () => new Map(newForecast.map((s) => [s.name, s])),
-    [newForecast],
+    [newForecast]
   );
   const oldMap = useMemo(
     () => new Map(oldForecast.map((s) => [s.name, s])),
-    [oldForecast],
+    [oldForecast]
   );
   const histMap = useMemo(
     () => new Map(history.map((s) => [s.name, s])),
-    [history],
+    [history]
   );
 
   const filteredDates = useMemo(
     () => allDates.filter((d) => d >= dateFrom && d <= dateTo),
-    [allDates, dateFrom, dateTo],
+    [allDates, dateFrom, dateTo]
   );
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
@@ -221,7 +248,7 @@ export function ForecastSnapshotCharts({
         history: { label: historyLabel, color: COLORS.history },
         newYoy: { label: "%ch", color: COLORS.yoyBar },
       }) satisfies ChartConfig,
-    [newForecastLabel, oldForecastLabel, historyLabel],
+    [newForecastLabel, oldForecastLabel, historyLabel]
   );
 
   if (seriesNames.length === 0) {
@@ -233,12 +260,26 @@ export function ForecastSnapshotCharts({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-6" ref={containerRef}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm">From:</span>
           <Select value={dateFrom} onValueChange={setDateFrom}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {allDates.map((d) => (
+                <SelectItem key={d} value={d}>
+                  {formatDate(d, freq)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span className="text-sm">To:</span>
+          <Select value={dateTo} onValueChange={setDateTo}>
+            <SelectTrigger className="w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -251,19 +292,18 @@ export function ForecastSnapshotCharts({
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm">To:</span>
-          <Select value={dateTo} onValueChange={setDateTo}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {allDates.map((d) => (
-                <SelectItem key={d} value={d}>
-                  {formatDate(d, freq)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Button variant="link" size="sm" onClick={toggleAll}>
+            {allExpanded ? "Collapse All" : "Expand All"}
+          </Button>
+          <ForecastSnapshotActions
+            snapshotId={snapshotId}
+            snapshotName={snapshotName}
+            view="chart"
+            newForecast={newForecast}
+            oldForecast={oldForecast}
+            history={history}
+            allDates={allDates}
+          />
         </div>
       </div>
 
@@ -271,16 +311,10 @@ export function ForecastSnapshotCharts({
         const newS = newMap.get(name);
         const oldS = oldMap.get(name);
         const histS = histMap.get(name);
-        const desc =
-          newS?.description || oldS?.description || histS?.description || name;
-
+        const desc = displayNames[name] || name;
         // Build value arrays aligned to filteredDates for YoY computation
-        const newVals = filteredDates.map(
-          (d) => newS?.dataHash.get(d) ?? null,
-        );
-        const oldVals = filteredDates.map(
-          (d) => oldS?.dataHash.get(d) ?? null,
-        );
+        const newVals = filteredDates.map((d) => newS?.dataHash.get(d) ?? null);
+        const oldVals = filteredDates.map((d) => oldS?.dataHash.get(d) ?? null);
 
         const newYoy = computeYoy(newVals, yoyLag);
         const oldYoy = computeYoy(oldVals, yoyLag);
@@ -300,7 +334,7 @@ export function ForecastSnapshotCharts({
           (d) =>
             d.newForecast !== undefined ||
             d.oldForecast !== undefined ||
-            d.history !== undefined,
+            d.history !== undefined
         );
         if (!hasData) return null;
 
@@ -345,15 +379,15 @@ export function ForecastSnapshotCharts({
         }
 
         return (
-          <Card key={name}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">
+          <details key={name} className="rounded-md border">
+            <summary className="cursor-pointer px-4 py-3 select-none">
+              <span className="text-base font-semibold">
                 {chartIndex + 1}. {desc}
-              </CardTitle>
-              <p className="text-muted-foreground text-xs">{name}</p>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-72 w-full">
+              </span>
+              <span className="text-muted-foreground ml-2 text-xs">{name}</span>
+            </summary>
+            <div className="px-4 pb-4">
+              <ChartContainer config={chartConfig} className="h-96 w-full">
                 <ComposedChart
                   data={chartData}
                   margin={{ top: 8, right: 48, bottom: 0, left: 8 }}
@@ -382,8 +416,9 @@ export function ForecastSnapshotCharts({
                     label={{
                       value: "% Change in Forecast",
                       angle: 90,
-                      position: "insideRight",
-                      style: { fontSize: 10 },
+                      position: "center",
+                      dx: 20,
+                      style: { fontSize: 12 },
                     }}
                   />
                   <Tooltip
@@ -391,9 +426,15 @@ export function ForecastSnapshotCharts({
                       if (!active || !payload?.length) return null;
                       const byKey = new Map<string, number>();
                       for (const p of payload) {
-                        if (p.value != null) byKey.set(p.dataKey as string, p.value as number);
+                        if (p.value != null)
+                          byKey.set(p.dataKey as string, p.value as number);
                       }
-                      const rows: Array<{ name: string; color: string; level?: number; pct?: number }> = [];
+                      const rows: Array<{
+                        name: string;
+                        color: string;
+                        level?: number;
+                        pct?: number;
+                      }> = [];
                       if (byKey.has("newForecast")) {
                         rows.push({
                           name: newForecastLabel,
@@ -419,14 +460,20 @@ export function ForecastSnapshotCharts({
                       }
                       if (!rows.length) return null;
                       return (
-                        <div className="rounded-md border bg-background px-3 py-2 text-xs shadow-md">
+                        <div className="bg-background rounded-md border px-3 py-2 text-xs shadow-md">
                           <div className="mb-1 font-semibold">{label}</div>
                           <table className="border-separate border-spacing-x-2">
                             <thead>
                               <tr className="text-muted-foreground">
-                                <th className="text-left font-medium">Series</th>
-                                <th className="text-right font-medium">Level</th>
-                                <th className="text-right font-medium">% Chg</th>
+                                <th className="text-left font-medium">
+                                  Series
+                                </th>
+                                <th className="text-right font-medium">
+                                  Level
+                                </th>
+                                <th className="text-right font-medium">
+                                  % Chg
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -441,11 +488,15 @@ export function ForecastSnapshotCharts({
                                   </td>
                                   <td className="text-right font-mono">
                                     {r.level != null
-                                      ? r.level.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                                      ? r.level.toLocaleString(undefined, {
+                                          maximumFractionDigits: 2,
+                                        })
                                       : ""}
                                   </td>
                                   <td className="text-right font-mono">
-                                    {r.pct != null ? `${r.pct.toFixed(2)}%` : ""}
+                                    {r.pct != null
+                                      ? `${r.pct.toFixed(2)}%`
+                                      : ""}
                                   </td>
                                 </tr>
                               ))}
@@ -523,8 +574,8 @@ export function ForecastSnapshotCharts({
                   )}
                 </ComposedChart>
               </ChartContainer>
-            </CardContent>
-          </Card>
+            </div>
+          </details>
         );
       })}
     </div>

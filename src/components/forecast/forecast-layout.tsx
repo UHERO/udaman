@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "udaman-full-width";
 
-export function CatalogLayout({ children }: { children: React.ReactNode }) {
+export function ForecastLayout({ children }: { children: React.ReactNode }) {
   const [fullWidth, setFullWidth] = useState(false);
 
   useEffect(() => {

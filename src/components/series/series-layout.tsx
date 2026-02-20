@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "series-full-width";
+const STORAGE_KEY = "udaman-full-width";
 
 export function SeriesLayout({ children }: { children: React.ReactNode }) {
   const [fullWidth, setFullWidth] = useState(false);
@@ -15,8 +15,8 @@ export function SeriesLayout({ children }: { children: React.ReactNode }) {
     const handleChange = () => {
       setFullWidth(localStorage.getItem(STORAGE_KEY) === "true");
     };
-    window.addEventListener("series-width-change", handleChange);
-    return () => window.removeEventListener("series-width-change", handleChange);
+    window.addEventListener("udaman-width-change", handleChange);
+    return () => window.removeEventListener("udaman-width-change", handleChange);
   }, []);
 
   return (
