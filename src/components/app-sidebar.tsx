@@ -91,7 +91,7 @@ const data = {
     },
     {
       title: "Exports",
-      url: "#",
+      url: "/exports",
       icon: ArrowLeftFromLine,
     },
     {
