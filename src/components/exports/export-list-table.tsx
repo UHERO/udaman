@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteExportAction } from "@/actions/exports";
@@ -26,6 +26,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ExportRow = SerializedExport & { seriesCount: number };
 
@@ -74,8 +79,9 @@ export function ExportListTable({ data }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Series Count</TableHead>
+              <TableHead>Count</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -88,6 +94,7 @@ export function ExportListTable({ data }: Props) {
                   className="odd:bg-muted cursor-pointer"
                   onClick={() => router.push(`${base}/${exp.id}`)}
                 >
+                  <TableCell>{exp.id}</TableCell>
                   <TableCell className="font-medium">{exp.name}</TableCell>
                   <TableCell>{exp.seriesCount}</TableCell>
                   <TableCell>
@@ -100,31 +107,54 @@ export function ExportListTable({ data }: Props) {
                       className="flex items-center gap-1"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 cursor-pointer"
-                        title="Edit"
-                        onClick={() => router.push(`${base}/${exp.id}/edit`)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 cursor-pointer"
-                        title="Delete"
-                        onClick={() => setDeleteId(exp.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 cursor-pointer"
+                            asChild
+                          >
+                            <a href={`/api/exports/${exp.id}/csv`} download>
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Download CSV</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 cursor-pointer"
+                            onClick={() => router.push(`${base}/${exp.id}/edit`)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 cursor-pointer"
+                            onClick={() => setDeleteId(exp.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Destroy</TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No exports yet.
                 </TableCell>
               </TableRow>

@@ -116,6 +116,6 @@ export const config = {
      *  - /_next (static assets, HMR)
      *  - /favicon.ico, images, fonts
      */
-    "/((?!_next|favicon\\.ico|.*\\.(?:jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2)$).*)",
+    "/((?!_next|api/uploads|favicon\\.ico|.*\\.(?:jpg|jpeg|png|gif|svg|ico|css|js|woff|woff2)$).*)",
   ],
 };

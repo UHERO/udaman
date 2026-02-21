@@ -1,4 +1,5 @@
 import { listExportsAction } from "@/actions/exports";
+
 import { ExportListTable } from "@/components/exports/export-list-table";
 
 export default async function Page() {
@@ -12,7 +13,7 @@ export default async function Page() {
           Named collections of series for download and charting.
         </p>
       </div>
-      <div className="max-w-xl">
+      <div className="max-w-2xl">
         <ExportListTable data={data} />
       </div>
     </div>

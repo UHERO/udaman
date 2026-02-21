@@ -5,6 +5,7 @@ import {
   getExportMetadataAction,
   getExportTableDataAction,
 } from "@/actions/exports";
+import { Button } from "@/components/ui/button";
 import { ExportTableView } from "@/components/exports/export-table-view";
 
 export default async function ExportTablePage({
@@ -32,26 +33,19 @@ export default async function ExportTablePage({
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{exp.name}</h1>
-          <div className="text-muted-foreground flex items-center gap-3 text-sm">
-            <Link href={base} className="hover:underline">
-              Back to Exports
-            </Link>
-            <Link href={`${base}/${id}`} className="hover:underline">
-              Show
-            </Link>
-            <Link href={`${base}/${id}/edit`} className="hover:underline">
-              Edit
-            </Link>
-            <a
-              href={`/api/exports/${id}/csv`}
-              download
-              className="hover:underline"
-            >
+        <h1 className="text-3xl font-bold">{exp.name}</h1>
+        <div className="flex items-center gap-1">
+          <Button variant="link" size="sm" asChild>
+            <Link href={`${base}/${id}`}>Show</Link>
+          </Button>
+          <Button variant="link" size="sm" asChild>
+            <Link href={`${base}/${id}/edit`}>Edit</Link>
+          </Button>
+          <Button variant="link" size="sm" asChild>
+            <a href={`/api/exports/${id}/csv`} download>
               CSV
             </a>
-          </div>
+          </Button>
         </div>
       </div>
       <ExportTableView data={tableData} universe={universe} />

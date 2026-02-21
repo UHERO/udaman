@@ -35,6 +35,8 @@ export interface Category {
 
 export type CreateCategoryPayload = {
   parentId?: number | null;
+  /** Pre-computed ancestry path (alternative to parentId) */
+  ancestry?: string | null;
   name?: string | null;
   description?: string | null;
   dataListId?: number | null;
@@ -44,6 +46,8 @@ export type CreateCategoryPayload = {
   header?: boolean;
   masked?: boolean;
   hidden?: boolean;
+  meta?: string | null;
+  listOrder?: number | null;
 };
 
 export type UpdateCategoryPayload = Partial<

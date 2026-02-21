@@ -19,7 +19,7 @@ export default async function InvestigationsPage() {
   ]);
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">Investigations</h1>
         <p className="text-muted-foreground text-sm">

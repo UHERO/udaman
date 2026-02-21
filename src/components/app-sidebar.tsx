@@ -70,7 +70,7 @@ const data = {
       icon: TableProperties,
     },
     {
-      title: "Data Portal",
+      title: "Data Portal Catalog",
       url: "/catalog",
       icon: ChartLine,
     },
@@ -121,7 +121,7 @@ const data = {
       items: [
         {
           title: "DBEDT Econ D/w",
-          url: "#",
+          url: "/udaman/DBEDT/uploads",
         },
         {
           title: "DBEDT Tour D/w",

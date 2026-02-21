@@ -1,3 +1,5 @@
+import { AdminLayout as AdminWidthLayout } from "@/components/admin/admin-layout";
+import { AdminTabs } from "@/components/admin/admin-tabs";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -49,7 +51,10 @@ export default async function AdminLayout({
             <span className="text-sm font-medium">Admin</span>
           </div>
         </header>
-        {children}
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <AdminTabs />
+          <AdminWidthLayout>{children}</AdminWidthLayout>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

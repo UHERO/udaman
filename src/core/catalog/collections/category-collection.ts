@@ -62,6 +62,7 @@ class CategoryCollection {
   static async create(payload: CreateCategoryPayload): Promise<Category> {
     const {
       parentId,
+      ancestry: explicitAncestry,
       name,
       description,
       dataListId,
@@ -71,11 +72,14 @@ class CategoryCollection {
       header,
       masked,
       hidden,
+      meta,
+      listOrder: explicitListOrder,
     } = payload;
 
     const parent = parentId ? await this.getById(parentId) : null;
-    const ancestry = parent ? parent.path : null;
-    const listOrder = await this.nextListOrder(ancestry);
+    const ancestry = explicitAncestry ?? (parent ? parent.path : null);
+    const listOrder =
+      explicitListOrder ?? (await this.nextListOrder(ancestry));
     const categoryUniverse = universe ?? parent?.universe ?? "UHERO";
     const maskedValue =
       masked ?? (parent ? parent.masked || parent.hidden : false);
@@ -84,12 +88,12 @@ class CategoryCollection {
       INSERT INTO categories (
         data_list_id, default_geo_id, universe, name, description,
         ancestry, list_order, masked, hidden, header, default_freq,
-        created_at, updated_at
+        meta, created_at, updated_at
       ) VALUES (
         ${dataListId ?? null}, ${defaultGeoId ?? null}, ${categoryUniverse},
         ${name ?? "*** NEW UNNAMED CATEGORY ***"}, ${description ?? null},
         ${ancestry}, ${listOrder}, ${maskedValue ? 1 : 0}, ${hidden ? 1 : 0},
-        ${header ? 1 : 0}, ${defaultFreq ?? null}, NOW(), NOW()
+        ${header ? 1 : 0}, ${defaultFreq ?? null}, ${meta ?? null}, NOW(), NOW()
       )
     `;
 

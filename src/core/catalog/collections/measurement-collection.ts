@@ -183,7 +183,7 @@ class MeasurementCollection {
     await mysql`
       INSERT INTO measurements (
         universe, prefix, data_portal_name, unit_id, source_id,
-        source_detail_id, decimals, percent, real, restricted,
+        source_detail_id, decimals, percent, \`real\`, restricted,
         seasonal_adjustment, frequency_transform, source_link, notes,
         created_at, updated_at
       ) VALUES (

@@ -3,11 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { deleteExportAction } from "@/actions/exports";
+import type { ExportSeriesRow } from "@catalog/collections/export-collection";
 import { Ban, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { ExportSeriesRow } from "@catalog/collections/export-collection";
-import { deleteExportAction } from "@/actions/exports";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -22,16 +32,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 function formatDate(date: Date | string | null): string {
   if (!date) return "-";
@@ -76,18 +76,32 @@ export function ExportSeriesTable({
   return (
     <>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">
-          {series.length} series
-        </p>
-        <Button
-          variant="destructive"
-          size="sm"
-          className="cursor-pointer"
-          onClick={() => setShowDelete(true)}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Delete Export
-        </Button>
+        <p className="text-muted-foreground text-sm">{series.length} series</p>
+        <div className="flex items-center gap-1">
+          <Button variant="link" size="sm" asChild>
+            <Link href={`/udaman/${universe}/exports/${exportId}/edit`}>
+              Edit
+            </Link>
+          </Button>
+          <Button variant="link" size="sm" asChild>
+            <Link href={`/udaman/${universe}/exports/${exportId}/table`}>
+              Table
+            </Link>
+          </Button>
+          <Button variant="link" size="sm" asChild>
+            <a href={`/api/exports/${exportId}/csv`} download>
+              CSV
+            </a>
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => setShowDelete(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-md">
