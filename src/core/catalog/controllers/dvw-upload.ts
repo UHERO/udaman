@@ -1,17 +1,31 @@
+import type XLSX from "xlsx";
+
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery as dvwQuery } from "@/lib/mysql/dvw-db";
 
 import { DvwUploadCollection } from "../collections/universe-upload-collection";
 import { makeDate } from "../utils/date-helpers";
-import { parseDvwXlsx, type DvwParseResult } from "../utils/dvw-xlsx-parser";
+import {
+  parseDvwXlsx,
+  streamDataRows,
+  type DvwParseResult,
+} from "../utils/dvw-xlsx-parser";
 import {
   prepareUpload,
   type UploadConfig,
   type UploadHandlers,
-  type UploadResult,
 } from "./universe-upload";
 
 const log = createLogger("catalog.dvw-upload");
+
+/** Maps of `handle:module` → database ID for each dimension table */
+export type DvwDimensionMaps = {
+  groups: Map<string, number>;
+  markets: Map<string, number>;
+  destinations: Map<string, number>;
+  categories: Map<string, number>;
+  indicators: Map<string, number>;
+};
 
 // ─── Handlers ─────────────────────────────────────────────────────────
 
@@ -27,9 +41,8 @@ async function parseFile(filePath: string): Promise<DvwParseResult> {
           (v as unknown[]).length,
         ]),
       ),
-      dataRows: result.dataRows.length,
     },
-    "Parsed DVW XLSX",
+    "Parsed DVW XLSX (data sheet deferred)",
   );
   return result;
 }
@@ -154,11 +167,26 @@ async function loadDvwDimension(
 }
 
 /**
- * Load metadata: all 5 dimension tables.
+ * Build a `handle:module` → id map by querying a dimension table.
+ */
+async function buildDimensionMap(table: string): Promise<Map<string, number>> {
+  const rows = await dvwQuery<{ id: number; handle: string; module: string }>(
+    `SELECT id, handle, module FROM \`${table}\``,
+  );
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(`${row.handle}:${row.module}`, row.id);
+  }
+  return map;
+}
+
+/**
+ * Load metadata: all 5 dimension tables, then build handle:module → id maps.
+ * Returns the maps for use by loadDvwData (avoids per-row SQL JOINs).
  */
 async function loadDvwMetadata(
   dimensions: DvwParseResult["dimensions"],
-): Promise<void> {
+): Promise<DvwDimensionMaps> {
   await loadDvwDimension("groups", dimensions.group);
   log.info("Loaded groups");
   await loadDvwDimension("markets", dimensions.market);
@@ -169,64 +197,116 @@ async function loadDvwMetadata(
   log.info("Loaded categories");
   await loadDvwDimension("indicators", dimensions.indicator);
   log.info("Loaded indicators");
+
+  // Build dimension ID maps for fast lookup during data insertion
+  const [groups, markets, destinations, categories, indicators] =
+    await Promise.all([
+      buildDimensionMap("groups"),
+      buildDimensionMap("markets"),
+      buildDimensionMap("destinations"),
+      buildDimensionMap("categories"),
+      buildDimensionMap("indicators"),
+    ]);
+
+  log.info(
+    {
+      groups: groups.size,
+      markets: markets.size,
+      destinations: destinations.size,
+      categories: categories.size,
+      indicators: indicators.size,
+    },
+    "Built dimension ID maps",
+  );
+
+  return { groups, markets, destinations, categories, indicators };
 }
 
 /**
- * Load data points from the data sheet.
- * Port of Rails `load_series_csv`.
+ * Load data points from the data sheet using streamed rows and batched inserts.
+ * Dimension IDs are resolved in JS via pre-built maps (no per-row SQL JOINs).
  */
 async function loadDvwData(
-  dataRows: DvwParseResult["dataRows"],
+  dataSheet: XLSX.WorkSheet,
+  dimMaps: DvwDimensionMaps,
 ): Promise<number> {
-  log.info({ totalRows: dataRows.length }, "Loading DVW data points");
+  log.info("Loading DVW data points (streamed + batched)");
 
-  // Build insert rows — each row needs dimension ID resolution via SQL JOINs
-  for (let i = 0; i < dataRows.length; i += 1000) {
-    const batch = dataRows.slice(i, i + 1000);
-    for (const row of batch) {
-      const date = makeDate(row.year, row.qm);
-      await dvwQuery(
-        `INSERT INTO data_points
-          (\`module\`, \`frequency\`, \`date\`, \`value\`, \`group_id\`, \`market_id\`, \`destination_id\`, \`category_id\`, \`indicator_id\`)
-         SELECT ?, ?, ?, ?, g.id, m.id, d.id, c.id, i.id
-           FROM indicators i
-             LEFT JOIN \`groups\` g ON g.handle = ? AND g.module = ?
-             LEFT JOIN markets m ON m.handle = ? AND m.module = ?
-             LEFT JOIN destinations d ON d.handle = ? AND d.module = ?
-             LEFT JOIN categories c ON c.handle = ? AND c.module = ?
-          WHERE i.handle = ?
-            AND i.module = ?`,
-        [
-          row.module,
-          row.frequency,
-          date,
-          row.value,
-          row.group,
-          row.module,
-          row.market,
-          row.module,
-          row.destination,
-          row.module,
-          row.category,
-          row.module,
-          row.indicator,
-          row.module,
-        ],
-      );
+  const BATCH_SIZE = 1000;
+  const placeholder = "(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  const insertCols =
+    "`module`, `frequency`, `date`, `value`, `group_id`, `market_id`, `destination_id`, `category_id`, `indicator_id`";
+
+  let batch: (string | number | null)[] = [];
+  let batchCount = 0;
+  let totalInserted = 0;
+
+  async function flushBatch(): Promise<void> {
+    if (batchCount === 0) return;
+    const placeholders = Array(batchCount).fill(placeholder).join(",");
+    await dvwQuery(
+      `INSERT INTO data_points (${insertCols}) VALUES ${placeholders}`,
+      batch,
+    );
+    totalInserted += batchCount;
+    if (totalInserted % 50000 < BATCH_SIZE) {
+      log.info({ totalInserted }, "DVW data point insert progress");
+    }
+    batch = [];
+    batchCount = 0;
+  }
+
+  for (const row of streamDataRows(dataSheet)) {
+    const date = makeDate(row.year, row.qm);
+
+    // Resolve dimension IDs from pre-built maps
+    const groupId = row.group
+      ? (dimMaps.groups.get(`${row.group}:${row.module}`) ?? null)
+      : null;
+    const marketId = row.market
+      ? (dimMaps.markets.get(`${row.market}:${row.module}`) ?? null)
+      : null;
+    const destId = row.destination
+      ? (dimMaps.destinations.get(`${row.destination}:${row.module}`) ?? null)
+      : null;
+    const catId = row.category
+      ? (dimMaps.categories.get(`${row.category}:${row.module}`) ?? null)
+      : null;
+    const indId =
+      dimMaps.indicators.get(`${row.indicator}:${row.module}`) ?? null;
+
+    batch.push(
+      row.module,
+      row.frequency,
+      date,
+      row.value,
+      groupId,
+      marketId,
+      destId,
+      catId,
+      indId,
+    );
+    batchCount++;
+
+    if (batchCount >= BATCH_SIZE) {
+      await flushBatch();
     }
   }
+
+  // Flush remaining rows
+  await flushBatch();
 
   // Generate data_toc (table of contents)
   await dvwQuery(
     `INSERT INTO data_toc (module, group_id, market_id, destination_id, category_id, indicator_id, frequency, \`count\`)
-     SELECT DISTINCT module, group_id, market_id, destination_id, category_id, indicator_id, frequency, count(*)
+     SELECT module, group_id, market_id, destination_id, category_id, indicator_id, frequency, count(*)
      FROM data_points
-     GROUP BY 1, 2, 3, 4, 5, 6, 7`,
+     GROUP BY module, group_id, market_id, destination_id, category_id, indicator_id, frequency`,
   );
   log.info("Generated DVW data_toc");
 
-  log.info({ inserted: dataRows.length }, "Loaded DVW data points");
-  return dataRows.length;
+  log.info({ inserted: totalInserted }, "Loaded DVW data points");
+  return totalInserted;
 }
 
 // ─── Exported config & handlers (used by worker processor) ───────────
@@ -245,9 +325,9 @@ export const dvwUploadHandlers: UploadHandlers = {
     const { dimensions } = parsed as DvwParseResult;
     return loadDvwMetadata(dimensions);
   },
-  loadData: async (parsed) => {
-    const { dataRows } = parsed as DvwParseResult;
-    return loadDvwData(dataRows);
+  loadData: async (parsed, metaContext) => {
+    const { dataSheet } = parsed as DvwParseResult;
+    return loadDvwData(dataSheet, metaContext as DvwDimensionMaps);
   },
 };
 

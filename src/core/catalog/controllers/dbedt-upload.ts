@@ -16,7 +16,10 @@ import type {
   DbedtMetaRow,
   DbedtParseResult,
 } from "../utils/dbedt-xlsx-parser";
-import { parseDbedtXlsx } from "../utils/dbedt-xlsx-parser";
+import {
+  parseDbedtXlsx,
+  streamDbedtDataRows,
+} from "../utils/dbedt-xlsx-parser";
 import {
   prepareUpload,
   type UploadConfig,
@@ -42,11 +45,8 @@ async function parseFile(filePath: string): Promise<DbedtParseResult> {
   const buffer = await readFile(filePath);
   const result = parseDbedtXlsx(buffer);
   log.info(
-    {
-      indicatorRows: result.indicatorRows.length,
-      dataRows: result.dataRows.length,
-    },
-    "Parsed DBEDT XLSX",
+    { indicatorRows: result.indicatorRows.length },
+    "Parsed DBEDT XLSX (data sheet deferred)",
   );
   return result;
 }
@@ -222,7 +222,7 @@ async function loadDbedtMetadata(
  * Returns count of data points inserted.
  */
 async function loadDbedtData(
-  dataRows: DbedtDataRow[],
+  dataRows: Iterable<DbedtDataRow>,
   metadata: Map<number, DbedtMetaRow>,
 ): Promise<number> {
   log.info("loadDbedtData: start");
@@ -441,8 +441,11 @@ export const dbedtUploadHandlers: UploadHandlers = {
     return loadDbedtMetadata(indicatorRows);
   },
   loadData: async (parsed, metaContext) => {
-    const { dataRows } = parsed as DbedtParseResult;
-    return loadDbedtData(dataRows, metaContext as Map<number, DbedtMetaRow>);
+    const { dataSheet } = parsed as DbedtParseResult;
+    return loadDbedtData(
+      streamDbedtDataRows(dataSheet),
+      metaContext as Map<number, DbedtMetaRow>,
+    );
   },
 };
 
