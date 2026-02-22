@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Activity,
+  Calendar,
   Maximize2,
   Minimize2,
   SearchSlash,
@@ -21,6 +23,8 @@ const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Permissions", icon: Shield, segment: "" },
   { label: "Feature Toggles", icon: ToggleRight, segment: "feature-toggles" },
   { label: "Investigations", icon: SearchSlash, segment: "investigations" },
+  { label: "Workers", icon: Activity, segment: "workers" },
+  { label: "Schedules", icon: Calendar, segment: "schedules" },
 ];
 
 export function AdminTabs() {

@@ -1,16 +1,16 @@
-import { exec } from "child_process";
-import { promisify } from "util";
-
 import { createLogger } from "@/core/observability/logger";
+import {
+  enqueueAdminAction,
+  enqueueReloadJob,
+  enqueueTsdExport,
+  enqueueUpdatePublic,
+} from "@/core/workers/enqueue";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
-import { runTsdExport } from "../utils/tsd-export";
-import DataPointCollection from "./data-point-collection";
 
 const log = createLogger("catalog.reload-job-collection");
-const execAsync = promisify(exec);
 
 export type AdminAction =
   | "export_tsd"
@@ -92,75 +92,151 @@ class ReloadJobCollection {
     log.info({ id }, "Deleted reload job");
   }
 
-  /** Run an admin action */
+  /** Run an admin action — dispatches to background job queue */
   static async runAdminAction(
     action: AdminAction,
   ): Promise<{ success: boolean; message: string }> {
-    log.info({ action }, `Running admin action: ${action}`);
-
-    const isProd = process.env.APP_ENV === "production";
-    if (!isProd && action !== "update_public") {
-      return {
-        success: false,
-        message: "Action not available — requires production environment",
-      };
-    }
+    log.info({ action }, `Queuing admin action: ${action}`);
 
     switch (action) {
       case "export_tsd": {
-        return runTsdExport();
-      }
-      case "restart_rest": {
-        try {
-          await execAsync("sudo systemctl restart rest-api.service");
-          return { success: true, message: "REST API restart done" };
-        } catch {
-          return { success: false, message: "REST API restart FAIL" };
-        }
-      }
-      case "restart_dvw": {
-        try {
-          await execAsync("sudo systemctl restart dvw-api.service");
-          return { success: true, message: "DVW API restart done" };
-        } catch {
-          return { success: false, message: "DVW API restart FAIL" };
-        }
-      }
-      case "clear_cache": {
-        try {
-          await execAsync(
-            'ssh uhero@uhero12.colo.hawaii.edu "bin/clear_api_cache.sh /v1"',
-          );
-          return { success: true, message: "API cache clear done" };
-        } catch {
-          return { success: false, message: "API cache clear FAIL" };
-        }
+        await enqueueTsdExport();
+        return { success: true, message: "TSD export queued" };
       }
       case "update_public": {
-        try {
-          await DataPointCollection.updatePublicAllUniverses();
-          return {
-            success: true,
-            message: "Public data points updated for all universes",
-          };
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          log.error({ error: msg }, "update_public failed");
-          return { success: false, message: `Update public FAIL: ${msg}` };
-        }
+        await enqueueUpdatePublic();
+        return { success: true, message: "Public data update queued" };
+      }
+      case "clear_cache": {
+        await enqueueAdminAction({ action: "clear_cache" });
+        return { success: true, message: "Cache clear queued" };
+      }
+      case "restart_rest": {
+        await enqueueAdminAction({ action: "restart_rest" });
+        return { success: true, message: "REST API restart queued" };
+      }
+      case "restart_dvw": {
+        await enqueueAdminAction({ action: "restart_dvw" });
+        return { success: true, message: "DVW API restart queued" };
       }
       case "sync_nas": {
-        try {
-          await execAsync(
-            'ssh uhero@uhero13.colo.hawaii.edu "/home/uhero/filesync.sh"',
-          );
-          return { success: true, message: "NAS file sync done" };
-        } catch {
-          return { success: false, message: "NAS file sync FAIL" };
-        }
+        await enqueueAdminAction({ action: "sync_nas" });
+        return { success: true, message: "NAS file sync queued" };
       }
       default:
         return { success: false, message: `Unknown action: ${action}` };
+    }
+  }
+
+  /** Delete reload jobs older than the given horizon. Ports ReloadJob.purge_old_jobs. */
+  static async purgeOldJobs(horizonDays = 7): Promise<number> {
+    // Delete join table rows first
+    await rawQuery(
+      `DELETE rjs FROM reload_job_series rjs
+       JOIN reload_jobs rj ON rj.id = rjs.reload_job_id
+       WHERE rj.created_at < NOW() - INTERVAL ? DAY`,
+      [horizonDays],
+    );
+    const result = await rawQuery(
+      `DELETE FROM reload_jobs WHERE created_at < NOW() - INTERVAL ? DAY`,
+      [horizonDays],
+    );
+    const count = (result as unknown as { count?: number }).count ?? 0;
+    log.info({ horizonDays, count }, "Purged old reload jobs");
+    return count;
+  }
+
+  /** Delete old series_reload_logs. */
+  static async purgeOldReloadLogs(horizonDays = 14): Promise<number> {
+    const result = await rawQuery(
+      `DELETE FROM series_reload_logs WHERE created_at < NOW() - INTERVAL ? DAY`,
+      [horizonDays],
+    );
+    const count = (result as unknown as { count?: number }).count ?? 0;
+    log.info({ horizonDays, count }, "Purged old reload logs");
+    return count;
+  }
+
+  /** Delete old dsd_log_entries. */
+  static async purgeOldDsdLogs(horizonDays = 42): Promise<number> {
+    const result = await rawQuery(
+      `DELETE FROM dsd_log_entries WHERE time < NOW() - INTERVAL ? DAY`,
+      [horizonDays],
+    );
+    const count = (result as unknown as { count?: number }).count ?? 0;
+    log.info({ horizonDays, count }, "Purged old DSD log entries");
+    return count;
+  }
+
+  /**
+   * Create a reload job from a search query and enqueue it.
+   * Ports ReloadJobDaemon.enqueue.
+   */
+  static async enqueueReload(opts: {
+    name: string;
+    search: string;
+    nightly: boolean;
+    updatePublic: boolean;
+  }): Promise<number | null> {
+    const { name, search, nightly, updatePublic } = opts;
+
+    // Lazy import to avoid circular
+    const { default: SeriesCollection } = await import("./series-collection");
+
+    // Handle comma-separated searches (for SA which combines two queries)
+    const searches = search
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const allSeries: { id: number }[] = [];
+
+    for (const q of searches) {
+      const results = await SeriesCollection.search({
+        text: q,
+        universe: "UHERO",
+      });
+      allSeries.push(...results.map((s) => ({ id: s.id! })));
+    }
+
+    // Deduplicate
+    const seriesIds = [...new Set(allSeries.map((s) => s.id))];
+
+    if (seriesIds.length === 0) {
+      log.warn({ name }, `enqueueReload: No series found for "${search}"`);
+      return null;
+    }
+
+    const params = JSON.stringify([name, { nightly }]);
+
+    try {
+      await mysql`
+        INSERT INTO reload_jobs (user_id, update_public, params, created_at)
+        VALUES (1, ${updatePublic}, ${params}, NOW())
+      `;
+      const [{ insertId }] = await mysql<{ insertId: number }>`
+        SELECT LAST_INSERT_ID() AS insertId
+      `;
+
+      // Insert join table rows
+      for (const sid of seriesIds) {
+        await mysql`
+          INSERT INTO reload_job_series (reload_job_id, series_id)
+          VALUES (${insertId}, ${sid})
+        `;
+      }
+
+      // Enqueue the BullMQ job
+      await enqueueReloadJob({ reloadJobId: insertId });
+
+      log.info(
+        { name, reloadJobId: insertId, seriesCount: seriesIds.length },
+        "Reload job enqueued",
+      );
+      return insertId;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      log.error({ name, err: msg }, "Failed to enqueue reload job");
+      return null;
     }
   }
 }

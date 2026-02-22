@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processDbedtUpload } from "@catalog/controllers/dbedt-upload";
+import { prepareDbedtUpload } from "@catalog/controllers/dbedt-upload";
 
+import { enqueueDbedtUpload } from "@/core/workers/enqueue";
 import { requirePermission } from "@/lib/auth/permissions";
-
-export const maxDuration = 300; // 5 minutes
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -59,13 +58,13 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(arrayBuffer);
-    const result = await processDbedtUpload(buffer, filename);
+    const { uploadId, filePath } = await prepareDbedtUpload(buffer, filename);
+    await enqueueDbedtUpload({ uploadId, filePath });
 
     return NextResponse.json({
       success: true,
-      message: result.message,
-      uploadId: result.uploadId,
-      dataPointCount: result.dataPointCount,
+      uploadId,
+      message: "Upload queued for processing",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

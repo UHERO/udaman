@@ -1,4 +1,5 @@
-import { mysql, rawQuery } from "@/lib/mysql/db";
+import { createLogger } from "@/core/observability/logger";
+import { mysql, rawQuery, scopedConnection } from "@/lib/mysql/db";
 import { buildUpdateObject, convertCommas } from "@/lib/mysql/helpers";
 
 import Series from "../models/series";
@@ -11,7 +12,10 @@ import type {
 } from "../types/shared";
 import type { SeriesSummary } from "../types/udaman";
 import { isValidUniverse } from "../utils/validators";
+import type LoaderCollection from "./loader-collection";
 import TimeSeriesCollection from "./time-series-collection";
+
+const log = createLogger("catalog.series-collection");
 
 /** Row shape returned by the summary SELECT (before date enrichment). */
 interface SeriesSummaryRow {
@@ -1648,6 +1652,213 @@ class SeriesCollection {
       const parsed = Series.parseName(row.name);
       return { freqCode: parsed.freq ?? "A", id: row.id, name: row.name };
     });
+  }
+
+  /**
+   * Compute dependency_depth for all UHERO series using iterative SQL.
+   * Ports Rails Series.assign_dependency_depth.
+   *
+   * Uses temporary tables inside a scoped connection so they persist
+   * across queries within the same transaction.
+   */
+  static async assignDependencyDepth(): Promise<void> {
+    log.info("assignDependencyDepth: start");
+
+    await scopedConnection(async (exec) => {
+      // Create temp tables
+      await exec(`
+        CREATE TEMPORARY TABLE IF NOT EXISTS t_series (PRIMARY KEY idx_pkey (id), INDEX idx_name (name))
+        SELECT id, name, 0 AS dependency_depth FROM series WHERE universe = 'UHERO'
+      `);
+      await exec(`
+        CREATE TEMPORARY TABLE IF NOT EXISTS t_datasources (INDEX idx_series_id (series_id))
+        SELECT id, series_id, dependencies FROM data_sources WHERE universe = 'UHERO'
+      `);
+      await exec(`CREATE TEMPORARY TABLE t2_series LIKE t_series`);
+      await exec(`INSERT INTO t2_series SELECT * FROM t_series`);
+
+      // First level: series whose name appears in any dependencies field
+      await exec(`
+        UPDATE t_series s SET dependency_depth = 1
+        WHERE EXISTS (
+          SELECT 1 FROM t_datasources WHERE dependencies LIKE CONCAT('% ', s.name, '%')
+        )
+      `);
+
+      let previousDepth = 1;
+      let [prevCountRow] = await exec(
+        `SELECT COUNT(*) AS cnt FROM t_series WHERE dependency_depth = 0`,
+      );
+      let previousDepthCount = (prevCountRow as { cnt: number }).cnt;
+      let [curCountRow] = await exec(
+        `SELECT COUNT(*) AS cnt FROM t_series WHERE dependency_depth = 1`,
+      );
+      let currentDepthCount = (curCountRow as { cnt: number }).cnt;
+
+      while (currentDepthCount !== previousDepthCount) {
+        log.debug(
+          `assignDependencyDepth: depth=${previousDepth} current=${currentDepthCount} previous=${previousDepthCount}`,
+        );
+
+        // Sync t2_series
+        await exec(`
+          UPDATE t2_series t2 JOIN t_series t ON t.id = t2.id
+          SET t2.dependency_depth = t.dependency_depth
+        `);
+
+        // Next level
+        await exec(
+          `UPDATE t_series s SET dependency_depth = ?
+           WHERE EXISTS (
+             SELECT 1 FROM t_datasources ds JOIN t2_series ON ds.series_id = t2_series.id
+             WHERE t2_series.dependency_depth = ?
+             AND ds.dependencies LIKE CONCAT('% ', REPLACE(s.name, '%', '\\\\%'), '%')
+           )`,
+          [previousDepth + 1, previousDepth],
+        );
+
+        previousDepthCount = currentDepthCount;
+        [curCountRow] = await exec(
+          `SELECT COUNT(*) AS cnt FROM t_series WHERE dependency_depth = ?`,
+          [previousDepth + 1],
+        );
+        currentDepthCount = (curCountRow as { cnt: number }).cnt;
+        previousDepth += 1;
+      }
+
+      // Copy computed depths back to real series table
+      await exec(`
+        UPDATE series JOIN t_series t ON t.id = series.id
+        SET series.dependency_depth = t.dependency_depth
+      `);
+
+      // Clean up temp tables
+      await exec(`DROP TEMPORARY TABLE IF EXISTS t_series`);
+      await exec(`DROP TEMPORARY TABLE IF EXISTS t2_series`);
+      await exec(`DROP TEMPORARY TABLE IF EXISTS t_datasources`);
+    });
+
+    log.info("assignDependencyDepth: done");
+  }
+
+  /**
+   * Iteratively find all series that depend (transitively) on the given set.
+   * Ports Rails Series.get_all_dependencies.
+   * Returns the full list of series IDs (base + all dependents).
+   */
+  static async getAllDependencies(baseList: number[]): Promise<number[]> {
+    if (baseList.length === 0) return [];
+
+    const resultSet = new Set(baseList);
+    let nextSet = [...baseList];
+
+    while (nextSet.length > 0) {
+      const placeholders = nextSet.map(() => "?").join(",");
+      const rows = await rawQuery<{ series_id: number }>(
+        `SELECT DISTINCT data_sources.series_id
+         FROM data_sources, series
+         WHERE series.id IN (${placeholders})
+           AND data_sources.dependencies REGEXP CONCAT(' ', series.name)`,
+        nextSet,
+      );
+
+      const newIds = rows
+        .map((r) => r.series_id)
+        .filter((id) => !resultSet.has(id));
+      for (const id of newIds) resultSet.add(id);
+      nextSet = newIds;
+    }
+
+    return Array.from(resultSet);
+  }
+
+  /**
+   * Batch reload series ordered by dependency_depth (highest first).
+   * Ports Rails SeriesReloadManager#batch_reload.
+   *
+   * Unlike Rails, we don't use Sidekiq sub-workers — we process
+   * in-process but depth-ordered so dependencies are resolved first.
+   */
+  static async batchReload(opts: {
+    seriesIds: number[];
+    suffix: string;
+    nightly: boolean;
+    clearFirst?: boolean;
+    groupSize?: number;
+    job?: { log: (msg: string) => void };
+  }): Promise<void> {
+    const {
+      seriesIds,
+      suffix,
+      nightly,
+      clearFirst = false,
+      groupSize = 25,
+      job,
+    } = opts;
+
+    // Lazy-import to avoid circular dependency
+    const { default: LoaderCol } = await import("./loader-collection");
+
+    if (seriesIds.length === 0) {
+      job?.log("No series to reload");
+      return;
+    }
+
+    // Get max dependency_depth
+    const placeholders = seriesIds.map(() => "?").join(",");
+    const [depthRow] = await rawQuery<{ max_depth: number }>(
+      `SELECT MAX(dependency_depth) AS max_depth FROM series WHERE id IN (${placeholders})`,
+      seriesIds,
+    );
+    const maxDepth = depthRow?.max_depth ?? 0;
+
+    const batchId = `${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}_${seriesIds.length}_${suffix}`;
+    job?.log(
+      `batch_reload: ${seriesIds.length} series, maxDepth=${maxDepth}, batchId=${batchId}`,
+    );
+    log.info(
+      { batchId, count: seriesIds.length, maxDepth },
+      "Starting batch reload",
+    );
+
+    for (let depth = maxDepth; depth >= 0; depth--) {
+      const depthRows = await rawQuery<{ id: number }>(
+        `SELECT id FROM series WHERE id IN (${placeholders}) AND dependency_depth = ?`,
+        [...seriesIds, depth],
+      );
+      const depthIds = depthRows.map((r) => r.id);
+      if (depthIds.length === 0) continue;
+
+      job?.log(`Depth ${depth}: ${depthIds.length} series`);
+      log.info(
+        { batchId, depth, count: depthIds.length },
+        "Processing depth level",
+      );
+
+      // Process in groups
+      for (let i = 0; i < depthIds.length; i += groupSize) {
+        const group = depthIds.slice(i, i + groupSize);
+        for (const seriesId of group) {
+          try {
+            const loaders = await LoaderCol.getEnabledBySeriesId(seriesId);
+            for (const loader of loaders) {
+              if (nightly && !loader.reloadNightly) continue;
+              await LoaderCol.reload({ loader, clearFirst });
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            log.warn(
+              { seriesId, err: msg },
+              "Series reload failed, continuing",
+            );
+            job?.log(`Series ${seriesId} failed: ${msg}`);
+          }
+        }
+      }
+    }
+
+    log.info({ batchId }, "Batch reload complete");
+    job?.log("Batch reload complete");
   }
 
   // Delegate to model for name/universe validation

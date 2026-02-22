@@ -1,5 +1,3 @@
-import "server-only";
-
 import { readFileSync } from "node:fs";
 import { extname, join } from "node:path";
 

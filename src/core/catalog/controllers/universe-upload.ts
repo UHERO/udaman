@@ -1,5 +1,3 @@
-import "server-only";
-
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -34,15 +32,15 @@ export type UploadConfig = {
 };
 
 /**
- * Reusable orchestrator for universe-level data uploads.
- * Each universe provides handler callbacks for parsing, wiping, and loading.
+ * Phase 1: Save file to disk and create the upload DB record.
+ * Runs in the API route (fast). Returns the uploadId and filePath
+ * for enqueueing the background processing job.
  */
-export async function orchestrateUpload(
+export async function prepareUpload(
   config: UploadConfig,
   fileBuffer: Buffer,
   originalFilename: string,
-  handlers: UploadHandlers,
-): Promise<UploadResult> {
+): Promise<{ uploadId: number; filePath: string }> {
   const { universe, fileSubdir, uploadCollection } = config;
 
   // Generate timestamped filename
@@ -58,41 +56,53 @@ export async function orchestrateUpload(
   await writeFile(filePath, fileBuffer);
   log.info({ filePath, universe }, "Saved upload file to disk");
 
-  // Create upload record
+  // Create upload record (status = "processing")
   const upload = await uploadCollection.create(storedFilename);
   log.info(
     { uploadId: upload.id, filename: storedFilename },
     "Created upload record",
   );
 
+  return { uploadId: upload.id, filePath };
+}
+
+/**
+ * Phase 2: Parse, wipe, load metadata, load data, activate.
+ * Runs in the worker process (long-running).
+ */
+export async function executeUpload(
+  config: UploadConfig,
+  uploadId: number,
+  filePath: string,
+  handlers: UploadHandlers,
+): Promise<UploadResult> {
+  const { universe, uploadCollection } = config;
+
   try {
     // Parse
-    log.info({ uploadId: upload.id }, "Parsing uploaded file");
+    log.info({ uploadId }, "Parsing uploaded file");
     const parsed = await handlers.parseFile(filePath);
 
     // Wipe
-    log.info({ uploadId: upload.id }, "Wiping existing universe data");
+    log.info({ uploadId }, "Wiping existing universe data");
     await handlers.wipeUniverse();
 
     // Load metadata
-    log.info({ uploadId: upload.id }, "Loading metadata");
+    log.info({ uploadId }, "Loading metadata");
     const metaContext = await handlers.loadMetadata(parsed);
 
     // Load data
-    log.info({ uploadId: upload.id }, "Loading data");
+    log.info({ uploadId }, "Loading data");
     const dataPointCount = await handlers.loadData(parsed, metaContext);
 
     // Activate this upload
-    await uploadCollection.activate(upload.id);
+    await uploadCollection.activate(uploadId);
     await uploadCollection.updateStatus(
-      upload.id,
+      uploadId,
       "ok",
       `${dataPointCount} data points loaded`,
     );
-    log.info(
-      { uploadId: upload.id, dataPointCount },
-      "Upload activated successfully",
-    );
+    log.info({ uploadId, dataPointCount }, "Upload activated successfully");
 
     // Refresh public data points (skip for DVW — uses a separate DB)
     if (!config.skipPublicDataPoints) {
@@ -110,11 +120,11 @@ export async function orchestrateUpload(
     }
 
     const message = `${universe} upload complete: ${dataPointCount} data points loaded`;
-    return { uploadId: upload.id, dataPointCount, message };
+    return { uploadId, dataPointCount, message };
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
-    log.error({ uploadId: upload.id, err: errMsg }, "Upload failed");
-    await uploadCollection.updateStatus(upload.id, "fail", errMsg);
+    log.error({ uploadId, err: errMsg }, "Upload failed");
+    await uploadCollection.updateStatus(uploadId, "fail", errMsg);
     throw e;
   }
 }

@@ -1,5 +1,3 @@
-import "server-only";
-
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
@@ -179,6 +177,17 @@ class DownloadCollection {
     }
 
     return { status, changed: dataChanged };
+  }
+
+  /**
+   * Download a file by handle (convenience for scheduled jobs).
+   * Finds the download record by handle, then delegates to downloadToServer.
+   */
+  static async downloadByHandle(
+    handle: string,
+  ): Promise<{ status: number; changed: boolean }> {
+    const dl = await this.getByHandle(handle);
+    return this.downloadToServer(dl.id);
   }
 
   /**

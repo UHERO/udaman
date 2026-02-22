@@ -1,5 +1,3 @@
-import "server-only";
-
 import { join } from "node:path";
 
 import { getDataDir } from "@/lib/data-dir";

@@ -1,5 +1,3 @@
-import "server-only";
-
 /**
  * Download Processor — reads downloaded files (CSV, XLS, XLSX, TXT) from disk,
  * navigates to specific cells using row/col/date patterns, iterates through

@@ -32,11 +32,12 @@ import type {
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DISPLAY_ERRORS = 50;
 
-type Stage = "idle" | "parsing" | "uploading" | "done";
+type Stage = "idle" | "parsing" | "uploading" | "processing" | "done";
 
 const STAGE_LABELS: Record<Exclude<Stage, "idle" | "done">, string> = {
   parsing: "Parsing...",
   uploading: "Uploading...",
+  processing: "Processing...",
 };
 
 export type UploadPanelProps = {
@@ -188,13 +189,23 @@ export default function UploadPanel({
       const res = await resp.json();
 
       if (res.success) {
-        toast.success(res.message);
-        setStage("done");
+        toast.info(res.message);
+        setStage("processing");
         if (res.uploadId) {
-          const updated = await getUploadStatus(res.uploadId);
-          if (updated) {
-            setUploads((prev) => [updated, ...prev]);
-          }
+          // Add a processing record to the list and start polling
+          setUploads((prev) => [
+            {
+              id: res.uploadId,
+              status: "processing",
+              filename: file.name,
+              uploadAt: new Date().toISOString(),
+              active: false,
+              lastError: null,
+              lastErrorAt: null,
+            },
+            ...prev,
+          ]);
+          setPollingId(res.uploadId);
         }
       } else {
         toast.error(res.message);
@@ -216,6 +227,13 @@ export default function UploadPanel({
     if (status && status.status !== "processing") {
       setUploads((prev) => prev.map((u) => (u.id === pollingId ? status : u)));
       setPollingId(null);
+      if (status.status === "ok") {
+        toast.success("Upload complete");
+        setStage("done");
+      } else if (status.status === "fail") {
+        toast.error(status.lastError ?? "Upload failed");
+        setStage("idle");
+      }
     }
   }, [pollingId, getUploadStatus]);
 
@@ -248,7 +266,8 @@ export default function UploadPanel({
     }
   }
 
-  const busy = stage === "parsing" || stage === "uploading";
+  const busy =
+    stage === "parsing" || stage === "uploading" || stage === "processing";
   const hasErrors = validationErrors != null && validationErrors.length > 0;
 
   return (

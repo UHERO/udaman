@@ -1,12 +1,15 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 import { rawQuery as dvwQuery } from "@/lib/mysql/dvw-db";
 
 import { DvwUploadCollection } from "../collections/universe-upload-collection";
 import { makeDate } from "../utils/date-helpers";
 import { parseDvwXlsx, type DvwParseResult } from "../utils/dvw-xlsx-parser";
-import { orchestrateUpload, type UploadResult } from "./universe-upload";
+import {
+  prepareUpload,
+  type UploadConfig,
+  type UploadHandlers,
+  type UploadResult,
+} from "./universe-upload";
 
 const log = createLogger("catalog.dvw-upload");
 
@@ -226,32 +229,33 @@ async function loadDvwData(
   return dataRows.length;
 }
 
-// ─── Main entry point ─────────────────────────────────────────────────
+// ─── Exported config & handlers (used by worker processor) ───────────
 
-export async function processDvwUpload(
+export const dvwUploadConfig: UploadConfig = {
+  universe: "UHERO",
+  fileSubdir: "dvw_files",
+  uploadCollection: DvwUploadCollection,
+  skipPublicDataPoints: true,
+};
+
+export const dvwUploadHandlers: UploadHandlers = {
+  parseFile,
+  wipeUniverse: wipeDvwUniverse,
+  loadMetadata: async (parsed) => {
+    const { dimensions } = parsed as DvwParseResult;
+    return loadDvwMetadata(dimensions);
+  },
+  loadData: async (parsed) => {
+    const { dataRows } = parsed as DvwParseResult;
+    return loadDvwData(dataRows);
+  },
+};
+
+// ─── Main entry point (used by API route) ─────────────────────────────
+
+export async function prepareDvwUpload(
   fileBuffer: Buffer,
   originalFilename: string,
-): Promise<UploadResult> {
-  return orchestrateUpload(
-    {
-      universe: "UHERO",
-      fileSubdir: "dvw_files",
-      uploadCollection: DvwUploadCollection,
-      skipPublicDataPoints: true,
-    },
-    fileBuffer,
-    originalFilename,
-    {
-      parseFile,
-      wipeUniverse: wipeDvwUniverse,
-      loadMetadata: async (parsed) => {
-        const { dimensions } = parsed as DvwParseResult;
-        return loadDvwMetadata(dimensions);
-      },
-      loadData: async (parsed) => {
-        const { dataRows } = parsed as DvwParseResult;
-        return loadDvwData(dataRows);
-      },
-    },
-  );
+): Promise<{ uploadId: number; filePath: string }> {
+  return prepareUpload(dvwUploadConfig, fileBuffer, originalFilename);
 }

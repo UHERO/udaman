@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
@@ -19,7 +17,12 @@ import type {
   DbedtParseResult,
 } from "../utils/dbedt-xlsx-parser";
 import { parseDbedtXlsx } from "../utils/dbedt-xlsx-parser";
-import { orchestrateUpload, type UploadResult } from "./universe-upload";
+import {
+  prepareUpload,
+  type UploadConfig,
+  type UploadHandlers,
+  type UploadResult,
+} from "./universe-upload";
 
 const log = createLogger("catalog.dbedt-upload");
 
@@ -422,34 +425,32 @@ async function loadDbedtData(
   return uniquePoints.length;
 }
 
-// ─── Main entry point ─────────────────────────────────────────────────
+// ─── Exported config & handlers (used by worker processor) ───────────
 
-export async function processDbedtUpload(
+export const dbedtUploadConfig: UploadConfig = {
+  universe: "DBEDT",
+  fileSubdir: "dbedt_files",
+  uploadCollection: DbedtUploadCollection,
+};
+
+export const dbedtUploadHandlers: UploadHandlers = {
+  parseFile,
+  wipeUniverse: wipeDbedtUniverse,
+  loadMetadata: async (parsed) => {
+    const { indicatorRows } = parsed as DbedtParseResult;
+    return loadDbedtMetadata(indicatorRows);
+  },
+  loadData: async (parsed, metaContext) => {
+    const { dataRows } = parsed as DbedtParseResult;
+    return loadDbedtData(dataRows, metaContext as Map<number, DbedtMetaRow>);
+  },
+};
+
+// ─── Main entry point (used by API route) ─────────────────────────────
+
+export async function prepareDbedtUpload(
   fileBuffer: Buffer,
   originalFilename: string,
-): Promise<UploadResult> {
-  return orchestrateUpload(
-    {
-      universe: "DBEDT",
-      fileSubdir: "dbedt_files",
-      uploadCollection: DbedtUploadCollection,
-    },
-    fileBuffer,
-    originalFilename,
-    {
-      parseFile,
-      wipeUniverse: wipeDbedtUniverse,
-      loadMetadata: async (parsed) => {
-        const { indicatorRows } = parsed as DbedtParseResult;
-        return loadDbedtMetadata(indicatorRows);
-      },
-      loadData: async (parsed, metaContext) => {
-        const { dataRows } = parsed as DbedtParseResult;
-        return loadDbedtData(
-          dataRows,
-          metaContext as Map<number, DbedtMetaRow>,
-        );
-      },
-    },
-  );
+): Promise<{ uploadId: number; filePath: string }> {
+  return prepareUpload(dbedtUploadConfig, fileBuffer, originalFilename);
 }
