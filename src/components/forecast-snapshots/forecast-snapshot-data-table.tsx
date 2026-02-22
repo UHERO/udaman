@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import type { TsdSeries } from "@catalog/utils/tsd-reader";
 
+import { ForecastSnapshotActions } from "@/components/forecast-snapshots/forecast-snapshot-actions";
 import {
   Select,
   SelectContent,
@@ -10,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ForecastSnapshotActions } from "@/components/forecast-snapshots/forecast-snapshot-actions";
 
 interface Props {
   newForecast: TsdSeries[];
@@ -41,7 +41,7 @@ function formatDate(date: string, freq: "annual" | "quarterly" | "monthly") {
 
 function defaultRange(
   allDates: string[],
-  freq: "annual" | "quarterly" | "monthly"
+  freq: "annual" | "quarterly" | "monthly",
 ) {
   const year = new Date().getFullYear();
   let yearsPast: number, yearsFut: number, endMonth: number;
@@ -68,7 +68,7 @@ function defaultRange(
 function getOrderedSeriesNames(
   histSeries: TsdSeries[],
   newSeries: TsdSeries[],
-  oldSeries: TsdSeries[]
+  oldSeries: TsdSeries[],
 ): string[] {
   const seen = new Set<string>();
   const ordered: string[] = [];
@@ -120,7 +120,7 @@ export function ForecastSnapshotDataTable({
   const freq = useMemo(() => detectFrequency(allDates), [allDates]);
   const defaults = useMemo(
     () => defaultRange(allDates, freq),
-    [allDates, freq]
+    [allDates, freq],
   );
 
   const [dateFrom, setDateFrom] = useState(defaults.from);
@@ -128,17 +128,17 @@ export function ForecastSnapshotDataTable({
 
   const seriesNames = useMemo(
     () => getOrderedSeriesNames(history, newForecast, oldForecast),
-    [history, newForecast, oldForecast]
+    [history, newForecast, oldForecast],
   );
 
   const newMap = useMemo(
     () => new Map(newForecast.map((s) => [s.name, s])),
-    [newForecast]
+    [newForecast],
   );
 
   const filteredDates = useMemo(
     () => allDates.filter((d) => d >= dateFrom && d <= dateTo),
-    [allDates, dateFrom, dateTo]
+    [allDates, dateFrom, dateTo],
   );
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
@@ -226,7 +226,7 @@ export function ForecastSnapshotDataTable({
 
               // Build value array for YoY
               const vals = filteredDates.map(
-                (d) => series.dataHash.get(d) ?? null
+                (d) => series.dataHash.get(d) ?? null,
               );
               const pctChange = vals.map((val, idx) => {
                 if (idx < yoyLag) return null;

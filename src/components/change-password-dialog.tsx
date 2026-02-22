@@ -101,19 +101,15 @@ export function ChangePasswordDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
-          <DialogDescription>
-            Update your account password.
-          </DialogDescription>
+          <DialogDescription>Update your account password.</DialogDescription>
         </DialogHeader>
 
-        <div className="text-sm space-y-1 px-1">
+        <div className="space-y-1 px-1 text-sm">
           <p>
-            <span className="text-muted-foreground">Name:</span>{" "}
-            {user.name}
+            <span className="text-muted-foreground">Name:</span> {user.name}
           </p>
           <p>
-            <span className="text-muted-foreground">Email:</span>{" "}
-            {user.email}
+            <span className="text-muted-foreground">Email:</span> {user.email}
           </p>
           {memberSince && (
             <p>
@@ -138,9 +134,7 @@ export function ChangePasswordDialog({
                   autoComplete="current-password"
                   {...form.register("currentPassword")}
                 />
-                <FieldError
-                  errors={[form.formState.errors.currentPassword]}
-                />
+                <FieldError errors={[form.formState.errors.currentPassword]} />
               </Field>
 
               <Field data-invalid={!!form.formState.errors.newPassword}>
@@ -164,9 +158,7 @@ export function ChangePasswordDialog({
                   autoComplete="new-password"
                   {...form.register("confirmPassword")}
                 />
-                <FieldError
-                  errors={[form.formState.errors.confirmPassword]}
-                />
+                <FieldError errors={[form.formState.errors.confirmPassword]} />
               </Field>
             </FieldGroup>
           </FieldSet>
@@ -185,9 +177,7 @@ export function ChangePasswordDialog({
               type="submit"
               disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting
-                ? "Updating..."
-                : "Update Password"}
+              {form.formState.isSubmitting ? "Updating..." : "Update Password"}
             </Button>
           </DialogFooter>
         </form>

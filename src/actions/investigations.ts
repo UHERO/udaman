@@ -1,10 +1,10 @@
 "use server";
 
+import type { AdminAction } from "@catalog/collections/reload-job-collection";
 import {
   deleteReloadJob as deleteReloadJobCtrl,
   runAdminAction as runAdminActionCtrl,
 } from "@catalog/controllers/investigations";
-import type { AdminAction } from "@catalog/collections/reload-job-collection";
 
 import { getCurrentUserRole } from "@/lib/auth/dal";
 

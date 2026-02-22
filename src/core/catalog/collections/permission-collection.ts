@@ -45,7 +45,10 @@ class PermissionCollection {
     let bestSpecificity = -1;
 
     for (const perm of permissions) {
-      if (perm.matches(resource, action) && perm.specificity > bestSpecificity) {
+      if (
+        perm.matches(resource, action) &&
+        perm.specificity > bestSpecificity
+      ) {
         bestMatch = perm;
         bestSpecificity = perm.specificity;
       }
@@ -78,7 +81,12 @@ class PermissionCollection {
 
   /** Create new permission rows. */
   static async bulkCreate(
-    rows: { role: string; resource: string; action: string; allowed: boolean }[],
+    rows: {
+      role: string;
+      resource: string;
+      action: string;
+      allowed: boolean;
+    }[],
   ): Promise<void> {
     for (const { role, resource, action, allowed } of rows) {
       await mysql`

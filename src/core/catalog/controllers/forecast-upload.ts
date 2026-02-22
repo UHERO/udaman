@@ -13,8 +13,8 @@ import SeriesCollection from "../collections/series-collection";
 import Series from "../models/series";
 import type { Universe } from "../types/shared";
 import {
-  type ForecastRow,
   parseForecastCSV,
+  type ForecastRow,
 } from "../utils/forecast-csv-parser";
 
 const log = createLogger("catalog.forecast-upload");
@@ -207,10 +207,7 @@ export async function processForecastUpload(opts: {
         await MeasurementCollection.addSeries(measurement.id, series.id!);
       } catch {
         // No FC measurement for this prefix — that's fine, skip
-        log.debug(
-          { prefix: row.prefix },
-          "No FC measurement found for prefix",
-        );
+        log.debug({ prefix: row.prefix }, "No FC measurement found for prefix");
       }
 
       // Check for existing loader from same file

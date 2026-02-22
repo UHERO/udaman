@@ -73,10 +73,7 @@ export function GeoMultiSelect({
             <CommandEmpty>No geographies found.</CommandEmpty>
             <CommandGroup>
               {selected.length > 0 && (
-                <CommandItem
-                  value="__clear__"
-                  onSelect={() => onChange([])}
-                >
+                <CommandItem value="__clear__" onSelect={() => onChange([])}>
                   <span className="text-muted-foreground text-xs">
                     Clear selection (all geos)
                   </span>

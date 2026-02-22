@@ -3,16 +3,16 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  addSeriesAction,
-  propagateFieldsAction,
-  removeSeriesAction,
-} from "@/actions/measurements";
 import type { MeasurementSeriesRow } from "@catalog/collections/measurement-collection";
 import type { SeasonalAdjustment, Universe } from "@catalog/types/shared";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  addSeriesAction,
+  propagateFieldsAction,
+  removeSeriesAction,
+} from "@/actions/measurements";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -121,8 +121,7 @@ export function MeasurementDetailView({
   const [editOpen, setEditOpen] = useState(false);
   const [addSeriesName, setAddSeriesName] = useState("");
 
-  const allFieldsSelected =
-    selectedFields.size === PROPAGATABLE_FIELDS.length;
+  const allFieldsSelected = selectedFields.size === PROPAGATABLE_FIELDS.length;
   const allSeriesSelected =
     selectedSeries.size === series.length && series.length > 0;
 
@@ -174,13 +173,13 @@ export function MeasurementDetailView({
         const result = await propagateFieldsAction(
           measurement.id,
           Array.from(selectedFields),
-          Array.from(selectedSeries)
+          Array.from(selectedSeries),
         );
         toast.success(result.message);
         router.refresh();
       } catch (e) {
         toast.error(
-          e instanceof Error ? e.message : "Failed to propagate fields"
+          e instanceof Error ? e.message : "Failed to propagate fields",
         );
       }
     });
@@ -200,9 +199,7 @@ export function MeasurementDetailView({
         setAddSeriesName("");
         router.refresh();
       } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : "Series not found"
-        );
+        toast.error(e instanceof Error ? e.message : "Series not found");
       }
     });
   }
@@ -215,7 +212,7 @@ export function MeasurementDetailView({
         router.refresh();
       } catch (e) {
         toast.error(
-          e instanceof Error ? e.message : `Failed to remove ${seriesName}`
+          e instanceof Error ? e.message : `Failed to remove ${seriesName}`,
         );
       }
     });
@@ -309,9 +306,7 @@ export function MeasurementDetailView({
       {/* Series table */}
       <div className="min-h-screen flex-1 rounded-xl md:min-h-min">
         <div className="mb-2 flex items-center gap-4">
-          <h2 className="text-sm font-semibold">
-            Series ({series.length})
-          </h2>
+          <h2 className="text-sm font-semibold">Series ({series.length})</h2>
           {series.length > 0 && (
             <button
               type="button"

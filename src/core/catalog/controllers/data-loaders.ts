@@ -1,4 +1,5 @@
 import "server-only";
+
 import LoaderCollection from "@catalog/collections/loader-collection";
 import type { ReloadResult } from "@catalog/collections/loader-collection";
 import type { SerializedLoader } from "@catalog/models/loader";

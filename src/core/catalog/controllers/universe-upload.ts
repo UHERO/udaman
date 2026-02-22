@@ -30,6 +30,7 @@ export type UploadConfig = {
   universe: Universe;
   fileSubdir: string;
   uploadCollection: typeof UniverseUploadCollection;
+  skipPublicDataPoints?: boolean;
 };
 
 /**
@@ -93,9 +94,11 @@ export async function orchestrateUpload(
       "Upload activated successfully",
     );
 
-    // Refresh public data points
-    log.info({ universe }, "Updating public data points");
-    await DataPointCollection.updatePublicDataPoints(universe);
+    // Refresh public data points (skip for DVW — uses a separate DB)
+    if (!config.skipPublicDataPoints) {
+      log.info({ universe }, "Updating public data points");
+      await DataPointCollection.updatePublicDataPoints(universe);
+    }
 
     // Clear cache (non-fatal)
     try {

@@ -1,4 +1,5 @@
 import "server-only";
+
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import GeographyCollection from "@catalog/collections/geography-collection";
 import LoaderCollection from "@catalog/collections/loader-collection";
@@ -10,11 +11,7 @@ import EvalExecutor from "@catalog/utils/eval-executor";
 import { createLogger } from "@/core/observability/logger";
 
 import Measurements from "../models/measurements";
-import type {
-  AnalyzeResult,
-  CompareResult,
-  Universe,
-} from "../types/shared";
+import type { AnalyzeResult, CompareResult, Universe } from "../types/shared";
 
 const log = createLogger("catalog.series");
 
@@ -386,10 +383,7 @@ export async function compareSeries({
 
   const seriesLinks = await SeriesCollection.getIdsByNames(names);
 
-  log.info(
-    { count: entries.length, names },
-    "series compared",
-  );
+  log.info({ count: entries.length, names }, "series compared");
 
   return { series: entries, seriesLinks };
 }
@@ -529,8 +523,9 @@ export async function getCompareMeasurement({
         counterpartPrefix,
         universe as Universe,
       );
-      const counterpartAllNames =
-        await MeasurementCollection.getSeriesNames(counterpartMeasurement.id);
+      const counterpartAllNames = await MeasurementCollection.getSeriesNames(
+        counterpartMeasurement.id,
+      );
       const counterpartFiltered = counterpartAllNames.filter((n) => {
         try {
           return Series.parseName(n).freq === parsed.freq;

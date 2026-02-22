@@ -2,10 +2,10 @@
 
 import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import type { SerializedFeatureToggle } from "@catalog/models/feature-toggle";
 import { toast } from "sonner";
 
 import { updateFeatureToggleStatusAction } from "@/actions/feature-toggles";
-import type { SerializedFeatureToggle } from "@catalog/models/feature-toggle";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -15,12 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
   toggles: SerializedFeatureToggle[];

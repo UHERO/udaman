@@ -1,17 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-
-import { createLogger } from "@/core/observability/logger";
 import {
-  listSnapshots,
-  getSnapshot,
   createSnapshot,
-  updateSnapshot,
   deleteSnapshot,
   duplicateSnapshot,
+  getSnapshot,
   getSnapshotData,
+  listSnapshots,
+  updateSnapshot,
 } from "@catalog/controllers/forecast-snapshots";
+
+import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.forecast-snapshots");
@@ -89,7 +89,8 @@ export async function updateSnapshotAction(
   const publishedRaw = formData.get("published");
   const published = publishedRaw !== null ? publishedRaw === "true" : undefined;
   const commentsRaw = formData.get("comments");
-  const comments = commentsRaw !== null ? (commentsRaw as string) || null : undefined;
+  const comments =
+    commentsRaw !== null ? (commentsRaw as string) || null : undefined;
 
   const newForecastFile = await extractFile(formData, "newForecastFile");
   const newForecastLabel = formData.has("newForecastLabel")

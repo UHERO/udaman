@@ -1,5 +1,5 @@
-import { mysql, rawQuery } from "@/lib/mysql/db";
 import { createLogger } from "@/core/observability/logger";
+import { mysql, rawQuery } from "@/lib/mysql/db";
 
 import DataPointModel from "../models/data-point";
 import type { DataPoint } from "../types/shared";

@@ -7,11 +7,11 @@ import {
 } from "@/actions/series-actions";
 import { LoaderSection } from "@/components/series/data-loader";
 import { MetaDataTable } from "@/components/series/meta-data-table";
+import { RecordSeriesView } from "@/components/series/record-series-view";
 import { SeriesActionsBar } from "@/components/series/series-actions-bar";
 import { SeriesChart } from "@/components/series/series-chart";
 import { SeriesHoverProvider } from "@/components/series/series-data-section";
 import { SeriesDataTable } from "@/components/series/series-table";
-import { RecordSeriesView } from "@/components/series/record-series-view";
 import { SourceMapTable } from "@/components/series/source-map";
 
 export default async function SeriesPage({

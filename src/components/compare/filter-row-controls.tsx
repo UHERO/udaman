@@ -1,8 +1,8 @@
 "use client";
 
+import type { Adjustment } from "@catalog/controllers/compare-filters";
 import { X } from "lucide-react";
 
-import type { Adjustment } from "@catalog/controllers/compare-filters";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,8 +14,8 @@ import {
 
 import { GeoMultiSelect } from "./geo-multi-select";
 import {
-  ALL_FREQUENCY_OPTIONS,
   ADJUSTMENT_OPTIONS,
+  ALL_FREQUENCY_OPTIONS,
   UNIVERSES,
   type FilterRowState,
 } from "./parse-filter-names";

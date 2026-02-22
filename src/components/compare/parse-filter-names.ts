@@ -5,7 +5,11 @@ export type FilterRowState = FilterRow;
 export type OptionsCache = Record<
   string,
   {
-    measurements: { id: number; prefix: string; dataPortalName: string | null }[];
+    measurements: {
+      id: number;
+      prefix: string;
+      dataPortalName: string | null;
+    }[];
     geos: { handle: string; displayName: string | null }[];
   }
 >;
@@ -64,7 +68,10 @@ export function buildRowsFromNames(
   }));
 }
 
-export function makeEmptyRow(universe: string, frequency: string): FilterRowState {
+export function makeEmptyRow(
+  universe: string,
+  frequency: string,
+): FilterRowState {
   return {
     id: crypto.randomUUID(),
     prefix: "",
@@ -92,7 +99,14 @@ export const ADJUSTMENT_OPTIONS = [
   { value: "sa", label: "SA" },
 ];
 
-export const UNIVERSES = ["UHERO", "DBEDT", "FC", "NTA", "COH", "CCOM"] as const;
+export const UNIVERSES = [
+  "UHERO",
+  "DBEDT",
+  "FC",
+  "NTA",
+  "COH",
+  "CCOM",
+] as const;
 
 /** Imperative handle exposed by each builder via forwardRef. */
 export interface BuilderHandle {

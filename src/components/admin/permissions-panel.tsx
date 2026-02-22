@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { updatePermissions } from "@/actions/permissions";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -14,13 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { updatePermissions } from "@/actions/permissions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type SerializedPermission = {
   id: number;
@@ -81,7 +76,11 @@ export default function PermissionsPanel({
       const [resource, action] = s.split("\0");
       return { resource, action };
     })
-    .sort((a, b) => a.resource.localeCompare(b.resource) || a.action.localeCompare(b.action));
+    .sort(
+      (a, b) =>
+        a.resource.localeCompare(b.resource) ||
+        a.action.localeCompare(b.action),
+    );
 
   // Index existing permissions for fast lookup
   const permIndex = new Map<string, SerializedPermission>();
@@ -187,7 +186,9 @@ export default function PermissionsPanel({
               </TableHeader>
               <TableBody>
                 {getEntries(role).map((entry) => (
-                  <TableRow key={entryKey(entry.role, entry.resource, entry.action)}>
+                  <TableRow
+                    key={entryKey(entry.role, entry.resource, entry.action)}
+                  >
                     <TableCell className="font-mono text-sm">
                       {displayLabel(entry.resource)}
                     </TableCell>

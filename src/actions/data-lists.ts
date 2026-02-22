@@ -5,12 +5,15 @@ import type {
   CreateDataListPayload,
   UpdateDataListPayload,
 } from "@catalog/collections/data-list-collection";
+import DataListCollection from "@catalog/collections/data-list-collection";
+import MeasurementCollection from "@catalog/collections/measurement-collection";
+import type { CreateMeasurementPayload } from "@catalog/collections/measurement-collection";
 import {
   addDataListMeasurement as addDataListMeasurementCtrl,
   createDataList as createDataListCtrl,
   deleteDataList as deleteDataListCtrl,
-  getDataListForEdit as getDataListForEditCtrl,
   getDataListsWithCounts as fetchDataLists,
+  getDataListForEdit as getDataListForEditCtrl,
   getDataListSuperTable as getDataListSuperTableCtrl,
   moveMeasurement as moveMeasurementCtrl,
   removeDataListMeasurement as removeDataListMeasurementCtrl,
@@ -18,9 +21,6 @@ import {
   setMeasurementIndent as setMeasurementIndentCtrl,
   updateDataList as updateDataListCtrl,
 } from "@catalog/controllers/data-lists";
-import DataListCollection from "@catalog/collections/data-list-collection";
-import MeasurementCollection from "@catalog/collections/measurement-collection";
-import type { CreateMeasurementPayload } from "@catalog/collections/measurement-collection";
 import { createMeasurement as createMeasurementCtrl } from "@catalog/controllers/measurements";
 import type { Universe } from "@catalog/types/shared";
 
@@ -107,7 +107,10 @@ export async function moveMeasurementAction(
   direction: "up" | "down",
 ) {
   await requirePermission("data-list", "update");
-  log.info({ dataListId, measurementId, direction }, "moveMeasurement action called");
+  log.info(
+    { dataListId, measurementId, direction },
+    "moveMeasurement action called",
+  );
   await moveMeasurementCtrl({ dataListId, measurementId, direction });
   revalidatePath("/data-list");
   return { message: "Measurement moved" };
@@ -119,7 +122,10 @@ export async function setMeasurementIndentAction(
   direction: "in" | "out",
 ) {
   await requirePermission("data-list", "update");
-  log.info({ dataListId, measurementId, direction }, "setMeasurementIndent action called");
+  log.info(
+    { dataListId, measurementId, direction },
+    "setMeasurementIndent action called",
+  );
   await setMeasurementIndentCtrl({ dataListId, measurementId, direction });
   revalidatePath("/data-list");
   return { message: "Indent updated" };

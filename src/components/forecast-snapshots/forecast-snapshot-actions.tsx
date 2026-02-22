@@ -2,14 +2,14 @@
 
 import { useCallback, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  deleteSnapshotAction,
-  duplicateSnapshotAction,
-} from "@/actions/forecast-snapshots";
 import type { TsdSeries } from "@catalog/utils/tsd-reader";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  deleteSnapshotAction,
+  duplicateSnapshotAction,
+} from "@/actions/forecast-snapshots";
 import {
   AlertDialog,
   AlertDialogAction,

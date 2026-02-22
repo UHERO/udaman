@@ -1,3 +1,5 @@
+import { mysql } from "@database/mysql";
+
 import { AdminLayout as AdminWidthLayout } from "@/components/admin/admin-layout";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -8,7 +10,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { requireAuth } from "@/lib/auth/dal";
-import { mysql } from "@database/mysql";
 
 export default async function AdminLayout({
   children,

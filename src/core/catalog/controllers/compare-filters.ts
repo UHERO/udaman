@@ -1,4 +1,5 @@
 import "server-only";
+
 import GeographyCollection from "@catalog/collections/geography-collection";
 import MeasurementCollection from "@catalog/collections/measurement-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
@@ -154,10 +155,7 @@ export async function resolveCompareFilters({
   const truncated = unique.length > MAX_SERIES;
   const result = unique.slice(0, MAX_SERIES);
 
-  log.info(
-    { resolved: result.length, truncated },
-    "compare filters resolved",
-  );
+  log.info({ resolved: result.length, truncated }, "compare filters resolved");
 
   return { names: result, truncated };
 }

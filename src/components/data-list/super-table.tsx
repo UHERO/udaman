@@ -163,7 +163,7 @@ export function SuperTable({ data }: SuperTableProps) {
     const [start, end] = debouncedRange;
     return allDates.slice(
       Math.max(0, start),
-      Math.min(allDates.length, end + 1)
+      Math.min(allDates.length, end + 1),
     );
   }, [allDates, debouncedRange]);
 
@@ -195,7 +195,7 @@ export function SuperTable({ data }: SuperTableProps) {
     for (const entry of series) {
       map.set(
         entry.seriesId,
-        entry.data.filter(([d]) => dateSet.has(d))
+        entry.data.filter(([d]) => dateSet.has(d)),
       );
     }
     return map;
@@ -208,7 +208,7 @@ export function SuperTable({ data }: SuperTableProps) {
         label: formatDateHeader(d, freqCode),
         v: 0,
       })),
-    [allDates, freqCode]
+    [allDates, freqCode],
   );
 
   const updateFilter = useCallback(
@@ -217,7 +217,7 @@ export function SuperTable({ data }: SuperTableProps) {
       params.set(key, value);
       router.push(`${pathname}?${params.toString()}`);
     },
-    [router, pathname, searchParams]
+    [router, pathname, searchParams],
   );
 
   const resetFilters = useCallback(() => {
@@ -231,7 +231,7 @@ export function SuperTable({ data }: SuperTableProps) {
       const start = Math.max(0, end - n + 1);
       setSliderRange([start, end]);
     },
-    [allDates.length]
+    [allDates.length],
   );
 
   return (

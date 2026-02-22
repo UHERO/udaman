@@ -3,9 +3,9 @@ import { buildUpdateObject } from "@/lib/mysql/helpers";
 
 import DataList from "../models/data-list";
 import type { DataListAttrs } from "../models/data-list";
-import MeasurementCollection from "./measurement-collection";
 import Series from "../models/series";
 import type { Universe } from "../types/shared";
+import MeasurementCollection from "./measurement-collection";
 
 export type CreateDataListPayload = {
   name?: string | null;
@@ -222,13 +222,15 @@ class DataListCollection {
   }
 
   /** Get measurements with display data for the edit table */
-  static async getMeasurementsForEdit(dataListId: number): Promise<{
-    measurementId: number;
-    prefix: string;
-    dataPortalName: string | null;
-    listOrder: number;
-    indent: string;
-  }[]> {
+  static async getMeasurementsForEdit(dataListId: number): Promise<
+    {
+      measurementId: number;
+      prefix: string;
+      dataPortalName: string | null;
+      listOrder: number;
+      indent: string;
+    }[]
+  > {
     return mysql<{
       measurementId: number;
       prefix: string;
@@ -294,7 +296,10 @@ class DataListCollection {
     if (!rows[0]) return;
 
     const current = parseInt(rows[0].indent.replace("indent", "")) || 0;
-    const next = Math.max(0, Math.min(3, current + (direction === "in" ? 1 : -1)));
+    const next = Math.max(
+      0,
+      Math.min(3, current + (direction === "in" ? 1 : -1)),
+    );
     const newIndent = `indent${next}`;
 
     await mysql`

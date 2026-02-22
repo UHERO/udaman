@@ -1,23 +1,24 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { Universe } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   ChevronsDownUp,
-  Check,
+  ChevronUp,
   ClipboardCopy,
   FileText,
   Plus,
   Trash2,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -71,7 +72,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import type { Universe } from "@catalog/types/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -186,7 +186,9 @@ export function DataListEditForm({
   }
 
   function handleMove(measurementId: number, direction: "up" | "down") {
-    runAction(() => moveMeasurementAction(dataList.id, measurementId, direction));
+    runAction(() =>
+      moveMeasurementAction(dataList.id, measurementId, direction),
+    );
   }
 
   function handleIndent(measurementId: number, direction: "in" | "out") {
@@ -344,7 +346,9 @@ export function DataListEditForm({
                   <TableHead className="w-[140px]">Prefix</TableHead>
                   <TableHead>Data Portal Name</TableHead>
                   <TableHead className="w-[100px] text-center">Order</TableHead>
-                  <TableHead className="w-[100px] text-center">Indent</TableHead>
+                  <TableHead className="w-[100px] text-center">
+                    Indent
+                  </TableHead>
                   <TableHead className="w-[60px] text-center">Remove</TableHead>
                 </TableRow>
               </TableHeader>
@@ -542,9 +546,9 @@ export function DataListEditForm({
                       className="w-full justify-between font-normal"
                     >
                       {form.watch("ownedBy")
-                        ? users.find(
+                        ? (users.find(
                             (u) => u.id.toString() === form.watch("ownedBy"),
-                          )?.email ?? "Unknown user"
+                          )?.email ?? "Unknown user")
                         : "Select owner..."}
                       <ChevronsDownUp className="ml-2 size-4 shrink-0 opacity-50" />
                     </Button>
@@ -600,10 +604,7 @@ export function DataListEditForm({
             </FieldGroup>
           </FieldSet>
 
-          <Button
-            type="submit"
-            disabled={form.formState.isSubmitting}
-          >
+          <Button type="submit" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? "Saving..." : "Save Details"}
           </Button>
         </form>
@@ -640,10 +641,7 @@ export function DataListEditForm({
             placeholder="Enter measurement prefixes, one per line..."
           />
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setTextDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setTextDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveText} disabled={isPending}>

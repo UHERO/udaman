@@ -100,13 +100,9 @@ export function computeStatsForRange(
     range: {
       maxMinusMin: rangeVal,
       lastMinOverRange:
-        rangeVal !== 0
-          ? ((last.value - minPt.value) / rangeVal) * 100
-          : null,
+        rangeVal !== 0 ? ((last.value - minPt.value) / rangeVal) * 100 : null,
       lastMaxOverRange:
-        rangeVal !== 0
-          ? ((last.value - maxPt.value) / rangeVal) * 100
-          : null,
+        rangeVal !== 0 ? ((last.value - maxPt.value) / rangeVal) * 100 : null,
     },
   };
 }

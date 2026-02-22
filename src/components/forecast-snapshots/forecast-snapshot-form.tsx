@@ -2,13 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { SerializedForecastSnapshot } from "@catalog/models/forecast-snapshot";
+import { toast } from "sonner";
+
 import {
   createSnapshotAction,
   updateSnapshotAction,
 } from "@/actions/forecast-snapshots";
-import type { SerializedForecastSnapshot } from "@catalog/models/forecast-snapshot";
-import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +50,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
           router.push(
             result.id
               ? `/udaman/${universe}/forecast/snapshots/${result.id}`
-              : `/udaman/${universe}/forecast/snapshots`
+              : `/udaman/${universe}/forecast/snapshots`,
           );
         } else {
           toast.error(result.message);
@@ -90,7 +90,7 @@ export function ForecastSnapshotForm({ snapshot }: Props) {
             defaultChecked={snapshot?.published ?? false}
             onCheckedChange={(checked) => {
               const hidden = formRef.current?.querySelector(
-                'input[name="published"]'
+                'input[name="published"]',
               ) as HTMLInputElement | null;
               if (hidden) hidden.value = String(checked);
             }}

@@ -1,24 +1,12 @@
+import type {
+  DbedtDataRow,
+  DbedtMetaRow,
+} from "@catalog/utils/dbedt-xlsx-parser";
+import { validateDbedtData } from "@catalog/utils/dbedt-xlsx-validator";
 import XLSX from "xlsx";
 import type { WorkSheet } from "xlsx";
 
-import {
-  validateDbedtData,
-  type ValidationError,
-  type ValidationSummary,
-} from "@catalog/utils/dbedt-xlsx-validator";
-import type {
-  DbedtMetaRow,
-  DbedtDataRow,
-} from "@catalog/utils/dbedt-xlsx-parser";
-
-// --- Messages ---
-
-export type WorkerInput = { arrayBuffer: ArrayBuffer };
-
-export type WorkerOutput =
-  | { success: true; summary: ValidationSummary }
-  | { success: false; errors: ValidationError[]; summary: ValidationSummary }
-  | { success: false; error: string };
+import type { ParseWorkerOutput } from "./types";
 
 // --- Expected columns per sheet (lowercase) ---
 
@@ -153,9 +141,32 @@ function extractDataRows(sheet: WorkSheet): DbedtDataRow[] {
   return rows;
 }
 
+// --- Helper: convert validation result to generic summary stats ---
+
+function toSummaryStats(result: ReturnType<typeof validateDbedtData>): {
+  summary: { label: string; value: string }[];
+  footnote?: string;
+} {
+  const s = result.summary;
+  const summary = [
+    { label: "Categories", value: String(s.categoryCount) },
+    { label: "Measurements", value: String(s.measurementCount) },
+    { label: "Data Points", value: s.dataRowCount.toLocaleString() },
+    {
+      label: `Area${s.areaIds.length !== 1 ? "s" : ""} (${s.areaIds.join(", ")})`,
+      value: String(s.areaIds.length),
+    },
+  ];
+  const footnote =
+    s.minYear != null && s.maxYear != null
+      ? `Date range: ${s.minYear} – ${s.maxYear}`
+      : undefined;
+  return { summary, footnote };
+}
+
 // --- Worker entry point ---
 
-self.onmessage = (e: MessageEvent<WorkerInput>) => {
+self.onmessage = (e: MessageEvent<{ arrayBuffer: ArrayBuffer }>) => {
   try {
     const { arrayBuffer } = e.data;
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
@@ -170,14 +181,14 @@ self.onmessage = (e: MessageEvent<WorkerInput>) => {
       self.postMessage({
         success: false,
         error: `Missing "indicator" sheet. Found: ${sheetNames.join(", ")}`,
-      } satisfies WorkerOutput);
+      } satisfies ParseWorkerOutput);
       return;
     }
     if (!dataSheetName) {
       self.postMessage({
         success: false,
         error: `Missing "data" sheet. Found: ${sheetNames.join(", ")}`,
-      } satisfies WorkerOutput);
+      } satisfies ParseWorkerOutput);
       return;
     }
 
@@ -198,23 +209,25 @@ self.onmessage = (e: MessageEvent<WorkerInput>) => {
     const dataRows = extractDataRows(workbook.Sheets[dataSheetName]);
 
     const result = validateDbedtData(indicatorRows, dataRows);
+    const { summary, footnote } = toSummaryStats(result);
 
     if (result.valid) {
       self.postMessage({
         success: true,
-        summary: result.summary,
-      } satisfies WorkerOutput);
+        summary,
+        footnote,
+      } satisfies ParseWorkerOutput);
     } else {
       self.postMessage({
         success: false,
         errors: result.errors,
-        summary: result.summary,
-      } satisfies WorkerOutput);
+        summary,
+      } satisfies ParseWorkerOutput);
     }
   } catch (err) {
     self.postMessage({
       success: false,
       error: err instanceof Error ? err.message : "Failed to parse file",
-    } satisfies WorkerOutput);
+    } satisfies ParseWorkerOutput);
   }
 };

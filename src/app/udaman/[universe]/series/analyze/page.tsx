@@ -7,7 +7,6 @@ import { FrequencyLinks } from "@/components/series/frequency-links";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
 import { RecordSeriesView } from "@/components/series/record-series-view";
 
-
 export default async function AnalyzePage({
   params,
   searchParams,
@@ -39,15 +38,8 @@ export default async function AnalyzePage({
   // ── Single-series analysis ───────────────────────────────────────────
   const result = await analyzeSeriesAction(id);
 
-  const {
-    series,
-    yoy,
-    levelChange,
-    ytd,
-    siblings,
-    unitLabel,
-    unitShortLabel,
-  } = result;
+  const { series, yoy, levelChange, ytd, siblings, unitLabel, unitShortLabel } =
+    result;
 
   return (
     <>
@@ -71,7 +63,9 @@ export default async function AnalyzePage({
             </Link>
           </h1>
           {series.dataPortalName && (
-            <p className="text-muted-foreground text-sm">{series.dataPortalName}</p>
+            <p className="text-muted-foreground text-sm">
+              {series.dataPortalName}
+            </p>
           )}
         </div>
         {siblings && (

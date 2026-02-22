@@ -1,7 +1,10 @@
 import { rawQuery } from "@/lib/mysql/db";
 
 import UniverseUpload from "../models/universe-upload";
-import type { UniverseUploadAttrs, UploadStatus } from "../models/universe-upload";
+import type {
+  UniverseUploadAttrs,
+  UploadStatus,
+} from "../models/universe-upload";
 
 /** Base collection for universe upload tables (new_dbedt_uploads, etc.) */
 class UniverseUploadCollection {
@@ -56,10 +59,9 @@ class UniverseUploadCollection {
   /** Deactivate all uploads, then activate the specified one */
   static async activate(id: number): Promise<void> {
     await rawQuery(`UPDATE ${this.tableName} SET active = 0`);
-    await rawQuery(
-      `UPDATE ${this.tableName} SET active = 1 WHERE id = ?`,
-      [id],
-    );
+    await rawQuery(`UPDATE ${this.tableName} SET active = 1 WHERE id = ?`, [
+      id,
+    ]);
   }
 }
 
@@ -67,4 +69,60 @@ class DbedtUploadCollection extends UniverseUploadCollection {
   protected static override tableName = "new_dbedt_uploads";
 }
 
-export { UniverseUploadCollection, DbedtUploadCollection };
+/**
+ * DVW uploads use `series_status` instead of `status`.
+ * Override queries to map accordingly.
+ */
+class DvwUploadCollection extends UniverseUploadCollection {
+  protected static override tableName = "dvw_uploads";
+
+  static override async list(): Promise<UniverseUpload[]> {
+    const rows = await rawQuery<UniverseUploadAttrs>(
+      `SELECT id, upload_at, active, series_status AS status, filename, last_error, last_error_at
+       FROM ${this.tableName} ORDER BY upload_at DESC`,
+    );
+    return rows.map((row) => new UniverseUpload(row));
+  }
+
+  static override async getById(id: number): Promise<UniverseUpload> {
+    const rows = await rawQuery<UniverseUploadAttrs>(
+      `SELECT id, upload_at, active, series_status AS status, filename, last_error, last_error_at
+       FROM ${this.tableName} WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    const row = rows[0];
+    if (!row) throw new Error(`Upload not found: ${id}`);
+    return new UniverseUpload(row);
+  }
+
+  static override async create(filename: string): Promise<UniverseUpload> {
+    await rawQuery(
+      `INSERT INTO ${this.tableName} (upload_at, active, series_status, filename) VALUES (NOW(), 0, 'processing', ?)`,
+      [filename],
+    );
+    const rows = await rawQuery<{ insertId: number }>(
+      "SELECT LAST_INSERT_ID() as insertId",
+    );
+    return this.getById(rows[0].insertId);
+  }
+
+  static override async updateStatus(
+    id: number,
+    status: UploadStatus,
+    error?: string | null,
+  ): Promise<void> {
+    if (error) {
+      await rawQuery(
+        `UPDATE ${this.tableName} SET series_status = ?, last_error = ?, last_error_at = NOW() WHERE id = ?`,
+        [status, error.slice(0, 254), id],
+      );
+    } else {
+      await rawQuery(
+        `UPDATE ${this.tableName} SET series_status = ?, last_error = NULL, last_error_at = NULL WHERE id = ?`,
+        [status, id],
+      );
+    }
+  }
+}
+
+export { UniverseUploadCollection, DbedtUploadCollection, DvwUploadCollection };

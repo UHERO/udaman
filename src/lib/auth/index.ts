@@ -4,8 +4,8 @@ import Google from "next-auth/providers/google";
 import { mysql } from "@database/mysql";
 import { compare } from "bcryptjs";
 
-import { MySqlAdapter } from "./mysql-adapter";
 import { isEmailAllowed } from "./auth-whitelist";
+import { MySqlAdapter } from "./mysql-adapter";
 
 const adapter = MySqlAdapter();
 

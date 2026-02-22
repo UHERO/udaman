@@ -1,5 +1,5 @@
-import { H1, Lead } from "@/components/typography";
 import ForecastUploadForm from "@/components/forecast/forecast-upload-form";
+import { H1, Lead } from "@/components/typography";
 
 export default function ForecastUploadPage() {
   return (

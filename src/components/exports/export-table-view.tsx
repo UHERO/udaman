@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-
 import type { ExportTableRow } from "@catalog/controllers/exports";
+
+import { Sparkline } from "@/components/data-list/sparkline";
 import {
   Table,
   TableBody,
@@ -11,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Sparkline } from "@/components/data-list/sparkline";
 
 function fmt(value: number | null, decimals: number): string {
   if (value == null) return "";

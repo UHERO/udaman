@@ -1,11 +1,17 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth/dal";
 import PermissionCollection from "@catalog/collections/permission-collection";
+
+import { requireAuth } from "@/lib/auth/dal";
 
 export async function updatePermissions(payload: {
   updates: { id: number; allowed: boolean }[];
-  creates: { role: string; resource: string; action: string; allowed: boolean }[];
+  creates: {
+    role: string;
+    resource: string;
+    action: string;
+    allowed: boolean;
+  }[];
 }): Promise<{ message: string }> {
   const session = await requireAuth();
   if (session.user.role !== "dev") {

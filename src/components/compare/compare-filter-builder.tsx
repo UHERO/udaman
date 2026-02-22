@@ -241,7 +241,7 @@ export const CompareFilterBuilder = forwardRef<
           return (
             <div
               key={row.id}
-              className={`flex items-center gap-2 rounded-md p-1 -m-1 ${
+              className={`-m-1 flex items-center gap-2 rounded-md p-1 ${
                 error ? "bg-red-50 ring-1 ring-red-200" : ""
               }`}
             >

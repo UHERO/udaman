@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
+import PermissionCollection from "@catalog/collections/permission-collection";
 
 import PermissionsPanel from "@/components/admin/permissions-panel";
 import { requireAuth } from "@/lib/auth/dal";
-import PermissionCollection from "@catalog/collections/permission-collection";
 
 export default async function AdminPage() {
   const session = await requireAuth();

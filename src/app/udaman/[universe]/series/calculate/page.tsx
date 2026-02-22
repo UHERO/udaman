@@ -72,9 +72,7 @@ export default async function CalculatePage({
           <p className="text-sm font-medium text-red-800">
             Error evaluating expression
           </p>
-          <p className="mt-1 font-mono text-xs text-red-600">
-            {result.error}
-          </p>
+          <p className="mt-1 font-mono text-xs text-red-600">{result.error}</p>
         </div>
       </>
     );

@@ -31,7 +31,9 @@ class UserCollection {
 
     const stored = rows[0].encrypted_password;
     if (!stored || !stored.startsWith("$2")) {
-      throw new Error("Password authentication is not configured for this account");
+      throw new Error(
+        "Password authentication is not configured for this account",
+      );
     }
 
     const valid = await compare(currentPassword, stored);

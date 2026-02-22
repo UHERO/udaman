@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { ForecastSnapshotActions } from "@/components/forecast-snapshots/forecast-snapshot-actions";
 import { Button } from "@/components/ui/button";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 import {
@@ -23,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ForecastSnapshotActions } from "@/components/forecast-snapshots/forecast-snapshot-actions";
 
 interface Props {
   newForecast: TsdSeries[];
@@ -68,7 +68,7 @@ function formatDate(date: string, freq: "annual" | "quarterly" | "monthly") {
 /** Compute default date range based on frequency */
 function defaultRange(
   allDates: string[],
-  freq: "annual" | "quarterly" | "monthly"
+  freq: "annual" | "quarterly" | "monthly",
 ) {
   const now = new Date();
   const year = now.getFullYear();
@@ -104,7 +104,7 @@ function defaultRange(
 function getOrderedSeriesNames(
   histSeries: TsdSeries[],
   newSeries: TsdSeries[],
-  oldSeries: TsdSeries[]
+  oldSeries: TsdSeries[],
 ): string[] {
   const seen = new Set<string>();
   const ordered: string[] = [];
@@ -159,7 +159,7 @@ function niceYDomain(values: number[]): [number, number] | undefined {
 /** Compute YoY % change: (val - val_lag) / val_lag * 100 */
 function computeYoy(
   values: (number | null | undefined)[],
-  lag: number
+  lag: number,
 ): (number | null)[] {
   return values.map((val, idx) => {
     if (idx < lag) return null;
@@ -186,14 +186,14 @@ export function ForecastSnapshotCharts({
   const freq = useMemo(() => detectFrequency(allDates), [allDates]);
   const defaults = useMemo(
     () => defaultRange(allDates, freq),
-    [allDates, freq]
+    [allDates, freq],
   );
 
   const [dateFrom, setDateFrom] = useState(
-    initialFrom && allDates.includes(initialFrom) ? initialFrom : defaults.from
+    initialFrom && allDates.includes(initialFrom) ? initialFrom : defaults.from,
   );
   const [dateTo, setDateTo] = useState(
-    initialTo && allDates.includes(initialTo) ? initialTo : defaults.to
+    initialTo && allDates.includes(initialTo) ? initialTo : defaults.to,
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -217,25 +217,25 @@ export function ForecastSnapshotCharts({
 
   const seriesNames = useMemo(
     () => getOrderedSeriesNames(history, newForecast, oldForecast),
-    [history, newForecast, oldForecast]
+    [history, newForecast, oldForecast],
   );
 
   const newMap = useMemo(
     () => new Map(newForecast.map((s) => [s.name, s])),
-    [newForecast]
+    [newForecast],
   );
   const oldMap = useMemo(
     () => new Map(oldForecast.map((s) => [s.name, s])),
-    [oldForecast]
+    [oldForecast],
   );
   const histMap = useMemo(
     () => new Map(history.map((s) => [s.name, s])),
-    [history]
+    [history],
   );
 
   const filteredDates = useMemo(
     () => allDates.filter((d) => d >= dateFrom && d <= dateTo),
-    [allDates, dateFrom, dateTo]
+    [allDates, dateFrom, dateTo],
   );
 
   const yoyLag = freq === "annual" ? 1 : freq === "quarterly" ? 4 : 12;
@@ -248,7 +248,7 @@ export function ForecastSnapshotCharts({
         history: { label: historyLabel, color: COLORS.history },
         newYoy: { label: "%ch", color: COLORS.yoyBar },
       }) satisfies ChartConfig,
-    [newForecastLabel, oldForecastLabel, historyLabel]
+    [newForecastLabel, oldForecastLabel, historyLabel],
   );
 
   if (seriesNames.length === 0) {
@@ -334,7 +334,7 @@ export function ForecastSnapshotCharts({
           (d) =>
             d.newForecast !== undefined ||
             d.oldForecast !== undefined ||
-            d.history !== undefined
+            d.history !== undefined,
         );
         if (!hasData) return null;
 

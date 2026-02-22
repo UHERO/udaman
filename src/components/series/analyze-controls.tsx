@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, X } from "lucide-react";
 import { formatLevel } from "@catalog/utils/format";
+import { AlertTriangle, X } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -109,9 +109,7 @@ function TooltipToggleItem({
 function ControlPanel({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex flex-col gap-2 py-1">
-        {children}
-      </div>
+      <div className="flex flex-col gap-2 py-1">{children}</div>
     </TooltipProvider>
   );
 }
@@ -266,12 +264,16 @@ const VALID_BAR_MODES = new Set<BarMode>(["yoy", "ytd", "levelChange"]);
 
 function parseOverlays(v: string | null): Overlay[] {
   if (!v) return [];
-  return v.split(",").filter((s): s is Overlay => VALID_OVERLAYS.has(s as Overlay));
+  return v
+    .split(",")
+    .filter((s): s is Overlay => VALID_OVERLAYS.has(s as Overlay));
 }
 
 function parseTransformation(v: string | null): Transformation | null {
   if (!v) return null;
-  return VALID_TRANSFORMATIONS.has(v as Transformation) ? (v as Transformation) : null;
+  return VALID_TRANSFORMATIONS.has(v as Transformation)
+    ? (v as Transformation)
+    : null;
 }
 
 function parseBarMode(v: string | null): BarMode {
@@ -406,9 +408,7 @@ function OverlaysToggle({
           }
           description={`Rolling mean ± 1 sample std dev (k=${rollingWindow})`}
         >
-          <span className="text-muted-foreground">
-            Rolling &plusmn;&sigma;
-          </span>
+          <span className="text-muted-foreground">Rolling &plusmn;&sigma;</span>
         </TooltipToggleItem>
         <TooltipToggleItem
           value="linearTrend"
@@ -509,7 +509,7 @@ function TransformToggle({
   const makeSingleHandler =
     (
       current: Transformation | null,
-      setter: (t: Transformation | null) => void
+      setter: (t: Transformation | null) => void,
     ) =>
     (values: string[]) => {
       if (values.includes("none") && current !== null) {
@@ -554,7 +554,7 @@ function TransformToggle({
             value={secondAxisValue ? [secondAxisValue] : ["none"]}
             onValueChange={makeSingleHandler(
               secondAxisValue,
-              onSecondAxisValueChange
+              onSecondAxisValueChange,
             )}
             variant="default"
             size="sm"
@@ -603,8 +603,7 @@ function TransformToggle({
               className="h-7 px-2.5 text-xs"
               formula={
                 <span>
-                  y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times;
-                  100
+                  y<sub>t</sub> = (x<sub>t</sub> / x<sub>base</sub>) &times; 100
                 </span>
               }
               description="Index all values relative to the first observation in the base year"
@@ -682,7 +681,11 @@ interface AnalyzeControlsProps {
   unitShortLabel?: string | null;
   currentFreqCode?: string | null;
   /** Multi-series compare mode */
-  compareSeries?: Array<{ name: string; data: [string, number][]; unitShortLabel?: string | null }>;
+  compareSeries?: Array<{
+    name: string;
+    data: [string, number][];
+    unitShortLabel?: string | null;
+  }>;
   /** Series name → ID map for linking to detail pages (compare mode) */
   seriesLinks?: Record<string, number>;
   /** Universe slug for building URLs (compare mode) */
@@ -709,21 +712,21 @@ export function AnalyzeControls({
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<number>>(new Set());
 
-  const [barMode, setBarMode] = useState<BarMode>(
-    () => parseBarMode(searchParams.get("barMode"))
+  const [barMode, setBarMode] = useState<BarMode>(() =>
+    parseBarMode(searchParams.get("barMode")),
   );
-  const [overlays, setOverlays] = useState<Overlay[]>(
-    () => parseOverlays(searchParams.get("overlays"))
+  const [overlays, setOverlays] = useState<Overlay[]>(() =>
+    parseOverlays(searchParams.get("overlays")),
   );
   const [transformation, setTransformation] = useState<Transformation | null>(
-    () => parseTransformation(searchParams.get("transform"))
+    () => parseTransformation(searchParams.get("transform")),
   );
   const [secondAxis, setSecondAxis] = useState(
-    () => searchParams.get("secondAxis") === "1"
+    () => searchParams.get("secondAxis") === "1",
   );
   const [secondAxisTransformation, setSecondAxisTransformation] =
-    useState<Transformation | null>(
-      () => parseTransformation(searchParams.get("secondAxisTransform"))
+    useState<Transformation | null>(() =>
+      parseTransformation(searchParams.get("secondAxisTransform")),
     );
   const [rollingWindow, setRollingWindow] = useState(() => {
     const v = parseInt(searchParams.get("rollingWindow") ?? "", 10);
@@ -737,7 +740,7 @@ export function AnalyzeControls({
   // When second axis is on, overlays are disabled
   const effectiveOverlays = useMemo(
     () => (secondAxis ? [] : overlays),
-    [secondAxis, overlays]
+    [secondAxis, overlays],
   );
 
   // ── Compare mode: merge all series into unified chart rows ─────────
@@ -764,7 +767,7 @@ export function AnalyzeControls({
 
   const compareSeriesNames = useMemo(
     () => (isCompareMode ? compareSeriesData.map((s) => s.name) : []),
-    [isCompareMode, compareSeriesData]
+    [isCompareMode, compareSeriesData],
   );
 
   /** Group series indices by unit label for the compare stats bar */
@@ -825,7 +828,10 @@ export function AnalyzeControls({
     if (rangeParam) {
       const preset = RANGE_PRESETS.find((p) => p.label === rangeParam);
       if (preset) {
-        return { startIndex: getRangeStartIndex(chartData, preset.years), endIndex: endIdx };
+        return {
+          startIndex: getRangeStartIndex(chartData, preset.years),
+          endIndex: endIdx,
+        };
       }
     }
     return { startIndex: getRangeStartIndex(chartData, 10), endIndex: endIdx };
@@ -837,7 +843,7 @@ export function AnalyzeControls({
       setBrushRange({ startIndex, endIndex: endIdx });
       setRangePreset(label);
     },
-    [chartData, endIdx]
+    [chartData, endIdx],
   );
 
   const brushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -852,7 +858,7 @@ export function AnalyzeControls({
         }));
       }, 120);
     },
-    []
+    [],
   );
 
   // ── Sync chart state → URL search params ────────────────────────────
@@ -861,19 +867,33 @@ export function AnalyzeControls({
       overlays: overlays.length > 0 ? overlays.join(",") : undefined,
       transform: transformation ?? undefined,
       secondAxis: secondAxis ? "1" : undefined,
-      secondAxisTransform: secondAxis ? (secondAxisTransformation ?? undefined) : undefined,
+      secondAxisTransform: secondAxis
+        ? (secondAxisTransformation ?? undefined)
+        : undefined,
       barMode: barMode !== "yoy" ? barMode : undefined,
       rollingWindow: rollingWindow !== 12 ? String(rollingWindow) : undefined,
       indexYear: indexBaseYear !== 2015 ? String(indexBaseYear) : undefined,
       range: rangePreset && rangePreset !== "10Y" ? rangePreset : undefined,
     });
-  }, [overlays, transformation, secondAxis, secondAxisTransformation, barMode, rollingWindow, indexBaseYear, rangePreset]);
+  }, [
+    overlays,
+    transformation,
+    secondAxis,
+    secondAxisTransformation,
+    barMode,
+    rollingWindow,
+    indexBaseYear,
+    rangePreset,
+  ]);
 
   // ── Min/max year from brush-selected date range ─────────────────────
   const { minYear, maxYear } = useMemo(() => {
     if (chartData.length === 0) return { minYear: 2000, maxYear: 2030 };
-    const startDate = chartData[brushRange.startIndex]?.date ?? chartData[0].date;
-    const endDate = chartData[brushRange.endIndex]?.date ?? chartData[chartData.length - 1].date;
+    const startDate =
+      chartData[brushRange.startIndex]?.date ?? chartData[0].date;
+    const endDate =
+      chartData[brushRange.endIndex]?.date ??
+      chartData[chartData.length - 1].date;
     return {
       minYear: parseInt(startDate.slice(0, 4), 10),
       maxYear: parseInt(endDate.slice(0, 4), 10),
@@ -883,15 +903,28 @@ export function AnalyzeControls({
   // ── Compare mode: full data with transforms (for chart + brush) ────
   const compareFullData = useMemo(() => {
     if (!isCompareMode) return [];
-    return applyTransformationMulti(chartData, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow);
-  }, [isCompareMode, chartData, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow]);
+    return applyTransformationMulti(
+      chartData,
+      transformation,
+      compareSeriesNames.length,
+      indexBaseYear,
+      rollingWindow,
+    );
+  }, [
+    isCompareMode,
+    chartData,
+    transformation,
+    compareSeriesNames.length,
+    indexBaseYear,
+    rollingWindow,
+  ]);
 
   // ── Compare mode: sliced data with transforms (for table) ──────────
   const compareVisibleData = useMemo(() => {
     if (!isCompareMode) return [];
     return compareFullData.slice(
       brushRange.startIndex,
-      brushRange.endIndex + 1
+      brushRange.endIndex + 1,
     );
   }, [isCompareMode, compareFullData, brushRange]);
 
@@ -900,12 +933,16 @@ export function AnalyzeControls({
     if (isCompareMode) return compareVisibleData;
     const sliced = chartData.slice(
       brushRange.startIndex,
-      brushRange.endIndex + 1
+      brushRange.endIndex + 1,
     );
     let result = sliced;
     // Compute second axis transform first (reads original level)
     if (secondAxis && secondAxisTransformation) {
-      result = computeSecondAxis(result, secondAxisTransformation, indexBaseYear);
+      result = computeSecondAxis(
+        result,
+        secondAxisTransformation,
+        indexBaseYear,
+      );
     }
     // Apply main transformation (replaces level)
     result = applyTransformation(result, transformation, indexBaseYear);
@@ -924,10 +961,17 @@ export function AnalyzeControls({
   // ── Compare mode: table data preserving original levels ─────────────
   const compareTableData = useMemo(() => {
     if (!isCompareMode) return [];
-    const sliced = chartData.slice(brushRange.startIndex, brushRange.endIndex + 1);
+    const sliced = chartData.slice(
+      brushRange.startIndex,
+      brushRange.endIndex + 1,
+    );
     if (!transformation) return sliced;
     const transformed = applyTransformationMulti(
-      sliced, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow
+      sliced,
+      transformation,
+      compareSeriesNames.length,
+      indexBaseYear,
+      rollingWindow,
     );
     return sliced.map((row, i) => {
       const result = { ...row };
@@ -938,21 +982,33 @@ export function AnalyzeControls({
       }
       return result;
     });
-  }, [isCompareMode, chartData, brushRange, transformation, compareSeriesNames.length, indexBaseYear, rollingWindow]);
+  }, [
+    isCompareMode,
+    chartData,
+    brushRange,
+    transformation,
+    compareSeriesNames.length,
+    indexBaseYear,
+    rollingWindow,
+  ]);
 
   // Table data — filtered to brush range, with overlays; transforms stored separately
   const tableData = useMemo(() => {
     if (isCompareMode) return compareTableData;
     const sliced = chartData.slice(
       brushRange.startIndex,
-      brushRange.endIndex + 1
+      brushRange.endIndex + 1,
     );
     let rows = computeOverlays(sliced, effectiveOverlays, rollingWindow);
     if (secondAxis && secondAxisTransformation) {
       rows = computeSecondAxis(rows, secondAxisTransformation, indexBaseYear);
     }
     if (transformation) {
-      const transformed = applyTransformation(rows, transformation, indexBaseYear);
+      const transformed = applyTransformation(
+        rows,
+        transformation,
+        indexBaseYear,
+      );
       rows = rows.map((row, i) => ({
         ...row,
         mainTransformed: transformed[i].level,
@@ -983,21 +1039,22 @@ export function AnalyzeControls({
       // Otherwise strip "none" and keep the real overlay values
       setOverlays(values.filter((v) => v !== "none") as Overlay[]);
     },
-    [overlays]
+    [overlays],
   );
 
   // Summary stats for the brush-selected range (first series in compare mode)
   const rangeStats = useMemo(() => {
-    const sliced = chartData.slice(brushRange.startIndex, brushRange.endIndex + 1);
+    const sliced = chartData.slice(
+      brushRange.startIndex,
+      brushRange.endIndex + 1,
+    );
     let levels: number[];
     if (isCompareMode) {
       levels = sliced
         .map((r) => r.series_0)
         .filter((v): v is number => v != null && !isNaN(v));
     } else {
-      levels = sliced
-        .map((r) => r.level)
-        .filter((v): v is number => v != null);
+      levels = sliced.map((r) => r.level).filter((v): v is number => v != null);
     }
     if (levels.length === 0) return null;
     const n = levels.length;
@@ -1017,9 +1074,13 @@ export function AnalyzeControls({
   const chartStats = useMemo(
     () =>
       rangeStats
-        ? { mean: rangeStats.mean, median: rangeStats.median, standardDeviation: rangeStats.stdDev }
+        ? {
+            mean: rangeStats.mean,
+            median: rangeStats.median,
+            standardDeviation: rangeStats.stdDev,
+          }
         : null,
-    [rangeStats]
+    [rangeStats],
   );
 
   const fmt = (v: number) => formatLevel(v, decimals, unitShortLabel);
@@ -1028,7 +1089,7 @@ export function AnalyzeControls({
   const makeTransformHandler =
     (
       current: Transformation | null,
-      setter: (t: Transformation | null) => void
+      setter: (t: Transformation | null) => void,
     ) =>
     (values: string[]) => {
       if (values.includes("none") && current !== null) {
@@ -1077,7 +1138,7 @@ export function AnalyzeControls({
             <div className="flex gap-1">
               {RANGE_PRESETS.filter(
                 (p) =>
-                  p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12)
+                  p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
               ).map((p) => (
                 <button
                   key={p.label}
@@ -1100,13 +1161,19 @@ export function AnalyzeControls({
             <span className="text-muted-foreground text-xs">Units</span>
             <div className="flex flex-wrap gap-2">
               {compareUnits.map(([label, indices]) => (
-                <span key={label} className="flex items-center gap-1 text-sm font-medium">
+                <span
+                  key={label}
+                  className="flex items-center gap-1 text-sm font-medium"
+                >
                   {compareUnits.length > 1 &&
                     indices.map((i) => (
                       <span
                         key={i}
                         className="inline-block h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }}
+                        style={{
+                          backgroundColor:
+                            SERIES_COLORS[i % SERIES_COLORS.length],
+                        }}
                       />
                     ))}
                   {label}
@@ -1135,7 +1202,10 @@ export function AnalyzeControls({
             <ToggleGroup
               type="multiple"
               value={transformation ? [transformation] : ["none"]}
-              onValueChange={makeTransformHandler(transformation, setTransformation)}
+              onValueChange={makeTransformHandler(
+                transformation,
+                setTransformation,
+              )}
               variant="default"
               size="sm"
               className="flex-wrap"
@@ -1164,11 +1234,7 @@ export function AnalyzeControls({
               <TooltipToggleItem
                 value="linearTrend"
                 className="h-7 px-2.5 text-xs"
-                formula={
-                  <span>
-                    ŷ = &alpha; + &beta;t
-                  </span>
-                }
+                formula={<span>ŷ = &alpha; + &beta;t</span>}
                 description="OLS linear trend on observation index"
               >
                 Linear
@@ -1200,38 +1266,39 @@ export function AnalyzeControls({
                 HP Trend
               </TooltipToggleItem>
             </ToggleGroup>
-            {transformation === "rollingMean" && (() => {
-              const dataPPY = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
-              const windowPresets = [
-                { label: "W", ppy: 52 },
-                { label: "M", ppy: 12 },
-                { label: "Q", ppy: 4 },
-                { label: "S", ppy: 2 },
-                { label: "A", ppy: 1 },
-              ]
-                .map((p) => ({ ...p, k: Math.round(dataPPY / p.ppy) }))
-                .filter((p) => p.k >= 2);
-              return windowPresets.length > 0 ? (
-                <div className="ml-auto flex items-center gap-1">
-                  <span className="text-muted-foreground text-[10px]">k</span>
-                  {windowPresets.map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => setRollingWindow(p.k)}
-                      className={`h-7 rounded-md border px-2 text-xs font-medium transition-colors ${
-                        rollingWindow === p.k
-                          ? "border-blue-300 bg-blue-50 text-blue-700"
-                          : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
-                      }`}
-                      title={`k=${p.k}`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              ) : null;
-            })()}
+            {transformation === "rollingMean" &&
+              (() => {
+                const dataPPY = PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12;
+                const windowPresets = [
+                  { label: "W", ppy: 52 },
+                  { label: "M", ppy: 12 },
+                  { label: "Q", ppy: 4 },
+                  { label: "S", ppy: 2 },
+                  { label: "A", ppy: 1 },
+                ]
+                  .map((p) => ({ ...p, k: Math.round(dataPPY / p.ppy) }))
+                  .filter((p) => p.k >= 2);
+                return windowPresets.length > 0 ? (
+                  <div className="ml-auto flex items-center gap-1">
+                    <span className="text-muted-foreground text-[10px]">k</span>
+                    {windowPresets.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => setRollingWindow(p.k)}
+                        className={`h-7 rounded-md border px-2 text-xs font-medium transition-colors ${
+                          rollingWindow === p.k
+                            ? "border-blue-300 bg-blue-50 text-blue-700"
+                            : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground bg-transparent"
+                        }`}
+                        title={`k=${p.k}`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
           </div>
         </ControlPanel>
 
@@ -1246,7 +1313,9 @@ export function AnalyzeControls({
             brushStartIndex={brushRange.startIndex}
             brushEndIndex={brushRange.endIndex}
             onBrushChange={handleBrushChange}
-            indexBaseYear={transformation === "indexToYear" ? indexBaseYear : undefined}
+            indexBaseYear={
+              transformation === "indexToYear" ? indexBaseYear : undefined
+            }
           />
         </div>
 
@@ -1353,7 +1422,7 @@ export function AnalyzeControls({
           <div className="flex gap-1">
             {RANGE_PRESETS.filter(
               (p) =>
-                p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12)
+                p.minPPY <= (PERIODS_PER_YEAR[currentFreqCode ?? "M"] ?? 12),
             ).map((p) => (
               <button
                 key={p.label}
@@ -1426,7 +1495,8 @@ export function AnalyzeControls({
           freqCode={currentFreqCode}
           rollingWindow={rollingWindow}
           indexBaseYear={
-            transformation === "indexToYear" || secondAxisTransformation === "indexToYear"
+            transformation === "indexToYear" ||
+            secondAxisTransformation === "indexToYear"
               ? indexBaseYear
               : undefined
           }

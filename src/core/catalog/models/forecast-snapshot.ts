@@ -19,9 +19,7 @@ export type ForecastSnapshotAttrs = {
   updated_at?: Date | string | null;
 };
 
-export type SerializedForecastSnapshot = ReturnType<
-  ForecastSnapshot["toJSON"]
->;
+export type SerializedForecastSnapshot = ReturnType<ForecastSnapshot["toJSON"]>;
 
 /**
  * Format a Date matching Ruby's `created_at.utc.to_s`: "YYYY-MM-DD HH:MM:SS UTC".
@@ -83,9 +81,7 @@ class ForecastSnapshot {
     }
     // Must match Ruby: '%s_%d_%s' % [created_at.utc, id, name]
     // Ruby DateTime#to_s => "2017-01-14 00:44:45 UTC"
-    const dateStr = this.createdAt
-      ? formatRubyUtcDate(this.createdAt)
-      : "";
+    const dateStr = this.createdAt ? formatRubyUtcDate(this.createdAt) : "";
     const str = `${dateStr}_${this.id}_${filename}`;
     const hash = createHash("md5").update(str).digest("hex");
     return join("tsd_files", `${hash}_${filename}`);

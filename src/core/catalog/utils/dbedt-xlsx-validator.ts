@@ -1,4 +1,4 @@
-import type { DbedtMetaRow, DbedtDataRow } from "./dbedt-xlsx-parser";
+import type { DbedtDataRow, DbedtMetaRow } from "./dbedt-xlsx-parser";
 
 export type ValidationError = {
   sheet: "indicator" | "data";

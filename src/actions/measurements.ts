@@ -9,9 +9,9 @@ import {
   addMeasurementSeries as addMeasurementSeriesCtrl,
   createMeasurement as createMeasurementCtrl,
   deleteMeasurement as deleteMeasurementCtrl,
+  getMeasurementsWithUnits as fetchMeasurements,
   getMeasurementSeriesWithMetadata as getMeasurementSeriesCtrl,
   getMeasurementWithLabels as getMeasurementWithLabelsCtrl,
-  getMeasurementsWithUnits as fetchMeasurements,
   propagateFields as propagateFieldsCtrl,
   removeMeasurementSeries as removeMeasurementSeriesCtrl,
   updateMeasurement as updateMeasurementCtrl,
@@ -79,9 +79,8 @@ export async function addSeriesAction(
 ) {
   await requirePermission("measurement", "update");
   log.info({ measurementId, seriesName }, "addSeriesAction called");
-  const { default: SeriesCollection } = await import(
-    "@catalog/collections/series-collection"
-  );
+  const { default: SeriesCollection } =
+    await import("@catalog/collections/series-collection");
   const series = await SeriesCollection.getByName(seriesName);
   await addMeasurementSeriesCtrl({
     measurementId,

@@ -13,7 +13,13 @@
  * rather than executed on the main thread.
  */
 import { exec } from "child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
 import { join } from "path";
 import { promisify } from "util";
 

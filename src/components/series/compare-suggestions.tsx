@@ -75,9 +75,7 @@ export function CompareSuggestions({
         {allGeosNames && (
           <SelectItem value="all-geos">Compare All Geos</SelectItem>
         )}
-        {saNsNames && (
-          <SelectItem value="sa-ns">Compare SA/NS</SelectItem>
-        )}
+        {saNsNames && <SelectItem value="sa-ns">Compare SA/NS</SelectItem>}
       </SelectContent>
     </Select>
   );

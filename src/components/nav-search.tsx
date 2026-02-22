@@ -5,17 +5,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Info, ListFilter, Plus, X } from "lucide-react";
 
 import { Button } from "./ui/button";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "./ui/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card";
 import { Input } from "./ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
   Select,
   SelectContent,
@@ -72,11 +64,7 @@ let nextKey = 0;
 
 // ── Component ───────────────────────────────────────────────────────
 
-export function NavSearchInput({
-  geoHandles = [],
-}: {
-  geoHandles?: string[];
-}) {
+export function NavSearchInput({ geoHandles = [] }: { geoHandles?: string[] }) {
   const router = useRouter();
   const { universe } = useParams<{ universe: string }>();
   const searchParams = useSearchParams();
@@ -103,10 +91,7 @@ export function NavSearchInput({
   // ── Query builder helpers ───────────────────────────────────────
 
   function addRow() {
-    setRows((prev) => [
-      ...prev,
-      { key: nextKey++, filterType: "", value: "" },
-    ]);
+    setRows((prev) => [...prev, { key: nextKey++, filterType: "", value: "" }]);
   }
 
   function removeRow(key: number) {
@@ -334,40 +319,109 @@ function SearchSyntaxHelp() {
     <div className="space-y-2">
       <p className="font-semibold">Search operators</p>
       <table className="w-full">
-        <tbody className="[&_td]:py-0.5 [&_td:first-child]:pr-2 [&_td:first-child]:font-mono [&_td:first-child]:text-[11px] [&_td:last-child]:text-muted-foreground">
-          <tr><td>^</td><td>Match start of mnemonic</td></tr>
-          <tr><td>~</td><td>Match anywhere in mnemonic</td></tr>
-          <tr><td>-</td><td>Omit matching from results</td></tr>
-          <tr><td>@</td><td>Match geography</td></tr>
-          <tr><td>.</td><td>Match frequency (A S Q M W D)</td></tr>
-          <tr><td>#</td><td>Match load statement</td></tr>
-          <tr><td>!</td><td>Match load error</td></tr>
-          <tr><td>:</td><td>Match source link URL</td></tr>
-          <tr><td>;</td><td>Match resource IDs</td></tr>
-          <tr><td>=</td><td>Find by exact name</td></tr>
-          <tr><td>/</td><td>Change universe</td></tr>
+        <tbody className="[&_td:last-child]:text-muted-foreground [&_td]:py-0.5 [&_td:first-child]:pr-2 [&_td:first-child]:font-mono [&_td:first-child]:text-[11px]">
+          <tr>
+            <td>^</td>
+            <td>Match start of mnemonic</td>
+          </tr>
+          <tr>
+            <td>~</td>
+            <td>Match anywhere in mnemonic</td>
+          </tr>
+          <tr>
+            <td>-</td>
+            <td>Omit matching from results</td>
+          </tr>
+          <tr>
+            <td>@</td>
+            <td>Match geography</td>
+          </tr>
+          <tr>
+            <td>.</td>
+            <td>Match frequency (A S Q M W D)</td>
+          </tr>
+          <tr>
+            <td>#</td>
+            <td>Match load statement</td>
+          </tr>
+          <tr>
+            <td>!</td>
+            <td>Match load error</td>
+          </tr>
+          <tr>
+            <td>:</td>
+            <td>Match source link URL</td>
+          </tr>
+          <tr>
+            <td>;</td>
+            <td>Match resource IDs</td>
+          </tr>
+          <tr>
+            <td>=</td>
+            <td>Find by exact name</td>
+          </tr>
+          <tr>
+            <td>/</td>
+            <td>Change universe</td>
+          </tr>
         </tbody>
       </table>
       <p className="font-semibold">Flags</p>
       <table className="w-full">
-        <tbody className="[&_td]:py-0.5 [&_td:first-child]:pr-2 [&_td:first-child]:font-mono [&_td:first-child]:text-[11px] [&_td:last-child]:text-muted-foreground">
-          <tr><td>&amp;pub</td><td>Public-facing only</td></tr>
-          <tr><td>&amp;pct</td><td>Percent field set</td></tr>
-          <tr><td>&amp;sa</td><td>Seasonally adjusted</td></tr>
-          <tr><td>&amp;ns</td><td>Not seasonally adjusted</td></tr>
-          <tr><td>&amp;nodata</td><td>Series with no data</td></tr>
-          <tr><td>&amp;noclock</td><td>Clockless loader</td></tr>
-          <tr><td>&amp;noclip</td><td>Exclude clipboard</td></tr>
+        <tbody className="[&_td:last-child]:text-muted-foreground [&_td]:py-0.5 [&_td:first-child]:pr-2 [&_td:first-child]:font-mono [&_td:first-child]:text-[11px]">
+          <tr>
+            <td>&amp;pub</td>
+            <td>Public-facing only</td>
+          </tr>
+          <tr>
+            <td>&amp;pct</td>
+            <td>Percent field set</td>
+          </tr>
+          <tr>
+            <td>&amp;sa</td>
+            <td>Seasonally adjusted</td>
+          </tr>
+          <tr>
+            <td>&amp;ns</td>
+            <td>Not seasonally adjusted</td>
+          </tr>
+          <tr>
+            <td>&amp;nodata</td>
+            <td>Series with no data</td>
+          </tr>
+          <tr>
+            <td>&amp;noclock</td>
+            <td>Clockless loader</td>
+          </tr>
+          <tr>
+            <td>&amp;noclip</td>
+            <td>Exclude clipboard</td>
+          </tr>
         </tbody>
       </table>
       <p className="font-semibold">Examples</p>
       <table className="w-full">
-        <tbody className="[&_td]:py-0.5 [&_td:first-child]:pr-2 [&_td:first-child]:font-mono [&_td:first-child]:text-[11px] [&_td:last-child]:text-muted-foreground">
-          <tr><td>^vap$</td><td>Prefix &quot;vap&quot; exactly</td></tr>
-          <tr><td>^yl,yc</td><td>Comma-separated alternatives</td></tr>
-          <tr><td>~ns$</td><td>Match NS in name</td></tr>
-          <tr><td>@cnty</td><td>County geographies</td></tr>
-          <tr><td>145746</td><td>Find by series ID</td></tr>
+        <tbody className="[&_td:last-child]:text-muted-foreground [&_td]:py-0.5 [&_td:first-child]:pr-2 [&_td:first-child]:font-mono [&_td:first-child]:text-[11px]">
+          <tr>
+            <td>^vap$</td>
+            <td>Prefix &quot;vap&quot; exactly</td>
+          </tr>
+          <tr>
+            <td>^yl,yc</td>
+            <td>Comma-separated alternatives</td>
+          </tr>
+          <tr>
+            <td>~ns$</td>
+            <td>Match NS in name</td>
+          </tr>
+          <tr>
+            <td>@cnty</td>
+            <td>County geographies</td>
+          </tr>
+          <tr>
+            <td>145746</td>
+            <td>Find by series ID</td>
+          </tr>
         </tbody>
       </table>
     </div>

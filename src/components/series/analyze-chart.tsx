@@ -164,7 +164,7 @@ function computeAxisTicks(dates: string[], freqCode: string): string[] {
  */
 function makeAxisTickFormatter(
   freqCode: string,
-  ticks: string[]
+  ticks: string[],
 ): (dateStr: string) => string {
   // Pre-compute which ticks start a new year
   const isFirstOfYear = new Set<string>();
@@ -224,7 +224,7 @@ export const NBER_RECESSIONS = [
 /* ------------------------------------------------------------------ */
 
 function linearRegression(
-  data: ChartRow[]
+  data: ChartRow[],
 ): { slope: number; intercept: number } | null {
   const points: { i: number; v: number }[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -249,7 +249,7 @@ function linearRegression(
 }
 
 function logLinearRegression(
-  data: ChartRow[]
+  data: ChartRow[],
 ): { slope: number; intercept: number } | null {
   const points: { i: number; v: number }[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -372,7 +372,7 @@ function computeHpTrend(data: ChartRow[], lambda = 14400): number[] {
 export function computeOverlays(
   data: ChartRow[],
   overlays: Overlay[],
-  window = 12
+  window = 12,
 ): ChartRow[] {
   if (overlays.length === 0) return data;
 
@@ -444,7 +444,7 @@ export function applyTransformation(
   data: ChartRow[],
   transform: Transformation | null,
   indexBaseYear?: number,
-  rollingWindow = 12
+  rollingWindow = 12,
 ): ChartRow[] {
   if (!transform) return data;
 
@@ -483,7 +483,7 @@ export function applyTransformation(
     case "indexToYear": {
       const year = indexBaseYear ?? 2015;
       const baseRow = data.find(
-        (r) => r.date.startsWith(String(year)) && r.level != null
+        (r) => r.date.startsWith(String(year)) && r.level != null,
       );
       if (!baseRow || baseRow.level === null || baseRow.level === 0)
         return data;
@@ -500,7 +500,10 @@ export function applyTransformation(
         let sum = 0;
         let count = 0;
         for (let j = i - k + 1; j <= i; j++) {
-          if (data[j].level != null) { sum += data[j].level!; count++; }
+          if (data[j].level != null) {
+            sum += data[j].level!;
+            count++;
+          }
         }
         return { ...row, level: count === k ? sum / count : null };
       });
@@ -518,7 +521,8 @@ export function applyTransformation(
       if (!reg) return data;
       return data.map((row, i) => ({
         ...row,
-        level: row.level != null ? Math.exp(reg.intercept + reg.slope * i) : null,
+        level:
+          row.level != null ? Math.exp(reg.intercept + reg.slope * i) : null,
       }));
     }
     case "hpTrend": {
@@ -537,7 +541,7 @@ export function computeSecondAxis(
   data: ChartRow[],
   transform: Transformation,
   indexBaseYear?: number,
-  rollingWindow = 12
+  rollingWindow = 12,
 ): ChartRow[] {
   const levels = data.map((r) => r.level).filter((v): v is number => v != null);
   if (levels.length === 0) return data;
@@ -575,7 +579,7 @@ export function computeSecondAxis(
     case "indexToYear": {
       const year = indexBaseYear ?? 2015;
       const baseRow = data.find(
-        (r) => r.date.startsWith(String(year)) && r.level != null
+        (r) => r.date.startsWith(String(year)) && r.level != null,
       );
       if (!baseRow || baseRow.level === null || baseRow.level === 0)
         return data;
@@ -592,7 +596,10 @@ export function computeSecondAxis(
         let sum = 0;
         let count = 0;
         for (let j = i - k + 1; j <= i; j++) {
-          if (data[j].level != null) { sum += data[j].level!; count++; }
+          if (data[j].level != null) {
+            sum += data[j].level!;
+            count++;
+          }
         }
         return { ...row, transformedLevel: count === k ? sum / count : null };
       });
@@ -602,7 +609,8 @@ export function computeSecondAxis(
       if (!reg) return data;
       return data.map((row, i) => ({
         ...row,
-        transformedLevel: row.level != null ? reg.intercept + reg.slope * i : null,
+        transformedLevel:
+          row.level != null ? reg.intercept + reg.slope * i : null,
       }));
     }
     case "logLinearTrend": {
@@ -610,7 +618,8 @@ export function computeSecondAxis(
       if (!reg) return data;
       return data.map((row, i) => ({
         ...row,
-        transformedLevel: row.level != null ? Math.exp(reg.intercept + reg.slope * i) : null,
+        transformedLevel:
+          row.level != null ? Math.exp(reg.intercept + reg.slope * i) : null,
       }));
     }
     case "hpTrend": {
@@ -630,7 +639,7 @@ export function applyTransformationMulti(
   transform: Transformation | null,
   seriesCount: number,
   indexBaseYear?: number,
-  rollingWindow = 12
+  rollingWindow = 12,
 ): ChartRow[] {
   if (!transform || seriesCount === 0) return data;
 
@@ -703,7 +712,7 @@ export function applyTransformationMulti(
           (r) =>
             r.date.startsWith(String(year)) &&
             r[key] != null &&
-            !isNaN(r[key] as number)
+            !isNaN(r[key] as number),
         );
         if (!baseRow || baseRow[key] == null || (baseRow[key] as number) === 0)
           continue;
@@ -735,12 +744,21 @@ export function applyTransformationMulti(
         const points: { i: number; v: number }[] = [];
         for (let i = 0; i < rows.length; i++) {
           const v = rows[i][key];
-          if (v != null && !isNaN(v as number)) points.push({ i, v: v as number });
+          if (v != null && !isNaN(v as number))
+            points.push({ i, v: v as number });
         }
         if (points.length < 2) continue;
         const pn = points.length;
-        let sX = 0, sY = 0, sXY = 0, sXX = 0;
-        for (const p of points) { sX += p.i; sY += p.v; sXY += p.i * p.v; sXX += p.i * p.i; }
+        let sX = 0,
+          sY = 0,
+          sXY = 0,
+          sXX = 0;
+        for (const p of points) {
+          sX += p.i;
+          sY += p.v;
+          sXY += p.i * p.v;
+          sXX += p.i * p.i;
+        }
         const slope = (pn * sXY - sX * sY) / (pn * sXX - sX * sX);
         const intercept = (sY - slope * sX) / pn;
         rows = rows.map((row, i) => ({
@@ -758,8 +776,16 @@ export function applyTransformationMulti(
         }
         if (points.length < 2) continue;
         const pn = points.length;
-        let sX = 0, sY = 0, sXY = 0, sXX = 0;
-        for (const p of points) { sX += p.i; sY += p.v; sXY += p.i * p.v; sXX += p.i * p.i; }
+        let sX = 0,
+          sY = 0,
+          sXY = 0,
+          sXX = 0;
+        for (const p of points) {
+          sX += p.i;
+          sY += p.v;
+          sXY += p.i * p.v;
+          sXX += p.i * p.i;
+        }
         const slope = (pn * sXY - sX * sY) / (pn * sXX - sX * sX);
         const intercept = (sY - slope * sX) / pn;
         rows = rows.map((row, i) => ({
@@ -881,7 +907,7 @@ function ChartTooltip({
   const fmtPct = (v: number | null) => (v != null ? `${v.toFixed(2)}%` : "—");
 
   const activeOverlayFields = OVERLAY_TOOLTIP_FIELDS.filter(
-    (f) => overlays.includes(f.overlay) && row[f.key] != null
+    (f) => overlays.includes(f.overlay) && row[f.key] != null,
   );
 
   return (
@@ -1011,7 +1037,7 @@ export function LevelChart({
   const chartData = useMemo(
     () =>
       isCompareMode ? data : computeOverlays(data, overlays, rollingWindow),
-    [data, overlays, rollingWindow, isCompareMode]
+    [data, overlays, rollingWindow, isCompareMode],
   );
 
   const { ticks, tickFormatter } = useMemo(() => {
@@ -1069,7 +1095,9 @@ export function LevelChart({
                 dataKey={`series_${i}`}
                 name={name}
                 yAxisId="left"
-                stroke={isHidden ? "#94a3b8" : SERIES_COLORS[i % SERIES_COLORS.length]}
+                stroke={
+                  isHidden ? "#94a3b8" : SERIES_COLORS[i % SERIES_COLORS.length]
+                }
                 strokeWidth={isHidden ? 1 : 2}
                 strokeOpacity={isHidden ? 0.4 : 1}
                 dot={false}

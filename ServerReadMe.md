@@ -1,7 +1,9 @@
 # Server Config Copies
+
 These are for reference only, not guaranteed to be up to date.
 
 ## NGINX
+
 Ruby on Rails version
 
 /etc/nginx/sites-available/stage-udaman.uhero.hawaii.edu
@@ -65,11 +67,12 @@ server {
 
 ```
 
-
 ## Systemd Unit File
+
 Ruby on Rails version
 
 /etc/systemd/system/udaman.service
+
 ```bash
 [Unit]
 Description=Udaman Rails App (Passenger Standalone)

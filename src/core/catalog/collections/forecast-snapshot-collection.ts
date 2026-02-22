@@ -17,7 +17,8 @@ export type CreateForecastSnapshotPayload = {
   historyTsdLabel?: string | null;
 };
 
-export type UpdateForecastSnapshotPayload = Partial<CreateForecastSnapshotPayload>;
+export type UpdateForecastSnapshotPayload =
+  Partial<CreateForecastSnapshotPayload>;
 
 class ForecastSnapshotCollection {
   static async list(): Promise<ForecastSnapshot[]> {

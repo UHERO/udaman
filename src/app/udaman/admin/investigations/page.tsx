@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-
-import InvestigationsPanel from "@/components/admin/investigations-panel";
 import {
   getLoadErrors,
   getReloadJobs,
 } from "@catalog/controllers/investigations";
+
+import InvestigationsPanel from "@/components/admin/investigations-panel";
 import { requireAuth } from "@/lib/auth/dal";
 
 export default async function InvestigationsPage() {

@@ -16,7 +16,8 @@ export function SeriesLayout({ children }: { children: React.ReactNode }) {
       setFullWidth(localStorage.getItem(STORAGE_KEY) === "true");
     };
     window.addEventListener("udaman-width-change", handleChange);
-    return () => window.removeEventListener("udaman-width-change", handleChange);
+    return () =>
+      window.removeEventListener("udaman-width-change", handleChange);
   }, []);
 
   return (

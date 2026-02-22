@@ -2,20 +2,11 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { SerializedExport } from "@catalog/models/export";
 import { Download, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteExportAction } from "@/actions/exports";
-import type { SerializedExport } from "@catalog/models/export";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +17,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
@@ -128,7 +128,9 @@ export function ExportListTable({ data }: Props) {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 cursor-pointer"
-                            onClick={() => router.push(`${base}/${exp.id}/edit`)}
+                            onClick={() =>
+                              router.push(`${base}/${exp.id}/edit`)
+                            }
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>

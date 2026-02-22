@@ -3,9 +3,14 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type {
+  AdminAction,
+  EnrichedReloadJob,
+} from "@catalog/collections/reload-job-collection";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { deleteReloadJob, runAdminAction } from "@/actions/investigations";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -15,11 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  deleteReloadJob,
-  runAdminAction,
-} from "@/actions/investigations";
-import type { AdminAction, EnrichedReloadJob } from "@catalog/collections/reload-job-collection";
 
 type LoadError = {
   lastError: string;
@@ -36,7 +36,20 @@ const ADMIN_ACTIONS: { action: AdminAction; label: string }[] = [
   { action: "sync_nas", label: "Sync files from NAS" },
 ];
 
-const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function formatDate(date: Date | string | null): string {
   if (!date) return "";
@@ -48,7 +61,10 @@ function formatDate(date: Date | string | null): string {
   return `${mon} ${day}, ${hh}:${mm}`;
 }
 
-function formatDuration(start: Date | string | null, end: Date | string | null): string {
+function formatDuration(
+  start: Date | string | null,
+  end: Date | string | null,
+): string {
   if (!start || !end) return "";
   const ms = new Date(end).getTime() - new Date(start).getTime();
   if (ms < 0) return "";
@@ -70,14 +86,17 @@ function StatusBadge({ status }: { status: string | null }) {
   const display = status ?? "waiting";
   const colors = STATUS_COLORS[display] ?? STATUS_COLORS.waiting;
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors}`}
+    >
       {display}
     </span>
   );
 }
 
 function SeriesList({ names }: { names: string[] }) {
-  if (names.length === 0) return <span className="text-muted-foreground">-</span>;
+  if (names.length === 0)
+    return <span className="text-muted-foreground">-</span>;
   const display = names.slice(0, 3);
   const more = names.length > 3 ? ` +${names.length - 3} more` : "";
   return (
@@ -183,42 +202,44 @@ export default function InvestigationsPanel({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reloadJobs.slice(0, 5).map(({ job, username, seriesNames, seriesCount }) => (
-                  <TableRow key={job.id}>
-                    <TableCell className="font-mono text-xs">
-                      {job.id}
-                    </TableCell>
-                    <TableCell className="text-sm">{username}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={job.status} />
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {formatDate(job.createdAt)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {formatDuration(job.createdAt, job.finishedAt)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
-                      {seriesCount}
-                    </TableCell>
-                    <TableCell>
-                      <SeriesList names={seriesNames} />
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate text-xs text-red-600">
-                      {job.error}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isPending}
-                        onClick={() => handleDeleteJob(job.id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {reloadJobs
+                  .slice(0, 5)
+                  .map(({ job, username, seriesNames, seriesCount }) => (
+                    <TableRow key={job.id}>
+                      <TableCell className="font-mono text-xs">
+                        {job.id}
+                      </TableCell>
+                      <TableCell className="text-sm">{username}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={job.status} />
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {formatDate(job.createdAt)}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {formatDuration(job.createdAt, job.finishedAt)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs">
+                        {seriesCount}
+                      </TableCell>
+                      <TableCell>
+                        <SeriesList names={seriesNames} />
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate text-xs text-red-600">
+                        {job.error}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isPending}
+                          onClick={() => handleDeleteJob(job.id)}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </div>

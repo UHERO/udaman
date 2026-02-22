@@ -68,9 +68,7 @@ export default async function ComparePage({
           <p className="text-sm font-medium text-red-800">
             Error loading series
           </p>
-          <p className="mt-1 font-mono text-xs text-red-600">
-            {result.error}
-          </p>
+          <p className="mt-1 font-mono text-xs text-red-600">{result.error}</p>
         </div>
       </>
     );

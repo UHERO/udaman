@@ -1,4 +1,5 @@
 import "server-only";
+
 import { createLogger } from "@/core/observability/logger";
 
 import MeasurementCollection from "../collections/measurement-collection";
@@ -109,11 +110,7 @@ export async function updateMeasurement({
   return { message: "Measurement updated", data };
 }
 
-export async function getMeasurementSeriesWithMetadata({
-  id,
-}: {
-  id: number;
-}) {
+export async function getMeasurementSeriesWithMetadata({ id }: { id: number }) {
   log.info({ id }, "fetching measurement series with metadata");
   const data = await MeasurementCollection.getSeriesWithMetadata(id);
   log.info({ count: data.length }, "measurement series with metadata fetched");
@@ -147,7 +144,11 @@ export async function propagateFields({
   seriesNames: string[];
 }) {
   log.info(
-    { measurementId, fieldCount: fieldNames.length, seriesCount: seriesNames.length },
+    {
+      measurementId,
+      fieldCount: fieldNames.length,
+      seriesCount: seriesNames.length,
+    },
     "propagating measurement fields to series",
   );
 

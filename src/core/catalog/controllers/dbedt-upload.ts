@@ -12,13 +12,14 @@ import SourceCollection from "../collections/source-collection";
 import UnitCollection from "../collections/unit-collection";
 import { DbedtUploadCollection } from "../collections/universe-upload-collection";
 import Series from "../models/series";
-import type { DbedtDataRow, DbedtMetaRow, DbedtParseResult } from "../utils/dbedt-xlsx-parser";
-import { parseDbedtXlsx } from "../utils/dbedt-xlsx-parser";
 import { makeDate } from "../utils/date-helpers";
-import {
-  orchestrateUpload,
-  type UploadResult,
-} from "./universe-upload";
+import type {
+  DbedtDataRow,
+  DbedtMetaRow,
+  DbedtParseResult,
+} from "../utils/dbedt-xlsx-parser";
+import { parseDbedtXlsx } from "../utils/dbedt-xlsx-parser";
+import { orchestrateUpload, type UploadResult } from "./universe-upload";
 
 const log = createLogger("catalog.dbedt-upload");
 
@@ -166,9 +167,7 @@ async function loadDbedtMetadata(
     } else {
       // ── Measurement entry ───────────────────────────────────────
       if (row.order == null || row.decimal == null) {
-        throw new Error(
-          `Order or decimal missing for indicator ${row.indId}`,
-        );
+        throw new Error(`Order or decimal missing for indicator ${row.indId}`);
       }
 
       const parentLabel = `DBEDT_${row.parentId}`;
@@ -211,10 +210,7 @@ async function loadDbedtMetadata(
     }
   }
 
-  log.info(
-    { totalMeta: allMeta.size },
-    "loadDbedtMetadata: done",
-  );
+  log.info({ totalMeta: allMeta.size }, "loadDbedtMetadata: done");
   return allMeta;
 }
 
@@ -316,10 +312,7 @@ async function loadDbedtData(
       }
 
       // Find or create series
-      let series = await SeriesCollection.findByNameAndUniverse(
-        name,
-        "DBEDT",
-      );
+      let series = await SeriesCollection.findByNameAndUniverse(name, "DBEDT");
 
       if (series) {
         await SeriesCollection.update(series.id!, {
@@ -332,9 +325,7 @@ async function loadDbedtData(
 
         // Find existing loader
         const loaders = await LoaderCollection.getBySeriesId(series.id!);
-        const dbedtLoader = loaders.find(
-          (l) => l.universe === "DBEDT",
-        );
+        const dbedtLoader = loaders.find((l) => l.universe === "DBEDT");
         if (dbedtLoader) {
           currentDataSourceId = dbedtLoader.id;
         }
@@ -403,10 +394,7 @@ async function loadDbedtData(
   }
 
   // Batch insert data points
-  log.info(
-    { totalPoints: dataPoints.length },
-    "Inserting data points",
-  );
+  log.info({ totalPoints: dataPoints.length }, "Inserting data points");
 
   // Deduplicate by composite key and batch in groups of 1000
   const seen = new Set<string>();
@@ -430,10 +418,7 @@ async function loadDbedtData(
     );
   }
 
-  log.info(
-    { inserted: uniquePoints.length },
-    "loadDbedtData: done",
-  );
+  log.info({ inserted: uniquePoints.length }, "loadDbedtData: done");
   return uniquePoints.length;
 }
 

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Universe } from "@catalog/types/shared";
 
 import {
   getDataListForEdit,
@@ -9,7 +10,6 @@ import { getSources } from "@/actions/sources";
 import { getUnits } from "@/actions/units";
 import { DataListEditForm } from "@/components/data-list/data-list-edit-form";
 import { H1 } from "@/components/typography";
-import type { Universe } from "@catalog/types/shared";
 
 export default async function EditDataListPage({
   params,

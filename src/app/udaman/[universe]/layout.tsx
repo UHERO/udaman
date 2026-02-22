@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import GeographyCollection from "@catalog/collections/geography-collection";
+import type { Universe } from "@catalog/types/shared";
 import { isValidUniverse } from "@catalog/utils/validators";
+import { mysql } from "@database/mysql";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
@@ -12,9 +14,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { requireAuth } from "@/lib/auth/dal";
-import { mysql } from "@database/mysql";
-
-import type { Universe } from "@catalog/types/shared";
 
 export default async function UniverseLayout({
   children,

@@ -78,8 +78,7 @@ class CategoryCollection {
 
     const parent = parentId ? await this.getById(parentId) : null;
     const ancestry = explicitAncestry ?? (parent ? parent.path : null);
-    const listOrder =
-      explicitListOrder ?? (await this.nextListOrder(ancestry));
+    const listOrder = explicitListOrder ?? (await this.nextListOrder(ancestry));
     const categoryUniverse = universe ?? parent?.universe ?? "UHERO";
     const maskedValue =
       masked ?? (parent ? parent.masked || parent.hidden : false);

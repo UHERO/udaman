@@ -4,10 +4,10 @@ import { promisify } from "util";
 import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@/lib/mysql/db";
 
-import DataPointCollection from "./data-point-collection";
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
 import { runTsdExport } from "../utils/tsd-export";
+import DataPointCollection from "./data-point-collection";
 
 const log = createLogger("catalog.reload-job-collection");
 const execAsync = promisify(exec);
@@ -100,7 +100,10 @@ class ReloadJobCollection {
 
     const isProd = process.env.APP_ENV === "production";
     if (!isProd && action !== "update_public") {
-      return { success: false, message: "Action not available — requires production environment" };
+      return {
+        success: false,
+        message: "Action not available — requires production environment",
+      };
     }
 
     switch (action) {
@@ -136,7 +139,10 @@ class ReloadJobCollection {
       case "update_public": {
         try {
           await DataPointCollection.updatePublicAllUniverses();
-          return { success: true, message: "Public data points updated for all universes" };
+          return {
+            success: true,
+            message: "Public data points updated for all universes",
+          };
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           log.error({ error: msg }, "update_public failed");

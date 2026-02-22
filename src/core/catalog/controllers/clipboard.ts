@@ -1,4 +1,5 @@
 import "server-only";
+
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
 import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
 import SeriesCollection from "@catalog/collections/series-collection";

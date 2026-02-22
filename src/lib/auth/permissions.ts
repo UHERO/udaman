@@ -6,9 +6,7 @@ import { getCurrentUserRole } from "./dal";
 
 export class PermissionDeniedError extends Error {
   constructor(resource: string, action: string, role: string) {
-    super(
-      `Permission denied: role "${role}" cannot ${action} on ${resource}`,
-    );
+    super(`Permission denied: role "${role}" cannot ${action} on ${resource}`);
     this.name = "PermissionDeniedError";
   }
 }

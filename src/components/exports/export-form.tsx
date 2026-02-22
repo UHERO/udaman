@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { ExportSeriesRow } from "@catalog/collections/export-collection";
+import type { SerializedExport } from "@catalog/models/export";
 import {
   ArrowLeft,
   ChevronDown,
@@ -16,13 +18,13 @@ import {
 import { toast } from "sonner";
 
 import {
-  createExportAction,
-  updateExportAction,
   addSeriesToExportAction,
-  removeSeriesFromExportAction,
-  moveExportSeriesAction,
-  replaceAllExportSeriesAction,
+  createExportAction,
   getExportSeriesNamesAction,
+  moveExportSeriesAction,
+  removeSeriesFromExportAction,
+  replaceAllExportSeriesAction,
+  updateExportAction,
 } from "@/actions/exports";
 import { searchSeriesAction } from "@/actions/series-actions";
 import { Button } from "@/components/ui/button";
@@ -42,12 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -63,8 +60,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import type { ExportSeriesRow } from "@catalog/collections/export-collection";
-import type { SerializedExport } from "@catalog/models/export";
 
 interface ExportFormProps {
   export?: SerializedExport;
@@ -72,11 +67,7 @@ interface ExportFormProps {
   universe: string;
 }
 
-export function ExportForm({
-  export: exp,
-  series,
-  universe,
-}: ExportFormProps) {
+export function ExportForm({ export: exp, series, universe }: ExportFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isEdit = !!exp;
@@ -139,7 +130,9 @@ export function ExportForm({
 
   // ── Action helpers ─────────────────────────────────────────────────
 
-  function runAction(action: () => Promise<{ success: boolean; message: string }>) {
+  function runAction(
+    action: () => Promise<{ success: boolean; message: string }>,
+  ) {
     startTransition(async () => {
       try {
         const result = await action();
@@ -270,7 +263,10 @@ export function ExportForm({
               </Field>
             </FieldGroup>
           </FieldSet>
-          <Button onClick={handleCreate} disabled={isPending || !createName.trim()}>
+          <Button
+            onClick={handleCreate}
+            disabled={isPending || !createName.trim()}
+          >
             {isPending ? "Creating..." : "Create Export"}
           </Button>
         </div>
@@ -474,10 +470,7 @@ export function ExportForm({
             placeholder="Enter series names, one per line..."
           />
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setTextDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setTextDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveText} disabled={isPending}>

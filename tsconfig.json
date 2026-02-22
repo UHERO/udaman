@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -24,21 +20,11 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@catalog/*": [
-        "./src/core/catalog/*"
-      ],
-      "@database/mysql": [
-        "src/lib/mysql/db.ts"
-      ],
-      "@database/mysql/helpers": [
-        "src/lib/mysql/helpers.ts"
-      ],
-      "@observability/logger": [
-        "src/core/observability/logger.ts"
-      ]
+      "@/*": ["./src/*"],
+      "@catalog/*": ["./src/core/catalog/*"],
+      "@database/mysql": ["src/lib/mysql/db.ts"],
+      "@database/mysql/helpers": ["src/lib/mysql/helpers.ts"],
+      "@observability/logger": ["src/core/observability/logger.ts"]
     }
   },
   "include": [
@@ -49,7 +35,5 @@
     ".next/dev/types/**/*.ts",
     ".next/dev/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

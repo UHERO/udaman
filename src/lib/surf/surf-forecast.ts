@@ -29,7 +29,24 @@ function getWindQuality(windDir: number): string {
 }
 
 function directionLabel(deg: number): string {
-  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const dirs = [
+    "N",
+    "NNE",
+    "NE",
+    "ENE",
+    "E",
+    "ESE",
+    "SE",
+    "SSE",
+    "S",
+    "SSW",
+    "SW",
+    "WSW",
+    "W",
+    "WNW",
+    "NW",
+    "NNW",
+  ];
   const idx = Math.round(deg / 22.5) % 16;
   return dirs[idx];
 }

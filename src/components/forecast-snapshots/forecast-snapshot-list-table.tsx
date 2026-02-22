@@ -2,21 +2,11 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import type { SerializedForecastSnapshot } from "@catalog/models/forecast-snapshot";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteSnapshotAction } from "@/actions/forecast-snapshots";
-import type { SerializedForecastSnapshot } from "@catalog/models/forecast-snapshot";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +17,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Props {
   data: SerializedForecastSnapshot[];

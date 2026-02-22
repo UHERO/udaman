@@ -57,7 +57,11 @@ export function pushRecentSeries(entry: RecentSeriesEntry) {
 // ── Hook ─────────────────────────────────────────────────────────────
 
 export function useRecentSeries() {
-  const entries = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const entries = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   const push = useCallback((entry: RecentSeriesEntry) => {
     pushRecentSeries(entry);

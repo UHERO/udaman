@@ -12,7 +12,6 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, Check, Copy } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -22,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 import {
   SERIES_COLORS,
@@ -318,7 +318,7 @@ export function AnalyzeDataTable({
     const csvRows = rows.map((r) =>
       headers
         .map((h) => raw((r as unknown as Record<string, unknown>)[h]))
-        .join(",")
+        .join(","),
     );
     navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
     setCopied(true);
@@ -361,15 +361,12 @@ export function AnalyzeDataTable({
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className="text-end"
-                >
+                <TableHead key={header.id} className="text-end">
                   {header.isPlaceholder
                     ? null
                     : flexRender(
                         header.column.columnDef.header,
-                        header.getContext()
+                        header.getContext(),
                       )}
                 </TableHead>
               ))}

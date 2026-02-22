@@ -1,5 +1,4 @@
 import { getSnapshotDataAction } from "@/actions/forecast-snapshots";
-
 import { ForecastSnapshotCharts } from "@/components/forecast-snapshots/forecast-snapshot-charts";
 
 export default async function Page({

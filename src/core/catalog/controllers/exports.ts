@@ -3,8 +3,8 @@ import "server-only";
 import { createLogger } from "@/core/observability/logger";
 
 import ExportCollection from "../collections/export-collection";
-import SeriesCollection from "../collections/series-collection";
 import type { ExportSeriesRow } from "../collections/export-collection";
+import SeriesCollection from "../collections/series-collection";
 import type { SerializedExport } from "../models/export";
 
 const log = createLogger("catalog.exports");

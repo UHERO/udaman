@@ -1,10 +1,11 @@
 "use server";
 
-import { createLogger } from "@/core/observability/logger";
 import {
   listFeatureToggles,
   updateFeatureToggleStatus,
 } from "@catalog/controllers/feature-toggles";
+
+import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.feature-toggles");

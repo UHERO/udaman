@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { processDbedtUpload } from "@catalog/controllers/dbedt-upload";
 
 import { requirePermission } from "@/lib/auth/permissions";
-import { processDbedtUpload } from "@catalog/controllers/dbedt-upload";
 
 export const maxDuration = 300; // 5 minutes
 
@@ -45,8 +45,7 @@ export async function POST(request: NextRequest) {
     const clientHash = request.headers.get("x-file-hash");
     if (clientHash) {
       const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
-      const serverHash = Buffer.from(hashBuffer)
-        .toString("hex");
+      const serverHash = Buffer.from(hashBuffer).toString("hex");
       if (serverHash !== clientHash) {
         return NextResponse.json(
           {

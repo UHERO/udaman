@@ -1,6 +1,4 @@
-const allowedEmails: string[] = [
-  "wood2@hawaii.edu",
-];
+const allowedEmails: string[] = ["wood2@hawaii.edu"];
 
 const allowedDomains: string[] = ["hawaii.edu"];
 

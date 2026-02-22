@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { processForecastUpload } from "@catalog/controllers/forecast-upload";
 
 import { createLogger } from "@/core/observability/logger";
-import { processForecastUpload } from "@catalog/controllers/forecast-upload";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.forecast-upload");
@@ -21,7 +21,7 @@ export async function uploadForecast(formData: FormData): Promise<{
   const year = parseInt(formData.get("year") as string, 10);
   const quarter = parseInt(formData.get("quarter") as string, 10);
   const version = (formData.get("version") as string) || "FF";
-  const freq = (formData.get("freq") as string) as "A" | "Q";
+  const freq = formData.get("freq") as string as "A" | "Q";
 
   if (!file || file.size === 0) {
     return { success: false, message: "No file provided" };

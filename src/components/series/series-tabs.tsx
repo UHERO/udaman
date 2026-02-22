@@ -33,8 +33,18 @@ const TABS: {
   { label: "Compare", icon: GitCompareArrows, segment: "compare" },
   { label: "Calculate", icon: Calculator, segment: "calculate" },
   { label: "Clipboard", icon: ClipboardList, segment: "clipboard" },
-  { label: "Missing Metadata", icon: SearchX, segment: "no-source", badgeKey: "noSource" },
-  { label: "Quarantine", icon: AlertTriangle, segment: "quarantine", badgeKey: "quarantine" },
+  {
+    label: "Missing Metadata",
+    icon: SearchX,
+    segment: "no-source",
+    badgeKey: "noSource",
+  },
+  {
+    label: "Quarantine",
+    icon: AlertTriangle,
+    segment: "quarantine",
+    badgeKey: "quarantine",
+  },
 ];
 
 interface SeriesTabsProps {
@@ -69,7 +79,8 @@ export function SeriesTabs({ badgeCounts }: SeriesTabsProps) {
         const isActive = tab.segment
           ? pathname.startsWith(`${base}/${tab.segment}`)
           : pathname === base;
-        const badgeCount = tab.badgeKey && badgeCounts ? badgeCounts[tab.badgeKey] : undefined;
+        const badgeCount =
+          tab.badgeKey && badgeCounts ? badgeCounts[tab.badgeKey] : undefined;
         return (
           <Link
             key={tab.segment}
@@ -84,7 +95,10 @@ export function SeriesTabs({ badgeCounts }: SeriesTabsProps) {
             <tab.icon className="h-4 w-4" />
             {tab.label}
             {badgeCount !== undefined && badgeCount > 0 && (
-              <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+              <Badge
+                variant="destructive"
+                className="ml-1 h-5 min-w-5 px-1.5 text-xs"
+              >
                 {badgeCount}
               </Badge>
             )}

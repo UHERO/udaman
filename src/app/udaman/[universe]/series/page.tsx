@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import type { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus, Plus } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { SeriesListTable } from "@/components/series/series-list-table";
+import { Button } from "@/components/ui/button";
 
 export default async function Page({
   params,

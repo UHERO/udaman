@@ -65,7 +65,9 @@ class ExportCollection {
     return new Export(row);
   }
 
-  static async getSeriesForExport(exportId: number): Promise<ExportSeriesRow[]> {
+  static async getSeriesForExport(
+    exportId: number,
+  ): Promise<ExportSeriesRow[]> {
     const mainRows = await mysql<ExportSeriesQueryRow>`
       SELECT
         es.list_order,

@@ -58,7 +58,15 @@ export const SeriesDataTable = ({
 
   const { unitShortLabel } = options;
 
-  const FormattedCell = ({ n, unit, isLevel }: { n: number | null; unit?: string; isLevel?: boolean }) => {
+  const FormattedCell = ({
+    n,
+    unit,
+    isLevel,
+  }: {
+    n: number | null;
+    unit?: string;
+    isLevel?: boolean;
+  }) => {
     if (!isNumber(n)) return "-";
     const value = isLevel
       ? formatLevel(n, decimals, unitShortLabel)
@@ -85,7 +93,9 @@ export const SeriesDataTable = ({
       header: "Value",
       cell: ({ cell, row }) => {
         const val = cell.getValue() as number | null;
-        const displayValue = isNumber(val) ? formatLevel(val, decimals, unitShortLabel) : "-";
+        const displayValue = isNumber(val)
+          ? formatLevel(val, decimals, unitShortLabel)
+          : "-";
         const rowDate = row.getValue("date") as Date;
         const dateStr = format(rowDate, "yyyy-MM-dd");
         return (

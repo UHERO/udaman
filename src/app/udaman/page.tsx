@@ -1,6 +1,6 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 import { GalleryVerticalEnd } from "lucide-react";
 
 import { LoginForm } from "@/components/login-form";

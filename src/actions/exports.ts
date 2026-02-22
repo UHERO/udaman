@@ -1,22 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  addSeriesToExport,
+  createExport,
+  deleteExport,
+  getExport,
+  getExportSeriesNames,
+  getExportTableData,
+  getExportWithSeries,
+  listExports,
+  moveExportSeries,
+  removeSeriesFromExport,
+  replaceAllExportSeries,
+  updateExport,
+} from "@catalog/controllers/exports";
 
 import { createLogger } from "@/core/observability/logger";
-import {
-  listExports,
-  deleteExport,
-  getExportWithSeries,
-  getExportTableData,
-  createExport,
-  updateExport,
-  addSeriesToExport,
-  removeSeriesFromExport,
-  moveExportSeries,
-  replaceAllExportSeries,
-  getExportSeriesNames,
-  getExport,
-} from "@catalog/controllers/exports";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("action.exports");
@@ -112,7 +112,10 @@ export async function moveExportSeriesAction(
   try {
     await moveExportSeries({ exportId, seriesId, direction });
     revalidatePath("/udaman", "layout");
-    log.info({ exportId, seriesId, direction }, "moveExportSeriesAction completed");
+    log.info(
+      { exportId, seriesId, direction },
+      "moveExportSeriesAction completed",
+    );
     return { success: true, message: `Series moved ${direction}` };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

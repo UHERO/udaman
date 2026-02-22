@@ -57,12 +57,7 @@ export function CompareToolbar({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-end gap-1.5">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5 text-xs"
-          disabled
-        >
+        <Button variant="ghost" size="sm" className="gap-1.5 text-xs" disabled>
           <Pin className="h-3.5 w-3.5" />
           Pin
         </Button>
@@ -82,9 +77,7 @@ export function CompareToolbar({
           onClick={handleCompare}
           disabled={isPending || filledCount === 0}
         >
-          {isPending && (
-            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          )}
+          {isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
           Compare
           {filledCount > 0 &&
             ` (${filledCount} ${filledCount === 1 ? "filter" : "filters"})`}

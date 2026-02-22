@@ -179,7 +179,9 @@ function CategoryRowWithChildren({
             ) : (
               !isRoot && <span className="mr-1 w-5" />
             )}
-            <Link href={`/udaman/${universe}/catalog/categories/${category.id}`}>
+            <Link
+              href={`/udaman/${universe}/catalog/categories/${category.id}`}
+            >
               {category.name || "-"}
             </Link>
           </div>

@@ -11,7 +11,10 @@ class FeatureToggleCollection {
     return rows.map((row) => new FeatureToggle(row));
   }
 
-  static async updateStatus(id: number, status: boolean): Promise<FeatureToggle> {
+  static async updateStatus(
+    id: number,
+    status: boolean,
+  ): Promise<FeatureToggle> {
     await mysql`
       UPDATE feature_toggles
       SET status = ${status ? 1 : 0}, updated_at = NOW()

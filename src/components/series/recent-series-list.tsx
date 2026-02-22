@@ -42,9 +42,7 @@ export function RecentSeriesList({
         break;
       }
       case "calculate":
-        router.push(
-          `${base}/calculate?eval=${encodeURIComponent(entry.name)}`,
-        );
+        router.push(`${base}/calculate?eval=${encodeURIComponent(entry.name)}`);
         break;
     }
   };

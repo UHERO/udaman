@@ -1,4 +1,5 @@
 import "server-only";
+
 import { createLogger } from "@/core/observability/logger";
 
 import DataListCollection from "../collections/data-list-collection";
@@ -7,7 +8,10 @@ import type {
   UpdateDataListPayload,
 } from "../collections/data-list-collection";
 import Series from "../models/series";
-import type { SuperTableData, SuperTableSeriesEntry } from "../types/data-list-table";
+import type {
+  SuperTableData,
+  SuperTableSeriesEntry,
+} from "../types/data-list-table";
 import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.data-lists");
@@ -131,7 +135,11 @@ export async function moveMeasurement({
   direction: "up" | "down";
 }) {
   log.info({ dataListId, measurementId, direction }, "moving measurement");
-  await DataListCollection.moveMeasurement(dataListId, measurementId, direction);
+  await DataListCollection.moveMeasurement(
+    dataListId,
+    measurementId,
+    direction,
+  );
   log.info({ dataListId, measurementId, direction }, "measurement moved");
 }
 
@@ -144,8 +152,15 @@ export async function setMeasurementIndent({
   measurementId: number;
   direction: "in" | "out";
 }) {
-  log.info({ dataListId, measurementId, direction }, "setting measurement indent");
-  await DataListCollection.setMeasurementIndent(dataListId, measurementId, direction);
+  log.info(
+    { dataListId, measurementId, direction },
+    "setting measurement indent",
+  );
+  await DataListCollection.setMeasurementIndent(
+    dataListId,
+    measurementId,
+    direction,
+  );
   log.info({ dataListId, measurementId, direction }, "measurement indent set");
 }
 

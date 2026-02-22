@@ -1,8 +1,8 @@
+import type { Universe } from "@catalog/types/shared";
+
 import { getDataListSuperTableData } from "@/actions/data-lists";
 import { SuperTable } from "@/components/data-list/super-table";
 import { H1 } from "@/components/typography";
-
-import type { Universe } from "@catalog/types/shared";
 
 export default async function DataListDetailPage({
   params,

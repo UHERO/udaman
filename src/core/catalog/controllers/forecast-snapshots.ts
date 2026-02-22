@@ -17,7 +17,7 @@ import type {
 } from "../collections/forecast-snapshot-collection";
 import SeriesCollection from "../collections/series-collection";
 import type ForecastSnapshot from "../models/forecast-snapshot";
-import { parseTsdContent, getAllDates } from "../utils/tsd-reader";
+import { getAllDates, parseTsdContent } from "../utils/tsd-reader";
 import type { TsdSeries } from "../utils/tsd-reader";
 
 const log = createLogger("catalog.forecast-snapshots");
@@ -84,7 +84,10 @@ export async function createSnapshot({
   };
 
   const snapshot = await ForecastSnapshotCollection.create(payload);
-  log.info({ id: snapshot.id }, `Created forecast snapshot: ${name} v${version}`);
+  log.info(
+    { id: snapshot.id },
+    `Created forecast snapshot: ${name} v${version}`,
+  );
 
   // Write files to disk
   const files = [
@@ -143,7 +146,8 @@ export async function updateSnapshot({
     }
     updates.newForecastTsdFilename = newForecastFile.filename;
   }
-  if (newForecastLabel !== undefined) updates.newForecastTsdLabel = newForecastLabel;
+  if (newForecastLabel !== undefined)
+    updates.newForecastTsdLabel = newForecastLabel;
 
   // Handle old forecast file replacement
   if (oldForecastFile) {
@@ -152,7 +156,8 @@ export async function updateSnapshot({
     }
     updates.oldForecastTsdFilename = oldForecastFile.filename;
   }
-  if (oldForecastLabel !== undefined) updates.oldForecastTsdLabel = oldForecastLabel;
+  if (oldForecastLabel !== undefined)
+    updates.oldForecastTsdLabel = oldForecastLabel;
 
   // Handle history file replacement
   if (historyFile) {
@@ -168,10 +173,18 @@ export async function updateSnapshot({
 
   // Write new files
   if (newForecastFile && snapshot.newForecastTsdFilename) {
-    writeFileToDisk(snapshot, snapshot.newForecastTsdFilename, newForecastFile.content);
+    writeFileToDisk(
+      snapshot,
+      snapshot.newForecastTsdFilename,
+      newForecastFile.content,
+    );
   }
   if (oldForecastFile && snapshot.oldForecastTsdFilename) {
-    writeFileToDisk(snapshot, snapshot.oldForecastTsdFilename, oldForecastFile.content);
+    writeFileToDisk(
+      snapshot,
+      snapshot.oldForecastTsdFilename,
+      oldForecastFile.content,
+    );
   }
   if (historyFile && snapshot.historyTsdFilename) {
     writeFileToDisk(snapshot, snapshot.historyTsdFilename, historyFile.content);
@@ -255,7 +268,10 @@ export async function duplicateSnapshot({ id }: { id: number }) {
         if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
         copyFileSync(srcPath, destPath);
       } catch (err) {
-        log.error({ err, filename }, "Failed to copy TSD file during duplicate");
+        log.error(
+          { err, filename },
+          "Failed to copy TSD file during duplicate",
+        );
       }
     }
   }
@@ -275,8 +291,14 @@ export async function getSnapshotData({
 }): Promise<SnapshotData> {
   const snapshot = await ForecastSnapshotCollection.getById(id);
 
-  const newForecast = readAndParseTsd(snapshot, snapshot.newForecastTsdFilename);
-  const oldForecast = readAndParseTsd(snapshot, snapshot.oldForecastTsdFilename);
+  const newForecast = readAndParseTsd(
+    snapshot,
+    snapshot.newForecastTsdFilename,
+  );
+  const oldForecast = readAndParseTsd(
+    snapshot,
+    snapshot.oldForecastTsdFilename,
+  );
   const history = readAndParseTsd(snapshot, snapshot.historyTsdFilename);
 
   const allSeries = [...newForecast, ...oldForecast, ...history];
