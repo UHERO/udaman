@@ -234,10 +234,18 @@ function JobRow({ job }: { job: SerializedJob }) {
             <ChevronRight className="text-muted-foreground h-4 w-4" />
           )}
         </TableCell>
-        <TableCell className="text-muted-foreground text-xs">
-          {job.queue}
+        <TableCell>
+          {job.data.name ? (
+            <div>
+              <div className="text-sm">{String(job.data.name)}</div>
+              <div className="text-muted-foreground font-mono text-xs">
+                {job.name}
+              </div>
+            </div>
+          ) : (
+            <span className="font-mono text-sm">{job.name}</span>
+          )}
         </TableCell>
-        <TableCell className="font-mono text-sm">{job.name}</TableCell>
         <TableCell>
           <StateBadge state={job.state} />
         </TableCell>
@@ -260,12 +268,15 @@ function JobRow({ job }: { job: SerializedJob }) {
 
       {expanded && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-muted/30 p-4">
+          <TableCell colSpan={6} className="bg-muted/30 p-4">
             <div className="space-y-3">
-              {/* Job data */}
+              {/* Queue + Job data */}
               <div>
                 <h4 className="text-muted-foreground mb-1 text-xs font-semibold uppercase">
                   Job Data
+                  <span className="text-muted-foreground ml-3 font-normal normal-case">
+                    Queue: {job.queue}
+                  </span>
                 </h4>
                 <pre className="bg-muted max-h-40 overflow-auto rounded p-2 text-xs">
                   {JSON.stringify(job.data, null, 2)}
@@ -379,12 +390,11 @@ export default function WorkersPanel({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8 px-2" />
-                <TableHead className="w-20">Queue</TableHead>
-                <TableHead>Job</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead className="w-28">Status</TableHead>
                 <TableHead className="w-32">Started</TableHead>
                 <TableHead className="w-24">Duration</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Message</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

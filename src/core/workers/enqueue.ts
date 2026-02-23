@@ -35,11 +35,15 @@ export function enqueueAdminAction(data: AdminActionJobData) {
 }
 
 export function enqueueDbedtUpload(data: DbedtUploadJobData) {
-  return criticalQueue.add(JobName.DBEDT_UPLOAD, data);
+  return criticalQueue.add(JobName.DBEDT_UPLOAD, data, {
+    jobId: `dbedt-upload-${data.uploadId}`,
+  });
 }
 
 export function enqueueDvwUpload(data: DvwUploadJobData) {
-  return criticalQueue.add(JobName.DVW_UPLOAD, data);
+  return criticalQueue.add(JobName.DVW_UPLOAD, data, {
+    jobId: `dvw-upload-${data.uploadId}`,
+  });
 }
 
 export function enqueueApiDvwReload(data: ApiDvwReloadJobData) {

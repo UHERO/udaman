@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -31,14 +31,9 @@ import type {
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DISPLAY_ERRORS = 50;
+const CHUNK_SIZE = 5000;
 
-type Stage = "idle" | "parsing" | "uploading" | "processing" | "done";
-
-const STAGE_LABELS: Record<Exclude<Stage, "idle" | "done">, string> = {
-  parsing: "Parsing...",
-  uploading: "Uploading...",
-  processing: "Processing...",
-};
+type Stage = "idle" | "parsing" | "uploading" | "finalizing" | "done";
 
 export type UploadPanelProps = {
   title: string;
@@ -57,18 +52,20 @@ export default function UploadPanel({
   apiEndpoint,
   createWorker,
   initialUploads,
-  getUploadStatus,
 }: UploadPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [stage, setStage] = useState<Stage>("idle");
   const [uploads, setUploads] = useState<UploadRecord[]>(initialUploads);
-  const [pollingId, setPollingId] = useState<number | null>(null);
   const [validationErrors, setValidationErrors] = useState<
     ParseValidationError[] | null
   >(null);
   const [summary, setSummary] = useState<SummaryStat[] | null>(null);
   const [summaryFootnote, setSummaryFootnote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{
+    sent: number;
+    total: number;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function resetFileState() {
@@ -78,6 +75,7 @@ export default function UploadPanel({
     setSummary(null);
     setSummaryFootnote(null);
     setError(null);
+    setProgress(null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -97,6 +95,7 @@ export default function UploadPanel({
     setSummary(null);
     setSummaryFootnote(null);
     setError(null);
+    setProgress(null);
     setStage("idle");
 
     if (!selected.name.endsWith(".xlsx")) {
@@ -114,6 +113,19 @@ export default function UploadPanel({
     setFile(selected);
   }
 
+  /** Archive raw XLSX to server (fire-and-forget, non-critical) */
+  function archiveFile(rawFile: File, uploadId: number) {
+    fetch(`${apiEndpoint}/archive`, {
+      method: "POST",
+      body: rawFile,
+      headers: {
+        "x-upload-id": String(uploadId),
+      },
+    }).catch(() => {
+      // Non-critical — data is already loaded
+    });
+  }
+
   async function handleUpload() {
     if (!file) return;
 
@@ -121,15 +133,18 @@ export default function UploadPanel({
     setSummary(null);
     setSummaryFootnote(null);
     setError(null);
+    setProgress(null);
 
-    // --- Stage 1: Parse (in Web Worker to keep UI responsive) ---
+    // --- Stage 1: Parse in Web Worker ---
     setStage("parsing");
+
+    let parseResult: ParseWorkerOutput;
     try {
       const arrayBuffer = await file.arrayBuffer();
 
       const worker = createWorker();
 
-      const result = await new Promise<ParseWorkerOutput>((resolve) => {
+      parseResult = await new Promise<ParseWorkerOutput>((resolve) => {
         worker.onmessage = (e: MessageEvent<ParseWorkerOutput>) => {
           resolve(e.data);
           worker.terminate();
@@ -141,19 +156,19 @@ export default function UploadPanel({
         worker.postMessage({ arrayBuffer }, [arrayBuffer]);
       });
 
-      if ("summary" in result) {
-        setSummary(result.summary);
+      if ("summary" in parseResult) {
+        setSummary(parseResult.summary);
       }
-      if ("footnote" in result && result.footnote) {
-        setSummaryFootnote(result.footnote);
+      if ("footnote" in parseResult && parseResult.footnote) {
+        setSummaryFootnote(parseResult.footnote);
       }
 
-      if (!result.success) {
-        if ("errors" in result) {
-          setValidationErrors(result.errors);
+      if (!parseResult.success) {
+        if ("errors" in parseResult) {
+          setValidationErrors(parseResult.errors);
         } else {
-          setError(result.error);
-          toast.error(result.error);
+          setError(parseResult.error);
+          toast.error(parseResult.error);
         }
         setStage("idle");
         return;
@@ -166,87 +181,156 @@ export default function UploadPanel({
       return;
     }
 
-    // --- Stage 2: Upload ---
+    // parseResult is now the success variant with metadata and dataRows
+    const { metadata, dataRows } = parseResult;
+
+    // --- Stage 2: Stream data to server ---
     setStage("uploading");
+
+    let uploadId: number;
+
+    // Init phase
     try {
-      // Re-read buffer (the original was transferred to the worker)
-      const uploadBuffer = await file.arrayBuffer();
-      // Compute SHA-256 hash
-      const hashBuffer = await crypto.subtle.digest("SHA-256", uploadBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      const resp = await fetch(apiEndpoint, {
+      const initResp = await fetch(`${apiEndpoint}/stream`, {
         method: "POST",
-        body: file,
-        headers: {
-          "x-filename": file.name,
-          "x-file-hash": hashHex,
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phase: "init",
+          filename: file.name,
+          ...(metadata as Record<string, unknown>),
+        }),
       });
-      const res = await resp.json();
+      const initResult = await initResp.json();
 
-      if (res.success) {
-        toast.info(res.message);
-        setStage("processing");
-        if (res.uploadId) {
-          // Add a processing record to the list and start polling
-          setUploads((prev) => [
-            {
-              id: res.uploadId,
-              status: "processing",
-              filename: file.name,
-              uploadAt: new Date().toISOString(),
-              active: false,
-              lastError: null,
-              lastErrorAt: null,
-            },
-            ...prev,
-          ]);
-          setPollingId(res.uploadId);
-        }
-      } else {
-        toast.error(res.message);
-        setError(res.message);
+      if (!initResult.success) {
+        setError(initResult.message);
+        toast.error(initResult.message);
         setStage("idle");
+        return;
+      }
+
+      uploadId = initResult.uploadId;
+
+      // Add processing record to uploads list
+      setUploads((prev) => [
+        {
+          id: uploadId,
+          status: "processing",
+          filename: file.name,
+          uploadAt: new Date().toISOString(),
+          active: false,
+          lastError: null,
+          lastErrorAt: null,
+        },
+        ...prev,
+      ]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Init failed";
+      setError(msg);
+      toast.error(msg);
+      setStage("idle");
+      return;
+    }
+
+    // Chunk phase
+    const totalRows = dataRows.length;
+    setProgress({ sent: 0, total: totalRows });
+
+    try {
+      for (let i = 0; i < totalRows; i += CHUNK_SIZE) {
+        const chunk = dataRows.slice(i, i + CHUNK_SIZE);
+        const chunkIndex = Math.floor(i / CHUNK_SIZE);
+
+        const chunkResp = await fetch(`${apiEndpoint}/stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phase: "chunk",
+            uploadId,
+            rows: chunk,
+            chunkIndex,
+          }),
+        });
+        const chunkResult = await chunkResp.json();
+
+        if (!chunkResult.success) {
+          setError(chunkResult.message);
+          toast.error(chunkResult.message);
+          setStage("idle");
+          setProgress(null);
+          return;
+        }
+
+        setProgress({ sent: Math.min(i + CHUNK_SIZE, totalRows), total: totalRows });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Upload failed";
-      toast.error(msg);
+      const msg = err instanceof Error ? err.message : "Upload chunk failed";
       setError(msg);
+      toast.error(msg);
       setStage("idle");
+      setProgress(null);
+      return;
+    }
+
+    // --- Stage 3: Finalize ---
+    setStage("finalizing");
+
+    try {
+      const finalResp = await fetch(`${apiEndpoint}/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phase: "finalize",
+          uploadId,
+        }),
+      });
+      const finalResult = await finalResp.json();
+
+      if (!finalResult.success) {
+        setError(finalResult.message);
+        toast.error(finalResult.message);
+        setStage("idle");
+        setProgress(null);
+        // Update upload record as failed
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.id === uploadId
+              ? { ...u, status: "fail", lastError: finalResult.message }
+              : u,
+          ),
+        );
+        return;
+      }
+
+      toast.success(finalResult.message);
+      setStage("done");
+      setProgress(null);
+
+      // Update upload record as completed
+      setUploads((prev) =>
+        prev.map((u) =>
+          u.id === uploadId
+            ? {
+                ...u,
+                status: "ok",
+                active: true,
+                lastError: `${finalResult.totalDataPoints} data points loaded`,
+              }
+            : // Deactivate other uploads
+              { ...u, active: false },
+        ),
+      );
+
+      // Archive raw XLSX in background (fire-and-forget)
+      archiveFile(file, uploadId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Finalize failed";
+      setError(msg);
+      toast.error(msg);
+      setStage("idle");
+      setProgress(null);
     }
   }
-
-  // Poll for processing uploads
-  const pollStatus = useCallback(async () => {
-    if (!pollingId) return;
-    const status = await getUploadStatus(pollingId);
-    if (status && status.status !== "processing") {
-      setUploads((prev) => prev.map((u) => (u.id === pollingId ? status : u)));
-      setPollingId(null);
-      if (status.status === "ok") {
-        toast.success("Upload complete");
-        setStage("done");
-      } else if (status.status === "fail") {
-        toast.error(status.lastError ?? "Upload failed");
-        setStage("idle");
-      }
-    }
-  }, [pollingId, getUploadStatus]);
-
-  useEffect(() => {
-    if (!pollingId) return;
-    const interval = setInterval(pollStatus, 5000);
-    return () => clearInterval(interval);
-  }, [pollingId, pollStatus]);
-
-  useEffect(() => {
-    const processing = uploads.find((u) => u.status === "processing");
-    if (processing) setPollingId(processing.id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function statusBadge(status: string | null) {
     switch (status) {
@@ -267,8 +351,25 @@ export default function UploadPanel({
   }
 
   const busy =
-    stage === "parsing" || stage === "uploading" || stage === "processing";
+    stage === "parsing" || stage === "uploading" || stage === "finalizing";
   const hasErrors = validationErrors != null && validationErrors.length > 0;
+
+  function stageLabel(): string {
+    switch (stage) {
+      case "parsing":
+        return "Parsing...";
+      case "uploading":
+        if (progress && progress.total > 0) {
+          const pct = Math.round((progress.sent / progress.total) * 100);
+          return `Uploading... (${pct}%)`;
+        }
+        return "Uploading...";
+      case "finalizing":
+        return "Finalizing...";
+      default:
+        return "";
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -325,12 +426,35 @@ export default function UploadPanel({
             </p>
           )}
 
+          {/* Progress bar */}
+          {progress && progress.total > 0 && (
+            <div className="mt-3">
+              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                <span>
+                  {progress.sent.toLocaleString()} /{" "}
+                  {progress.total.toLocaleString()} rows
+                </span>
+                <span>
+                  {Math.round((progress.sent / progress.total) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  style={{
+                    width: `${Math.round((progress.sent / progress.total) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 flex items-center gap-3">
             <Button onClick={handleUpload} disabled={busy || !file}>
               {busy ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {STAGE_LABELS[stage as keyof typeof STAGE_LABELS]}
+                  {stageLabel()}
                 </>
               ) : stage === "done" ? (
                 <>

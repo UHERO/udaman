@@ -28,6 +28,12 @@ const criticalWorker = new Worker("critical", dispatch, {
   connection: redisConnection,
   prefix: "udaman",
   concurrency: 1,
+  // Upload jobs are memory-intensive (XLSX parsing). If the worker is
+  // killed mid-job (OOM), fail fast instead of silently re-running.
+  lockDuration: 600_000, // 10 min — max time before lock expires
+  lockRenewTime: 60_000, // renew lock every 60s (default 15s)
+  stalledInterval: 120_000, // check for stalled jobs every 2 min
+  maxStalledCount: 0, // do NOT retry stalled jobs — fail immediately
 });
 
 // ─── Lifecycle logging ───────────────────────────────────────────────

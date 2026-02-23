@@ -12,6 +12,18 @@ import type { WorkSheet } from "xlsx";
 
 import type { ParseWorkerOutput } from "./types";
 
+/**
+ * Extended dimension row with fields needed by the server for loading.
+ * Mirrors `DvwDimensionRowParsed` from `dvw-xlsx-parser.ts`.
+ */
+type DvwDimensionRowParsed = DvwDimensionRow & {
+  level: number | null;
+  dimLevels?: Record<string, number>;
+  dimOrders?: Record<string, number>;
+  unit?: string | null;
+  decimal?: number | null;
+};
+
 // --- Helpers ---
 
 function normalizeHeader(h: string): string {
@@ -55,12 +67,22 @@ function str(val: unknown): string | null {
   return String(val).trim();
 }
 
-function extractDimensionRows(sheet: WorkSheet): DvwDimensionRow[] {
+function extractDimensionRows(sheet: WorkSheet): DvwDimensionRowParsed[] {
   const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
     defval: null,
   });
 
-  const rows: DvwDimensionRow[] = [];
+  // Build header set to detect L_* and O_* columns
+  const headerKeys =
+    rawRows.length > 0 ? Object.keys(rawRows[0]).map(normalizeHeader) : [];
+  const lCols: string[] = []; // module names from L_<mod> columns
+  const oCols: string[] = []; // module names from O_<mod> columns
+  for (const key of headerKeys) {
+    if (key.startsWith("l_")) lCols.push(key.slice(2));
+    if (key.startsWith("o_")) oCols.push(key.slice(2));
+  }
+
+  const rows: DvwDimensionRowParsed[] = [];
   for (const raw of rawRows) {
     const row: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(raw)) {
@@ -70,6 +92,23 @@ function extractDimensionRows(sheet: WorkSheet): DvwDimensionRow[] {
     const id = str(row["id"]);
     if (id == null) break; // blank row = end of data
 
+    // Extract L_* per-module level overrides
+    const dimLevels: Record<string, number> = {};
+    for (const mod of lCols) {
+      const n = parseNumeric(row[`l_${mod}`]);
+      if (typeof n === "number") dimLevels[mod] = n;
+    }
+
+    // Extract O_* per-module order overrides
+    const dimOrders: Record<string, number> = {};
+    for (const mod of oCols) {
+      const n = parseNumeric(row[`o_${mod}`]);
+      if (typeof n === "number") dimOrders[mod] = n;
+    }
+
+    const levelRaw = parseNumeric(row["level"]);
+    const decRaw = parseNumeric(row["decimal"]);
+
     rows.push({
       id,
       namew: str(row["namew"]),
@@ -78,6 +117,11 @@ function extractDimensionRows(sheet: WorkSheet): DvwDimensionRow[] {
       module: str(row["module"]) ?? "",
       data: str(row["data"]),
       parent: str(row["parent"]),
+      level: typeof levelRaw === "number" ? levelRaw : null,
+      dimLevels: Object.keys(dimLevels).length > 0 ? dimLevels : undefined,
+      dimOrders: Object.keys(dimOrders).length > 0 ? dimOrders : undefined,
+      unit: str(row["unit"]),
+      decimal: typeof decRaw === "number" ? decRaw : null,
     });
   }
 
@@ -174,8 +218,8 @@ self.onmessage = (e: MessageEvent<{ arrayBuffer: ArrayBuffer }>) => {
       DVW_DATA_REQUIRED_COLUMNS,
     );
 
-    // Extract rows
-    const dimensions = {} as Record<DvwDimensionName, DvwDimensionRow[]>;
+    // Extract rows (dimensions now include full parsed fields for server)
+    const dimensions = {} as Record<DvwDimensionName, DvwDimensionRowParsed[]>;
     for (const dim of DVW_DIMENSION_SHEETS) {
       dimensions[dim] = extractDimensionRows(
         workbook.Sheets[sheetMap.get(dim)!],
@@ -183,6 +227,7 @@ self.onmessage = (e: MessageEvent<{ arrayBuffer: ArrayBuffer }>) => {
     }
     const dataRows = extractDataRows(workbook.Sheets[sheetMap.get("data")!]);
 
+    // Validate using base DvwDimensionRow fields (validator doesn't need extended fields)
     const result = validateDvwData(dimensions, dataRows);
     const { summary, footnote } = toSummaryStats(result);
 
@@ -191,6 +236,8 @@ self.onmessage = (e: MessageEvent<{ arrayBuffer: ArrayBuffer }>) => {
         success: true,
         summary,
         footnote,
+        metadata: { dimensions },
+        dataRows,
       } satisfies ParseWorkerOutput);
     } else {
       self.postMessage({

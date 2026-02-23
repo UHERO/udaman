@@ -21,7 +21,13 @@ export type SummaryStat = {
 };
 
 export type ParseWorkerOutput =
-  | { success: true; summary: SummaryStat[]; footnote?: string }
+  | {
+      success: true;
+      summary: SummaryStat[];
+      footnote?: string;
+      metadata: unknown;
+      dataRows: unknown[];
+    }
   | {
       success: false;
       errors: ParseValidationError[];

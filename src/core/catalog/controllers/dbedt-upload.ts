@@ -55,7 +55,7 @@ async function parseFile(filePath: string): Promise<DbedtParseResult> {
  * Wipe all DBEDT data except series, xseries, data_sources, and geographies.
  * Direct port of Rails `delete_universe_dbedt`.
  */
-async function wipeDbedtUniverse(): Promise<void> {
+export async function wipeDbedtUniverse(): Promise<void> {
   // Delete categories with ancestry (keep root)
   await mysql`
     DELETE FROM categories
@@ -113,7 +113,7 @@ async function wipeDbedtUniverse(): Promise<void> {
  * Load metadata from the indicator sheet: categories, data lists, measurements.
  * Returns a map of indId → metaRow for use by loadData.
  */
-async function loadDbedtMetadata(
+export async function loadDbedtMetadata(
   indicatorRows: DbedtMetaRow[],
 ): Promise<Map<number, DbedtMetaRow>> {
   log.info("loadDbedtMetadata: start");
@@ -221,7 +221,7 @@ async function loadDbedtMetadata(
  * Load series data from the data sheet.
  * Returns count of data points inserted.
  */
-async function loadDbedtData(
+export async function loadDbedtData(
   dataRows: Iterable<DbedtDataRow>,
   metadata: Map<number, DbedtMetaRow>,
 ): Promise<number> {

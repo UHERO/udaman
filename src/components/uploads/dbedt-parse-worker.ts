@@ -216,6 +216,8 @@ self.onmessage = (e: MessageEvent<{ arrayBuffer: ArrayBuffer }>) => {
         success: true,
         summary,
         footnote,
+        metadata: { indicatorRows },
+        dataRows,
       } satisfies ParseWorkerOutput);
     } else {
       self.postMessage({
