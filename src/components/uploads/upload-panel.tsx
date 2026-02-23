@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
+  CircleAlert,
   FileSpreadsheet,
   Loader2,
   Upload,
@@ -20,6 +21,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 import type {
@@ -33,7 +42,101 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DISPLAY_ERRORS = 50;
 const CHUNK_SIZE = 5000;
 
-type Stage = "idle" | "parsing" | "uploading" | "finalizing" | "done";
+// ─── Pipeline stages ──────────────────────────────────────────────────
+
+type Stage = "idle" | "validating" | "uploading" | "processing" | "archiving" | "done" | "error";
+
+const PIPELINE_STEPS = [
+  { key: "validating", label: "Validate" },
+  { key: "uploading", label: "Upload" },
+  { key: "processing", label: "Process" },
+  { key: "archiving", label: "Archive" },
+] as const;
+
+type PipelineStep = (typeof PIPELINE_STEPS)[number]["key"];
+
+/** Returns 'completed' | 'active' | 'pending' for a given step relative to the current stage. */
+function stepStatus(step: PipelineStep, currentStage: Stage): "completed" | "active" | "pending" {
+  const order: PipelineStep[] = ["validating", "uploading", "processing", "archiving"];
+  const stepIdx = order.indexOf(step);
+  const stageIdx = order.indexOf(currentStage as PipelineStep);
+
+  if (currentStage === "done") return "completed";
+  if (currentStage === "error") {
+    // Mark steps before the error stage as completed, the rest as pending
+    return stepIdx < stageIdx ? "completed" : stepIdx === stageIdx ? "active" : "pending";
+  }
+  if (stageIdx === -1) return "pending"; // idle
+  if (stepIdx < stageIdx) return "completed";
+  if (stepIdx === stageIdx) return "active";
+  return "pending";
+}
+
+// ─── Stepper component ───────────────────────────────────────────────
+
+function UploadStepper({ stage }: { stage: Stage }) {
+  return (
+    <div className="flex items-center justify-between px-2">
+      {PIPELINE_STEPS.map((step, i) => {
+        const status = stepStatus(step.key, stage);
+        return (
+          <div key={step.key} className="flex items-center flex-1 last:flex-none">
+            {/* Step circle + label */}
+            <div className="flex flex-col items-center gap-1.5">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-500 ${
+                  status === "completed"
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : status === "active"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-muted-foreground/30 bg-muted/50 text-muted-foreground/50"
+                }`}
+              >
+                {status === "completed" ? (
+                  <Check className="h-4 w-4" />
+                ) : status === "active" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="text-xs font-semibold">{i + 1}</span>
+                )}
+              </div>
+              <span
+                className={`text-xs font-medium transition-colors duration-300 ${
+                  status === "completed"
+                    ? "text-primary"
+                    : status === "active"
+                      ? "text-foreground"
+                      : "text-muted-foreground/50"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+            {/* Connector line (skip after last step) */}
+            {i < PIPELINE_STEPS.length - 1 && (
+              <div className="relative mx-2 mb-6 h-0.5 flex-1">
+                <div className="absolute inset-0 rounded-full bg-muted-foreground/20" />
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-700 ease-in-out"
+                  style={{
+                    width:
+                      status === "completed"
+                        ? "100%"
+                        : status === "active"
+                          ? "50%"
+                          : "0%",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────
 
 export type UploadPanelProps = {
   title: string;
@@ -66,7 +169,11 @@ export default function UploadPanel({
     sent: number;
     total: number;
   } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const busy = stage === "validating" || stage === "uploading" || stage === "processing" || stage === "archiving";
 
   function resetFileState() {
     setFile(null);
@@ -76,6 +183,8 @@ export default function UploadPanel({
     setSummaryFootnote(null);
     setError(null);
     setProgress(null);
+    setDialogOpen(false);
+    setDialogError(null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -113,19 +222,6 @@ export default function UploadPanel({
     setFile(selected);
   }
 
-  /** Archive raw XLSX to server (fire-and-forget, non-critical) */
-  function archiveFile(rawFile: File, uploadId: number) {
-    fetch(`${apiEndpoint}/archive`, {
-      method: "POST",
-      body: rawFile,
-      headers: {
-        "x-upload-id": String(uploadId),
-      },
-    }).catch(() => {
-      // Non-critical — data is already loaded
-    });
-  }
-
   async function handleUpload() {
     if (!file) return;
 
@@ -134,14 +230,16 @@ export default function UploadPanel({
     setSummaryFootnote(null);
     setError(null);
     setProgress(null);
+    setDialogError(null);
 
-    // --- Stage 1: Parse in Web Worker ---
-    setStage("parsing");
+    // Open dialog and start pipeline
+    setStage("validating");
+    setDialogOpen(true);
 
+    // --- Stage 1: Validate (parse in Web Worker) ---
     let parseResult: ParseWorkerOutput;
     try {
       const arrayBuffer = await file.arrayBuffer();
-
       const worker = createWorker();
 
       parseResult = await new Promise<ParseWorkerOutput>((resolve) => {
@@ -168,23 +266,26 @@ export default function UploadPanel({
           setValidationErrors(parseResult.errors);
         } else {
           setError(parseResult.error);
-          toast.error(parseResult.error);
         }
-        setStage("idle");
+        setStage("error");
+        setDialogError(
+          "errors" in parseResult
+            ? `${parseResult.errors.length} validation error${parseResult.errors.length !== 1 ? "s" : ""} found`
+            : parseResult.error,
+        );
         return;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to parse file";
       setError(msg);
-      toast.error(msg);
-      setStage("idle");
+      setStage("error");
+      setDialogError(msg);
       return;
     }
 
-    // parseResult is now the success variant with metadata and dataRows
     const { metadata, dataRows } = parseResult;
 
-    // --- Stage 2: Stream data to server ---
+    // --- Stage 2: Upload (init + chunks) ---
     setStage("uploading");
 
     let uploadId: number;
@@ -204,14 +305,13 @@ export default function UploadPanel({
 
       if (!initResult.success) {
         setError(initResult.message);
-        toast.error(initResult.message);
-        setStage("idle");
+        setStage("error");
+        setDialogError(initResult.message);
         return;
       }
 
       uploadId = initResult.uploadId;
 
-      // Add processing record to uploads list
       setUploads((prev) => [
         {
           id: uploadId,
@@ -227,8 +327,8 @@ export default function UploadPanel({
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Init failed";
       setError(msg);
-      toast.error(msg);
-      setStage("idle");
+      setStage("error");
+      setDialogError(msg);
       return;
     }
 
@@ -255,26 +355,31 @@ export default function UploadPanel({
 
         if (!chunkResult.success) {
           setError(chunkResult.message);
-          toast.error(chunkResult.message);
-          setStage("idle");
+          setStage("error");
+          setDialogError(chunkResult.message);
           setProgress(null);
           return;
         }
 
-        setProgress({ sent: Math.min(i + CHUNK_SIZE, totalRows), total: totalRows });
+        setProgress({
+          sent: Math.min(i + CHUNK_SIZE, totalRows),
+          total: totalRows,
+        });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Upload chunk failed";
       setError(msg);
-      toast.error(msg);
-      setStage("idle");
+      setStage("error");
+      setDialogError(msg);
       setProgress(null);
       return;
     }
 
-    // --- Stage 3: Finalize ---
-    setStage("finalizing");
+    // --- Stage 3: Process (finalize) ---
+    setStage("processing");
+    setProgress(null);
 
+    let finalResult: { success: boolean; message?: string; totalDataPoints?: number };
     try {
       const finalResp = await fetch(`${apiEndpoint}/stream`, {
         method: "POST",
@@ -284,50 +389,66 @@ export default function UploadPanel({
           uploadId,
         }),
       });
-      const finalResult = await finalResp.json();
+      finalResult = await finalResp.json();
 
       if (!finalResult.success) {
-        setError(finalResult.message);
-        toast.error(finalResult.message);
-        setStage("idle");
-        setProgress(null);
-        // Update upload record as failed
+        setError(finalResult.message ?? "Processing failed");
+        setStage("error");
+        setDialogError(finalResult.message ?? "Processing failed");
         setUploads((prev) =>
           prev.map((u) =>
             u.id === uploadId
-              ? { ...u, status: "fail", lastError: finalResult.message }
+              ? { ...u, status: "fail", lastError: finalResult.message ?? null }
               : u,
           ),
         );
         return;
       }
-
-      toast.success(finalResult.message);
-      setStage("done");
-      setProgress(null);
-
-      // Update upload record as completed
-      setUploads((prev) =>
-        prev.map((u) =>
-          u.id === uploadId
-            ? {
-                ...u,
-                status: "ok",
-                active: true,
-                lastError: `${finalResult.totalDataPoints} data points loaded`,
-              }
-            : // Deactivate other uploads
-              { ...u, active: false },
-        ),
-      );
-
-      // Archive raw XLSX in background (fire-and-forget)
-      archiveFile(file, uploadId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Finalize failed";
       setError(msg);
-      toast.error(msg);
+      setStage("error");
+      setDialogError(msg);
+      return;
+    }
+
+    // --- Stage 4: Archive (save raw XLSX) ---
+    setStage("archiving");
+
+    try {
+      await fetch(`${apiEndpoint}/archive`, {
+        method: "POST",
+        body: file,
+        headers: { "x-upload-id": String(uploadId) },
+      });
+    } catch {
+      // Non-critical — data is already loaded
+    }
+
+    // --- Done ---
+    setStage("done");
+    toast.success(finalResult.message ?? "Upload complete");
+
+    setUploads((prev) =>
+      prev.map((u) =>
+        u.id === uploadId
+          ? {
+              ...u,
+              status: "ok",
+              active: true,
+              lastError: `${finalResult.totalDataPoints} data points loaded`,
+            }
+          : { ...u, active: false },
+      ),
+    );
+  }
+
+  function closeDialog() {
+    setDialogOpen(false);
+    if (stage === "error") {
+      // Reset to idle so user can try again
       setStage("idle");
+      setDialogError(null);
       setProgress(null);
     }
   }
@@ -350,29 +471,139 @@ export default function UploadPanel({
     }
   }
 
-  const busy =
-    stage === "parsing" || stage === "uploading" || stage === "finalizing";
   const hasErrors = validationErrors != null && validationErrors.length > 0;
-
-  function stageLabel(): string {
-    switch (stage) {
-      case "parsing":
-        return "Parsing...";
-      case "uploading":
-        if (progress && progress.total > 0) {
-          const pct = Math.round((progress.sent / progress.total) * 100);
-          return `Uploading... (${pct}%)`;
-        }
-        return "Uploading...";
-      case "finalizing":
-        return "Finalizing...";
-      default:
-        return "";
-    }
-  }
 
   return (
     <div className="space-y-6">
+      {/* Upload progress dialog */}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          // Only allow closing when done or error
+          if (!open && (stage === "done" || stage === "error")) {
+            closeDialog();
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={stage === "done" || stage === "error"}
+          onInteractOutside={(e) => {
+            // Prevent closing by clicking outside while busy
+            if (busy) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            // Prevent closing with Escape while busy
+            if (busy) e.preventDefault();
+          }}
+          className="sm:max-w-md"
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {stage === "done"
+                ? "Upload Complete"
+                : stage === "error"
+                  ? "Upload Failed"
+                  : "Uploading..."}
+            </DialogTitle>
+            {busy && (
+              <DialogDescription className="text-amber-600 dark:text-amber-400 font-medium">
+                Leave this window open until upload completes
+              </DialogDescription>
+            )}
+          </DialogHeader>
+
+          {/* Stepper */}
+          <div className="py-4">
+            <UploadStepper stage={stage} />
+          </div>
+
+          {/* Progress bar (during upload stage) */}
+          {progress && progress.total > 0 && stage === "uploading" && (
+            <div className="px-2">
+              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                <span>
+                  {progress.sent.toLocaleString()} /{" "}
+                  {progress.total.toLocaleString()} rows
+                </span>
+                <span>
+                  {Math.round((progress.sent / progress.total) * 100)}%
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  style={{
+                    width: `${Math.round((progress.sent / progress.total) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Status messages */}
+          {stage === "validating" && (
+            <p className="text-muted-foreground px-2 text-sm">
+              Checking spreadsheet structure and validating data...
+            </p>
+          )}
+          {stage === "uploading" && !progress && (
+            <p className="text-muted-foreground px-2 text-sm">
+              Preparing server...
+            </p>
+          )}
+          {stage === "processing" && (
+            <p className="text-muted-foreground px-2 text-sm">
+              Server is processing data and updating records...
+            </p>
+          )}
+          {stage === "archiving" && (
+            <p className="text-muted-foreground px-2 text-sm">
+              Saving original spreadsheet to archive...
+            </p>
+          )}
+
+          {/* Error message */}
+          {stage === "error" && dialogError && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <p className="text-sm text-destructive">{dialogError}</p>
+            </div>
+          )}
+
+          {/* Done summary */}
+          {stage === "done" && summary && (
+            <div className="grid grid-cols-2 gap-3 px-2">
+              {summary.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-md border p-2 text-center"
+                >
+                  <p className="text-lg font-bold">{stat.value}</p>
+                  <p className="text-muted-foreground text-xs">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {stage === "done" && summaryFootnote && (
+            <p className="text-muted-foreground px-2 text-xs">
+              {summaryFootnote}
+            </p>
+          )}
+
+          {/* Footer */}
+          {(stage === "done" || stage === "error") && (
+            <DialogFooter>
+              <Button
+                variant={stage === "error" ? "outline" : "default"}
+                onClick={closeDialog}
+              >
+                {stage === "done" ? "Done" : "Close"}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Warning */}
       <div className="flex items-start gap-3 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-4">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" />
@@ -420,43 +651,15 @@ export default function UploadPanel({
             )}
           </div>
 
-          {error && (
+          {error && !dialogOpen && (
             <p className="mt-3 text-sm text-red-600 dark:text-red-400">
               {error}
             </p>
           )}
 
-          {/* Progress bar */}
-          {progress && progress.total > 0 && (
-            <div className="mt-3">
-              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>
-                  {progress.sent.toLocaleString()} /{" "}
-                  {progress.total.toLocaleString()} rows
-                </span>
-                <span>
-                  {Math.round((progress.sent / progress.total) * 100)}%
-                </span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-300"
-                  style={{
-                    width: `${Math.round((progress.sent / progress.total) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
           <div className="mt-4 flex items-center gap-3">
             <Button onClick={handleUpload} disabled={busy || !file}>
-              {busy ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {stageLabel()}
-                </>
-              ) : stage === "done" ? (
+              {stage === "done" ? (
                 <>
                   <Check className="mr-2 h-4 w-4" />
                   Upload Complete
@@ -536,7 +739,7 @@ export default function UploadPanel({
         </Card>
       )}
 
-      {/* Summary (shown after successful upload) */}
+      {/* Summary (shown after successful upload, behind dialog) */}
       {stage === "done" && summary && (
         <Card>
           <CardHeader>
