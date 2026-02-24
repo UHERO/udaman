@@ -22,16 +22,19 @@ import type {
 import { requirePermission } from "@/lib/auth/permissions";
 
 export async function listDownloads(): Promise<{ domains: DomainGroup[] }> {
+  await requirePermission("download", "read");
   return getDownloads();
 }
 
 export async function fetchDownloadDetail(id: number): Promise<DownloadDetail> {
+  await requirePermission("download", "read");
   return getDownloadDetail({ id });
 }
 
 export async function fetchDownloadForEdit(
   id: number,
 ): Promise<DownloadFormData> {
+  await requirePermission("download", "read");
   return getDownloadForEdit({ id });
 }
 

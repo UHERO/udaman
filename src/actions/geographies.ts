@@ -21,6 +21,7 @@ const log = createLogger("action.geographies");
 export async function getGeographies(params?: {
   universe?: Universe;
 }): Promise<Geography[]> {
+  await requirePermission("geography", "read");
   log.info({ universe: params?.universe }, "getGeographies action called");
   const result = await fetchGeographies({ u: params?.universe });
   log.info({ count: result.data.length }, "getGeographies action completed");

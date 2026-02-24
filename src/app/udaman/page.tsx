@@ -5,13 +5,15 @@ import { GalleryVerticalEnd } from "lucide-react";
 
 import { LoginForm } from "@/components/login-form";
 import { SurfWidget } from "@/components/surf-widget";
+import { getLandingPath } from "@/lib/auth/authorization";
 import { getSession } from "@/lib/auth/dal";
 
 export default async function LoginPage() {
   const session = await getSession();
 
   if (session?.user) {
-    redirect("/udaman/uhero/series");
+    const universe = session.user.universe ?? "UHERO";
+    redirect(getLandingPath(universe));
   }
 
   return (

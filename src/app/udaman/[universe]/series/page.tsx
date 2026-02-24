@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
 import { ClipboardCopy, ClipboardPlus, Plus } from "lucide-react";
 
@@ -6,6 +7,8 @@ import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { CalculateForm } from "@/components/series/calculate-form";
 import { SeriesListTable } from "@/components/series/series-list-table";
 import { Button } from "@/components/ui/button";
+import { isDbedt, isFsonly } from "@/lib/auth/authorization";
+import { getCurrentUserContext } from "@/lib/auth/dal";
 
 export default async function Page({
   params,
@@ -16,6 +19,38 @@ export default async function Page({
 }) {
   const { universe } = await params;
   const u = universe as Universe;
+  const { role, universe: userUniverse } = await getCurrentUserContext();
+
+  // fsonly users get redirected to forecast
+  if (isFsonly(role)) {
+    redirect(`/udaman/${universe}/forecast`);
+  }
+
+  // DBEDT external users see a static message
+  if (isDbedt(role, userUniverse)) {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold">Data Series</h1>
+        <p className="text-muted-foreground mt-2">
+          Access not authorized for your current role.
+        </p>
+      </div>
+    );
+  }
+
+  // Other external users (non-DBEDT) see a static message
+  if (role === "external") {
+    return (
+      <div className="p-8">
+        <h1 className="text-3xl font-bold">Data Series</h1>
+        <p className="text-muted-foreground mt-2">
+          Your current role only gets to see this page. Contact an
+          administrator for additional access.
+        </p>
+      </div>
+    );
+  }
+
   const { q } = await searchParams;
 
   const data = await (q

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth/index";
+import { getLandingPath } from "@/lib/auth/authorization";
 
 import { LoginForm } from "./login-form";
 
@@ -14,7 +15,8 @@ export default async function LoginPage({
 
   // Already logged in — redirect to callback or default
   if (session?.user) {
-    redirect(callbackUrl ?? "/udaman/UHERO/series");
+    const universe = session.user.universe ?? "UHERO";
+    redirect(callbackUrl ?? getLandingPath(universe));
   }
 
   return (

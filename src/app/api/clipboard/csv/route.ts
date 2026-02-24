@@ -1,12 +1,14 @@
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
 
 import { getCurrentUserId } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth/permissions";
 import { scopedConnection } from "@/lib/mysql/db";
 
 const MAX_SERIES = 500;
 const ROW_BATCH = 500;
 
 export async function GET() {
+  await requirePermission("clipboard", "read");
   const userId = await getCurrentUserId();
 
   const seriesList = await ClipboardCollection.getSeriesExportInfo(userId);

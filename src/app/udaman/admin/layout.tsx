@@ -36,6 +36,7 @@ export default async function AdminLayout({
     avatar: session.user?.image ?? "",
     createdAt,
     role: session.user.role ?? "external",
+    universe: session.user.universe ?? "UHERO",
   };
 
   return (
@@ -53,7 +54,7 @@ export default async function AdminLayout({
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <AdminTabs />
+          <AdminTabs role={user.role} universe={user.universe} />
           <AdminWidthLayout>{children}</AdminWidthLayout>
         </div>
       </SidebarInset>

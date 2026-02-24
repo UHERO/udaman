@@ -9,6 +9,7 @@ import { mysql, rawQuery } from "@/lib/mysql/db";
 
 import ReloadJob from "../models/reload-job";
 import type { ReloadJobAttrs } from "../models/reload-job";
+import type { Universe } from "../types/shared";
 
 const log = createLogger("catalog.reload-job-collection");
 
@@ -38,15 +39,18 @@ interface JobSeriesRow {
 
 class ReloadJobCollection {
   /** Fetch recent reload jobs with user and series info */
-  static async listRecent(limit = 50): Promise<EnrichedReloadJob[]> {
+  static async listRecent(universe: Universe, limit = 50): Promise<EnrichedReloadJob[]> {
     const rows = await mysql<ReloadJobRow>`
-      SELECT
+      SELECT DISTINCT
         rj.id, rj.user_id, rj.status, rj.created_at, rj.finished_at,
         rj.params, rj.update_public, rj.error,
         u.email
       FROM reload_jobs rj
       LEFT JOIN users u ON u.id = rj.user_id
+      JOIN reload_job_series rjs ON rjs.reload_job_id = rj.id
+      JOIN series s ON s.id = rjs.series_id
       WHERE rj.user_id > 1
+        AND s.universe = ${universe}
       ORDER BY rj.created_at DESC
       LIMIT ${limit}
     `;

@@ -576,7 +576,7 @@ class LoaderCollection {
   }
 
   /** Get summary of load errors grouped by error message */
-  static async getLoadErrorSummary(): Promise<
+  static async getLoadErrorSummary(universe: Universe): Promise<
     Array<{ lastError: string; seriesId: number; count: number }>
   > {
     const rows = await mysql<{
@@ -586,7 +586,7 @@ class LoaderCollection {
     }>`
       SELECT last_error, MIN(series_id) AS series_id, COUNT(*) as error_count
       FROM data_sources
-      WHERE universe = 'UHERO'
+      WHERE universe = ${universe}
         AND disabled = 0
         AND last_error IS NOT NULL
       GROUP BY last_error

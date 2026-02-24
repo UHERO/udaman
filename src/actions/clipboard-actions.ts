@@ -22,6 +22,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.clipboard");
 
 export async function getClipboardSeries() {
+  await requirePermission("clipboard", "read");
   const userId = await getCurrentUserId();
   log.info({ userId }, "getClipboardSeries action called");
   const result = await fetchClipboard({ userId });

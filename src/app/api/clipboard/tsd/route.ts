@@ -3,12 +3,14 @@ import { seriesToTsd } from "@catalog/utils/tsd-generator";
 import type { TsdFrequency } from "@catalog/utils/tsd-generator";
 
 import { getCurrentUserId } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth/permissions";
 import { scopedConnection } from "@/lib/mysql/db";
 
 const MAX_SERIES = 500;
 const BATCH_SIZE = 50;
 
 export async function GET() {
+  await requirePermission("clipboard", "read");
   const userId = await getCurrentUserId();
 
   const seriesList = await ClipboardCollection.getSeriesExportInfo(userId);

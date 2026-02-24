@@ -12,23 +12,24 @@ import type {
   AdminAction,
   EnrichedReloadJob,
 } from "@catalog/collections/reload-job-collection";
+import type { Universe } from "@catalog/types/shared";
 
 import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("catalog.investigations");
 
-export async function getLoadErrors(): Promise<
+export async function getLoadErrors(universe: Universe): Promise<
   Array<{ lastError: string; seriesId: number; count: number }>
 > {
-  log.info("fetching load error summary");
-  const errors = await LoaderCollection.getLoadErrorSummary();
+  log.info({ universe }, "fetching load error summary");
+  const errors = await LoaderCollection.getLoadErrorSummary(universe);
   log.info({ count: errors.length }, "load error summary fetched");
   return errors;
 }
 
-export async function getReloadJobs(): Promise<EnrichedReloadJob[]> {
-  log.info("fetching recent reload jobs");
-  const jobs = await ReloadJobCollection.listRecent();
+export async function getReloadJobs(universe: Universe): Promise<EnrichedReloadJob[]> {
+  log.info({ universe }, "fetching recent reload jobs");
+  const jobs = await ReloadJobCollection.listRecent(universe);
   log.info({ count: jobs.length }, "reload jobs fetched");
   return jobs;
 }

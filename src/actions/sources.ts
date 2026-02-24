@@ -19,6 +19,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.sources");
 
 export async function getSources(params?: { universe?: Universe }) {
+  await requirePermission("source", "read");
   log.info({ universe: params?.universe }, "getSources action called");
   const result = await fetchSources({ u: params?.universe });
   log.info({ count: result.data.length }, "getSources action completed");

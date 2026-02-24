@@ -1,5 +1,6 @@
 import ExportCollection from "@catalog/collections/export-collection";
 
+import { requirePermission } from "@/lib/auth/permissions";
 import { scopedConnection } from "@/lib/mysql/db";
 
 const ROW_BATCH = 500;
@@ -8,6 +9,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await requirePermission("export", "csv-download");
   const { id } = await params;
   const exportId = parseInt(id);
   if (isNaN(exportId)) {

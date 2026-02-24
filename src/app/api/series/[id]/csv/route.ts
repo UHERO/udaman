@@ -2,10 +2,13 @@ import { NextRequest } from "next/server";
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 
+import { requirePermission } from "@/lib/auth/permissions";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await requirePermission("series", "read");
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id || isNaN(id)) {

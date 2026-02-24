@@ -12,7 +12,7 @@ const log = createLogger("api.dvw-archive");
 
 export async function POST(request: NextRequest) {
   try {
-    await requirePermission("series", "create");
+    await requirePermission("upload", "create");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }

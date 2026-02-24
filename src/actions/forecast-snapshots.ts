@@ -17,14 +17,17 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.forecast-snapshots");
 
 export async function listSnapshotsAction() {
+  await requirePermission("forecast-snapshot", "read");
   return listSnapshots();
 }
 
 export async function getSnapshotAction(id: number) {
+  await requirePermission("forecast-snapshot", "read");
   return getSnapshot({ id });
 }
 
 export async function getSnapshotDataAction(id: number) {
+  await requirePermission("forecast-snapshot", "read");
   return getSnapshotData({ id });
 }
 
@@ -33,7 +36,7 @@ export async function createSnapshotAction(formData: FormData): Promise<{
   message: string;
   id?: number;
 }> {
-  await requirePermission("series", "create");
+  await requirePermission("forecast-snapshot", "create");
 
   const name = formData.get("name") as string;
   const version = formData.get("version") as string;
@@ -82,7 +85,7 @@ export async function updateSnapshotAction(
   success: boolean;
   message: string;
 }> {
-  await requirePermission("series", "update");
+  await requirePermission("forecast-snapshot", "update");
 
   const name = (formData.get("name") as string) || undefined;
   const version = (formData.get("version") as string) || undefined;
@@ -134,7 +137,7 @@ export async function deleteSnapshotAction(id: number): Promise<{
   success: boolean;
   message: string;
 }> {
-  await requirePermission("series", "delete");
+  await requirePermission("forecast-snapshot", "delete");
 
   try {
     await deleteSnapshot({ id });
@@ -153,7 +156,7 @@ export async function duplicateSnapshotAction(id: number): Promise<{
   message: string;
   id?: number;
 }> {
-  await requirePermission("series", "create");
+  await requirePermission("forecast-snapshot", "create");
 
   try {
     const result = await duplicateSnapshot({ id });

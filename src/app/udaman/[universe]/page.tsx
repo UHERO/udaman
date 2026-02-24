@@ -1,46 +1,36 @@
-import { H1 } from "@/components/typography";
+import Link from "next/link";
 
-const universeInfo: Record<
-  string,
-  { name: string; description: string; portalUrl: string | null }
-> = {
-  UHERO: {
-    name: "Preview UHERO Data Portal",
-    description:
-      "This universe holds series related to the UHERO Data Portal and other of internal projects. Preview the data portal below.",
-    portalUrl: "https://data.uhero.hawaii.edu",
-  },
-  NTA: {
-    name: "National Transfer Accounts",
-    description:
-      "This universe holds series used by the NTA dashboard, data.uhero.hawaii.edu/nta. Andrew Mason is the primary point of contact for this project. Preview the data portal below.",
-    portalUrl: "https://data.uhero.hawaii.edu/nta",
-  },
-  CCOM: {
-    name: "Chamber of Commerce",
-    description:
-      "This universe holds series related to the Hawaii Chamber of Commerce. Preview the data portal below.",
-    portalUrl: "https://data.uhero.hawaii.edu/ccom",
-  },
-  DBEDT: {
-    name: "Department of Business, Economic Development & Tourism",
-    description:
-      "This Universe holds series generated via the DBEDT & DVW upload process. Series are derived from monthly uploads made by Paul at DBEDT. Preview the data portal below.",
-    portalUrl: "https://data.uhero.hawaii.edu/dbedt",
-  },
-  FC: {
-    name: "Forecast",
-    description:
-      "This Universe holds series related to the Forecast team, it appear to have been abandoned. Discuss with Peter.",
-    portalUrl: null,
-  },
-  COH: {
-    name: "County of Hawaii",
-    description:
-      "Contract with the County of Hawaii has been terminated. Universe marked for obliteration.",
-    portalUrl: null,
-  },
+import { getCurrentUserContext } from "@/lib/auth/dal";
+import { getVisibleRoutes } from "@/lib/auth/route-access";
+
+/** Supplementary descriptions for homepage cards (route-access only has labels). */
+const CARD_DESCRIPTIONS: Record<string, string> = {
+  "Data Series": "Browse, search, and manage time series data",
+  Catalog: "View and edit the data portal catalog tree",
+  "CSV-to-TSD": "Convert CSV files to TSD format",
+  Downloads: "Manage and run data downloads",
+  Exports: "Manage data export configurations",
+  Investigations: "Investigate data quality issues",
+  Docs: "View documentation and guides",
+  "Forecast Snapshots": "View and compare published forecast snapshots",
+  Uploads: "Upload economic and tourism data files",
+  Settings: "Configure data portal settings",
 };
+
+const universeNames: Record<string, string> = {
+  UHERO: "UHERO",
+  NTA: "National Transfer Accounts",
+  CCOM: "Chamber of Commerce",
+  DBEDT: "DBEDT",
+  FC: "Forecast",
+  COH: "County of Hawaii",
+};
+
+function prefixUrl(url: string, universe: string): string {
+  if (url.startsWith("/udaman/")) return url;
+  if (url.startsWith("/")) return `/udaman/${universe}${url}`;
+  return url;
+}
 
 export default async function UniversePage({
   params,
@@ -49,29 +39,51 @@ export default async function UniversePage({
 }) {
   const { universe } = await params;
   const key = universe.toUpperCase();
-  const info = universeInfo[key] ?? {
-    name: universe,
-    description: "",
-    portalUrl: null,
-  };
+  const name = universeNames[key] ?? universe;
+
+  const { role, universe: userUniverse } = await getCurrentUserContext();
+  const routes = getVisibleRoutes(role, userUniverse);
+
+  const cards = routes.map((entry) => ({
+    title: entry.label,
+    description: CARD_DESCRIPTIONS[entry.label] ?? "",
+    href: prefixUrl(entry.path, universe),
+    icon: entry.icon,
+  }));
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="p-8">
-        <H1>{universe}</H1>
-        <p className="text-foreground text-lg">{info.description}</p>
-      </div>
-      {info.portalUrl ? (
-        <div className="h-full w-full p-4">
-          <div className="bg-muted h-full w-full flex-1 rounded p-6">
-            <iframe
-              src={info.portalUrl}
-              className="h-full w-full border-1 shadow"
-              title={`${universe} Data Portal`}
-            />
-          </div>
+    <div className="flex flex-1 flex-col p-8">
+      <h1 className="text-3xl font-bold">{name}</h1>
+      <p className="text-muted-foreground mt-1 text-sm">
+        Select a section to get started.
+      </p>
+
+      {cards.length > 0 ? (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((card) => (
+            <Link
+              key={card.href}
+              href={card.href}
+              className="border-border hover:border-primary/40 hover:bg-accent group flex flex-col gap-3 rounded-lg border p-6 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <card.icon className="text-muted-foreground group-hover:text-primary size-5 transition-colors" />
+                <span className="font-semibold">{card.title}</span>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                {card.description}
+              </p>
+            </Link>
+          ))}
         </div>
-      ) : null}
+      ) : (
+        <div className="mt-8 rounded-lg border border-dashed p-8 text-center">
+          <p className="text-muted-foreground">
+            Your current role does not have access to any tools in this
+            universe. Contact an administrator if you believe this is an error.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

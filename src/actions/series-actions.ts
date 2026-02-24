@@ -46,6 +46,7 @@ const log = createLogger("action.series");
 
 /** Used in series summary page */
 export async function getSeries(params: { universe?: Universe }) {
+  await requirePermission("series", "read");
   const universe = params.universe ?? "UHERO";
   log.info({ universe }, "getSeries action called");
   const result = await fetchSeries({ universe });
@@ -57,6 +58,7 @@ export async function getSeriesById(
   id: number,
   _params?: { universe?: Universe },
 ) {
+  await requirePermission("series", "read");
   log.info({ id }, "getSeriesById action called");
   const result = await fetchSeriesById({ id });
   log.info(
@@ -73,6 +75,7 @@ export async function getSourceMap(
   _id: number,
   queryParams: { name: string | null },
 ): Promise<SourceMapNode[]> {
+  await requirePermission("series", "read");
   const { name } = queryParams;
   if (name === null) return notFound();
   log.info({ name }, "getSourceMap action called");
@@ -105,6 +108,7 @@ export async function deleteSeriesDataPoints(
 }
 
 export async function searchSeriesAction(term: string, universe: string) {
+  await requirePermission("series", "read");
   return await searchSeries({ term, universe });
 }
 
@@ -117,6 +121,7 @@ export async function searchSeriesAction(term: string, universe: string) {
  * Seasonal Adjustments and Frequencies can be kept in a constants.ts file somewhere.
  */
 export async function getFormOptions({ universe }: { universe: Universe }) {
+  await requirePermission("series", "read");
   const [geographies, units, sources, sourceDetails] = await Promise.all([
     getGeographies({ u: universe }),
     getUnits({ u: universe }),
@@ -133,6 +138,7 @@ export async function getFormOptions({ universe }: { universe: Universe }) {
 }
 
 export async function getDataPointVintages(xseriesId: number, date: string) {
+  await requirePermission("series", "read");
   log.info({ xseriesId, date }, "getDataPointVintages action called");
   const vintages = await DataPointCollection.getVintagesByDate({
     xseriesId,
@@ -146,6 +152,7 @@ export async function getDataPointVintages(xseriesId: number, date: string) {
 }
 
 export async function getAllDataPointVintages(xseriesId: number) {
+  await requirePermission("series", "read");
   log.info({ xseriesId }, "getAllDataPointVintages action called");
   const vintages = await DataPointCollection.getAllVintages({ xseriesId });
   log.info(
@@ -159,6 +166,7 @@ export async function getAllDataPointVintages(xseriesId: number) {
 export async function resolveSeriesIds(
   names: string[],
 ): Promise<Record<string, number>> {
+  await requirePermission("series", "read");
   return SeriesCollection.getIdsByNames(names);
 }
 
@@ -468,6 +476,7 @@ export async function getSeriesWithNullField(
   page: number = 1,
   perPage: number = 50,
 ) {
+  await requirePermission("series", "read");
   return fetchSeriesWithNullField({ universe, field, page, perPage });
 }
 
@@ -478,6 +487,7 @@ export async function getQuarantinedSeries(
   page: number = 1,
   perPage: number = 50,
 ) {
+  await requirePermission("series", "read");
   return fetchQuarantinedSeries({ universe, page, perPage });
 }
 
@@ -497,6 +507,7 @@ export async function emptyQuarantine(universe: string) {
 // ─── Analyze / Transform ─────────────────────────────────────────────
 
 export async function analyzeSeriesAction(id: number): Promise<AnalyzeResult> {
+  await requirePermission("series", "read");
   log.info({ id }, "analyzeSeriesAction called");
   return analyzeSeriesCtrl({ id });
 }
@@ -504,6 +515,7 @@ export async function analyzeSeriesAction(id: number): Promise<AnalyzeResult> {
 export async function transformSeriesAction(
   evalStr: string,
 ): Promise<AnalyzeResult | { error: string }> {
+  await requirePermission("series", "read");
   log.info({ evalStr }, "transformSeriesAction called");
   try {
     return await transformSeriesCtrl({ evalStr });
@@ -517,6 +529,7 @@ export async function transformSeriesAction(
 export async function compareSeriesAction(
   names: string[],
 ): Promise<CompareResult | { error: string }> {
+  await requirePermission("series", "read");
   log.info({ names }, "compareSeriesAction called");
   try {
     return await compareSeriesCtrl({ names });
@@ -533,6 +546,7 @@ export async function getCompareAllGeosAction(
   name: string,
   universe: string,
 ): Promise<string[] | null> {
+  await requirePermission("series", "read");
   try {
     return await getCompareAllGeosCtrl({ name, universe });
   } catch {
@@ -543,6 +557,7 @@ export async function getCompareAllGeosAction(
 export async function getCompareSANSAction(
   name: string,
 ): Promise<string[] | null> {
+  await requirePermission("series", "read");
   try {
     return await getCompareSANSCtrl({ name });
   } catch {
@@ -554,6 +569,7 @@ export async function getCompareMeasurementAction(
   name: string,
   universe: string,
 ) {
+  await requirePermission("series", "read");
   try {
     return await getCompareMeasurementCtrl({ name, universe });
   } catch {
@@ -566,6 +582,7 @@ export async function getCompareMeasurementAction(
 export async function lookupSeriesIdByName(
   name: string,
 ): Promise<{ id: number } | { error: string }> {
+  await requirePermission("series", "read");
   try {
     const series = await SeriesCollection.getByName(name);
     if (!series.id) return { error: `Series "${name}" not found` };

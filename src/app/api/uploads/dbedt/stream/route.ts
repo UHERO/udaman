@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
 async function handleInit(body: InitBody) {
   try {
-    await requirePermission("series", "create");
+    await requirePermission("upload", "create");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }

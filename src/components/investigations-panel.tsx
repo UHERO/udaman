@@ -110,9 +110,11 @@ function SeriesList({ names }: { names: string[] }) {
 export default function InvestigationsPanel({
   loadErrors,
   reloadJobs,
+  universe,
 }: {
   loadErrors: LoadError[];
   reloadJobs: EnrichedReloadJob[];
+  universe: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -250,7 +252,7 @@ export default function InvestigationsPanel({
       <section>
         <h2 className="text-lg font-semibold">Current Load Errors</h2>
         <p className="text-muted-foreground mb-3 text-sm">
-          Active UHERO loader errors grouped by error message.
+          Active loader errors grouped by error message.
         </p>
         {loadErrors.length === 0 ? (
           <p className="text-muted-foreground text-sm">No load errors.</p>
@@ -271,7 +273,7 @@ export default function InvestigationsPanel({
                     </TableCell>
                     <TableCell>
                       <Link
-                        href={`/udaman/UHERO/series/${err.seriesId}`}
+                        href={`/udaman/${universe}/series/${err.seriesId}`}
                         className="text-sm hover:underline"
                       >
                         {err.lastError}

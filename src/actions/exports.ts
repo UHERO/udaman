@@ -22,10 +22,12 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.exports");
 
 export async function listExportsAction() {
+  await requirePermission("export", "read");
   return listExports();
 }
 
 export async function getExportAction(id: number) {
+  await requirePermission("export", "read");
   return getExportWithSeries({ id });
 }
 
@@ -34,7 +36,7 @@ export async function createExportAction(name: string): Promise<{
   message: string;
   id?: number;
 }> {
-  await requirePermission("series", "create");
+  await requirePermission("export", "create");
 
   try {
     const exp = await createExport({ name });
@@ -52,7 +54,7 @@ export async function updateExportAction(
   id: number,
   payload: { name?: string },
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("series", "update");
+  await requirePermission("export", "update");
 
   try {
     await updateExport({ id, payload });
@@ -70,7 +72,7 @@ export async function addSeriesToExportAction(
   exportId: number,
   seriesId: number,
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("series", "update");
+  await requirePermission("export", "update");
 
   try {
     await addSeriesToExport({ exportId, seriesId });
@@ -88,7 +90,7 @@ export async function removeSeriesFromExportAction(
   exportId: number,
   seriesId: number,
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("series", "update");
+  await requirePermission("export", "update");
 
   try {
     await removeSeriesFromExport({ exportId, seriesId });
@@ -107,7 +109,7 @@ export async function moveExportSeriesAction(
   seriesId: number,
   direction: "up" | "down",
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("series", "update");
+  await requirePermission("export", "update");
 
   try {
     await moveExportSeries({ exportId, seriesId, direction });
@@ -128,7 +130,7 @@ export async function replaceAllExportSeriesAction(
   exportId: number,
   seriesNames: string[],
 ): Promise<{ success: boolean; message: string }> {
-  await requirePermission("series", "update");
+  await requirePermission("export", "update");
 
   try {
     const result = await replaceAllExportSeries({ exportId, seriesNames });
@@ -149,14 +151,17 @@ export async function replaceAllExportSeriesAction(
 export async function getExportSeriesNamesAction(
   exportId: number,
 ): Promise<string[]> {
+  await requirePermission("export", "read");
   return getExportSeriesNames({ exportId });
 }
 
 export async function getExportMetadataAction(id: number) {
+  await requirePermission("export", "read");
   return getExport({ id });
 }
 
 export async function getExportTableDataAction(id: number) {
+  await requirePermission("export", "read");
   return getExportTableData({ id });
 }
 
@@ -164,7 +169,7 @@ export async function deleteExportAction(id: number): Promise<{
   success: boolean;
   message: string;
 }> {
-  await requirePermission("series", "delete");
+  await requirePermission("export", "delete");
 
   try {
     await deleteExport({ id });

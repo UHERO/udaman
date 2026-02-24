@@ -1,14 +1,13 @@
 import ForecastUploadForm from "@/components/forecast/forecast-upload-form";
-import { H1, Lead } from "@/components/typography";
 
 export default function ForecastUploadPage() {
   return (
-    <div className="p-8">
-      <H1>Forecast Series Upload</H1>
-      <Lead className="mt-4">
+    <div>
+      <h1 className="text-3xl font-bold">Forecast Series Upload</h1>
+      <p className="text-muted-foreground text-sm">
         Upload a report_table CSV to create or update FC forecast series.
-      </Lead>
-      <div className="mt-6 max-w-4xl">
+      </p>
+      <div className="mt-4 max-w-4xl">
         <ForecastUploadForm />
       </div>
     </div>

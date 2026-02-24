@@ -1,8 +1,18 @@
 import { listSnapshotsAction } from "@/actions/forecast-snapshots";
 import { ForecastSnapshotListTable } from "@/components/forecast-snapshots/forecast-snapshot-list-table";
+import { isFsonly } from "@/lib/auth/authorization";
+import { getCurrentUserRole } from "@/lib/auth/dal";
 
 export default async function Page() {
-  const data = await listSnapshotsAction();
+  const role = await getCurrentUserRole();
+  let data = await listSnapshotsAction();
+
+  // fsonly users can only see published snapshots
+  if (isFsonly(role)) {
+    data = data.filter(
+      (s: { published?: boolean }) => s.published === true,
+    );
+  }
 
   return (
     <div>

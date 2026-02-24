@@ -31,6 +31,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.data-lists");
 
 export async function getDataLists(params?: { universe?: Universe }) {
+  await requirePermission("data-list", "read");
   log.info({ universe: params?.universe }, "getDataLists action called");
   const result = await fetchDataLists({ u: params?.universe });
   log.info({ count: result.data.length }, "getDataLists action completed");
@@ -73,11 +74,13 @@ export async function getDataListSuperTableData(params: {
   geo?: string;
   sa?: string;
 }) {
+  await requirePermission("data-list", "read");
   log.info({ id: params.id }, "getDataListSuperTableData action called");
   return getDataListSuperTableCtrl(params);
 }
 
 export async function getDataListForEdit(id: number) {
+  await requirePermission("data-list", "read");
   log.info({ id }, "getDataListForEdit action called");
   const { dataList, measurements, ownerEmail, users } =
     await getDataListForEditCtrl({ id });
@@ -93,6 +96,7 @@ export async function getDataListForEdit(id: number) {
 }
 
 export async function getMeasurementsForUniverse(universe: Universe) {
+  await requirePermission("measurement", "read");
   log.info({ universe }, "getMeasurementsForUniverse action called");
   const measurements = await MeasurementCollection.list({ universe });
   return measurements.map((m) => ({

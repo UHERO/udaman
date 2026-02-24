@@ -3,6 +3,7 @@
 import { Queue } from "bullmq";
 
 import { redisConnection } from "@/core/workers/connection";
+import { requirePermission } from "@/lib/auth/permissions";
 
 const QUEUE_NAMES = ["default", "critical"] as const;
 const PREFIX = "udaman";
@@ -57,6 +58,7 @@ export type WorkerJobsResult = {
 };
 
 export async function getWorkerJobs(): Promise<WorkerJobsResult> {
+  await requirePermission("worker", "read");
   const allJobs: SerializedJob[] = [];
   const allWorkers: SerializedWorkerInfo[] = [];
   const counts: Record<string, QueueCounts> = {};
@@ -126,6 +128,7 @@ export async function getWorkerJobs(): Promise<WorkerJobsResult> {
 }
 
 export async function getSchedulers(): Promise<SerializedScheduler[]> {
+  await requirePermission("worker", "read");
   const allSchedulers: SerializedScheduler[] = [];
 
   for (const name of QUEUE_NAMES) {
@@ -160,6 +163,7 @@ export async function removeScheduler(
   queueName: string,
   schedulerKey: string,
 ): Promise<boolean> {
+  await requirePermission("worker", "execute");
   const queue = new Queue(queueName, {
     connection: redisConnection,
     prefix: PREFIX,
@@ -177,6 +181,7 @@ export async function triggerScheduledJob(
   jobName: string,
   jobData: Record<string, unknown>,
 ): Promise<void> {
+  await requirePermission("worker", "execute");
   const queue = new Queue(queueName, {
     connection: redisConnection,
     prefix: PREFIX,
@@ -193,6 +198,7 @@ export async function getJobLogs(
   queueName: string,
   jobId: string,
 ): Promise<string[]> {
+  await requirePermission("worker", "read");
   const queue = new Queue(queueName, {
     connection: redisConnection,
     prefix: PREFIX,

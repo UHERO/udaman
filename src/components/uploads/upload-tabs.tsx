@@ -4,71 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import {
-  AlertTriangle,
-  Calculator,
-  ClipboardList,
-  GitCompareArrows,
-  LineChart,
-  List,
+  ArrowUpToLine,
+  FileSpreadsheet,
   Maximize2,
   Minimize2,
-  SearchX,
+  Palmtree,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
-const TABS: {
-  label: string;
-  icon: LucideIcon;
-  segment: string;
-  badgeKey?: "noSource" | "quarantine";
-}[] = [
-  { label: "List", icon: List, segment: "" },
-  { label: "Analyze", icon: LineChart, segment: "analyze" },
-  { label: "Compare", icon: GitCompareArrows, segment: "compare" },
-  { label: "Calculate", icon: Calculator, segment: "calculate" },
-  { label: "Clipboard", icon: ClipboardList, segment: "clipboard" },
-  {
-    label: "Missing Metadata",
-    icon: SearchX,
-    segment: "no-source",
-    badgeKey: "noSource",
-  },
-  {
-    label: "Quarantine",
-    icon: AlertTriangle,
-    segment: "quarantine",
-    badgeKey: "quarantine",
-  },
-];
+const TABS = [
+  { label: "Econ", icon: FileSpreadsheet, segment: "econ" },
+  { label: "Tour", icon: Palmtree, segment: "tour" },
+  { label: "Forecast", icon: ArrowUpToLine, segment: "forecast" },
+] as const;
 
-interface SeriesTabsProps {
-  role: string;
-  universe: string;
-  badgeCounts?: {
-    noSource: number;
-    quarantine: number;
-  };
-}
-
-export function SeriesTabs({ role, universe: userUniverse, badgeCounts }: SeriesTabsProps) {
+export function UploadTabs({ role, universe: userUniverse }: { role: string; universe: string }) {
   const { universe } = useParams();
   const pathname = usePathname();
-  const base = `/udaman/${universe}/series`;
+  const base = `/udaman/${universe}/uploads`;
 
-  const visibleChildren = getVisibleChildren(role, userUniverse, "/series");
+  const visibleChildren = getVisibleChildren(role, userUniverse, "/uploads");
   const visibleTabs = TABS.filter((tab) =>
-    visibleChildren.some((child) =>
-      tab.segment === ""
-        ? child.path === "/series"
-        : child.path === `/series/${tab.segment}`,
-    ),
+    visibleChildren.some((child) => child.path === `/uploads/${tab.segment}`),
   );
 
   const [fullWidth, setFullWidth] = useState(false);
@@ -87,12 +49,8 @@ export function SeriesTabs({ role, universe: userUniverse, badgeCounts }: Series
   return (
     <div className="flex items-center gap-1 border-b">
       {visibleTabs.map((tab) => {
-        const href = tab.segment ? `${base}/${tab.segment}` : base;
-        const isActive = tab.segment
-          ? pathname.startsWith(`${base}/${tab.segment}`)
-          : pathname === base;
-        const badgeCount =
-          tab.badgeKey && badgeCounts ? badgeCounts[tab.badgeKey] : undefined;
+        const href = `${base}/${tab.segment}`;
+        const isActive = pathname.startsWith(href);
         return (
           <Link
             key={tab.segment}
@@ -106,14 +64,6 @@ export function SeriesTabs({ role, universe: userUniverse, badgeCounts }: Series
           >
             <tab.icon className="h-4 w-4" />
             {tab.label}
-            {badgeCount !== undefined && badgeCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="ml-1 h-5 min-w-5 px-1.5 text-xs"
-              >
-                {badgeCount}
-              </Badge>
-            )}
           </Link>
         );
       })}

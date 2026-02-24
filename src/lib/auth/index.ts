@@ -37,8 +37,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: string | null;
           encrypted_password: string;
           role: string;
+          universe: string;
         }>`
-          SELECT id, email, name, encrypted_password, role
+          SELECT id, email, name, encrypted_password, role, universe
           FROM users WHERE email = ${email}
         `;
 
@@ -57,6 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          universe: user.universe,
         };
       },
     }),
@@ -91,12 +93,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         user.id = existing.id;
         user.name = existing.name ?? user.name;
 
-        // Fetch role from DB for the linked user
-        const roleRows = await mysql<{ role: string }>`
-          SELECT role FROM users WHERE id = ${Number(existing.id)} LIMIT 1
+        // Fetch role and universe from DB for the linked user
+        const userRows = await mysql<{ role: string; universe: string }>`
+          SELECT role, universe FROM users WHERE id = ${Number(existing.id)} LIMIT 1
         `;
-        if (roleRows[0]) {
-          user.role = roleRows[0].role;
+        if (userRows[0]) {
+          user.role = userRows[0].role;
+          user.universe = userRows[0].universe;
         }
       }
       // If no existing user, Auth.js will call createUser + linkAccount via the adapter
@@ -104,25 +107,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user }) {
-      // On sign-in, persist user ID and role into the JWT
+      // On sign-in, persist user ID, role, and universe into the JWT
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.universe = user.universe;
       }
-      // Backfill: if existing session has id but no role, fetch it once
-      if (token.id && !token.role) {
-        const roleRows = await mysql<{ role: string }>`
-          SELECT role FROM users WHERE id = ${Number(token.id)} LIMIT 1
+      // Backfill: if existing session has id but missing role/universe, fetch once
+      if (token.id && (!token.role || !token.universe)) {
+        const rows = await mysql<{ role: string; universe: string }>`
+          SELECT role, universe FROM users WHERE id = ${Number(token.id)} LIMIT 1
         `;
-        token.role = roleRows[0]?.role ?? "external";
+        if (!token.role) token.role = rows[0]?.role ?? "external";
+        if (!token.universe) token.universe = rows[0]?.universe ?? "UHERO";
       }
       return token;
     },
     async session({ session, token }) {
-      // Expose user ID and role from JWT in the session object
+      // Expose user ID, role, and universe from JWT in the session object
       session.user.id = token.id as string;
       session.user.role = (token.role as string) ?? "external";
+      session.user.universe = (token.universe as string) ?? "UHERO";
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Allow relative URLs and same-origin URLs (e.g. /udaman after sign-out)
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      return baseUrl;
     },
   },
 });

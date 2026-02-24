@@ -2,20 +2,25 @@ import "server-only";
 
 import PermissionCollection from "@catalog/collections/permission-collection";
 
-import { getCurrentUserRole } from "./dal";
+import {
+  enforceAccessPolicy,
+  PermissionDeniedError,
+} from "./authorization";
+import { getCurrentUserContext } from "./dal";
 
-export class PermissionDeniedError extends Error {
-  constructor(resource: string, action: string, role: string) {
-    super(`Permission denied: role "${role}" cannot ${action} on ${resource}`);
-    this.name = "PermissionDeniedError";
-  }
-}
+// Re-export so existing consumers that import from permissions.ts still work
+export { PermissionDeniedError };
 
 export async function requirePermission(
   resource: string,
   action: string,
 ): Promise<void> {
-  const role = await getCurrentUserRole();
+  const { role, universe } = await getCurrentUserContext();
+
+  // Gate 1 — Coarse role+universe policy (throws on denial)
+  enforceAccessPolicy(role, universe, resource, action);
+
+  // Gate 2 — Fine-grained DB permissions with wildcard matching
   const allowed = await PermissionCollection.isAllowed(role, resource, action);
   if (!allowed) {
     throw new PermissionDeniedError(resource, action, role);

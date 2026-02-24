@@ -24,6 +24,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.measurements");
 
 export async function getMeasurements(params?: { universe?: Universe }) {
+  await requirePermission("measurement", "read");
   log.info({ universe: params?.universe }, "getMeasurements action called");
   const result = await fetchMeasurements({ u: params?.universe });
   log.info({ count: result.data.length }, "getMeasurements action completed");
@@ -51,6 +52,7 @@ export async function updateMeasurement(
 }
 
 export async function getMeasurementDetail(id: number) {
+  await requirePermission("measurement", "read");
   log.info({ id }, "getMeasurementDetail action called");
   const { data: measurement } = await getMeasurementWithLabelsCtrl({ id });
   const { data: series } = await getMeasurementSeriesCtrl({ id });

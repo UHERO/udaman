@@ -11,6 +11,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 const log = createLogger("action.feature-toggles");
 
 export async function listFeatureTogglesAction() {
+  await requirePermission("feature-toggle", "read");
   return listFeatureToggles();
 }
 

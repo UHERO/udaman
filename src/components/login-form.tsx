@@ -36,7 +36,7 @@ export function LoginForm({
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push("/udaman/UHERO/series");
+        router.push("/udaman");
         router.refresh();
       }
     });
@@ -102,7 +102,7 @@ export function LoginForm({
           className="w-full"
           disabled={isPending}
           onClick={() =>
-            signIn("google", { callbackUrl: "/udaman/UHERO/series" })
+            signIn("google", { callbackUrl: "/udaman" })
           }
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

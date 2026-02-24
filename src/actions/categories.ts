@@ -24,6 +24,7 @@ const log = createLogger("action.categories");
 export async function getCategories(params: {
   universe?: Universe;
 }): Promise<Category[]> {
+  await requirePermission("category", "read");
   const universe = params.universe ?? "UHERO";
   log.info({ universe }, "getCategories action called");
   const result = await fetchCategories({ u: universe });
@@ -32,6 +33,7 @@ export async function getCategories(params: {
 }
 
 export async function getCategory(id: number): Promise<Category> {
+  await requirePermission("category", "read");
   log.info({ id }, "getCategory action called");
   const result = await fetchCategory({ id });
   if (!result.data) notFound();

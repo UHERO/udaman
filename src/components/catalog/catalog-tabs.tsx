@@ -18,6 +18,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getVisibleChildren } from "@/lib/auth/route-access";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
@@ -32,10 +33,19 @@ const TABS = [
   { label: "Source Details", icon: ScanSearch, segment: "source-details" },
 ] as const;
 
-export function CatalogTabs() {
+export function CatalogTabs({ role, universe: userUniverse }: { role: string; universe: string }) {
   const { universe } = useParams();
   const pathname = usePathname();
   const base = `/udaman/${universe}/catalog`;
+
+  const visibleChildren = getVisibleChildren(role, userUniverse, "/catalog");
+  const visibleTabs = TABS.filter((tab) =>
+    visibleChildren.some((child) =>
+      tab.segment === ""
+        ? child.path === "/catalog"
+        : child.path === `/catalog/${tab.segment}`,
+    ),
+  );
 
   const [fullWidth, setFullWidth] = useState(false);
 
@@ -52,7 +62,7 @@ export function CatalogTabs() {
 
   return (
     <div className="flex items-center gap-1 border-b">
-      {TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         const isActive = tab.segment
           ? pathname.startsWith(`${base}/${tab.segment}`)

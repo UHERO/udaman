@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
+
+import { isRouteAllowed } from "@/lib/auth/route-access";
 
 /**
  * Subdomain → internal route prefix mapping.
@@ -32,7 +35,29 @@ function hasSessionCookie(request: NextRequest): boolean {
   return !!cookie?.value;
 }
 
-export function middleware(request: NextRequest) {
+/**
+ * Check route-level access using the JWT token claims.
+ * Returns a redirect response if denied, or null if allowed.
+ */
+async function checkRouteAccess(
+  request: NextRequest,
+  internalPathname: string,
+  homepageUrl: string,
+): Promise<NextResponse | null> {
+  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
+  if (!token) return null; // No token — session check already handles redirect
+
+  const role = (token.role as string) ?? "external";
+  const universe = (token.universe as string) ?? "UHERO";
+
+  if (!isRouteAllowed(role, universe, internalPathname)) {
+    return NextResponse.redirect(new URL(homepageUrl, request.url));
+  }
+
+  return null;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const app = getSubdomainApp(host);
@@ -73,6 +98,16 @@ export function middleware(request: NextRequest) {
             );
           }
         }
+
+        // Route-level access check (pathname here is without /udaman prefix)
+        const internalPathname = `/udaman${pathname}`;
+        const uniSegment = pathname.match(/^\/([^/]+)/)?.[1] ?? "uhero";
+        const denied = await checkRouteAccess(
+          request,
+          internalPathname,
+          `/${uniSegment}`,
+        );
+        if (denied) return denied;
       }
     }
 
@@ -105,6 +140,15 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url, 308);
     }
   }
+
+  // Route-level access check
+  const uniSegment = match?.[1] ?? "uhero";
+  const denied = await checkRouteAccess(
+    request,
+    pathname,
+    `/udaman/${uniSegment}`,
+  );
+  if (denied) return denied;
 
   return NextResponse.next();
 }

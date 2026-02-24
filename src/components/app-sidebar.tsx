@@ -3,21 +3,13 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import {
-  ArrowDownToLine,
-  ArrowLeftFromLine,
-  ArrowUpToLine,
   AudioWaveform,
-  BookOpen,
-  ChartLine,
   Command,
-  FileSpreadsheet,
   GalleryVerticalEnd,
-  HatGlasses,
-  Settings,
   Settings2,
-  TableProperties,
 } from "lucide-react";
 
+import { getVisibleRoutes } from "@/lib/auth/route-access";
 import { NavMain } from "@/components/nav-main";
 import { NavDataPortals } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -30,136 +22,38 @@ import {
 } from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
 
-const data = {
-  universes: [
-    {
-      name: "UHERO",
-      logo: GalleryVerticalEnd,
-      description: "UHERO",
-    },
-    {
-      name: "NTA",
-      logo: AudioWaveform,
-      description: "National Trade Accounts",
-    },
-    {
-      name: "FC",
-      logo: Command,
-      description: "Forecast",
-    },
-    {
-      name: "CCOM",
-      logo: Command,
-      description: "Chamber of Commerce",
-    },
-    {
-      name: "DBEDT",
-      logo: Command,
-      description: "Dept. of Economic Development & Tourism",
-    },
-    {
-      name: "COH",
-      logo: Command,
-      description: "County of Hawaii",
-    },
-  ],
-  navMain: [
-    {
-      title: "Data Series",
-      url: "/series",
-      icon: TableProperties,
-    },
-    {
-      title: "Data Portal Catalog",
-      url: "/catalog",
-      icon: ChartLine,
-    },
-    {
-      title: "Forecast Upload",
-      url: "/series/forecast-upload",
-      icon: ArrowUpToLine,
-    },
-    {
-      title: "CSV-to-TSD",
-      url: "/csv-to-tsd",
-      icon: FileSpreadsheet,
-    },
-    {
-      title: "Downloads",
-      url: "/downloads",
-      icon: ArrowDownToLine,
-    },
-    {
-      title: "Exports",
-      url: "/exports",
-      icon: ArrowLeftFromLine,
-    },
-    {
-      title: "Investigations",
-      url: "/udaman/admin/investigations",
-      icon: HatGlasses,
-    },
-    {
-      title: "Docs",
-      url: "/docs",
-      icon: BookOpen,
-    },
-    {
-      title: "Forecast Snapshots",
-      url: "/forecast/snapshots",
-      icon: BookOpen,
-    },
-    {
-      title: "Feature Toggles",
-      url: "/feature-toggles",
-      icon: Settings,
-    },
-    {
-      title: "Uploads",
-      url: "/uploads",
-      icon: ArrowUpToLine,
-      items: [
-        {
-          title: "DBEDT Econ D/w",
-          url: "/udaman/DBEDT/uploads",
-        },
-        {
-          title: "DBEDT Tour D/w",
-          url: "/udaman/UHERO/uploads",
-        },
-      ],
-    },
-  ],
-  dataPortal: [
-    {
-      name: "Settings",
-      url: "/settings",
-      icon: Settings2,
-    },
-  ],
-  utilities: [
-    {
-      name: "Bill Tracker",
-      url: "/bill-tracker",
-      icon: Settings2,
-    },
-    {
-      name: "CSV-to-TSD file conversion",
-      url: "/csv-to-tsd",
-      icon: Settings2,
-    },
-    {
-      name: "GeoCoder",
-      url: "/geocoder",
-      icon: Settings2,
-    },
-    {
-      name: "CRON Logs",
-      url: "/cron-logs",
-      icon: Settings2,
-    },
-  ],
-};
+const ALL_UNIVERSES = [
+  {
+    name: "UHERO",
+    logo: GalleryVerticalEnd,
+    description: "UHERO",
+  },
+  {
+    name: "NTA",
+    logo: AudioWaveform,
+    description: "National Trade Accounts",
+  },
+  {
+    name: "FC",
+    logo: Command,
+    description: "Forecast",
+  },
+  {
+    name: "CCOM",
+    logo: Command,
+    description: "Chamber of Commerce",
+  },
+  {
+    name: "DBEDT",
+    logo: Command,
+    description: "Dept. of Economic Development & Tourism",
+  },
+  {
+    name: "COH",
+    logo: Command,
+    description: "County of Hawaii",
+  },
+];
 
 function prefixUrl(url: string, universe: string): string {
   if (url.startsWith("/udaman/")) return url;
@@ -178,41 +72,67 @@ export function AppSidebar({
     avatar: string;
     createdAt: string;
     role: string;
+    universe: string;
   };
 }) {
   const params = useParams();
   const universe = (params.universe as string) || "uhero";
 
+  const routes = React.useMemo(
+    () => getVisibleRoutes(user.role, user.universe),
+    [user.role, user.universe],
+  );
+
+  // Separate "Settings" (dataPortal section) from main nav
+  const mainRoutes = React.useMemo(
+    () => routes.filter((r) => r.label !== "Settings"),
+    [routes],
+  );
+  const portalRoutes = React.useMemo(
+    () => routes.filter((r) => r.label === "Settings"),
+    [routes],
+  );
+
   const navMain = React.useMemo(
     () =>
-      data.navMain.map((item) => ({
-        ...item,
-        url: prefixUrl(item.url, universe),
-        items: item.items?.map((sub) => ({
-          ...sub,
-          url: prefixUrl(sub.url, universe),
+      mainRoutes.map((entry) => ({
+        title: entry.label,
+        url: prefixUrl(entry.path, universe),
+        icon: entry.icon,
+        items: entry.children?.map((child) => ({
+          title: child.label,
+          url: prefixUrl(child.path, universe),
         })),
       })),
-    [universe],
+    [mainRoutes, universe],
   );
 
   const dataPortal = React.useMemo(
     () =>
-      data.dataPortal.map((item) => ({
-        ...item,
-        url: prefixUrl(item.url, universe),
+      portalRoutes.map((entry) => ({
+        name: entry.label,
+        url: prefixUrl(entry.path, universe),
+        icon: entry.icon ?? Settings2,
       })),
-    [universe],
+    [portalRoutes, universe],
   );
+
+  // UHERO users can switch to any universe; others see only their own
+  const universes = React.useMemo(() => {
+    if (user.universe.toUpperCase() === "UHERO") return ALL_UNIVERSES;
+    return ALL_UNIVERSES.filter(
+      (u) => u.name === user.universe.toUpperCase(),
+    );
+  }, [user.universe]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <UniverseSwitcher universes={data.universes} />
+        <UniverseSwitcher universes={universes} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
-        <NavDataPortals projects={dataPortal} />
+        {dataPortal.length > 0 && <NavDataPortals projects={dataPortal} />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

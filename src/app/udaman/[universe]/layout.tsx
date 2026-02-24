@@ -48,6 +48,7 @@ export default async function UniverseLayout({
     avatar: session.user?.image ?? "",
     createdAt,
     role: session.user.role ?? "external",
+    universe: session.user.universe ?? "UHERO",
   };
 
   const geographies = await GeographyCollection.list({

@@ -42,3 +42,29 @@ export async function getCurrentUserRole(): Promise<string> {
   const session = await requireAuth();
   return session.user.role ?? "external";
 }
+
+/**
+ * Get the current authenticated user's universe.
+ * Redirects to /udaman if not authenticated.
+ * Defaults to "UHERO" if universe is not set in the session.
+ */
+export async function getCurrentUserUniverse(): Promise<string> {
+  const session = await requireAuth();
+  return session.user.universe ?? "UHERO";
+}
+
+/**
+ * Get the current authenticated user's role and universe together.
+ * Redirects to /udaman if not authenticated.
+ * Single session read — use this when you need both values.
+ */
+export async function getCurrentUserContext(): Promise<{
+  role: string;
+  universe: string;
+}> {
+  const session = await requireAuth();
+  return {
+    role: session.user.role ?? "external",
+    universe: session.user.universe ?? "UHERO",
+  };
+}

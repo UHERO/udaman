@@ -46,7 +46,7 @@ export function LoginForm({
       if (result?.error) {
         setError("Invalid email or password");
       } else {
-        router.push(callbackUrl ?? "/udaman/UHERO/series");
+        router.push(callbackUrl ?? "/udaman");
         router.refresh();
       }
     });

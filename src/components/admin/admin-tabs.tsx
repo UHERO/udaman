@@ -8,28 +8,38 @@ import {
   Calendar,
   Maximize2,
   Minimize2,
-  SearchSlash,
   Shield,
   ToggleRight,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getVisibleChildren } from "@/lib/auth/route-access";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
 const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Permissions", icon: Shield, segment: "" },
   { label: "Feature Toggles", icon: ToggleRight, segment: "feature-toggles" },
-  { label: "Investigations", icon: SearchSlash, segment: "investigations" },
   { label: "Workers", icon: Activity, segment: "workers" },
   { label: "Schedules", icon: Calendar, segment: "schedules" },
+  { label: "Users", icon: Users, segment: "users" },
 ];
 
-export function AdminTabs() {
+export function AdminTabs({ role, universe }: { role: string; universe: string }) {
   const pathname = usePathname();
   const base = "/udaman/admin";
+
+  const visibleChildren = getVisibleChildren(role, universe, "/udaman/admin");
+  const visibleTabs = TABS.filter((tab) =>
+    visibleChildren.some((child) =>
+      tab.segment === ""
+        ? child.path === "/udaman/admin"
+        : child.path === `/udaman/admin/${tab.segment}`,
+    ),
+  );
 
   const [fullWidth, setFullWidth] = useState(false);
 
@@ -46,7 +56,7 @@ export function AdminTabs() {
 
   return (
     <div className="flex items-center gap-1 border-b">
-      {TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         const isActive = tab.segment
           ? pathname.startsWith(`${base}/${tab.segment}`)
