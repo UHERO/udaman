@@ -14,6 +14,13 @@ const ISLANDS = [
   { code: "4", label: "Kauai" },
 ] as const;
 
+const ISLAND_LABELS: Record<string, string> = {
+  "1": "Oahu",
+  "2": "Maui",
+  "3": "Hawaii",
+  "4": "Kauai",
+};
+
 function formatDollar(n: number): string {
   if (n < 0) return `-${formatDollar(-n)}`;
   if (n >= 1_000_000_000) {
@@ -31,14 +38,11 @@ function formatDollar(n: number): string {
   return `$${n.toLocaleString()}`;
 }
 
-function formatRange(min: string, max: string, format: string): string {
-  if (format === "dollar") {
-    return `${formatDollar(Number(min))} – ${formatDollar(Number(max))}`;
-  }
-  if (format === "number") {
-    return `${Number(min).toLocaleString()} – ${Number(max).toLocaleString()}`;
-  }
-  return `${min} – ${max}`;
+function formatValue(n: number, format: string): string {
+  if (format === "dollar") return formatDollar(n);
+  if (format === "number") return n.toLocaleString();
+  if (format === "year") return String(n);
+  return String(n);
 }
 
 function CountCell({ counts, code }: { counts: IslandCounts; code: string }) {
@@ -120,9 +124,55 @@ export function HhdbFactors({ tableName }: { tableName: string }) {
             </h3>
 
             {result.type === "range" && (
-              <p className="text-xl">
-                {formatRange(result.min, result.max, result.format)}
-              </p>
+              <div className="max-h-[560px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="pb-2 font-medium">Island</th>
+                      <th className="pb-2 text-right font-medium">Min</th>
+                      <th className="pb-2 text-right font-medium">Median</th>
+                      <th className="pb-2 text-right font-medium">Max</th>
+                      <th className="pb-2 text-right font-medium">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.islands.map((s) => (
+                      <tr key={s.island} className="border-b last:border-0">
+                        <td className="py-1.5 font-medium">
+                          {ISLAND_LABELS[s.island] ?? s.island}
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums">
+                          {formatValue(s.min, result.format)}
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums">
+                          {formatValue(s.median, result.format)}
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums">
+                          {formatValue(s.max, result.format)}
+                        </td>
+                        <td className="py-1.5 text-right tabular-nums">
+                          {s.count.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 font-semibold">
+                      <td className="py-1.5">All Islands</td>
+                      <td className="py-1.5 text-right tabular-nums">
+                        {formatValue(result.overall.min, result.format)}
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums">
+                        {formatValue(result.overall.median, result.format)}
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums">
+                        {formatValue(result.overall.max, result.format)}
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums">
+                        {result.overall.count.toLocaleString()}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {result.type === "factor" && (

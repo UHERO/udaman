@@ -6,6 +6,17 @@ import type { FactorResult } from "@catalog/types/hhdb";
 
 const FACTOR_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const factorCache = new Map<string, { data: FactorResult; expiresAt: number }>();
+
+const DASHBOARD_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const dashboardCache = new Map<string, { data: unknown; expiresAt: number }>();
+
+async function cachedDashboard<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const cached = dashboardCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.data as T;
+  const data = await fn();
+  dashboardCache.set(key, { data, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS });
+  return data;
+}
 import {
   getProperties as getPropertiesCtrl,
   getAssessments as getAssessmentsCtrl,
@@ -85,32 +96,32 @@ export async function getHhdbCondoUnits(params: HhdbListParams) {
 
 export async function getHhdbMedianAssessed() {
   await requirePermission("hhdb", "read");
-  return getMedianAssessedCtrl();
+  return cachedDashboard("medianAssessed", getMedianAssessedCtrl);
 }
 
 export async function getHhdbMedianSalePrice() {
   await requirePermission("hhdb", "read");
-  return getMedianSalePriceCtrl();
+  return cachedDashboard("medianSalePrice", getMedianSalePriceCtrl);
 }
 
 export async function getHhdbPropertyCount() {
   await requirePermission("hhdb", "read");
-  return getPropertyCountCtrl();
+  return cachedDashboard("propertyCount", getPropertyCountCtrl);
 }
 
 export async function getHhdbTotalAssessed() {
   await requirePermission("hhdb", "read");
-  return getTotalAssessedCtrl();
+  return cachedDashboard("totalAssessed", getTotalAssessedCtrl);
 }
 
 export async function getHhdbPermitActivity() {
   await requirePermission("hhdb", "read");
-  return getPermitActivityCtrl();
+  return cachedDashboard("permitActivity", getPermitActivityCtrl);
 }
 
 export async function getHhdbCondoArea() {
   await requirePermission("hhdb", "read");
-  return getCondoAreaCtrl();
+  return cachedDashboard("condoArea", getCondoAreaCtrl);
 }
 
 export async function getHhdbParcels(params: HhdbListParams) {

@@ -45,6 +45,7 @@ export default class HhdbDashboardCollection {
       FROM assessments
       WHERE total_property_assessed_value IS NOT NULL AND total_property_assessed_value > 0
         AND property_class IS NOT NULL AND property_class != ''
+        AND tax_year BETWEEN 2015 AND 2025
       GROUP BY tax_year, property_class
       HAVING COUNT(*) >= 10
       ORDER BY tax_year, property_class
@@ -106,6 +107,7 @@ export default class HhdbDashboardCollection {
       JOIN properties p ON a.tmk = p.tmk
       WHERE a.total_property_assessed_value IS NOT NULL
         AND p.island_code IS NOT NULL
+        AND a.tax_year BETWEEN 2015 AND 2025
       GROUP BY a.tax_year, p.island_code
       ORDER BY a.tax_year, p.island_code
     `);

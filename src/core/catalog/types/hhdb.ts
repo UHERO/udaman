@@ -39,9 +39,15 @@ export type FactorResult =
     }
   | {
       type: "range";
-      min: string;
-      max: string;
       format: "dollar" | "number" | "year" | "text";
+      islands: {
+        island: string;
+        min: number;
+        max: number;
+        median: number;
+        count: number;
+      }[];
+      overall: { min: number; max: number; median: number; count: number };
     };
 
 export const HHDB_FIELDS: Record<string, FieldDef[]> = {
