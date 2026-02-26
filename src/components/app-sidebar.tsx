@@ -6,7 +6,6 @@ import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
-  Settings2,
 } from "lucide-react";
 
 import { getVisibleRoutes } from "@/lib/auth/route-access";
@@ -83,13 +82,13 @@ export function AppSidebar({
     [user.role, user.universe],
   );
 
-  // Separate "Settings" (dataPortal section) from main nav
+  // Separate "Web Crawlers" section from main nav
   const mainRoutes = React.useMemo(
-    () => routes.filter((r) => r.label !== "Settings"),
+    () => routes.filter((r) => r.label !== "Web Crawlers"),
     [routes],
   );
   const portalRoutes = React.useMemo(
-    () => routes.filter((r) => r.label === "Settings"),
+    () => routes.filter((r) => r.label === "Web Crawlers"),
     [routes],
   );
 
@@ -109,11 +108,15 @@ export function AppSidebar({
 
   const dataPortal = React.useMemo(
     () =>
-      portalRoutes.map((entry) => ({
-        name: entry.label,
-        url: prefixUrl(entry.path, universe),
-        icon: entry.icon ?? Settings2,
-      })),
+      portalRoutes.flatMap((entry) =>
+        entry.children
+          ? entry.children.map((child) => ({
+              name: child.label,
+              url: prefixUrl(child.path, universe),
+              icon: entry.icon,
+            }))
+          : [{ name: entry.label, url: prefixUrl(entry.path, universe), icon: entry.icon }],
+      ),
     [portalRoutes, universe],
   );
 

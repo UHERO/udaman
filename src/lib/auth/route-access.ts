@@ -16,9 +16,9 @@ import {
   BookOpen,
   ChartLine,
   FileSpreadsheet,
+  Globe,
   SearchSlash,
   Settings,
-  Settings2,
   Shield,
   TableProperties,
   type LucideIcon,
@@ -113,6 +113,7 @@ export const ROUTES: RouteEntry[] = [
       { label: "Workers", path: "/udaman/admin/workers" },
       { label: "Schedules", path: "/udaman/admin/schedules" },
       { label: "Users", path: "/udaman/admin/users" },
+      { label: "Crawlers", path: "/udaman/admin/crawlers" },
     ],
   },
   {
@@ -157,10 +158,13 @@ export const ROUTES: RouteEntry[] = [
     ],
   },
   {
-    label: "Settings",
-    path: "/settings",
-    icon: Settings2,
+    label: "Web Crawlers",
+    path: "/udaman/admin/crawlers",
+    icon: Globe,
     roles: ["admin", "dev"],
+    children: [
+      { label: "qPub", path: "/udaman/admin/crawlers/qpub" },
+    ],
   },
 ];
 

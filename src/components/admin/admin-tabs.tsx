@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   Calendar,
+  Globe,
   Maximize2,
   Minimize2,
   Shield,
@@ -26,6 +27,7 @@ const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Workers", icon: Activity, segment: "workers" },
   { label: "Schedules", icon: Calendar, segment: "schedules" },
   { label: "Users", icon: Users, segment: "users" },
+  { label: "Crawlers", icon: Globe, segment: "crawlers" },
 ];
 
 export function AdminTabs({ role, universe }: { role: string; universe: string }) {

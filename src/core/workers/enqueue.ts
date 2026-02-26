@@ -1,6 +1,7 @@
 import {
   criticalQueue,
   defaultQueue,
+  scraperQueue,
   JobName,
   type AdminActionJobData,
   type ApiDvwReloadJobData,
@@ -8,6 +9,9 @@ import {
   type DbedtUploadJobData,
   type DownloadJobData,
   type DvwUploadJobData,
+  type QpubLoadJobData,
+  type QpubParseJobData,
+  type QpubScrapeJobData,
   type ReloadJobData,
   type SeriesReloadJobData,
   type TargetedReloadJobData,
@@ -15,7 +19,8 @@ import {
 } from "./queues";
 
 export function enqueueSeriesReload(data: SeriesReloadJobData) {
-  return defaultQueue.add(JobName.SERIES_RELOAD, data);
+  return defaultQueue.add(JobName.SERIES_RELOAD, 
+    data);
 }
 
 export function enqueueReloadJob(data: ReloadJobData) {
@@ -75,4 +80,26 @@ export function enqueueDownload(data: DownloadJobData) {
 
 export function enqueueKauaiExport() {
   return defaultQueue.add(JobName.KAUAI_EXPORT, {});
+}
+
+export function enqueueQpubScrape(data: QpubScrapeJobData) {
+  return scraperQueue.add(JobName.QPUB_SCRAPE, data, {
+    jobId: `qpub-scrape-${data.tmk}`,
+  });
+}
+
+export function enqueueQpubSeed() {
+  return scraperQueue.add(JobName.QPUB_SEED, {});
+}
+
+export function enqueueQpubParse(data: QpubParseJobData) {
+  return scraperQueue.add(JobName.QPUB_PARSE, data, {
+    jobId: `qpub-parse-${data.tmk}`,
+  });
+}
+
+export function enqueueQpubLoad(data: QpubLoadJobData) {
+  return scraperQueue.add(JobName.QPUB_LOAD, data, {
+    jobId: `qpub-load-${data.tmk}`,
+  });
 }

@@ -19,6 +19,10 @@ export const JobName = {
   TARGETED_RELOAD: "reload.targeted",
   DOWNLOAD: "download.file",
   KAUAI_EXPORT: "export.kauai",
+  QPUB_SCRAPE: "scraper.qpub-scrape",
+  QPUB_SEED: "scraper.qpub-seed",
+  QPUB_PARSE: "scraper.qpub-parse",
+  QPUB_LOAD: "scraper.qpub-load",
 } as const;
 
 export type JobNameValue = (typeof JobName)[keyof typeof JobName];
@@ -83,6 +87,24 @@ export type DownloadJobData = {
 
 export type KauaiExportJobData = Record<string, never>;
 
+export type QpubScrapeJobData = {
+  tmk: string;
+  url: string;
+  island: string;
+};
+
+export type QpubSeedJobData = Record<string, never>;
+
+export type QpubParseJobData = {
+  tmk: string;
+  island: string;
+};
+
+export type QpubLoadJobData = {
+  tmk: string;
+  island: string;
+};
+
 // ─── Queue instances ─────────────────────────────────────────────────
 
 const defaultOpts = {
@@ -97,3 +119,11 @@ const defaultOpts = {
 
 export const defaultQueue = new Queue("default", defaultOpts);
 export const criticalQueue = new Queue("critical", defaultOpts);
+export const scraperQueue = new Queue("scraper", {
+  ...defaultOpts,
+  defaultJobOptions: {
+    ...defaultOpts.defaultJobOptions,
+    attempts: 3,
+    backoff: { type: "exponential", delay: 60_000 },
+  },
+});
