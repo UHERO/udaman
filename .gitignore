@@ -33,6 +33,10 @@ npm-debug.log*
 *.xlsx
 data/
 
+# Logs
+## logs/
+*.log
+
 # Misc
 .DS_Store
 *.pem

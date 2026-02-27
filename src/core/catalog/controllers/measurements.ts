@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logControllerCall } from "@/core/observability/app-events";
 import { createLogger } from "@/core/observability/logger";
 
 import MeasurementCollection from "../collections/measurement-collection";
@@ -18,6 +19,7 @@ const log = createLogger("catalog.measurements");
  *************************************************************************/
 
 export async function getMeasurements({ u }: { u?: Universe }) {
+  logControllerCall("measurements", "getMeasurements", { universe: u });
   log.info({ universe: u }, "fetching measurements");
   const data = await MeasurementCollection.list({ universe: u });
   log.info({ count: data.length }, "measurements fetched");
@@ -32,6 +34,7 @@ export async function getMeasurementsWithUnits({ u }: { u?: Universe }) {
 }
 
 export async function getMeasurement({ id }: { id: number }) {
+  logControllerCall("measurements", "getMeasurement", { id });
   log.info({ id }, "fetching measurement");
   const data = await MeasurementCollection.getById(id);
   return { data };
@@ -91,6 +94,7 @@ export async function createMeasurement({
 }: {
   payload: CreateMeasurementPayload;
 }) {
+  logControllerCall("measurements", "createMeasurement");
   log.info({ payload }, "creating measurement");
   const data = await MeasurementCollection.create(payload);
   log.info({ id: data.id }, "measurement created");
@@ -104,6 +108,7 @@ export async function updateMeasurement({
   id: number;
   payload: UpdateMeasurementPayload;
 }) {
+  logControllerCall("measurements", "updateMeasurement", { id });
   log.info({ id, payload }, "updating measurement");
   const data = await MeasurementCollection.update(id, payload);
   log.info({ id }, "measurement updated");
@@ -187,6 +192,7 @@ export async function propagateFields({
 }
 
 export async function deleteMeasurement({ id }: { id: number }) {
+  logControllerCall("measurements", "deleteMeasurement", { id });
   log.info({ id }, "deleting measurement");
   await MeasurementCollection.delete(id);
   log.info({ id }, "measurement deleted");

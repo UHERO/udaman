@@ -1,8 +1,11 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import GeographyCollection from "@catalog/collections/geography-collection";
 import type { Universe } from "@catalog/types/shared";
 import { isValidUniverse } from "@catalog/utils/validators";
 import { mysql } from "@database/mysql";
+
+import { logPageView } from "@/core/observability/app-events";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
@@ -30,6 +33,10 @@ export default async function UniverseLayout({
 
   const session = await requireAuth();
   const userId = session.user?.id;
+
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") ?? `/${universe}`;
+  logPageView(pathname, userId ? Number(userId) : undefined);
 
   let createdAt = "";
   if (userId) {

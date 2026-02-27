@@ -22,7 +22,11 @@ export function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   url.pathname = `/${subdomain}${pathname}`;
-  return NextResponse.rewrite(url);
+  const response = NextResponse.rewrite(url);
+
+  // Tag request with pathname so the layout can log page views
+  response.headers.set("x-pathname", pathname);
+  return response;
 }
 
 export const config = {

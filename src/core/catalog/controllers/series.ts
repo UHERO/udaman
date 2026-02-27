@@ -8,6 +8,7 @@ import SeriesCollection from "@catalog/collections/series-collection";
 import Series from "@catalog/models/series";
 import EvalExecutor from "@catalog/utils/eval-executor";
 
+import { logControllerCall } from "@/core/observability/app-events";
 import { createLogger } from "@/core/observability/logger";
 
 import Measurements from "../models/measurements";
@@ -28,6 +29,7 @@ export async function getSeries({
   limit?: number;
   universe: Universe;
 }) {
+  logControllerCall("series", "getSeries", { offset, limit, universe });
   log.info({ offset, limit, universe }, "fetching series summary list");
   const data = await SeriesCollection.getSummaryList({
     offset,
@@ -39,6 +41,7 @@ export async function getSeries({
 }
 
 export async function getSeriesById({ id }: { id: number }) {
+  logControllerCall("series", "getSeriesById", { id });
   log.info({ id }, "fetching series by id");
 
   // Fetch metadata first — we need xs_id for the data points query
@@ -159,6 +162,7 @@ export async function updateSeries({
   id: number;
   payload: import("@catalog/collections/series-collection").UpdateSeriesPayload;
 }) {
+  logControllerCall("series", "updateSeries", { id });
   log.info({ id }, "updating series");
   const result = await SeriesCollection.update(id, payload);
   log.info({ id, name: result.name }, "series updated");
@@ -211,6 +215,7 @@ export async function deleteSeries({
   id: number;
   force?: boolean;
 }) {
+  logControllerCall("series", "deleteSeries", { id, force });
   log.info({ id, force }, "deleting series");
   await SeriesCollection.delete(id, { force });
   log.info({ id }, "series deleted");
@@ -226,6 +231,7 @@ export async function searchSeries({
   universe: string;
   limit?: number;
 }) {
+  logControllerCall("series", "searchSeries", { term, universe, limit });
   log.info({ term, universe, limit }, "search series");
   const results = await SeriesCollection.search({
     text: term,

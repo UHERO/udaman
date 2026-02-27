@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logControllerCall } from "@/core/observability/app-events";
 import { createLogger } from "@/core/observability/logger";
 
 import CategoryCollection from "../collections/category-collection";
@@ -22,6 +23,7 @@ export async function getCategories({
   u: Universe;
   excludeId?: number;
 }) {
+  logControllerCall("categories", "getCategories", { universe: u, excludeId });
   log.info({ universe: u, excludeId }, "fetching categories");
   const data = await CategoryCollection.list({ universe: u, excludeId });
   log.info({ count: data.length, universe: u }, "categories fetched");
@@ -29,12 +31,14 @@ export async function getCategories({
 }
 
 export async function getCategory({ id }: { id: number }) {
+  logControllerCall("categories", "getCategory", { id });
   log.info({ id }, "fetching category");
   const data = await CategoryCollection.getById(id);
   return { data };
 }
 
 export async function getCategoryTree({ id }: { id: number }) {
+  logControllerCall("categories", "getCategoryTree", { id });
   log.info({ id }, "fetching category tree");
   const data = await CategoryCollection.getTree(id);
   return { data };
@@ -45,6 +49,7 @@ export async function createCategory({
 }: {
   payload: CreateCategoryPayload;
 }) {
+  logControllerCall("categories", "createCategory");
   log.info({ payload }, "creating category");
   const data = await CategoryCollection.create(payload);
   log.info({ id: data.id }, "category created");
@@ -58,6 +63,7 @@ export async function updateCategory({
   id: number;
   payload: UpdateCategoryPayload;
 }) {
+  logControllerCall("categories", "updateCategory", { id });
   log.info({ id, payload }, "updating category");
   const data = await CategoryCollection.update(id, payload);
   log.info({ id }, "category updated");
@@ -65,6 +71,7 @@ export async function updateCategory({
 }
 
 export async function deleteCategory({ id }: { id: number }) {
+  logControllerCall("categories", "deleteCategory", { id });
   log.info({ id }, "deleting category");
   await CategoryCollection.delete(id);
   log.info({ id }, "category deleted");

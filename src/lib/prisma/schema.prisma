@@ -662,6 +662,19 @@ model verification_tokens {
   @@id([identifier, token])
 }
 
+model app_logs {
+  id         BigInt        @id @default(autoincrement())
+  level      app_logs_level @default(info)
+  category   String        @db.VarChar(50)
+  name       String        @db.VarChar(255)
+  user_id    Int?
+  metadata   Json?
+  created_at DateTime      @default(now()) @db.Timestamp(0)
+
+  @@index([category, created_at], map: "idx_app_logs_category_created")
+  @@index([user_id, created_at], map: "idx_app_logs_user_created")
+}
+
 model xseries {
   id                                       Int                          @id @default(autoincrement())
   primary_series_id                        Int?
@@ -782,4 +795,10 @@ enum measurements_seasonal_adjustment {
   seasonally_adjusted
   not_seasonally_adjusted
   not_applicable
+}
+
+enum app_logs_level {
+  info
+  warn
+  error
 }

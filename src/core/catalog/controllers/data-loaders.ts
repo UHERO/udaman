@@ -4,6 +4,7 @@ import LoaderCollection from "@catalog/collections/loader-collection";
 import type { ReloadResult } from "@catalog/collections/loader-collection";
 import type { SerializedLoader } from "@catalog/models/loader";
 
+import { logControllerCall } from "@/core/observability/app-events";
 import { createLogger } from "@/core/observability/logger";
 
 import { Universe } from "../types/shared";
@@ -21,6 +22,7 @@ interface ControllerResponse<T> {
  *************************************************************************/
 
 export async function getDataLoaders() {
+  logControllerCall("data-loaders", "getDataLoaders");
   log.info("fetching all data loaders");
   const data = await LoaderCollection.list();
   log.info({ count: data.length }, "data loaders fetched");
@@ -28,6 +30,7 @@ export async function getDataLoaders() {
 }
 
 export async function getDataLoader({ id }: { id: number }) {
+  logControllerCall("data-loaders", "getDataLoader", { id });
   log.info({ id }, "fetching data loader by id");
   const data = await LoaderCollection.getById(id);
   log.info({ id }, "data loader fetched");
@@ -43,6 +46,7 @@ export async function createDataLoader({
   universe: Universe;
   payload: CreateLoaderFormData;
 }) {
+  logControllerCall("data-loaders", "createDataLoader", { seriesId, universe });
   log.info({ seriesId, universe }, "creating data loader");
   const data = await LoaderCollection.create({
     ...payload,
@@ -60,6 +64,7 @@ export async function loadDataPoints({
   id: number;
   clearFirst?: boolean;
 }): Promise<ControllerResponse<ReloadResult>> {
+  logControllerCall("data-loaders", "loadDataPoints", { id, clearFirst });
   log.info({ id }, "loading data points for loader");
   const loader = await LoaderCollection.getById(id);
   const result = await LoaderCollection.reload({ loader, clearFirst });
@@ -84,6 +89,7 @@ export async function deleteDataLoader({
 }: {
   id: number;
 }): Promise<ControllerResponse<boolean>> {
+  logControllerCall("data-loaders", "deleteDataLoader", { id });
   log.info({ id }, "deleting data loader");
   await LoaderCollection.delete(id);
   log.info({ id }, "data loader deleted");
@@ -119,6 +125,7 @@ export async function updateDataLoader({
   id: number;
   payload: UpdateLoaderFormData;
 }): Promise<ControllerResponse<SerializedLoader>> {
+  logControllerCall("data-loaders", "updateDataLoader", { id });
   log.info({ id }, "updating data loader");
   const { scale, ...rest } = payload;
   const loader = await LoaderCollection.update(id, {
