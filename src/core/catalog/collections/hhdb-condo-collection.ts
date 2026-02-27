@@ -4,7 +4,10 @@ import {
   HhdbCondoUnit,
   type HhdbCondoProjectAttrs,
   type HhdbCondoUnitAttrs,
+  hhdbCondoProjectRowToJSON,
+  hhdbCondoUnitRowToJSON,
 } from "../models/hhdb-condo";
+import type { HhdbCondoProjectJSON, HhdbCondoUnitJSON } from "../models/hhdb-condo";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const PROJECT_SORTABLE = [
@@ -30,9 +33,7 @@ const UNIT_SORTABLE = [
 ];
 
 export default class HhdbCondoCollection {
-  static async listProjects(
-    params: HhdbListParams,
-  ): Promise<HhdbListResult<HhdbCondoProject>> {
+  private static _buildProjectQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "tmk", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = PROJECT_SORTABLE.includes(sort) ? sort : "tmk";
@@ -46,6 +47,32 @@ export default class HhdbCondoCollection {
       const term = `%${search}%`;
       qp.push(term, term, term);
     }
+
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  private static _buildUnitQuery(params: HhdbListParams) {
+    const { page, limit, search, sort = "id", order = "asc" } = params;
+    const offset = (page - 1) * limit;
+    const sortCol = UNIT_SORTABLE.includes(sort) ? sort : "id";
+    const sortDir = order === "desc" ? "DESC" : "ASC";
+
+    let where = "";
+    const qp: (string | number)[] = [];
+    if (search) {
+      where =
+        "WHERE (tmk LIKE ? OR parent_tmk LIKE ? OR unit_number LIKE ? OR owner_name LIKE ?)";
+      const term = `%${search}%`;
+      qp.push(term, term, term, term);
+    }
+
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async listProjects(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbCondoProject>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildProjectQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
@@ -64,22 +91,32 @@ export default class HhdbCondoCollection {
     };
   }
 
+  static async listProjectsJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbCondoProjectJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildProjectQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM condominium_projects ${where}`,
+        qp,
+      ),
+      rawQuery<HhdbCondoProjectAttrs>(
+        `SELECT * FROM condominium_projects ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbCondoProjectRowToJSON),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
   static async listUnits(
     params: HhdbListParams,
   ): Promise<HhdbListResult<HhdbCondoUnit>> {
-    const { page, limit, search, sort = "id", order = "asc" } = params;
-    const offset = (page - 1) * limit;
-    const sortCol = UNIT_SORTABLE.includes(sort) ? sort : "id";
-    const sortDir = order === "desc" ? "DESC" : "ASC";
-
-    let where = "";
-    const qp: (string | number)[] = [];
-    if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR parent_tmk LIKE ? OR unit_number LIKE ? OR owner_name LIKE ?)";
-      const term = `%${search}%`;
-      qp.push(term, term, term, term);
-    }
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildUnitQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
@@ -94,6 +131,28 @@ export default class HhdbCondoCollection {
 
     return {
       rows: rows.map((r) => new HhdbCondoUnit(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listUnitsJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbCondoUnitJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildUnitQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM condominium_units ${where}`,
+        qp,
+      ),
+      rawQuery<HhdbCondoUnitAttrs>(
+        `SELECT * FROM condominium_units ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbCondoUnitRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

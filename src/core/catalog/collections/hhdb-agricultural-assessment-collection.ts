@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbAgriculturalAssessment, type HhdbAgriculturalAssessmentAttrs } from "../models/hhdb-agricultural-assessment";
+import { HhdbAgriculturalAssessment, type HhdbAgriculturalAssessmentAttrs, hhdbAgriculturalAssessmentRowToJSON } from "../models/hhdb-agricultural-assessment";
+import type { HhdbAgriculturalAssessmentJSON } from "../models/hhdb-agricultural-assessment";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const SORTABLE = [
@@ -12,7 +13,7 @@ const SORTABLE = [
 ];
 
 export default class HhdbAgriculturalAssessmentCollection {
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbAgriculturalAssessment>> {
+  private static _buildQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "tmk", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -26,6 +27,12 @@ export default class HhdbAgriculturalAssessmentCollection {
       qp.push(term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbAgriculturalAssessment>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM agricultural_assessments ${where}`, qp),
       rawQuery<HhdbAgriculturalAssessmentAttrs>(
@@ -36,6 +43,23 @@ export default class HhdbAgriculturalAssessmentCollection {
 
     return {
       rows: rows.map((r) => new HhdbAgriculturalAssessment(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbAgriculturalAssessmentJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM agricultural_assessments ${where}`, qp),
+      rawQuery<HhdbAgriculturalAssessmentAttrs>(
+        `SELECT * FROM agricultural_assessments ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbAgriculturalAssessmentRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

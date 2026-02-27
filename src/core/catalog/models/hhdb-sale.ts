@@ -62,3 +62,20 @@ export class HhdbSale {
 }
 
 export type HhdbSaleJSON = ReturnType<HhdbSale["toJSON"]>;
+
+export function hhdbSaleRowToJSON(attrs: HhdbSaleAttrs): HhdbSaleJSON {
+  return {
+    id: attrs.id ?? 0,
+    tmk: attrs.tmk ?? null,
+    saleDate: attrs.sale_date ? new Date(attrs.sale_date).toISOString() : null,
+    saleAmount: attrs.sale_amount != null ? Number(attrs.sale_amount) : null,
+    instrument: attrs.instrument ?? null,
+    instrumentType: attrs.instrument_type ?? null,
+    instrumentDescription: attrs.instrument_description ?? null,
+    validSale: attrs.valid_sale ?? null,
+    dateOfRecording: attrs.date_of_recording ? new Date(attrs.date_of_recording).toISOString() : null,
+    bookPage: attrs.book_page ?? null,
+    conveyanceTax: attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null,
+    documentType: attrs.document_type ?? null,
+  };
+}

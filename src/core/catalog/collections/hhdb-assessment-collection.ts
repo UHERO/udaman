@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbAssessment, type HhdbAssessmentAttrs } from "../models/hhdb-assessment";
+import { HhdbAssessment, type HhdbAssessmentAttrs, hhdbAssessmentRowToJSON } from "../models/hhdb-assessment";
+import type { HhdbAssessmentJSON } from "../models/hhdb-assessment";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const SORTABLE = [
@@ -16,7 +17,7 @@ const SORTABLE = [
 ];
 
 export default class HhdbAssessmentCollection {
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbAssessment>> {
+  private static _buildQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "id", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "id";
@@ -30,6 +31,12 @@ export default class HhdbAssessmentCollection {
       qp.push(term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbAssessment>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM assessments ${where}`, qp),
       rawQuery<HhdbAssessmentAttrs>(
@@ -40,6 +47,23 @@ export default class HhdbAssessmentCollection {
 
     return {
       rows: rows.map((r) => new HhdbAssessment(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbAssessmentJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM assessments ${where}`, qp),
+      rawQuery<HhdbAssessmentAttrs>(
+        `SELECT * FROM assessments ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbAssessmentRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

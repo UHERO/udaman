@@ -65,3 +65,21 @@ export class HhdbCurrentTaxBill {
 }
 
 export type HhdbCurrentTaxBillJSON = ReturnType<HhdbCurrentTaxBill["toJSON"]>;
+
+export function hhdbCurrentTaxBillRowToJSON(attrs: HhdbCurrentTaxBillAttrs): HhdbCurrentTaxBillJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    taxPeriod: attrs.tax_period ?? null,
+    description: attrs.description ?? null,
+    originalDueDate: attrs.original_due_date ? new Date(attrs.original_due_date).toISOString() : null,
+    taxesAssessment: attrs.taxes_assessment != null ? Number(attrs.taxes_assessment) : null,
+    taxCredits: attrs.tax_credits != null ? Number(attrs.tax_credits) : null,
+    netTax: attrs.net_tax != null ? Number(attrs.net_tax) : null,
+    penalty: attrs.penalty != null ? Number(attrs.penalty) : null,
+    interest: attrs.interest != null ? Number(attrs.interest) : null,
+    other: attrs.other != null ? Number(attrs.other) : null,
+    amountDue: attrs.amount_due != null ? Number(attrs.amount_due) : null,
+  };
+}

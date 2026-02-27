@@ -97,3 +97,29 @@ export class HhdbCommercialDetail {
 }
 
 export type HhdbCommercialDetailJSON = ReturnType<HhdbCommercialDetail["toJSON"]>;
+
+export function hhdbCommercialDetailRowToJSON(attrs: HhdbCommercialDetailAttrs): HhdbCommercialDetailJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    commercialImprovementId: attrs.commercial_improvement_id != null ? Number(attrs.commercial_improvement_id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    card: attrs.card ?? null,
+    section: attrs.section ?? null,
+    floor: attrs.floor ?? null,
+    usage: attrs.usage ?? null,
+    area: attrs.area ?? null,
+    perimeter: attrs.perimeter ?? null,
+    exteriorWall: attrs.exterior_wall ?? null,
+    wallHeight: attrs.wall_height ?? null,
+    occupancy: attrs.occupancy ?? null,
+    construction: attrs.construction ?? null,
+    condoStyle: attrs.condo_style ?? null,
+    condoType: attrs.condo_type ?? null,
+    condoUnit: attrs.condo_unit ?? null,
+    floorLevel: attrs.floor_level ?? null,
+    view: attrs.view ?? null,
+    project: attrs.project ?? null,
+    description: attrs.description ?? null,
+  };
+}

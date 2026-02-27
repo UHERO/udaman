@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbImprovement, type HhdbImprovementAttrs } from "../models/hhdb-improvement";
+import { HhdbImprovement, type HhdbImprovementAttrs, hhdbImprovementRowToJSON } from "../models/hhdb-improvement";
+import type { HhdbImprovementJSON } from "../models/hhdb-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const RESIDENTIAL_SORTABLE = [
@@ -35,10 +36,10 @@ const TABLE_MAP = {
 } as const;
 
 export default class HhdbImprovementCollection {
-  static async list(
+  private static _buildQuery(
     params: HhdbListParams,
     type: "residential" | "commercial" = "residential",
-  ): Promise<HhdbListResult<HhdbImprovement>> {
+  ) {
     const { page, limit, search, sort = "id", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortable = type === "residential" ? RESIDENTIAL_SORTABLE : COMMERCIAL_SORTABLE;
@@ -58,6 +59,15 @@ export default class HhdbImprovementCollection {
       qp.push(term, term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset, table };
+  }
+
+  static async list(
+    params: HhdbListParams,
+    type: "residential" | "commercial" = "residential",
+  ): Promise<HhdbListResult<HhdbImprovement>> {
+    const { where, qp, sortCol, sortDir, limit, offset, table } = this._buildQuery(params, type);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM ${table} ${where}`, qp),
       rawQuery<HhdbImprovementAttrs>(
@@ -68,6 +78,26 @@ export default class HhdbImprovementCollection {
 
     return {
       rows: rows.map((r) => new HhdbImprovement(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(
+    params: HhdbListParams,
+    type: "residential" | "commercial" = "residential",
+  ): Promise<HhdbListResult<HhdbImprovementJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset, table } = this._buildQuery(params, type);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM ${table} ${where}`, qp),
+      rawQuery<HhdbImprovementAttrs>(
+        `SELECT * FROM ${table} ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbImprovementRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

@@ -2,13 +2,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { cn } from "@/lib/utils";
 import { AssessedValueChart } from "@/components/hhdb/dashboard/assessed-value-chart";
 import { CondoAreaChart } from "@/components/hhdb/dashboard/condo-area-chart";
 import { PermitActivityChart } from "@/components/hhdb/dashboard/permit-activity-chart";
 import { PropertyCountChart } from "@/components/hhdb/dashboard/property-count-chart";
 import { SalePriceChart } from "@/components/hhdb/dashboard/sale-price-chart";
 import { TotalAssessedChart } from "@/components/hhdb/dashboard/total-assessed-chart";
+import { cn } from "@/lib/utils";
 
 type Tab = "about" | "metrics";
 
@@ -43,7 +43,7 @@ export default function Page() {
               "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
               tab === t.key
                 ? "border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground border-transparent"
+                : "text-muted-foreground hover:text-foreground border-transparent",
             )}
           >
             {t.label}
@@ -81,7 +81,7 @@ export default function Page() {
           <h2 className="mt-4 text-lg font-bold">Connecting to the database</h2>
           <p>
             The housing database is a MariaDB instance. You can connect with any
-            MySQL-compatible client (DBeaver, TablePlus, DataGrip, the{" "}
+            MySQL-compatible tool/library (RMariaDB, DBeaver, the{" "}
             <code>mysql</code> CLI, etc.).
           </p>
           <div className="not-prose bg-muted/50 my-4 overflow-x-auto rounded-md border p-4 font-mono text-sm">

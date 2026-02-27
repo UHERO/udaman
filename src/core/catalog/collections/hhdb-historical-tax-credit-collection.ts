@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbHistoricalTaxCredit, type HhdbHistoricalTaxCreditAttrs } from "../models/hhdb-historical-tax-credit";
+import { HhdbHistoricalTaxCredit, type HhdbHistoricalTaxCreditAttrs, hhdbHistoricalTaxCreditRowToJSON } from "../models/hhdb-historical-tax-credit";
+import type { HhdbHistoricalTaxCreditJSON } from "../models/hhdb-historical-tax-credit";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const SORTABLE = [
@@ -10,7 +11,7 @@ const SORTABLE = [
 ];
 
 export default class HhdbHistoricalTaxCreditCollection {
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxCredit>> {
+  private static _buildQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "tmk", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -24,6 +25,12 @@ export default class HhdbHistoricalTaxCreditCollection {
       qp.push(term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxCredit>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM historical_tax_credits ${where}`, qp),
       rawQuery<HhdbHistoricalTaxCreditAttrs>(
@@ -34,6 +41,23 @@ export default class HhdbHistoricalTaxCreditCollection {
 
     return {
       rows: rows.map((r) => new HhdbHistoricalTaxCredit(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxCreditJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM historical_tax_credits ${where}`, qp),
+      rawQuery<HhdbHistoricalTaxCreditAttrs>(
+        `SELECT * FROM historical_tax_credits ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbHistoricalTaxCreditRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

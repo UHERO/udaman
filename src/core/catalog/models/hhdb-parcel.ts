@@ -93,3 +93,28 @@ export class HhdbParcel {
 }
 
 export type HhdbParcelJSON = ReturnType<HhdbParcel["toJSON"]>;
+
+export function hhdbParcelRowToJSON(attrs: HhdbParcelAttrs): HhdbParcelJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    parcelNumber: attrs.parcel_number ?? null,
+    locationAddress: attrs.location_address ?? null,
+    addressOther: attrs.address_other ?? null,
+    projectName: attrs.project_name ?? null,
+    legalInformation: attrs.legal_information ?? null,
+    propertyClass: attrs.property_class ?? null,
+    landAreaSqft: attrs.land_area_sqft != null ? Number(attrs.land_area_sqft) : null,
+    landAreaAcres: attrs.land_area_acres != null ? Number(attrs.land_area_acres) : null,
+    neighborhoodCode: attrs.neighborhood_code ?? null,
+    zoning: attrs.zoning ?? null,
+    parcelNote: attrs.parcel_note ?? null,
+    damage: attrs.damage ?? null,
+    reentryZone: attrs.reentry_zone ?? null,
+    zoneColor: attrs.zone_color ?? null,
+    nonTaxableStatus: attrs.non_taxable_status ?? null,
+    livingUnits: attrs.living_units ?? null,
+    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+  };
+}

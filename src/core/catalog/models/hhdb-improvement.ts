@@ -113,3 +113,29 @@ export class HhdbImprovement {
 }
 
 export type HhdbImprovementJSON = ReturnType<HhdbImprovement["toJSON"]>;
+
+export function hhdbImprovementRowToJSON(attrs: HhdbImprovementAttrs): HhdbImprovementJSON {
+  return {
+    id: attrs.id ?? 0,
+    tmk: attrs.tmk ?? null,
+    buildingNumber: attrs.building_number ?? null,
+    yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,
+    effYearBuilt: attrs.eff_year_built != null ? Number(attrs.eff_year_built) : null,
+    livingArea: attrs.living_area ?? null,
+    bedrooms: attrs.bedrooms ?? null,
+    fullBath: attrs.full_bath ?? null,
+    halfBath: attrs.half_bath ?? null,
+    occupancy: attrs.occupancy ?? null,
+    framing: attrs.framing ?? null,
+    grade: attrs.grade ?? null,
+    buildingValue: attrs.building_value != null ? Number(attrs.building_value) : null,
+    totalRoomCount: attrs.total_room_count ?? null,
+    improvementName: attrs.improvement_name ?? null,
+    propertyClass: attrs.property_class ?? null,
+    structureType: attrs.structure_type ?? null,
+    units: attrs.units ?? null,
+    buildingSquareFootage: attrs.building_square_footage ?? null,
+    buildingType: attrs.building_type ?? null,
+    value: attrs.value != null ? Number(attrs.value) : null,
+  };
+}

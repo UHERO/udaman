@@ -37,3 +37,14 @@ export class HhdbPermit {
 }
 
 export type HhdbPermitJSON = ReturnType<HhdbPermit["toJSON"]>;
+
+export function hhdbPermitRowToJSON(attrs: HhdbPermitAttrs): HhdbPermitJSON {
+  return {
+    id: attrs.id ?? 0,
+    tmk: attrs.tmk ?? null,
+    permitDate: attrs.permit_date ? new Date(attrs.permit_date).toISOString() : null,
+    permitNumber: attrs.permit_number ?? null,
+    reason: attrs.reason ?? null,
+    permitAmount: attrs.permit_amount != null ? Number(attrs.permit_amount) : null,
+  };
+}

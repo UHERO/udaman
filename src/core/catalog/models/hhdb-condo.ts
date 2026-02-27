@@ -78,6 +78,27 @@ export class HhdbCondoProject {
 
 export type HhdbCondoProjectJSON = ReturnType<HhdbCondoProject["toJSON"]>;
 
+export function hhdbCondoProjectRowToJSON(attrs: HhdbCondoProjectAttrs): HhdbCondoProjectJSON {
+  return {
+    tmk: attrs.tmk ?? null,
+    projectName: attrs.project_name ?? null,
+    unitCount: attrs.unit_count != null ? Number(attrs.unit_count) : null,
+    zoning: attrs.zoning ?? null,
+    address: attrs.address ?? null,
+    city: attrs.city ?? null,
+    developer: attrs.developer ?? null,
+    projectNumber: attrs.project_number ?? null,
+    residential: attrs.residential != null ? Number(attrs.residential) : null,
+    commercial: attrs.commercial != null ? Number(attrs.commercial) : null,
+    parking: attrs.parking != null ? Number(attrs.parking) : null,
+    buildings: attrs.buildings != null ? Number(attrs.buildings) : null,
+    floors: attrs.floors != null ? Number(attrs.floors) : null,
+    landOwnership: attrs.land_ownership ?? null,
+    finalDate: attrs.final_date ? new Date(attrs.final_date).toISOString() : null,
+    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+  };
+}
+
 export interface HhdbCondoUnitAttrs {
   id?: number;
   tmk?: string | null;
@@ -117,3 +138,14 @@ export class HhdbCondoUnit {
 }
 
 export type HhdbCondoUnitJSON = ReturnType<HhdbCondoUnit["toJSON"]>;
+
+export function hhdbCondoUnitRowToJSON(attrs: HhdbCondoUnitAttrs): HhdbCondoUnitJSON {
+  return {
+    id: attrs.id ?? 0,
+    tmk: attrs.tmk ?? null,
+    parentTmk: attrs.parent_tmk ?? null,
+    unitNumber: attrs.unit_number ?? null,
+    ownerName: attrs.owner_name ?? null,
+    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+  };
+}

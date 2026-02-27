@@ -53,3 +53,18 @@ export class HhdbAgriculturalAssessment {
 }
 
 export type HhdbAgriculturalAssessmentJSON = ReturnType<HhdbAgriculturalAssessment["toJSON"]>;
+
+export function hhdbAgriculturalAssessmentRowToJSON(attrs: HhdbAgriculturalAssessmentAttrs): HhdbAgriculturalAssessmentJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    acres: attrs.acres ?? null,
+    acresInProduction: attrs.acres_in_production ?? null,
+    agriculturalType: attrs.agricultural_type ?? null,
+    agriculturalValue: attrs.agricultural_value != null ? Number(attrs.agricultural_value) : null,
+    assessedValue: attrs.assessed_value != null ? Number(attrs.assessed_value) : null,
+    description: attrs.description ?? null,
+    useDescription: attrs.use_description ?? null,
+  };
+}

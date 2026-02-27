@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbParcel, type HhdbParcelAttrs } from "../models/hhdb-parcel";
+import { HhdbParcel, type HhdbParcelAttrs, hhdbParcelRowToJSON } from "../models/hhdb-parcel";
+import type { HhdbParcelJSON } from "../models/hhdb-parcel";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const SORTABLE = [
@@ -15,7 +16,7 @@ const SORTABLE = [
 ];
 
 export default class HhdbParcelCollection {
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbParcel>> {
+  private static _buildQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "tmk", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -30,6 +31,12 @@ export default class HhdbParcelCollection {
       qp.push(term, term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbParcel>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
         `SELECT COUNT(*) as cnt FROM parcels ${where}`,
@@ -43,6 +50,26 @@ export default class HhdbParcelCollection {
 
     return {
       rows: rows.map((r) => new HhdbParcel(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbParcelJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM parcels ${where}`,
+        qp,
+      ),
+      rawQuery<HhdbParcelAttrs>(
+        `SELECT * FROM parcels ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbParcelRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

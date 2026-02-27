@@ -4,10 +4,10 @@ import { requirePermission } from "@/lib/auth/permissions";
 import type { HhdbListParams } from "@catalog/types/hhdb";
 import type { FactorResult } from "@catalog/types/hhdb";
 
-const FACTOR_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const FACTOR_CACHE_TTL_MS =  48 * 60 * 60  * 1000; // 2 days
 const factorCache = new Map<string, { data: FactorResult; expiresAt: number }>();
 
-const DASHBOARD_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DASHBOARD_CACHE_TTL_MS = 48 * 60 * 60 * 1000; //  2 days
 const dashboardCache = new Map<string, { data: unknown; expiresAt: number }>();
 
 async function cachedDashboard<T>(key: string, fn: () => Promise<T>): Promise<T> {
@@ -18,13 +18,13 @@ async function cachedDashboard<T>(key: string, fn: () => Promise<T>): Promise<T>
   return data;
 }
 import {
-  getProperties as getPropertiesCtrl,
-  getAssessments as getAssessmentsCtrl,
-  getSales as getSalesCtrl,
-  getImprovements as getImprovementsCtrl,
-  getPermits as getPermitsCtrl,
-  getCondoProjects as getCondoProjectsCtrl,
-  getCondoUnits as getCondoUnitsCtrl,
+  getPropertiesJSON as getPropertiesCtrl,
+  getAssessmentsJSON as getAssessmentsCtrl,
+  getSalesJSON as getSalesCtrl,
+  getImprovementsJSON as getImprovementsCtrl,
+  getPermitsJSON as getPermitsCtrl,
+  getCondoProjectsJSON as getCondoProjectsCtrl,
+  getCondoUnitsJSON as getCondoUnitsCtrl,
   getMedianAssessedByClass as getMedianAssessedCtrl,
   getMedianSalePriceByIsland as getMedianSalePriceCtrl,
   getPropertyCountByClass as getPropertyCountCtrl,
@@ -32,39 +32,36 @@ import {
   getPermitActivityByYear as getPermitActivityCtrl,
   getCondoAreaByYearBuilt as getCondoAreaCtrl,
   getFactors as getFactorsCtrl,
-  getParcels as getParcelsCtrl,
-  getOwners as getOwnersCtrl,
-  getAppeals as getAppealsCtrl,
-  getDedications as getDedicationsCtrl,
-  getLandClassifications as getLandClassificationsCtrl,
-  getCurrentTaxBills as getCurrentTaxBillsCtrl,
-  getHistoricalTaxSummary as getHistoricalTaxSummaryCtrl,
-  getHistoricalTaxDetails as getHistoricalTaxDetailsCtrl,
-  getHistoricalTaxPayments as getHistoricalTaxPaymentsCtrl,
-  getHistoricalTaxCredits as getHistoricalTaxCreditsCtrl,
-  getAgriculturalAssessments as getAgriculturalAssessmentsCtrl,
-  getCommercialDetails as getCommercialDetailsCtrl,
-  getResidentialAdditions as getResidentialAdditionsCtrl,
-  getAccessoryStructures as getAccessoryStructuresCtrl,
-  getYardImprovements as getYardImprovementsCtrl,
+  getParcelsJSON as getParcelsCtrl,
+  getOwnersJSON as getOwnersCtrl,
+  getAppealsJSON as getAppealsCtrl,
+  getDedicationsJSON as getDedicationsCtrl,
+  getLandClassificationsJSON as getLandClassificationsCtrl,
+  getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
+  getHistoricalTaxSummaryJSON as getHistoricalTaxSummaryCtrl,
+  getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
+  getHistoricalTaxPaymentsJSON as getHistoricalTaxPaymentsCtrl,
+  getHistoricalTaxCreditsJSON as getHistoricalTaxCreditsCtrl,
+  getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
+  getCommercialDetailsJSON as getCommercialDetailsCtrl,
+  getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
+  getAccessoryStructuresJSON as getAccessoryStructuresCtrl,
+  getYardImprovementsJSON as getYardImprovementsCtrl,
 } from "@catalog/controllers/hhdb";
 
 export async function getHhdbProperties(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getPropertiesCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getPropertiesCtrl(params);
 }
 
 export async function getHhdbAssessments(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getAssessmentsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getAssessmentsCtrl(params);
 }
 
 export async function getHhdbSales(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getSalesCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getSalesCtrl(params);
 }
 
 export async function getHhdbImprovements(
@@ -72,26 +69,22 @@ export async function getHhdbImprovements(
   type: "residential" | "commercial",
 ) {
   await requirePermission("hhdb", "read");
-  const result = await getImprovementsCtrl(params, type);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getImprovementsCtrl(params, type);
 }
 
 export async function getHhdbPermits(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getPermitsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getPermitsCtrl(params);
 }
 
 export async function getHhdbCondoProjects(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getCondoProjectsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getCondoProjectsCtrl(params);
 }
 
 export async function getHhdbCondoUnits(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getCondoUnitsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getCondoUnitsCtrl(params);
 }
 
 export async function getHhdbMedianAssessed() {
@@ -126,92 +119,77 @@ export async function getHhdbCondoArea() {
 
 export async function getHhdbParcels(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getParcelsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getParcelsCtrl(params);
 }
 
 export async function getHhdbOwners(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getOwnersCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getOwnersCtrl(params);
 }
 
 export async function getHhdbAppeals(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getAppealsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getAppealsCtrl(params);
 }
 
 export async function getHhdbDedications(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getDedicationsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getDedicationsCtrl(params);
 }
 
 export async function getHhdbLandClassifications(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getLandClassificationsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getLandClassificationsCtrl(params);
 }
 
 export async function getHhdbCurrentTaxBills(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getCurrentTaxBillsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getCurrentTaxBillsCtrl(params);
 }
 
 export async function getHhdbHistoricalTaxSummary(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getHistoricalTaxSummaryCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getHistoricalTaxSummaryCtrl(params);
 }
 
 export async function getHhdbHistoricalTaxDetails(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getHistoricalTaxDetailsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getHistoricalTaxDetailsCtrl(params);
 }
 
 export async function getHhdbHistoricalTaxPayments(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getHistoricalTaxPaymentsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getHistoricalTaxPaymentsCtrl(params);
 }
 
 export async function getHhdbHistoricalTaxCredits(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getHistoricalTaxCreditsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getHistoricalTaxCreditsCtrl(params);
 }
 
 export async function getHhdbAgriculturalAssessments(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getAgriculturalAssessmentsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getAgriculturalAssessmentsCtrl(params);
 }
 
 export async function getHhdbCommercialDetails(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getCommercialDetailsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getCommercialDetailsCtrl(params);
 }
 
 export async function getHhdbResidentialAdditions(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getResidentialAdditionsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getResidentialAdditionsCtrl(params);
 }
 
 export async function getHhdbAccessoryStructures(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getAccessoryStructuresCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getAccessoryStructuresCtrl(params);
 }
 
 export async function getHhdbYardImprovements(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
-  const result = await getYardImprovementsCtrl(params);
-  return { rows: result.rows.map((r) => r.toJSON()), total: result.total };
+  return getYardImprovementsCtrl(params);
 }
 
 export async function getHhdbFactors(table: string, column: string) {

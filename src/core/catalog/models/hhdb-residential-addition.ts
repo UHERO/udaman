@@ -53,3 +53,18 @@ export class HhdbResidentialAddition {
 }
 
 export type HhdbResidentialAdditionJSON = ReturnType<HhdbResidentialAddition["toJSON"]>;
+
+export function hhdbResidentialAdditionRowToJSON(attrs: HhdbResidentialAdditionAttrs): HhdbResidentialAdditionJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    card: attrs.card ?? null,
+    line: attrs.line ?? null,
+    lower: attrs.lower ?? null,
+    first: attrs.first ?? null,
+    second: attrs.second ?? null,
+    third: attrs.third ?? null,
+    area: attrs.area ?? null,
+  };
+}

@@ -45,3 +45,16 @@ export class HhdbOwner {
 }
 
 export type HhdbOwnerJSON = ReturnType<HhdbOwner["toJSON"]>;
+
+export function hhdbOwnerRowToJSON(attrs: HhdbOwnerAttrs): HhdbOwnerJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    ownerName: attrs.owner_name ?? null,
+    ownerType: attrs.owner_type ?? null,
+    ownerAddress: attrs.owner_address ?? null,
+    sequenceOrder: attrs.sequence_order != null ? Number(attrs.sequence_order) : null,
+    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+  };
+}

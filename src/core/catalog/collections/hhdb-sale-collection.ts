@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbSale, type HhdbSaleAttrs } from "../models/hhdb-sale";
+import { HhdbSale, type HhdbSaleAttrs, hhdbSaleRowToJSON } from "../models/hhdb-sale";
+import type { HhdbSaleJSON } from "../models/hhdb-sale";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const SORTABLE = [
@@ -17,7 +18,7 @@ const SORTABLE = [
 ];
 
 export default class HhdbSaleCollection {
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbSale>> {
+  private static _buildQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "id", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "id";
@@ -32,6 +33,12 @@ export default class HhdbSaleCollection {
       qp.push(term, term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbSale>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM sales ${where}`, qp),
       rawQuery<HhdbSaleAttrs>(
@@ -42,6 +49,23 @@ export default class HhdbSaleCollection {
 
     return {
       rows: rows.map((r) => new HhdbSale(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbSaleJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM sales ${where}`, qp),
+      rawQuery<HhdbSaleAttrs>(
+        `SELECT * FROM sales ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbSaleRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

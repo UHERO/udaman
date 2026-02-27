@@ -57,3 +57,19 @@ export class HhdbAppeal {
 }
 
 export type HhdbAppealJSON = ReturnType<HhdbAppeal["toJSON"]>;
+
+export function hhdbAppealRowToJSON(attrs: HhdbAppealAttrs): HhdbAppealJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    year: attrs.year != null ? Number(attrs.year) : null,
+    appealTypeValue: attrs.appeal_type_value ?? null,
+    scheduledHearingDateSubjectToChange: attrs.scheduled_hearing_date_subject_to_change ?? null,
+    status: attrs.status ?? null,
+    dateSettled: attrs.date_settled ? new Date(attrs.date_settled).toISOString() : null,
+    finalValue: attrs.final_value != null ? Number(attrs.final_value) : null,
+    taxPayerOpinionOfValue: attrs.tax_payer_opinion_of_value != null ? Number(attrs.tax_payer_opinion_of_value) : null,
+    taxPayerOpinionOfPropertyClass: attrs.tax_payer_opinion_of_property_class ?? null,
+    taxPayerOpinionOfExemptions: attrs.tax_payer_opinion_of_exemptions != null ? Number(attrs.tax_payer_opinion_of_exemptions) : null,
+  };
+}

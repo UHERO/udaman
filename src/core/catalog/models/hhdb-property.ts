@@ -93,3 +93,27 @@ export class HhdbProperty {
 }
 
 export type HhdbPropertyJSON = ReturnType<HhdbProperty["toJSON"]>;
+
+export function hhdbPropertyRowToJSON(attrs: HhdbPropertyAttrs): HhdbPropertyJSON {
+  return {
+    tmk: attrs.tmk ?? null,
+    islandCode: attrs.island_code ?? null,
+    parcelNumber: attrs.parcel_number ?? null,
+    locationAddress: attrs.location_address ?? null,
+    addressOther: attrs.address_other ?? null,
+    projectName: attrs.project_name ?? null,
+    propertyClass: attrs.property_class ?? null,
+    landAreaSqft: attrs.land_area_sqft != null ? Number(attrs.land_area_sqft) : null,
+    landAreaAcres: attrs.land_area_acres != null ? Number(attrs.land_area_acres) : null,
+    neighborhoodCode: attrs.neighborhood_code ?? null,
+    zoning: attrs.zoning ?? null,
+    damage: attrs.damage ?? null,
+    nonTaxableStatus: attrs.non_taxable_status ?? null,
+    livingUnits: attrs.living_units ?? null,
+    zip: attrs.zip ?? null,
+    latitude: attrs.latitude != null ? Number(attrs.latitude) : null,
+    longitude: attrs.longitude != null ? Number(attrs.longitude) : null,
+    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+    updatedAt: attrs.updated_at ? new Date(attrs.updated_at).toISOString() : null,
+  };
+}

@@ -28,6 +28,8 @@ import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-
 
 const log = createLogger("hhdb");
 
+// --- Model instance variants (for business logic) ---
+
 export async function getProperties(params: HhdbListParams) {
   log.info({ params }, "fetching hhdb properties");
   const result = await HhdbPropertyCollection.list(params);
@@ -78,48 +80,6 @@ export async function getCondoUnits(params: HhdbListParams) {
   const result = await HhdbCondoCollection.listUnits(params);
   log.info({ total: result.total }, "hhdb condo units fetched");
   return result;
-}
-
-export async function getMedianAssessedByClass() {
-  log.info("fetching median assessed by class");
-  const data = await HhdbDashboardCollection.getMedianAssessedByClass();
-  log.info({ count: data.length }, "median assessed by class fetched");
-  return data;
-}
-
-export async function getMedianSalePriceByIsland() {
-  log.info("fetching median sale price by island");
-  const data = await HhdbDashboardCollection.getMedianSalePriceByIsland();
-  log.info({ count: data.length }, "median sale price by island fetched");
-  return data;
-}
-
-export async function getPropertyCountByClass() {
-  log.info("fetching property count by class");
-  const data = await HhdbDashboardCollection.getPropertyCountByClass();
-  log.info({ count: data.length }, "property count by class fetched");
-  return data;
-}
-
-export async function getTotalAssessedByIsland() {
-  log.info("fetching total assessed by island");
-  const data = await HhdbDashboardCollection.getTotalAssessedByIsland();
-  log.info({ count: data.length }, "total assessed by island fetched");
-  return data;
-}
-
-export async function getPermitActivityByYear() {
-  log.info("fetching permit activity by year");
-  const data = await HhdbDashboardCollection.getPermitActivityByYear();
-  log.info({ count: data.length }, "permit activity by year fetched");
-  return data;
-}
-
-export async function getCondoAreaByYearBuilt() {
-  log.info("fetching condo area by year built");
-  const data = await HhdbDashboardCollection.getCondoAreaByYearBuilt();
-  log.info({ count: data.length }, "condo area by year built fetched");
-  return data;
 }
 
 export async function getParcels(params: HhdbListParams) {
@@ -225,6 +185,209 @@ export async function getYardImprovements(params: HhdbListParams) {
   const result = await HhdbYardImprovementCollection.list(params);
   log.info({ total: result.total }, "hhdb yard improvements fetched");
   return result;
+}
+
+// --- JSON variants (for read-only list display) ---
+
+export async function getPropertiesJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb properties");
+  const result = await HhdbPropertyCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb properties fetched");
+  return result;
+}
+
+export async function getAssessmentsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb assessments");
+  const result = await HhdbAssessmentCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb assessments fetched");
+  return result;
+}
+
+export async function getSalesJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb sales");
+  const result = await HhdbSaleCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb sales fetched");
+  return result;
+}
+
+export async function getImprovementsJSON(
+  params: HhdbListParams,
+  type: "residential" | "commercial",
+) {
+  log.info({ params, type }, "fetching hhdb improvements");
+  const result = await HhdbImprovementCollection.listJSON(params, type);
+  log.info({ total: result.total }, "hhdb improvements fetched");
+  return result;
+}
+
+export async function getPermitsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb permits");
+  const result = await HhdbPermitCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb permits fetched");
+  return result;
+}
+
+export async function getCondoProjectsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb condo projects");
+  const result = await HhdbCondoCollection.listProjectsJSON(params);
+  log.info({ total: result.total }, "hhdb condo projects fetched");
+  return result;
+}
+
+export async function getCondoUnitsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb condo units");
+  const result = await HhdbCondoCollection.listUnitsJSON(params);
+  log.info({ total: result.total }, "hhdb condo units fetched");
+  return result;
+}
+
+export async function getParcelsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb parcels");
+  const result = await HhdbParcelCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb parcels fetched");
+  return result;
+}
+
+export async function getOwnersJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb owners");
+  const result = await HhdbOwnerCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb owners fetched");
+  return result;
+}
+
+export async function getAppealsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb appeals");
+  const result = await HhdbAppealCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb appeals fetched");
+  return result;
+}
+
+export async function getDedicationsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb dedications");
+  const result = await HhdbDedicationCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb dedications fetched");
+  return result;
+}
+
+export async function getLandClassificationsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb land classifications");
+  const result = await HhdbLandClassificationCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb land classifications fetched");
+  return result;
+}
+
+export async function getCurrentTaxBillsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb current tax bills");
+  const result = await HhdbCurrentTaxBillCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb current tax bills fetched");
+  return result;
+}
+
+export async function getHistoricalTaxSummaryJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb historical tax summary");
+  const result = await HhdbHistoricalTaxSummaryCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb historical tax summary fetched");
+  return result;
+}
+
+export async function getHistoricalTaxDetailsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb historical tax details");
+  const result = await HhdbHistoricalTaxDetailCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb historical tax details fetched");
+  return result;
+}
+
+export async function getHistoricalTaxPaymentsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb historical tax payments");
+  const result = await HhdbHistoricalTaxPaymentCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb historical tax payments fetched");
+  return result;
+}
+
+export async function getHistoricalTaxCreditsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb historical tax credits");
+  const result = await HhdbHistoricalTaxCreditCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb historical tax credits fetched");
+  return result;
+}
+
+export async function getAgriculturalAssessmentsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb agricultural assessments");
+  const result = await HhdbAgriculturalAssessmentCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb agricultural assessments fetched");
+  return result;
+}
+
+export async function getCommercialDetailsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb commercial details");
+  const result = await HhdbCommercialDetailCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb commercial details fetched");
+  return result;
+}
+
+export async function getResidentialAdditionsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb residential additions");
+  const result = await HhdbResidentialAdditionCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb residential additions fetched");
+  return result;
+}
+
+export async function getAccessoryStructuresJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb accessory structures");
+  const result = await HhdbAccessoryStructureCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb accessory structures fetched");
+  return result;
+}
+
+export async function getYardImprovementsJSON(params: HhdbListParams) {
+  log.info({ params }, "fetching hhdb yard improvements");
+  const result = await HhdbYardImprovementCollection.listJSON(params);
+  log.info({ total: result.total }, "hhdb yard improvements fetched");
+  return result;
+}
+
+// --- Dashboard & Factor (no model instantiation, unchanged) ---
+
+export async function getMedianAssessedByClass() {
+  log.info("fetching median assessed by class");
+  const data = await HhdbDashboardCollection.getMedianAssessedByClass();
+  log.info({ count: data.length }, "median assessed by class fetched");
+  return data;
+}
+
+export async function getMedianSalePriceByIsland() {
+  log.info("fetching median sale price by island");
+  const data = await HhdbDashboardCollection.getMedianSalePriceByIsland();
+  log.info({ count: data.length }, "median sale price by island fetched");
+  return data;
+}
+
+export async function getPropertyCountByClass() {
+  log.info("fetching property count by class");
+  const data = await HhdbDashboardCollection.getPropertyCountByClass();
+  log.info({ count: data.length }, "property count by class fetched");
+  return data;
+}
+
+export async function getTotalAssessedByIsland() {
+  log.info("fetching total assessed by island");
+  const data = await HhdbDashboardCollection.getTotalAssessedByIsland();
+  log.info({ count: data.length }, "total assessed by island fetched");
+  return data;
+}
+
+export async function getPermitActivityByYear() {
+  log.info("fetching permit activity by year");
+  const data = await HhdbDashboardCollection.getPermitActivityByYear();
+  log.info({ count: data.length }, "permit activity by year fetched");
+  return data;
+}
+
+export async function getCondoAreaByYearBuilt() {
+  log.info("fetching condo area by year built");
+  const data = await HhdbDashboardCollection.getCondoAreaByYearBuilt();
+  log.info({ count: data.length }, "condo area by year built fetched");
+  return data;
 }
 
 export async function getFactors(table: string, column: string) {

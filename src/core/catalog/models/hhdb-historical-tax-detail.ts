@@ -53,3 +53,18 @@ export class HhdbHistoricalTaxDetail {
 }
 
 export type HhdbHistoricalTaxDetailJSON = ReturnType<HhdbHistoricalTaxDetail["toJSON"]>;
+
+export function hhdbHistoricalTaxDetailRowToJSON(attrs: HhdbHistoricalTaxDetailAttrs): HhdbHistoricalTaxDetailJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    historicalTaxSummaryId: attrs.historical_tax_summary_id != null ? Number(attrs.historical_tax_summary_id) : null,
+    tmk: attrs.tmk ?? null,
+    taxPeriod: attrs.tax_period ?? null,
+    description: attrs.description ?? null,
+    tax: attrs.tax != null ? Number(attrs.tax) : null,
+    paymentsCredits: attrs.payments_credits != null ? Number(attrs.payments_credits) : null,
+    penalty: attrs.penalty != null ? Number(attrs.penalty) : null,
+    interest: attrs.interest != null ? Number(attrs.interest) : null,
+    other: attrs.other != null ? Number(attrs.other) : null,
+  };
+}

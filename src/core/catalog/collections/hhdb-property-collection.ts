@@ -1,5 +1,6 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbProperty, type HhdbPropertyAttrs } from "../models/hhdb-property";
+import { HhdbProperty, type HhdbPropertyAttrs, hhdbPropertyRowToJSON } from "../models/hhdb-property";
+import type { HhdbPropertyJSON } from "../models/hhdb-property";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
 const SORTABLE = [
@@ -17,7 +18,7 @@ const SORTABLE = [
 ];
 
 export default class HhdbPropertyCollection {
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbProperty>> {
+  private static _buildQuery(params: HhdbListParams) {
     const { page, limit, search, sort = "tmk", order = "asc" } = params;
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -32,6 +33,12 @@ export default class HhdbPropertyCollection {
       qp.push(term, term, term, term, term, term);
     }
 
+    return { where, qp, sortCol, sortDir, limit, offset };
+  }
+
+  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbProperty>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
         `SELECT COUNT(*) as cnt FROM properties ${where}`,
@@ -45,6 +52,26 @@ export default class HhdbPropertyCollection {
 
     return {
       rows: rows.map((r) => new HhdbProperty(r)),
+      total: Number(countResult[0].cnt),
+    };
+  }
+
+  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbPropertyJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+
+    const [countResult, rows] = await Promise.all([
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM properties ${where}`,
+        qp,
+      ),
+      rawQuery<HhdbPropertyAttrs>(
+        `SELECT * FROM properties ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
+        [...qp, limit, offset],
+      ),
+    ]);
+
+    return {
+      rows: rows.map(hhdbPropertyRowToJSON),
       total: Number(countResult[0].cnt),
     };
   }

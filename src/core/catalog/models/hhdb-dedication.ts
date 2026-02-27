@@ -29,3 +29,12 @@ export class HhdbDedication {
 }
 
 export type HhdbDedicationJSON = ReturnType<HhdbDedication["toJSON"]>;
+
+export function hhdbDedicationRowToJSON(attrs: HhdbDedicationAttrs): HhdbDedicationJSON {
+  return {
+    id: attrs.id != null ? Number(attrs.id) : null,
+    tmk: attrs.tmk ?? null,
+    taxYear: attrs.tax_year != null ? Number(attrs.tax_year) : null,
+    numberOfDedications: attrs.number_of_dedications ?? null,
+  };
+}
