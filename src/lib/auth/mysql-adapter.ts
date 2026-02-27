@@ -60,8 +60,8 @@ export function MySqlAdapter(): Adapter {
     async createUser(user) {
       const { email, name, image, emailVerified } = user;
       await mysql`
-        INSERT INTO users (email, name, image, email_verified, created_at, updated_at)
-        VALUES (${email}, ${name ?? null}, ${image ?? null}, ${emailVerified}, NOW(), NOW())
+        INSERT INTO users (email, name, image, email_verified, role, universe, created_at, updated_at)
+        VALUES (${email}, ${name ?? null}, ${image ?? null}, ${emailVerified}, 'internal', 'UHERO', NOW(), NOW())
       `;
       const rows = await mysql`
         SELECT id, email, name, image, email_verified
