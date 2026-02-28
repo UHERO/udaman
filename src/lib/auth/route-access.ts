@@ -114,6 +114,7 @@ export const ROUTES: RouteEntry[] = [
       { label: "Workers", path: "/udaman/admin/workers" },
       { label: "Schedules", path: "/udaman/admin/schedules" },
       { label: "Users", path: "/udaman/admin/users" },
+      { label: "Logs", path: "/udaman/admin/logs" },
       { label: "Crawlers", path: "/udaman/admin/crawlers" },
     ],
   },

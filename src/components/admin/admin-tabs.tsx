@@ -9,6 +9,7 @@ import {
   Globe,
   Maximize2,
   Minimize2,
+  ScrollText,
   Shield,
   ToggleRight,
   Users,
@@ -27,6 +28,7 @@ const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Workers", icon: Activity, segment: "workers" },
   { label: "Schedules", icon: Calendar, segment: "schedules" },
   { label: "Users", icon: Users, segment: "users" },
+  { label: "Logs", icon: ScrollText, segment: "logs" },
   { label: "Crawlers", icon: Globe, segment: "crawlers" },
 ];
 
