@@ -31,7 +31,7 @@ npm-debug.log*
 *.csv
 *.xls
 *.xlsx
-data/
+
 
 # Logs
 ## logs/
@@ -41,3 +41,8 @@ data/
 .DS_Store
 *.pem
 tmp
+
+# Ruby/Bundler
+vendor/
+.bundle/
+Gemfile.lock
