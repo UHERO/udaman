@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Collapsible } from "@radix-ui/react-collapsible";
 import { ChevronDown } from "lucide-react";
 
@@ -29,7 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { fetchCategoryMeasures } from "../../../../../actions/dbedt";
+import { fetchCategoryMeasures } from "@/actions/data-portal/dbedt";
 import { CategoryType, Series, SubOption } from "../types";
 import { CAT_ICON_MAP } from "../utils";
 import DbedtOptions from "./dbedt-options";
@@ -49,10 +49,11 @@ export default function DbedtSidebar({
   selectionCleared: () => void;
   clearSelection: boolean;
 }) {
-  const { toggleSidebar, state, openMobile, setOpenMobile } = useSidebar();
+  const { toggleSidebar, state, openMobile } = useSidebar();
 
   const [subOptions, setSuboptions] = useState<Record<string, SubOption[]>>({});
   const [isCollapsed, setIsCollapsed] = useState<Record<string, boolean>>({});
+  const [isChildCollapsed, setIsChildCollapsed] = useState<Record<number, boolean>>({});
 
   const getSubOptions = async (id: number) => {
     if (id in subOptions && subOptions[id]) return;
@@ -82,6 +83,7 @@ export default function DbedtSidebar({
         }
         return updated;
       });
+      setIsChildCollapsed({});
       selectionCleared();
     }
   }, [clearSelection]);
@@ -127,18 +129,12 @@ export default function DbedtSidebar({
 
   return (
     <Sidebar
-      variant="inset"
-      className={cn(
-        openMobile ? "bg-transparent" : "bg-white",
-        "z-50 h-[520px] max-w-[250px] p-0"
-      )}
+      variant="sidebar"
+      className="z-50 h-[520px] max-w-[250px] p-0 **:data-[sidebar=sidebar]:bg-white *:data-[slot=sidebar-container]:border-r-0"
       collapsible="icon"
     >
       <SidebarTrigger
-        className={cn(
-          openMobile ? "bg-transparent" : "bg-white",
-          "flex w-full scale-75 animate-pulse py-5 text-base font-semibold text-zinc-400"
-        )}
+        className="flex w-full scale-75 animate-pulse py-5 text-base font-semibold text-zinc-400"
       >
         INDICATOR
       </SidebarTrigger>
@@ -147,9 +143,7 @@ export default function DbedtSidebar({
         {!categories ? (
           <SidebarLoadingSkeleton />
         ) : (
-          <SidebarContent
-            className={cn(openMobile ? "bg-transparent" : "bg-white")}
-          >
+          <SidebarContent className="gap-0">
             {categories.map((group, i) => {
               const Icon = CAT_ICON_MAP[group.name];
 
@@ -162,7 +156,7 @@ export default function DbedtSidebar({
                   }
                   className="group/collapsible"
                 >
-                  {state === "collapsed" && Icon && !openMobile ? (
+                  {state === "collapsed" && !!Icon && !openMobile ? (
                     <SidebarMenu className="mb-0.5 flex-1 items-center">
                       <Tooltip>
                         <TooltipTrigger>
@@ -191,14 +185,14 @@ export default function DbedtSidebar({
                       </Tooltip>
                     </SidebarMenu>
                   ) : (
-                    <SidebarGroup>
+                    <SidebarGroup className="py-0.5">
                       <SidebarGroupLabel className="h-fit w-full px-1">
                         <CollapsibleTrigger
                           className={cn(
                             activeGroupsMap[group.name]
                               ? "bg-sky-200/60 text-zinc-700"
                               : "text-zinc-500",
-                            "my-0 -ml-2 flex w-full items-center justify-start gap-1 rounded-sm p-1 font-semibold hover:bg-gray-100 active:scale-[1.02]"
+                            "my-0 -ml-2 flex w-full cursor-pointer items-center justify-start gap-1 rounded-sm p-1 font-semibold hover:bg-gray-100 active:scale-[1.02]"
                           )}
                         >
                           <ChevronDown
@@ -214,32 +208,32 @@ export default function DbedtSidebar({
 
                       <CollapsibleContent>
                         <SidebarGroupContent>
-                          <SidebarMenu className="gap-0">
+                          <SidebarMenu className="gap-0.5">
                             {Object.values(group.children || {}).map((item) => (
                               <Collapsible
                                 key={`item-${item.id}`}
-                                onOpenChange={(open) =>
-                                  open && getSubOptions(item.id)
-                                }
+                                open={isChildCollapsed[item.id] ?? false}
+                                onOpenChange={(open) => {
+                                  setIsChildCollapsed((prev) => ({ ...prev, [item.id]: open }));
+                                  if (open) getSubOptions(item.id);
+                                }}
                                 className="group/collapsible2"
                               >
-                                <SidebarGroup>
-                                  <SidebarGroupLabel className="my-0.5 h-fit">
-                                    <CollapsibleTrigger
-                                      className={cn(
-                                        activeOptionsMap[item.id]
-                                          ? "bg-sky-200/60 font-semibold text-zinc-700"
-                                          : "text-zinc-500",
-                                        "grid h-fit w-full grid-cols-[auto,1fr] items-center justify-start gap-1.5 rounded-sm px-1 py-0.5 text-left hover:bg-gray-100 hover:font-semibold active:scale-[1.02]"
-                                      )}
-                                    >
-                                      <ChevronDown
-                                        size={14}
-                                        className="transition-transform group-data-[state=open]/collapsible2:rotate-180"
-                                      />
-                                      {item.name}
-                                    </CollapsibleTrigger>
-                                  </SidebarGroupLabel>
+                                <SidebarGroup className="p-0">
+                                  <CollapsibleTrigger
+                                    className={cn(
+                                      activeOptionsMap[item.id]
+                                        ? "bg-sky-200/60 font-semibold text-zinc-700"
+                                        : "text-zinc-500",
+                                      "flex h-fit w-full cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-left text-xs hover:bg-gray-100 hover:font-semibold active:scale-[1.02]"
+                                    )}
+                                  >
+                                    <ChevronDown
+                                      size={14}
+                                      className="shrink-0 transition-transform group-data-[state=open]/collapsible2:rotate-180"
+                                    />
+                                    {item.name}
+                                  </CollapsibleTrigger>
 
                                   <CollapsibleContent className="my-0.5">
                                     {!subOptions[item.id] ? (
@@ -275,8 +269,8 @@ export default function DbedtSidebar({
             })}
           </SidebarContent>
         )}
-        <SidebarRail />
       </ScrollArea>
+      <SidebarRail />
     </Sidebar>
   );
 }

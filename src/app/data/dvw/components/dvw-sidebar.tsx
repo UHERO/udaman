@@ -61,7 +61,7 @@ export default function Dvw_Sidebar({
   selectedFreq: string;
   handleState: (state: string) => void;
 }) {
-  const { toggleSidebar, state, openMobile, setOpenMobile } = useSidebar();
+  const { toggleSidebar, state, openMobile } = useSidebar();
 
   const [selectedDimensions, setSelectedDimensions] =
     useState<SelectedDimension>({});
@@ -120,12 +120,12 @@ export default function Dvw_Sidebar({
         selectedFreq,
       );
 
-      handleFrequencies(res, selectedDimensions, false);
+      handleFrequencies(res as SelectedFreq[], selectedDimensions, false);
     }
   }, [selectedDimensions]);
   return (
     <Sidebar
-      variant="inset"
+      variant="sidebar"
       className={cn("z-50 bg-white p-0 [&>[data-slot=sidebar-container]]:static [&>[data-slot=sidebar-container]]:h-auto")}
       collapsible="icon"
     >
@@ -180,7 +180,7 @@ export default function Dvw_Sidebar({
               const Icon = DIMENSION_ICONS[mod];
               return (
                 <div key={`results-${i}`}>
-                  {state === "collapsed" && Icon && !openMobile ? (
+                  {state === "collapsed" && !!Icon && !openMobile ? (
                     <SidebarMenu className="mb-0.5 flex-1 items-center">
                       <Tooltip>
                         <TooltipTrigger>
@@ -236,27 +236,25 @@ export default function Dvw_Sidebar({
                                     onOpenChange={(open) => open}
                                     className="group/collapsible2"
                                   >
-                                    <SidebarGroup>
-                                      <SidebarGroupLabel className="my-0.5 h-fit">
+                                    <SidebarGroup className="p-0 py-0.5">
+                                      <div className="my-0 h-fit">
                                         {dimension.children ? (
                                           <CollapsibleTrigger
                                             className={cn(
                                               isAnyChildSelected
                                                 ? "bg-dvw text-white"
                                                 : "text-zinc-500",
-                                              "hover:bg-dvw/30 grid h-fit w-full grid-cols-[auto,1fr] items-center justify-start gap-1.5 rounded-sm px-1 py-0.5 text-left hover:font-semibold hover:text-zinc-500",
+                                              "hover:bg-dvw/30 flex h-fit w-full cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-left text-xs hover:font-semibold hover:text-zinc-500",
                                             )}
                                           >
-                                            {
-                                              <ChevronDown
-                                                size={14}
-                                                className="transition-transform group-data-[state=open]/collapsible2:rotate-180"
-                                              />
-                                            }
+                                            <ChevronDown
+                                              size={14}
+                                              className="shrink-0 transition-transform group-data-[state=open]/collapsible2:rotate-180"
+                                            />
                                             {dimension.nameW}
                                           </CollapsibleTrigger>
                                         ) : (
-                                          <SidebarGroupLabel
+                                          <button
                                             onClick={() =>
                                               handleSelectedDimensions(
                                                 mod,
@@ -269,13 +267,13 @@ export default function Dvw_Sidebar({
                                               ]?.state === true
                                                 ? "bg-dvw text-white"
                                                 : "text-zinc-500",
-                                              "hover:bg-dvw/30 grid h-fit w-full cursor-pointer grid-cols-[auto,1fr] items-center justify-start gap-1.5 rounded-sm px-1 py-0.5 text-left hover:text-zinc-500 active:scale-[1.02]",
+                                              "hover:bg-dvw/30 flex h-fit w-full cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-left text-xs hover:text-zinc-500 active:scale-[1.02]",
                                             )}
                                           >
                                             {dimension.nameW}
-                                          </SidebarGroupLabel>
+                                          </button>
                                         )}
-                                      </SidebarGroupLabel>
+                                      </div>
 
                                       <CollapsibleContent className="my-0.5">
                                         {dimension.children?.map((child) => {

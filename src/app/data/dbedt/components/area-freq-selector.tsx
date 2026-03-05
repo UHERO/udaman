@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
+import SelectionUnavailable from "../../dvw/components/error-inline";
 import DateSelector from "../../shared/date-selector";
 import FrequencyRegionSelector from "../../shared/freq-reg-selector";
 import { getUpdatedDateRange } from "../../shared/utils";
 import { DateOptions, SelectedFreq, SelectedGeo, Series } from "../types";
 import { formatObservations, getObsDates, setDateArray } from "../utils";
-import SelectionUnavailable from "././../../dvw/components/error-inline";
 
 export default function AreaFreqSelector({
   selectedIndicators,
@@ -276,7 +276,7 @@ export default function AreaFreqSelector({
   return (
     <div
       className={cn(
-        "z-50 flex flex-col gap-10 border border-r-0 border-b-0 border-l-0 pt-5 md:flex-row",
+        "z-50 flex w-full flex-col gap-10 border border-r-0 border-b-0 border-l-0 pt-5 md:flex-row",
       )}
     >
       <div

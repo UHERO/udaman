@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
@@ -238,40 +238,38 @@ export default function Selections({
   }
 
   return (
-    <SidebarProvider className="min-h-0 flex-col">
-      <div className="mt-1 flex items-center justify-between px-2">
-        <h1 className="text-dvw my-2 text-2xl font-bold">
-          {DIMENSION_MAP[module]}
-        </h1>
-        <Button variant={"outline"} asChild className="h-8 w-fit">
-          <Link href={"/data/dvw"}>Select Dataset</Link>
-        </Button>
-      </div>
-      <div className="flex min-h-0 flex-1">
+    <>
+      <Dvw_Sidebar
+        results={results ?? {}}
+        module={module}
+        handleFrequencies={(curr_freqs, dim, isCleared) => {
+          setDimensions(dim);
+          if (!selectedFreq || Object.keys(dimensions).length === 0) {
+            setFreqs(curr_freqs);
+          }
+          if (isCleared) {
+            setFreqs([]);
+            setSelectedFreq("");
+          }
+        }}
+        selectedFreq={selectedFreq}
+        handleState={() => {}}
+      />
+      <SidebarInset className="flex min-h-0 flex-col border-none p-3">
+        <div className="mt-1 flex items-center justify-between px-2">
+          <h1 className="text-dvw my-2 text-2xl font-bold">
+            {DIMENSION_MAP[module]}
+          </h1>
+          <Button variant={"outline"} asChild className="h-8 w-fit">
+            <Link href={"/data/dvw"}>Select Dataset</Link>
+          </Button>
+        </div>
         <SidebarTrigger className="ml-2 w-fit px-2 text-gray-400 md:hidden">
           SELECT FILTERS
         </SidebarTrigger>
-
-        <Dvw_Sidebar
-          results={results ?? {}}
-          module={module}
-          handleFrequencies={(curr_freqs, dim, isCleared) => {
-            setDimensions(dim);
-            if (!selectedFreq || Object.keys(dimensions).length === 0) {
-              setFreqs(curr_freqs);
-            }
-            if (isCleared) {
-              setFreqs([]);
-              setSelectedFreq("");
-            }
-          }}
-          selectedFreq={selectedFreq}
-          handleState={() => {}}
-        />
-
-        <div className="grid min-w-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] px-2 md:h-[790px] md:p-0">
+        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] px-2 md:p-0">
           {selectedFreq && isAllDimSelected(dimensions) && seriesLoaded ? (
-            <div className="z-10 flex flex-col gap-y-2 overflow-auto pb-2 md:h-full">
+            <div className="z-10 flex min-h-0 flex-col gap-y-2 overflow-auto pb-2">
               <ExportNavBar
                 results={series}
                 tableDates={tableDates}
@@ -308,7 +306,7 @@ export default function Selections({
               </div>
             </div>
           )}
-          <div className="w-full border border-x-0 border-b-0 border-t-transparent pt-4 md:border-t-gray-200">
+          <div className="mb-3 w-full border border-x-0 border-b-0 border-t-transparent pt-4 md:border-t-gray-200">
             <Tooltip delayDuration={10}>
               <TooltipTrigger asChild>
                 {
@@ -361,7 +359,7 @@ export default function Selections({
             </Tooltip>
           </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarInset>
+    </>
   );
 }

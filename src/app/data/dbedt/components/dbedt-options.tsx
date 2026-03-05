@@ -1,4 +1,4 @@
-import { fetchMeasurementSeries } from "@/actions/dbedt";
+import { fetchMeasurementSeries } from "@/actions/data-portal/dbedt";
 
 import { cn } from "@/lib/utils";
 import { CollapsibleContent } from "@/components/ui/collapsible";
@@ -30,11 +30,11 @@ export default function DbedtOptions({
   };
 
   return (
-    <CollapsibleContent className="my-0.5">
+    <CollapsibleContent>
       <SidebarGroupContent>
         <SidebarMenu className="my-0">
           {subOptions[item.id]?.map((option: SubOption) => (
-            <SidebarGroup key={`${item.id}-${option.id}`}>
+            <SidebarGroup key={`${item.id}-${option.id}`} className="p-0">
               <SidebarMenuSubButton
                 onClick={() => handleMeasurementSeries(item.id, option)}
                 className={cn(

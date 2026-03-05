@@ -41,3 +41,8 @@ data-dir/
 .DS_Store
 *.pem
 tmp
+
+# Ruby/Bundler
+.bundle/
+vendor/
+Gemfile.lock

@@ -1,7 +1,7 @@
 export default function AboutText() {
   return (
     <div className="pb-10 text-gray-700">
-      <h5 className="text-center text-2xl font-semibold uppercase text-dvw">
+      <h5 className="text-dvw mb-4 text-center text-2xl font-semibold uppercase">
         {peripheralTxt.title}
       </h5>
       <p>{peripheralTxt.header}</p>
