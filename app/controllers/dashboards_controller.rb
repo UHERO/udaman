@@ -45,7 +45,7 @@ class DashboardsController < ApplicationController
 
   def restart_restapi
     Rails.logger.info { "Performing REST API restart" }
-    `sudo systemctl restart rest-api.service`
+    `sudo systemctl restart rest-api@default.service`
     render json: {
              message: "REST API restart #{$?.success? ? "done" : "FAIL"}"
            }
