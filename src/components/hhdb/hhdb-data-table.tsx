@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   flexRender,
   getCoreRowModel,
@@ -52,10 +52,8 @@ export function HhdbDataTable<T>({
   disableSearch = false,
 }: HhdbDataTableProps<T>) {
   const router = useRouter();
-  const params = useParams();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  const basePath = `/udaman/${params.universe}/hhdb`;
   const segments = searchParams.toString();
 
   const updateParams = useCallback(
@@ -68,13 +66,10 @@ export function HhdbDataTable<T>({
           sp.set(k, v);
         }
       }
-      // Determine the current sub-path from pathname
-      const pathname = window.location.pathname;
-      const sub = pathname.replace(basePath, "") || "";
       const qs = sp.toString();
-      router.replace(`${basePath}${sub}${qs ? `?${qs}` : ""}`);
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`);
     },
-    [router, basePath, segments],
+    [router, pathname, segments],
   );
 
   const sorting: SortingState = sort
