@@ -89,12 +89,16 @@ export function HhdbFactors({ tableName }: { tableName: string }) {
           {fields.map((f) => (
             <button
               key={f.column}
-              onClick={() => handleSelect(f.column)}
+              onClick={() => !f.disabled && handleSelect(f.column)}
+              disabled={f.disabled}
+              title={f.disabled ? f.disabledReason : undefined}
               className={cn(
                 "w-full rounded px-3 py-1.5 text-left text-sm transition-colors",
-                selectedColumn === f.column
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted",
+                f.disabled
+                  ? "text-muted-foreground cursor-not-allowed opacity-50"
+                  : selectedColumn === f.column
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted",
               )}
             >
               {f.label}

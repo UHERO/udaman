@@ -25,6 +25,9 @@ export interface FieldDef {
   label: string;
   type: "factor" | "range";
   format?: "dollar" | "number" | "year" | "text";
+  /** When true, the field is shown but not selectable (e.g. too many unique values). */
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 /** Per-island counts keyed by first digit of TMK: 1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai */
@@ -65,11 +68,22 @@ export const HHDB_FIELDS: Record<string, FieldDef[]> = {
       type: "range",
       format: "number",
     },
+    { column: "neighborhood_code", label: "Neighborhood Code", type: "factor" },
+    { column: "zip", label: "ZIP", type: "factor" },
+    { column: "project_name", label: "Project Name", type: "factor" },
+    { column: "non_taxable_status", label: "Non-Taxable Status", type: "factor" },
     {
-      column: "neighborhood_code",
-      label: "Neighborhood Code",
+      column: "land_area_acres",
+      label: "Land Area (acres)",
       type: "range",
-      format: "text",
+      format: "number",
+    },
+    {
+      column: "legal_information",
+      label: "Legal Information",
+      type: "factor",
+      disabled: true,
+      disabledReason: "Too many variations to load — use database directly",
     },
   ],
   assessments: [

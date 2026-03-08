@@ -13,8 +13,15 @@ const SORTABLE = [
   "zip",
   "project_name",
   "land_area_sqft",
+  "land_area_acres",
   "neighborhood_code",
   "living_units",
+  "damage",
+  "reentry_zone",
+  "zone_color",
+  "non_taxable_status",
+  "latitude",
+  "longitude",
 ];
 
 export default class HhdbPropertyCollection {
