@@ -1,11 +1,11 @@
 "use server";
 
 import { requirePermission } from "@/lib/auth/permissions";
-import type { HhdbListParams } from "@catalog/types/hhdb";
-import type { FactorResult } from "@catalog/types/hhdb";
+import type { HhdbListParams, SummaryViewType } from "@catalog/types/hhdb";
+import type { SummaryResult } from "@catalog/types/hhdb";
 
-const FACTOR_CACHE_TTL_MS =  48 * 60 * 60  * 1000; // 2 days
-const factorCache = new Map<string, { data: FactorResult; expiresAt: number }>();
+const SUMMARY_CACHE_TTL_MS =  48 * 60 * 60  * 1000; // 2 days
+const summaryCache = new Map<string, { data: SummaryResult; expiresAt: number }>();
 
 const DASHBOARD_CACHE_TTL_MS = 48 * 60 * 60 * 1000; //  2 days
 const dashboardCache = new Map<string, { data: unknown; expiresAt: number }>();
@@ -31,7 +31,8 @@ import {
   getTotalAssessedByIsland as getTotalAssessedCtrl,
   getPermitActivityByYear as getPermitActivityCtrl,
   getCondoAreaByYearBuilt as getCondoAreaCtrl,
-  getFactors as getFactorsCtrl,
+  getSummaries as getSummariesCtrl,
+  getDistribution as getDistributionCtrl,
   getParcelsJSON as getParcelsCtrl,
   getOwnersJSON as getOwnersCtrl,
   getAppealsJSON as getAppealsCtrl,
@@ -70,6 +71,16 @@ export async function getHhdbImprovements(
 ) {
   await requirePermission("hhdb", "read");
   return getImprovementsCtrl(params, type);
+}
+
+export async function getHhdbResidentialImprovements(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getImprovementsCtrl(params, "residential");
+}
+
+export async function getHhdbCommercialImprovements(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getImprovementsCtrl(params, "commercial");
 }
 
 export async function getHhdbPermits(params: HhdbListParams) {
@@ -192,14 +203,26 @@ export async function getHhdbYardImprovements(params: HhdbListParams) {
   return getYardImprovementsCtrl(params);
 }
 
-export async function getHhdbFactors(table: string, column: string) {
+export async function getHhdbSummaries(table: string, column: string, viewType: SummaryViewType, sortBy?: string) {
   await requirePermission("hhdb", "read");
-  const key = `${table}:${column}`;
-  const cached = factorCache.get(key);
+  const key = `${table}:${column}:${viewType}:${sortBy ?? "total"}`;
+  const cached = summaryCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.data;
   }
-  const result = await getFactorsCtrl(table, column);
-  factorCache.set(key, { data: result, expiresAt: Date.now() + FACTOR_CACHE_TTL_MS });
+  const result = await getSummariesCtrl(table, column, viewType, sortBy);
+  summaryCache.set(key, { data: result, expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS });
+  return result;
+}
+
+export async function getHhdbDistribution(table: string, column: string) {
+  await requirePermission("hhdb", "read");
+  const key = `dist:${table}:${column}`;
+  const cached = summaryCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+  const result = await getDistributionCtrl(table, column);
+  summaryCache.set(key, { data: result, expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS });
   return result;
 }

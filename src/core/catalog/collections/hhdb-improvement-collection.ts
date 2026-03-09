@@ -1,4 +1,5 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { HhdbImprovement, type HhdbImprovementAttrs, hhdbImprovementRowToJSON } from "../models/hhdb-improvement";
 import type { HhdbImprovementJSON } from "../models/hhdb-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
@@ -40,7 +41,8 @@ export default class HhdbImprovementCollection {
     params: HhdbListParams,
     type: "residential" | "commercial" = "residential",
   ) {
-    const { page, limit, search, sort = "id", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortable = type === "residential" ? RESIDENTIAL_SORTABLE : COMMERCIAL_SORTABLE;
     const sortCol = sortable.includes(sort) ? sort : "id";

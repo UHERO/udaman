@@ -9,6 +9,7 @@ export interface HhdbSaleAttrs {
   valid_sale?: string | null;
   date_of_recording?: Date | string | null;
   land_court_document_number?: string | null;
+  cert?: string | null;
   book_page?: string | null;
   conveyance_tax?: number | null;
   document_type?: string | null;
@@ -24,6 +25,8 @@ export class HhdbSale {
   instrumentDescription: string | null;
   validSale: string | null;
   dateOfRecording: Date | null;
+  landCourtDocumentNumber: string | null;
+  cert: string | null;
   bookPage: string | null;
   conveyanceTax: number | null;
   documentType: string | null;
@@ -38,6 +41,8 @@ export class HhdbSale {
     this.instrumentDescription = attrs.instrument_description ?? null;
     this.validSale = attrs.valid_sale ?? null;
     this.dateOfRecording = attrs.date_of_recording ? new Date(attrs.date_of_recording) : null;
+    this.landCourtDocumentNumber = attrs.land_court_document_number ?? null;
+    this.cert = attrs.cert ?? null;
     this.bookPage = attrs.book_page ?? null;
     this.conveyanceTax = attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null;
     this.documentType = attrs.document_type ?? null;
@@ -54,6 +59,8 @@ export class HhdbSale {
       instrumentDescription: this.instrumentDescription,
       validSale: this.validSale,
       dateOfRecording: this.dateOfRecording?.toISOString() ?? null,
+      landCourtDocumentNumber: this.landCourtDocumentNumber,
+      cert: this.cert,
       bookPage: this.bookPage,
       conveyanceTax: this.conveyanceTax,
       documentType: this.documentType,
@@ -74,6 +81,8 @@ export function hhdbSaleRowToJSON(attrs: HhdbSaleAttrs): HhdbSaleJSON {
     instrumentDescription: attrs.instrument_description ?? null,
     validSale: attrs.valid_sale ?? null,
     dateOfRecording: attrs.date_of_recording ? new Date(attrs.date_of_recording).toISOString() : null,
+    landCourtDocumentNumber: attrs.land_court_document_number ?? null,
+    cert: attrs.cert ?? null,
     bookPage: attrs.book_page ?? null,
     conveyanceTax: attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null,
     documentType: attrs.document_type ?? null,

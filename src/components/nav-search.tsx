@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Info, ListFilter, Plus, X } from "lucide-react";
 
 import { Button } from "./ui/button";
@@ -67,7 +67,10 @@ let nextKey = 0;
 export function NavSearchInput({ geoHandles = [] }: { geoHandles?: string[] }) {
   const router = useRouter();
   const { universe } = useParams<{ universe: string }>();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  if (pathname.includes("/hhdb")) return null;
   const [term, setTerm] = useState(searchParams.get("q") ?? "");
   const [rows, setRows] = useState<FilterRow[]>([]);
   const [builderOpen, setBuilderOpen] = useState(false);

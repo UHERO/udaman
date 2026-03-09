@@ -1,4 +1,5 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { HhdbAgriculturalAssessment, type HhdbAgriculturalAssessmentAttrs, hhdbAgriculturalAssessmentRowToJSON } from "../models/hhdb-agricultural-assessment";
 import type { HhdbAgriculturalAssessmentJSON } from "../models/hhdb-agricultural-assessment";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
@@ -14,7 +15,8 @@ const SORTABLE = [
 
 export default class HhdbAgriculturalAssessmentCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "tmk", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "tmk", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
     const sortDir = order === "desc" ? "DESC" : "ASC";

@@ -35,6 +35,9 @@ export class HhdbAssessment {
   totalPropertyAssessedValue: number | null;
   totalPropertyExemption: number | null;
   totalNetTaxableValue: number | null;
+  agriculturalLandValue: number | null;
+  marketLandValue: number | null;
+  marketBuildingValue: number | null;
   totalMarketValue: number | null;
   createdAt: Date | null;
 
@@ -53,6 +56,9 @@ export class HhdbAssessment {
     this.totalPropertyAssessedValue = attrs.total_property_assessed_value != null ? Number(attrs.total_property_assessed_value) : null;
     this.totalPropertyExemption = attrs.total_property_exemption != null ? Number(attrs.total_property_exemption) : null;
     this.totalNetTaxableValue = attrs.total_net_taxable_value != null ? Number(attrs.total_net_taxable_value) : null;
+    this.agriculturalLandValue = attrs.agricultural_land_value != null ? Number(attrs.agricultural_land_value) : null;
+    this.marketLandValue = attrs.market_land_value != null ? Number(attrs.market_land_value) : null;
+    this.marketBuildingValue = attrs.market_building_value != null ? Number(attrs.market_building_value) : null;
     this.totalMarketValue = attrs.total_market_value != null ? Number(attrs.total_market_value) : null;
     this.createdAt = attrs.created_at ? new Date(attrs.created_at) : null;
   }
@@ -73,6 +79,9 @@ export class HhdbAssessment {
       totalPropertyAssessedValue: this.totalPropertyAssessedValue,
       totalPropertyExemption: this.totalPropertyExemption,
       totalNetTaxableValue: this.totalNetTaxableValue,
+      agriculturalLandValue: this.agriculturalLandValue,
+      marketLandValue: this.marketLandValue,
+      marketBuildingValue: this.marketBuildingValue,
       totalMarketValue: this.totalMarketValue,
       createdAt: this.createdAt?.toISOString() ?? null,
     };
@@ -97,6 +106,9 @@ export function hhdbAssessmentRowToJSON(attrs: HhdbAssessmentAttrs): HhdbAssessm
     totalPropertyAssessedValue: attrs.total_property_assessed_value != null ? Number(attrs.total_property_assessed_value) : null,
     totalPropertyExemption: attrs.total_property_exemption != null ? Number(attrs.total_property_exemption) : null,
     totalNetTaxableValue: attrs.total_net_taxable_value != null ? Number(attrs.total_net_taxable_value) : null,
+    agriculturalLandValue: attrs.agricultural_land_value != null ? Number(attrs.agricultural_land_value) : null,
+    marketLandValue: attrs.market_land_value != null ? Number(attrs.market_land_value) : null,
+    marketBuildingValue: attrs.market_building_value != null ? Number(attrs.market_building_value) : null,
     totalMarketValue: attrs.total_market_value != null ? Number(attrs.total_market_value) : null,
     createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
   };

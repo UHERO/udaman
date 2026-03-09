@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createLogger } from "@/core/observability/logger";
-import type { HhdbListParams } from "../types/hhdb";
+import type { HhdbListParams, SummaryViewType } from "../types/hhdb";
 import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
@@ -9,7 +9,7 @@ import HhdbImprovementCollection from "../collections/hhdb-improvement-collectio
 import HhdbPermitCollection from "../collections/hhdb-permit-collection";
 import HhdbCondoCollection from "../collections/hhdb-condo-collection";
 import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
-import HhdbFactorCollection from "../collections/hhdb-factor-collection";
+import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
 import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
 import HhdbOwnerCollection from "../collections/hhdb-owner-collection";
 import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
@@ -390,9 +390,16 @@ export async function getCondoAreaByYearBuilt() {
   return data;
 }
 
-export async function getFactors(table: string, column: string) {
-  log.info({ table, column }, "fetching hhdb factors");
-  const result = await HhdbFactorCollection.getFactors(table, column);
-  log.info({ table, column, type: result.type }, "hhdb factors fetched");
+export async function getSummaries(table: string, column: string, viewType: SummaryViewType, sortBy?: string) {
+  log.info({ table, column, viewType, sortBy }, "fetching hhdb summaries");
+  const result = await HhdbSummaryCollection.getSummaries(table, column, viewType, sortBy);
+  log.info({ table, column, type: result.type }, "hhdb summaries fetched");
+  return result;
+}
+
+export async function getDistribution(table: string, column: string) {
+  log.info({ table, column }, "fetching hhdb distribution");
+  const result = await HhdbSummaryCollection.getDistribution(table, column);
+  log.info({ table, column }, "hhdb distribution fetched");
   return result;
 }

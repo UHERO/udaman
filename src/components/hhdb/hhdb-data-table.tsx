@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useContext, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   flexRender,
@@ -10,7 +10,8 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2 } from "lucide-react";
+import { HhdbTableLoadingContext } from "./hhdb-loading-context";
 
 import {
   Table,
@@ -51,6 +52,7 @@ export function HhdbDataTable<T>({
   searchPlaceholder,
   disableSearch = false,
 }: HhdbDataTableProps<T>) {
+  const loading = useContext(HhdbTableLoadingContext);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -76,8 +78,8 @@ export function HhdbDataTable<T>({
     ? [{ id: sort, desc: order === "desc" }]
     : [];
 
-  const columnVisibility: VisibilityState = Object.fromEntries(
-    defaultHiddenColumns.map((col) => [col, false]),
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    () => Object.fromEntries(defaultHiddenColumns.map((col) => [col, false])),
   );
 
   const table = useReactTable({
@@ -103,16 +105,7 @@ export function HhdbDataTable<T>({
         });
       }
     },
-    onColumnVisibilityChange: (updater) => {
-      const next =
-        typeof updater === "function"
-          ? updater(table.getState().columnVisibility)
-          : updater;
-      table.setOptions((prev) => ({
-        ...prev,
-        state: { ...prev.state, columnVisibility: next },
-      }));
-    },
+    onColumnVisibilityChange: setColumnVisibility,
   });
 
   return (
@@ -128,7 +121,12 @@ export function HhdbDataTable<T>({
         <HhdbColumnToggle table={table} />
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="relative overflow-hidden rounded-md border">
+        {loading && (
+          <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center">
+            <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+          </div>
+        )}
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

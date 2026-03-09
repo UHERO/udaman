@@ -1,4 +1,5 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import {
   HhdbCondoProject,
   HhdbCondoUnit,
@@ -34,7 +35,8 @@ const UNIT_SORTABLE = [
 
 export default class HhdbCondoCollection {
   private static _buildProjectQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "tmk", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "tmk", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = PROJECT_SORTABLE.includes(sort) ? sort : "tmk";
     const sortDir = order === "desc" ? "DESC" : "ASC";
@@ -52,7 +54,8 @@ export default class HhdbCondoCollection {
   }
 
   private static _buildUnitQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "id", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = UNIT_SORTABLE.includes(sort) ? sort : "id";
     const sortDir = order === "desc" ? "DESC" : "ASC";

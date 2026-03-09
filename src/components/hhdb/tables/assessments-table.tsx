@@ -43,6 +43,54 @@ const columns: ColumnDef<HhdbAssessmentJSON, unknown>[] = [
     cell: ({ getValue }) => currency(getValue() as number | null),
   },
   {
+    accessorKey: "dedicatedUseValue",
+    header: "Dedicated Use",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "landExemption",
+    header: "Land Exempt",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "buildingExemption",
+    header: "Bldg Exempt",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "netTaxableLandValue",
+    header: "Net Tax Land",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "netTaxableBuildingValue",
+    header: "Net Tax Bldg",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "agriculturalLandValue",
+    header: "Ag Land Value",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "marketLandValue",
+    header: "Market Land",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
+    accessorKey: "marketBuildingValue",
+    header: "Market Bldg",
+    enableSorting: false,
+    cell: ({ getValue }) => currency(getValue() as number | null),
+  },
+  {
     accessorKey: "totalMarketValue",
     header: "Market Value",
     enableSorting: true,
@@ -54,6 +102,13 @@ const DEFAULT_HIDDEN = [
   "totalPropertyExemption",
   "totalNetTaxableValue",
   "dedicatedUseValue",
+  "landExemption",
+  "buildingExemption",
+  "netTaxableLandValue",
+  "netTaxableBuildingValue",
+  "agriculturalLandValue",
+  "marketLandValue",
+  "marketBuildingValue",
 ];
 
 interface AssessmentsTableProps {

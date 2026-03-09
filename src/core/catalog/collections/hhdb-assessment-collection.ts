@@ -1,4 +1,5 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { HhdbAssessment, type HhdbAssessmentAttrs, hhdbAssessmentRowToJSON } from "../models/hhdb-assessment";
 import type { HhdbAssessmentJSON } from "../models/hhdb-assessment";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
@@ -18,7 +19,8 @@ const SORTABLE = [
 
 export default class HhdbAssessmentCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "id", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "id";
     const sortDir = order === "desc" ? "DESC" : "ASC";

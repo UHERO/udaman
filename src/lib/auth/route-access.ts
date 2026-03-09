@@ -126,12 +126,12 @@ export const ROUTES: RouteEntry[] = [
     universes: ["UHERO"],
     children: [
       { label: "Dashboard", path: "/hhdb" },
-      { label: "Properties", path: "/hhdb/properties" },
-      { label: "Assessments", path: "/hhdb/assessments" },
-      { label: "Sales", path: "/hhdb/sales" },
-      { label: "Improvements", path: "/hhdb/improvements" },
-      { label: "Condos", path: "/hhdb/condos" },
-      { label: "Permits", path: "/hhdb/permits" },
+      { label: "Properties", path: "/hhdb/tables/properties" },
+      { label: "Assessments", path: "/hhdb/tables/assessments" },
+      { label: "Sales", path: "/hhdb/tables/sales" },
+      { label: "Improvements", path: "/hhdb/tables/residential-improvements" },
+      { label: "Condos", path: "/hhdb/tables/condo-projects" },
+      { label: "Permits", path: "/hhdb/tables/permits" },
     ],
   },
   {
