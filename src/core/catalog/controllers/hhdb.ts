@@ -29,6 +29,10 @@ import type { HhdbListParams, SummaryViewType } from "../types/hhdb";
 
 const log = createLogger("hhdb");
 
+export async function getTableCount(table: string): Promise<number> {
+  return HhdbSummaryCollection.getTableCount(table);
+}
+
 // --- Model instance variants (for business logic) ---
 
 export async function getProperties(params: HhdbListParams) {

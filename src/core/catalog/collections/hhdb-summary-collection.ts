@@ -81,6 +81,16 @@ function formatBucketLabel(min: number, max: number, format: string): string {
 }
 
 export default class HhdbSummaryCollection {
+  /** Total row count for a table. Table name validated against dictionary. */
+  static async getTableCount(table: string): Promise<number> {
+    const fields = getSummaryFieldDefs(table);
+    if (!fields) throw new Error(`Invalid HHDB table: ${table}`);
+    const rows = await rawQuery<{ cnt: number }>(
+      `SELECT COUNT(*) AS cnt FROM ${table}`,
+    );
+    return Number(rows[0]?.cnt ?? 0);
+  }
+
   /**
    * Fetch summary values or min/max/median range for a given table + column.
    * Table and column are validated against the HHDB_FIELDS whitelist
