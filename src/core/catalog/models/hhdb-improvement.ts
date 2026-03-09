@@ -86,7 +86,8 @@ export class HhdbImprovement {
     this.buildingNumber = attrs.building_number ?? null;
     this.yearBuilt = attrs.year_built != null ? Number(attrs.year_built) : null;
     // Residential
-    this.effYearBuilt = attrs.eff_year_built != null ? Number(attrs.eff_year_built) : null;
+    this.effYearBuilt =
+      attrs.eff_year_built != null ? Number(attrs.eff_year_built) : null;
     this.livingArea = attrs.living_area ?? null;
     this.bedrooms = attrs.bedrooms ?? null;
     this.fullBath = attrs.full_bath ?? null;
@@ -99,7 +100,8 @@ export class HhdbImprovement {
     this.roofMaterial = attrs.roof_material ?? null;
     this.fireplace = attrs.fireplace ?? null;
     this.grade = attrs.grade ?? null;
-    this.buildingValue = attrs.building_value != null ? Number(attrs.building_value) : null;
+    this.buildingValue =
+      attrs.building_value != null ? Number(attrs.building_value) : null;
     this.totalRoomCount = attrs.total_room_count ?? null;
     this.condoStyle = attrs.condo_style ?? null;
     this.condoView = attrs.condo_view ?? null;
@@ -107,7 +109,10 @@ export class HhdbImprovement {
     this.parkingSpaces = attrs.parking_spaces ?? null;
     // Commercial
     this.buildingCard = attrs.building_card ?? null;
-    this.effectiveYearBuilt = attrs.effective_year_built != null ? Number(attrs.effective_year_built) : null;
+    this.effectiveYearBuilt =
+      attrs.effective_year_built != null
+        ? Number(attrs.effective_year_built)
+        : null;
     this.improvementName = attrs.improvement_name ?? null;
     this.propertyClass = attrs.property_class ?? null;
     this.structureType = attrs.structure_type ?? null;
@@ -165,13 +170,16 @@ export class HhdbImprovement {
 
 export type HhdbImprovementJSON = ReturnType<HhdbImprovement["toJSON"]>;
 
-export function hhdbImprovementRowToJSON(attrs: HhdbImprovementAttrs): HhdbImprovementJSON {
+export function hhdbImprovementRowToJSON(
+  attrs: HhdbImprovementAttrs,
+): HhdbImprovementJSON {
   return {
     id: attrs.id ?? 0,
     tmk: attrs.tmk ?? null,
     buildingNumber: attrs.building_number ?? null,
     yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,
-    effYearBuilt: attrs.eff_year_built != null ? Number(attrs.eff_year_built) : null,
+    effYearBuilt:
+      attrs.eff_year_built != null ? Number(attrs.eff_year_built) : null,
     livingArea: attrs.living_area ?? null,
     bedrooms: attrs.bedrooms ?? null,
     fullBath: attrs.full_bath ?? null,
@@ -184,14 +192,18 @@ export function hhdbImprovementRowToJSON(attrs: HhdbImprovementAttrs): HhdbImpro
     roofMaterial: attrs.roof_material ?? null,
     fireplace: attrs.fireplace ?? null,
     grade: attrs.grade ?? null,
-    buildingValue: attrs.building_value != null ? Number(attrs.building_value) : null,
+    buildingValue:
+      attrs.building_value != null ? Number(attrs.building_value) : null,
     totalRoomCount: attrs.total_room_count ?? null,
     condoStyle: attrs.condo_style ?? null,
     condoView: attrs.condo_view ?? null,
     floorLevel: attrs.floor_level ?? null,
     parkingSpaces: attrs.parking_spaces ?? null,
     buildingCard: attrs.building_card ?? null,
-    effectiveYearBuilt: attrs.effective_year_built != null ? Number(attrs.effective_year_built) : null,
+    effectiveYearBuilt:
+      attrs.effective_year_built != null
+        ? Number(attrs.effective_year_built)
+        : null,
     improvementName: attrs.improvement_name ?? null,
     propertyClass: attrs.property_class ?? null,
     structureType: attrs.structure_type ?? null,

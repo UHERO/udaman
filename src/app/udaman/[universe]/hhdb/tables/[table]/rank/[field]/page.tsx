@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
-import { HHDB_TABLE_CONFIG, HHDB_TABLE_SLUGS } from "@/components/hhdb/hhdb-table-config";
 import { getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
+
 import { HhdbSummaries } from "@/components/hhdb/hhdb-summaries";
+import {
+  HHDB_TABLE_CONFIG,
+  HHDB_TABLE_SLUGS,
+} from "@/components/hhdb/hhdb-table-config";
 
 export function generateStaticParams() {
   const result: { table: string; field: string }[] = [];

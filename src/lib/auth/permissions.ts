@@ -2,10 +2,7 @@ import "server-only";
 
 import PermissionCollection from "@catalog/collections/permission-collection";
 
-import {
-  enforceAccessPolicy,
-  PermissionDeniedError,
-} from "./authorization";
+import { enforceAccessPolicy, PermissionDeniedError } from "./authorization";
 import { getCurrentUserContext } from "./dal";
 
 // Re-export so existing consumers that import from permissions.ts still work

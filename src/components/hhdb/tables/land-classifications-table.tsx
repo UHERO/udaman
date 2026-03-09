@@ -1,16 +1,29 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbLandClassificationJSON } from "@catalog/models/hhdb-land-classification";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbLandClassificationJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
-  { accessorKey: "landClassification", header: "Land Classification", enableSorting: true },
-  { accessorKey: "squareFootage", header: "Square Footage", enableSorting: true },
+  {
+    accessorKey: "landClassification",
+    header: "Land Classification",
+    enableSorting: true,
+  },
+  {
+    accessorKey: "squareFootage",
+    header: "Square Footage",
+    enableSorting: true,
+  },
   { accessorKey: "acreage", header: "Acreage", enableSorting: true },
-  { accessorKey: "agriculturalUseIndicator", header: "Agricultural Use Indicator", enableSorting: true },
+  {
+    accessorKey: "agriculturalUseIndicator",
+    header: "Agricultural Use Indicator",
+    enableSorting: true,
+  },
   {
     accessorKey: "scrapedAt",
     header: "Scraped At",

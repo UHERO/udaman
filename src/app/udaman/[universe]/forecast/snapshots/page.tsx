@@ -9,9 +9,7 @@ export default async function Page() {
 
   // fsonly users can only see published snapshots
   if (isFsonly(role)) {
-    data = data.filter(
-      (s: { published?: boolean }) => s.published === true,
-    );
+    data = data.filter((s: { published?: boolean }) => s.published === true);
   }
 
   return (

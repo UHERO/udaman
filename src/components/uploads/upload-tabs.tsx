@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { getVisibleChildren } from "@/lib/auth/route-access";
+import { cn } from "@/lib/utils";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
@@ -23,7 +23,13 @@ const TABS = [
   { label: "Forecast", icon: ArrowUpToLine, segment: "forecast" },
 ] as const;
 
-export function UploadTabs({ role, universe: userUniverse }: { role: string; universe: string }) {
+export function UploadTabs({
+  role,
+  universe: userUniverse,
+}: {
+  role: string;
+  universe: string;
+}) {
   const { universe } = useParams();
   const pathname = usePathname();
   const base = `/udaman/${universe}/uploads`;

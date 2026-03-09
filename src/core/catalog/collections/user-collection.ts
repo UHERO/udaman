@@ -30,17 +30,14 @@ class UserCollection {
   }
 
   /** Update a user's role */
-  static async updateRole(
-    id: number,
-    role: string,
-  ): Promise<void> {
+  static async updateRole(id: number, role: string): Promise<void> {
     if (!VALID_ROLES.includes(role as (typeof VALID_ROLES)[number])) {
       throw new Error(`Invalid role: ${role}`);
     }
-    const result = await mysql`
+    const result = (await mysql`
       UPDATE users SET role = ${role}, updated_at = NOW()
       WHERE id = ${id}
-    ` as unknown as { count: number };
+    `) as unknown as { count: number };
     if (result.count === 0) throw new Error("User not found");
   }
 

@@ -1,7 +1,11 @@
 "use client";
 
+import type {
+  HhdbCondoProjectJSON,
+  HhdbCondoUnitJSON,
+} from "@catalog/models/hhdb-condo";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { HhdbCondoProjectJSON, HhdbCondoUnitJSON } from "@catalog/models/hhdb-condo";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const dateFmt = (v: unknown) => {
@@ -30,10 +34,30 @@ const projectColumns: ColumnDef<HhdbCondoProjectJSON, unknown>[] = [
   { accessorKey: "buildings", header: "Buildings", enableSorting: true },
   { accessorKey: "floors", header: "Floors", enableSorting: true },
   { accessorKey: "landOwnership", header: "Ownership", enableSorting: false },
-  { accessorKey: "preliminaryDate", header: "Preliminary", enableSorting: false, cell: ({ getValue }) => dateFmt(getValue()) },
-  { accessorKey: "contingentFinalDate", header: "Contingent Final", enableSorting: false, cell: ({ getValue }) => dateFmt(getValue()) },
-  { accessorKey: "finalDate", header: "Final Date", enableSorting: true, cell: ({ getValue }) => dateFmt(getValue()) },
-  { accessorKey: "biennialRegistrationDate", header: "Biennial Reg", enableSorting: false, cell: ({ getValue }) => dateFmt(getValue()) },
+  {
+    accessorKey: "preliminaryDate",
+    header: "Preliminary",
+    enableSorting: false,
+    cell: ({ getValue }) => dateFmt(getValue()),
+  },
+  {
+    accessorKey: "contingentFinalDate",
+    header: "Contingent Final",
+    enableSorting: false,
+    cell: ({ getValue }) => dateFmt(getValue()),
+  },
+  {
+    accessorKey: "finalDate",
+    header: "Final Date",
+    enableSorting: true,
+    cell: ({ getValue }) => dateFmt(getValue()),
+  },
+  {
+    accessorKey: "biennialRegistrationDate",
+    header: "Biennial Reg",
+    enableSorting: false,
+    cell: ({ getValue }) => dateFmt(getValue()),
+  },
 ];
 
 const unitColumns: ColumnDef<HhdbCondoUnitJSON, unknown>[] = [

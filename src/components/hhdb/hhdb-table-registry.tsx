@@ -3,55 +3,59 @@
 import type { HhdbListParams } from "@catalog/types/hhdb";
 
 import {
-  getHhdbProperties,
+  getHhdbAccessoryStructures,
+  getHhdbAgriculturalAssessments,
+  getHhdbAppeals,
   getHhdbAssessments,
-  getHhdbSales,
-  getHhdbResidentialImprovements,
+  getHhdbCommercialDetails,
   getHhdbCommercialImprovements,
-  getHhdbPermits,
   getHhdbCondoProjects,
   getHhdbCondoUnits,
-  getHhdbParcels,
-  getHhdbOwners,
-  getHhdbAppeals,
-  getHhdbDedications,
-  getHhdbLandClassifications,
   getHhdbCurrentTaxBills,
-  getHhdbHistoricalTaxSummary,
+  getHhdbDedications,
+  getHhdbHistoricalTaxCredits,
   getHhdbHistoricalTaxDetails,
   getHhdbHistoricalTaxPayments,
-  getHhdbHistoricalTaxCredits,
-  getHhdbAgriculturalAssessments,
-  getHhdbCommercialDetails,
+  getHhdbHistoricalTaxSummary,
+  getHhdbLandClassifications,
+  getHhdbOwners,
+  getHhdbParcels,
+  getHhdbPermits,
+  getHhdbProperties,
   getHhdbResidentialAdditions,
-  getHhdbAccessoryStructures,
+  getHhdbResidentialImprovements,
+  getHhdbSales,
   getHhdbYardImprovements,
 } from "@/actions/hhdb";
-
-import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
-import { AssessmentsTable } from "@/components/hhdb/tables/assessments-table";
-import { SalesTable } from "@/components/hhdb/tables/sales-table";
-import { ImprovementsTable } from "@/components/hhdb/tables/improvements-table";
-import { PermitsTable } from "@/components/hhdb/tables/permits-table";
-import { CondoProjectsTable, CondoUnitsTable } from "@/components/hhdb/tables/condos-table";
-import { ParcelsTable } from "@/components/hhdb/tables/parcels-table";
-import { OwnersTable } from "@/components/hhdb/tables/owners-table";
+import { AccessoryStructuresTable } from "@/components/hhdb/tables/accessory-structures-table";
+import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
 import { AppealsTable } from "@/components/hhdb/tables/appeals-table";
-import { DedicationsTable } from "@/components/hhdb/tables/dedications-table";
-import { LandClassificationsTable } from "@/components/hhdb/tables/land-classifications-table";
+import { AssessmentsTable } from "@/components/hhdb/tables/assessments-table";
+import { CommercialDetailsTable } from "@/components/hhdb/tables/commercial-details-table";
+import {
+  CondoProjectsTable,
+  CondoUnitsTable,
+} from "@/components/hhdb/tables/condos-table";
 import { CurrentTaxBillsTable } from "@/components/hhdb/tables/current-tax-bills-table";
-import { HistoricalTaxSummaryTable } from "@/components/hhdb/tables/historical-tax-summary-table";
+import { DedicationsTable } from "@/components/hhdb/tables/dedications-table";
+import { HistoricalTaxCreditsTable } from "@/components/hhdb/tables/historical-tax-credits-table";
 import { HistoricalTaxDetailsTable } from "@/components/hhdb/tables/historical-tax-details-table";
 import { HistoricalTaxPaymentsTable } from "@/components/hhdb/tables/historical-tax-payments-table";
-import { HistoricalTaxCreditsTable } from "@/components/hhdb/tables/historical-tax-credits-table";
-import { AgriculturalAssessmentsTable } from "@/components/hhdb/tables/agricultural-assessments-table";
-import { CommercialDetailsTable } from "@/components/hhdb/tables/commercial-details-table";
+import { HistoricalTaxSummaryTable } from "@/components/hhdb/tables/historical-tax-summary-table";
+import { ImprovementsTable } from "@/components/hhdb/tables/improvements-table";
+import { LandClassificationsTable } from "@/components/hhdb/tables/land-classifications-table";
+import { OwnersTable } from "@/components/hhdb/tables/owners-table";
+import { ParcelsTable } from "@/components/hhdb/tables/parcels-table";
+import { PermitsTable } from "@/components/hhdb/tables/permits-table";
+import { PropertiesTable } from "@/components/hhdb/tables/properties-table";
 import { ResidentialAdditionsTable } from "@/components/hhdb/tables/residential-additions-table";
-import { AccessoryStructuresTable } from "@/components/hhdb/tables/accessory-structures-table";
+import { SalesTable } from "@/components/hhdb/tables/sales-table";
 import { YardImprovementsTable } from "@/components/hhdb/tables/yard-improvements-table";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ActionFn = (params: HhdbListParams) => Promise<{ rows: any[]; total: number }>;
+type ActionFn = (
+  params: HhdbListParams,
+) => Promise<{ rows: any[]; total: number }>;
 
 interface TableProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -35,16 +35,20 @@ export class HhdbSale {
     this.id = attrs.id ?? 0;
     this.tmk = attrs.tmk ?? null;
     this.saleDate = attrs.sale_date ? new Date(attrs.sale_date) : null;
-    this.saleAmount = attrs.sale_amount != null ? Number(attrs.sale_amount) : null;
+    this.saleAmount =
+      attrs.sale_amount != null ? Number(attrs.sale_amount) : null;
     this.instrument = attrs.instrument ?? null;
     this.instrumentType = attrs.instrument_type ?? null;
     this.instrumentDescription = attrs.instrument_description ?? null;
     this.validSale = attrs.valid_sale ?? null;
-    this.dateOfRecording = attrs.date_of_recording ? new Date(attrs.date_of_recording) : null;
+    this.dateOfRecording = attrs.date_of_recording
+      ? new Date(attrs.date_of_recording)
+      : null;
     this.landCourtDocumentNumber = attrs.land_court_document_number ?? null;
     this.cert = attrs.cert ?? null;
     this.bookPage = attrs.book_page ?? null;
-    this.conveyanceTax = attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null;
+    this.conveyanceTax =
+      attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null;
     this.documentType = attrs.document_type ?? null;
   }
 
@@ -80,11 +84,14 @@ export function hhdbSaleRowToJSON(attrs: HhdbSaleAttrs): HhdbSaleJSON {
     instrumentType: attrs.instrument_type ?? null,
     instrumentDescription: attrs.instrument_description ?? null,
     validSale: attrs.valid_sale ?? null,
-    dateOfRecording: attrs.date_of_recording ? new Date(attrs.date_of_recording).toISOString() : null,
+    dateOfRecording: attrs.date_of_recording
+      ? new Date(attrs.date_of_recording).toISOString()
+      : null,
     landCourtDocumentNumber: attrs.land_court_document_number ?? null,
     cert: attrs.cert ?? null,
     bookPage: attrs.book_page ?? null,
-    conveyanceTax: attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null,
+    conveyanceTax:
+      attrs.conveyance_tax != null ? Number(attrs.conveyance_tax) : null,
     documentType: attrs.document_type ?? null,
   };
 }

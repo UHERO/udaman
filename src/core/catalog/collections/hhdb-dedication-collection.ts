@@ -1,18 +1,25 @@
-import { rawQuery } from "@/lib/mysql/hhdb";
 import { toSnakeCase } from "@/lib/mysql/helpers";
-import { HhdbDedication, type HhdbDedicationAttrs, hhdbDedicationRowToJSON } from "../models/hhdb-dedication";
+import { rawQuery } from "@/lib/mysql/hhdb";
+
+import {
+  HhdbDedication,
+  hhdbDedicationRowToJSON,
+  type HhdbDedicationAttrs,
+} from "../models/hhdb-dedication";
 import type { HhdbDedicationJSON } from "../models/hhdb-dedication";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
-const SORTABLE = [
-  "tmk",
-  "tax_year",
-  "number_of_dedications",
-];
+const SORTABLE = ["tmk", "tax_year", "number_of_dedications"];
 
 export default class HhdbDedicationCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort: rawSort = "tmk", order = "asc" } = params;
+    const {
+      page,
+      limit,
+      search,
+      sort: rawSort = "tmk",
+      order = "asc",
+    } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -21,8 +28,7 @@ export default class HhdbDedicationCollection {
     let where = "";
     const qp: (string | number)[] = [];
     if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR number_of_dedications LIKE ?)";
+      where = "WHERE (tmk LIKE ? OR number_of_dedications LIKE ?)";
       const term = `%${search}%`;
       qp.push(term, term);
     }
@@ -30,8 +36,11 @@ export default class HhdbDedicationCollection {
     return { where, qp, sortCol, sortDir, limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbDedication>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbDedication>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
@@ -50,8 +59,11 @@ export default class HhdbDedicationCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbDedicationJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbDedicationJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(

@@ -11,7 +11,7 @@ function getConnection(): SQL {
     _connection = new SQL({
       adapter: "mysql",
       hostname: process.env.HH_DB_HOST ?? "localhost",
-      port: process.env.HH_DB_PORT ??  3306,
+      port: process.env.HH_DB_PORT ?? 3306,
       database: process.env.HH_DB_NAME ?? "hawaii_housing_database",
       username: process.env.HH_DB_USER ?? "root",
       password: process.env.HH_DB_PSWD ?? "",

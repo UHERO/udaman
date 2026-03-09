@@ -63,21 +63,30 @@ export class HhdbCondoProject {
     this.city = attrs.city ?? null;
     this.developer = attrs.developer ?? null;
     this.projectNumber = attrs.project_number ?? null;
-    this.commercial = attrs.commercial != null ? Number(attrs.commercial) : null;
+    this.commercial =
+      attrs.commercial != null ? Number(attrs.commercial) : null;
     this.toolSheds = attrs.tool_sheds != null ? Number(attrs.tool_sheds) : null;
     this.ohana = attrs.ohana ?? null;
-    this.residential = attrs.residential != null ? Number(attrs.residential) : null;
+    this.residential =
+      attrs.residential != null ? Number(attrs.residential) : null;
     this.parking = attrs.parking != null ? Number(attrs.parking) : null;
     this.converted = attrs.converted ?? null;
-    this.agricultural = attrs.agricultural != null ? Number(attrs.agricultural) : null;
+    this.agricultural =
+      attrs.agricultural != null ? Number(attrs.agricultural) : null;
     this.other = attrs.other != null ? Number(attrs.other) : null;
     this.buildings = attrs.buildings != null ? Number(attrs.buildings) : null;
     this.floors = attrs.floors != null ? Number(attrs.floors) : null;
     this.landOwnership = attrs.land_ownership ?? null;
-    this.preliminaryDate = attrs.preliminary_date ? new Date(attrs.preliminary_date) : null;
-    this.contingentFinalDate = attrs.contingent_final_date ? new Date(attrs.contingent_final_date) : null;
+    this.preliminaryDate = attrs.preliminary_date
+      ? new Date(attrs.preliminary_date)
+      : null;
+    this.contingentFinalDate = attrs.contingent_final_date
+      ? new Date(attrs.contingent_final_date)
+      : null;
     this.finalDate = attrs.final_date ? new Date(attrs.final_date) : null;
-    this.biennialRegistrationDate = attrs.biennial_registration_date ? new Date(attrs.biennial_registration_date) : null;
+    this.biennialRegistrationDate = attrs.biennial_registration_date
+      ? new Date(attrs.biennial_registration_date)
+      : null;
     this.createdAt = attrs.created_at ? new Date(attrs.created_at) : null;
   }
 
@@ -106,7 +115,8 @@ export class HhdbCondoProject {
       preliminaryDate: this.preliminaryDate?.toISOString() ?? null,
       contingentFinalDate: this.contingentFinalDate?.toISOString() ?? null,
       finalDate: this.finalDate?.toISOString() ?? null,
-      biennialRegistrationDate: this.biennialRegistrationDate?.toISOString() ?? null,
+      biennialRegistrationDate:
+        this.biennialRegistrationDate?.toISOString() ?? null,
       createdAt: this.createdAt?.toISOString() ?? null,
     };
   }
@@ -114,7 +124,9 @@ export class HhdbCondoProject {
 
 export type HhdbCondoProjectJSON = ReturnType<HhdbCondoProject["toJSON"]>;
 
-export function hhdbCondoProjectRowToJSON(attrs: HhdbCondoProjectAttrs): HhdbCondoProjectJSON {
+export function hhdbCondoProjectRowToJSON(
+  attrs: HhdbCondoProjectAttrs,
+): HhdbCondoProjectJSON {
   return {
     tmk: attrs.tmk ?? null,
     projectName: attrs.project_name ?? null,
@@ -131,16 +143,27 @@ export function hhdbCondoProjectRowToJSON(attrs: HhdbCondoProjectAttrs): HhdbCon
     residential: attrs.residential != null ? Number(attrs.residential) : null,
     parking: attrs.parking != null ? Number(attrs.parking) : null,
     converted: attrs.converted ?? null,
-    agricultural: attrs.agricultural != null ? Number(attrs.agricultural) : null,
+    agricultural:
+      attrs.agricultural != null ? Number(attrs.agricultural) : null,
     other: attrs.other != null ? Number(attrs.other) : null,
     buildings: attrs.buildings != null ? Number(attrs.buildings) : null,
     floors: attrs.floors != null ? Number(attrs.floors) : null,
     landOwnership: attrs.land_ownership ?? null,
-    preliminaryDate: attrs.preliminary_date ? new Date(attrs.preliminary_date).toISOString() : null,
-    contingentFinalDate: attrs.contingent_final_date ? new Date(attrs.contingent_final_date).toISOString() : null,
-    finalDate: attrs.final_date ? new Date(attrs.final_date).toISOString() : null,
-    biennialRegistrationDate: attrs.biennial_registration_date ? new Date(attrs.biennial_registration_date).toISOString() : null,
-    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+    preliminaryDate: attrs.preliminary_date
+      ? new Date(attrs.preliminary_date).toISOString()
+      : null,
+    contingentFinalDate: attrs.contingent_final_date
+      ? new Date(attrs.contingent_final_date).toISOString()
+      : null,
+    finalDate: attrs.final_date
+      ? new Date(attrs.final_date).toISOString()
+      : null,
+    biennialRegistrationDate: attrs.biennial_registration_date
+      ? new Date(attrs.biennial_registration_date).toISOString()
+      : null,
+    createdAt: attrs.created_at
+      ? new Date(attrs.created_at).toISOString()
+      : null,
   };
 }
 
@@ -184,13 +207,17 @@ export class HhdbCondoUnit {
 
 export type HhdbCondoUnitJSON = ReturnType<HhdbCondoUnit["toJSON"]>;
 
-export function hhdbCondoUnitRowToJSON(attrs: HhdbCondoUnitAttrs): HhdbCondoUnitJSON {
+export function hhdbCondoUnitRowToJSON(
+  attrs: HhdbCondoUnitAttrs,
+): HhdbCondoUnitJSON {
   return {
     id: attrs.id ?? 0,
     tmk: attrs.tmk ?? null,
     parentTmk: attrs.parent_tmk ?? null,
     unitNumber: attrs.unit_number ?? null,
     ownerName: attrs.owner_name ?? null,
-    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+    createdAt: attrs.created_at
+      ? new Date(attrs.created_at).toISOString()
+      : null,
   };
 }

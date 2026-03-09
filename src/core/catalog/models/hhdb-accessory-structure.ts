@@ -48,13 +48,19 @@ export class HhdbAccessoryStructure {
   }
 }
 
-export type HhdbAccessoryStructureJSON = ReturnType<HhdbAccessoryStructure["toJSON"]>;
+export type HhdbAccessoryStructureJSON = ReturnType<
+  HhdbAccessoryStructure["toJSON"]
+>;
 
-export function hhdbAccessoryStructureRowToJSON(attrs: HhdbAccessoryStructureAttrs): HhdbAccessoryStructureJSON {
+export function hhdbAccessoryStructureRowToJSON(
+  attrs: HhdbAccessoryStructureAttrs,
+): HhdbAccessoryStructureJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
-    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     buildingNumber: attrs.building_number ?? null,
     description: attrs.description ?? null,
     dimensionsUnits: attrs.dimensions_units ?? null,

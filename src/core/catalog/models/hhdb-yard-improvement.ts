@@ -42,11 +42,15 @@ export class HhdbYardImprovement {
 
 export type HhdbYardImprovementJSON = ReturnType<HhdbYardImprovement["toJSON"]>;
 
-export function hhdbYardImprovementRowToJSON(attrs: HhdbYardImprovementAttrs): HhdbYardImprovementJSON {
+export function hhdbYardImprovementRowToJSON(
+  attrs: HhdbYardImprovementAttrs,
+): HhdbYardImprovementJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
-    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     description: attrs.description ?? null,
     quantity: attrs.quantity ?? null,
     yearBuilt: attrs.year_built != null ? Number(attrs.year_built) : null,

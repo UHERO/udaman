@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import path from "path";
+
 import { describe, expect, it } from "bun:test";
 
 import { parsePropertyHTML } from "./parse";
@@ -73,7 +74,10 @@ describe("detectPageStatus", () => {
   });
 
   it("truncates condo master property_class to first sentence", () => {
-    const parcel = oahuCondoProject.parcel_information as Record<string, unknown>;
+    const parcel = oahuCondoProject.parcel_information as Record<
+      string,
+      unknown
+    >;
     expect(parcel.property_class).toBe("This is a Condo Master.");
   });
 
@@ -270,7 +274,9 @@ describe("assessment_information", () => {
     const info = oahuApt.assessment_information as R;
 
     it("has assessments for commercial property", () => {
-      expect((info.current_assessments as R[]).length).toBeGreaterThanOrEqual(1);
+      expect((info.current_assessments as R[]).length).toBeGreaterThanOrEqual(
+        1,
+      );
       expect((info.historical_assessments as R[]).length).toBe(10);
     });
   });
@@ -629,14 +635,31 @@ describe("map section", () => {
 
 describe("cross-island section coverage", () => {
   it("all fixtures have parcel_information", () => {
-    const all = [oahuRes, oahuCondo, oahuCondoUnit, oahuApt, mauiRes, mauiCondoUnit, mauiApt];
+    const all = [
+      oahuRes,
+      oahuCondo,
+      oahuCondoUnit,
+      oahuApt,
+      mauiRes,
+      mauiCondoUnit,
+      mauiApt,
+    ];
     for (const r of all) {
       expect(r.parcel_information).toBeDefined();
     }
   });
 
   it("all fixtures have owner_information", () => {
-    const all = [oahuRes, oahuCondo, oahuCondoUnit, oahuApt, mauiRes, mauiCondoUnit, mauiApt, mauiCondoProject];
+    const all = [
+      oahuRes,
+      oahuCondo,
+      oahuCondoUnit,
+      oahuApt,
+      mauiRes,
+      mauiCondoUnit,
+      mauiApt,
+      mauiCondoProject,
+    ];
     for (const r of all) {
       expect(r.owner_information).toBeDefined();
       expect((r.owner_information as R).all_owners).toBeDefined();
@@ -644,16 +667,36 @@ describe("cross-island section coverage", () => {
   });
 
   it("all non-project fixtures have assessment_information", () => {
-    const all = [oahuRes, oahuCondo, oahuCondoUnit, oahuApt, mauiRes, mauiCondoUnit, mauiApt, mauiCondoProject];
+    const all = [
+      oahuRes,
+      oahuCondo,
+      oahuCondoUnit,
+      oahuApt,
+      mauiRes,
+      mauiCondoUnit,
+      mauiApt,
+      mauiCondoProject,
+    ];
     for (const r of all) {
       const info = r.assessment_information as R;
       expect(info).toBeDefined();
-      expect((info.current_assessments as R[]).length).toBeGreaterThanOrEqual(1);
+      expect((info.current_assessments as R[]).length).toBeGreaterThanOrEqual(
+        1,
+      );
     }
   });
 
   it("all non-project fixtures have sales_information", () => {
-    const all = [oahuRes, oahuCondo, oahuCondoUnit, oahuApt, mauiRes, mauiCondoUnit, mauiApt, mauiCondoProject];
+    const all = [
+      oahuRes,
+      oahuCondo,
+      oahuCondoUnit,
+      oahuApt,
+      mauiRes,
+      mauiCondoUnit,
+      mauiApt,
+      mauiCondoProject,
+    ];
     for (const r of all) {
       expect(r.sales_information).toBeDefined();
     }

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+
 import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 import { HhdbTableLayout } from "@/components/hhdb/hhdb-table-layout";
 

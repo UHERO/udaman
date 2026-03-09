@@ -24,6 +24,7 @@ src/core/workers/
 **`config.ts`** -- Site-specific constants (base URLs, delay ranges, blocked hours, file paths). Export a `<NAME>_CONFIG` object.
 
 **`browser.ts`** -- Manages a shared browser instance. Expose three functions:
+
 - `getPage()` -- Returns a new tab from the shared browser context
 - `releasePage(page)` -- Closes the tab
 - `closeBrowser()` -- Tears down the entire browser session
@@ -57,7 +58,9 @@ Use a deterministic `jobId` to deduplicate (prevents double-enqueuing the same t
 The processor is the BullMQ-aware glue between the queue and the pure scrape logic:
 
 ```ts
-export async function processMysiteScrape(job: Job<MysiteScrapeJobData>): Promise<string> {
+export async function processMysiteScrape(
+  job: Job<MysiteScrapeJobData>,
+): Promise<string> {
   // 1. Check blocked time windows, delay if needed
   // 2. getPage()
   // 3. Call the pure scrape function (jitter is inside it)

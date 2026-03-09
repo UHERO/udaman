@@ -21,7 +21,8 @@ export class HhdbPermit {
     this.permitDate = attrs.permit_date ? new Date(attrs.permit_date) : null;
     this.permitNumber = attrs.permit_number ?? null;
     this.reason = attrs.reason ?? null;
-    this.permitAmount = attrs.permit_amount != null ? Number(attrs.permit_amount) : null;
+    this.permitAmount =
+      attrs.permit_amount != null ? Number(attrs.permit_amount) : null;
   }
 
   toJSON() {
@@ -42,9 +43,12 @@ export function hhdbPermitRowToJSON(attrs: HhdbPermitAttrs): HhdbPermitJSON {
   return {
     id: attrs.id ?? 0,
     tmk: attrs.tmk ?? null,
-    permitDate: attrs.permit_date ? new Date(attrs.permit_date).toISOString() : null,
+    permitDate: attrs.permit_date
+      ? new Date(attrs.permit_date).toISOString()
+      : null,
     permitNumber: attrs.permit_number ?? null,
     reason: attrs.reason ?? null,
-    permitAmount: attrs.permit_amount != null ? Number(attrs.permit_amount) : null,
+    permitAmount:
+      attrs.permit_amount != null ? Number(attrs.permit_amount) : null,
   };
 }

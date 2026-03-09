@@ -17,8 +17,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { getVisibleChildren } from "@/lib/auth/route-access";
+import { cn } from "@/lib/utils";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
@@ -32,7 +32,13 @@ const TABS: { label: string; icon: LucideIcon; segment: string }[] = [
   { label: "Crawlers", icon: Globe, segment: "crawlers" },
 ];
 
-export function AdminTabs({ role, universe }: { role: string; universe: string }) {
+export function AdminTabs({
+  role,
+  universe,
+}: {
+  role: string;
+  universe: string;
+}) {
   const pathname = usePathname();
   const base = "/udaman/admin";
 

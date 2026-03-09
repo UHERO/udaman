@@ -4,30 +4,31 @@
  * Distributed scraping using MySQL for coordination
  * Date: 2025-10-13
  */
-
-import { chromium, firefox, webkit } from "playwright-extra";
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import mysql from "mysql2/promise";
-import fs from "fs/promises";
 import { existsSync } from "fs";
-import path from "path";
+import fs from "fs/promises";
 import os from "os";
+import path from "path";
 import readline from "readline";
-import { CONFIG, getHtmlPath, getJsonPath } from './shared.js';
-import { parsePropertyHTML } from './parse.js';
+
+import mysql from "mysql2/promise";
+import { chromium, firefox, webkit } from "playwright-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+
+import { parsePropertyHTML } from "./parse.js";
+import { CONFIG, getHtmlPath, getJsonPath } from "./shared.js";
 
 // Prompt user for input
-function prompt(question, defaultValue = '') {
+function prompt(question, defaultValue = "") {
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
       // Remove all readline listeners
-      process.stdin.removeAllListeners('keypress');
+      process.stdin.removeAllListeners("keypress");
       resolve(answer.trim() || defaultValue);
     });
   });
@@ -35,25 +36,33 @@ function prompt(question, defaultValue = '') {
 
 // Get configuration from user
 async function getConfig() {
-  console.log('QPub MySQL Scraper - Configuration\n');
-  console.log('Press ENTER to use defaults shown in brackets\n');
+  console.log("QPub MySQL Scraper - Configuration\n");
+  console.log("Press ENTER to use defaults shown in brackets\n");
 
-  const numTabs = await prompt(`Number of tabs (1-3) [1]: `, '1');
-  const browserType = await prompt(`Browser (chromium/firefox/webkit) [chromium]: `, 'chromium');
-  const workerId = await prompt(`Leaderboard name [${os.hostname()}]: `, os.hostname());
-  const enableSound = await prompt(`Enable sound alerts? (y/n) [y]: `, 'y');
+  const numTabs = await prompt(`Number of tabs (1-3) [1]: `, "1");
+  const browserType = await prompt(
+    `Browser (chromium/firefox/webkit) [chromium]: `,
+    "chromium",
+  );
+  const workerId = await prompt(
+    `Leaderboard name [${os.hostname()}]: `,
+    os.hostname(),
+  );
+  const enableSound = await prompt(`Enable sound alerts? (y/n) [y]: `, "y");
 
-  console.log(''); // Add blank line after prompts
+  console.log(""); // Add blank line after prompts
 
   // Clean up stdin after prompts
-  process.stdin.removeAllListeners('data');
+  process.stdin.removeAllListeners("data");
   process.stdin.pause();
 
   return {
     numTabs: Math.max(1, Math.min(3, parseInt(numTabs) || 3)),
-    browserType: ['chromium', 'firefox', 'webkit'].includes(browserType) ? browserType : 'chromium',
+    browserType: ["chromium", "firefox", "webkit"].includes(browserType)
+      ? browserType
+      : "chromium",
     workerId,
-    enableSound: enableSound.toLowerCase() !== 'n'
+    enableSound: enableSound.toLowerCase() !== "n",
   };
 }
 
@@ -73,14 +82,14 @@ CONFIG.WORKER_ID = null;
 
 // ANSI color codes
 const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m',
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
 };
 
 // Global state
@@ -108,47 +117,82 @@ const db = mysql.createPool({
 // Get status emoji
 function getStatusEmoji(status) {
   switch (status) {
-    case 'starting': return '🔵';
-    case 'running': return '🔄';
-    case 'waiting': return '⏸️';
-    case 'sleeping': return '💤';
-    case 'completed': return '✅';
-    case 'error': return '❌';
-    default: return '⚪';
+    case "starting":
+      return "🔵";
+    case "running":
+      return "🔄";
+    case "waiting":
+      return "⏸️";
+    case "sleeping":
+      return "💤";
+    case "completed":
+      return "✅";
+    case "error":
+      return "❌";
+    default:
+      return "⚪";
   }
 }
 
 // Clear screen
 function clearScreen() {
-  process.stdout.write('\x1b[2J\x1b[H');
+  process.stdout.write("\x1b[2J\x1b[H");
 }
 
 // Display status dashboard
 function displayStatus() {
   clearScreen();
 
-  const totalScraped = tabStates.reduce((sum, tab) => sum + tab.scrapedCount, 0);
+  const totalScraped = tabStates.reduce(
+    (sum, tab) => sum + tab.scrapedCount,
+    0,
+  );
   const totalFailed = tabStates.reduce((sum, tab) => sum + tab.failedCount, 0);
-  const totalRecords = queueStats.pending + queueStats.claimed + queueStats.completed + queueStats.failed;
-  const percentComplete = totalRecords > 0 ? ((queueStats.completed / totalRecords) * 100).toFixed(1) : 0;
+  const totalRecords =
+    queueStats.pending +
+    queueStats.claimed +
+    queueStats.completed +
+    queueStats.failed;
+  const percentComplete =
+    totalRecords > 0
+      ? ((queueStats.completed / totalRecords) * 100).toFixed(1)
+      : 0;
 
-  console.log(`${colors.bright}${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`);
-  console.log(`${colors.bright}${colors.cyan}  QPub MySQL Scraper  (${NUM_TABS} tab${NUM_TABS > 1 ? 's' : ''}) - Worker: ${CONFIG.WORKER_ID}${colors.reset}`);
-  console.log(`${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}\n`);
+  console.log(
+    `${colors.bright}${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`,
+  );
+  console.log(
+    `${colors.bright}${colors.cyan}  QPub MySQL Scraper  (${NUM_TABS} tab${NUM_TABS > 1 ? "s" : ""}) - Worker: ${CONFIG.WORKER_ID}${colors.reset}`,
+  );
+  console.log(
+    `${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}\n`,
+  );
 
   console.log(`${colors.bright}Queue Status:${colors.reset}`);
-  console.log(`  Pending: ${colors.yellow}${queueStats.pending}${colors.reset} | Claimed: ${colors.blue}${queueStats.claimed}${colors.reset} | Completed: ${colors.green}${queueStats.completed}${colors.reset} | Failed: ${colors.red}${queueStats.failed}${colors.reset}`);
-  console.log(`  Progress: ${queueStats.completed}/${totalRecords} (${percentComplete}%)\n`);
+  console.log(
+    `  Pending: ${colors.yellow}${queueStats.pending}${colors.reset} | Claimed: ${colors.blue}${queueStats.claimed}${colors.reset} | Completed: ${colors.green}${queueStats.completed}${colors.reset} | Failed: ${colors.red}${queueStats.failed}${colors.reset}`,
+  );
+  console.log(
+    `  Progress: ${queueStats.completed}/${totalRecords} (${percentComplete}%)\n`,
+  );
 
-  console.log(`${colors.bright}Worker Stats:${colors.reset} ${totalScraped} scraped | ${totalFailed} failed\n`);
+  console.log(
+    `${colors.bright}Worker Stats:${colors.reset} ${totalScraped} scraped | ${totalFailed} failed\n`,
+  );
 
   // Display each tab status
-  tabStates.forEach(tab => {
+  tabStates.forEach((tab) => {
     const emoji = getStatusEmoji(tab.status);
-    const statusColor = tab.status === 'waiting' ? colors.yellow :
-                       tab.status === 'running' ? colors.green :
-                       tab.status === 'sleeping' ? colors.cyan :
-                       tab.status === 'error' ? colors.red : colors.dim;
+    const statusColor =
+      tab.status === "waiting"
+        ? colors.yellow
+        : tab.status === "running"
+          ? colors.green
+          : tab.status === "sleeping"
+            ? colors.cyan
+            : tab.status === "error"
+              ? colors.red
+              : colors.dim;
 
     let statusLine = `${emoji} ${colors.bright}Tab #${tab.id}${colors.reset} - ${statusColor}${tab.status.toUpperCase()}${colors.reset}`;
 
@@ -163,35 +207,43 @@ function displayStatus() {
       const recentLogs = tab.logs.slice(-3);
       recentLogs.forEach((log, index) => {
         const isLatest = index === recentLogs.length - 1;
-        const indicator = isLatest ? '>' : ' ';
+        const indicator = isLatest ? ">" : " ";
         console.log(`  ${indicator} ${colors.dim}${log}${colors.reset}`);
       });
     }
 
-    console.log('');
+    console.log("");
   });
 
   // Display waiting queue info
   if (waitingQueue.length > 0) {
-    console.log(`${colors.yellow}${colors.bright}Waiting for captcha resolution:${colors.reset}`);
+    console.log(
+      `${colors.yellow}${colors.bright}Waiting for captcha resolution:${colors.reset}`,
+    );
     waitingQueue.forEach((tab, index) => {
-      const marker = index === 0 ? '← Next' : '';
+      const marker = index === 0 ? "← Next" : "";
       const waitTime = Math.floor((Date.now() - tab.waitingSince) / 1000);
-      console.log(`  ${colors.yellow}[Tab ${tab.id}]${colors.reset} ${colors.dim}(${waitTime}s ago)${colors.reset} ${colors.green}${marker}${colors.reset}`);
+      console.log(
+        `  ${colors.yellow}[Tab ${tab.id}]${colors.reset} ${colors.dim}(${waitTime}s ago)${colors.reset} ${colors.green}${marker}${colors.reset}`,
+      );
     });
-    console.log('');
-    console.log(`${colors.bright}${colors.green}Press ENTER to continue Tab #${waitingQueue[0].id}...${colors.reset}\n`);
+    console.log("");
+    console.log(
+      `${colors.bright}${colors.green}Press ENTER to continue Tab #${waitingQueue[0].id}...${colors.reset}\n`,
+    );
   } else {
     console.log(`${colors.dim}All tabs running...${colors.reset}\n`);
   }
 
-  console.log(`${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`);
+  console.log(
+    `${colors.cyan}═══════════════════════════════════════════════════════════════${colors.reset}`,
+  );
   console.log(`${colors.dim}Tip: Press Ctrl+C to stop all tabs${colors.reset}`);
 }
 
 // Add log to tab
 function addLog(tabId, message) {
-  const tab = tabStates.find(t => t.id === tabId);
+  const tab = tabStates.find((t) => t.id === tabId);
   if (tab) {
     if (!tab.logs) tab.logs = [];
     tab.logs.push(message);
@@ -202,7 +254,7 @@ function addLog(tabId, message) {
 
 // Update tab status
 function updateTabStatus(tabId, status, currentTMK = null) {
-  const tab = tabStates.find(t => t.id === tabId);
+  const tab = tabStates.find((t) => t.id === tabId);
   if (tab) {
     tab.status = status;
     if (currentTMK !== null) tab.currentTMK = currentTMK;
@@ -222,7 +274,9 @@ function isNighttime() {
   const now = new Date();
   const hour = now.getHours();
   // Nighttime spans midnight, so we check if hour >= 23 OR hour < 5
-  return hour >= CONFIG.NIGHTTIME_START_HOUR || hour < CONFIG.NIGHTTIME_END_HOUR;
+  return (
+    hour >= CONFIG.NIGHTTIME_START_HOUR || hour < CONFIG.NIGHTTIME_END_HOUR
+  );
 }
 
 // Check if in any blocked period
@@ -298,33 +352,39 @@ function getMsUntilMorning() {
 
 // Sleep with periodic status updates
 async function sleepUntilResume(reason) {
-  const isBackup = reason === 'backup';
+  const isBackup = reason === "backup";
   const getMsRemaining = isBackup ? getMsUntilBackupEnds : getMsUntilMorning;
   const getTimeString = isBackup ? getTimeUntilBackup : getTimeUntilMorning;
-  const emoji = isBackup ? '⏰' : '🌙';
-  const periodName = isBackup ? 'Backup window' : 'Nighttime block';
+  const emoji = isBackup ? "⏰" : "🌙";
+  const periodName = isBackup ? "Backup window" : "Nighttime block";
 
   while (isBlockedTime()) {
     // Update display
     clearScreen();
     displayStatus();
     const timeRemaining = getTimeString();
-    console.log(`\n${colors.yellow}${emoji} ${periodName} - Sleeping...${colors.reset}`);
-    console.log(`${colors.green}Will resume in ${timeRemaining}${colors.reset}\n`);
+    console.log(
+      `\n${colors.yellow}${emoji} ${periodName} - Sleeping...${colors.reset}`,
+    );
+    console.log(
+      `${colors.green}Will resume in ${timeRemaining}${colors.reset}\n`,
+    );
 
     // Sleep for 1 minute or until block ends (whichever is shorter)
     const msRemaining = getMsRemaining();
     const sleepMs = Math.min(60000, msRemaining);
 
     if (sleepMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, sleepMs));
+      await new Promise((resolve) => setTimeout(resolve, sleepMs));
     }
 
     // Check again
     if (!isBlockedTime()) {
       clearScreen();
       displayStatus();
-      console.log(`\n${colors.green}${emoji} ${periodName} ended - resuming scraping!${colors.reset}\n`);
+      console.log(
+        `\n${colors.green}${emoji} ${periodName} ended - resuming scraping!${colors.reset}\n`,
+      );
       break;
     }
   }
@@ -373,13 +433,16 @@ async function claimNextTMK() {
     const record = result[0];
 
     // Update status to claimed
-    await connection.query(`
+    await connection.query(
+      `
       UPDATE scrape_queue
       SET status = 'claimed',
           claimed_at = NOW(),
           claimed_by = ?
       WHERE tmk = ?
-    `, [CONFIG.WORKER_ID, record.tmk]);
+    `,
+      [CONFIG.WORKER_ID, record.tmk],
+    );
 
     await connection.commit();
     connection.release();
@@ -395,24 +458,30 @@ async function claimNextTMK() {
 
 // Mark TMK as completed
 async function markCompleted(tmk) {
-  await db.query(`
+  await db.query(
+    `
     UPDATE scrape_queue
     SET status = 'completed',
         completed_at = NOW(),
         scraped_by = ?
     WHERE tmk = ?
-  `, [CONFIG.WORKER_ID, tmk]);
+  `,
+    [CONFIG.WORKER_ID, tmk],
+  );
 }
 
 // Mark TMK as failed
 async function markFailed(tmk, errorMessage) {
-  await db.query(`
+  await db.query(
+    `
     UPDATE scrape_queue
     SET status = 'failed',
         retry_count = retry_count + 1,
         error_message = ?
     WHERE tmk = ?
-  `, [errorMessage, tmk]);
+  `,
+    [errorMessage, tmk],
+  );
 }
 
 // Check for captcha
@@ -449,23 +518,27 @@ async function checkPageStatus(page) {
     const html = await page.content();
 
     // Check for Cloudflare block
-    if (html.includes('Sorry, you have been blocked') || html.includes('Cloudflare Ray ID')) {
-      return { status: 'blocked', data: null };
+    if (
+      html.includes("Sorry, you have been blocked") ||
+      html.includes("Cloudflare Ray ID")
+    ) {
+      return { status: "blocked", data: null };
     }
 
     // Check for valid parcel page by looking for the Parcel Number table row
     // Valid pages have a <tr> with <th>Parcel Number</th> and <td> containing digits
-    const parcelRowPattern = /<tr[^>]*>[\s\S]*?<th[^>]*>[\s\S]*?Parcel Number[\s\S]*?<\/th>[\s\S]*?<td[^>]*>[\s\S]*?\d+[\s\S]*?<\/td>[\s\S]*?<\/tr>/;
+    const parcelRowPattern =
+      /<tr[^>]*>[\s\S]*?<th[^>]*>[\s\S]*?Parcel Number[\s\S]*?<\/th>[\s\S]*?<td[^>]*>[\s\S]*?\d+[\s\S]*?<\/td>[\s\S]*?<\/tr>/;
 
     if (parcelRowPattern.test(html)) {
       // Page has valid parcel data - return success
-      return { status: 'success', data: html };
+      return { status: "success", data: html };
     }
 
     // Unknown state (no valid parcel data found)
-    return { status: 'unknown', data: null };
+    return { status: "unknown", data: null };
   } catch (e) {
-    return { status: 'error', data: null };
+    return { status: "error", data: null };
   }
 }
 
@@ -499,11 +572,15 @@ async function saveResult(tmk, html, pageStatus) {
   const resultPath = path.join(resultsIslandDir, resultFilename);
   await fs.writeFile(
     resultPath,
-    JSON.stringify({
-      tmk,
-      status: pageStatus,
-      scraped_at: new Date().toISOString()
-    }, null, 2)
+    JSON.stringify(
+      {
+        tmk,
+        status: pageStatus,
+        scraped_at: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
   );
 
   // Parse HTML and save parsed JSON (real-time parsing)
@@ -516,7 +593,10 @@ async function saveResult(tmk, html, pageStatus) {
     }
 
     // Save parsed JSON
-    const jsonPath = path.join(jsonNestedDir, `${tmk.replace(/\//g, "-")}.json`);
+    const jsonPath = path.join(
+      jsonNestedDir,
+      `${tmk.replace(/\//g, "-")}.json`,
+    );
     await fs.writeFile(jsonPath, JSON.stringify(parsedData, null, 2));
 
     // Update database with parse results
@@ -526,7 +606,7 @@ async function saveResult(tmk, html, pageStatus) {
            parsed_at = NOW(),
            parse_status = ?
        WHERE tmk = ?`,
-      [parsedData.status, tmk]
+      [parsedData.status, tmk],
     );
   } catch (parseError) {
     // Log parse error but don't fail the scrape
@@ -536,14 +616,15 @@ async function saveResult(tmk, html, pageStatus) {
        SET parsed = FALSE,
            parse_status = 'failed'
        WHERE tmk = ?`,
-      [tmk]
+      [tmk],
     );
   }
 }
 
 // Random delay - uses CONFIG.DELAY_MIN and CONFIG.DELAY_MAX with additional variance
 function randomDelay() {
-  const baseDelay = CONFIG.DELAY_MIN + Math.random() * (CONFIG.DELAY_MAX - CONFIG.DELAY_MIN);
+  const baseDelay =
+    CONFIG.DELAY_MIN + Math.random() * (CONFIG.DELAY_MAX - CONFIG.DELAY_MIN);
   const variance = (Math.random() - 0.5) * 1000; // +/- 0.5 seconds
   const delay = Math.max(CONFIG.DELAY_MIN - 500, baseDelay + variance);
   return new Promise((resolve) => setTimeout(resolve, delay));
@@ -567,43 +648,43 @@ function getRandomViewport() {
 
 // Scrape function for a single tab
 async function scrapeTab(page, tabId) {
-  const tabState = tabStates.find(t => t.id === tabId);
+  const tabState = tabStates.find((t) => t.id === tabId);
 
   while (true) {
     // Check if shutdown has been initiated
     if (isShuttingDown) {
-      updateTabStatus(tabId, 'completed', 'Shutting down');
-      addLog(tabId, '👋 Shutdown initiated - stopping gracefully');
+      updateTabStatus(tabId, "completed", "Shutting down");
+      addLog(tabId, "👋 Shutdown initiated - stopping gracefully");
       return tabState.scrapedCount;
     }
 
     // Check if we've entered a blocked time period
     if (isBackupTime()) {
-      updateTabStatus(tabId, 'sleeping', 'Backup window');
-      addLog(tabId, '⏰ Backup window started - sleeping until it ends');
-      await sleepUntilResume('backup');
-      addLog(tabId, '✅ Backup complete - resuming scraping');
-      updateTabStatus(tabId, 'idle', null);
+      updateTabStatus(tabId, "sleeping", "Backup window");
+      addLog(tabId, "⏰ Backup window started - sleeping until it ends");
+      await sleepUntilResume("backup");
+      addLog(tabId, "✅ Backup complete - resuming scraping");
+      updateTabStatus(tabId, "idle", null);
     }
 
     if (isNighttime()) {
-      updateTabStatus(tabId, 'sleeping', 'Nighttime');
-      addLog(tabId, '🌙 Nighttime block started - sleeping until morning');
-      await sleepUntilResume('nighttime');
-      addLog(tabId, '✅ Morning arrived - resuming scraping');
-      updateTabStatus(tabId, 'idle', null);
+      updateTabStatus(tabId, "sleeping", "Nighttime");
+      addLog(tabId, "🌙 Nighttime block started - sleeping until morning");
+      await sleepUntilResume("nighttime");
+      addLog(tabId, "✅ Morning arrived - resuming scraping");
+      updateTabStatus(tabId, "idle", null);
     }
 
     // Claim next TMK
     const record = await claimNextTMK();
 
     if (!record) {
-      updateTabStatus(tabId, 'completed', 'Done');
-      addLog(tabId, '✅ Queue is empty - all done!');
+      updateTabStatus(tabId, "completed", "Done");
+      addLog(tabId, "✅ Queue is empty - all done!");
       break;
     }
 
-    updateTabStatus(tabId, 'running', record.tmk);
+    updateTabStatus(tabId, "running", record.tmk);
     addLog(tabId, `🔁 Working on ${record.tmk}`);
 
     try {
@@ -617,11 +698,11 @@ async function scrapeTab(page, tabId) {
       // Check for blockers
       const blocker = await checkForBlockers(page);
       if (blocker.blocked) {
-        updateTabStatus(tabId, 'waiting', record.tmk);
-        addLog(tabId, '⚠️  CAPTCHA DETECTED!');
+        updateTabStatus(tabId, "waiting", record.tmk);
+        addLog(tabId, "⚠️  CAPTCHA DETECTED!");
 
         // Add to waiting queue if not already there
-        if (!waitingQueue.find(t => t.id === tabId)) {
+        if (!waitingQueue.find((t) => t.id === tabId)) {
           tabState.waitingSince = Date.now();
           waitingQueue.push(tabState);
 
@@ -638,57 +719,60 @@ async function scrapeTab(page, tabId) {
         displayStatus();
 
         // Wait until this tab is released from waiting
-        await new Promise(resolve => {
+        await new Promise((resolve) => {
           tabState.resolveWait = resolve;
         });
 
         // Continue after captcha is solved
-        updateTabStatus(tabId, 'running', record.tmk);
-        addLog(tabId, 'Continuing after captcha...');
+        updateTabStatus(tabId, "running", record.tmk);
+        addLog(tabId, "Continuing after captcha...");
       }
 
       // Check page status
       const pageResult = await checkPageStatus(page);
 
-      if (pageResult.status === 'blocked') {
+      if (pageResult.status === "blocked") {
         addLog(tabId, `🚫 Blocked by Cloudflare`);
-        await markFailed(record.tmk, 'Blocked by Cloudflare');
+        await markFailed(record.tmk, "Blocked by Cloudflare");
         tabState.failedCount++;
-      } else if (pageResult.status === 'no_data') {
+      } else if (pageResult.status === "no_data") {
         addLog(tabId, `⚠️  No data available`);
         const html = await page.content();
-        await saveResult(record.tmk, html, 'no_data');
+        await saveResult(record.tmk, html, "no_data");
         await markCompleted(record.tmk);
         tabState.scrapedCount++;
-      } else if (pageResult.status === 'success') {
+      } else if (pageResult.status === "success") {
         addLog(tabId, `🏠 Parcel data found`);
         const html = await page.content();
-        await saveResult(record.tmk, html, 'success');
+        await saveResult(record.tmk, html, "success");
         await markCompleted(record.tmk);
         tabState.scrapedCount++;
       } else {
         addLog(tabId, `❓ Unknown page state`);
         const html = await page.content();
-        await saveResult(record.tmk, html, 'unknown');
+        await saveResult(record.tmk, html, "unknown");
         await markCompleted(record.tmk);
         tabState.scrapedCount++;
       }
 
-      addLog(tabId, `💾 Saved (${tabState.scrapedCount} completed, ${tabState.failedCount} failed)`);
+      addLog(
+        tabId,
+        `💾 Saved (${tabState.scrapedCount} completed, ${tabState.failedCount} failed)`,
+      );
 
       // Update queue stats every 10 records
       if ((tabState.scrapedCount + tabState.failedCount) % 30 === 0) {
         await updateQueueStats();
       }
     } catch (error) {
-      updateTabStatus(tabId, 'error', record.tmk);
+      updateTabStatus(tabId, "error", record.tmk);
       addLog(tabId, `❌ Error: ${error.message}`);
       await markFailed(record.tmk, error.message);
       tabState.failedCount++;
 
       // Continue to next record despite error
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      updateTabStatus(tabId, 'running', null);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      updateTabStatus(tabId, "running", null);
     }
   }
 
@@ -700,10 +784,10 @@ async function gracefulShutdown() {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
-  console.log('\n\nShutting down gracefully...');
+  console.log("\n\nShutting down gracefully...");
 
   // 0. Wait a moment for tabs to notice shutdown flag and stop
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // 1. Reset any claimed records back to pending
   if (CONFIG.WORKER_ID) {
@@ -712,15 +796,17 @@ async function gracefulShutdown() {
         `UPDATE scrape_queue
          SET status = 'pending', claimed_at = NULL, claimed_by = NULL
          WHERE status = 'claimed' AND claimed_by = ?`,
-        [CONFIG.WORKER_ID]
+        [CONFIG.WORKER_ID],
       );
       if (result.affectedRows > 0) {
-        console.log(`✓ Reset ${result.affectedRows} claimed record(s) back to pending`);
+        console.log(
+          `✓ Reset ${result.affectedRows} claimed record(s) back to pending`,
+        );
       } else {
-        console.log('✓ No claimed records to reset');
+        console.log("✓ No claimed records to reset");
       }
     } catch (err) {
-      console.error('Failed to reset claimed records:', err.message);
+      console.error("Failed to reset claimed records:", err.message);
     }
   }
 
@@ -728,7 +814,7 @@ async function gracefulShutdown() {
   if (browserInstance) {
     try {
       await browserInstance.close();
-      console.log('✓ Browser closed');
+      console.log("✓ Browser closed");
     } catch (err) {
       // Ignore errors on browser close
     }
@@ -737,37 +823,37 @@ async function gracefulShutdown() {
   // 3. Close database pool
   try {
     await db.end();
-    console.log('✓ Database connection closed');
+    console.log("✓ Database connection closed");
   } catch (err) {
     // Ignore errors on pool close
   }
 
-  console.log('Goodbye!\n');
+  console.log("Goodbye!\n");
   process.exit(0);
 }
 
 // Setup input handler
 function setupInputHandler() {
   // Set up Ctrl+C handler
-  process.on('SIGINT', gracefulShutdown);
-  process.on('SIGTERM', gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
+  process.on("SIGTERM", gracefulShutdown);
 
   // Resume stdin and make it raw mode for Enter key detection
   process.stdin.resume();
   if (process.stdin.setRawMode) {
     process.stdin.setRawMode(true);
   }
-  process.stdin.setEncoding('utf8');
+  process.stdin.setEncoding("utf8");
 
-  process.stdin.on('data', async (key) => {
+  process.stdin.on("data", async (key) => {
     // Check for Ctrl+C manually as backup
-    if (key === '\u0003') {
+    if (key === "\u0003") {
       await gracefulShutdown();
       return;
     }
 
     // Check for Enter key
-    if (key === '\r' || key === '\n') {
+    if (key === "\r" || key === "\n") {
       if (waitingQueue.length > 0) {
         // Get first tab in queue
         const tab = waitingQueue.shift();
@@ -779,7 +865,7 @@ function setupInputHandler() {
         } else if (waitingQueue.length > 0) {
           // Focus next waiting tab's browser
           const nextTab = waitingQueue[0];
-          const page = tabStates.find(t => t.id === nextTab.id).page;
+          const page = tabStates.find((t) => t.id === nextTab.id).page;
           await focusBrowser(page);
         }
 
@@ -808,10 +894,12 @@ async function scrape() {
   // Load sounds if enabled
   if (ENABLE_SOUND) {
     try {
-      const soundsModule = await import('./sounds.js');
+      const soundsModule = await import("./sounds.js");
       playNotification = soundsModule.playNotification;
     } catch (e) {
-      console.warn('Warning: Could not load sounds.js - sound will be disabled');
+      console.warn(
+        "Warning: Could not load sounds.js - sound will be disabled",
+      );
       ENABLE_SOUND = false;
       console.warn(`Error: ${e.message}`);
     }
@@ -821,20 +909,28 @@ async function scrape() {
 
   // Check if currently in backup window or nighttime - sleep until it ends
   if (isBackupTime()) {
-    console.log(`${colors.yellow}⏰ Backup window in progress (7:00 PM - 8:00 PM)${colors.reset}`);
-    console.log(`${colors.green}Waiting for backup to complete (${getTimeUntilBackup()})...${colors.reset}\n`);
-    await sleepUntilResume('backup');
+    console.log(
+      `${colors.yellow}⏰ Backup window in progress (7:00 PM - 8:00 PM)${colors.reset}`,
+    );
+    console.log(
+      `${colors.green}Waiting for backup to complete (${getTimeUntilBackup()})...${colors.reset}\n`,
+    );
+    await sleepUntilResume("backup");
   } else if (isNighttime()) {
-    console.log(`${colors.yellow}🌙 Nighttime block in progress (11:00 PM - 5:00 AM)${colors.reset}`);
-    console.log(`${colors.green}Waiting until morning (${getTimeUntilMorning()})...${colors.reset}\n`);
-    await sleepUntilResume('nighttime');
+    console.log(
+      `${colors.yellow}🌙 Nighttime block in progress (11:00 PM - 5:00 AM)${colors.reset}`,
+    );
+    console.log(
+      `${colors.green}Waiting until morning (${getTimeUntilMorning()})...${colors.reset}\n`,
+    );
+    await sleepUntilResume("nighttime");
   }
 
   console.log(`Configuration:`);
   console.log(`  Tabs: ${NUM_TABS}`);
   console.log(`  Browser: ${BROWSER_TYPE}`);
   console.log(`  Worker: ${CONFIG.WORKER_ID}`);
-  console.log(`  Sound: ${ENABLE_SOUND ? 'enabled' : 'disabled'}\n`);
+  console.log(`  Sound: ${ENABLE_SOUND ? "enabled" : "disabled"}\n`);
 
   // Check if NAS is mounted
   if (!existsSync(CONFIG.NAS_PATH)) {
@@ -845,7 +941,7 @@ async function scrape() {
 
   // Test MySQL connection
   try {
-    await db.query('SELECT 1 as test');
+    await db.query("SELECT 1 as test");
     console.log("✓ MySQL connection successful\n");
   } catch (error) {
     console.error("ERROR: MySQL connection failed!");
@@ -860,7 +956,7 @@ async function scrape() {
   // Select browser engine and apply stealth plugin
   browser = browserEngines[BROWSER_TYPE] || chromium;
   const stealth = StealthPlugin();
-  stealth.enabledEvasions.delete('user-agent-override');
+  stealth.enabledEvasions.delete("user-agent-override");
   browser.use(stealth);
 
   // Launch browser
@@ -869,64 +965,86 @@ async function scrape() {
 
   // Browser launch args - extra args for Windows compatibility
   const launchArgs = [];
-  if (process.platform === 'win32') {
-    launchArgs.push('--disable-dev-shm-usage'); // Helps with Windows memory issues
+  if (process.platform === "win32") {
+    launchArgs.push("--disable-dev-shm-usage"); // Helps with Windows memory issues
   }
 
   // Windows-specific: Use installed Chrome/Edge instead of bundled Chromium
   const launchOptions = {
     headless: false,
     args: launchArgs,
-    timeout: 30000
+    timeout: 30000,
   };
 
   // On Windows, try to use system Chrome/Edge which is more stable
-  if (process.platform === 'win32' && BROWSER_TYPE === 'chromium') {
-    launchOptions.channel = 'msedge'; // or 'chrome' if you have Chrome installed
-    console.log(`${colors.dim}(Using Microsoft Edge on Windows for better compatibility)${colors.reset}\n`);
+  if (process.platform === "win32" && BROWSER_TYPE === "chromium") {
+    launchOptions.channel = "msedge"; // or 'chrome' if you have Chrome installed
+    console.log(
+      `${colors.dim}(Using Microsoft Edge on Windows for better compatibility)${colors.reset}\n`,
+    );
   }
 
   try {
     browserInstance = await browser.launch(launchOptions);
-    console.log(`${colors.green}✓ Browser launched successfully${colors.reset}\n`);
+    console.log(
+      `${colors.green}✓ Browser launched successfully${colors.reset}\n`,
+    );
   } catch (error) {
     // On Windows, if Edge channel failed, try Chrome
-    if (process.platform === 'win32' && BROWSER_TYPE === 'chromium' && !error.message.includes('chrome')) {
-      console.log(`${colors.yellow}Edge failed, trying Chrome...${colors.reset}\n`);
+    if (
+      process.platform === "win32" &&
+      BROWSER_TYPE === "chromium" &&
+      !error.message.includes("chrome")
+    ) {
+      console.log(
+        `${colors.yellow}Edge failed, trying Chrome...${colors.reset}\n`,
+      );
       try {
-        launchOptions.channel = 'chrome';
+        launchOptions.channel = "chrome";
         browserInstance = await browser.launch(launchOptions);
-        console.log(`${colors.green}✓ Browser launched successfully with Chrome${colors.reset}\n`);
+        console.log(
+          `${colors.green}✓ Browser launched successfully with Chrome${colors.reset}\n`,
+        );
       } catch (error2) {
-        console.error(`${colors.red}ERROR: Both Edge and Chrome failed to launch!${colors.reset}`);
+        console.error(
+          `${colors.red}ERROR: Both Edge and Chrome failed to launch!${colors.reset}`,
+        );
         console.error(`Error: ${error2.message}\n`);
 
         console.log(`${colors.yellow}Troubleshooting steps:${colors.reset}`);
-        console.log(`  1. Install Playwright's bundled browser: npx playwright install chromium`);
+        console.log(
+          `  1. Install Playwright's bundled browser: npx playwright install chromium`,
+        );
         console.log(`  2. Make sure Edge or Chrome is installed`);
         console.log(`  3. Try running as administrator (Windows)`);
         console.log(`  4. Try WSL instead of native Windows\n`);
         process.exit(1);
       }
     } else {
-      console.error(`${colors.red}ERROR: Failed to launch browser!${colors.reset}`);
+      console.error(
+        `${colors.red}ERROR: Failed to launch browser!${colors.reset}`,
+      );
       console.error(`Browser: ${BROWSER_TYPE}`);
       console.error(`Error: ${error.message}\n`);
 
       console.log(`${colors.yellow}Troubleshooting steps:${colors.reset}`);
-      console.log(`  1. Install Playwright browsers: npx playwright install ${BROWSER_TYPE}`);
+      console.log(
+        `  1. Install Playwright browsers: npx playwright install ${BROWSER_TYPE}`,
+      );
       console.log(`  2. Try running as administrator (Windows)`);
       console.log(`  3. Check if antivirus/firewall is blocking Playwright`);
-      console.log(`  4. Try a different browser when prompted (firefox or webkit)\n`);
+      console.log(
+        `  4. Try a different browser when prompted (firefox or webkit)\n`,
+      );
       process.exit(1);
     }
   }
 
   const context = await browserInstance.newContext({
-    viewport: randomViewport
+    viewport: randomViewport,
   });
 
-  console.log('Setting up tabs...\n');
+  console.log("Setting up tabs...\n");
 
   // Create all tabs and initialize state
   for (let i = 0; i < NUM_TABS; i++) {
@@ -935,34 +1053,39 @@ async function scrape() {
     // Navigate to QPub homepage to establish session
     console.log(`Tab ${i + 1}: Loading QPub homepage...\n`);
     try {
-      await page.goto('https://qpublic.schneidercorp.com/Application.aspx?AppID=1045&LayerID=23342&PageTypeID=2&PageID=9744', {
-        waitUntil: "domcontentloaded",
-        timeout: 30000,
-      });
+      await page.goto(
+        "https://qpublic.schneidercorp.com/Application.aspx?AppID=1045&LayerID=23342&PageTypeID=2&PageID=9744",
+        {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        },
+      );
       console.log(`Tab ${i + 1}: Ready\n`);
     } catch (error) {
-      console.warn(`Tab ${i + 1}: Could not load homepage - ${error.message}\n`);
+      console.warn(
+        `Tab ${i + 1}: Could not load homepage - ${error.message}\n`,
+      );
     }
 
     tabStates.push({
       id: i + 1,
       page,
-      status: 'starting',
+      status: "starting",
       scrapedCount: 0,
       failedCount: 0,
       logs: [],
       currentTMK: null,
       waitingSince: null,
-      resolveWait: null
+      resolveWait: null,
     });
 
     // Stagger tab creation
     if (i < NUM_TABS - 1) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
 
-  console.log('All tabs ready! Starting to scrape...\n');
+  console.log("All tabs ready! Starting to scrape...\n");
 
   // Setup input handler
   setupInputHandler();
@@ -971,7 +1094,7 @@ async function scrape() {
   setTimeout(() => displayStatus(), 2000);
 
   // Run all tabs in parallel
-  const promises = tabStates.map(tab => scrapeTab(tab.page, tab.id));
+  const promises = tabStates.map((tab) => scrapeTab(tab.page, tab.id));
 
   // Wait for all tabs to complete
   const results = await Promise.all(promises);

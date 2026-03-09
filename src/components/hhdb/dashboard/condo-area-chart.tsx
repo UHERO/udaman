@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import type { CondoAreaRow } from "@catalog/collections/hhdb-dashboard-collection";
 import { Loader2 } from "lucide-react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+
+import { getHhdbCondoArea } from "@/actions/hhdb";
 import {
   Card,
   CardContent,
@@ -16,8 +19,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { getHhdbCondoArea } from "@/actions/hhdb";
-import type { CondoAreaRow } from "@catalog/collections/hhdb-dashboard-collection";
 
 const config: ChartConfig = {
   median_living_area: {
@@ -38,7 +39,9 @@ export function CondoAreaChart() {
       <Card>
         <CardHeader>
           <CardTitle>Residential Living Area by Year Built</CardTitle>
-          <CardDescription>Average living area by construction year</CardDescription>
+          <CardDescription>
+            Average living area by construction year
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex h-[300px] items-center justify-center">
           <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
@@ -51,7 +54,9 @@ export function CondoAreaChart() {
     <Card>
       <CardHeader>
         <CardTitle>Residential Living Area by Year Built</CardTitle>
-        <CardDescription>Average living area by construction year</CardDescription>
+        <CardDescription>
+          Average living area by construction year
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[300px] w-full">

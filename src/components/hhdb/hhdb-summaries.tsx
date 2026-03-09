@@ -2,11 +2,18 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { type IslandCounts, type SummaryResult, type SummaryViewType } from "@catalog/types/hhdb";
-import { HHDB_DATA_DICTIONARY, getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
+import {
+  type IslandCounts,
+  type SummaryResult,
+  type SummaryViewType,
+} from "@catalog/types/hhdb";
+import {
+  getFieldsForViewType,
+  HHDB_DATA_DICTIONARY,
+} from "@catalog/types/hhdb-data-dictionary";
 import { ArrowDown, Info, Loader2 } from "lucide-react";
 
-import { getHhdbSummaries, getHhdbDistribution } from "@/actions/hhdb";
+import { getHhdbDistribution, getHhdbSummaries } from "@/actions/hhdb";
 import { cn } from "@/lib/utils";
 
 /** TMK first-digit → county name */
@@ -82,7 +89,7 @@ function SortHeader({
   const isActive = sortCol === colKey;
   return (
     <th
-      className="cursor-pointer select-none pb-2 text-right font-medium hover:text-foreground"
+      className="hover:text-foreground cursor-pointer pb-2 text-right font-medium select-none"
       onClick={() => onSort(colKey)}
     >
       <span className="inline-flex items-center gap-0.5">
@@ -131,20 +138,37 @@ export function HhdbSummaries({
       return;
     }
     // Only pass sortBy for rank fields (summary sort is client-side)
-    const sortBy = viewType === "rank" && sortCol !== "total" ? sortCol : undefined;
+    const sortBy =
+      viewType === "rank" && sortCol !== "total" ? sortCol : undefined;
     startTransition(async () => {
-      const data = await getHhdbSummaries(tableName, selectedField, viewType, sortBy);
+      const data = await getHhdbSummaries(
+        tableName,
+        selectedField,
+        viewType,
+        sortBy,
+      );
       setResult(data);
 
       // For range view, also fetch distribution
-      if (viewType === "range" && selectedDef?.format && selectedDef.format !== "text") {
+      if (
+        viewType === "range" &&
+        selectedDef?.format &&
+        selectedDef.format !== "text"
+      ) {
         const dist = await getHhdbDistribution(tableName, selectedField);
         setDistResult(dist);
       } else {
         setDistResult(null);
       }
     });
-  }, [tableName, selectedField, hasSummary, sortCol, viewType, selectedDef?.format]);
+  }, [
+    tableName,
+    selectedField,
+    hasSummary,
+    sortCol,
+    viewType,
+    selectedDef?.format,
+  ]);
 
   if (!viewFields || viewFields.length === 0) {
     return (
@@ -230,146 +254,203 @@ export function HhdbSummaries({
             {/* Summary results */}
             {hasSummary && !isPending && result && (
               <>
-                {result.type === "range" && (() => {
-                  const fmt = result.format;
-                  const byIsland = (code: string) => result.islands.find((s) => s.island === code);
-                  return (
-                    <div className="space-y-6">
-                      <div className="max-h-[560px] overflow-y-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b text-left">
-                              <th className="pb-2 font-medium" />
-                              <th className="pb-2 text-right font-medium">Min</th>
-                              <th className="pb-2 text-right font-medium">Median</th>
-                              <th className="pb-2 text-right font-medium">Max</th>
-                              <th className="text-muted-foreground pb-2 text-right font-medium italic">Nulls</th>
-                              <th className="pb-2 text-right font-medium">Count</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {ISLANDS.map((i) => {
-                              const s = byIsland(i.code);
-                              return (
-                                <tr key={i.code} className="border-b last:border-0">
-                                  <td className="py-1.5 font-medium">{i.label}</td>
-                                  <td className="py-1.5 text-right tabular-nums">
-                                    {s && s.count > 0 ? formatValue(s.min, fmt) : ""}
-                                  </td>
-                                  <td className="py-1.5 text-right tabular-nums">
-                                    {s && s.count > 0 ? formatValue(s.median, fmt) : ""}
-                                  </td>
-                                  <td className="py-1.5 text-right tabular-nums">
-                                    {s && s.count > 0 ? formatValue(s.max, fmt) : ""}
-                                  </td>
-                                  <td className="text-muted-foreground py-1.5 text-right italic tabular-nums">
-                                    {(result.nullCounts[i.code] ?? 0) > 0
-                                      ? result.nullCounts[i.code].toLocaleString()
-                                      : ""}
-                                  </td>
-                                  <td className="py-1.5 text-right tabular-nums">
-                                    {s && s.count > 0 ? s.count.toLocaleString() : ""}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                            <tr className="border-b last:border-0">
-                              <td className="py-1.5 font-semibold">All Islands</td>
-                              <td className="py-1.5 text-right font-semibold tabular-nums">
-                                {result.overall.count > 0 ? formatValue(result.overall.min, fmt) : ""}
-                              </td>
-                              <td className="py-1.5 text-right font-semibold tabular-nums">
-                                {result.overall.count > 0 ? formatValue(result.overall.median, fmt) : ""}
-                              </td>
-                              <td className="py-1.5 text-right font-semibold tabular-nums">
-                                {result.overall.count > 0 ? formatValue(result.overall.max, fmt) : ""}
-                              </td>
-                              <td className="text-muted-foreground py-1.5 text-right font-semibold italic tabular-nums">
-                                {result.nullTotal > 0 ? result.nullTotal.toLocaleString() : ""}
-                              </td>
-                              <td className="py-1.5 text-right font-semibold tabular-nums">
-                                {result.overall.count > 0 ? result.overall.count.toLocaleString() : ""}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Distribution table below range stats */}
-                      {distResult && distResult.type === "distribution" && distResult.buckets.length > 0 && (() => {
-                        const sortedBuckets = sortCol !== "total"
-                          ? [...distResult.buckets].sort((a, b) => (b.counts[sortCol] ?? 0) - (a.counts[sortCol] ?? 0))
-                          : distResult.buckets;
-                        return (
-                          <div>
-                            <h4 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
-                              Distribution
-                            </h4>
-                            <div className="max-h-[400px] overflow-y-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b text-left">
-                                    <th className="pb-2 font-medium">Range</th>
-                                    {ISLANDS.map((i) => (
-                                      <SortHeader
-                                        key={i.code}
-                                        label={i.label}
-                                        colKey={i.code}
-                                        sortCol={sortCol}
-                                        onSort={setSortCol}
-                                      />
-                                    ))}
-                                    <SortHeader
-                                      label="Total"
-                                      colKey="total"
-                                      sortCol={sortCol}
-                                      onSort={setSortCol}
-                                    />
+                {result.type === "range" &&
+                  (() => {
+                    const fmt = result.format;
+                    const byIsland = (code: string) =>
+                      result.islands.find((s) => s.island === code);
+                    return (
+                      <div className="space-y-6">
+                        <div className="max-h-[560px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-left">
+                                <th className="pb-2 font-medium" />
+                                <th className="pb-2 text-right font-medium">
+                                  Min
+                                </th>
+                                <th className="pb-2 text-right font-medium">
+                                  Median
+                                </th>
+                                <th className="pb-2 text-right font-medium">
+                                  Max
+                                </th>
+                                <th className="text-muted-foreground pb-2 text-right font-medium italic">
+                                  Nulls
+                                </th>
+                                <th className="pb-2 text-right font-medium">
+                                  Count
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {ISLANDS.map((i) => {
+                                const s = byIsland(i.code);
+                                return (
+                                  <tr
+                                    key={i.code}
+                                    className="border-b last:border-0"
+                                  >
+                                    <td className="py-1.5 font-medium">
+                                      {i.label}
+                                    </td>
+                                    <td className="py-1.5 text-right tabular-nums">
+                                      {s && s.count > 0
+                                        ? formatValue(s.min, fmt)
+                                        : ""}
+                                    </td>
+                                    <td className="py-1.5 text-right tabular-nums">
+                                      {s && s.count > 0
+                                        ? formatValue(s.median, fmt)
+                                        : ""}
+                                    </td>
+                                    <td className="py-1.5 text-right tabular-nums">
+                                      {s && s.count > 0
+                                        ? formatValue(s.max, fmt)
+                                        : ""}
+                                    </td>
+                                    <td className="text-muted-foreground py-1.5 text-right italic tabular-nums">
+                                      {(result.nullCounts[i.code] ?? 0) > 0
+                                        ? result.nullCounts[
+                                            i.code
+                                          ].toLocaleString()
+                                        : ""}
+                                    </td>
+                                    <td className="py-1.5 text-right tabular-nums">
+                                      {s && s.count > 0
+                                        ? s.count.toLocaleString()
+                                        : ""}
+                                    </td>
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {sortedBuckets.map((b) => (
-                                    <tr key={b.label} className="border-b last:border-0">
-                                      <td className="py-1.5">{b.label}</td>
-                                      {ISLANDS.map((i) => (
-                                        <CountCell
-                                          key={i.code}
-                                          counts={b.counts}
-                                          code={i.code}
+                                );
+                              })}
+                              <tr className="border-b last:border-0">
+                                <td className="py-1.5 font-semibold">
+                                  All Islands
+                                </td>
+                                <td className="py-1.5 text-right font-semibold tabular-nums">
+                                  {result.overall.count > 0
+                                    ? formatValue(result.overall.min, fmt)
+                                    : ""}
+                                </td>
+                                <td className="py-1.5 text-right font-semibold tabular-nums">
+                                  {result.overall.count > 0
+                                    ? formatValue(result.overall.median, fmt)
+                                    : ""}
+                                </td>
+                                <td className="py-1.5 text-right font-semibold tabular-nums">
+                                  {result.overall.count > 0
+                                    ? formatValue(result.overall.max, fmt)
+                                    : ""}
+                                </td>
+                                <td className="text-muted-foreground py-1.5 text-right font-semibold italic tabular-nums">
+                                  {result.nullTotal > 0
+                                    ? result.nullTotal.toLocaleString()
+                                    : ""}
+                                </td>
+                                <td className="py-1.5 text-right font-semibold tabular-nums">
+                                  {result.overall.count > 0
+                                    ? result.overall.count.toLocaleString()
+                                    : ""}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Distribution table below range stats */}
+                        {distResult &&
+                          distResult.type === "distribution" &&
+                          distResult.buckets.length > 0 &&
+                          (() => {
+                            const sortedBuckets =
+                              sortCol !== "total"
+                                ? [...distResult.buckets].sort(
+                                    (a, b) =>
+                                      (b.counts[sortCol] ?? 0) -
+                                      (a.counts[sortCol] ?? 0),
+                                  )
+                                : distResult.buckets;
+                            return (
+                              <div>
+                                <h4 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
+                                  Distribution
+                                </h4>
+                                <div className="max-h-[400px] overflow-y-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b text-left">
+                                        <th className="pb-2 font-medium">
+                                          Range
+                                        </th>
+                                        {ISLANDS.map((i) => (
+                                          <SortHeader
+                                            key={i.code}
+                                            label={i.label}
+                                            colKey={i.code}
+                                            sortCol={sortCol}
+                                            onSort={setSortCol}
+                                          />
+                                        ))}
+                                        <SortHeader
+                                          label="Total"
+                                          colKey="total"
+                                          sortCol={sortCol}
+                                          onSort={setSortCol}
                                         />
-                                      ))}
-                                      <td className="py-1.5 text-right font-medium tabular-nums">
-                                        {b.total.toLocaleString()}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                  {distResult.nullTotal > 0 && (
-                                    <tr className="border-b last:border-0">
-                                      <td className="text-muted-foreground py-1.5 italic">NULL</td>
-                                      {ISLANDS.map((i) => (
-                                        <td
-                                          key={i.code}
-                                          className="text-muted-foreground py-1.5 text-right italic tabular-nums"
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {sortedBuckets.map((b) => (
+                                        <tr
+                                          key={b.label}
+                                          className="border-b last:border-0"
                                         >
-                                          {(distResult.nullCounts[i.code] ?? 0) > 0
-                                            ? distResult.nullCounts[i.code].toLocaleString()
-                                            : ""}
-                                        </td>
+                                          <td className="py-1.5">{b.label}</td>
+                                          {ISLANDS.map((i) => (
+                                            <CountCell
+                                              key={i.code}
+                                              counts={b.counts}
+                                              code={i.code}
+                                            />
+                                          ))}
+                                          <td className="py-1.5 text-right font-medium tabular-nums">
+                                            {b.total.toLocaleString()}
+                                          </td>
+                                        </tr>
                                       ))}
-                                      <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
-                                        {distResult.nullTotal.toLocaleString()}
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  );
-                })()}
+                                      {distResult.nullTotal > 0 && (
+                                        <tr className="border-b last:border-0">
+                                          <td className="text-muted-foreground py-1.5 italic">
+                                            NULL
+                                          </td>
+                                          {ISLANDS.map((i) => (
+                                            <td
+                                              key={i.code}
+                                              className="text-muted-foreground py-1.5 text-right italic tabular-nums"
+                                            >
+                                              {(distResult.nullCounts[i.code] ??
+                                                0) > 0
+                                                ? distResult.nullCounts[
+                                                    i.code
+                                                  ].toLocaleString()
+                                                : ""}
+                                            </td>
+                                          ))}
+                                          <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
+                                            {distResult.nullTotal.toLocaleString()}
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                      </div>
+                    );
+                  })()}
 
                 {result.type === "rank" && (
                   <div className="max-h-[560px] overflow-y-auto">
@@ -450,76 +531,84 @@ export function HhdbSummaries({
                   </div>
                 )}
 
-                {result.type === "summary" && (() => {
-                  const sortedValues = [...result.values].sort((a, b) =>
-                    sortCol !== "total"
-                      ? (b.counts[sortCol] ?? 0) - (a.counts[sortCol] ?? 0)
-                      : b.total - a.total,
-                  );
-                  return (
-                  <div className="max-h-[560px] overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b text-left">
-                          <th className="pb-2 font-medium">Value</th>
-                          {ISLANDS.map((i) => (
-                            <SortHeader
-                              key={i.code}
-                              label={i.label}
-                              colKey={i.code}
-                              sortCol={sortCol}
-                              onSort={setSortCol}
-                            />
-                          ))}
-                          <SortHeader
-                            label="Total"
-                            colKey="total"
-                            sortCol={sortCol}
-                            onSort={setSortCol}
-                          />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedValues.map((v) => (
-                          <tr key={v.value} className="border-b last:border-0">
-                            <td className="py-1.5">{displayValue(v.value)}</td>
-                            {ISLANDS.map((i) => (
-                              <CountCell
-                                key={i.code}
-                                counts={v.counts}
-                                code={i.code}
+                {result.type === "summary" &&
+                  (() => {
+                    const sortedValues = [...result.values].sort((a, b) =>
+                      sortCol !== "total"
+                        ? (b.counts[sortCol] ?? 0) - (a.counts[sortCol] ?? 0)
+                        : b.total - a.total,
+                    );
+                    return (
+                      <div className="max-h-[560px] overflow-y-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b text-left">
+                              <th className="pb-2 font-medium">Value</th>
+                              {ISLANDS.map((i) => (
+                                <SortHeader
+                                  key={i.code}
+                                  label={i.label}
+                                  colKey={i.code}
+                                  sortCol={sortCol}
+                                  onSort={setSortCol}
+                                />
+                              ))}
+                              <SortHeader
+                                label="Total"
+                                colKey="total"
+                                sortCol={sortCol}
+                                onSort={setSortCol}
                               />
-                            ))}
-                            <td className="py-1.5 text-right font-medium tabular-nums">
-                              {v.total.toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                        {result.nullTotal > 0 && (
-                          <tr className="border-b last:border-0">
-                            <td className="text-muted-foreground py-1.5 italic">
-                              NULL
-                            </td>
-                            {ISLANDS.map((i) => (
-                              <td
-                                key={i.code}
-                                className="text-muted-foreground py-1.5 text-right italic tabular-nums"
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedValues.map((v) => (
+                              <tr
+                                key={v.value}
+                                className="border-b last:border-0"
                               >
-                                {(result.nullCounts[i.code] ?? 0) > 0
-                                  ? result.nullCounts[i.code].toLocaleString()
-                                  : ""}
-                              </td>
+                                <td className="py-1.5">
+                                  {displayValue(v.value)}
+                                </td>
+                                {ISLANDS.map((i) => (
+                                  <CountCell
+                                    key={i.code}
+                                    counts={v.counts}
+                                    code={i.code}
+                                  />
+                                ))}
+                                <td className="py-1.5 text-right font-medium tabular-nums">
+                                  {v.total.toLocaleString()}
+                                </td>
+                              </tr>
                             ))}
-                            <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
-                              {result.nullTotal.toLocaleString()}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  );
-                })()}
+                            {result.nullTotal > 0 && (
+                              <tr className="border-b last:border-0">
+                                <td className="text-muted-foreground py-1.5 italic">
+                                  NULL
+                                </td>
+                                {ISLANDS.map((i) => (
+                                  <td
+                                    key={i.code}
+                                    className="text-muted-foreground py-1.5 text-right italic tabular-nums"
+                                  >
+                                    {(result.nullCounts[i.code] ?? 0) > 0
+                                      ? result.nullCounts[
+                                          i.code
+                                        ].toLocaleString()
+                                      : ""}
+                                  </td>
+                                ))}
+                                <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
+                                  {result.nullTotal.toLocaleString()}
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
               </>
             )}
           </div>

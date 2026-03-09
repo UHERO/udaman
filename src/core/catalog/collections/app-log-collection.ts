@@ -1,8 +1,9 @@
 import { readFile } from "fs/promises";
 import { resolve } from "path";
 
-import { createLogger } from "@/core/observability/logger";
 import { mysql, rawQuery } from "@database/mysql";
+
+import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("app-log-collection");
 
@@ -31,9 +32,7 @@ export class AppLogCollection {
     try {
       const level = entry.level ?? "info";
       const userId = entry.userId ?? null;
-      const metadata = entry.metadata
-        ? JSON.stringify(entry.metadata)
-        : null;
+      const metadata = entry.metadata ? JSON.stringify(entry.metadata) : null;
 
       await mysql`
         INSERT INTO app_logs (level, category, name, user_id, metadata)
@@ -89,29 +88,25 @@ export class AppLogCollection {
       [...params, limit, offset] as (string | number | Date)[],
     );
 
-    const logs: AppLogRow[] = rows.map(
-      (r: Record<string, unknown>) => ({
-        id: Number(r.id),
-        level: r.level as "info" | "warn" | "error",
-        category: r.category as string,
-        name: r.name as string,
-        userId: r.user_id != null ? Number(r.user_id) : null,
-        username: (r.username as string) ?? null,
-        metadata:
-          typeof r.metadata === "string"
-            ? JSON.parse(r.metadata)
-            : (r.metadata as Record<string, unknown> | null),
-        createdAt: new Date(r.created_at as string),
-      }),
-    );
+    const logs: AppLogRow[] = rows.map((r: Record<string, unknown>) => ({
+      id: Number(r.id),
+      level: r.level as "info" | "warn" | "error",
+      category: r.category as string,
+      name: r.name as string,
+      userId: r.user_id != null ? Number(r.user_id) : null,
+      username: (r.username as string) ?? null,
+      metadata:
+        typeof r.metadata === "string"
+          ? JSON.parse(r.metadata)
+          : (r.metadata as Record<string, unknown> | null),
+      createdAt: new Date(r.created_at as string),
+    }));
 
     return { logs, total };
   }
 
   /** Read the last N lines from the NDJSON log file. */
-  static async readLogFile(opts?: {
-    lines?: number;
-  }): Promise<string[]> {
+  static async readLogFile(opts?: { lines?: number }): Promise<string[]> {
     const maxLines = opts?.lines ?? 200;
     const logPath = resolve("logs/app-events.log");
 
@@ -121,7 +116,11 @@ export class AppLogCollection {
       // Return last N lines, newest first
       return allLines.slice(-maxLines).reverse();
     } catch (e: unknown) {
-      if (e instanceof Error && "code" in e && (e as NodeJS.ErrnoException).code === "ENOENT") {
+      if (
+        e instanceof Error &&
+        "code" in e &&
+        (e as NodeJS.ErrnoException).code === "ENOENT"
+      ) {
         return [];
       }
       throw e;

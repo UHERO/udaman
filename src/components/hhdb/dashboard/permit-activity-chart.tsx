@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import type { PermitActivityRow } from "@catalog/collections/hhdb-dashboard-collection";
 import { Loader2 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis } from "recharts";
+
+import { getHhdbPermitActivity } from "@/actions/hhdb";
 import {
   Card,
   CardContent,
@@ -16,8 +19,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { getHhdbPermitActivity } from "@/actions/hhdb";
-import type { PermitActivityRow } from "@catalog/collections/hhdb-dashboard-collection";
 
 const config: ChartConfig = {
   permit_count: { label: "Permits", color: "#2563eb" },
@@ -36,7 +37,9 @@ export function PermitActivityChart() {
       <Card>
         <CardHeader>
           <CardTitle>Permit Activity by Year</CardTitle>
-          <CardDescription>Permit count and total amount by year</CardDescription>
+          <CardDescription>
+            Permit count and total amount by year
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex h-[300px] items-center justify-center">
           <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
@@ -56,10 +59,7 @@ export function PermitActivityChart() {
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" />
-            <YAxis
-              yAxisId="left"
-              tickFormatter={(v) => v.toLocaleString()}
-            />
+            <YAxis yAxisId="left" tickFormatter={(v) => v.toLocaleString()} />
             <YAxis
               yAxisId="right"
               orientation="right"

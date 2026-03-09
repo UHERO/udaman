@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbImprovementJSON } from "@catalog/models/hhdb-improvement";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const residentialColumns: ColumnDef<HhdbImprovementJSON, unknown>[] = [
@@ -16,7 +17,11 @@ const residentialColumns: ColumnDef<HhdbImprovementJSON, unknown>[] = [
   { accessorKey: "halfBath", header: "Half Bath", enableSorting: false },
   { accessorKey: "occupancy", header: "Occupancy", enableSorting: true },
   { accessorKey: "framing", header: "Framing", enableSorting: true },
-  { accessorKey: "percentComplete", header: "% Complete", enableSorting: false },
+  {
+    accessorKey: "percentComplete",
+    header: "% Complete",
+    enableSorting: false,
+  },
   { accessorKey: "heatingCooling", header: "HVAC", enableSorting: false },
   { accessorKey: "exteriorWall", header: "Ext Wall", enableSorting: false },
   { accessorKey: "roofMaterial", header: "Roof", enableSorting: false },
@@ -44,16 +49,40 @@ const commercialColumns: ColumnDef<HhdbImprovementJSON, unknown>[] = [
   { accessorKey: "buildingNumber", header: "Bldg #", enableSorting: true },
   { accessorKey: "buildingCard", header: "Card", enableSorting: false },
   { accessorKey: "yearBuilt", header: "Year Built", enableSorting: true },
-  { accessorKey: "effectiveYearBuilt", header: "Eff Year", enableSorting: false },
+  {
+    accessorKey: "effectiveYearBuilt",
+    header: "Eff Year",
+    enableSorting: false,
+  },
   { accessorKey: "improvementName", header: "Name", enableSorting: true },
   { accessorKey: "propertyClass", header: "Class", enableSorting: true },
-  { accessorKey: "structureType", header: "Structure Type", enableSorting: true },
+  {
+    accessorKey: "structureType",
+    header: "Structure Type",
+    enableSorting: true,
+  },
   { accessorKey: "units", header: "Units", enableSorting: true },
-  { accessorKey: "identicalUnits", header: "Identical Units", enableSorting: false },
-  { accessorKey: "grossBuildingDescription", header: "Gross Bldg Desc", enableSorting: false },
-  { accessorKey: "buildingSquareFootage", header: "Sq Ft", enableSorting: true },
+  {
+    accessorKey: "identicalUnits",
+    header: "Identical Units",
+    enableSorting: false,
+  },
+  {
+    accessorKey: "grossBuildingDescription",
+    header: "Gross Bldg Desc",
+    enableSorting: false,
+  },
+  {
+    accessorKey: "buildingSquareFootage",
+    header: "Sq Ft",
+    enableSorting: true,
+  },
   { accessorKey: "buildingType", header: "Bldg Type", enableSorting: false },
-  { accessorKey: "percentCompleteComm", header: "% Complete", enableSorting: false },
+  {
+    accessorKey: "percentCompleteComm",
+    header: "% Complete",
+    enableSorting: false,
+  },
   { accessorKey: "structure", header: "Structure", enableSorting: false },
   {
     accessorKey: "value",
@@ -114,7 +143,9 @@ export function ImprovementsTable(props: ImprovementsTableProps) {
       search={props.search}
       sort={props.sort}
       order={props.order}
-      defaultHiddenColumns={isResidential ? RESIDENTIAL_HIDDEN : COMMERCIAL_HIDDEN}
+      defaultHiddenColumns={
+        isResidential ? RESIDENTIAL_HIDDEN : COMMERCIAL_HIDDEN
+      }
       searchPlaceholder={
         isResidential
           ? "Search by TMK, occupancy, framing..."

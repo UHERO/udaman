@@ -65,7 +65,13 @@ export type SummaryResult =
   | {
       type: "distribution";
       format: "dollar" | "number" | "year" | "text";
-      buckets: { label: string; min: number; max: number; counts: IslandCounts; total: number }[];
+      buckets: {
+        label: string;
+        min: number;
+        max: number;
+        counts: IslandCounts;
+        total: number;
+      }[];
       nullCounts: IslandCounts;
       nullTotal: number;
     };

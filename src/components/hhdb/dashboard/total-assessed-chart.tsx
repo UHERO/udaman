@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import type { TotalAssessedRow } from "@catalog/collections/hhdb-dashboard-collection";
+import { ISLAND_NAMES } from "@catalog/types/hhdb";
 import { Loader2 } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Legend, XAxis, YAxis } from "recharts";
+
+import { getHhdbTotalAssessed } from "@/actions/hhdb";
 import {
   Card,
   CardContent,
@@ -16,11 +20,15 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { getHhdbTotalAssessed } from "@/actions/hhdb";
-import { ISLAND_NAMES } from "@catalog/types/hhdb";
-import type { TotalAssessedRow } from "@catalog/collections/hhdb-dashboard-collection";
 
-const COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2"];
+const COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#dc2626",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+];
 
 export function TotalAssessedChart() {
   const [data, setData] = useState<TotalAssessedRow[] | null>(null);
@@ -34,7 +42,9 @@ export function TotalAssessedChart() {
       <Card>
         <CardHeader>
           <CardTitle>Total Assessed Value by Island</CardTitle>
-          <CardDescription>Sum of assessed values by island over time</CardDescription>
+          <CardDescription>
+            Sum of assessed values by island over time
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex h-[300px] items-center justify-center">
           <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
@@ -67,7 +77,9 @@ export function TotalAssessedChart() {
     <Card>
       <CardHeader>
         <CardTitle>Total Assessed Value by Island</CardTitle>
-        <CardDescription>Sum of assessed values by island over time</CardDescription>
+        <CardDescription>
+          Sum of assessed values by island over time
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[300px] w-full">

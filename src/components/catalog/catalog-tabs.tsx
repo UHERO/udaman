@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { getVisibleChildren } from "@/lib/auth/route-access";
+import { cn } from "@/lib/utils";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
@@ -33,7 +33,13 @@ const TABS = [
   { label: "Source Details", icon: ScanSearch, segment: "source-details" },
 ] as const;
 
-export function CatalogTabs({ role, universe: userUniverse }: { role: string; universe: string }) {
+export function CatalogTabs({
+  role,
+  universe: userUniverse,
+}: {
+  role: string;
+  universe: string;
+}) {
   const { universe } = useParams();
   const pathname = usePathname();
   const base = `/udaman/${universe}/catalog`;

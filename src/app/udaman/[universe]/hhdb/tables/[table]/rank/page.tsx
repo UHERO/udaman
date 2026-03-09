@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
-import { HHDB_TABLE_CONFIG, HHDB_TABLE_SLUGS } from "@/components/hhdb/hhdb-table-config";
+
 import { HhdbSummaries } from "@/components/hhdb/hhdb-summaries";
+import {
+  HHDB_TABLE_CONFIG,
+  HHDB_TABLE_SLUGS,
+} from "@/components/hhdb/hhdb-table-config";
 
 export function generateStaticParams() {
   return HHDB_TABLE_SLUGS.map((table) => ({ table }));
@@ -24,5 +28,11 @@ export default async function Page({
   }
 
   const basePath = `/udaman/${universe}/hhdb/tables/${table}/rank`;
-  return <HhdbSummaries tableName={config.fieldsTable} basePath={basePath} viewType="rank" />;
+  return (
+    <HhdbSummaries
+      tableName={config.fieldsTable}
+      basePath={basePath}
+      viewType="rank"
+    />
+  );
 }

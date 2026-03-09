@@ -47,7 +47,10 @@ export class HhdbCommercialDetail {
 
   constructor(attrs: HhdbCommercialDetailAttrs) {
     this.id = attrs.id != null ? Number(attrs.id) : null;
-    this.commercialImprovementId = attrs.commercial_improvement_id != null ? Number(attrs.commercial_improvement_id) : null;
+    this.commercialImprovementId =
+      attrs.commercial_improvement_id != null
+        ? Number(attrs.commercial_improvement_id)
+        : null;
     this.tmk = attrs.tmk ?? null;
     this.scrapedAt = attrs.scraped_at ? new Date(attrs.scraped_at) : null;
     this.card = attrs.card ?? null;
@@ -96,14 +99,23 @@ export class HhdbCommercialDetail {
   }
 }
 
-export type HhdbCommercialDetailJSON = ReturnType<HhdbCommercialDetail["toJSON"]>;
+export type HhdbCommercialDetailJSON = ReturnType<
+  HhdbCommercialDetail["toJSON"]
+>;
 
-export function hhdbCommercialDetailRowToJSON(attrs: HhdbCommercialDetailAttrs): HhdbCommercialDetailJSON {
+export function hhdbCommercialDetailRowToJSON(
+  attrs: HhdbCommercialDetailAttrs,
+): HhdbCommercialDetailJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
-    commercialImprovementId: attrs.commercial_improvement_id != null ? Number(attrs.commercial_improvement_id) : null,
+    commercialImprovementId:
+      attrs.commercial_improvement_id != null
+        ? Number(attrs.commercial_improvement_id)
+        : null,
     tmk: attrs.tmk ?? null,
-    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     card: attrs.card ?? null,
     section: attrs.section ?? null,
     floor: attrs.floor ?? null,

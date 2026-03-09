@@ -1,5 +1,9 @@
 import type { FieldDef } from "@catalog/types/hhdb";
-import { getSummaryFieldDefs, getDictionaryFields, type DictionaryField } from "@catalog/types/hhdb-data-dictionary";
+import {
+  getDictionaryFields,
+  getSummaryFieldDefs,
+  type DictionaryField,
+} from "@catalog/types/hhdb-data-dictionary";
 
 export interface HhdbTableConfig {
   title: string;

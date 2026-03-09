@@ -1,7 +1,7 @@
-import { isDbedt, isInternalUser } from "@/lib/auth/authorization";
-import { getCurrentUserContext } from "@/lib/auth/dal";
 import { UploadLayout } from "@/components/uploads/upload-layout";
 import { UploadTabs } from "@/components/uploads/upload-tabs";
+import { isDbedt, isInternalUser } from "@/lib/auth/authorization";
+import { getCurrentUserContext } from "@/lib/auth/dal";
 
 export default async function Layout({
   children,

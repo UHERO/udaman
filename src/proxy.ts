@@ -1,6 +1,6 @@
+import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 import { isRouteAllowed } from "@/lib/auth/route-access";
 
@@ -53,7 +53,10 @@ async function checkRouteAccess(
   internalPathname: string,
   homepageUrl: string,
 ): Promise<NextResponse | null> {
-  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
+  const token = await getToken({
+    req: request,
+    secret: process.env.AUTH_SECRET,
+  });
   if (!token) return null; // No token — session check already handles redirect
 
   const role = (token.role as string) ?? "external";

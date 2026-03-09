@@ -1,7 +1,15 @@
 import { DelayedError, type Job } from "bullmq";
 
-import { closeBrowser, getPage, releasePage } from "@/core/crawlers/qpub/browser";
-import { getIslandCode, isBlockedTime, msUntilUnblocked } from "@/core/crawlers/qpub/config";
+import {
+  closeBrowser,
+  getPage,
+  releasePage,
+} from "@/core/crawlers/qpub/browser";
+import {
+  getIslandCode,
+  isBlockedTime,
+  msUntilUnblocked,
+} from "@/core/crawlers/qpub/config";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
@@ -20,13 +28,17 @@ export async function processQpubScrape(
     // Close browser while we wait to free resources
     await closeBrowser();
     await job.moveToDelayed(Date.now() + delayMs, job.token);
-    throw new DelayedError(`Blocked time — retry in ${Math.round(delayMs / 60_000)}m`);
+    throw new DelayedError(
+      `Blocked time — retry in ${Math.round(delayMs / 60_000)}m`,
+    );
   }
 
   const page = await getPage();
   try {
     const result = await scrapeTmk(page, tmk, url);
-    job.log(`${tmk}: ${result.status}${result.error ? ` (${result.error})` : ""}`);
+    job.log(
+      `${tmk}: ${result.status}${result.error ? ` (${result.error})` : ""}`,
+    );
 
     if (result.status === "success" || result.status === "no_data") {
       await rawQuery(

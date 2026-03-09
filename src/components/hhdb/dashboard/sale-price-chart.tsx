@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import type { MedianSalePriceRow } from "@catalog/collections/hhdb-dashboard-collection";
+import { ISLAND_NAMES } from "@catalog/types/hhdb";
 import { Loader2 } from "lucide-react";
+import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from "recharts";
+
+import { getHhdbMedianSalePrice } from "@/actions/hhdb";
 import {
   Card,
   CardContent,
@@ -16,11 +20,15 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { getHhdbMedianSalePrice } from "@/actions/hhdb";
-import { ISLAND_NAMES } from "@catalog/types/hhdb";
-import type { MedianSalePriceRow } from "@catalog/collections/hhdb-dashboard-collection";
 
-const COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2"];
+const COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#dc2626",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+];
 
 export function SalePriceChart() {
   const [data, setData] = useState<MedianSalePriceRow[] | null>(null);
@@ -34,7 +42,9 @@ export function SalePriceChart() {
       <Card>
         <CardHeader>
           <CardTitle>Avg Sale Price by Island</CardTitle>
-          <CardDescription>Average sale price by island over time</CardDescription>
+          <CardDescription>
+            Average sale price by island over time
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex h-[300px] items-center justify-center">
           <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
@@ -67,7 +77,9 @@ export function SalePriceChart() {
     <Card>
       <CardHeader>
         <CardTitle>Avg Sale Price by Island</CardTitle>
-        <CardDescription>Average sale price by island over time</CardDescription>
+        <CardDescription>
+          Average sale price by island over time
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[300px] w-full">

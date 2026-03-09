@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbAgriculturalAssessmentJSON } from "@catalog/models/hhdb-agricultural-assessment";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbAgriculturalAssessmentJSON, unknown>[] = [

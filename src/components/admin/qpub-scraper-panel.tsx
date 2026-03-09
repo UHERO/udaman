@@ -15,11 +15,15 @@ import {
   getQpubDbStats,
   getQpubScraperStatus,
   seedQpubScraper,
+  type PipelineStatusCounts,
   type QpubDbStats,
   type QpubScraperStatus,
-  type PipelineStatusCounts,
 } from "@/actions/crawlers";
-import { getJobLogs, type JobState, type SerializedJob } from "@/actions/workers";
+import {
+  getJobLogs,
+  type JobState,
+  type SerializedJob,
+} from "@/actions/workers";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,8 +44,18 @@ import {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 const SHORT_MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 function formatDate(ts: number | null): string {
@@ -120,8 +134,12 @@ function PipelineRow({
         />
       </div>
       <div className="flex gap-2 text-xs">
-        <span className="text-yellow-700">{formatNumber(counts.pending)} pending</span>
-        <span className="text-green-700">{formatNumber(counts.success)} ok</span>
+        <span className="text-yellow-700">
+          {formatNumber(counts.pending)} pending
+        </span>
+        <span className="text-green-700">
+          {formatNumber(counts.success)} ok
+        </span>
         <span className="text-red-700">{formatNumber(counts.failed)} fail</span>
       </div>
     </div>
@@ -144,16 +162,21 @@ function DbStatsCard({
           <div>
             <CardTitle className="text-base">Pipeline Status</CardTitle>
             <CardDescription>
-              From scrape_status table &middot; Updated {formatTime(lastUpdated)}
+              From scrape_status table &middot; Updated{" "}
+              {formatTime(lastUpdated)}
             </CardDescription>
           </div>
           <div className="flex gap-4 text-sm">
             <div className="text-center">
-              <div className="text-2xl font-bold">{formatNumber(stats.scrapedToday)}</div>
+              <div className="text-2xl font-bold">
+                {formatNumber(stats.scrapedToday)}
+              </div>
               <div className="text-muted-foreground text-xs">Today</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{formatNumber(stats.scrapedThisMonth)}</div>
+              <div className="text-2xl font-bold">
+                {formatNumber(stats.scrapedThisMonth)}
+              </div>
               <div className="text-muted-foreground text-xs">This Month</div>
             </div>
           </div>
@@ -206,9 +229,7 @@ function JobRow({ job }: { job: SerializedJob }) {
             <ChevronRight className="text-muted-foreground h-3.5 w-3.5" />
           )}
         </TableCell>
-        <TableCell className="font-mono text-xs">
-          {tmk ?? job.name}
-        </TableCell>
+        <TableCell className="font-mono text-xs">{tmk ?? job.name}</TableCell>
         <TableCell className="text-xs">
           {formatDate(job.processedOn ?? job.timestamp)}
         </TableCell>
@@ -221,7 +242,9 @@ function JobRow({ job }: { job: SerializedJob }) {
           {job.failedReason ? (
             <span className="text-red-600">{job.failedReason}</span>
           ) : job.state === "completed" && job.returnvalue ? (
-            <span className="text-muted-foreground">{String(job.returnvalue)}</span>
+            <span className="text-muted-foreground">
+              {String(job.returnvalue)}
+            </span>
           ) : null}
         </TableCell>
       </TableRow>
@@ -349,8 +372,10 @@ export default function QpubScraperPanel({
   const [isDraining, startDrainTransition] = useTransition();
   const [drainMessage, setDrainMessage] = useState<string | null>(null);
 
-  const hasActive = (queueData.counts.active ?? 0) > 0 || (queueData.counts.waiting ?? 0) > 0;
-  const waiting = (queueData.counts.waiting ?? 0) + (queueData.counts.delayed ?? 0);
+  const hasActive =
+    (queueData.counts.active ?? 0) > 0 || (queueData.counts.waiting ?? 0) > 0;
+  const waiting =
+    (queueData.counts.waiting ?? 0) + (queueData.counts.delayed ?? 0);
 
   // Split jobs by state
   const activeJobs = queueData.jobs.filter((j) => j.state === "active");
@@ -391,7 +416,11 @@ export default function QpubScraperPanel({
   }
 
   function handleDrainAndReseed() {
-    if (!confirm("This will wipe all scraper jobs and reseed from the database. Continue?")) {
+    if (
+      !confirm(
+        "This will wipe all scraper jobs and reseed from the database. Continue?",
+      )
+    ) {
       return;
     }
     setDrainMessage(null);
@@ -416,7 +445,8 @@ export default function QpubScraperPanel({
           )}
           {queueData.workers.length > 0 && (
             <span className="text-muted-foreground text-xs">
-              {queueData.workers.length} worker{queueData.workers.length !== 1 ? "s" : ""}
+              {queueData.workers.length} worker
+              {queueData.workers.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>

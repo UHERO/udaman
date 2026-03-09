@@ -11,7 +11,6 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, Loader2 } from "lucide-react";
-import { HhdbTableLoadingContext } from "./hhdb-loading-context";
 
 import {
   Table,
@@ -21,9 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { HhdbSearch } from "./hhdb-search";
-import { HhdbPagination } from "./hhdb-pagination";
+
 import { HhdbColumnToggle } from "./hhdb-column-toggle";
+import { HhdbTableLoadingContext } from "./hhdb-loading-context";
+import { HhdbPagination } from "./hhdb-pagination";
+import { HhdbSearch } from "./hhdb-search";
 
 interface HhdbDataTableProps<T> {
   columns: ColumnDef<T, unknown>[];
@@ -93,8 +94,7 @@ export function HhdbDataTable<T>({
       columnVisibility,
     },
     onSortingChange: (updater) => {
-      const next =
-        typeof updater === "function" ? updater(sorting) : updater;
+      const next = typeof updater === "function" ? updater(sorting) : updater;
       if (next.length === 0) {
         updateParams({ sort: undefined, order: undefined, page: "1" });
       } else {
@@ -114,7 +114,9 @@ export function HhdbDataTable<T>({
         {!disableSearch && (
           <HhdbSearch
             value={search}
-            onChange={(v) => updateParams({ search: v || undefined, page: "1" })}
+            onChange={(v) =>
+              updateParams({ search: v || undefined, page: "1" })
+            }
             placeholder={searchPlaceholder}
           />
         )}

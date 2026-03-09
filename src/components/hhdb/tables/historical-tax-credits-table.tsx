@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbHistoricalTaxCreditJSON } from "@catalog/models/hhdb-historical-tax-credit";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const currency = (v: number | null) =>

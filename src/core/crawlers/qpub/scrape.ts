@@ -4,7 +4,12 @@ import path from "path";
 
 import type { Page } from "playwright-core";
 
-import { QPUB_CONFIG, getHtmlPath, getIslandCode, getResultsPath } from "./config";
+import {
+  getHtmlPath,
+  getIslandCode,
+  getResultsPath,
+  QPUB_CONFIG,
+} from "./config";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -160,7 +165,12 @@ export async function scrapeTmk(
     const pageResult = await checkPageStatus(page);
 
     if (pageResult.status === "blocked") {
-      return { status: "blocked", tmk, htmlSaved: false, error: "Cloudflare block" };
+      return {
+        status: "blocked",
+        tmk,
+        htmlSaved: false,
+        error: "Cloudflare block",
+      };
     }
 
     if (pageResult.status === "success" && pageResult.html) {

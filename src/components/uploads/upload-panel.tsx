@@ -44,7 +44,14 @@ const CHUNK_SIZE = 5000;
 
 // ─── Pipeline stages ──────────────────────────────────────────────────
 
-type Stage = "idle" | "validating" | "uploading" | "processing" | "archiving" | "done" | "error";
+type Stage =
+  | "idle"
+  | "validating"
+  | "uploading"
+  | "processing"
+  | "archiving"
+  | "done"
+  | "error";
 
 const PIPELINE_STEPS = [
   { key: "validating", label: "Validate" },
@@ -56,15 +63,27 @@ const PIPELINE_STEPS = [
 type PipelineStep = (typeof PIPELINE_STEPS)[number]["key"];
 
 /** Returns 'completed' | 'active' | 'pending' for a given step relative to the current stage. */
-function stepStatus(step: PipelineStep, currentStage: Stage): "completed" | "active" | "pending" {
-  const order: PipelineStep[] = ["validating", "uploading", "processing", "archiving"];
+function stepStatus(
+  step: PipelineStep,
+  currentStage: Stage,
+): "completed" | "active" | "pending" {
+  const order: PipelineStep[] = [
+    "validating",
+    "uploading",
+    "processing",
+    "archiving",
+  ];
   const stepIdx = order.indexOf(step);
   const stageIdx = order.indexOf(currentStage as PipelineStep);
 
   if (currentStage === "done") return "completed";
   if (currentStage === "error") {
     // Mark steps before the error stage as completed, the rest as pending
-    return stepIdx < stageIdx ? "completed" : stepIdx === stageIdx ? "active" : "pending";
+    return stepIdx < stageIdx
+      ? "completed"
+      : stepIdx === stageIdx
+        ? "active"
+        : "pending";
   }
   if (stageIdx === -1) return "pending"; // idle
   if (stepIdx < stageIdx) return "completed";
@@ -80,7 +99,10 @@ function UploadStepper({ stage }: { stage: Stage }) {
       {PIPELINE_STEPS.map((step, i) => {
         const status = stepStatus(step.key, stage);
         return (
-          <div key={step.key} className="flex items-center flex-1 last:flex-none">
+          <div
+            key={step.key}
+            className="flex flex-1 items-center last:flex-none"
+          >
             {/* Step circle + label */}
             <div className="flex flex-col items-center gap-1.5">
               <div
@@ -115,9 +137,9 @@ function UploadStepper({ stage }: { stage: Stage }) {
             {/* Connector line (skip after last step) */}
             {i < PIPELINE_STEPS.length - 1 && (
               <div className="relative mx-2 mb-6 h-0.5 flex-1">
-                <div className="absolute inset-0 rounded-full bg-muted-foreground/20" />
+                <div className="bg-muted-foreground/20 absolute inset-0 rounded-full" />
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-700 ease-in-out"
+                  className="bg-primary absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-in-out"
                   style={{
                     width:
                       status === "completed"
@@ -173,7 +195,11 @@ export default function UploadPanel({
   const [dialogError, setDialogError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const busy = stage === "validating" || stage === "uploading" || stage === "processing" || stage === "archiving";
+  const busy =
+    stage === "validating" ||
+    stage === "uploading" ||
+    stage === "processing" ||
+    stage === "archiving";
 
   function resetFileState() {
     setFile(null);
@@ -379,7 +405,11 @@ export default function UploadPanel({
     setStage("processing");
     setProgress(null);
 
-    let finalResult: { success: boolean; message?: string; totalDataPoints?: number };
+    let finalResult: {
+      success: boolean;
+      message?: string;
+      totalDataPoints?: number;
+    };
     try {
       const finalResp = await fetch(`${apiEndpoint}/stream`, {
         method: "POST",
@@ -506,7 +536,7 @@ export default function UploadPanel({
                   : "Uploading..."}
             </DialogTitle>
             {busy && (
-              <DialogDescription className="text-amber-600 dark:text-amber-400 font-medium">
+              <DialogDescription className="font-medium text-amber-600 dark:text-amber-400">
                 Leave this window open until upload completes
               </DialogDescription>
             )}
@@ -520,7 +550,7 @@ export default function UploadPanel({
           {/* Progress bar (during upload stage) */}
           {progress && progress.total > 0 && stage === "uploading" && (
             <div className="px-2">
-              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+              <div className="text-muted-foreground mb-1 flex justify-between text-xs">
                 <span>
                   {progress.sent.toLocaleString()} /{" "}
                   {progress.total.toLocaleString()} rows
@@ -529,9 +559,9 @@ export default function UploadPanel({
                   {Math.round((progress.sent / progress.total) * 100)}%
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
                 <div
-                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  className="bg-primary h-full rounded-full transition-all duration-300"
                   style={{
                     width: `${Math.round((progress.sent / progress.total) * 100)}%`,
                   }}
@@ -564,9 +594,9 @@ export default function UploadPanel({
 
           {/* Error message */}
           {stage === "error" && dialogError && (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2">
-              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <p className="text-sm text-destructive">{dialogError}</p>
+            <div className="border-destructive/50 bg-destructive/10 flex items-start gap-2 rounded-md border px-3 py-2">
+              <CircleAlert className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+              <p className="text-destructive text-sm">{dialogError}</p>
             </div>
           )}
 

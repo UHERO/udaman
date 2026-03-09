@@ -3,12 +3,12 @@ import { rawQuery as dvwQuery } from "@/lib/mysql/dvw-db";
 
 import { DvwUploadCollection } from "../collections/universe-upload-collection";
 import { makeDate } from "../utils/date-helpers";
-import type { DvwDataRow } from "../utils/dvw-xlsx-validator";
 import {
   parseDvwXlsx,
   streamDataRows,
   type DvwParseResult,
 } from "../utils/dvw-xlsx-parser";
+import type { DvwDataRow } from "../utils/dvw-xlsx-validator";
 import {
   prepareUpload,
   type UploadConfig,
@@ -371,7 +371,10 @@ export const dvwUploadHandlers: UploadHandlers = {
   },
   loadData: async (parsed, metaContext) => {
     const { dataSheet } = parsed as DvwParseResult;
-    return loadDvwData(streamDataRows(dataSheet), metaContext as DvwDimensionMaps);
+    return loadDvwData(
+      streamDataRows(dataSheet),
+      metaContext as DvwDimensionMaps,
+    );
   },
 };
 

@@ -44,8 +44,8 @@ export default async function Page({
       <div className="p-8">
         <h1 className="text-3xl font-bold">Data Series</h1>
         <p className="text-muted-foreground mt-2">
-          Your current role only gets to see this page. Contact an
-          administrator for additional access.
+          Your current role only gets to see this page. Contact an administrator
+          for additional access.
         </p>
       </div>
     );

@@ -276,9 +276,7 @@ function extractMultiRowTable(table: HTMLElement): Record<string, unknown>[] {
           if (img) {
             const imgSrc = img.getAttribute("src");
             if (imgSrc) {
-              rowData[headers[index] + "_image_url"] = imgSrc.startsWith(
-                "http",
-              )
+              rowData[headers[index] + "_image_url"] = imgSrc.startsWith("http")
                 ? imgSrc
                 : "https://qpublic.schneidercorp.com" + imgSrc;
             }
@@ -460,10 +458,7 @@ export function parsePropertyHTML(html: string, tmk: string): ParsedProperty {
   }
 
   // Truncate condo master property_class to first sentence
-  if (
-    status === "condo_project" &&
-    result.parcel_information
-  ) {
+  if (status === "condo_project" && result.parcel_information) {
     const parcel = result.parcel_information as Record<string, unknown>;
     const pc = parcel.property_class;
     if (typeof pc === "string" && pc.includes("Condo Master")) {

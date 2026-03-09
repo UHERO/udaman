@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbOwnerJSON } from "@catalog/models/hhdb-owner";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbOwnerJSON, unknown>[] = [
@@ -10,7 +11,11 @@ const columns: ColumnDef<HhdbOwnerJSON, unknown>[] = [
   { accessorKey: "ownerName", header: "Owner Name", enableSorting: true },
   { accessorKey: "ownerType", header: "Owner Type", enableSorting: true },
   { accessorKey: "ownerAddress", header: "Owner Address", enableSorting: true },
-  { accessorKey: "sequenceOrder", header: "Sequence Order", enableSorting: true },
+  {
+    accessorKey: "sequenceOrder",
+    header: "Sequence Order",
+    enableSorting: true,
+  },
   {
     accessorKey: "scrapedAt",
     header: "Scraped At",

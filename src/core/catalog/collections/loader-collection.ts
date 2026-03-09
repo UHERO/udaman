@@ -576,9 +576,9 @@ class LoaderCollection {
   }
 
   /** Get summary of load errors grouped by error message */
-  static async getLoadErrorSummary(universe: Universe): Promise<
-    Array<{ lastError: string; seriesId: number; count: number }>
-  > {
+  static async getLoadErrorSummary(
+    universe: Universe,
+  ): Promise<Array<{ lastError: string; seriesId: number; count: number }>> {
     const rows = await mysql<{
       last_error: string;
       series_id: number;

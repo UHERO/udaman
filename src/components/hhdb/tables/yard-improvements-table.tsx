@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbYardImprovementJSON } from "@catalog/models/hhdb-yard-improvement";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbYardImprovementJSON, unknown>[] = [

@@ -1,4 +1,4 @@
-import { type Job, Worker } from "bullmq";
+import { Worker, type Job } from "bullmq";
 
 import { createLogger } from "@/core/observability/logger";
 

@@ -1,19 +1,25 @@
-import { rawQuery } from "@/lib/mysql/hhdb";
 import { toSnakeCase } from "@/lib/mysql/helpers";
-import { HhdbOwner, type HhdbOwnerAttrs, hhdbOwnerRowToJSON } from "../models/hhdb-owner";
+import { rawQuery } from "@/lib/mysql/hhdb";
+
+import {
+  HhdbOwner,
+  hhdbOwnerRowToJSON,
+  type HhdbOwnerAttrs,
+} from "../models/hhdb-owner";
 import type { HhdbOwnerJSON } from "../models/hhdb-owner";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
-const SORTABLE = [
-  "tmk",
-  "owner_name",
-  "owner_type",
-  "sequence_order",
-];
+const SORTABLE = ["tmk", "owner_name", "owner_type", "sequence_order"];
 
 export default class HhdbOwnerCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort: rawSort = "tmk", order = "asc" } = params;
+    const {
+      page,
+      limit,
+      search,
+      sort: rawSort = "tmk",
+      order = "asc",
+    } = params;
     const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
@@ -22,8 +28,7 @@ export default class HhdbOwnerCollection {
     let where = "";
     const qp: (string | number)[] = [];
     if (search) {
-      where =
-        "WHERE (tmk LIKE ? OR owner_name LIKE ? OR owner_type LIKE ?)";
+      where = "WHERE (tmk LIKE ? OR owner_name LIKE ? OR owner_type LIKE ?)";
       const term = `%${search}%`;
       qp.push(term, term, term);
     }
@@ -31,8 +36,11 @@ export default class HhdbOwnerCollection {
     return { where, qp, sortCol, sortDir, limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbOwner>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbOwner>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
@@ -51,8 +59,11 @@ export default class HhdbOwnerCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbOwnerJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbOwnerJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(

@@ -62,8 +62,10 @@ export class HhdbProperty {
     this.projectName = attrs.project_name ?? null;
     this.legalInformation = attrs.legal_information ?? null;
     this.propertyClass = attrs.property_class ?? null;
-    this.landAreaSqft = attrs.land_area_sqft != null ? Number(attrs.land_area_sqft) : null;
-    this.landAreaAcres = attrs.land_area_acres != null ? Number(attrs.land_area_acres) : null;
+    this.landAreaSqft =
+      attrs.land_area_sqft != null ? Number(attrs.land_area_sqft) : null;
+    this.landAreaAcres =
+      attrs.land_area_acres != null ? Number(attrs.land_area_acres) : null;
     this.neighborhoodCode = attrs.neighborhood_code ?? null;
     this.zoning = attrs.zoning ?? null;
     this.parcelNote = attrs.parcel_note ?? null;
@@ -114,7 +116,9 @@ export class HhdbProperty {
 
 export type HhdbPropertyJSON = ReturnType<HhdbProperty["toJSON"]>;
 
-export function hhdbPropertyRowToJSON(attrs: HhdbPropertyAttrs): HhdbPropertyJSON {
+export function hhdbPropertyRowToJSON(
+  attrs: HhdbPropertyAttrs,
+): HhdbPropertyJSON {
   return {
     tmk: attrs.tmk ?? null,
     islandCode: attrs.island_code ?? null,
@@ -124,8 +128,10 @@ export function hhdbPropertyRowToJSON(attrs: HhdbPropertyAttrs): HhdbPropertyJSO
     projectName: attrs.project_name ?? null,
     legalInformation: attrs.legal_information ?? null,
     propertyClass: attrs.property_class ?? null,
-    landAreaSqft: attrs.land_area_sqft != null ? Number(attrs.land_area_sqft) : null,
-    landAreaAcres: attrs.land_area_acres != null ? Number(attrs.land_area_acres) : null,
+    landAreaSqft:
+      attrs.land_area_sqft != null ? Number(attrs.land_area_sqft) : null,
+    landAreaAcres:
+      attrs.land_area_acres != null ? Number(attrs.land_area_acres) : null,
     neighborhoodCode: attrs.neighborhood_code ?? null,
     zoning: attrs.zoning ?? null,
     parcelNote: attrs.parcel_note ?? null,
@@ -139,7 +145,11 @@ export function hhdbPropertyRowToJSON(attrs: HhdbPropertyAttrs): HhdbPropertyJSO
     longitude: attrs.longitude != null ? Number(attrs.longitude) : null,
     mapUrl: attrs.map_url ?? null,
     sketchUrl: attrs.sketch_url ?? null,
-    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
-    updatedAt: attrs.updated_at ? new Date(attrs.updated_at).toISOString() : null,
+    createdAt: attrs.created_at
+      ? new Date(attrs.created_at).toISOString()
+      : null,
+    updatedAt: attrs.updated_at
+      ? new Date(attrs.updated_at).toISOString()
+      : null,
   };
 }

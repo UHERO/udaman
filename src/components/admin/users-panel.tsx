@@ -82,9 +82,7 @@ export default function UsersPanel({ users }: { users: SerializedUser[] }) {
         <TableBody>
           {users.map((user) => (
             <TableRow key={user.id}>
-              <TableCell className="font-medium">
-                {user.name || "-"}
-              </TableCell>
+              <TableCell className="font-medium">{user.name || "-"}</TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
                 <Select
@@ -104,7 +102,11 @@ export default function UsersPanel({ users }: { users: SerializedUser[] }) {
                   </SelectTrigger>
                   <SelectContent>
                     {ROLES.map((role) => (
-                      <SelectItem key={role} value={role} className="capitalize">
+                      <SelectItem
+                        key={role}
+                        value={role}
+                        className="capitalize"
+                      >
                         {role}
                       </SelectItem>
                     ))}
@@ -125,7 +127,10 @@ export default function UsersPanel({ users }: { users: SerializedUser[] }) {
           ))}
           {users.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground text-center">
+              <TableCell
+                colSpan={5}
+                className="text-muted-foreground text-center"
+              >
                 No users found.
               </TableCell>
             </TableRow>

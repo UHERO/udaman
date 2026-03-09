@@ -1,21 +1,30 @@
-import { rawQuery } from "@/lib/mysql/hhdb";
-import { type SummaryResult, type SummaryViewType, type IslandCounts } from "../types/hhdb";
-import { getSummaryFieldDefs } from "../types/hhdb-data-dictionary";
 import { ticks } from "d3-array";
+
+import { rawQuery } from "@/lib/mysql/hhdb";
+
+import {
+  type IslandCounts,
+  type SummaryResult,
+  type SummaryViewType,
+} from "../types/hhdb";
+import { getSummaryFieldDefs } from "../types/hhdb-data-dictionary";
 
 /** Pivot flat (value, island, count) rows into grouped records. */
 function pivotByIsland(
   rows: { value: string; island: string; count: number }[],
 ): { value: string; counts: IslandCounts; total: number }[] {
-  const map = new Map<
-    string,
-    { counts: IslandCounts; total: number }
-  >();
+  const map = new Map<string, { counts: IslandCounts; total: number }>();
   for (const r of rows) {
     const raw: unknown = r.value;
-    const val = raw instanceof Date
-      ? raw.toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" })
-      : String(raw);
+    const val =
+      raw instanceof Date
+        ? raw.toLocaleDateString("en-US", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : String(raw);
     let entry = map.get(val);
     if (!entry) {
       entry = { counts: {}, total: 0 };
@@ -44,7 +53,9 @@ async function queryMedian(
   const where = islandFilter
     ? `WHERE LEFT(tmk, 1) = ? AND ${column} IS NOT NULL AND ${column} != ''`
     : `WHERE ${column} IS NOT NULL AND ${column} != ''`;
-  const params: (string | number)[] = islandFilter ? [islandFilter, 1, offset] : [1, offset];
+  const params: (string | number)[] = islandFilter
+    ? [islandFilter, 1, offset]
+    : [1, offset];
   const rows = await rawQuery<{ med: number }>(
     `SELECT ABS(${column}) AS med FROM ${table} ${where} ORDER BY ABS(${column}) LIMIT ? OFFSET ?`,
     params,
@@ -55,9 +66,12 @@ async function queryMedian(
 function formatBucketLabel(min: number, max: number, format: string): string {
   const fmt = (n: number) => {
     if (format === "dollar") {
-      if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(n % 1_000_000_000 === 0 ? 0 : 1)}bil`;
-      if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}mil`;
-      if (n >= 1_000) return `$${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}k`;
+      if (n >= 1_000_000_000)
+        return `$${(n / 1_000_000_000).toFixed(n % 1_000_000_000 === 0 ? 0 : 1)}bil`;
+      if (n >= 1_000_000)
+        return `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}mil`;
+      if (n >= 1_000)
+        return `$${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)}k`;
       return `$${n.toLocaleString()}`;
     }
     if (format === "year") return String(n);
@@ -85,7 +99,9 @@ export default class HhdbSummaryCollection {
 
     const fieldDef = fields.find((f) => f.column === column);
     if (!fieldDef) {
-      throw new Error(`Invalid column "${column}" for table "${table}" with view type "${viewType}"`);
+      throw new Error(
+        `Invalid column "${column}" for table "${table}" with view type "${viewType}"`,
+      );
     }
 
     if (viewType === "rank") {
@@ -235,9 +251,7 @@ export default class HhdbSummaryCollection {
     }));
 
     const medianPromises = [
-      ...islandStats.map((s) =>
-        queryMedian(table, column, s.island, s.count),
-      ),
+      ...islandStats.map((s) => queryMedian(table, column, s.island, s.count)),
       queryMedian(table, column, null, overallCount),
     ];
     const medians = await Promise.all(medianPromises);
@@ -287,7 +301,10 @@ export default class HhdbSummaryCollection {
     const fields = getSummaryFieldDefs(table, "range");
     if (!fields) throw new Error(`Invalid HHDB table: ${table}`);
     const fieldDef = fields.find((f) => f.column === column);
-    if (!fieldDef) throw new Error(`Invalid column "${column}" for distribution on "${table}"`);
+    if (!fieldDef)
+      throw new Error(
+        `Invalid column "${column}" for distribution on "${table}"`,
+      );
 
     const format = fieldDef.format ?? "text";
     // Only compute distribution for numeric formats
@@ -302,7 +319,11 @@ export default class HhdbSummaryCollection {
     }
 
     // Step 1: get total count, min, max
-    const [statsRow] = await rawQuery<{ min_val: number; max_val: number; cnt: number }>(
+    const [statsRow] = await rawQuery<{
+      min_val: number;
+      max_val: number;
+      cnt: number;
+    }>(
       `SELECT MIN(ABS(${column})) AS min_val, MAX(ABS(${column})) AS max_val, COUNT(*) AS cnt
        FROM ${table}
        WHERE ${column} IS NOT NULL AND ${column} != ''`,
@@ -350,7 +371,13 @@ export default class HhdbSummaryCollection {
     if (p5 >= p95) {
       const tickValues = ticks(minVal, maxVal, 10);
       if (tickValues.length < 2) {
-        return { type: "distribution", format, buckets: [], nullCounts: {}, nullTotal: 0 };
+        return {
+          type: "distribution",
+          format,
+          buckets: [],
+          nullCounts: {},
+          nullTotal: 0,
+        };
       }
       boundaries = [minVal, ...tickValues];
       if (tickValues[tickValues.length - 1] < maxVal) boundaries.push(maxVal);
@@ -398,7 +425,10 @@ export default class HhdbSummaryCollection {
     ]);
 
     // Step 5: Assemble buckets
-    const bucketMap = new Map<number, { counts: IslandCounts; total: number }>();
+    const bucketMap = new Map<
+      number,
+      { counts: IslandCounts; total: number }
+    >();
     for (const r of rows) {
       const idx = Number(r.bucket_idx);
       let entry = bucketMap.get(idx);

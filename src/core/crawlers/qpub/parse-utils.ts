@@ -70,7 +70,7 @@ export function extractTwoColumnTable(
 
       const link = td.querySelector("a");
       const value = link
-        ? link.getAttribute("href") ?? cleanText(td.textContent)
+        ? (link.getAttribute("href") ?? cleanText(td.textContent))
         : cleanText(td.textContent);
 
       data[key] = value;
@@ -110,7 +110,7 @@ export function extractMultiRowTable(
       if (index < headers.length && headers[index]) {
         const link = cell.querySelector("a");
         const value = link
-          ? link.getAttribute("href") ?? cleanText(cell.textContent)
+          ? (link.getAttribute("href") ?? cleanText(cell.textContent))
           : cleanText(cell.textContent);
         rowData[headers[index]] = value;
       }
@@ -220,9 +220,10 @@ export function isTaxPaymentField(fieldName: string): boolean {
 /**
  * Parse land area value and detect unit type
  */
-export function parseLandArea(
-  value: string | null | undefined,
-): { value: number | string | null; unit: "sqft" | "acres" | null } {
+export function parseLandArea(value: string | null | undefined): {
+  value: number | string | null;
+  unit: "sqft" | "acres" | null;
+} {
   if (!value || value === null || value === undefined) {
     return { value: null, unit: null };
   }

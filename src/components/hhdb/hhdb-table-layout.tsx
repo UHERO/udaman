@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
 import type { SummaryViewType } from "@catalog/types/hhdb";
+import { getFieldsForViewType } from "@catalog/types/hhdb-data-dictionary";
 
-const VIEW_TABS: { label: string; segment: string; viewType: SummaryViewType }[] = [
+import { cn } from "@/lib/utils";
+
+const VIEW_TABS: {
+  label: string;
+  segment: string;
+  viewType: SummaryViewType;
+}[] = [
   { label: "Summary", segment: "summary", viewType: "summary" },
   { label: "Rank", segment: "rank", viewType: "rank" },
   { label: "Range", segment: "range", viewType: "range" },
@@ -31,14 +36,12 @@ export function HhdbTableLayout({
   const pathname = usePathname();
   const basePath = `/udaman/${universe}/hhdb/tables/${segment}`;
 
-  const viewTabs = VIEW_TABS
-    .filter((vt) => fieldsTable && getFieldsForViewType(fieldsTable, vt.viewType)?.length)
-    .map((vt) => ({ label: vt.label, href: `${basePath}/${vt.segment}` }));
+  const viewTabs = VIEW_TABS.filter(
+    (vt) =>
+      fieldsTable && getFieldsForViewType(fieldsTable, vt.viewType)?.length,
+  ).map((vt) => ({ label: vt.label, href: `${basePath}/${vt.segment}` }));
 
-  const tabs = [
-    { label: "Data", href: basePath },
-    ...viewTabs,
-  ];
+  const tabs = [{ label: "Data", href: basePath }, ...viewTabs];
 
   // All non-Data tab hrefs for checking if Data tab should be active
   const nonDataHrefs = viewTabs.map((t) => t.href);
@@ -53,7 +56,8 @@ export function HhdbTableLayout({
           const isActive =
             tab.label === "Data"
               ? pathname === basePath ||
-                (pathname.startsWith(basePath) && !nonDataHrefs.some((h) => pathname.startsWith(h)))
+                (pathname.startsWith(basePath) &&
+                  !nonDataHrefs.some((h) => pathname.startsWith(h)))
               : pathname.startsWith(tab.href);
           return (
             <Link

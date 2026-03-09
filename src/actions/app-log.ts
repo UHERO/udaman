@@ -4,6 +4,7 @@ import {
   AppLogCollection,
   type AppLogRow,
 } from "@catalog/collections/app-log-collection";
+
 import { requireAuth } from "@/lib/auth/dal";
 
 /** Report a client-side error to the app_logs table. */

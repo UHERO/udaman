@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import type { HhdbTableConfig } from "@/components/hhdb/hhdb-table-config";
-import { getTableAction, renderTable } from "@/components/hhdb/hhdb-table-registry";
+
 import { HhdbTableLoadingContext } from "@/components/hhdb/hhdb-loading-context";
+import type { HhdbTableConfig } from "@/components/hhdb/hhdb-table-config";
+import {
+  getTableAction,
+  renderTable,
+} from "@/components/hhdb/hhdb-table-registry";
 
 interface HhdbTablePageProps {
   slug: string;

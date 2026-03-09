@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
-import { HHDB_TABLE_CONFIG, HHDB_TABLE_SLUGS } from "@/components/hhdb/hhdb-table-config";
+
+import {
+  HHDB_TABLE_CONFIG,
+  HHDB_TABLE_SLUGS,
+} from "@/components/hhdb/hhdb-table-config";
 import { HhdbTablePage } from "@/components/hhdb/hhdb-table-page";
 
 export function generateStaticParams() {
