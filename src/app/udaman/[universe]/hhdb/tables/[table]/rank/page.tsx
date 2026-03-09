@@ -1,14 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { HhdbSummaries } from "@/components/hhdb/hhdb-summaries";
-import {
-  HHDB_TABLE_CONFIG,
-  HHDB_TABLE_SLUGS,
-} from "@/components/hhdb/hhdb-table-config";
-
-export function generateStaticParams() {
-  return HHDB_TABLE_SLUGS.map((table) => ({ table }));
-}
+import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 
 export default async function Page({
   params,
