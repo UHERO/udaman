@@ -26,6 +26,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "TMK",
       description:
         "Tax Map Key. Unique 9-digit parcel identifier assigned by the county.",
+      summary: ALL_VIEWS,
     },
     {
       key: "island_code",
@@ -1575,6 +1576,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 
   // ── Residential Additions ───────────────────────────────────────────────
   residential_additions: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "9 digit Tax Map Key. Division-Zone-Section-Plat-Parcel-CPR, where Division translates to County.",
+      summary: ALL_VIEWS,
+    },
     {
       key: "card",
       label: "Card",

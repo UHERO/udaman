@@ -124,15 +124,6 @@ export const ROUTES: RouteEntry[] = [
     icon: Building2,
     roles: ["internal", "admin", "dev"],
     universes: ["UHERO"],
-    children: [
-      { label: "Dashboard", path: "/hhdb" },
-      { label: "Properties", path: "/hhdb/tables/properties" },
-      { label: "Assessments", path: "/hhdb/tables/assessments" },
-      { label: "Sales", path: "/hhdb/tables/sales" },
-      { label: "Improvements", path: "/hhdb/tables/residential-improvements" },
-      { label: "Condos", path: "/hhdb/tables/condo-projects" },
-      { label: "Permits", path: "/hhdb/tables/permits" },
-    ],
   },
   {
     label: "Docs",
