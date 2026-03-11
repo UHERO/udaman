@@ -75,3 +75,24 @@ export type SummaryResult =
       nullCounts: IslandCounts;
       nullTotal: number;
     };
+
+export interface FreqRow {
+  value: string;
+  /** county_code → frequency: 0=Statewide, 1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai */
+  counts: Record<string, number>;
+}
+
+export interface FreqSummaryParams {
+  page: number;
+  limit: number;
+  sortCol: string; // county_code to sort by: "0"=State, "1"=Oahu, etc.
+  sortDir: "asc" | "desc";
+  search?: string;
+}
+
+export interface FreqSummaryResult {
+  rows: FreqRow[];
+  total: number;
+  nullRow: FreqRow | null;
+  generatedAt: string | null;
+}

@@ -25,7 +25,12 @@ import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-a
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
 import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-collection";
-import type { HhdbListParams, SummaryViewType } from "../types/hhdb";
+import type {
+  FreqSummaryParams,
+  FreqSummaryResult,
+  HhdbListParams,
+  SummaryViewType,
+} from "../types/hhdb";
 
 const log = createLogger("hhdb");
 
@@ -416,5 +421,23 @@ export async function getDistribution(table: string, column: string) {
   log.info({ table, column }, "fetching hhdb distribution");
   const result = await HhdbSummaryCollection.getDistribution(table, column);
   log.info({ table, column }, "hhdb distribution fetched");
+  return result;
+}
+
+export async function getFreqSummary(
+  table: string,
+  column: string,
+  params: FreqSummaryParams,
+): Promise<FreqSummaryResult> {
+  log.info({ table, column, page: params.page }, "fetching hhdb freq summary");
+  const result = await HhdbSummaryCollection.getFreqSummary(
+    table,
+    column,
+    params,
+  );
+  log.info(
+    { table, column, rows: result.rows.length, total: result.total },
+    "hhdb freq summary fetched",
+  );
   return result;
 }

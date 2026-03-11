@@ -12,6 +12,7 @@ import {
   getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
   getDedicationsJSON as getDedicationsCtrl,
   getDistribution as getDistributionCtrl,
+  getFreqSummary as getFreqSummaryCtrl,
   getHistoricalTaxCreditsJSON as getHistoricalTaxCreditsCtrl,
   getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
   getHistoricalTaxPaymentsJSON as getHistoricalTaxPaymentsCtrl,
@@ -33,6 +34,8 @@ import {
   getYardImprovementsJSON as getYardImprovementsCtrl,
 } from "@catalog/controllers/hhdb";
 import type {
+  FreqSummaryParams,
+  FreqSummaryResult,
   HhdbListParams,
   SummaryResult,
   SummaryViewType,
@@ -249,4 +252,13 @@ export async function getHhdbDistribution(table: string, column: string) {
     expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS,
   });
   return result;
+}
+
+export async function getHhdbFreqSummary(
+  table: string,
+  column: string,
+  params: FreqSummaryParams,
+): Promise<FreqSummaryResult> {
+  await requirePermission("hhdb", "read");
+  return getFreqSummaryCtrl(table, column, params);
 }

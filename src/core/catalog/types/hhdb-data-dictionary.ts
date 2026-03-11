@@ -1192,6 +1192,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
   // ── Historical Tax Summary ──────────────────────────────────────────────
   historical_tax_summary: [
     {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
       key: "year",
       label: "Year",
       description: "Tax year for this summary record.",
@@ -1304,6 +1310,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
   // ── Historical Tax Details ──────────────────────────────────────────────
   historical_tax_details: [
     {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
       key: "tax_period",
       label: "Tax Period",
       description: "Billing period for this detail line item.",
@@ -1351,6 +1363,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
   // ── Historical Tax Payments ─────────────────────────────────────────────
   historical_tax_payments: [
     {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
       key: "payment_sequence",
       label: "Payment Sequence",
       description: "Identifier for the payment sequence or batch.",
@@ -1394,6 +1412,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
   // ── Historical Tax Credits ──────────────────────────────────────────────
   historical_tax_credits: [
     {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
       key: "period",
       label: "Period",
       description: "Tax period the credit applies to.",
@@ -1416,6 +1440,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 
   // ── Agricultural Assessments ────────────────────────────────────────────
   agricultural_assessments: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
     {
       key: "agricultural_type",
       label: "Agricultural Type",
@@ -1467,6 +1497,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 
   // ── Commercial Improvement Details ──────────────────────────────────────
   commercial_improvement_details: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
     {
       key: "card",
       label: "Card",
@@ -1630,6 +1666,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
   // ── Accessory Structures ────────────────────────────────────────────────
   accessory_structures: [
     {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
+    {
       key: "building_number",
       label: "Building #",
       description:
@@ -1674,6 +1716,12 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 
   // ── Yard Improvements ───────────────────────────────────────────────────
   yard_improvements: [
+    {
+      key: "tmk",
+      label: "TMK",
+      description: "Tax Map Key",
+      summary: ALL_VIEWS,
+    },
     {
       key: "description",
       label: "Description",

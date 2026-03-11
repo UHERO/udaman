@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
+  type FreqSummaryResult,
   type IslandCounts,
   type SummaryResult,
   type SummaryViewType,
@@ -11,10 +12,24 @@ import {
   getFieldsForViewType,
   HHDB_DATA_DICTIONARY,
 } from "@catalog/types/hhdb-data-dictionary";
-import { ArrowDown, Info, Loader2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Loader2,
+  Search,
+} from "lucide-react";
 
-import { getHhdbDistribution, getHhdbSummaries } from "@/actions/hhdb";
+import {
+  getHhdbDistribution,
+  getHhdbFreqSummary,
+  getHhdbSummaries,
+} from "@/actions/hhdb";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 50;
 
 /** TMK first-digit → county name */
 const ISLANDS = [
@@ -66,12 +81,51 @@ function displayValue(val: string): string {
   return val;
 }
 
+/** Format null count as "138 (5%)" */
+function formatNullCell(nullCount: number, total: number): string {
+  if (nullCount === 0) return "";
+  const pct = total > 0 ? Math.round((nullCount / total) * 100) : 0;
+  return `${nullCount.toLocaleString()} (${pct}%)`;
+}
+
 function CountCell({ counts, code }: { counts: IslandCounts; code: string }) {
   const n = counts[code] ?? 0;
   return (
     <td className="py-1.5 text-right tabular-nums">
       {n > 0 ? n.toLocaleString() : ""}
     </td>
+  );
+}
+
+function FreqSortHeader({
+  label,
+  colKey,
+  sortCol,
+  sortDir,
+  onSort,
+}: {
+  label: string;
+  colKey: string;
+  sortCol: string;
+  sortDir: "asc" | "desc";
+  onSort: (col: string) => void;
+}) {
+  const isActive = sortCol === colKey;
+  return (
+    <th
+      className="hover:text-foreground cursor-pointer pb-2 text-right font-medium select-none"
+      onClick={() => onSort(colKey)}
+    >
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        {isActive &&
+          (sortDir === "desc" ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUp className="h-3 w-3" />
+          ))}
+      </span>
+    </th>
   );
 }
 
@@ -119,28 +173,81 @@ export function HhdbSummaries({
 
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [distResult, setDistResult] = useState<SummaryResult | null>(null);
+  const [freqResult, setFreqResult] = useState<FreqSummaryResult | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Freq pagination / sort state
+  const [freqPage, setFreqPage] = useState(1);
+  const [freqSortCol, setFreqSortCol] = useState("0");
+  const [freqSortDir, setFreqSortDir] = useState<"asc" | "desc">("desc");
+  const [freqSearch, setFreqSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // Rank/range sort (client-side)
   const [sortCol, setSortCol] = useState<string>("total");
 
   const selectedDef = allDictFields?.find((f) => f.key === selectedField);
   const fieldSupportsView = selectedDef?.summary?.includes(viewType);
   const hasSummary = fieldSupportsView && !selectedDef?.disabled;
 
-  // Reset sort when field changes
+  // Reset state when field or view type changes
   useEffect(() => {
+    setFreqPage(1);
+    setFreqSortCol("0");
+    setFreqSortDir("desc");
+    setFreqSearch("");
+    setDebouncedSearch("");
     setSortCol("total");
-  }, [selectedField]);
+  }, [selectedField, viewType]);
 
+  // Debounce search input
   useEffect(() => {
-    if (!selectedField || !hasSummary) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(freqSearch);
+      setFreqPage(1);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [freqSearch]);
+
+  // Fetch freq data
+  useEffect(() => {
+    if (!selectedField || !hasSummary || viewType !== "summary") return;
+
+    startTransition(async () => {
+      const data = await getHhdbFreqSummary(tableName, selectedField, {
+        page: freqPage,
+        limit: PAGE_SIZE,
+        sortCol: freqSortCol,
+        sortDir: freqSortDir,
+        search: debouncedSearch || undefined,
+      });
+      setFreqResult(data);
       setResult(null);
       setDistResult(null);
-      return;
-    }
-    // Only pass sortBy for rank fields (summary sort is client-side)
-    const sortBy =
-      viewType === "rank" && sortCol !== "total" ? sortCol : undefined;
+    });
+  }, [
+    tableName,
+    selectedField,
+    hasSummary,
+    viewType,
+    freqPage,
+    freqSortCol,
+    freqSortDir,
+    debouncedSearch,
+  ]);
+
+  // Fetch rank/range data
+  useEffect(() => {
+    if (!selectedField || !hasSummary || viewType === "summary") return;
+
     startTransition(async () => {
+      setFreqResult(null);
+      const sortBy =
+        viewType === "rank" && sortCol !== "total" ? sortCol : undefined;
       const data = await getHhdbSummaries(
         tableName,
         selectedField,
@@ -149,7 +256,6 @@ export function HhdbSummaries({
       );
       setResult(data);
 
-      // For range view, also fetch distribution
       if (
         viewType === "range" &&
         selectedDef?.format &&
@@ -161,14 +267,29 @@ export function HhdbSummaries({
         setDistResult(null);
       }
     });
-  }, [
-    tableName,
-    selectedField,
-    hasSummary,
-    sortCol,
-    viewType,
-    selectedDef?.format,
-  ]);
+  }, [tableName, selectedField, hasSummary, sortCol, viewType, selectedDef?.format]);
+
+  // Clear data when field is deselected
+  useEffect(() => {
+    if (!selectedField || !hasSummary) {
+      setResult(null);
+      setDistResult(null);
+      setFreqResult(null);
+    }
+  }, [selectedField, hasSummary]);
+
+  const handleFreqSort = useCallback(
+    (col: string) => {
+      if (col === freqSortCol) {
+        setFreqSortDir((d) => (d === "desc" ? "asc" : "desc"));
+      } else {
+        setFreqSortCol(col);
+        setFreqSortDir("desc");
+      }
+      setFreqPage(1);
+    },
+    [freqSortCol],
+  );
 
   if (!viewFields || viewFields.length === 0) {
     return (
@@ -177,6 +298,10 @@ export function HhdbSummaries({
       </p>
     );
   }
+
+  const totalPages = freqResult
+    ? Math.ceil(freqResult.total / PAGE_SIZE)
+    : 0;
 
   return (
     <div className="flex gap-6">
@@ -227,7 +352,28 @@ export function HhdbSummaries({
 
         {selectedField && selectedDef && (
           <div>
-            <h3 className="mb-1 text-lg font-semibold">{selectedDef.label}</h3>
+            <div className="flex items-baseline gap-2">
+              <h3 className="mb-1 text-lg font-semibold">
+                {selectedDef.label}
+              </h3>
+              {viewType === "summary" &&
+                freqResult?.generatedAt &&
+                !isPending && (
+                  <span className="text-muted-foreground text-xs">
+                    ·{" "}
+                    {new Date(freqResult.generatedAt).toLocaleDateString(
+                      "en-US",
+                      {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </span>
+                )}
+            </div>
             <p className="text-muted-foreground mb-4 text-sm">
               {selectedDef.description}
             </p>
@@ -251,7 +397,182 @@ export function HhdbSummaries({
               </div>
             )}
 
-            {/* Summary results */}
+            {/* Freq-based summary results */}
+            {hasSummary &&
+              !isPending &&
+              viewType === "summary" &&
+              freqResult &&
+              (() => {
+                if (
+                  freqResult.rows.length === 0 &&
+                  !freqResult.nullRow &&
+                  !debouncedSearch
+                ) {
+                  return (
+                    <p className="text-muted-foreground text-sm">
+                      No frequency data available for this field.
+                    </p>
+                  );
+                }
+
+                // Compute null percentages using the null row's own statewide total
+                const nullTotals: Record<string, number> = {};
+                if (freqResult.nullRow) {
+                  // The statewide total for this county is the sum of all values
+                  // We only have the null row counts; the overall total per county
+                  // can be derived from null + non-null. We'll just use the null
+                  // count as-is with the statewide count from county_code=0
+                  // For proper percentage we need total records per county.
+                  // Since we paginate, we can't sum the page — use null as absolute.
+                  for (const [code, freq] of Object.entries(
+                    freqResult.nullRow.counts,
+                  )) {
+                    nullTotals[code] = freq;
+                  }
+                }
+
+                return (
+                  <div>
+                    {/* Search + count bar */}
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="relative max-w-64 flex-1">
+                        <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search values..."
+                          value={freqSearch}
+                          onChange={(e) => setFreqSearch(e.target.value)}
+                          className="border-input bg-background placeholder:text-muted-foreground h-8 w-full rounded-md border py-1 pr-3 pl-8 text-sm outline-none focus:ring-1 focus:ring-ring"
+                        />
+                      </div>
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {freqResult.total.toLocaleString()} unique value
+                        {freqResult.total !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    <div className="max-h-[480px] overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b text-left">
+                            <th className="pb-2 font-medium">Value</th>
+                            {ISLANDS.map((i) => (
+                              <FreqSortHeader
+                                key={i.code}
+                                label={i.label}
+                                colKey={i.code}
+                                sortCol={freqSortCol}
+                                sortDir={freqSortDir}
+                                onSort={handleFreqSort}
+                              />
+                            ))}
+                            <FreqSortHeader
+                              label="State"
+                              colKey="0"
+                              sortCol={freqSortCol}
+                              sortDir={freqSortDir}
+                              onSort={handleFreqSort}
+                            />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {freqResult.rows.map((row) => (
+                            <tr
+                              key={row.value}
+                              className="border-b last:border-0"
+                            >
+                              <td className="py-1.5">
+                                {displayValue(row.value)}
+                              </td>
+                              {ISLANDS.map((i) => (
+                                <td
+                                  key={i.code}
+                                  className="py-1.5 text-right tabular-nums"
+                                >
+                                  {(row.counts[i.code] ?? 0) > 0
+                                    ? (
+                                        row.counts[i.code] ?? 0
+                                      ).toLocaleString()
+                                    : ""}
+                                </td>
+                              ))}
+                              <td className="py-1.5 text-right font-medium tabular-nums">
+                                {(row.counts["0"] ?? 0) > 0
+                                  ? (row.counts["0"] ?? 0).toLocaleString()
+                                  : ""}
+                              </td>
+                            </tr>
+                          ))}
+                          {freqResult.rows.length === 0 && debouncedSearch && (
+                            <tr>
+                              <td
+                                colSpan={6}
+                                className="text-muted-foreground py-6 text-center"
+                              >
+                                No values matching &ldquo;{debouncedSearch}
+                                &rdquo;
+                              </td>
+                            </tr>
+                          )}
+                          {freqResult.nullRow && freqPage === 1 && !debouncedSearch && (
+                            <tr className="border-b last:border-0">
+                              <td className="text-muted-foreground py-1.5 italic">
+                                NULL
+                              </td>
+                              {ISLANDS.map((i) => (
+                                <td
+                                  key={i.code}
+                                  className="text-muted-foreground py-1.5 text-right italic tabular-nums"
+                                >
+                                  {(freqResult.nullRow!.counts[i.code] ?? 0) > 0
+                                    ? (
+                                        freqResult.nullRow!.counts[i.code] ?? 0
+                                      ).toLocaleString()
+                                    : ""}
+                                </td>
+                              ))}
+                              <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
+                                {(freqResult.nullRow!.counts["0"] ?? 0) > 0
+                                  ? (
+                                      freqResult.nullRow!.counts["0"] ?? 0
+                                    ).toLocaleString()
+                                  : ""}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-muted-foreground text-xs tabular-nums">
+                          Page {freqPage} of {totalPages.toLocaleString()}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            disabled={freqPage <= 1}
+                            onClick={() => setFreqPage((p) => p - 1)}
+                            className="hover:bg-muted disabled:pointer-events-none disabled:opacity-50 inline-flex h-7 w-7 items-center justify-center rounded"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          <button
+                            disabled={freqPage >= totalPages}
+                            onClick={() => setFreqPage((p) => p + 1)}
+                            className="hover:bg-muted disabled:pointer-events-none disabled:opacity-50 inline-flex h-7 w-7 items-center justify-center rounded"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+            {/* Rank and range results (unchanged, use raw table queries) */}
             {hasSummary && !isPending && result && (
               <>
                 {result.type === "range" &&
@@ -530,85 +851,6 @@ export function HhdbSummaries({
                     </table>
                   </div>
                 )}
-
-                {result.type === "summary" &&
-                  (() => {
-                    const sortedValues = [...result.values].sort((a, b) =>
-                      sortCol !== "total"
-                        ? (b.counts[sortCol] ?? 0) - (a.counts[sortCol] ?? 0)
-                        : b.total - a.total,
-                    );
-                    return (
-                      <div className="max-h-[560px] overflow-y-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b text-left">
-                              <th className="pb-2 font-medium">Value</th>
-                              {ISLANDS.map((i) => (
-                                <SortHeader
-                                  key={i.code}
-                                  label={i.label}
-                                  colKey={i.code}
-                                  sortCol={sortCol}
-                                  onSort={setSortCol}
-                                />
-                              ))}
-                              <SortHeader
-                                label="Total"
-                                colKey="total"
-                                sortCol={sortCol}
-                                onSort={setSortCol}
-                              />
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sortedValues.map((v) => (
-                              <tr
-                                key={v.value}
-                                className="border-b last:border-0"
-                              >
-                                <td className="py-1.5">
-                                  {displayValue(v.value)}
-                                </td>
-                                {ISLANDS.map((i) => (
-                                  <CountCell
-                                    key={i.code}
-                                    counts={v.counts}
-                                    code={i.code}
-                                  />
-                                ))}
-                                <td className="py-1.5 text-right font-medium tabular-nums">
-                                  {v.total.toLocaleString()}
-                                </td>
-                              </tr>
-                            ))}
-                            {result.nullTotal > 0 && (
-                              <tr className="border-b last:border-0">
-                                <td className="text-muted-foreground py-1.5 italic">
-                                  NULL
-                                </td>
-                                {ISLANDS.map((i) => (
-                                  <td
-                                    key={i.code}
-                                    className="text-muted-foreground py-1.5 text-right italic tabular-nums"
-                                  >
-                                    {(result.nullCounts[i.code] ?? 0) > 0
-                                      ? result.nullCounts[
-                                          i.code
-                                        ].toLocaleString()
-                                      : ""}
-                                  </td>
-                                ))}
-                                <td className="text-muted-foreground py-1.5 text-right font-medium italic tabular-nums">
-                                  {result.nullTotal.toLocaleString()}
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
               </>
             )}
           </div>
