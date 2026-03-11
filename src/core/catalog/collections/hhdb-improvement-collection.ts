@@ -1,5 +1,11 @@
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbImprovement, type HhdbImprovementAttrs, hhdbImprovementRowToJSON } from "../models/hhdb-improvement";
+
+import {
+  HhdbImprovement,
+  hhdbImprovementRowToJSON,
+  type HhdbImprovementAttrs,
+} from "../models/hhdb-improvement";
 import type { HhdbImprovementJSON } from "../models/hhdb-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
@@ -40,9 +46,11 @@ export default class HhdbImprovementCollection {
     params: HhdbListParams,
     type: "residential" | "commercial" = "residential",
   ) {
-    const { page, limit, search, sort = "id", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
-    const sortable = type === "residential" ? RESIDENTIAL_SORTABLE : COMMERCIAL_SORTABLE;
+    const sortable =
+      type === "residential" ? RESIDENTIAL_SORTABLE : COMMERCIAL_SORTABLE;
     const sortCol = sortable.includes(sort) ? sort : "id";
     const sortDir = order === "desc" ? "DESC" : "ASC";
     const table = TABLE_MAP[type];
@@ -51,9 +59,11 @@ export default class HhdbImprovementCollection {
     const qp: (string | number)[] = [];
     if (search) {
       if (type === "residential") {
-        where = "WHERE (tmk LIKE ? OR occupancy LIKE ? OR framing LIKE ? OR grade LIKE ?)";
+        where =
+          "WHERE (tmk LIKE ? OR occupancy LIKE ? OR framing LIKE ? OR grade LIKE ?)";
       } else {
-        where = "WHERE (tmk LIKE ? OR improvement_name LIKE ? OR property_class LIKE ? OR structure_type LIKE ?)";
+        where =
+          "WHERE (tmk LIKE ? OR improvement_name LIKE ? OR property_class LIKE ? OR structure_type LIKE ?)";
       }
       const term = `%${search}%`;
       qp.push(term, term, term, term);
@@ -66,10 +76,14 @@ export default class HhdbImprovementCollection {
     params: HhdbListParams,
     type: "residential" | "commercial" = "residential",
   ): Promise<HhdbListResult<HhdbImprovement>> {
-    const { where, qp, sortCol, sortDir, limit, offset, table } = this._buildQuery(params, type);
+    const { where, qp, sortCol, sortDir, limit, offset, table } =
+      this._buildQuery(params, type);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM ${table} ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM ${table} ${where}`,
+        qp,
+      ),
       rawQuery<HhdbImprovementAttrs>(
         `SELECT * FROM ${table} ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
@@ -86,10 +100,14 @@ export default class HhdbImprovementCollection {
     params: HhdbListParams,
     type: "residential" | "commercial" = "residential",
   ): Promise<HhdbListResult<HhdbImprovementJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset, table } = this._buildQuery(params, type);
+    const { where, qp, sortCol, sortDir, limit, offset, table } =
+      this._buildQuery(params, type);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM ${table} ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM ${table} ${where}`,
+        qp,
+      ),
       rawQuery<HhdbImprovementAttrs>(
         `SELECT * FROM ${table} ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],

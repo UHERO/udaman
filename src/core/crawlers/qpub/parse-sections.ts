@@ -379,7 +379,8 @@ function parseAssessmentTable(
       if (fieldName) {
         let value: string | null = cleanText(cell.textContent);
         if (!value) value = null;
-        (assessment as unknown as Record<string, string | null>)[fieldName] = value;
+        (assessment as unknown as Record<string, string | null>)[fieldName] =
+          value;
       }
     });
 
@@ -572,9 +573,7 @@ function isDetailRow(row: HTMLElement): boolean {
   return false;
 }
 
-function extractTaxNestedTable(
-  table: HTMLElement,
-): {
+function extractTaxNestedTable(table: HTMLElement): {
   headers: string[];
   rows: Record<string, string | null>[];
   totals: Record<string, string | null> | null;
@@ -604,9 +603,7 @@ function extractTaxNestedTable(
     const cells = allRows[i].querySelectorAll("td, th");
     const rowData: Record<string, string | null> = {};
 
-    const firstCellText = cleanText(
-      cells[0]?.textContent || "",
-    ).toLowerCase();
+    const firstCellText = cleanText(cells[0]?.textContent || "").toLowerCase();
     const isTotalsRow = firstCellText.includes("total");
 
     cells.forEach((cell, index) => {
@@ -665,22 +662,19 @@ function extractTaxNestedTables(
         secondHeader.includes("effective date")
       ) {
         nestedData.tax_payments = tableData.rows;
-        if (tableData.totals)
-          nestedData.tax_payments_totals = tableData.totals;
+        if (tableData.totals) nestedData.tax_payments_totals = tableData.totals;
       } else if (
         headerCount <= 3 &&
         tableData.headers.some((h) => h === "amount")
       ) {
         nestedData.tax_credits = tableData.rows;
-        if (tableData.totals)
-          nestedData.tax_credits_totals = tableData.totals;
+        if (tableData.totals) nestedData.tax_credits_totals = tableData.totals;
       } else if (
         (firstHeader.includes("tax period") || firstHeader === "period") &&
         secondHeader.includes("description")
       ) {
         nestedData.tax_details = tableData.rows;
-        if (tableData.totals)
-          nestedData.tax_details_totals = tableData.totals;
+        if (tableData.totals) nestedData.tax_details_totals = tableData.totals;
       }
     }
   });

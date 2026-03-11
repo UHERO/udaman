@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbSaleJSON } from "@catalog/models/hhdb-sale";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
@@ -27,7 +28,11 @@ const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
   },
   { accessorKey: "instrument", header: "Instrument", enableSorting: true },
   { accessorKey: "instrumentType", header: "Type", enableSorting: true },
-  { accessorKey: "instrumentDescription", header: "Description", enableSorting: true },
+  {
+    accessorKey: "instrumentDescription",
+    header: "Description",
+    enableSorting: true,
+  },
   { accessorKey: "validSale", header: "Valid", enableSorting: true },
   {
     accessorKey: "dateOfRecording",
@@ -39,6 +44,13 @@ const columns: ColumnDef<HhdbSaleJSON, unknown>[] = [
     },
   },
   { accessorKey: "documentType", header: "Doc Type", enableSorting: true },
+  {
+    accessorKey: "landCourtDocumentNumber",
+    header: "Land Court Doc #",
+    enableSorting: false,
+  },
+  { accessorKey: "cert", header: "Certificate", enableSorting: false },
+  { accessorKey: "bookPage", header: "Book/Page", enableSorting: false },
   {
     accessorKey: "conveyanceTax",
     header: "Conv. Tax",
@@ -54,6 +66,9 @@ const DEFAULT_HIDDEN = [
   "instrumentDescription",
   "dateOfRecording",
   "documentType",
+  "landCourtDocumentNumber",
+  "cert",
+  "bookPage",
   "conveyanceTax",
 ];
 

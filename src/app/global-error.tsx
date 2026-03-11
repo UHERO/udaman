@@ -24,11 +24,27 @@ export default function GlobalError({
   return (
     <html>
       <body>
-        <main style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <main
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+          }}
+        >
           <h2>Something went wrong!</h2>
           <button
             onClick={() => reset()}
-            style={{ marginTop: 16, padding: "8px 16px", background: "#3b82f6", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+            style={{
+              marginTop: 16,
+              padding: "8px 16px",
+              background: "#3b82f6",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer",
+            }}
           >
             Try again
           </button>

@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbAccessoryStructureJSON } from "@catalog/models/hhdb-accessory-structure";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbAccessoryStructureJSON, unknown>[] = [
@@ -52,9 +53,7 @@ interface AccessoryStructuresTableProps {
   order: "asc" | "desc";
 }
 
-export function AccessoryStructuresTable(
-  props: AccessoryStructuresTableProps,
-) {
+export function AccessoryStructuresTable(props: AccessoryStructuresTableProps) {
   return (
     <HhdbDataTable
       columns={columns}

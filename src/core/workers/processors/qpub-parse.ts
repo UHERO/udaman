@@ -63,8 +63,7 @@ export async function processQpubParse(
     job.log(`${tmk}: parsed → ${jsonFile}`);
     return `${tmk}: parsed`;
   } catch (e) {
-    const errorMsg =
-      e instanceof Error ? e.message : String(e);
+    const errorMsg = e instanceof Error ? e.message : String(e);
     await rawQuery(
       `UPDATE scrape_status SET parse_status='failed', error=? WHERE tmk=?`,
       [errorMsg.slice(0, 500), tmk],

@@ -1,8 +1,8 @@
-import type { Universe } from "@catalog/types/shared";
 import {
   getLoadErrors,
   getReloadJobs,
 } from "@catalog/controllers/investigations";
+import type { Universe } from "@catalog/types/shared";
 
 import InvestigationsPanel from "@/components/investigations-panel";
 

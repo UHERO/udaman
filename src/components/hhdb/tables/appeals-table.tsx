@@ -1,15 +1,24 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbAppealJSON } from "@catalog/models/hhdb-appeal";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbAppealJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
   { accessorKey: "year", header: "Year", enableSorting: true },
-  { accessorKey: "appealTypeValue", header: "Appeal Type", enableSorting: true },
-  { accessorKey: "scheduledHearingDateSubjectToChange", header: "Scheduled Hearing Date", enableSorting: true },
+  {
+    accessorKey: "appealTypeValue",
+    header: "Appeal Type",
+    enableSorting: true,
+  },
+  {
+    accessorKey: "scheduledHearingDateSubjectToChange",
+    header: "Scheduled Hearing Date",
+    enableSorting: true,
+  },
   { accessorKey: "status", header: "Status", enableSorting: true },
   {
     accessorKey: "dateSettled",
@@ -38,7 +47,11 @@ const columns: ColumnDef<HhdbAppealJSON, unknown>[] = [
       return v != null ? `$${v.toLocaleString()}` : "";
     },
   },
-  { accessorKey: "taxPayerOpinionOfPropertyClass", header: "Taxpayer Opinion of Class", enableSorting: true },
+  {
+    accessorKey: "taxPayerOpinionOfPropertyClass",
+    header: "Taxpayer Opinion of Class",
+    enableSorting: true,
+  },
   {
     accessorKey: "taxPayerOpinionOfExemptions",
     header: "Taxpayer Opinion of Exemptions",

@@ -1,19 +1,26 @@
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbYardImprovement, type HhdbYardImprovementAttrs, hhdbYardImprovementRowToJSON } from "../models/hhdb-yard-improvement";
+
+import {
+  HhdbYardImprovement,
+  hhdbYardImprovementRowToJSON,
+  type HhdbYardImprovementAttrs,
+} from "../models/hhdb-yard-improvement";
 import type { HhdbYardImprovementJSON } from "../models/hhdb-yard-improvement";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
-const SORTABLE = [
-  "tmk",
-  "description",
-  "quantity",
-  "year_built",
-  "area",
-];
+const SORTABLE = ["tmk", "description", "quantity", "year_built", "area"];
 
 export default class HhdbYardImprovementCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "tmk", order = "asc" } = params;
+    const {
+      page,
+      limit,
+      search,
+      sort: rawSort = "tmk",
+      order = "asc",
+    } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
     const sortDir = order === "desc" ? "DESC" : "ASC";
@@ -29,11 +36,17 @@ export default class HhdbYardImprovementCollection {
     return { where, qp, sortCol, sortDir, limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbYardImprovement>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbYardImprovement>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM yard_improvements ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM yard_improvements ${where}`,
+        qp,
+      ),
       rawQuery<HhdbYardImprovementAttrs>(
         `SELECT * FROM yard_improvements ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
@@ -46,11 +59,17 @@ export default class HhdbYardImprovementCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbYardImprovementJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbYardImprovementJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM yard_improvements ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM yard_improvements ${where}`,
+        qp,
+      ),
       rawQuery<HhdbYardImprovementAttrs>(
         `SELECT * FROM yard_improvements ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],

@@ -1,14 +1,19 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbDedicationJSON } from "@catalog/models/hhdb-dedication";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbDedicationJSON, unknown>[] = [
   { accessorKey: "id", header: "ID", enableSorting: true },
   { accessorKey: "tmk", header: "TMK", enableSorting: true },
   { accessorKey: "taxYear", header: "Tax Year", enableSorting: true },
-  { accessorKey: "numberOfDedications", header: "Number of Dedications", enableSorting: true },
+  {
+    accessorKey: "numberOfDedications",
+    header: "Number of Dedications",
+    enableSorting: true,
+  },
 ];
 
 const DEFAULT_HIDDEN: string[] = [];

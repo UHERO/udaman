@@ -6,7 +6,7 @@
  *  - Edge middleware (route enforcement)
  *  - Homepage (card generation)
  *
- * Pure data + pure functions only (no side-effects!). 
+ * Pure data + pure functions only (no side-effects!).
  */
 
 import {
@@ -126,12 +126,12 @@ export const ROUTES: RouteEntry[] = [
     universes: ["UHERO"],
     children: [
       { label: "Dashboard", path: "/hhdb" },
-      { label: "Properties", path: "/hhdb/properties" },
-      { label: "Assessments", path: "/hhdb/assessments" },
-      { label: "Sales", path: "/hhdb/sales" },
-      { label: "Improvements", path: "/hhdb/improvements" },
-      { label: "Condos", path: "/hhdb/condos" },
-      { label: "Permits", path: "/hhdb/permits" },
+      { label: "Properties", path: "/hhdb/tables/properties" },
+      { label: "Assessments", path: "/hhdb/tables/assessments" },
+      { label: "Sales", path: "/hhdb/tables/sales" },
+      { label: "Improvements", path: "/hhdb/tables/residential-improvements" },
+      { label: "Condos", path: "/hhdb/tables/condo-projects" },
+      { label: "Permits", path: "/hhdb/tables/permits" },
     ],
   },
   {
@@ -180,9 +180,7 @@ export const ROUTES: RouteEntry[] = [
     path: "/udaman/admin/crawlers",
     icon: Globe,
     roles: ["admin", "dev"],
-    children: [
-      { label: "qPub", path: "/udaman/admin/crawlers/qpub" },
-    ],
+    children: [{ label: "qPub", path: "/udaman/admin/crawlers/qpub" }],
   },
 ];
 
@@ -223,7 +221,12 @@ export function getVisibleRoutes(
         }),
       );
       // If no children are visible, still show the parent (it may have its own page)
-      return [{ ...entry, children: filteredChildren.length > 0 ? filteredChildren : undefined }];
+      return [
+        {
+          ...entry,
+          children: filteredChildren.length > 0 ? filteredChildren : undefined,
+        },
+      ];
     }
 
     return [entry];
@@ -281,7 +284,10 @@ export function isRouteAllowed(
           );
           for (const child of sorted) {
             const childPath = child.path;
-            if (pathname === childPath || pathname.startsWith(childPath + "/")) {
+            if (
+              pathname === childPath ||
+              pathname.startsWith(childPath + "/")
+            ) {
               const childAccess = canAccess(userRole, userUniverse, {
                 roles: child.roles ?? entry.roles,
                 universes: child.universes ?? entry.universes,

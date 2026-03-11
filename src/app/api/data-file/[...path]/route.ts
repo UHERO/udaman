@@ -3,8 +3,8 @@ import { extname, resolve } from "path";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { getDataDir } from "@/lib/data-dir";
 import { requirePermission } from "@/lib/auth/permissions";
+import { getDataDir } from "@/lib/data-dir";
 
 const MIME_TYPES: Record<string, string> = {
   ".csv": "text/csv",

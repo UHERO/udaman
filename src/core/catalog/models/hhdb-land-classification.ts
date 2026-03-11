@@ -40,13 +40,19 @@ export class HhdbLandClassification {
   }
 }
 
-export type HhdbLandClassificationJSON = ReturnType<HhdbLandClassification["toJSON"]>;
+export type HhdbLandClassificationJSON = ReturnType<
+  HhdbLandClassification["toJSON"]
+>;
 
-export function hhdbLandClassificationRowToJSON(attrs: HhdbLandClassificationAttrs): HhdbLandClassificationJSON {
+export function hhdbLandClassificationRowToJSON(
+  attrs: HhdbLandClassificationAttrs,
+): HhdbLandClassificationJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
-    scrapedAt: attrs.scraped_at ? new Date(attrs.scraped_at).toISOString() : null,
+    scrapedAt: attrs.scraped_at
+      ? new Date(attrs.scraped_at).toISOString()
+      : null,
     landClassification: attrs.land_classification ?? null,
     squareFootage: attrs.square_footage ?? null,
     acreage: attrs.acreage ?? null,

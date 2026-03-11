@@ -185,13 +185,19 @@ export function normalizeTMK(tmk: string, islandCode: string): string {
 /** True during backup window (7–8 PM) */
 export function isBackupTime(): boolean {
   const h = new Date().getHours();
-  return h >= QPUB_CONFIG.BLOCKED_HOURS.BACKUP.start && h < QPUB_CONFIG.BLOCKED_HOURS.BACKUP.end;
+  return (
+    h >= QPUB_CONFIG.BLOCKED_HOURS.BACKUP.start &&
+    h < QPUB_CONFIG.BLOCKED_HOURS.BACKUP.end
+  );
 }
 
 /** True during night block (11 PM – 5 AM) */
 export function isNighttime(): boolean {
   const h = new Date().getHours();
-  return h >= QPUB_CONFIG.BLOCKED_HOURS.NIGHT.start || h < QPUB_CONFIG.BLOCKED_HOURS.NIGHT.end;
+  return (
+    h >= QPUB_CONFIG.BLOCKED_HOURS.NIGHT.start ||
+    h < QPUB_CONFIG.BLOCKED_HOURS.NIGHT.end
+  );
 }
 
 /** True if in any blocked period */

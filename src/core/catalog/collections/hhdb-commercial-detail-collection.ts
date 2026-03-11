@@ -1,5 +1,11 @@
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbCommercialDetail, type HhdbCommercialDetailAttrs, hhdbCommercialDetailRowToJSON } from "../models/hhdb-commercial-detail";
+
+import {
+  HhdbCommercialDetail,
+  hhdbCommercialDetailRowToJSON,
+  type HhdbCommercialDetailAttrs,
+} from "../models/hhdb-commercial-detail";
 import type { HhdbCommercialDetailJSON } from "../models/hhdb-commercial-detail";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
@@ -18,7 +24,14 @@ const SORTABLE = [
 
 export default class HhdbCommercialDetailCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "tmk", order = "asc" } = params;
+    const {
+      page,
+      limit,
+      search,
+      sort: rawSort = "tmk",
+      order = "asc",
+    } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
     const sortDir = order === "desc" ? "DESC" : "ASC";
@@ -26,7 +39,8 @@ export default class HhdbCommercialDetailCollection {
     let where = "";
     const qp: (string | number)[] = [];
     if (search) {
-      where = "WHERE (tmk LIKE ? OR usage LIKE ? OR construction LIKE ? OR description LIKE ?)";
+      where =
+        "WHERE (tmk LIKE ? OR usage LIKE ? OR construction LIKE ? OR description LIKE ?)";
       const term = `%${search}%`;
       qp.push(term, term, term, term);
     }
@@ -34,11 +48,17 @@ export default class HhdbCommercialDetailCollection {
     return { where, qp, sortCol, sortDir, limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbCommercialDetail>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbCommercialDetail>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM commercial_improvement_details ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM commercial_improvement_details ${where}`,
+        qp,
+      ),
       rawQuery<HhdbCommercialDetailAttrs>(
         `SELECT * FROM commercial_improvement_details ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
@@ -51,11 +71,17 @@ export default class HhdbCommercialDetailCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbCommercialDetailJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbCommercialDetailJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM commercial_improvement_details ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM commercial_improvement_details ${where}`,
+        qp,
+      ),
       rawQuery<HhdbCommercialDetailAttrs>(
         `SELECT * FROM commercial_improvement_details ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],

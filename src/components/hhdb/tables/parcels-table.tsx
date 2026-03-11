@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbParcelJSON } from "@catalog/models/hhdb-parcel";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbParcelJSON, unknown>[] = [
@@ -17,11 +18,23 @@ const columns: ColumnDef<HhdbParcelJSON, unknown>[] = [
     },
   },
   { accessorKey: "parcelNumber", header: "Parcel Number", enableSorting: true },
-  { accessorKey: "locationAddress", header: "Location Address", enableSorting: true },
+  {
+    accessorKey: "locationAddress",
+    header: "Location Address",
+    enableSorting: true,
+  },
   { accessorKey: "addressOther", header: "Address Other", enableSorting: true },
   { accessorKey: "projectName", header: "Project Name", enableSorting: true },
-  { accessorKey: "legalInformation", header: "Legal Information", enableSorting: true },
-  { accessorKey: "propertyClass", header: "Property Class", enableSorting: true },
+  {
+    accessorKey: "legalInformation",
+    header: "Legal Information",
+    enableSorting: true,
+  },
+  {
+    accessorKey: "propertyClass",
+    header: "Property Class",
+    enableSorting: true,
+  },
   {
     accessorKey: "landAreaSqft",
     header: "Land Area (sqft)",
@@ -40,13 +53,21 @@ const columns: ColumnDef<HhdbParcelJSON, unknown>[] = [
       return v != null ? v.toLocaleString() : "";
     },
   },
-  { accessorKey: "neighborhoodCode", header: "Neighborhood Code", enableSorting: true },
+  {
+    accessorKey: "neighborhoodCode",
+    header: "Neighborhood Code",
+    enableSorting: true,
+  },
   { accessorKey: "zoning", header: "Zoning", enableSorting: true },
   { accessorKey: "parcelNote", header: "Parcel Note", enableSorting: true },
   { accessorKey: "damage", header: "Damage", enableSorting: true },
   { accessorKey: "reentryZone", header: "Reentry Zone", enableSorting: true },
   { accessorKey: "zoneColor", header: "Zone Color", enableSorting: true },
-  { accessorKey: "nonTaxableStatus", header: "Non-Taxable Status", enableSorting: true },
+  {
+    accessorKey: "nonTaxableStatus",
+    header: "Non-Taxable Status",
+    enableSorting: true,
+  },
   { accessorKey: "livingUnits", header: "Living Units", enableSorting: true },
   {
     accessorKey: "createdAt",

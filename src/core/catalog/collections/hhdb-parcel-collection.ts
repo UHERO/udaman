@@ -1,5 +1,11 @@
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbParcel, type HhdbParcelAttrs, hhdbParcelRowToJSON } from "../models/hhdb-parcel";
+
+import {
+  HhdbParcel,
+  hhdbParcelRowToJSON,
+  type HhdbParcelAttrs,
+} from "../models/hhdb-parcel";
 import type { HhdbParcelJSON } from "../models/hhdb-parcel";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
@@ -17,7 +23,14 @@ const SORTABLE = [
 
 export default class HhdbParcelCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "tmk", order = "asc" } = params;
+    const {
+      page,
+      limit,
+      search,
+      sort: rawSort = "tmk",
+      order = "asc",
+    } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "tmk";
     const sortDir = order === "desc" ? "DESC" : "ASC";
@@ -34,8 +47,11 @@ export default class HhdbParcelCollection {
     return { where, qp, sortCol, sortDir, limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbParcel>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbParcel>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(
@@ -54,8 +70,11 @@ export default class HhdbParcelCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbParcelJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbParcelJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
       rawQuery<{ cnt: number }>(

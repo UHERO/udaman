@@ -75,14 +75,21 @@ function DatabaseLogsTab({
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function refresh(newOffset?: number, newLevel?: string, newCategory?: string) {
+  function refresh(
+    newOffset?: number,
+    newLevel?: string,
+    newCategory?: string,
+  ) {
     const effectiveOffset = newOffset ?? offset;
     const effectiveLevel = newLevel ?? level;
     const effectiveCategory = newCategory ?? category;
 
     startTransition(async () => {
       const result = await getAppLogs({
-        level: effectiveLevel === "all" ? undefined : (effectiveLevel as "info" | "warn" | "error"),
+        level:
+          effectiveLevel === "all"
+            ? undefined
+            : (effectiveLevel as "info" | "warn" | "error"),
         category: effectiveCategory === "all" ? undefined : effectiveCategory,
         limit: PAGE_SIZE,
         offset: effectiveOffset,
@@ -237,10 +244,7 @@ function DatabaseLogRow({
 }) {
   return (
     <>
-      <TableRow
-        className="hover:bg-muted/50 cursor-pointer"
-        onClick={onToggle}
-      >
+      <TableRow className="hover:bg-muted/50 cursor-pointer" onClick={onToggle}>
         <TableCell className="text-xs">
           {formatTimestamp(row.createdAt)}
         </TableCell>
@@ -365,13 +369,20 @@ function ServerLogLine({ line }: { line: string }) {
     const time = parsed.time
       ? formatTimestamp(new Date(parsed.time).toISOString())
       : "";
-    const level = parsed.level === 30 ? "info" : parsed.level === 40 ? "warn" : parsed.level === 50 ? "error" : String(parsed.level);
+    const level =
+      parsed.level === 30
+        ? "info"
+        : parsed.level === 40
+          ? "warn"
+          : parsed.level === 50
+            ? "error"
+            : String(parsed.level);
     const { time: _t, level: _l, msg, name, ...rest } = parsed;
     const details = Object.keys(rest).length > 0 ? JSON.stringify(rest) : "";
 
     return (
       <tr className="hover:bg-muted/30 border-t">
-        <td className="whitespace-nowrap px-3 py-1">{time}</td>
+        <td className="px-3 py-1 whitespace-nowrap">{time}</td>
         <td className="px-3 py-1">
           <LevelBadge level={level} />
         </td>
@@ -379,7 +390,7 @@ function ServerLogLine({ line }: { line: string }) {
           {name && <span className="text-muted-foreground">[{name}] </span>}
           {msg}
         </td>
-        <td className="max-w-md truncate px-3 py-1 text-muted-foreground">
+        <td className="text-muted-foreground max-w-md truncate px-3 py-1">
           {details}
         </td>
       </tr>
@@ -387,7 +398,7 @@ function ServerLogLine({ line }: { line: string }) {
   } catch {
     return (
       <tr className="hover:bg-muted/30 border-t">
-        <td colSpan={4} className="px-3 py-1 text-muted-foreground">
+        <td colSpan={4} className="text-muted-foreground px-3 py-1">
           {line}
         </td>
       </tr>

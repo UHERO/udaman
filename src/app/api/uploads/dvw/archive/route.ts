@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { DvwUploadCollection } from "@catalog/collections/universe-upload-collection";
 
 import { createLogger } from "@/core/observability/logger";
-import { getDataDir } from "@/lib/data-dir";
 import { requirePermission } from "@/lib/auth/permissions";
+import { getDataDir } from "@/lib/data-dir";
 
 const log = createLogger("api.dvw-archive");
 

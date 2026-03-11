@@ -2,13 +2,8 @@
 
 import * as React from "react";
 import { useParams } from "next/navigation";
-import {
-  AudioWaveform,
-  Command,
-  GalleryVerticalEnd,
-} from "lucide-react";
+import { AudioWaveform, Command, GalleryVerticalEnd } from "lucide-react";
 
-import { getVisibleRoutes } from "@/lib/auth/route-access";
 import { NavMain } from "@/components/nav-main";
 import { NavDataPortals } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
@@ -20,6 +15,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { UniverseSwitcher } from "@/components/universe-switcher";
+import { getVisibleRoutes } from "@/lib/auth/route-access";
 
 const ALL_UNIVERSES = [
   {
@@ -115,7 +111,13 @@ export function AppSidebar({
               url: prefixUrl(child.path, universe),
               icon: entry.icon,
             }))
-          : [{ name: entry.label, url: prefixUrl(entry.path, universe), icon: entry.icon }],
+          : [
+              {
+                name: entry.label,
+                url: prefixUrl(entry.path, universe),
+                icon: entry.icon,
+              },
+            ],
       ),
     [portalRoutes, universe],
   );
@@ -123,9 +125,7 @@ export function AppSidebar({
   // UHERO users can switch to any universe; others see only their own
   const universes = React.useMemo(() => {
     if (user.universe.toUpperCase() === "UHERO") return ALL_UNIVERSES;
-    return ALL_UNIVERSES.filter(
-      (u) => u.name === user.universe.toUpperCase(),
-    );
+    return ALL_UNIVERSES.filter((u) => u.name === user.universe.toUpperCase());
   }, [user.universe]);
 
   return (

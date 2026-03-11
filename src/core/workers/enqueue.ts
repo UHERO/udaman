@@ -1,8 +1,8 @@
 import {
   criticalQueue,
   defaultQueue,
-  scraperQueue,
   JobName,
+  scraperQueue,
   type AdminActionJobData,
   type ApiDvwReloadJobData,
   type BatchReloadJobData,
@@ -19,8 +19,7 @@ import {
 } from "./queues";
 
 export function enqueueSeriesReload(data: SeriesReloadJobData) {
-  return defaultQueue.add(JobName.SERIES_RELOAD, 
-    data);
+  return defaultQueue.add(JobName.SERIES_RELOAD, data);
 }
 
 export function enqueueReloadJob(data: ReloadJobData) {

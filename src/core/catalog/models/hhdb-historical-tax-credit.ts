@@ -17,7 +17,10 @@ export class HhdbHistoricalTaxCredit {
 
   constructor(attrs: HhdbHistoricalTaxCreditAttrs) {
     this.id = attrs.id != null ? Number(attrs.id) : null;
-    this.historicalTaxSummaryId = attrs.historical_tax_summary_id != null ? Number(attrs.historical_tax_summary_id) : null;
+    this.historicalTaxSummaryId =
+      attrs.historical_tax_summary_id != null
+        ? Number(attrs.historical_tax_summary_id)
+        : null;
     this.tmk = attrs.tmk ?? null;
     this.period = attrs.period ?? null;
     this.description = attrs.description ?? null;
@@ -36,12 +39,19 @@ export class HhdbHistoricalTaxCredit {
   }
 }
 
-export type HhdbHistoricalTaxCreditJSON = ReturnType<HhdbHistoricalTaxCredit["toJSON"]>;
+export type HhdbHistoricalTaxCreditJSON = ReturnType<
+  HhdbHistoricalTaxCredit["toJSON"]
+>;
 
-export function hhdbHistoricalTaxCreditRowToJSON(attrs: HhdbHistoricalTaxCreditAttrs): HhdbHistoricalTaxCreditJSON {
+export function hhdbHistoricalTaxCreditRowToJSON(
+  attrs: HhdbHistoricalTaxCreditAttrs,
+): HhdbHistoricalTaxCreditJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
-    historicalTaxSummaryId: attrs.historical_tax_summary_id != null ? Number(attrs.historical_tax_summary_id) : null,
+    historicalTaxSummaryId:
+      attrs.historical_tax_summary_id != null
+        ? Number(attrs.historical_tax_summary_id)
+        : null,
     tmk: attrs.tmk ?? null,
     period: attrs.period ?? null,
     description: attrs.description ?? null,

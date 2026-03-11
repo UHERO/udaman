@@ -2,11 +2,15 @@
 
 import { Queue } from "bullmq";
 
+import type {
+  JobState,
+  SerializedJob,
+  SerializedWorkerInfo,
+} from "@/actions/workers";
 import { redisConnection } from "@/core/workers/connection";
 import { enqueueQpubSeed } from "@/core/workers/enqueue";
 import { requirePermission } from "@/lib/auth/permissions";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import type { JobState, SerializedJob, SerializedWorkerInfo } from "@/actions/workers";
 
 const QUEUE_NAME = "scraper";
 const PREFIX = "udaman";
@@ -92,13 +96,7 @@ export async function getQpubScraperStatus(): Promise<QpubScraperStatus> {
   try {
     const [jobs, counts, workers] = await Promise.all([
       queue.getJobs(["active", "completed", "failed"], 0, 49),
-      queue.getJobCounts(
-        "active",
-        "waiting",
-        "delayed",
-        "completed",
-        "failed",
-      ),
+      queue.getJobCounts("active", "waiting", "delayed", "completed", "failed"),
       queue.getWorkers().catch(() => [] as Record<string, string>[]),
     ]);
 
@@ -166,7 +164,8 @@ export async function drainScraperQueue(): Promise<number> {
       "completed",
       "failed",
     );
-    const total = counts.waiting + counts.delayed + counts.completed + counts.failed;
+    const total =
+      counts.waiting + counts.delayed + counts.completed + counts.failed;
 
     // drain() removes all waiting and delayed jobs
     await queue.drain();

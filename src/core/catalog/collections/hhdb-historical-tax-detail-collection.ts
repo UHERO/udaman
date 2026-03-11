@@ -1,5 +1,10 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbHistoricalTaxDetail, type HhdbHistoricalTaxDetailAttrs, hhdbHistoricalTaxDetailRowToJSON } from "../models/hhdb-historical-tax-detail";
+
+import {
+  HhdbHistoricalTaxDetail,
+  hhdbHistoricalTaxDetailRowToJSON,
+  type HhdbHistoricalTaxDetailAttrs,
+} from "../models/hhdb-historical-tax-detail";
 import type { HhdbHistoricalTaxDetailJSON } from "../models/hhdb-historical-tax-detail";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
@@ -10,11 +15,16 @@ export default class HhdbHistoricalTaxDetailCollection {
     return { limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxDetail>> {
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbHistoricalTaxDetail>> {
     const { limit, offset } = this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>("SELECT COUNT(*) as cnt FROM historical_tax_details", []),
+      rawQuery<{ cnt: number }>(
+        "SELECT COUNT(*) as cnt FROM historical_tax_details",
+        [],
+      ),
       rawQuery<HhdbHistoricalTaxDetailAttrs>(
         "SELECT * FROM historical_tax_details ORDER BY id ASC LIMIT ? OFFSET ?",
         [limit, offset],
@@ -27,11 +37,16 @@ export default class HhdbHistoricalTaxDetailCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxDetailJSON>> {
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbHistoricalTaxDetailJSON>> {
     const { limit, offset } = this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>("SELECT COUNT(*) as cnt FROM historical_tax_details", []),
+      rawQuery<{ cnt: number }>(
+        "SELECT COUNT(*) as cnt FROM historical_tax_details",
+        [],
+      ),
       rawQuery<HhdbHistoricalTaxDetailAttrs>(
         "SELECT * FROM historical_tax_details ORDER BY id ASC LIMIT ? OFFSET ?",
         [limit, offset],

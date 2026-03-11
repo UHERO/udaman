@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  wipeDvwUniverse,
-  loadDvwMetadata,
-  insertDvwDataChunk,
-  generateDvwDataToc,
-  dvwUploadConfig,
-  type DvwDimensionMaps,
-} from "@catalog/controllers/dvw-upload";
-import type { DvwDimensionRowParsed } from "@catalog/utils/dvw-xlsx-parser";
-import type { DvwDimensionName } from "@catalog/utils/dvw-xlsx-validator";
-import type { DvwDataRow } from "@catalog/utils/dvw-xlsx-validator";
-
 import { DvwUploadCollection } from "@catalog/collections/universe-upload-collection";
 import {
+  dvwUploadConfig,
+  generateDvwDataToc,
+  insertDvwDataChunk,
+  loadDvwMetadata,
+  wipeDvwUniverse,
+  type DvwDimensionMaps,
+} from "@catalog/controllers/dvw-upload";
+import {
   createSession,
-  getSession,
   deleteSession,
+  getSession,
 } from "@catalog/controllers/upload-session-store";
-import { enqueueApiDvwReload } from "@/core/workers/enqueue";
+import type { DvwDimensionRowParsed } from "@catalog/utils/dvw-xlsx-parser";
+import type {
+  DvwDataRow,
+  DvwDimensionName,
+} from "@catalog/utils/dvw-xlsx-validator";
+
 import { createLogger } from "@/core/observability/logger";
+import { enqueueApiDvwReload } from "@/core/workers/enqueue";
 import { requirePermission } from "@/lib/auth/permissions";
 
 const log = createLogger("api.dvw-stream");
@@ -166,7 +168,10 @@ async function handleFinalize(body: FinalizeBody) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ uploadId: body.uploadId, err: message }, "DVW stream finalize failed");
+    log.error(
+      { uploadId: body.uploadId, err: message },
+      "DVW stream finalize failed",
+    );
     await DvwUploadCollection.updateStatus(body.uploadId, "fail", message);
     deleteSession(body.uploadId);
     return NextResponse.json(

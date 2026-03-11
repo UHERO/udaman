@@ -35,6 +35,9 @@ export class HhdbAssessment {
   totalPropertyAssessedValue: number | null;
   totalPropertyExemption: number | null;
   totalNetTaxableValue: number | null;
+  agriculturalLandValue: number | null;
+  marketLandValue: number | null;
+  marketBuildingValue: number | null;
   totalMarketValue: number | null;
   createdAt: Date | null;
 
@@ -43,17 +46,58 @@ export class HhdbAssessment {
     this.tmk = attrs.tmk ?? null;
     this.taxYear = attrs.tax_year != null ? Number(attrs.tax_year) : null;
     this.propertyClass = attrs.property_class ?? null;
-    this.assessedLandValue = attrs.assessed_land_value != null ? Number(attrs.assessed_land_value) : null;
-    this.assessedBuildingValue = attrs.assessed_building_value != null ? Number(attrs.assessed_building_value) : null;
-    this.dedicatedUseValue = attrs.dedicated_use_value != null ? Number(attrs.dedicated_use_value) : null;
-    this.landExemption = attrs.land_exemption != null ? Number(attrs.land_exemption) : null;
-    this.buildingExemption = attrs.building_exemption != null ? Number(attrs.building_exemption) : null;
-    this.netTaxableLandValue = attrs.net_taxable_land_value != null ? Number(attrs.net_taxable_land_value) : null;
-    this.netTaxableBuildingValue = attrs.net_taxable_building_value != null ? Number(attrs.net_taxable_building_value) : null;
-    this.totalPropertyAssessedValue = attrs.total_property_assessed_value != null ? Number(attrs.total_property_assessed_value) : null;
-    this.totalPropertyExemption = attrs.total_property_exemption != null ? Number(attrs.total_property_exemption) : null;
-    this.totalNetTaxableValue = attrs.total_net_taxable_value != null ? Number(attrs.total_net_taxable_value) : null;
-    this.totalMarketValue = attrs.total_market_value != null ? Number(attrs.total_market_value) : null;
+    this.assessedLandValue =
+      attrs.assessed_land_value != null
+        ? Number(attrs.assessed_land_value)
+        : null;
+    this.assessedBuildingValue =
+      attrs.assessed_building_value != null
+        ? Number(attrs.assessed_building_value)
+        : null;
+    this.dedicatedUseValue =
+      attrs.dedicated_use_value != null
+        ? Number(attrs.dedicated_use_value)
+        : null;
+    this.landExemption =
+      attrs.land_exemption != null ? Number(attrs.land_exemption) : null;
+    this.buildingExemption =
+      attrs.building_exemption != null
+        ? Number(attrs.building_exemption)
+        : null;
+    this.netTaxableLandValue =
+      attrs.net_taxable_land_value != null
+        ? Number(attrs.net_taxable_land_value)
+        : null;
+    this.netTaxableBuildingValue =
+      attrs.net_taxable_building_value != null
+        ? Number(attrs.net_taxable_building_value)
+        : null;
+    this.totalPropertyAssessedValue =
+      attrs.total_property_assessed_value != null
+        ? Number(attrs.total_property_assessed_value)
+        : null;
+    this.totalPropertyExemption =
+      attrs.total_property_exemption != null
+        ? Number(attrs.total_property_exemption)
+        : null;
+    this.totalNetTaxableValue =
+      attrs.total_net_taxable_value != null
+        ? Number(attrs.total_net_taxable_value)
+        : null;
+    this.agriculturalLandValue =
+      attrs.agricultural_land_value != null
+        ? Number(attrs.agricultural_land_value)
+        : null;
+    this.marketLandValue =
+      attrs.market_land_value != null ? Number(attrs.market_land_value) : null;
+    this.marketBuildingValue =
+      attrs.market_building_value != null
+        ? Number(attrs.market_building_value)
+        : null;
+    this.totalMarketValue =
+      attrs.total_market_value != null
+        ? Number(attrs.total_market_value)
+        : null;
     this.createdAt = attrs.created_at ? new Date(attrs.created_at) : null;
   }
 
@@ -73,6 +117,9 @@ export class HhdbAssessment {
       totalPropertyAssessedValue: this.totalPropertyAssessedValue,
       totalPropertyExemption: this.totalPropertyExemption,
       totalNetTaxableValue: this.totalNetTaxableValue,
+      agriculturalLandValue: this.agriculturalLandValue,
+      marketLandValue: this.marketLandValue,
+      marketBuildingValue: this.marketBuildingValue,
       totalMarketValue: this.totalMarketValue,
       createdAt: this.createdAt?.toISOString() ?? null,
     };
@@ -81,23 +128,68 @@ export class HhdbAssessment {
 
 export type HhdbAssessmentJSON = ReturnType<HhdbAssessment["toJSON"]>;
 
-export function hhdbAssessmentRowToJSON(attrs: HhdbAssessmentAttrs): HhdbAssessmentJSON {
+export function hhdbAssessmentRowToJSON(
+  attrs: HhdbAssessmentAttrs,
+): HhdbAssessmentJSON {
   return {
     id: attrs.id ?? 0,
     tmk: attrs.tmk ?? null,
     taxYear: attrs.tax_year != null ? Number(attrs.tax_year) : null,
     propertyClass: attrs.property_class ?? null,
-    assessedLandValue: attrs.assessed_land_value != null ? Number(attrs.assessed_land_value) : null,
-    assessedBuildingValue: attrs.assessed_building_value != null ? Number(attrs.assessed_building_value) : null,
-    dedicatedUseValue: attrs.dedicated_use_value != null ? Number(attrs.dedicated_use_value) : null,
-    landExemption: attrs.land_exemption != null ? Number(attrs.land_exemption) : null,
-    buildingExemption: attrs.building_exemption != null ? Number(attrs.building_exemption) : null,
-    netTaxableLandValue: attrs.net_taxable_land_value != null ? Number(attrs.net_taxable_land_value) : null,
-    netTaxableBuildingValue: attrs.net_taxable_building_value != null ? Number(attrs.net_taxable_building_value) : null,
-    totalPropertyAssessedValue: attrs.total_property_assessed_value != null ? Number(attrs.total_property_assessed_value) : null,
-    totalPropertyExemption: attrs.total_property_exemption != null ? Number(attrs.total_property_exemption) : null,
-    totalNetTaxableValue: attrs.total_net_taxable_value != null ? Number(attrs.total_net_taxable_value) : null,
-    totalMarketValue: attrs.total_market_value != null ? Number(attrs.total_market_value) : null,
-    createdAt: attrs.created_at ? new Date(attrs.created_at).toISOString() : null,
+    assessedLandValue:
+      attrs.assessed_land_value != null
+        ? Number(attrs.assessed_land_value)
+        : null,
+    assessedBuildingValue:
+      attrs.assessed_building_value != null
+        ? Number(attrs.assessed_building_value)
+        : null,
+    dedicatedUseValue:
+      attrs.dedicated_use_value != null
+        ? Number(attrs.dedicated_use_value)
+        : null,
+    landExemption:
+      attrs.land_exemption != null ? Number(attrs.land_exemption) : null,
+    buildingExemption:
+      attrs.building_exemption != null
+        ? Number(attrs.building_exemption)
+        : null,
+    netTaxableLandValue:
+      attrs.net_taxable_land_value != null
+        ? Number(attrs.net_taxable_land_value)
+        : null,
+    netTaxableBuildingValue:
+      attrs.net_taxable_building_value != null
+        ? Number(attrs.net_taxable_building_value)
+        : null,
+    totalPropertyAssessedValue:
+      attrs.total_property_assessed_value != null
+        ? Number(attrs.total_property_assessed_value)
+        : null,
+    totalPropertyExemption:
+      attrs.total_property_exemption != null
+        ? Number(attrs.total_property_exemption)
+        : null,
+    totalNetTaxableValue:
+      attrs.total_net_taxable_value != null
+        ? Number(attrs.total_net_taxable_value)
+        : null,
+    agriculturalLandValue:
+      attrs.agricultural_land_value != null
+        ? Number(attrs.agricultural_land_value)
+        : null,
+    marketLandValue:
+      attrs.market_land_value != null ? Number(attrs.market_land_value) : null,
+    marketBuildingValue:
+      attrs.market_building_value != null
+        ? Number(attrs.market_building_value)
+        : null,
+    totalMarketValue:
+      attrs.total_market_value != null
+        ? Number(attrs.total_market_value)
+        : null,
+    createdAt: attrs.created_at
+      ? new Date(attrs.created_at).toISOString()
+      : null,
   };
 }

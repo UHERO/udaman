@@ -18,16 +18,18 @@ import { createLogger } from "@/core/observability/logger";
 
 const log = createLogger("catalog.investigations");
 
-export async function getLoadErrors(universe: Universe): Promise<
-  Array<{ lastError: string; seriesId: number; count: number }>
-> {
+export async function getLoadErrors(
+  universe: Universe,
+): Promise<Array<{ lastError: string; seriesId: number; count: number }>> {
   log.info({ universe }, "fetching load error summary");
   const errors = await LoaderCollection.getLoadErrorSummary(universe);
   log.info({ count: errors.length }, "load error summary fetched");
   return errors;
 }
 
-export async function getReloadJobs(universe: Universe): Promise<EnrichedReloadJob[]> {
+export async function getReloadJobs(
+  universe: Universe,
+): Promise<EnrichedReloadJob[]> {
   log.info({ universe }, "fetching recent reload jobs");
   const jobs = await ReloadJobCollection.listRecent(universe);
   log.info({ count: jobs.length }, "reload jobs fetched");

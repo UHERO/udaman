@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import type { PropertyCountRow } from "@catalog/collections/hhdb-dashboard-collection";
 import { Loader2 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+
+import { getHhdbPropertyCount } from "@/actions/hhdb";
 import {
   Card,
   CardContent,
@@ -16,8 +19,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { getHhdbPropertyCount } from "@/actions/hhdb";
-import type { PropertyCountRow } from "@catalog/collections/hhdb-dashboard-collection";
 
 const config: ChartConfig = {
   count: { label: "Properties", color: "#2563eb" },

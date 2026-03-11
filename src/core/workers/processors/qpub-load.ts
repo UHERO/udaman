@@ -57,7 +57,10 @@ type Row = Record<string, unknown>;
 
 // ─── Section loaders ─────────────────────────────────────────────
 
-async function loadProperties(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadProperties(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   const parcel = data.parcel_information as Row | undefined;
   if (!parcel) return;
 
@@ -172,7 +175,10 @@ async function loadOwners(tmk: string, data: ParsedProperty): Promise<void> {
   }
 }
 
-async function loadAssessments(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadAssessments(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   const assessInfo = data.assessment_information as Row | undefined;
   if (!assessInfo) return;
 
@@ -231,7 +237,10 @@ async function loadAssessments(tmk: string, data: ParsedProperty): Promise<void>
   }
 }
 
-async function loadLandClassifications(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadLandClassifications(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   const landInfo = data.land_information as Row | undefined;
   if (!landInfo?.land_classifications) return;
 
@@ -258,7 +267,10 @@ async function loadLandClassifications(tmk: string, data: ParsedProperty): Promi
   }
 }
 
-async function loadResidentialImprovements(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadResidentialImprovements(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   // Check both section names (Honolulu/Hawaii vs Maui/Kauai)
   const improvInfo =
     (data.residential_improvement_information as Row | undefined) ??
@@ -343,7 +355,10 @@ async function loadSales(tmk: string, data: ParsedProperty): Promise<void> {
   }
 }
 
-async function loadHistoricalTax(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadHistoricalTax(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   const taxInfo = data.historical_tax_information as Row | undefined;
   if (!taxInfo?.tax_summary) return;
 
@@ -458,13 +473,7 @@ async function loadHistoricalTax(tmk: string, data: ParsedProperty): Promise<voi
         `INSERT INTO historical_tax_credits (historical_tax_summary_id, tmk,
            period, description, amount)
          VALUES (?, ?, ?, ?, ?)`,
-        [
-          summaryId,
-          tmk,
-          str(c.period),
-          str(c.description),
-          dec(c.amount),
-        ],
+        [summaryId, tmk, str(c.period), str(c.description), dec(c.amount)],
       );
     }
   }
@@ -502,7 +511,10 @@ async function loadPermits(tmk: string, data: ParsedProperty): Promise<void> {
   }
 }
 
-async function loadCurrentTaxBills(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadCurrentTaxBills(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   const taxBillInfo = data.current_tax_bill_information as Row | undefined;
   if (!taxBillInfo) return;
 
@@ -548,11 +560,16 @@ function unitParcelToTmk(parentTmk: string, unitParcel: string): string {
   return parts.join("-");
 }
 
-async function loadCondoProject(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadCondoProject(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   if (data.status !== "condo_project") return;
 
   const parcel = data.parcel_information as Row | undefined;
-  const unitInfo = data.condominium_apartment_unit_information as Row | undefined;
+  const unitInfo = data.condominium_apartment_unit_information as
+    | Row
+    | undefined;
   const units = (unitInfo?.table_data ?? []) as Row[];
 
   // Upsert condominium_projects — only set fields from QPub, don't overwrite DCCA fields
@@ -697,13 +714,17 @@ const GENERIC_SECTION_MAP: Record<string, string> = {
   dedication_information: "dedications",
 };
 
-async function loadGenericSections(tmk: string, data: ParsedProperty): Promise<void> {
+async function loadGenericSections(
+  tmk: string,
+  data: ParsedProperty,
+): Promise<void> {
   for (const [sectionName, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
     const sectionData = data[sectionName] as Row | undefined;
     if (!sectionData) continue;
 
     // Try table_data (multi-row) or treat the section itself as a single row
-    const rows = (sectionData.table_data as Row[] | undefined) ??
+    const rows =
+      (sectionData.table_data as Row[] | undefined) ??
       (Array.isArray(sectionData) ? sectionData : [sectionData]);
 
     try {

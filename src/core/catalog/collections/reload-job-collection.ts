@@ -39,7 +39,10 @@ interface JobSeriesRow {
 
 class ReloadJobCollection {
   /** Fetch recent reload jobs with user and series info */
-  static async listRecent(universe: Universe, limit = 50): Promise<EnrichedReloadJob[]> {
+  static async listRecent(
+    universe: Universe,
+    limit = 50,
+  ): Promise<EnrichedReloadJob[]> {
     const rows = await mysql<ReloadJobRow>`
       SELECT DISTINCT
         rj.id, rj.user_id, rj.status, rj.created_at, rj.finished_at,

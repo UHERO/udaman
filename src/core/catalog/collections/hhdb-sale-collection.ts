@@ -1,5 +1,11 @@
+import { toSnakeCase } from "@/lib/mysql/helpers";
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbSale, type HhdbSaleAttrs, hhdbSaleRowToJSON } from "../models/hhdb-sale";
+
+import {
+  HhdbSale,
+  hhdbSaleRowToJSON,
+  type HhdbSaleAttrs,
+} from "../models/hhdb-sale";
 import type { HhdbSaleJSON } from "../models/hhdb-sale";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
@@ -19,7 +25,8 @@ const SORTABLE = [
 
 export default class HhdbSaleCollection {
   private static _buildQuery(params: HhdbListParams) {
-    const { page, limit, search, sort = "id", order = "asc" } = params;
+    const { page, limit, search, sort: rawSort = "id", order = "asc" } = params;
+    const sort = toSnakeCase(rawSort);
     const offset = (page - 1) * limit;
     const sortCol = SORTABLE.includes(sort) ? sort : "id";
     const sortDir = order === "desc" ? "DESC" : "ASC";
@@ -37,10 +44,14 @@ export default class HhdbSaleCollection {
   }
 
   static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbSale>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM sales ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM sales ${where}`,
+        qp,
+      ),
       rawQuery<HhdbSaleAttrs>(
         `SELECT * FROM sales ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],
@@ -53,11 +64,17 @@ export default class HhdbSaleCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbSaleJSON>> {
-    const { where, qp, sortCol, sortDir, limit, offset } = this._buildQuery(params);
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbSaleJSON>> {
+    const { where, qp, sortCol, sortDir, limit, offset } =
+      this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>(`SELECT COUNT(*) as cnt FROM sales ${where}`, qp),
+      rawQuery<{ cnt: number }>(
+        `SELECT COUNT(*) as cnt FROM sales ${where}`,
+        qp,
+      ),
       rawQuery<HhdbSaleAttrs>(
         `SELECT * FROM sales ${where} ORDER BY ${sortCol} ${sortDir} LIMIT ? OFFSET ?`,
         [...qp, limit, offset],

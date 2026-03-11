@@ -1,7 +1,8 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import type { HhdbPropertyJSON } from "@catalog/models/hhdb-property";
+import type { ColumnDef } from "@tanstack/react-table";
+
 import { HhdbDataTable } from "../hhdb-data-table";
 
 const columns: ColumnDef<HhdbPropertyJSON, unknown>[] = [
@@ -21,12 +22,68 @@ const columns: ColumnDef<HhdbPropertyJSON, unknown>[] = [
       return v != null ? v.toLocaleString() : "";
     },
   },
-  { accessorKey: "neighborhoodCode", header: "Neighborhood", enableSorting: true },
+  {
+    accessorKey: "neighborhoodCode",
+    header: "Neighborhood",
+    enableSorting: true,
+  },
   { accessorKey: "livingUnits", header: "Units", enableSorting: true },
   { accessorKey: "parcelNumber", header: "Parcel #", enableSorting: true },
+  {
+    accessorKey: "addressOther",
+    header: "Address Other",
+    enableSorting: false,
+  },
+  {
+    accessorKey: "landAreaAcres",
+    header: "Land (acres)",
+    enableSorting: true,
+    cell: ({ getValue }) => {
+      const v = getValue() as number | null;
+      return v != null ? v.toLocaleString() : "";
+    },
+  },
+  {
+    accessorKey: "legalInformation",
+    header: "Legal Info",
+    enableSorting: false,
+  },
+  { accessorKey: "parcelNote", header: "Parcel Note", enableSorting: false },
+  { accessorKey: "damage", header: "Damage", enableSorting: true },
+  { accessorKey: "reentryZone", header: "Reentry Zone", enableSorting: true },
+  { accessorKey: "zoneColor", header: "Zone Color", enableSorting: true },
+  {
+    accessorKey: "nonTaxableStatus",
+    header: "Non-Taxable Status",
+    enableSorting: true,
+  },
+  { accessorKey: "latitude", header: "Latitude", enableSorting: true },
+  { accessorKey: "longitude", header: "Longitude", enableSorting: true },
+  { accessorKey: "mapUrl", header: "Map URL", enableSorting: false },
+  { accessorKey: "sketchUrl", header: "Sketch URL", enableSorting: false },
+  { accessorKey: "createdAt", header: "Created", enableSorting: false },
+  { accessorKey: "updatedAt", header: "Updated", enableSorting: false },
 ];
 
-const DEFAULT_HIDDEN = ["neighborhoodCode", "livingUnits", "parcelNumber"];
+const DEFAULT_HIDDEN = [
+  "neighborhoodCode",
+  "livingUnits",
+  "parcelNumber",
+  "addressOther",
+  "landAreaAcres",
+  "legalInformation",
+  "parcelNote",
+  "damage",
+  "reentryZone",
+  "zoneColor",
+  "nonTaxableStatus",
+  "latitude",
+  "longitude",
+  "mapUrl",
+  "sketchUrl",
+  "createdAt",
+  "updatedAt",
+];
 
 interface PropertiesTableProps {
   data: HhdbPropertyJSON[];

@@ -2,7 +2,11 @@ import { CatalogLayout } from "@/components/catalog/catalog-layout";
 import { CatalogTabs } from "@/components/catalog/catalog-tabs";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 
-export default async function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { role, universe } = await getCurrentUserContext();
 
   return (

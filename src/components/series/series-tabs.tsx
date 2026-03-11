@@ -18,8 +18,8 @@ import type { LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { getVisibleChildren } from "@/lib/auth/route-access";
+import { cn } from "@/lib/utils";
 
 const WIDTH_STORAGE_KEY = "udaman-full-width";
 
@@ -57,7 +57,11 @@ interface SeriesTabsProps {
   };
 }
 
-export function SeriesTabs({ role, universe: userUniverse, badgeCounts }: SeriesTabsProps) {
+export function SeriesTabs({
+  role,
+  universe: userUniverse,
+  badgeCounts,
+}: SeriesTabsProps) {
   const { universe } = useParams();
   const pathname = usePathname();
   const base = `/udaman/${universe}/series`;

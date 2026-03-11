@@ -5,8 +5,6 @@ import type { Universe } from "@catalog/types/shared";
 import { isValidUniverse } from "@catalog/utils/validators";
 import { mysql } from "@database/mysql";
 
-import { logPageView } from "@/core/observability/app-events";
-
 import { AppSidebar } from "@/components/app-sidebar";
 import { NavBreadcrumb } from "@/components/nav-breadcrumb";
 import { NavSearchInput } from "@/components/nav-search";
@@ -16,6 +14,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { logPageView } from "@/core/observability/app-events";
 import { requireAuth } from "@/lib/auth/dal";
 
 export default async function UniverseLayout({

@@ -1,53 +1,67 @@
 "use server";
 
-import { requirePermission } from "@/lib/auth/permissions";
-import type { HhdbListParams } from "@catalog/types/hhdb";
-import type { FactorResult } from "@catalog/types/hhdb";
+import {
+  getAccessoryStructuresJSON as getAccessoryStructuresCtrl,
+  getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
+  getAppealsJSON as getAppealsCtrl,
+  getAssessmentsJSON as getAssessmentsCtrl,
+  getCommercialDetailsJSON as getCommercialDetailsCtrl,
+  getCondoAreaByYearBuilt as getCondoAreaCtrl,
+  getCondoProjectsJSON as getCondoProjectsCtrl,
+  getCondoUnitsJSON as getCondoUnitsCtrl,
+  getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
+  getDedicationsJSON as getDedicationsCtrl,
+  getDistribution as getDistributionCtrl,
+  getHistoricalTaxCreditsJSON as getHistoricalTaxCreditsCtrl,
+  getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
+  getHistoricalTaxPaymentsJSON as getHistoricalTaxPaymentsCtrl,
+  getHistoricalTaxSummaryJSON as getHistoricalTaxSummaryCtrl,
+  getImprovementsJSON as getImprovementsCtrl,
+  getLandClassificationsJSON as getLandClassificationsCtrl,
+  getMedianAssessedByClass as getMedianAssessedCtrl,
+  getMedianSalePriceByIsland as getMedianSalePriceCtrl,
+  getOwnersJSON as getOwnersCtrl,
+  getParcelsJSON as getParcelsCtrl,
+  getPermitActivityByYear as getPermitActivityCtrl,
+  getPermitsJSON as getPermitsCtrl,
+  getPropertiesJSON as getPropertiesCtrl,
+  getPropertyCountByClass as getPropertyCountCtrl,
+  getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
+  getSalesJSON as getSalesCtrl,
+  getSummaries as getSummariesCtrl,
+  getTotalAssessedByIsland as getTotalAssessedCtrl,
+  getYardImprovementsJSON as getYardImprovementsCtrl,
+} from "@catalog/controllers/hhdb";
+import type {
+  HhdbListParams,
+  SummaryResult,
+  SummaryViewType,
+} from "@catalog/types/hhdb";
 
-const FACTOR_CACHE_TTL_MS =  48 * 60 * 60  * 1000; // 2 days
-const factorCache = new Map<string, { data: FactorResult; expiresAt: number }>();
+import { requirePermission } from "@/lib/auth/permissions";
+
+const SUMMARY_CACHE_TTL_MS = 48 * 60 * 60 * 1000; // 2 days
+const summaryCache = new Map<
+  string,
+  { data: SummaryResult; expiresAt: number }
+>();
 
 const DASHBOARD_CACHE_TTL_MS = 48 * 60 * 60 * 1000; //  2 days
 const dashboardCache = new Map<string, { data: unknown; expiresAt: number }>();
 
-async function cachedDashboard<T>(key: string, fn: () => Promise<T>): Promise<T> {
+async function cachedDashboard<T>(
+  key: string,
+  fn: () => Promise<T>,
+): Promise<T> {
   const cached = dashboardCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.data as T;
   const data = await fn();
-  dashboardCache.set(key, { data, expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS });
+  dashboardCache.set(key, {
+    data,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  });
   return data;
 }
-import {
-  getPropertiesJSON as getPropertiesCtrl,
-  getAssessmentsJSON as getAssessmentsCtrl,
-  getSalesJSON as getSalesCtrl,
-  getImprovementsJSON as getImprovementsCtrl,
-  getPermitsJSON as getPermitsCtrl,
-  getCondoProjectsJSON as getCondoProjectsCtrl,
-  getCondoUnitsJSON as getCondoUnitsCtrl,
-  getMedianAssessedByClass as getMedianAssessedCtrl,
-  getMedianSalePriceByIsland as getMedianSalePriceCtrl,
-  getPropertyCountByClass as getPropertyCountCtrl,
-  getTotalAssessedByIsland as getTotalAssessedCtrl,
-  getPermitActivityByYear as getPermitActivityCtrl,
-  getCondoAreaByYearBuilt as getCondoAreaCtrl,
-  getFactors as getFactorsCtrl,
-  getParcelsJSON as getParcelsCtrl,
-  getOwnersJSON as getOwnersCtrl,
-  getAppealsJSON as getAppealsCtrl,
-  getDedicationsJSON as getDedicationsCtrl,
-  getLandClassificationsJSON as getLandClassificationsCtrl,
-  getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
-  getHistoricalTaxSummaryJSON as getHistoricalTaxSummaryCtrl,
-  getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
-  getHistoricalTaxPaymentsJSON as getHistoricalTaxPaymentsCtrl,
-  getHistoricalTaxCreditsJSON as getHistoricalTaxCreditsCtrl,
-  getAgriculturalAssessmentsJSON as getAgriculturalAssessmentsCtrl,
-  getCommercialDetailsJSON as getCommercialDetailsCtrl,
-  getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
-  getAccessoryStructuresJSON as getAccessoryStructuresCtrl,
-  getYardImprovementsJSON as getYardImprovementsCtrl,
-} from "@catalog/controllers/hhdb";
 
 export async function getHhdbProperties(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
@@ -70,6 +84,16 @@ export async function getHhdbImprovements(
 ) {
   await requirePermission("hhdb", "read");
   return getImprovementsCtrl(params, type);
+}
+
+export async function getHhdbResidentialImprovements(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getImprovementsCtrl(params, "residential");
+}
+
+export async function getHhdbCommercialImprovements(params: HhdbListParams) {
+  await requirePermission("hhdb", "read");
+  return getImprovementsCtrl(params, "commercial");
 }
 
 export async function getHhdbPermits(params: HhdbListParams) {
@@ -192,14 +216,37 @@ export async function getHhdbYardImprovements(params: HhdbListParams) {
   return getYardImprovementsCtrl(params);
 }
 
-export async function getHhdbFactors(table: string, column: string) {
+export async function getHhdbSummaries(
+  table: string,
+  column: string,
+  viewType: SummaryViewType,
+  sortBy?: string,
+) {
   await requirePermission("hhdb", "read");
-  const key = `${table}:${column}`;
-  const cached = factorCache.get(key);
+  const key = `${table}:${column}:${viewType}:${sortBy ?? "total"}`;
+  const cached = summaryCache.get(key);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.data;
   }
-  const result = await getFactorsCtrl(table, column);
-  factorCache.set(key, { data: result, expiresAt: Date.now() + FACTOR_CACHE_TTL_MS });
+  const result = await getSummariesCtrl(table, column, viewType, sortBy);
+  summaryCache.set(key, {
+    data: result,
+    expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS,
+  });
+  return result;
+}
+
+export async function getHhdbDistribution(table: string, column: string) {
+  await requirePermission("hhdb", "read");
+  const key = `dist:${table}:${column}`;
+  const cached = summaryCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
+  const result = await getDistributionCtrl(table, column);
+  summaryCache.set(key, {
+    data: result,
+    expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS,
+  });
   return result;
 }

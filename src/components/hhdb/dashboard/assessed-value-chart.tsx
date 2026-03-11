@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import type { MedianAssessedRow } from "@catalog/collections/hhdb-dashboard-collection";
 import { Loader2 } from "lucide-react";
+import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis } from "recharts";
+
+import { getHhdbMedianAssessed } from "@/actions/hhdb";
 import {
   Card,
   CardContent,
@@ -16,8 +19,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { getHhdbMedianAssessed } from "@/actions/hhdb";
-import type { MedianAssessedRow } from "@catalog/collections/hhdb-dashboard-collection";
 
 const COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c"];
 
@@ -37,7 +38,9 @@ export function AssessedValueChart() {
       <Card>
         <CardHeader>
           <CardTitle>Avg Assessed Value by Class</CardTitle>
-          <CardDescription>Average assessed value by property class over time</CardDescription>
+          <CardDescription>
+            Average assessed value by property class over time
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex h-[300px] items-center justify-center">
           <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
@@ -46,7 +49,10 @@ export function AssessedValueChart() {
     );
   }
 
-  const rawClasses = [...new Set(data.map((d) => d.property_class))].slice(0, 5);
+  const rawClasses = [...new Set(data.map((d) => d.property_class))].slice(
+    0,
+    5,
+  );
   const keyMap = new Map(rawClasses.map((c) => [c, sanitizeKey(c)]));
 
   const byYear = new Map<number, Record<string, unknown>>();
@@ -70,7 +76,9 @@ export function AssessedValueChart() {
     <Card>
       <CardHeader>
         <CardTitle>Avg Assessed Value by Class</CardTitle>
-        <CardDescription>Average assessed value by property class over time</CardDescription>
+        <CardDescription>
+          Average assessed value by property class over time
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={config} className="h-[300px] w-full">

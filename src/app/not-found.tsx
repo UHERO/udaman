@@ -126,12 +126,9 @@ export default function NotFound() {
         >
           {/* Actions */}
           <div className="flex justify-center gap-4">
-            <Link
-              href="/udaman/uhero/series"
-              className="bg-[#1a1a1a] text-white hover:bg-[#404040]"
-            >
-              Return Home
-            </Link>
+            <Button asChild>
+              <Link href="/udaman/uhero/series">Return Home</Link>
+            </Button>
             <Button
               onClick={() => window.history.back()}
               variant="outline"

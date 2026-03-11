@@ -1,32 +1,37 @@
 import "server-only";
 
 import { createLogger } from "@/core/observability/logger";
-import type { HhdbListParams } from "../types/hhdb";
-import HhdbPropertyCollection from "../collections/hhdb-property-collection";
-import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
-import HhdbSaleCollection from "../collections/hhdb-sale-collection";
-import HhdbImprovementCollection from "../collections/hhdb-improvement-collection";
-import HhdbPermitCollection from "../collections/hhdb-permit-collection";
-import HhdbCondoCollection from "../collections/hhdb-condo-collection";
-import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
-import HhdbFactorCollection from "../collections/hhdb-factor-collection";
-import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
-import HhdbOwnerCollection from "../collections/hhdb-owner-collection";
+
+import HhdbAccessoryStructureCollection from "../collections/hhdb-accessory-structure-collection";
+import HhdbAgriculturalAssessmentCollection from "../collections/hhdb-agricultural-assessment-collection";
 import HhdbAppealCollection from "../collections/hhdb-appeal-collection";
-import HhdbDedicationCollection from "../collections/hhdb-dedication-collection";
-import HhdbLandClassificationCollection from "../collections/hhdb-land-classification-collection";
+import HhdbAssessmentCollection from "../collections/hhdb-assessment-collection";
+import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detail-collection";
+import HhdbCondoCollection from "../collections/hhdb-condo-collection";
 import HhdbCurrentTaxBillCollection from "../collections/hhdb-current-tax-bill-collection";
-import HhdbHistoricalTaxSummaryCollection from "../collections/hhdb-historical-tax-summary-collection";
+import HhdbDashboardCollection from "../collections/hhdb-dashboard-collection";
+import HhdbDedicationCollection from "../collections/hhdb-dedication-collection";
+import HhdbHistoricalTaxCreditCollection from "../collections/hhdb-historical-tax-credit-collection";
 import HhdbHistoricalTaxDetailCollection from "../collections/hhdb-historical-tax-detail-collection";
 import HhdbHistoricalTaxPaymentCollection from "../collections/hhdb-historical-tax-payment-collection";
-import HhdbHistoricalTaxCreditCollection from "../collections/hhdb-historical-tax-credit-collection";
-import HhdbAgriculturalAssessmentCollection from "../collections/hhdb-agricultural-assessment-collection";
-import HhdbCommercialDetailCollection from "../collections/hhdb-commercial-detail-collection";
+import HhdbHistoricalTaxSummaryCollection from "../collections/hhdb-historical-tax-summary-collection";
+import HhdbImprovementCollection from "../collections/hhdb-improvement-collection";
+import HhdbLandClassificationCollection from "../collections/hhdb-land-classification-collection";
+import HhdbOwnerCollection from "../collections/hhdb-owner-collection";
+import HhdbParcelCollection from "../collections/hhdb-parcel-collection";
+import HhdbPermitCollection from "../collections/hhdb-permit-collection";
+import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
-import HhdbAccessoryStructureCollection from "../collections/hhdb-accessory-structure-collection";
+import HhdbSaleCollection from "../collections/hhdb-sale-collection";
+import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
 import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-collection";
+import type { HhdbListParams, SummaryViewType } from "../types/hhdb";
 
 const log = createLogger("hhdb");
+
+export async function getTableCount(table: string): Promise<number> {
+  return HhdbSummaryCollection.getTableCount(table);
+}
 
 // --- Model instance variants (for business logic) ---
 
@@ -390,9 +395,26 @@ export async function getCondoAreaByYearBuilt() {
   return data;
 }
 
-export async function getFactors(table: string, column: string) {
-  log.info({ table, column }, "fetching hhdb factors");
-  const result = await HhdbFactorCollection.getFactors(table, column);
-  log.info({ table, column, type: result.type }, "hhdb factors fetched");
+export async function getSummaries(
+  table: string,
+  column: string,
+  viewType: SummaryViewType,
+  sortBy?: string,
+) {
+  log.info({ table, column, viewType, sortBy }, "fetching hhdb summaries");
+  const result = await HhdbSummaryCollection.getSummaries(
+    table,
+    column,
+    viewType,
+    sortBy,
+  );
+  log.info({ table, column, type: result.type }, "hhdb summaries fetched");
+  return result;
+}
+
+export async function getDistribution(table: string, column: string) {
+  log.info({ table, column }, "fetching hhdb distribution");
+  const result = await HhdbSummaryCollection.getDistribution(table, column);
+  log.info({ table, column }, "hhdb distribution fetched");
   return result;
 }

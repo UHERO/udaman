@@ -46,21 +46,54 @@ export class HhdbHistoricalTaxSummary {
     this.tmk = attrs.tmk ?? null;
     this.year = attrs.year != null ? Number(attrs.year) : null;
     this.tax = attrs.tax != null ? Number(attrs.tax) : null;
-    this.paymentsAndCredits = attrs.payments_and_credits != null ? Number(attrs.payments_and_credits) : null;
+    this.paymentsAndCredits =
+      attrs.payments_and_credits != null
+        ? Number(attrs.payments_and_credits)
+        : null;
     this.penalty = attrs.penalty != null ? Number(attrs.penalty) : null;
     this.interest = attrs.interest != null ? Number(attrs.interest) : null;
     this.other = attrs.other != null ? Number(attrs.other) : null;
     this.amountDue = attrs.amount_due != null ? Number(attrs.amount_due) : null;
-    this.taxDetailsTotalTax = attrs.tax_details_total_tax != null ? Number(attrs.tax_details_total_tax) : null;
-    this.taxDetailsTotalPaymentsCredits = attrs.tax_details_total_payments_credits != null ? Number(attrs.tax_details_total_payments_credits) : null;
-    this.taxDetailsTotalPenalty = attrs.tax_details_total_penalty != null ? Number(attrs.tax_details_total_penalty) : null;
-    this.taxDetailsTotalInterest = attrs.tax_details_total_interest != null ? Number(attrs.tax_details_total_interest) : null;
-    this.taxDetailsTotalOther = attrs.tax_details_total_other != null ? Number(attrs.tax_details_total_other) : null;
-    this.taxPaymentsTotalTax = attrs.tax_payments_total_tax != null ? Number(attrs.tax_payments_total_tax) : null;
-    this.taxPaymentsTotalPenalty = attrs.tax_payments_total_penalty != null ? Number(attrs.tax_payments_total_penalty) : null;
-    this.taxPaymentsTotalInterest = attrs.tax_payments_total_interest != null ? Number(attrs.tax_payments_total_interest) : null;
-    this.taxPaymentsTotalOther = attrs.tax_payments_total_other != null ? Number(attrs.tax_payments_total_other) : null;
-    this.taxCreditsTotalAmount = attrs.tax_credits_total_amount != null ? Number(attrs.tax_credits_total_amount) : null;
+    this.taxDetailsTotalTax =
+      attrs.tax_details_total_tax != null
+        ? Number(attrs.tax_details_total_tax)
+        : null;
+    this.taxDetailsTotalPaymentsCredits =
+      attrs.tax_details_total_payments_credits != null
+        ? Number(attrs.tax_details_total_payments_credits)
+        : null;
+    this.taxDetailsTotalPenalty =
+      attrs.tax_details_total_penalty != null
+        ? Number(attrs.tax_details_total_penalty)
+        : null;
+    this.taxDetailsTotalInterest =
+      attrs.tax_details_total_interest != null
+        ? Number(attrs.tax_details_total_interest)
+        : null;
+    this.taxDetailsTotalOther =
+      attrs.tax_details_total_other != null
+        ? Number(attrs.tax_details_total_other)
+        : null;
+    this.taxPaymentsTotalTax =
+      attrs.tax_payments_total_tax != null
+        ? Number(attrs.tax_payments_total_tax)
+        : null;
+    this.taxPaymentsTotalPenalty =
+      attrs.tax_payments_total_penalty != null
+        ? Number(attrs.tax_payments_total_penalty)
+        : null;
+    this.taxPaymentsTotalInterest =
+      attrs.tax_payments_total_interest != null
+        ? Number(attrs.tax_payments_total_interest)
+        : null;
+    this.taxPaymentsTotalOther =
+      attrs.tax_payments_total_other != null
+        ? Number(attrs.tax_payments_total_other)
+        : null;
+    this.taxCreditsTotalAmount =
+      attrs.tax_credits_total_amount != null
+        ? Number(attrs.tax_credits_total_amount)
+        : null;
   }
 
   toJSON() {
@@ -88,28 +121,65 @@ export class HhdbHistoricalTaxSummary {
   }
 }
 
-export type HhdbHistoricalTaxSummaryJSON = ReturnType<HhdbHistoricalTaxSummary["toJSON"]>;
+export type HhdbHistoricalTaxSummaryJSON = ReturnType<
+  HhdbHistoricalTaxSummary["toJSON"]
+>;
 
-export function hhdbHistoricalTaxSummaryRowToJSON(attrs: HhdbHistoricalTaxSummaryAttrs): HhdbHistoricalTaxSummaryJSON {
+export function hhdbHistoricalTaxSummaryRowToJSON(
+  attrs: HhdbHistoricalTaxSummaryAttrs,
+): HhdbHistoricalTaxSummaryJSON {
   return {
     id: attrs.id != null ? Number(attrs.id) : null,
     tmk: attrs.tmk ?? null,
     year: attrs.year != null ? Number(attrs.year) : null,
     tax: attrs.tax != null ? Number(attrs.tax) : null,
-    paymentsAndCredits: attrs.payments_and_credits != null ? Number(attrs.payments_and_credits) : null,
+    paymentsAndCredits:
+      attrs.payments_and_credits != null
+        ? Number(attrs.payments_and_credits)
+        : null,
     penalty: attrs.penalty != null ? Number(attrs.penalty) : null,
     interest: attrs.interest != null ? Number(attrs.interest) : null,
     other: attrs.other != null ? Number(attrs.other) : null,
     amountDue: attrs.amount_due != null ? Number(attrs.amount_due) : null,
-    taxDetailsTotalTax: attrs.tax_details_total_tax != null ? Number(attrs.tax_details_total_tax) : null,
-    taxDetailsTotalPaymentsCredits: attrs.tax_details_total_payments_credits != null ? Number(attrs.tax_details_total_payments_credits) : null,
-    taxDetailsTotalPenalty: attrs.tax_details_total_penalty != null ? Number(attrs.tax_details_total_penalty) : null,
-    taxDetailsTotalInterest: attrs.tax_details_total_interest != null ? Number(attrs.tax_details_total_interest) : null,
-    taxDetailsTotalOther: attrs.tax_details_total_other != null ? Number(attrs.tax_details_total_other) : null,
-    taxPaymentsTotalTax: attrs.tax_payments_total_tax != null ? Number(attrs.tax_payments_total_tax) : null,
-    taxPaymentsTotalPenalty: attrs.tax_payments_total_penalty != null ? Number(attrs.tax_payments_total_penalty) : null,
-    taxPaymentsTotalInterest: attrs.tax_payments_total_interest != null ? Number(attrs.tax_payments_total_interest) : null,
-    taxPaymentsTotalOther: attrs.tax_payments_total_other != null ? Number(attrs.tax_payments_total_other) : null,
-    taxCreditsTotalAmount: attrs.tax_credits_total_amount != null ? Number(attrs.tax_credits_total_amount) : null,
+    taxDetailsTotalTax:
+      attrs.tax_details_total_tax != null
+        ? Number(attrs.tax_details_total_tax)
+        : null,
+    taxDetailsTotalPaymentsCredits:
+      attrs.tax_details_total_payments_credits != null
+        ? Number(attrs.tax_details_total_payments_credits)
+        : null,
+    taxDetailsTotalPenalty:
+      attrs.tax_details_total_penalty != null
+        ? Number(attrs.tax_details_total_penalty)
+        : null,
+    taxDetailsTotalInterest:
+      attrs.tax_details_total_interest != null
+        ? Number(attrs.tax_details_total_interest)
+        : null,
+    taxDetailsTotalOther:
+      attrs.tax_details_total_other != null
+        ? Number(attrs.tax_details_total_other)
+        : null,
+    taxPaymentsTotalTax:
+      attrs.tax_payments_total_tax != null
+        ? Number(attrs.tax_payments_total_tax)
+        : null,
+    taxPaymentsTotalPenalty:
+      attrs.tax_payments_total_penalty != null
+        ? Number(attrs.tax_payments_total_penalty)
+        : null,
+    taxPaymentsTotalInterest:
+      attrs.tax_payments_total_interest != null
+        ? Number(attrs.tax_payments_total_interest)
+        : null,
+    taxPaymentsTotalOther:
+      attrs.tax_payments_total_other != null
+        ? Number(attrs.tax_payments_total_other)
+        : null,
+    taxCreditsTotalAmount:
+      attrs.tax_credits_total_amount != null
+        ? Number(attrs.tax_credits_total_amount)
+        : null,
   };
 }

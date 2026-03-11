@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  wipeDbedtUniverse,
-  loadDbedtMetadata,
-  loadDbedtData,
-} from "@catalog/controllers/dbedt-upload";
-import { dbedtUploadConfig } from "@catalog/controllers/dbedt-upload";
-import type { DbedtDataRow, DbedtMetaRow } from "@catalog/utils/dbedt-xlsx-parser";
-
 import DataPointCollection from "@catalog/collections/data-point-collection";
 import ReloadJobCollection from "@catalog/collections/reload-job-collection";
 import { DbedtUploadCollection } from "@catalog/collections/universe-upload-collection";
 import {
+  dbedtUploadConfig,
+  loadDbedtData,
+  loadDbedtMetadata,
+  wipeDbedtUniverse,
+} from "@catalog/controllers/dbedt-upload";
+import {
   createSession,
-  getSession,
   deleteSession,
+  getSession,
 } from "@catalog/controllers/upload-session-store";
+import type {
+  DbedtDataRow,
+  DbedtMetaRow,
+} from "@catalog/utils/dbedt-xlsx-parser";
+
 import { createLogger } from "@/core/observability/logger";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -175,7 +178,10 @@ async function handleFinalize(body: FinalizeBody) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    log.error({ uploadId: body.uploadId, err: message }, "DBEDT stream finalize failed");
+    log.error(
+      { uploadId: body.uploadId, err: message },
+      "DBEDT stream finalize failed",
+    );
     await DbedtUploadCollection.updateStatus(body.uploadId, "fail", message);
     deleteSession(body.uploadId);
     return NextResponse.json(

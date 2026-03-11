@@ -101,9 +101,7 @@ export function LoginForm({
           variant="outline"
           className="w-full"
           disabled={isPending}
-          onClick={() =>
-            signIn("google", { callbackUrl: "/udaman" })
-          }
+          onClick={() => signIn("google", { callbackUrl: "/udaman" })}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path

@@ -1,7 +1,8 @@
 "use client";
 
-import { Settings2 } from "lucide-react";
 import type { Table } from "@tanstack/react-table";
+import { Settings2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

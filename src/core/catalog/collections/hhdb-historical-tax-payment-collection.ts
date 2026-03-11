@@ -1,5 +1,10 @@
 import { rawQuery } from "@/lib/mysql/hhdb";
-import { HhdbHistoricalTaxPayment, type HhdbHistoricalTaxPaymentAttrs, hhdbHistoricalTaxPaymentRowToJSON } from "../models/hhdb-historical-tax-payment";
+
+import {
+  HhdbHistoricalTaxPayment,
+  hhdbHistoricalTaxPaymentRowToJSON,
+  type HhdbHistoricalTaxPaymentAttrs,
+} from "../models/hhdb-historical-tax-payment";
 import type { HhdbHistoricalTaxPaymentJSON } from "../models/hhdb-historical-tax-payment";
 import type { HhdbListParams, HhdbListResult } from "../types/hhdb";
 
@@ -10,11 +15,16 @@ export default class HhdbHistoricalTaxPaymentCollection {
     return { limit, offset };
   }
 
-  static async list(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxPayment>> {
+  static async list(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbHistoricalTaxPayment>> {
     const { limit, offset } = this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>("SELECT COUNT(*) as cnt FROM historical_tax_payments", []),
+      rawQuery<{ cnt: number }>(
+        "SELECT COUNT(*) as cnt FROM historical_tax_payments",
+        [],
+      ),
       rawQuery<HhdbHistoricalTaxPaymentAttrs>(
         "SELECT * FROM historical_tax_payments ORDER BY id ASC LIMIT ? OFFSET ?",
         [limit, offset],
@@ -27,11 +37,16 @@ export default class HhdbHistoricalTaxPaymentCollection {
     };
   }
 
-  static async listJSON(params: HhdbListParams): Promise<HhdbListResult<HhdbHistoricalTaxPaymentJSON>> {
+  static async listJSON(
+    params: HhdbListParams,
+  ): Promise<HhdbListResult<HhdbHistoricalTaxPaymentJSON>> {
     const { limit, offset } = this._buildQuery(params);
 
     const [countResult, rows] = await Promise.all([
-      rawQuery<{ cnt: number }>("SELECT COUNT(*) as cnt FROM historical_tax_payments", []),
+      rawQuery<{ cnt: number }>(
+        "SELECT COUNT(*) as cnt FROM historical_tax_payments",
+        [],
+      ),
       rawQuery<HhdbHistoricalTaxPaymentAttrs>(
         "SELECT * FROM historical_tax_payments ORDER BY id ASC LIMIT ? OFFSET ?",
         [limit, offset],

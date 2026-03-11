@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useContext, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   flexRender,
   getCoreRowModel,
@@ -10,7 +10,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Loader2 } from "lucide-react";
 
 import {
   Table,
@@ -20,9 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { HhdbSearch } from "./hhdb-search";
-import { HhdbPagination } from "./hhdb-pagination";
+
 import { HhdbColumnToggle } from "./hhdb-column-toggle";
+import { HhdbTableLoadingContext } from "./hhdb-loading-context";
+import { HhdbPagination } from "./hhdb-pagination";
+import { HhdbSearch } from "./hhdb-search";
 
 interface HhdbDataTableProps<T> {
   columns: ColumnDef<T, unknown>[];
@@ -51,11 +53,10 @@ export function HhdbDataTable<T>({
   searchPlaceholder,
   disableSearch = false,
 }: HhdbDataTableProps<T>) {
+  const loading = useContext(HhdbTableLoadingContext);
   const router = useRouter();
-  const params = useParams();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  const basePath = `/udaman/${params.universe}/hhdb`;
   const segments = searchParams.toString();
 
   const updateParams = useCallback(
@@ -68,21 +69,18 @@ export function HhdbDataTable<T>({
           sp.set(k, v);
         }
       }
-      // Determine the current sub-path from pathname
-      const pathname = window.location.pathname;
-      const sub = pathname.replace(basePath, "") || "";
       const qs = sp.toString();
-      router.replace(`${basePath}${sub}${qs ? `?${qs}` : ""}`);
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`);
     },
-    [router, basePath, segments],
+    [router, pathname, segments],
   );
 
   const sorting: SortingState = sort
     ? [{ id: sort, desc: order === "desc" }]
     : [];
 
-  const columnVisibility: VisibilityState = Object.fromEntries(
-    defaultHiddenColumns.map((col) => [col, false]),
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    () => Object.fromEntries(defaultHiddenColumns.map((col) => [col, false])),
   );
 
   const table = useReactTable({
@@ -96,8 +94,7 @@ export function HhdbDataTable<T>({
       columnVisibility,
     },
     onSortingChange: (updater) => {
-      const next =
-        typeof updater === "function" ? updater(sorting) : updater;
+      const next = typeof updater === "function" ? updater(sorting) : updater;
       if (next.length === 0) {
         updateParams({ sort: undefined, order: undefined, page: "1" });
       } else {
@@ -108,16 +105,7 @@ export function HhdbDataTable<T>({
         });
       }
     },
-    onColumnVisibilityChange: (updater) => {
-      const next =
-        typeof updater === "function"
-          ? updater(table.getState().columnVisibility)
-          : updater;
-      table.setOptions((prev) => ({
-        ...prev,
-        state: { ...prev.state, columnVisibility: next },
-      }));
-    },
+    onColumnVisibilityChange: setColumnVisibility,
   });
 
   return (
@@ -126,14 +114,21 @@ export function HhdbDataTable<T>({
         {!disableSearch && (
           <HhdbSearch
             value={search}
-            onChange={(v) => updateParams({ search: v || undefined, page: "1" })}
+            onChange={(v) =>
+              updateParams({ search: v || undefined, page: "1" })
+            }
             placeholder={searchPlaceholder}
           />
         )}
         <HhdbColumnToggle table={table} />
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="relative overflow-hidden rounded-md border">
+        {loading && (
+          <div className="bg-background/60 absolute inset-0 z-10 flex items-center justify-center">
+            <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+          </div>
+        )}
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

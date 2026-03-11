@@ -1,10 +1,14 @@
 import type { Job } from "bullmq";
 
-import { buildUrl, type IslandCode, ISLANDS } from "@/core/crawlers/qpub/config";
+import {
+  buildUrl,
+  ISLANDS,
+  type IslandCode,
+} from "@/core/crawlers/qpub/config";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
-import type { QpubSeedJobData } from "../queues";
 import { enqueueQpubScrape } from "../enqueue";
+import type { QpubSeedJobData } from "../queues";
 
 type SeedRow = {
   tmk: string;
