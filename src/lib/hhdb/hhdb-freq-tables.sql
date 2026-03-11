@@ -344,12 +344,12 @@ BEGIN
   SELECT LEFT(tmk, 1), 'land_area_sqft',
     COALESCE(CAST(land_area_sqft AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM properties GROUP BY LEFT(tmk, 1), 2;
+  FROM properties GROUP BY LEFT(tmk, 1), land_area_sqft;
   INSERT INTO freq_properties (county_code, column_name, column_value, frequency)
   SELECT '0', 'land_area_sqft',
     COALESCE(CAST(land_area_sqft AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM properties GROUP BY 2;
+  FROM properties GROUP BY land_area_sqft;
 
   -- ========================================================================
   -- freq_owners
@@ -449,12 +449,12 @@ BEGIN
   SELECT LEFT(tmk, 1), 'land_area_sqft',
     COALESCE(CAST(land_area_sqft AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM parcels GROUP BY LEFT(tmk, 1), 2;
+  FROM parcels GROUP BY LEFT(tmk, 1), land_area_sqft;
   INSERT INTO freq_parcels (county_code, column_name, column_value, frequency)
   SELECT '0', 'land_area_sqft',
     COALESCE(CAST(land_area_sqft AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM parcels GROUP BY 2;
+  FROM parcels GROUP BY land_area_sqft;
 
   -- ========================================================================
   -- freq_assessments
@@ -498,168 +498,168 @@ BEGIN
   SELECT LEFT(tmk, 1), 'assessed_land_value',
     COALESCE(CAST(assessed_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), assessed_land_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'assessed_land_value',
     COALESCE(CAST(assessed_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY assessed_land_value;
 
   -- assessed_building_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'assessed_building_value',
     COALESCE(CAST(assessed_building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), assessed_building_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'assessed_building_value',
     COALESCE(CAST(assessed_building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY assessed_building_value;
 
   -- dedicated_use_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'dedicated_use_value',
     COALESCE(CAST(dedicated_use_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), dedicated_use_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'dedicated_use_value',
     COALESCE(CAST(dedicated_use_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY dedicated_use_value;
 
   -- land_exemption (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'land_exemption',
     COALESCE(CAST(land_exemption AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), land_exemption;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'land_exemption',
     COALESCE(CAST(land_exemption AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY land_exemption;
 
   -- building_exemption (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'building_exemption',
     COALESCE(CAST(building_exemption AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), building_exemption;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'building_exemption',
     COALESCE(CAST(building_exemption AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY building_exemption;
 
   -- net_taxable_land_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'net_taxable_land_value',
     COALESCE(CAST(net_taxable_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), net_taxable_land_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'net_taxable_land_value',
     COALESCE(CAST(net_taxable_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY net_taxable_land_value;
 
   -- net_taxable_building_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'net_taxable_building_value',
     COALESCE(CAST(net_taxable_building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), net_taxable_building_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'net_taxable_building_value',
     COALESCE(CAST(net_taxable_building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY net_taxable_building_value;
 
   -- total_property_assessed_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'total_property_assessed_value',
     COALESCE(CAST(total_property_assessed_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), total_property_assessed_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'total_property_assessed_value',
     COALESCE(CAST(total_property_assessed_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY total_property_assessed_value;
 
   -- total_property_exemption (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'total_property_exemption',
     COALESCE(CAST(total_property_exemption AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), total_property_exemption;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'total_property_exemption',
     COALESCE(CAST(total_property_exemption AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY total_property_exemption;
 
   -- total_net_taxable_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'total_net_taxable_value',
     COALESCE(CAST(total_net_taxable_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), total_net_taxable_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'total_net_taxable_value',
     COALESCE(CAST(total_net_taxable_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY total_net_taxable_value;
 
   -- agricultural_land_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'agricultural_land_value',
     COALESCE(CAST(agricultural_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), agricultural_land_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'agricultural_land_value',
     COALESCE(CAST(agricultural_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY agricultural_land_value;
 
   -- market_land_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'market_land_value',
     COALESCE(CAST(market_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), market_land_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'market_land_value',
     COALESCE(CAST(market_land_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY market_land_value;
 
   -- market_building_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'market_building_value',
     COALESCE(CAST(market_building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), market_building_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'market_building_value',
     COALESCE(CAST(market_building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY market_building_value;
 
   -- total_market_value (as-is)
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'total_market_value',
     COALESCE(CAST(total_market_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM assessments GROUP BY LEFT(tmk, 1), total_market_value;
   INSERT INTO freq_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'total_market_value',
     COALESCE(CAST(total_market_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM assessments GROUP BY 2;
+  FROM assessments GROUP BY total_market_value;
 
   -- ========================================================================
   -- freq_land_classifications
@@ -873,12 +873,12 @@ BEGIN
   SELECT LEFT(tmk, 1), 'building_value',
     COALESCE(CAST(building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM residential_improvements GROUP BY LEFT(tmk, 1), 2;
+  FROM residential_improvements GROUP BY LEFT(tmk, 1), building_value;
   INSERT INTO freq_residential_improvements (county_code, column_name, column_value, frequency)
   SELECT '0', 'building_value',
     COALESCE(CAST(building_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM residential_improvements GROUP BY 2;
+  FROM residential_improvements GROUP BY building_value;
 
   -- ========================================================================
   -- freq_residential_additions
@@ -1034,12 +1034,12 @@ BEGIN
   SELECT LEFT(tmk, 1), 'value',
     COALESCE(CAST(value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM commercial_improvements GROUP BY LEFT(tmk, 1), 2;
+  FROM commercial_improvements GROUP BY LEFT(tmk, 1), value;
   INSERT INTO freq_commercial_improvements (county_code, column_name, column_value, frequency)
   SELECT '0', 'value',
     COALESCE(CAST(value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM commercial_improvements GROUP BY 2;
+  FROM commercial_improvements GROUP BY value;
 
   -- ========================================================================
   -- freq_commercial_improvement_details
@@ -1248,12 +1248,12 @@ BEGIN
   SELECT LEFT(tmk, 1), 'permit_amount',
     COALESCE(CAST(permit_amount AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM permits GROUP BY LEFT(tmk, 1), 2;
+  FROM permits GROUP BY LEFT(tmk, 1), permit_amount;
   INSERT INTO freq_permits (county_code, column_name, column_value, frequency)
   SELECT '0', 'permit_amount',
     COALESCE(CAST(permit_amount AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM permits GROUP BY 2;
+  FROM permits GROUP BY permit_amount;
 
   -- ========================================================================
   -- freq_sales
@@ -1328,24 +1328,24 @@ BEGIN
   SELECT LEFT(tmk, 1), 'sale_amount',
     COALESCE(CAST(sale_amount AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM sales GROUP BY LEFT(tmk, 1), 2;
+  FROM sales GROUP BY LEFT(tmk, 1), sale_amount;
   INSERT INTO freq_sales (county_code, column_name, column_value, frequency)
   SELECT '0', 'sale_amount',
     COALESCE(CAST(sale_amount AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM sales GROUP BY 2;
+  FROM sales GROUP BY sale_amount;
 
   -- conveyance_tax (as-is)
   INSERT INTO freq_sales (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'conveyance_tax',
     COALESCE(CAST(conveyance_tax AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM sales GROUP BY LEFT(tmk, 1), 2;
+  FROM sales GROUP BY LEFT(tmk, 1), conveyance_tax;
   INSERT INTO freq_sales (county_code, column_name, column_value, frequency)
   SELECT '0', 'conveyance_tax',
     COALESCE(CAST(conveyance_tax AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM sales GROUP BY 2;
+  FROM sales GROUP BY conveyance_tax;
 
   -- ========================================================================
   -- freq_current_tax_bills
@@ -1390,71 +1390,71 @@ BEGIN
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'taxes_assessment',
     COALESCE(CAST(taxes_assessment AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), taxes_assessment;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'taxes_assessment',
     COALESCE(CAST(taxes_assessment AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY taxes_assessment;
 
   -- tax_credits (as-is)
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tax_credits',
     COALESCE(CAST(tax_credits AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), tax_credits;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'tax_credits',
     COALESCE(CAST(tax_credits AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY tax_credits;
 
   -- net_tax (as-is)
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'net_tax',
     COALESCE(CAST(net_tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), net_tax;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'net_tax',
     COALESCE(CAST(net_tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY net_tax;
 
   -- penalty (as-is)
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), penalty;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY penalty;
 
   -- interest (as-is)
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), interest;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY interest;
 
   -- other (as-is)
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), other;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY other;
 
   -- amount_due (as-is)
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'amount_due',
     COALESCE(CAST(amount_due AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY LEFT(tmk, 1), 2;
+  FROM current_tax_bills GROUP BY LEFT(tmk, 1), amount_due;
   INSERT INTO freq_current_tax_bills (county_code, column_name, column_value, frequency)
   SELECT '0', 'amount_due',
     COALESCE(CAST(amount_due AS CHAR), '[NULL]'), COUNT(*)
-  FROM current_tax_bills GROUP BY 2;
+  FROM current_tax_bills GROUP BY amount_due;
 
   -- ========================================================================
   -- freq_historical_tax_summary
@@ -1483,61 +1483,61 @@ BEGIN
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tax',
     COALESCE(CAST(tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), tax;
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT '0', 'tax',
     COALESCE(CAST(tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY 2;
+  FROM historical_tax_summary GROUP BY tax;
 
   -- payments_and_credits
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'payments_and_credits',
     COALESCE(CAST(payments_and_credits AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), payments_and_credits;
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT '0', 'payments_and_credits',
     COALESCE(CAST(payments_and_credits AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY 2;
+  FROM historical_tax_summary GROUP BY payments_and_credits;
 
   -- penalty
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), penalty;
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT '0', 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY 2;
+  FROM historical_tax_summary GROUP BY penalty;
 
   -- interest
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), interest;
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT '0', 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY 2;
+  FROM historical_tax_summary GROUP BY interest;
 
   -- other
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), other;
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT '0', 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY 2;
+  FROM historical_tax_summary GROUP BY other;
 
   -- amount_due
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'amount_due',
     COALESCE(CAST(amount_due AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_summary GROUP BY LEFT(tmk, 1), amount_due;
   INSERT INTO freq_historical_tax_summary (county_code, column_name, column_value, frequency)
   SELECT '0', 'amount_due',
     COALESCE(CAST(amount_due AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_summary GROUP BY 2;
+  FROM historical_tax_summary GROUP BY amount_due;
 
   -- ========================================================================
   -- freq_historical_tax_details
@@ -1565,51 +1565,51 @@ BEGIN
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tax',
     COALESCE(CAST(tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_details GROUP BY LEFT(tmk, 1), tax;
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT '0', 'tax',
     COALESCE(CAST(tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY 2;
+  FROM historical_tax_details GROUP BY tax;
 
   -- payments_credits
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'payments_credits',
     COALESCE(CAST(payments_credits AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_details GROUP BY LEFT(tmk, 1), payments_credits;
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT '0', 'payments_credits',
     COALESCE(CAST(payments_credits AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY 2;
+  FROM historical_tax_details GROUP BY payments_credits;
 
   -- penalty
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_details GROUP BY LEFT(tmk, 1), penalty;
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT '0', 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY 2;
+  FROM historical_tax_details GROUP BY penalty;
 
   -- interest
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_details GROUP BY LEFT(tmk, 1), interest;
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT '0', 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY 2;
+  FROM historical_tax_details GROUP BY interest;
 
   -- other
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_details GROUP BY LEFT(tmk, 1), other;
   INSERT INTO freq_historical_tax_details (county_code, column_name, column_value, frequency)
   SELECT '0', 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_details GROUP BY 2;
+  FROM historical_tax_details GROUP BY other;
 
   -- ========================================================================
   -- freq_historical_tax_payments
@@ -1646,41 +1646,41 @@ BEGIN
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tax',
     COALESCE(CAST(tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), tax;
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT '0', 'tax',
     COALESCE(CAST(tax AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY 2;
+  FROM historical_tax_payments GROUP BY tax;
 
   -- penalty
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), penalty;
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT '0', 'penalty',
     COALESCE(CAST(penalty AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY 2;
+  FROM historical_tax_payments GROUP BY penalty;
 
   -- interest
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), interest;
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT '0', 'interest',
     COALESCE(CAST(interest AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY 2;
+  FROM historical_tax_payments GROUP BY interest;
 
   -- other
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_payments GROUP BY LEFT(tmk, 1), other;
   INSERT INTO freq_historical_tax_payments (county_code, column_name, column_value, frequency)
   SELECT '0', 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_payments GROUP BY 2;
+  FROM historical_tax_payments GROUP BY other;
 
   -- ========================================================================
   -- freq_historical_tax_credits
@@ -1707,11 +1707,11 @@ BEGIN
   INSERT INTO freq_historical_tax_credits (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'amount',
     COALESCE(CAST(amount AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_credits GROUP BY LEFT(tmk, 1), 2;
+  FROM historical_tax_credits GROUP BY LEFT(tmk, 1), amount;
   INSERT INTO freq_historical_tax_credits (county_code, column_name, column_value, frequency)
   SELECT '0', 'amount',
     COALESCE(CAST(amount AS CHAR), '[NULL]'), COUNT(*)
-  FROM historical_tax_credits GROUP BY 2;
+  FROM historical_tax_credits GROUP BY amount;
 
   -- ========================================================================
   -- freq_appeals
@@ -1773,36 +1773,36 @@ BEGIN
   SELECT LEFT(tmk, 1), 'final_value',
     COALESCE(CAST(final_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM appeals GROUP BY LEFT(tmk, 1), 2;
+  FROM appeals GROUP BY LEFT(tmk, 1), final_value;
   INSERT INTO freq_appeals (county_code, column_name, column_value, frequency)
   SELECT '0', 'final_value',
     COALESCE(CAST(final_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM appeals GROUP BY 2;
+  FROM appeals GROUP BY final_value;
 
   -- tax_payer_opinion_of_value (as-is)
   INSERT INTO freq_appeals (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tax_payer_opinion_of_value',
     COALESCE(CAST(tax_payer_opinion_of_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM appeals GROUP BY LEFT(tmk, 1), 2;
+  FROM appeals GROUP BY LEFT(tmk, 1), tax_payer_opinion_of_value;
   INSERT INTO freq_appeals (county_code, column_name, column_value, frequency)
   SELECT '0', 'tax_payer_opinion_of_value',
     COALESCE(CAST(tax_payer_opinion_of_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM appeals GROUP BY 2;
+  FROM appeals GROUP BY tax_payer_opinion_of_value;
 
   -- tax_payer_opinion_of_exemptions (as-is)
   INSERT INTO freq_appeals (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tax_payer_opinion_of_exemptions',
     COALESCE(CAST(tax_payer_opinion_of_exemptions AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM appeals GROUP BY LEFT(tmk, 1), 2;
+  FROM appeals GROUP BY LEFT(tmk, 1), tax_payer_opinion_of_exemptions;
   INSERT INTO freq_appeals (county_code, column_name, column_value, frequency)
   SELECT '0', 'tax_payer_opinion_of_exemptions',
     COALESCE(CAST(tax_payer_opinion_of_exemptions AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM appeals GROUP BY 2;
+  FROM appeals GROUP BY tax_payer_opinion_of_exemptions;
 
   -- ========================================================================
   -- freq_agricultural_assessments
@@ -1852,24 +1852,24 @@ BEGIN
   SELECT LEFT(tmk, 1), 'agricultural_value',
     COALESCE(CAST(agricultural_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM agricultural_assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM agricultural_assessments GROUP BY LEFT(tmk, 1), agricultural_value;
   INSERT INTO freq_agricultural_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'agricultural_value',
     COALESCE(CAST(agricultural_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM agricultural_assessments GROUP BY 2;
+  FROM agricultural_assessments GROUP BY agricultural_value;
 
   -- assessed_value (as-is)
   INSERT INTO freq_agricultural_assessments (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'assessed_value',
     COALESCE(CAST(assessed_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM agricultural_assessments GROUP BY LEFT(tmk, 1), 2;
+  FROM agricultural_assessments GROUP BY LEFT(tmk, 1), assessed_value;
   INSERT INTO freq_agricultural_assessments (county_code, column_name, column_value, frequency)
   SELECT '0', 'assessed_value',
     COALESCE(CAST(assessed_value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM agricultural_assessments GROUP BY 2;
+  FROM agricultural_assessments GROUP BY assessed_value;
 
   -- ========================================================================
   -- freq_accessory_structures
@@ -1928,12 +1928,12 @@ BEGIN
   SELECT LEFT(tmk, 1), 'value',
     COALESCE(CAST(value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM accessory_structures GROUP BY LEFT(tmk, 1), 2;
+  FROM accessory_structures GROUP BY LEFT(tmk, 1), value;
   INSERT INTO freq_accessory_structures (county_code, column_name, column_value, frequency)
   SELECT '0', 'value',
     COALESCE(CAST(value AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM accessory_structures GROUP BY 2;
+  FROM accessory_structures GROUP BY value;
 
   -- ========================================================================
   -- freq_dedications
@@ -2069,108 +2069,108 @@ BEGIN
   SELECT LEFT(tmk, 1), 'unit_count',
     COALESCE(CAST(unit_count AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), unit_count;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'unit_count',
     COALESCE(CAST(unit_count AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY unit_count;
 
   -- commercial (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'commercial',
     COALESCE(CAST(commercial AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), commercial;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'commercial',
     COALESCE(CAST(commercial AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY commercial;
 
   -- tool_sheds (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'tool_sheds',
     COALESCE(CAST(tool_sheds AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), tool_sheds;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'tool_sheds',
     COALESCE(CAST(tool_sheds AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY tool_sheds;
 
   -- residential (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'residential',
     COALESCE(CAST(residential AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), residential;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'residential',
     COALESCE(CAST(residential AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY residential;
 
   -- parking (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'parking',
     COALESCE(CAST(parking AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), parking;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'parking',
     COALESCE(CAST(parking AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY parking;
 
   -- agricultural (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'agricultural',
     COALESCE(CAST(agricultural AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), agricultural;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'agricultural',
     COALESCE(CAST(agricultural AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY agricultural;
 
   -- other (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), other;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'other',
     COALESCE(CAST(other AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY other;
 
   -- buildings (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'buildings',
     COALESCE(CAST(buildings AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), buildings;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'buildings',
     COALESCE(CAST(buildings AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY buildings;
 
   -- floors (as-is)
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT LEFT(tmk, 1), 'floors',
     COALESCE(CAST(floors AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY LEFT(tmk, 1), 2;
+  FROM condominium_projects GROUP BY LEFT(tmk, 1), floors;
   INSERT INTO freq_condominium_projects (county_code, column_name, column_value, frequency)
   SELECT '0', 'floors',
     COALESCE(CAST(floors AS CHAR), '[NULL]'),
     COUNT(*)
-  FROM condominium_projects GROUP BY 2;
+  FROM condominium_projects GROUP BY floors;
 
   -- ========================================================================
   -- freq_condominium_units
