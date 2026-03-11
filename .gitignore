@@ -25,6 +25,7 @@ out/
 build
 dist
 tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Debug
 npm-debug.log*
@@ -33,7 +34,6 @@ npm-debug.log*
 *.csv
 *.xls
 *.xlsx
-data/
 data-dir/
 
 # Logs
