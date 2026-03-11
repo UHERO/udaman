@@ -18,6 +18,15 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     </div>
   );
 }
+function RawTable({ className, ...props }: React.ComponentProps<"table">) {
+  return (
+    <table
+      data-slot="table"
+      className={cn("w-full caption-bottom text-sm", className)}
+      {...props}
+    />
+  );
+}
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
@@ -105,6 +114,7 @@ function TableCaption({
 }
 
 export {
+  RawTable,
   Table,
   TableBody,
   TableCaption,

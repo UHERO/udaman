@@ -51,6 +51,8 @@
   --color-ugreen: #9BBB59;
   --color-upurple: #8064A2;
   --color-uteal: #4BACC6;
+  --color-dvw: #22767C;
+  --color-dbedt: #beebff;
 
   /* ─── Universe theme color (text-theme, bg-theme, border-theme) ─── */
   --color-theme: var(--theme);
