@@ -5,7 +5,7 @@ import { getVisibleRoutes } from "@/lib/auth/route-access";
 
 /** Supplementary descriptions for homepage cards (route-access only has labels). */
 const CARD_DESCRIPTIONS: Record<string, string> = {
-  "Data Series": "Browse, search, and manage time series data",
+  "Time Series": "Browse, search, and manage time series data",
   Catalog: "View and edit the data portal catalog tree",
   "CSV-to-TSD": "Convert CSV files to TSD format",
   Downloads: "Manage and run data downloads",

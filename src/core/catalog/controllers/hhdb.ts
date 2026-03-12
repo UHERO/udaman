@@ -29,7 +29,6 @@ import type {
   FreqSummaryParams,
   FreqSummaryResult,
   HhdbListParams,
-  SummaryViewType,
 } from "../types/hhdb";
 
 const log = createLogger("hhdb");
@@ -398,30 +397,6 @@ export async function getCondoAreaByYearBuilt() {
   const data = await HhdbDashboardCollection.getCondoAreaByYearBuilt();
   log.info({ count: data.length }, "condo area by year built fetched");
   return data;
-}
-
-export async function getSummaries(
-  table: string,
-  column: string,
-  viewType: SummaryViewType,
-  sortBy?: string,
-) {
-  log.info({ table, column, viewType, sortBy }, "fetching hhdb summaries");
-  const result = await HhdbSummaryCollection.getSummaries(
-    table,
-    column,
-    viewType,
-    sortBy,
-  );
-  log.info({ table, column, type: result.type }, "hhdb summaries fetched");
-  return result;
-}
-
-export async function getDistribution(table: string, column: string) {
-  log.info({ table, column }, "fetching hhdb distribution");
-  const result = await HhdbSummaryCollection.getDistribution(table, column);
-  log.info({ table, column }, "hhdb distribution fetched");
-  return result;
 }
 
 export async function getFreqSummary(

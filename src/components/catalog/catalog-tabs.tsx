@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import {
@@ -17,10 +16,9 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useFullWidth } from "@/hooks/use-full-width";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
-
-const WIDTH_STORAGE_KEY = "udaman-full-width";
 
 const TABS = [
   { label: "Universe", icon: Star, segment: "" },
@@ -53,18 +51,7 @@ export function CatalogTabs({
     ),
   );
 
-  const [fullWidth, setFullWidth] = useState(false);
-
-  useEffect(() => {
-    setFullWidth(localStorage.getItem(WIDTH_STORAGE_KEY) === "true");
-  }, []);
-
-  const toggleWidth = () => {
-    const next = !fullWidth;
-    setFullWidth(next);
-    localStorage.setItem(WIDTH_STORAGE_KEY, String(next));
-    window.dispatchEvent(new Event("udaman-width-change"));
-  };
+  const { fullWidth, toggleWidth } = useFullWidth();
 
   return (
     <div className="flex items-center gap-1 border-b">

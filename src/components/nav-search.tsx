@@ -74,11 +74,11 @@ export function NavSearchInput({ geoHandles = [] }: { geoHandles?: string[] }) {
   const { universe } = useParams<{ universe: string }>();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  if (pathname.includes("/hhdb")) return null;
   const [term, setTerm] = useState(searchParams.get("q") ?? "");
   const [rows, setRows] = useState<FilterRow[]>([]);
   const [builderOpen, setBuilderOpen] = useState(false);
+
+  if (pathname.includes("/hhdb")) return null;
 
   function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();

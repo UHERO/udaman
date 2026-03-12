@@ -1,6 +1,6 @@
 import type { FieldDef, SummaryViewType } from "./hhdb";
 
-const ALL_VIEWS: SummaryViewType[] = ["summary", "rank", "range"];
+const ALL_VIEWS: SummaryViewType[] = ["summary"];
 
 export interface DictionaryField {
   key: string;
@@ -40,18 +40,21 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Parcel Number",
       description:
         "County-assigned parcel number, often the same as TMK but may include formatting differences.",
+      summary: ALL_VIEWS,
     },
     {
       key: "location_address",
       label: "Address",
       description:
         "Street address of the property as recorded by the county assessor.",
+      summary: ALL_VIEWS,
     },
     {
       key: "address_other",
       label: "Address (Other)",
       description:
         "Additional address information such as unit numbers or secondary addresses.",
+      summary: ALL_VIEWS,
     },
     {
       key: "project_name",
@@ -65,9 +68,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Legal Information",
       description:
         "Legal description from deed records (lot, block, plat references).",
-      disabled: true,
-      disabledReason:
-        "Too many variations to summarize — use the Data tab or query the database directly",
+      summary: ALL_VIEWS,
     },
     {
       key: "property_class",
@@ -108,6 +109,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       label: "Parcel Note",
       description:
         "Free-text notes recorded by the assessor about this parcel.",
+      summary: ALL_VIEWS,
     },
     {
       key: "damage",
@@ -162,11 +164,13 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "latitude",
       label: "Latitude",
       description: "Geographic latitude coordinate of the parcel centroid.",
+      summary: ALL_VIEWS,
     },
     {
       key: "longitude",
       label: "Longitude",
       description: "Geographic longitude coordinate of the parcel centroid.",
+      summary: ALL_VIEWS,
     },
   ],
 
@@ -859,26 +863,31 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "parcel_number",
       label: "Parcel Number",
       description: "County-assigned parcel number.",
+      summary: ALL_VIEWS,
     },
     {
       key: "location_address",
       label: "Address",
       description: "Street address at the time this parcel record was scraped.",
+      summary: ALL_VIEWS,
     },
     {
       key: "address_other",
       label: "Address (Other)",
       description: "Additional address information.",
+      summary: ALL_VIEWS,
     },
     {
       key: "project_name",
       label: "Project Name",
       description: "Development or subdivision name.",
+      summary: ALL_VIEWS,
     },
     {
       key: "legal_information",
       label: "Legal Information",
       description: "Legal description from deed records.",
+      summary: ALL_VIEWS,
     },
     {
       key: "property_class",
@@ -916,6 +925,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "parcel_note",
       label: "Parcel Note",
       description: "Free-text notes recorded by the assessor.",
+      summary: ALL_VIEWS,
     },
     {
       key: "damage",
@@ -939,6 +949,7 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
       key: "non_taxable_status",
       label: "Non-Taxable Status",
       description: "Exemption status for the parcel.",
+      summary: ALL_VIEWS,
     },
     {
       key: "living_units",

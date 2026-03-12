@@ -11,11 +11,7 @@ const VIEW_TABS: {
   label: string;
   segment: string;
   viewType: SummaryViewType;
-}[] = [
-  { label: "Summary", segment: "summary", viewType: "summary" },
-  { label: "Rank", segment: "rank", viewType: "rank" },
-  { label: "Range", segment: "range", viewType: "range" },
-];
+}[] = [{ label: "Summary", segment: "summary", viewType: "summary" }];
 
 interface HhdbTableLayoutProps {
   title: string;

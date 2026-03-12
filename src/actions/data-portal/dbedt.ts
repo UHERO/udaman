@@ -15,7 +15,7 @@
 import { CategoryType, Series } from "@/app/data/dbedt/types";
 import { fetchFromRestApi } from "./cpi-rpp";
 
-const BASE_URL = process.env.REST_API_BASE_URL;
+const BASE_URL = process.env.REST_API_V1_URL;
 
 /***************************************************************************************
  *   Structures category options to its respective parent and returns as a new arr

@@ -33,9 +33,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useFullWidth } from "@/hooks/use-full-width";
 import { cn } from "@/lib/utils";
-
-const WIDTH_STORAGE_KEY = "udaman-full-width";
 
 const TABS = [
   { label: "About", icon: Info, segment: "" },
@@ -90,18 +89,7 @@ export function HhdbTabs() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [fullWidth, setFullWidth] = useState(false);
-
-  useEffect(() => {
-    setFullWidth(localStorage.getItem(WIDTH_STORAGE_KEY) === "true");
-  }, []);
-
-  const toggleWidth = () => {
-    const next = !fullWidth;
-    setFullWidth(next);
-    localStorage.setItem(WIDTH_STORAGE_KEY, String(next));
-    window.dispatchEvent(new Event("udaman-width-change"));
-  };
+  const { fullWidth, toggleWidth } = useFullWidth();
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;

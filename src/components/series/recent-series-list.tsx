@@ -56,9 +56,9 @@ export function RecentSeriesList({
 
       {compact ? (
         <div className="flex flex-wrap gap-1.5">
-          {entries.map((entry) => (
+          {entries.map((entry, i) => (
             <button
-              key={entry.id}
+              key={`a-${entry.id}-${i}`}
               type="button"
               onClick={() => handleClick(entry)}
               className="hover:bg-accent hover:text-accent-foreground inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-xs transition-colors"
@@ -69,9 +69,9 @@ export function RecentSeriesList({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {entries.map((entry) => (
+          {entries.map((entry, i) => (
             <button
-              key={entry.id}
+              key={`b-${entry.id}-${i}`}
               type="button"
               onClick={() => handleClick(entry)}
               className="hover:bg-accent flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors"

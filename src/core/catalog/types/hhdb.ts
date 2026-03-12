@@ -20,7 +20,7 @@ export const ISLAND_NAMES: Record<string, string> = {
   "6": "Lanai",
 };
 
-export type SummaryViewType = "summary" | "rank" | "range";
+export type SummaryViewType = "summary";
 
 export interface FieldDef {
   column: string;
@@ -34,47 +34,6 @@ export interface FieldDef {
 
 /** Per-island counts keyed by first digit of TMK: 1=Oahu, 2=Maui, 3=Hawaii, 4=Kauai */
 export type IslandCounts = Record<string, number>;
-
-export type SummaryResult =
-  | {
-      type: "summary";
-      values: { value: string; counts: IslandCounts; total: number }[];
-      nullCounts: IslandCounts;
-      nullTotal: number;
-    }
-  | {
-      type: "rank";
-      values: { value: string; counts: IslandCounts; total: number }[];
-      nullCounts: IslandCounts;
-      nullTotal: number;
-    }
-  | {
-      type: "range";
-      format: "dollar" | "number" | "year" | "text";
-      islands: {
-        island: string;
-        min: number;
-        max: number;
-        median: number;
-        count: number;
-      }[];
-      overall: { min: number; max: number; median: number; count: number };
-      nullCounts: IslandCounts;
-      nullTotal: number;
-    }
-  | {
-      type: "distribution";
-      format: "dollar" | "number" | "year" | "text";
-      buckets: {
-        label: string;
-        min: number;
-        max: number;
-        counts: IslandCounts;
-        total: number;
-      }[];
-      nullCounts: IslandCounts;
-      nullTotal: number;
-    };
 
 export interface FreqRow {
   value: string;
@@ -94,5 +53,7 @@ export interface FreqSummaryResult {
   rows: FreqRow[];
   total: number;
   nullRow: FreqRow | null;
+  /** Total record count per county (null + non-null) for percentage calculation */
+  totalCounts: Record<string, number>;
   generatedAt: string | null;
 }

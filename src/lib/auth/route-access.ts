@@ -49,12 +49,12 @@ export type RouteEntry = {
  */
 export const ROUTES: RouteEntry[] = [
   {
-    label: "Data Series",
+    label: "Time Series",
     path: "/series",
     icon: TableProperties,
     roles: ["internal", "admin", "dev"],
     children: [
-      { label: "List", path: "/series" },
+      { label: "Series List", path: "/series" },
       { label: "Analyze", path: "/series/analyze" },
       { label: "Compare", path: "/series/compare" },
       { label: "Calculate", path: "/series/calculate" },
@@ -64,7 +64,7 @@ export const ROUTES: RouteEntry[] = [
     ],
   },
   {
-    label: "Catalog",
+    label: "Data Portal Catalog",
     path: "/catalog",
     icon: ChartLine,
     roles: ["internal", "admin", "dev"],

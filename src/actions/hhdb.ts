@@ -11,7 +11,6 @@ import {
   getCondoUnitsJSON as getCondoUnitsCtrl,
   getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
   getDedicationsJSON as getDedicationsCtrl,
-  getDistribution as getDistributionCtrl,
   getFreqSummary as getFreqSummaryCtrl,
   getHistoricalTaxCreditsJSON as getHistoricalTaxCreditsCtrl,
   getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
@@ -29,7 +28,6 @@ import {
   getPropertyCountByClass as getPropertyCountCtrl,
   getResidentialAdditionsJSON as getResidentialAdditionsCtrl,
   getSalesJSON as getSalesCtrl,
-  getSummaries as getSummariesCtrl,
   getTotalAssessedByIsland as getTotalAssessedCtrl,
   getYardImprovementsJSON as getYardImprovementsCtrl,
 } from "@catalog/controllers/hhdb";
@@ -37,17 +35,9 @@ import type {
   FreqSummaryParams,
   FreqSummaryResult,
   HhdbListParams,
-  SummaryResult,
-  SummaryViewType,
 } from "@catalog/types/hhdb";
 
 import { requirePermission } from "@/lib/auth/permissions";
-
-const SUMMARY_CACHE_TTL_MS = 48 * 60 * 60 * 1000; // 2 days
-const summaryCache = new Map<
-  string,
-  { data: SummaryResult; expiresAt: number }
->();
 
 const DASHBOARD_CACHE_TTL_MS = 48 * 60 * 60 * 1000; //  2 days
 const dashboardCache = new Map<string, { data: unknown; expiresAt: number }>();
@@ -217,41 +207,6 @@ export async function getHhdbAccessoryStructures(params: HhdbListParams) {
 export async function getHhdbYardImprovements(params: HhdbListParams) {
   await requirePermission("hhdb", "read");
   return getYardImprovementsCtrl(params);
-}
-
-export async function getHhdbSummaries(
-  table: string,
-  column: string,
-  viewType: SummaryViewType,
-  sortBy?: string,
-) {
-  await requirePermission("hhdb", "read");
-  const key = `${table}:${column}:${viewType}:${sortBy ?? "total"}`;
-  const cached = summaryCache.get(key);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.data;
-  }
-  const result = await getSummariesCtrl(table, column, viewType, sortBy);
-  summaryCache.set(key, {
-    data: result,
-    expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS,
-  });
-  return result;
-}
-
-export async function getHhdbDistribution(table: string, column: string) {
-  await requirePermission("hhdb", "read");
-  const key = `dist:${table}:${column}`;
-  const cached = summaryCache.get(key);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.data;
-  }
-  const result = await getDistributionCtrl(table, column);
-  summaryCache.set(key, {
-    data: result,
-    expiresAt: Date.now() + SUMMARY_CACHE_TTL_MS,
-  });
-  return result;
 }
 
 export async function getHhdbFreqSummary(

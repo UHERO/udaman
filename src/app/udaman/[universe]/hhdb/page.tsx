@@ -69,8 +69,8 @@ export default function Page() {
             The tabs above give you paginated, searchable views of 22 tables
             scraped from Hawaii county real property tax websites. Each table
             has a <strong>Data</strong> tab for browsing rows and a{" "}
-            <strong>Factors</strong> tab that shows value distributions and
-            ranges broken down by county.
+            <strong>Summary</strong> tab that shows value distributions broken
+            down by county.
           </p>
           <p>
             Some very large tables (Tax Details, Tax Payments, Tax History) have
