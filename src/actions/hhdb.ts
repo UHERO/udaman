@@ -12,6 +12,11 @@ import {
   getCurrentTaxBillsJSON as getCurrentTaxBillsCtrl,
   getDedicationsJSON as getDedicationsCtrl,
   getFreqSummary as getFreqSummaryCtrl,
+  getProfileCategoricalDrilldown as getProfileCategoricalDrilldownCtrl,
+  getProfileNumericDrilldown as getProfileNumericDrilldownCtrl,
+  getProfileOverview as getProfileOverviewCtrl,
+  getProfileTemporalDrilldown as getProfileTemporalDrilldownCtrl,
+  getProfileTextDrilldown as getProfileTextDrilldownCtrl,
   getHistoricalTaxCreditsJSON as getHistoricalTaxCreditsCtrl,
   getHistoricalTaxDetailsJSON as getHistoricalTaxDetailsCtrl,
   getHistoricalTaxPaymentsJSON as getHistoricalTaxPaymentsCtrl,
@@ -32,9 +37,14 @@ import {
   getYardImprovementsJSON as getYardImprovementsCtrl,
 } from "@catalog/controllers/hhdb";
 import type {
+  CategoricalDrilldown,
   FreqSummaryParams,
   FreqSummaryResult,
   HhdbListParams,
+  NumericDrilldown,
+  OverviewData,
+  TemporalDrilldown,
+  TextDrilldown,
 } from "@catalog/types/hhdb";
 
 import { requirePermission } from "@/lib/auth/permissions";
@@ -216,4 +226,45 @@ export async function getHhdbFreqSummary(
 ): Promise<FreqSummaryResult> {
   await requirePermission("hhdb", "read");
   return getFreqSummaryCtrl(table, column, params);
+}
+
+// --- Profile ---
+
+export async function getHhdbProfileOverview(
+  table: string,
+): Promise<OverviewData> {
+  await requirePermission("hhdb", "read");
+  return getProfileOverviewCtrl(table);
+}
+
+export async function getHhdbProfileCategoricalDrilldown(
+  table: string,
+  column: string,
+): Promise<CategoricalDrilldown> {
+  await requirePermission("hhdb", "read");
+  return getProfileCategoricalDrilldownCtrl(table, column);
+}
+
+export async function getHhdbProfileNumericDrilldown(
+  table: string,
+  column: string,
+): Promise<NumericDrilldown> {
+  await requirePermission("hhdb", "read");
+  return getProfileNumericDrilldownCtrl(table, column);
+}
+
+export async function getHhdbProfileTemporalDrilldown(
+  table: string,
+  column: string,
+): Promise<TemporalDrilldown> {
+  await requirePermission("hhdb", "read");
+  return getProfileTemporalDrilldownCtrl(table, column);
+}
+
+export async function getHhdbProfileTextDrilldown(
+  table: string,
+  column: string,
+): Promise<TextDrilldown> {
+  await requirePermission("hhdb", "read");
+  return getProfileTextDrilldownCtrl(table, column);
 }

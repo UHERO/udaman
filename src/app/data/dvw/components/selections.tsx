@@ -42,10 +42,10 @@ export default function Selections({
   results,
   module,
 }: {
-  results?: Dimension | {};
+  results?: Dimension | Record<string, never>;
   module: Module;
 }) {
-  const [dimensions, setDimensions] = useState({});
+  const [dimensions, setDimensions] = useState<SelectedDimension>({});
   const [freqs, setFreqs] = useState<SelectedFreq[]>([]);
   const [cachedSeries, setCachedSeries] = useState<Record<string, DvwSeries>>(
     {},
@@ -187,17 +187,18 @@ export default function Selections({
 
     try {
       const [newApiParam, res] = await checkUserSelections(
-        dimensions,
+        dimensions as SelectedDimension,
         module,
         selectedFreq,
       );
       setSeriesLoaded(true);
-      const filteredSeries = filterSeries(res);
+      const dvwRes = res as unknown as DvwSeries;
+      const filteredSeries = filterSeries(dvwRes);
 
       updateSeriesState(filteredSeries);
       setCachedSeries((prev) => ({
         ...prev,
-        [newApiParam]: res,
+        [newApiParam as string]: dvwRes,
       }));
     } catch (err) {
       console.error("Error fetching series data:", err);

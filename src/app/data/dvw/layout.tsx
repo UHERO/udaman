@@ -8,7 +8,10 @@ export default function Dvw_Layout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider className="flex h-screen flex-col overflow-hidden" style={{ "--sidebar": "white" } as React.CSSProperties}>
+    <SidebarProvider
+      className="flex h-screen flex-col overflow-hidden"
+      style={{ "--sidebar": "white" } as React.CSSProperties}
+    >
       <div className="flex min-h-0 flex-1">{children}</div>
     </SidebarProvider>
   );

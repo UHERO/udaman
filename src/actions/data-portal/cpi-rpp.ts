@@ -7,7 +7,7 @@ const TOKEN = process.env.REST_API_TOKEN ?? "";
 
 export async function fetchSeries(
   name: string,
-  freq: string
+  freq: string,
 ): Promise<ExpandedSeries> {
   const res = await fetchFromRestApi<ExpandedSeries>({
     baseUrl: BASE_URL as string,

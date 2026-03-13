@@ -126,7 +126,9 @@ export default function Dvw_Sidebar({
   return (
     <Sidebar
       variant="sidebar"
-      className={cn("z-50 bg-white p-0 [&>[data-slot=sidebar-container]]:static [&>[data-slot=sidebar-container]]:h-auto")}
+      className={cn(
+        "z-50 bg-white p-0 [&>[data-slot=sidebar-container]]:static [&>[data-slot=sidebar-container]]:h-auto",
+      )}
       collapsible="icon"
     >
       <SidebarTrigger

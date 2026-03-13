@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import {
   RawTable,
   TableBody,
@@ -12,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 import { Series } from "../dbedt/types";
 import { DvwModuleSeries } from "../dvw/types";
@@ -67,7 +67,7 @@ export default function ResultsTable({
     handleSort: (
       column: string,
       sortDirection: SortDirection,
-      type: SortType
+      type: SortType,
     ) => void;
     type: SortType;
   }) {
@@ -79,7 +79,7 @@ export default function ResultsTable({
             "ml-1 text-xs text-gray-400 hover:text-black",
             sortColumn === column &&
               sortDirection === "asc" &&
-              "font-bold text-black"
+              "font-bold text-black",
           )}
           size={12}
         />
@@ -89,7 +89,7 @@ export default function ResultsTable({
             "ml-1 text-xs text-gray-400 hover:text-black",
             sortColumn === column &&
               sortDirection === "desc" &&
-              "font-bold text-black"
+              "font-bold text-black",
           )}
           size={12}
         />
@@ -107,7 +107,7 @@ export default function ResultsTable({
                 ref={(el) => setHeaderRef(el, i)}
                 key={`${column}-${i}`}
                 style={{ left: headerOffsets[i] }}
-                className="sticky left-0 top-0 z-40 whitespace-nowrap bg-white text-center text-[11px]"
+                className="sticky top-0 left-0 z-40 bg-white text-center text-[11px] whitespace-nowrap"
               >
                 <div className="flex items-center justify-between">
                   <span>{column}</span>
@@ -125,7 +125,7 @@ export default function ResultsTable({
             {tableDates.map((d, i) => (
               <TableHead
                 key={`dates-${d}-${i}`}
-                className="sticky top-0 z-10 whitespace-nowrap bg-gray-100 text-center text-[11px]"
+                className="sticky top-0 z-10 bg-gray-100 text-center text-[11px] whitespace-nowrap"
               >
                 <div className="flex items-center justify-between">
                   {d}
@@ -140,7 +140,7 @@ export default function ResultsTable({
               </TableHead>
             ))}
             {isSource && (
-              <TableHead className="sticky top-0 z-10 w-fit whitespace-nowrap bg-gray-100 text-center text-[11px]">
+              <TableHead className="sticky top-0 z-10 w-fit bg-gray-100 text-center text-[11px] whitespace-nowrap">
                 Source
               </TableHead>
             )}
@@ -154,7 +154,7 @@ export default function ResultsTable({
                   <TableCell
                     key={`${i}-dim`}
                     style={{ left: headerOffsets[i] }}
-                    className="sticky z-20 whitespace-nowrap bg-white text-left text-[11px]"
+                    className="sticky z-20 bg-white text-left text-[11px] whitespace-nowrap"
                   >
                     {String(r[c as "Indicator" | "Area" | "Units"] ?? "")}
                   </TableCell>
@@ -169,7 +169,7 @@ export default function ResultsTable({
                   </TableCell>
                 ))}
                 {isSource && (
-                  <TableCell className="z-0 w-fit whitespace-nowrap text-center text-[11px]">
+                  <TableCell className="z-0 w-fit text-center text-[11px] whitespace-nowrap">
                     {r.sourceDescription}
                   </TableCell>
                 )}

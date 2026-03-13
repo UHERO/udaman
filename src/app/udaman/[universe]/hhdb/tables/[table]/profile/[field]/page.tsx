@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { getHhdbProfileOverview } from "@/actions/hhdb";
 import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 import { ProfileFieldDrilldown } from "@/components/hhdb/profile/unified-profile";
-import { getHhdbProfileOverview } from "@/actions/hhdb";
 
 export default async function Page({
   params,

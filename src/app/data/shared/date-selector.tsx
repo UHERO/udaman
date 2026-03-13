@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -11,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 import { DateOptions } from "../dbedt/types";
 import { q } from "./utils";
@@ -51,7 +51,7 @@ export default function DateSelector({
     setShowQtrSelector(
       frequencies?.some((f) => f.state && f.id === "Q") &&
         !frequencies?.some((f) => f.state && f.id === "M") &&
-        (regions?.some((r) => r.state) ?? true)
+        (regions?.some((r) => r.state) ?? true),
     );
   }, [regions, frequencies]);
 
@@ -61,7 +61,7 @@ export default function DateSelector({
         frequencies.some((f) => f.state) && showSelector
           ? "pointer-events-auto opacity-100"
           : "pointer-events-none opacity-45",
-        "grid w-fit grid-cols-2 gap-x-2 md:flex"
+        "grid w-fit grid-cols-2 gap-x-2 md:flex",
       )}
     >
       <div className="block">

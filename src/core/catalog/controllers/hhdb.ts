@@ -23,12 +23,18 @@ import HhdbPermitCollection from "../collections/hhdb-permit-collection";
 import HhdbPropertyCollection from "../collections/hhdb-property-collection";
 import HhdbResidentialAdditionCollection from "../collections/hhdb-residential-addition-collection";
 import HhdbSaleCollection from "../collections/hhdb-sale-collection";
+import HhdbProfileCollection from "../collections/hhdb-profile-collection";
 import HhdbSummaryCollection from "../collections/hhdb-summary-collection";
 import HhdbYardImprovementCollection from "../collections/hhdb-yard-improvement-collection";
 import type {
+  CategoricalDrilldown,
   FreqSummaryParams,
   FreqSummaryResult,
   HhdbListParams,
+  NumericDrilldown,
+  OverviewData,
+  TemporalDrilldown,
+  TextDrilldown,
 } from "../types/hhdb";
 
 const log = createLogger("hhdb");
@@ -415,4 +421,47 @@ export async function getFreqSummary(
     "hhdb freq summary fetched",
   );
   return result;
+}
+
+// --- Profile ---
+
+export async function getProfileOverview(
+  table: string,
+): Promise<OverviewData> {
+  log.info({ table }, "fetching hhdb profile overview");
+  const result = await HhdbProfileCollection.getOverview(table);
+  log.info({ table, rows: result.rows.length }, "hhdb profile overview fetched");
+  return result;
+}
+
+export async function getProfileCategoricalDrilldown(
+  table: string,
+  column: string,
+): Promise<CategoricalDrilldown> {
+  log.info({ table, column }, "fetching hhdb categorical drilldown");
+  return HhdbProfileCollection.getCategoricalDrilldown(table, column);
+}
+
+export async function getProfileNumericDrilldown(
+  table: string,
+  column: string,
+): Promise<NumericDrilldown> {
+  log.info({ table, column }, "fetching hhdb numeric drilldown");
+  return HhdbProfileCollection.getNumericDrilldown(table, column);
+}
+
+export async function getProfileTemporalDrilldown(
+  table: string,
+  column: string,
+): Promise<TemporalDrilldown> {
+  log.info({ table, column }, "fetching hhdb temporal drilldown");
+  return HhdbProfileCollection.getTemporalDrilldown(table, column);
+}
+
+export async function getProfileTextDrilldown(
+  table: string,
+  column: string,
+): Promise<TextDrilldown> {
+  log.info({ table, column }, "fetching hhdb text drilldown");
+  return HhdbProfileCollection.getTextDrilldown(table, column);
 }

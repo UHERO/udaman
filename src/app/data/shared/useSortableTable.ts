@@ -11,7 +11,7 @@ type CustomAccessors<T> = Record<string, (item: T) => any>;
 */
 export function useSortableTable<T>(
   data: T[],
-  customAccessors: CustomAccessors<T> = {}
+  customAccessors: CustomAccessors<T> = {},
 ) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -20,7 +20,7 @@ export function useSortableTable<T>(
   const handleSort = (
     column: string,
     direction: SortDirection,
-    type: SortType
+    type: SortType,
   ) => {
     if (sortColumn === column && sortDirection === direction) {
       setSortColumn(null);

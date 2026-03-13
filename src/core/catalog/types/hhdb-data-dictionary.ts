@@ -1626,7 +1626,8 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
     {
       key: "tmk",
       label: "TMK",
-      description: "9 digit Tax Map Key. Division-Zone-Section-Plat-Parcel-CPR, where Division translates to County.",
+      description:
+        "9 digit Tax Map Key. Division-Zone-Section-Plat-Parcel-CPR, where Division translates to County.",
       summary: ALL_VIEWS,
     },
     {
@@ -1766,6 +1767,17 @@ export const HHDB_DATA_DICTIONARY: Record<string, DictionaryField[]> = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Get the human-readable label for a column from the data dictionary, or null. */
+export function getDictionaryLabel(
+  tableName: string,
+  columnName: string,
+): string | null {
+  const fields = HHDB_DATA_DICTIONARY[tableName];
+  if (!fields) return null;
+  const field = fields.find((f) => f.key === columnName);
+  return field?.label ?? null;
+}
 
 /** Get all dictionary fields for a table. */
 export function getDictionaryFields(

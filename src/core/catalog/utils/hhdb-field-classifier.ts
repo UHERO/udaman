@@ -65,13 +65,8 @@ export function classifyField(
 }
 
 /** Convert snake_case column name to Title Case, with dictionary label override. */
-export function columnLabel(
-  tableName: string,
-  columnName: string,
-): string {
+export function columnLabel(tableName: string, columnName: string): string {
   const dictLabel = getDictionaryLabel(tableName, columnName);
   if (dictLabel) return dictLabel;
-  return columnName
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return columnName.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

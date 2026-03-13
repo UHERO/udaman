@@ -1,6 +1,4 @@
 import { fetchMeasurementSeries } from "@/actions/data-portal/dbedt";
-
-import { cn } from "@/lib/utils";
 import { CollapsibleContent } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
@@ -8,6 +6,7 @@ import {
   SidebarMenu,
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 import { CategoryType, Series, SubOption } from "../types";
 
@@ -22,7 +21,7 @@ export default function DbedtOptions({
 }) {
   const handleMeasurementSeries = async (
     parentId: number,
-    child: SubOption
+    child: SubOption,
   ) => {
     const result = await fetchMeasurementSeries(child.id.toString());
 
@@ -40,7 +39,7 @@ export default function DbedtOptions({
                 className={cn(
                   "cursor-pointer",
                   option.state ? "bg-sky-200/60 font-bold" : "bg-none",
-                  "ml-5 h-fit rounded-sm py-0.5 text-xs hover:font-semibold active:scale-[1.02]"
+                  "ml-5 h-fit rounded-sm py-0.5 text-xs hover:font-semibold active:scale-[1.02]",
                 )}
               >
                 {option.name}

@@ -57,3 +57,157 @@ export interface FreqSummaryResult {
   totalCounts: Record<string, number>;
   generatedAt: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Profile types
+// ---------------------------------------------------------------------------
+
+export type FieldCategory =
+  | "identifier"
+  | "low-cardinality"
+  | "high-cardinality"
+  | "large-dollar"
+  | "small-dollar"
+  | "year"
+  | "area"
+  | "count"
+  | "date"
+  | "blob";
+
+export type CountyName = "Honolulu" | "Maui" | "Hawaii" | "Kauai";
+export type CountyCounts = Record<CountyName, number>;
+
+export const COUNTY_NAMES: CountyName[] = [
+  "Honolulu",
+  "Maui",
+  "Hawaii",
+  "Kauai",
+];
+
+export interface ColumnInfo {
+  columnName: string;
+  dataType: string;
+  columnType: string;
+  isNullable: boolean;
+  ordinalPosition: number;
+}
+
+export interface OverviewRow {
+  columnName: string;
+  fieldCategory: FieldCategory;
+  dataType: string;
+  label: string;
+  nonNullCount: number;
+  nullCount: number;
+  nullPercent: number;
+  distinctCount: number;
+  totalRows: number;
+  countyNonNull?: CountyCounts;
+}
+
+export interface OverviewData {
+  rows: OverviewRow[];
+  totalRows: number;
+  countyTotals?: CountyCounts;
+}
+
+export interface CategoricalFieldSummary {
+  columnName: string;
+  label: string;
+  distinctCount: number;
+  topValues: { value: string; count: number; percent: number }[];
+}
+
+export interface CategoricalDrilldown {
+  columnName: string;
+  label: string;
+  totalNonNull: number;
+  totalNull: number;
+  distinctCount: number;
+  mode: string;
+  values: {
+    value: string;
+    count: number;
+    percent: number;
+    cumulative: number;
+  }[];
+}
+
+export interface NumericFieldSummary {
+  columnName: string;
+  label: string;
+  fieldCategory: FieldCategory;
+  min: number;
+  max: number;
+  median: number;
+  nullCount: number;
+  nonNullCount: number;
+}
+
+export interface NumericDrilldown {
+  columnName: string;
+  label: string;
+  fieldCategory: FieldCategory;
+  min: number;
+  max: number;
+  median: number;
+  nullCount: number;
+  nonNullCount: number;
+  avg: number;
+  zeroCount: number;
+  negativeCount: number;
+  histogram: { label: string; min: number; max: number; count: number }[];
+}
+
+export interface TextFieldSummary {
+  columnName: string;
+  label: string;
+  fieldCategory: FieldCategory;
+  totalCount: number;
+  distinctCount: number;
+  duplicateCount: number;
+  nullCount: number;
+  nullPercent: number;
+  avgLength: number;
+}
+
+export interface TextDrilldown {
+  columnName: string;
+  label: string;
+  fieldCategory: FieldCategory;
+  totalCount: number;
+  distinctCount: number;
+  duplicateCount: number;
+  nullCount: number;
+  nullPercent: number;
+  avgLength: number;
+  minLength: number;
+  maxLength: number;
+  topValues: { value: string; count: number }[];
+  lengthDistribution: { length: number; count: number }[];
+  formatConformance?: {
+    pattern: string;
+    matchCount: number;
+    totalCount: number;
+  };
+}
+
+export interface TemporalFieldSummary {
+  columnName: string;
+  label: string;
+  minDate: string;
+  maxDate: string;
+  nullCount: number;
+  yearCounts: { year: number; count: number }[];
+}
+
+export interface TemporalDrilldown {
+  columnName: string;
+  label: string;
+  minDate: string;
+  maxDate: string;
+  nullCount: number;
+  yearCounts: { year: number; count: number }[];
+  monthlyCounts?: { month: number; count: number }[];
+  gaps: number[];
+}

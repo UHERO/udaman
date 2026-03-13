@@ -460,7 +460,6 @@ export function HhdbSummaries({
                   </div>
                 );
               })()}
-
           </div>
         )}
       </div>

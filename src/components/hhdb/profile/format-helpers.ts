@@ -23,14 +23,8 @@ export function formatPercent(n: number): string {
   return `${n.toFixed(1)}%`;
 }
 
-export function formatNumericValue(
-  n: number,
-  category: string,
-): string {
-  if (
-    category === "large-dollar" ||
-    category === "small-dollar"
-  ) {
+export function formatNumericValue(n: number, category: string): string {
+  if (category === "large-dollar" || category === "small-dollar") {
     return formatDollar(n);
   }
   if (category === "year") return String(Math.round(n));

@@ -1,5 +1,6 @@
 import { ticks } from "d3-array";
 
+import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
 import { rawQuery } from "@/lib/mysql/hhdb";
 
 import type {
@@ -18,11 +19,7 @@ import type {
   TextDrilldown,
   TextFieldSummary,
 } from "../types/hhdb";
-import { HHDB_TABLE_CONFIG } from "@/components/hhdb/hhdb-table-config";
-import {
-  classifyField,
-  columnLabel,
-} from "../utils/hhdb-field-classifier";
+import { classifyField, columnLabel } from "../utils/hhdb-field-classifier";
 
 // ---------------------------------------------------------------------------
 // Validation helpers
@@ -59,9 +56,7 @@ async function validateColumn(
   const cols = await getColumnInfoCached(table);
   const col = cols.find((c) => c.columnName === column);
   if (!col) {
-    throw new Error(
-      `Invalid column "${column}" for table "${table}"`,
-    );
+    throw new Error(`Invalid column "${column}" for table "${table}"`);
   }
   return col;
 }
@@ -418,8 +413,7 @@ async function getNumericDrilldown(
 
       const caseLines = fixedBuckets.map((b, i) => {
         if (i === fixedBuckets.length - 1) return `ELSE ${i}`;
-        if (b.min === b.max)
-          return `WHEN \`${column}\` = ${b.min} THEN ${i}`;
+        if (b.min === b.max) return `WHEN \`${column}\` = ${b.min} THEN ${i}`;
         return `WHEN \`${column}\` >= ${b.min} AND \`${column}\` < ${b.max} THEN ${i}`;
       });
       const caseExpr = `CASE ${caseLines.join(" ")} END`;
@@ -432,7 +426,9 @@ async function getNumericDrilldown(
          ORDER BY bucket_idx`,
       );
 
-      const countMap = new Map(rows.map((r) => [Number(r.bucket_idx), Number(r.cnt)]));
+      const countMap = new Map(
+        rows.map((r) => [Number(r.bucket_idx), Number(r.cnt)]),
+      );
       histogram = fixedBuckets.map((b, i) => ({
         label: b.label,
         min: b.min,
@@ -580,9 +576,7 @@ async function getNumericDrilldown(
   };
 }
 
-async function getTextSummaries(
-  table: string,
-): Promise<TextFieldSummary[]> {
+async function getTextSummaries(table: string): Promise<TextFieldSummary[]> {
   resolveTable(table);
   const overview = await getOverview(table);
   const textFields = overview.rows.filter(
@@ -730,9 +724,7 @@ async function getTemporalSummaries(
 ): Promise<TemporalFieldSummary[]> {
   resolveTable(table);
   const overview = await getOverview(table);
-  const dateFields = overview.rows.filter(
-    (r) => r.fieldCategory === "date",
-  );
+  const dateFields = overview.rows.filter((r) => r.fieldCategory === "date");
 
   const summaries = await Promise.all(
     dateFields.map(async (field) => {
@@ -847,16 +839,9 @@ async function getTemporalDrilldown(
 // Format helper
 // ---------------------------------------------------------------------------
 
-function formatBucketLabel(
-  min: number,
-  max: number,
-  category: string,
-): string {
+function formatBucketLabel(min: number, max: number, category: string): string {
   const fmt = (n: number) => {
-    if (
-      category === "large-dollar" ||
-      category === "small-dollar"
-    ) {
+    if (category === "large-dollar" || category === "small-dollar") {
       if (n >= 1_000_000)
         return `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
       if (n >= 1_000)

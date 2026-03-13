@@ -62,6 +62,7 @@ export type SeriesObservations = {
 };
 
 export type Series = {
+  [key: string]: unknown;
   Indicator?: string;
   Area?: string;
   Units?: string;

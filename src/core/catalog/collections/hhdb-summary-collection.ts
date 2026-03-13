@@ -59,8 +59,7 @@ export default class HhdbSummaryCollection {
 
     if (metaRows.length > 0) {
       const genAt = metaRows[0].generated_at;
-      generatedAt =
-        genAt instanceof Date ? genAt.toISOString() : String(genAt);
+      generatedAt = genAt instanceof Date ? genAt.toISOString() : String(genAt);
       const nullCounts: Record<string, number> = {};
       for (const r of metaRows) {
         nullCounts[r.county_code] = Number(r.frequency);
@@ -96,11 +95,12 @@ export default class HhdbSummaryCollection {
     }
 
     // Count distinct values (excluding [NULL])
-    const searchFilter =
-      params.search
-        ? `AND column_value != '[NULL]' AND column_value LIKE ?`
-        : `AND column_value != '[NULL]'`;
-    const searchParams = params.search ? [column, `%${params.search}%`] : [column];
+    const searchFilter = params.search
+      ? `AND column_value != '[NULL]' AND column_value LIKE ?`
+      : `AND column_value != '[NULL]'`;
+    const searchParams = params.search
+      ? [column, `%${params.search}%`]
+      : [column];
 
     const countRows = await rawQuery<{ cnt: number }>(
       `SELECT COUNT(DISTINCT column_value) AS cnt
@@ -120,10 +120,16 @@ export default class HhdbSummaryCollection {
     const pageValues = await rawQuery<{ column_value: string }>(
       `SELECT column_value
        FROM ${freqTable}
-       WHERE column_name = ? AND county_code = ? ${searchFilter.replace('column_value !=', 'column_value !=')}
+       WHERE column_name = ? AND county_code = ? ${searchFilter.replace("column_value !=", "column_value !=")}
        ORDER BY frequency ${sortDir}
        LIMIT ? OFFSET ?`,
-      [...(params.search ? [column, sortCol, `%${params.search}%`] : [column, sortCol]), params.limit, offset],
+      [
+        ...(params.search
+          ? [column, sortCol, `%${params.search}%`]
+          : [column, sortCol]),
+        params.limit,
+        offset,
+      ],
     );
 
     if (pageValues.length === 0) {

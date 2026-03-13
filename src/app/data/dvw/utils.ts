@@ -4,7 +4,6 @@
  *   in Angular with slight modifications.
  ***************************************************************************************/
 
-import { getFrequencies, getSeries } from "@/actions/data-portal/dvw"
 import {
   FileUser,
   HandCoins,
@@ -20,10 +19,18 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Observations } from "@/types/rest-api"
+import { getFrequencies, getSeries } from "@/actions/data-portal/dvw";
+import { Observations } from "@/types/rest-api";
 
 import { addAnnualObs, addQuarterObs } from "../shared/utils";
-import { Dimension, DvwModuleSeries, DvwSeries, Module } from "./types";
+import {
+  Dimension,
+  DvwModuleSeries,
+  DvwSeries,
+  Module,
+  ModuleDimension,
+  SelectedDimension,
+} from "./types";
 
 export const modules: string[] = ["trend", "char", "airseat", "exp", "hotel"];
 
@@ -92,9 +99,9 @@ export const getObsDates = (series: DvwModuleSeries[] | Observations[]) => {
  ***************************************************************************************/
 
 export async function checkUserSelections(
-  dimensions: any,
+  dimensions: SelectedDimension,
   mod: Module,
-  frequency?: string
+  frequency?: string,
 ) {
   let allDimensionsSelected = false;
 
@@ -123,29 +130,30 @@ export async function checkUserSelections(
   return ["", []];
 }
 
-export function isAllDimSelected(dimensions: Dimension) {
+export function isAllDimSelected(dimensions: Dimension | SelectedDimension) {
   return Object.keys(dimensions).every((key) => {
     return Object.values(dimensions[key]).some((d) => d.state === true);
   });
 }
 
-async function getSeriesData(mod: string, dimensions: any, frequency: string) {
+async function getSeriesData(mod: string, dimensions: SelectedDimension, frequency: string) {
   const apiParam = formatApiParam(dimensions);
   const series = await getSeries(mod, apiParam, frequency);
   return [apiParam, series ?? {}];
 }
 
 export const formatApiParam = (
-  dimensions: any,
-  unusedFreqParams?: Array<any>
+  dimensions: SelectedDimension,
+  unusedFreqParams?: string[],
 ) => {
   let apiParam = "";
   const dimensionKeys = Object.keys(dimensions);
   dimensionKeys.forEach((key, index) => {
     apiParam += `${key.substring(0, 1)}=`;
-    Object.values(dimensions[key]).forEach((opt, optIndex) => {
+    const opts = Object.values(dimensions[key]);
+    opts.forEach((opt, optIndex) => {
       apiParam += `${opt.handle}`;
-      if (optIndex !== dimensions[key].length - 1) {
+      if (optIndex !== opts.length - 1) {
         apiParam += `,`;
       }
     });
@@ -176,8 +184,8 @@ export const formatApiParam = (
 export const formatSeriesData = (
   series: DvwModuleSeries[],
   dates: Record<string, string>[],
-  dimensions: Dimension,
-  dimensionsArr: string[]
+  dimensions: Dimension | SelectedDimension,
+  dimensionsArr: string[],
 ) => {
   return series.map((serie) => {
     identifySeriesColumns(serie, dimensions);
@@ -218,46 +226,51 @@ export const formatSeriesData = (
   });
 };
 
-function setSeriesTableOrder(serie: any) {
+function setSeriesTableOrder(serie: DvwModuleSeries) {
+  if (!serie.dimensions) return;
   const dimensionKeys = Object.keys(serie.dimensions);
   dimensionKeys.forEach((key) => {
-    Object.values(serie.dimensions[key]).forEach((d) => {
+    const items = serie.dimensions![key];
+    const dims: ModuleDimension[] = Array.isArray(items) ? items : Object.values(items);
+    for (const d of dims) {
       if (serie.columns.includes(d.handle)) {
         serie.order = serie.order
           ? serie.order + formatSeriesOrder(d.level, d.order)
           : formatSeriesOrder(d.level, d.order);
       }
-    });
+    }
   });
 }
 
-function identifySeriesColumns(serie: any, dimensions: any) {
-  serie.columns.forEach((col) => {
+function identifySeriesColumns(serie: DvwModuleSeries, dimensions: Dimension | SelectedDimension) {
+  serie.columns.forEach((col: string) => {
     findColumnDimension(serie, dimensions, col);
   });
 }
 
-function findColumnDimension(serie: any, dimensions: any, column: string) {
+function findColumnDimension(serie: DvwModuleSeries, dimensions: Dimension | SelectedDimension, column: string) {
   Object.keys(dimensions).forEach((key) => {
     matchDimensionAndColumn(dimensions, key, column, serie);
   });
 }
 
 function matchDimensionAndColumn(
-  dimensions: any,
+  dimensions: Dimension | SelectedDimension,
   key: string,
   column: string,
-  serie: any
+  serie: Record<string, unknown>,
 ) {
-  Object.values(dimensions[key]).forEach((opt) => {
+  const items = dimensions[key];
+  const opts: ModuleDimension[] = Array.isArray(items) ? items : Object.values(items);
+  for (const opt of opts) {
     if (opt.handle === column) {
-      serie[key] = opt.nameT ? opt.nameT : opt.nameW;
+      serie[key] = opt.nameT ?? opt.nameW;
       if (opt.unit) {
         serie.units = opt.unit;
         serie.decimal = opt.decimal;
       }
     }
-  });
+  }
 }
 
 function formatSeriesOrder(level: number, index: number) {
@@ -283,11 +296,11 @@ function formatSeriesOrder(level: number, index: number) {
 
 export function categoryDateArray(
   selectedDates: Record<string, string>,
-  selectedFreqs: Array<string>
+  selectedFreqs: Array<string>,
 ) {
   // Dates used in table header
   const dateArray = [];
-  const m: Record<string, string> = {
+  const m: Record<number, string> = {
     1: "01",
     2: "02",
     3: "03",
@@ -301,7 +314,7 @@ export function categoryDateArray(
     11: "11",
     12: "12",
   };
-  const q = { 1: "Q1", 4: "Q2", 7: "Q3", 10: "Q4" };
+  const q: Record<number, string> = { 1: "Q1", 4: "Q2", 7: "Q3", 10: "Q4" };
   let startYear = +selectedDates.startDate.substr(0, 4);
   let endYear = +selectedDates.endDate.substr(0, 4);
   let startMonth = +selectedDates.startDate.substr(5, 2);
@@ -318,7 +331,7 @@ export function categoryDateArray(
     endYear,
     startMonth,
     endMonth,
-    q
+    q,
   );
   startYear = dates.startYear;
   endYear = dates.endYear;
@@ -348,7 +361,7 @@ export function categoryDateArray(
       const addAnnual = addAnnualObs(
         startMonth,
         monthSelected,
-        quarterSelected
+        quarterSelected,
       );
       if (addAnnual) {
         dateArray.push({
@@ -371,7 +384,7 @@ function checkSelectedDates(
   endYear: number,
   startMonth: number,
   endMonth: number,
-  quarters: Record<string, string>
+  quarters: Record<string, string>,
 ) {
   startYear = selectedDates.selectedStartYear
     ? +selectedDates.selectedStartYear
@@ -404,7 +417,7 @@ function checkSelectedDates(
 function setStartMonthQ(
   quarters: Record<string, string>,
   selectedDates: Record<string, string>,
-  startMonth: number
+  startMonth: number,
 ) {
   for (const key in quarters) {
     if (quarters[key] === selectedDates.selectedStartQuarter) {
@@ -418,7 +431,7 @@ function setStartMonthQ(
 function setEndMonthQ(
   quarters: Record<string, string>,
   selectedDates: Record<string, string>,
-  endMonth: number
+  endMonth: number,
 ) {
   for (const key in quarters) {
     if (quarters[key] === selectedDates.selectedEndQuarter) {
@@ -440,7 +453,7 @@ function setEndMonthQ(
  ***************************************************************************************/
 
 export function resetAllDimensionStates(
-  dimensions: Record<string, Record<string, any>>
+  dimensions: Record<string, Record<string, any>>,
 ): Record<string, Record<string, any>> {
   const reset: Record<string, Record<string, any>> = {};
 
@@ -462,7 +475,7 @@ export function resetAllDimensionStates(
 export function flipDimensionState(
   dimensions: Record<string, Record<string, any>>,
   groupKey: string,
-  itemKey: string
+  itemKey: string,
 ): Record<string, Record<string, any>> {
   return {
     ...dimensions,

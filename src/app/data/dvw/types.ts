@@ -4,6 +4,10 @@ export type ModuleDimension = {
   module: string;
   handle: string;
   nameW: string;
+  nameT?: string;
+  info?: string;
+  unit?: string;
+  decimal?: number;
   level: number;
   order: number;
   children?: ModuleDimension[];
@@ -28,6 +32,7 @@ export type DvwSeries = {
 };
 
 export type DvwModuleSeries = {
+  [key: string]: unknown;
   Categories?: string;
   Indicators?: string;
   Destinations?: string;
@@ -35,7 +40,7 @@ export type DvwModuleSeries = {
   Groups?: string;
   columns: string[];
   dates: string[];
-  dimensions?: Dimension;
+  dimensions?: Dimension | SelectedDimension;
   dimensionArr: string[];
   observationEnd: string;
   observationStart: string;

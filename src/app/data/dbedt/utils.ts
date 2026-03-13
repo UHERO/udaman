@@ -48,11 +48,11 @@ export const CAT_ICON_MAP: Record<string, LucideIcon> = {
 
 export const getObsDates = (series: Series[]) => {
   const obsStartDates = series.map(
-    (serie) => serie.seriesObservations.observationStart
+    (serie) => serie.seriesObservations.observationStart,
   );
 
   const obsEndDates = series.map(
-    (serie) => serie.seriesObservations.observationEnd
+    (serie) => serie.seriesObservations.observationEnd,
   );
   const minObsDate = obsStartDates.reduce((min, curr) => {
     return min === "" ? curr : curr.localeCompare(min) < 0 ? curr : min;
@@ -70,20 +70,21 @@ export const getObsDates = (series: Series[]) => {
 export const formatObservations = (
   indicatorLevel: TransformationResults,
   dateArray: Record<string, string>[],
-  decimals: number
+  decimals: number,
 ) => {
   // Return array of of dates with their corresponding values
   const { dates, values } = indicatorLevel;
 
-  const results = {};
+  const results: Record<string, string> = {};
   dateArray.forEach((date) => {
     results[date.tableDate] = " ";
     const dateExists = dates.indexOf(date.date);
     if (dateExists > -1) {
+      const parsed = parseFloat(values[dateExists]);
       results[date.tableDate] =
-        values[dateExists] === Infinity
+        !isFinite(parsed)
           ? " "
-          : parseFloat(values[dateExists]).toLocaleString("en-US", {
+          : parsed.toLocaleString("en-US", {
               minimumFractionDigits: decimals,
               maximumFractionDigits: decimals,
             });
@@ -106,7 +107,7 @@ export function setDateArray(
   dateFormValues: Record<string, string>,
   annualSelected: boolean,
   quarterSelected: boolean,
-  monthSelected: boolean
+  monthSelected: boolean,
 ) {
   const dateArray = [];
   const m: Record<string, string> = {

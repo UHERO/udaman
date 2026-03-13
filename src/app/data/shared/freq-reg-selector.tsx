@@ -34,13 +34,13 @@ export default function FrequencyRegionSelector({
       className={cn(
         data.length > 0
           ? "pointer-events-auto opacity-100"
-          : "pointer-events-none: opacity-50"
+          : "pointer-events-none: opacity-50",
       )}
     >
       <p
         className={cn(
           type === "dvw" ? "text-dvw" : "text-zinc-800",
-          "mb-1.5 ml-1 text-sm font-semibold"
+          "mb-1.5 ml-1 text-sm font-semibold",
         )}
       >
         {selector.toUpperCase()}
@@ -55,7 +55,7 @@ export default function FrequencyRegionSelector({
                       ? "bg-dvw font-semibold text-white"
                       : "bg-dbedt font-semibold"
                     : "text-zinc-500",
-                  "w-full p-1 text-start text-xs hover:font-semibold active:scale-[1.02]"
+                  "w-full p-1 text-start text-xs hover:font-semibold active:scale-[1.02]",
                 )}
                 onClick={() => {
                   handleFreq(type === "dvw" ? d.id : d);
@@ -73,7 +73,7 @@ export default function FrequencyRegionSelector({
                 >
                   {s}
                 </p>
-              )
+              ),
             )}
       </div>
     </div>

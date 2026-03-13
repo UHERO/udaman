@@ -67,7 +67,7 @@ export function addQuarterObs(startMonth: number, monthSelected: boolean) {
 export function addAnnualObs(
   startMonth: number,
   monthSelected: boolean,
-  quarterSelected: boolean
+  quarterSelected: boolean,
 ) {
   // If M selected, add A after month 12
   if (monthSelected && startMonth === 12) {
@@ -117,7 +117,7 @@ export const getUpdatedDateRange = (
   type: DateOptions,
   value: string,
   maxObsYr: string,
-  minObsMo: string
+  minObsMo: string,
 ) => {
   const isEndYear = prev.endYear === maxObsYr;
   const isSameYear = prev.startYear === prev.endYear;
@@ -189,7 +189,7 @@ export function exportToExcel(
   results: Series[] | DvwModuleSeries[],
   tableDates: string[],
   type: "dbedt" | "dvw",
-  dimensions: string[]
+  dimensions: string[],
 ): void {
   const fileName = `${textMap[type].titleText}.xlsx`;
   const title = [textMap[type].titleText];
@@ -213,7 +213,7 @@ export function exportToExcel(
   const footer = [[footerText], ...footerTextSource.map((s) => [s])];
 
   // Combine all rows: title, header, data, footer
-  const allRows = [title, header, ...data, "", ...footer];
+  const allRows = [title, header, ...data, [""], ...footer];
   const allRowsForWidth = [header, ...data]; // exclude title from width calc
 
   // Calculate column widths based on max content length in each column
@@ -255,7 +255,7 @@ export function exportToCSV(
 
   tableDates: string[],
   type: "dbedt" | "dvw",
-  dimensions: string[]
+  dimensions: string[],
 ): void {
   const fileName = `${textMap[type].titleText}.csv`;
   const header = [
@@ -276,7 +276,7 @@ export function exportToCSV(
   const footerTextSource = textMap[type].footerTextSource;
   const footer = [[footerText], ...footerTextSource.map((s) => [s])];
   const csvRows = [header, ...data, [" "], ...footer].map((row) =>
-    row.map((cell) => `"${cell}"`).join(",")
+    row.map((cell) => `"${cell}"`).join(","),
   );
   const blob = new Blob([csvRows.join("\n")], {
     type: "text/csv;charset=utf-8;",
@@ -296,7 +296,7 @@ export function exportToPDF(
   results: Series[] | DvwModuleSeries[],
   tableDates: string[],
   type: "dbedt" | "dvw",
-  dimensions: string[]
+  dimensions: string[],
 ): void {
   const doc = new jsPDF();
   const chunkSize = 6; // Number of date columns per page
@@ -350,7 +350,7 @@ function generatePrintHTML(
 
   tableDates: string[],
   type: "dbedt" | "dvw",
-  dimensions: string[]
+  dimensions: string[],
 ): string {
   const chunkSize = 8;
   const headerDateChunks = chunkArray(tableDates, chunkSize); // Header display format
@@ -394,7 +394,7 @@ export function printTable(
   results: Series[] | DvwModuleSeries[],
   tableDates: string[],
   type: "dbedt" | "dvw",
-  dimensions: string[]
+  dimensions: string[],
 ): void {
   const html = generatePrintHTML(results, tableDates, type, dimensions);
   const win = window.open("", "_blank");
@@ -413,7 +413,7 @@ export function printTable(
         <p>${type === "dbedt" ? textMap[type].titleSubtext : ""}</p>
         ${html}
       </body>
-    </html>`
+    </html>`,
   );
   win.document.close();
   win.focus();

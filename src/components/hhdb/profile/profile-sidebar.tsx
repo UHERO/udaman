@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-
 import type { FieldCategory } from "@catalog/types/hhdb";
+
 import { cn } from "@/lib/utils";
 
 const CATEGORY_DOTS: Record<string, string> = {

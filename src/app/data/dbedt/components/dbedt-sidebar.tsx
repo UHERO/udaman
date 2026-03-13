@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Collapsible } from "@radix-ui/react-collapsible";
 import { ChevronDown } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { fetchCategoryMeasures } from "@/actions/data-portal/dbedt";
 import {
   CollapsibleContent,
   CollapsibleTrigger,
@@ -28,8 +28,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-import { fetchCategoryMeasures } from "@/actions/data-portal/dbedt";
 import { CategoryType, Series, SubOption } from "../types";
 import { CAT_ICON_MAP } from "../utils";
 import DbedtOptions from "./dbedt-options";
@@ -44,7 +44,7 @@ export default function DbedtSidebar({
   handleSelectedIndicators: (
     result: Series[],
     id?: number,
-    state?: boolean
+    state?: boolean,
   ) => void;
   selectionCleared: () => void;
   clearSelection: boolean;
@@ -53,7 +53,9 @@ export default function DbedtSidebar({
 
   const [subOptions, setSuboptions] = useState<Record<string, SubOption[]>>({});
   const [isCollapsed, setIsCollapsed] = useState<Record<string, boolean>>({});
-  const [isChildCollapsed, setIsChildCollapsed] = useState<Record<number, boolean>>({});
+  const [isChildCollapsed, setIsChildCollapsed] = useState<
+    Record<number, boolean>
+  >({});
 
   const getSubOptions = async (id: number) => {
     if (id in subOptions && subOptions[id]) return;
@@ -101,7 +103,7 @@ export default function DbedtSidebar({
     const map: Record<string, boolean> = {};
     categories.forEach((group) => {
       map[group.name] = Object.values(group.children || {}).some(
-        (item: any) => activeOptionsMap[item.id]
+        (item: any) => activeOptionsMap[item.id],
       );
     });
     return map;
@@ -110,7 +112,7 @@ export default function DbedtSidebar({
   const handleNewSuboptions = (
     parentId: number,
     child: SubOption,
-    result: Series[]
+    result: Series[],
   ) => {
     setSuboptions((prev) => ({
       ...prev,
@@ -120,7 +122,7 @@ export default function DbedtSidebar({
               ...option,
               state: !option.state,
             }
-          : option
+          : option,
       ),
     }));
 
@@ -133,9 +135,7 @@ export default function DbedtSidebar({
       className="z-50 h-[520px] max-w-[250px] p-0 **:data-[sidebar=sidebar]:bg-white *:data-[slot=sidebar-container]:border-r-0"
       collapsible="icon"
     >
-      <SidebarTrigger
-        className="flex w-full scale-75 animate-pulse py-5 text-base font-semibold text-zinc-400"
-      >
+      <SidebarTrigger className="flex w-full scale-75 animate-pulse py-5 text-base font-semibold text-zinc-400">
         INDICATOR
       </SidebarTrigger>
 
@@ -173,7 +173,7 @@ export default function DbedtSidebar({
                               activeGroupsMap[group.name]
                                 ? "bg-sky-200/60 text-zinc-700"
                                 : "text-zinc-500",
-                              "text-center"
+                              "text-center",
                             )}
                           >
                             <Icon size={18} className="text-gray-500" />
@@ -192,7 +192,7 @@ export default function DbedtSidebar({
                             activeGroupsMap[group.name]
                               ? "bg-sky-200/60 text-zinc-700"
                               : "text-zinc-500",
-                            "my-0 -ml-2 flex w-full cursor-pointer items-center justify-start gap-1 rounded-sm p-1 font-semibold hover:bg-gray-100 active:scale-[1.02]"
+                            "my-0 -ml-2 flex w-full cursor-pointer items-center justify-start gap-1 rounded-sm p-1 font-semibold hover:bg-gray-100 active:scale-[1.02]",
                           )}
                         >
                           <ChevronDown
@@ -200,7 +200,7 @@ export default function DbedtSidebar({
                             className="font-bold transition-transform group-data-[state=open]/collapsible:rotate-180"
                           />
                           <Icon size={15} className="mx-0.5 text-gray-400" />
-                          <span className="whitespace-nowrap text-left">
+                          <span className="text-left whitespace-nowrap">
                             {group.name}
                           </span>
                         </CollapsibleTrigger>
@@ -214,7 +214,10 @@ export default function DbedtSidebar({
                                 key={`item-${item.id}`}
                                 open={isChildCollapsed[item.id] ?? false}
                                 onOpenChange={(open) => {
-                                  setIsChildCollapsed((prev) => ({ ...prev, [item.id]: open }));
+                                  setIsChildCollapsed((prev) => ({
+                                    ...prev,
+                                    [item.id]: open,
+                                  }));
                                   if (open) getSubOptions(item.id);
                                 }}
                                 className="group/collapsible2"
@@ -225,7 +228,7 @@ export default function DbedtSidebar({
                                       activeOptionsMap[item.id]
                                         ? "bg-sky-200/60 font-semibold text-zinc-700"
                                         : "text-zinc-500",
-                                      "flex h-fit w-full cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-left text-xs hover:bg-gray-100 hover:font-semibold active:scale-[1.02]"
+                                      "flex h-fit w-full cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-left text-xs hover:bg-gray-100 hover:font-semibold active:scale-[1.02]",
                                     )}
                                   >
                                     <ChevronDown
@@ -245,12 +248,12 @@ export default function DbedtSidebar({
                                         updateState={(
                                           parentId: number,
                                           child: SubOption,
-                                          result: Series[]
+                                          result: Series[],
                                         ) => {
                                           handleNewSuboptions(
                                             parentId,
                                             child,
-                                            result
+                                            result,
                                           );
                                         }}
                                       />

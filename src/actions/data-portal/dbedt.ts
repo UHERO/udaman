@@ -13,6 +13,7 @@
          on the client side, and displayed on results table
  ***************************************************************************************/
 import { CategoryType, Series } from "@/app/data/dbedt/types";
+
 import { fetchFromRestApi } from "./cpi-rpp";
 
 const BASE_URL = process.env.REST_API_V1_URL;
@@ -37,7 +38,7 @@ export default async function fetchCategories(): Promise<CategoryType[]> {
 
   const idMap = categories.reduce<Record<number, CategoryType>>(
     (map, value) => ((map[value.id] = value), map),
-    {}
+    {},
   );
 
   categories.forEach((value) => {
@@ -61,7 +62,7 @@ export default async function fetchCategories(): Promise<CategoryType[]> {
  *  Sample response:  [ { id: 163679, name: 'Total Resident (Census)' } ]
  ***************************************************************************************/
 export async function fetchCategoryMeasures(
-  id: string
+  id: string,
 ): Promise<Record<string, string | boolean>[]> {
   try {
     const res: Record<string, string>[] = await fetchFromRestApi({
