@@ -11,6 +11,7 @@ import {
   type DvwUploadJobData,
   type QpubLoadJobData,
   type QpubParseJobData,
+  type QpubReparseJobData,
   type QpubScrapeJobData,
   type ReloadJobData,
   type SeriesReloadJobData,
@@ -100,5 +101,13 @@ export function enqueueQpubParse(data: QpubParseJobData) {
 export function enqueueQpubLoad(data: QpubLoadJobData) {
   return scraperQueue.add(JobName.QPUB_LOAD, data, {
     jobId: `qpub-load-${data.tmk}`,
+  });
+}
+
+export function enqueueQpubReparse(data: QpubReparseJobData) {
+  const id = [data.table, data.island, data.period].filter(Boolean).join("-");
+  return scraperQueue.add(JobName.QPUB_REPARSE, data, {
+    jobId: `qpub-reparse-${id}`,
+    attempts: 1,
   });
 }

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "fs";
+import { existsSync, readdirSync, statSync } from "fs";
 import path from "path";
 
 /** Auto-detect NAS mount point (mac / linux / windows) */
@@ -94,6 +94,34 @@ export const QPUB_CONFIG = {
   BASE_URLS,
 } as const;
 
+// ─── Scrape periods ──────────────────────────────────────────────
+
+/**
+ * Scrape period: '2026-1' (Mar–Jul) or '2026-2' (Sep–Dec).
+ * Throws if called in Jan, Feb, or Aug (county update / blocked months).
+ */
+export function getScrapePeriod(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1; // 1-indexed
+  if (month >= 3 && month <= 7) return `${year}-1`;
+  if (month >= 9 && month <= 12) return `${year}-2`;
+  throw new Error(`No active scrape period in month ${month}`);
+}
+
+/** Whether scraping is currently allowed (blocked in Jan, Feb, Aug) */
+export function isScrapePeriodActive(date: Date = new Date()): boolean {
+  const month = date.getMonth() + 1;
+  return (month >= 3 && month <= 7) || (month >= 9 && month <= 12);
+}
+
+/**
+ * SQL WHERE fragment: matches scraped_at to a period string like '2026-1'.
+ * Maps months 1–7 → period 1, months 8–12 → period 2 (slightly broader
+ * than the scrape windows to handle any legacy records from Jan/Feb/Aug).
+ */
+export const PERIOD_WHERE =
+  `CONCAT(YEAR(scraped_at), '-', IF(MONTH(scraped_at) <= 7, '1', '2'))`;
+
 // ─── TMK helpers ──────────────────────────────────────────────────────
 
 /** Extract island code (first segment) from a TMK string */
@@ -116,42 +144,42 @@ export function getIslandName(code: string): string {
   return ISLANDS[code as IslandCode] ?? "Unknown";
 }
 
-/** Full path to the HTML directory for a TMK (year/island/zone/section) */
+/** Full path to the HTML directory for a TMK (period/island/zone/section) */
 export function getHtmlPath(tmk: string): string {
-  const year = String(new Date().getFullYear());
+  const period = getScrapePeriod();
   const island = getIslandCode(tmk);
   const zone = getZone(tmk);
   const section = getSection(tmk);
   return path.join(
     QPUB_CONFIG.NAS_PATH,
     QPUB_CONFIG.HTML_DIR,
-    year,
+    period,
     island,
     zone,
     section,
   );
 }
 
-/** Full path to the JSON directory for a TMK (year/island/zone/section) */
+/** Full path to the JSON directory for a TMK (period/island/zone/section) */
 export function getJsonPath(tmk: string): string {
-  const year = String(new Date().getFullYear());
+  const period = getScrapePeriod();
   const island = getIslandCode(tmk);
   const zone = getZone(tmk);
   const section = getSection(tmk);
   return path.join(
     QPUB_CONFIG.NAS_PATH,
     QPUB_CONFIG.JSON_DIR,
-    year,
+    period,
     island,
     zone,
     section,
   );
 }
 
-/** Full path to the results directory for an island (year/island) */
+/** Full path to the results directory for an island (period/island) */
 export function getResultsPath(island: string): string {
-  const year = String(new Date().getFullYear());
-  return path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.RESULTS_DIR, year, island);
+  const period = getScrapePeriod();
+  return path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.RESULTS_DIR, period, island);
 }
 
 /** Build QPub URL for a TMK on a given island */
@@ -203,6 +231,61 @@ export function isNighttime(): boolean {
 /** True if in any blocked period */
 export function isBlockedTime(): boolean {
   return isBackupTime() || isNighttime();
+}
+
+// ─── NAS file enumeration ─────────────────────────────────────────
+
+/** Safely list a directory, returning empty array if it doesn't exist */
+function safeDirList(dir: string): string[] {
+  try {
+    return readdirSync(dir);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Lazily enumerate HTML files from the NAS directory structure.
+ * Yields absolute paths: {NAS}/qpub/html/{period}/{island}/{zone}/{section}/{tmk}.html
+ */
+export function* listHtmlFiles(
+  period?: string,
+  island?: string,
+): Generator<string> {
+  const baseDir = path.join(QPUB_CONFIG.NAS_PATH, QPUB_CONFIG.HTML_DIR);
+  const periods = period
+    ? [period]
+    : safeDirList(baseDir).filter((d) => /^\d{4}-[12]$/.test(d));
+
+  for (const p of periods) {
+    const periodDir = path.join(baseDir, p);
+    const islands = island ? [island] : safeDirList(periodDir);
+    for (const i of islands) {
+      const islandDir = path.join(periodDir, i);
+      for (const zone of safeDirList(islandDir)) {
+        const zoneDir = path.join(islandDir, zone);
+        for (const section of safeDirList(zoneDir)) {
+          const sectionDir = path.join(zoneDir, section);
+          if (!statSync(sectionDir).isDirectory()) continue;
+          for (const file of safeDirList(sectionDir)) {
+            if (file.endsWith(".html")) {
+              yield path.join(sectionDir, file);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Extract TMK from an HTML file path (filename without extension) */
+export function tmkFromFilePath(filePath: string): string {
+  return path.basename(filePath, ".html");
+}
+
+/** Get the file's mtime as a Date (used for scrapedAt in reparse) */
+export function getFileMtime(filePath: string): Date {
+  return statSync(filePath).mtime;
 }
 
 /** Milliseconds until the current blocked window ends */

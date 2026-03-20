@@ -51,6 +51,22 @@ const mauiApt = parsePropertyHTML(
   loadFixture("maui-apartment-building.html"),
   "2-3-8-007-050-0000",
 );
+const kauaiRes = parsePropertyHTML(
+  loadFixture("4-3-2-001-007-0001.html"),
+  "4-3-2-001-007-0001",
+);
+const oahuMulti = parsePropertyHTML(
+  loadFixture("1-3-3-038-040-0000.html"),
+  "1-3-3-038-040-0000",
+);
+const hawaiiMulti = parsePropertyHTML(
+  loadFixture("3-8-1-007-017-0000.html"),
+  "3-8-1-007-017-0000",
+);
+const mauiCommercial = parsePropertyHTML(
+  loadFixture("2-4-2-004-028-0000.html"),
+  "2-4-2-004-028-0000",
+);
 const captcha = parsePropertyHTML(
   loadFixture("captcha.html"),
   "1-0-0-000-000-0000",
@@ -173,6 +189,22 @@ describe("parcel_information", () => {
     it("parses Maui land area", () => {
       expect(p.land_area_approximate_sq_ft).toBe(10816);
       expect(p.land_area_acres).toBeCloseTo(0.2483, 3);
+    });
+
+    it("does not have property_class in parcel info (comes from assessments)", () => {
+      expect(p.property_class).toBeNull();
+    });
+  });
+
+  describe("Kauai", () => {
+    const p = kauaiRes.parcel_information as R;
+
+    it("extracts Kauai parcel number", () => {
+      expect(p.parcel_number).toBe("320010070001");
+    });
+
+    it("extracts property_class from Tax Classification field", () => {
+      expect(p.property_class).toBe("OWNER-OCCUPIED");
     });
   });
 
@@ -310,50 +342,180 @@ describe("land_information", () => {
 describe("residential/improvement information", () => {
   describe("Oahu residential", () => {
     const ri = oahuRes.residential_improvement_information as R;
+    const buildings = ri.buildings as R[];
+
+    it("returns buildings array with one entry", () => {
+      expect(buildings).toHaveLength(1);
+    });
 
     it("extracts building details", () => {
-      expect(ri.building_number).toBe("1");
-      expect(ri.occupancy).toBe("SINGLE-FAMILY");
-      expect(ri.framing).toBe("WOOD/SINGLE WALL");
-      expect(ri.year_built).toBe("1950");
+      expect(buildings[0].building_number).toBe("1");
+      expect(buildings[0].occupancy).toBe("SINGLE-FAMILY");
+      expect(buildings[0].framing).toBe("WOOD/SINGLE WALL");
+      expect(buildings[0].year_built).toBe("1950");
+    });
+
+    it("extracts right-column fields (living area, bedrooms, baths)", () => {
+      expect(buildings[0].living_area).toBe("2,898");
+      expect(buildings[0].bedrooms).toBe("3");
+      expect(buildings[0].full_bath).toBe("3");
+      expect(buildings[0].half_bath).toBe("0");
     });
   });
 
   describe("Oahu condo", () => {
     const ri = oahuCondo.residential_improvement_information as R;
+    const buildings = ri.buildings as R[];
 
     it("extracts condo improvement info", () => {
-      expect(ri.building_number).toBe("1");
-      expect(ri.year_built).toBe("1984");
-      expect(ri.occupancy).toBe("H.P.R.");
-      expect(ri.framing).toBe("CONCRETE");
+      expect(buildings[0].building_number).toBe("1");
+      expect(buildings[0].year_built).toBe("1984");
+      expect(buildings[0].occupancy).toBe("H.P.R.");
+      expect(buildings[0].framing).toBe("CONCRETE");
+    });
+
+    it("extracts condo living area from right column", () => {
+      expect(buildings[0].living_area).toBe("325");
     });
   });
 
   describe("Maui residential (uses improvement_information)", () => {
     const ri = mauiRes.improvement_information as R;
+    const buildings = ri.buildings as R[];
+
+    it("extracts both buildings", () => {
+      expect(buildings).toHaveLength(2);
+      expect(buildings[0].building_number).toBe("1");
+      expect(buildings[1].building_number).toBe("2");
+    });
 
     it("extracts Maui improvement info", () => {
-      expect(ri).toBeDefined();
-      expect(ri.building_number).toBe("1");
-      expect(ri.year_built).toBe("1998");
-      expect(ri.framing).toBe("Frame");
+      expect(buildings[0].year_built).toBe("1998");
+      expect(buildings[0].framing).toBe("Frame");
     });
 
     it("extracts Maui-specific fields", () => {
-      expect(ri.eff_year_built).toBe("2000");
-      expect(ri.living_area).toBe("2,158");
-      expect(ri.percent_complete).toBe("100%");
+      expect(buildings[0].eff_year_built).toBe("2000");
+      expect(buildings[0].living_area).toBe("2,158");
+      expect(buildings[0].percent_complete).toBe("100%");
     });
   });
 
   describe("Maui condo unit (uses improvement_information)", () => {
     const ri = mauiCondoUnit.improvement_information as R;
+    const buildings = ri.buildings as R[];
 
     it("extracts Maui condo improvement", () => {
-      expect(ri).toBeDefined();
-      expect(ri.year_built).toBe("1994");
-      expect(ri.framing).toBe("Condominium");
+      expect(buildings).toBeDefined();
+      expect(buildings[0].year_built).toBe("1994");
+      expect(buildings[0].framing).toBe("Condominium");
+    });
+
+    it("extracts condo name from Maui condo table", () => {
+      expect(buildings[0].condo_name).toBe("KAHULUI IKENA");
+    });
+
+    it("extracts condo unit details from Maui condo table", () => {
+      expect(buildings[0].condo_unit_number).toBe("311");
+      expect(buildings[0].condo_floor_number).toBe("1");
+      expect(buildings[0].condo_type).toBe("Corner");
+      expect(buildings[0].condo_view).toBe("NO VIEW");
+    });
+  });
+
+  describe("Oahu multi-building (6 buildings)", () => {
+    const ri = oahuMulti.residential_improvement_information as R;
+    const buildings = ri.buildings as R[];
+
+    it("extracts all 6 buildings", () => {
+      expect(buildings).toHaveLength(6);
+    });
+
+    it("has correct building numbers (1,2,3,4,6,7 — no 5)", () => {
+      expect(buildings[0].building_number).toBe("1");
+      expect(buildings[1].building_number).toBe("2");
+      expect(buildings[2].building_number).toBe("3");
+      expect(buildings[3].building_number).toBe("4");
+      expect(buildings[4].building_number).toBe("6");
+      expect(buildings[5].building_number).toBe("7");
+    });
+
+    it("extracts year_built for each building", () => {
+      expect(buildings[0].year_built).toBe("1939");
+      expect(buildings[1].year_built).toBe("1938");
+    });
+
+    it("extracts living_area for each building", () => {
+      expect(buildings[0].living_area).toBe("505");
+      expect(buildings[1].living_area).toBe("505");
+    });
+
+    it("extracts bedrooms and baths per building", () => {
+      expect(buildings[0].bedrooms).toBe("3");
+      expect(buildings[0].full_bath).toBe("1");
+      expect(buildings[0].half_bath).toBe("1");
+    });
+  });
+
+  describe("Hawaii multi-building (3 buildings)", () => {
+    const ri = hawaiiMulti.residential_improvement_information as R;
+    const buildings = ri.buildings as R[];
+
+    it("extracts all 3 buildings", () => {
+      expect(buildings).toHaveLength(3);
+    });
+
+    it("has correct building numbers (9, 10, 12)", () => {
+      expect(buildings[0].building_number).toBe("9");
+      expect(buildings[1].building_number).toBe("10");
+      expect(buildings[2].building_number).toBe("12");
+    });
+
+    it("extracts year_built for each building", () => {
+      expect(buildings[0].year_built).toBe("1973");
+      expect(buildings[1].year_built).toBe("1975");
+      expect(buildings[2].year_built).toBe("1980");
+    });
+
+    it("handles td-based labels (Hawaii uses td instead of th)", () => {
+      expect(buildings[0].eff_year_built).toBe("1973");
+      expect(buildings[2].eff_year_built).toBe("2014");
+    });
+
+    it("extracts right-column fields from td-based tables", () => {
+      expect(buildings[0].bedrooms).toBe("3");
+      expect(buildings[0].framing).toBe("WOOD/SINGLE WALL");
+      expect(buildings[0].exterior_wall).toBe("FIR/PINE");
+    });
+  });
+
+  describe("Maui commercial property (improvement_information = residential portion)", () => {
+    const ri = mauiCommercial.improvement_information as R;
+    const buildings = ri.buildings as R[];
+
+    it("extracts the residential building from improvement_information", () => {
+      expect(buildings).toHaveLength(1);
+      expect(buildings[0].building_number).toBe("9");
+    });
+
+    it("extracts all left-column fields", () => {
+      expect(buildings[0].year_built).toBe("1927");
+      expect(buildings[0].eff_year_built).toBe("1965");
+      expect(buildings[0].percent_complete).toBe("100%");
+      expect(buildings[0].living_area).toBe("1,120");
+      expect(buildings[0].framing).toBe("Frame");
+    });
+
+    it("extracts all right-column fields", () => {
+      expect(buildings[0].heating_cooling).toBe("NONE");
+      expect(buildings[0].exterior_wall).toBe("PLYWOOD");
+      expect(buildings[0].bedrooms).toBe("3");
+      expect(buildings[0].full_bath).toBe("2");
+      expect(buildings[0].half_bath).toBe("0");
+      expect(buildings[0].roof_material).toBe("Wood shake");
+      expect(buildings[0].fireplace).toBe("No");
+      expect(buildings[0].grade).toBe("6+");
+      expect(buildings[0].building_value).toBe(503000);
     });
   });
 });
@@ -361,26 +523,65 @@ describe("residential/improvement information", () => {
 // ─── Commercial Improvement Information ─────────────────────────────
 
 describe("commercial_improvement_information", () => {
-  const ci = oahuApt.commercial_improvement_information as R;
+  describe("Oahu apartment building", () => {
+    const ci = oahuApt.commercial_improvement_information as R;
+    const buildings = ci.buildings as R[];
 
-  it("extracts commercial improvement data for apartment building", () => {
-    expect(ci).toBeDefined();
+    it("extracts a single commercial building", () => {
+      expect(buildings).toHaveLength(1);
+    });
+
+    it("has building summary fields", () => {
+      expect(buildings[0].building_number).toBe("0001");
+      expect(buildings[0].structure_type).toBe("APARTMENTS - M-3");
+      expect(buildings[0].year_built).toBe("1953");
+      expect(buildings[0].effective_year_built).toBe("1953");
+      expect(buildings[0].units).toBe("6");
+      expect(buildings[0].identical_units).toBe("1");
+      expect(buildings[0].building_card).toBe("1");
+    });
+
+    it("has floor details attached to the building", () => {
+      const details = buildings[0].floor_details as R[];
+      expect(details).toBeDefined();
+      expect(details.length).toBeGreaterThanOrEqual(2);
+      expect(details[0].floor).toBe("01");
+      expect(details[0].area).toBe("1,540");
+      expect(details[0].usage).toBe("Multiple Res (Low Rise)");
+    });
   });
 
-  it("has building details", () => {
-    expect(ci.building_number).toBe("0001");
-    expect(ci.structure_type).toBe("APARTMENTS - M-3");
-    expect(ci.year_built).toBe("1953");
-    expect(ci.units).toBe("6");
-  });
+  describe("Maui commercial (multiple commercial buildings)", () => {
+    const ci = mauiCommercial.commercial_improvement_information as R;
+    const buildings = ci.buildings as R[];
 
-  it("has floor detail rows in table_data", () => {
-    const details = ci.table_data as R[];
-    expect(details).toBeDefined();
-    expect(details.length).toBeGreaterThanOrEqual(2);
-    expect(details[0].floor).toBe("01");
-    expect(details[0].area).toBe("1,540");
-    expect(details[0].usage).toBe("Multiple Res (Low Rise)");
+    it("extracts all 7 commercial buildings", () => {
+      expect(buildings).toHaveLength(7);
+    });
+
+    it("has Maui-specific summary fields", () => {
+      expect(buildings[0].building_number).toBe("1");
+      expect(buildings[0].building_type).toBe("BLDG #1");
+      expect(buildings[0].year_built).toBe("2008");
+      expect(buildings[0].building_square_footage).toBe("106,341");
+      expect(buildings[0].percent_complete).toBe("100%");
+      expect(buildings[0].value).toBe(38831800);
+    });
+
+    it("has floor details per building", () => {
+      const details = buildings[0].floor_details as R[];
+      expect(details.length).toBe(5);
+      expect(details[0].section).toBe("1");
+      expect(details[0].floor).toBe("01");
+      expect(details[0].area).toBe("15500");
+      expect(details[0].usage).toBe("Hotel, Full Service");
+    });
+
+    it("second building has its own floor details", () => {
+      const details = buildings[1].floor_details as R[];
+      expect(details.length).toBe(4);
+      expect(details[0].usage).toBe("Hotel, Full Service");
+    });
   });
 });
 

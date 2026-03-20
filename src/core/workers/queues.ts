@@ -23,6 +23,7 @@ export const JobName = {
   QPUB_SEED: "scraper.qpub-seed",
   QPUB_PARSE: "scraper.qpub-parse",
   QPUB_LOAD: "scraper.qpub-load",
+  QPUB_REPARSE: "scraper.qpub-reparse",
 } as const;
 
 export type JobNameValue = (typeof JobName)[keyof typeof JobName];
@@ -103,6 +104,17 @@ export type QpubParseJobData = {
 export type QpubLoadJobData = {
   tmk: string;
   island: string;
+};
+
+export type QpubReparseJobData = {
+  /** Key from TABLE_LOADERS (e.g., 'residential_improvements', 'parcels') */
+  table: string;
+  /** Filter by island code ('1','2','3','4') */
+  island?: string;
+  /** NAS period dir (e.g., '2026-1'). Default: all available periods */
+  period?: string;
+  /** Progress report interval (default: 500) */
+  batchSize?: number;
 };
 
 // ─── Queue instances ─────────────────────────────────────────────────

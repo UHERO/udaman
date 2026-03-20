@@ -184,6 +184,10 @@ export function parseParcelInformation(
       let key = cleanText(th.textContent).toLowerCase();
       key = key.replace(/:$/, "");
 
+      // Strip Kauai's "(Note: ...)" spans before extracting value
+      const noteSpans = td.querySelectorAll(".important-note");
+      noteSpans.forEach((span) => span.remove());
+
       let value: string | null = cleanText(td.textContent);
       if (!value) value = null;
 
@@ -824,11 +828,8 @@ export function parseLandInformation(
 
 // ─── Residential Improvement Information ───────────────────────────
 
-export function parseResidentialImprovementInformation(
-  section: HTMLElement,
-  _islandCode: string,
-): Record<string, string | null> {
-  const result: Record<string, string | null> = {
+function makeEmptyBuilding(): Record<string, string | null> {
+  return {
     building_number: null,
     occupancy: null,
     framing: null,
@@ -846,75 +847,342 @@ export function parseResidentialImprovementInformation(
     grade: null,
     building_value: null,
     total_room_count: null,
+    condo_name: null,
+    condo_unit_number: null,
+    condo_floor_number: null,
+    condo_type: null,
+    condo_view: null,
   };
+}
 
-  const table = section.querySelector("table.tabular-data-two-column");
-  if (!table) return result;
+function extractBuildingFields(
+  container: HTMLElement,
+  building: Record<string, string | null>,
+): void {
+  const tables = container.querySelectorAll("table.tabular-data-two-column");
+  for (const table of tables) {
+    const rows = table.querySelectorAll("tr");
 
-  const rows = table.querySelectorAll("tr");
+    rows.forEach((row) => {
+      const th = row.querySelector("th");
+      const tds = row.querySelectorAll("td");
 
-  rows.forEach((row) => {
-    const th = row.querySelector("th");
-    const td = row.querySelector("td");
+      // Two HTML patterns across counties:
+      //   Oahu:          <th>Label</th><td>Value</td>
+      //   Hawaii/Maui:   <td><strong>Label</strong></td><td>Value</td>
+      let key: string | null = null;
+      let value: string | null = null;
 
-    if (th && td) {
-      let key = cleanText(th.textContent).toLowerCase();
-      key = key.replace(/:$/, "");
-
-      let value: string | null = cleanText(td.textContent);
-      if (!value) value = null;
-
-      if (key.includes("building number") || key === "building #") {
-        result.building_number = value;
-      } else if (key === "occupancy") {
-        result.occupancy = value;
-      } else if (key === "framing" || key === "construction type") {
-        result.framing = value;
-      } else if (key.includes("year built") && !key.includes("eff")) {
-        result.year_built = value;
-      } else if (
-        key.includes("eff year built") ||
-        key.includes("effective year")
-      ) {
-        result.eff_year_built = value;
-      } else if (key === "living area" || key === "square feet") {
-        result.living_area = value;
-      } else if (key === "bedrooms") {
-        result.bedrooms = value;
-      } else if (key === "full bath" || key === "full baths") {
-        result.full_bath = value;
-      } else if (key === "half bath" || key === "half baths") {
-        result.half_bath = value;
-      } else if (key.includes("bedrooms") && key.includes("bath")) {
-        if (value && value.includes("/")) {
-          const parts = value.split("/").map((p) => p.trim());
-          if (parts.length >= 3) {
-            result.bedrooms = parts[0] || null;
-            result.full_bath = parts[1] || null;
-            result.half_bath = parts[2] || null;
-          }
-        }
-      } else if (key === "percent complete") {
-        result.percent_complete = value;
-      } else if (key === "heating/cooling" || key.includes("heating")) {
-        result.heating_cooling = value;
-      } else if (key === "exterior wall") {
-        result.exterior_wall = value;
-      } else if (key === "roof material") {
-        result.roof_material = value;
-      } else if (key === "fireplace") {
-        result.fireplace = value;
-      } else if (key === "grade") {
-        result.grade = value;
-      } else if (key === "building value") {
-        result.building_value = value;
-      } else if (key === "total room count" || key.includes("total room")) {
-        result.total_room_count = value;
+      if (th && tds.length >= 1) {
+        key = cleanText(th.textContent).toLowerCase().replace(/:$/, "");
+        value = cleanText(tds[0].textContent) || null;
+      } else if (tds.length >= 2) {
+        key = cleanText(tds[0].textContent).toLowerCase().replace(/:$/, "");
+        value = cleanText(tds[1].textContent) || null;
       }
+
+      if (key) {
+        if (key.includes("building number") || key === "building #") {
+          building.building_number = value;
+        } else if (key === "occupancy") {
+          building.occupancy = value;
+        } else if (key === "framing" || key === "construction type") {
+          building.framing = value;
+        } else if (key.includes("year built") && !key.includes("eff")) {
+          building.year_built = value;
+        } else if (
+          key.includes("eff year built") ||
+          key.includes("effective year")
+        ) {
+          building.eff_year_built = value;
+        } else if (key === "living area" || key === "square feet") {
+          building.living_area = value;
+        } else if (key === "bedrooms") {
+          building.bedrooms = value;
+        } else if (key === "full bath" || key === "full baths") {
+          building.full_bath = value;
+        } else if (key === "half bath" || key === "half baths") {
+          building.half_bath = value;
+        } else if (key.includes("bedrooms") && key.includes("bath")) {
+          if (value && value.includes("/")) {
+            const parts = value.split("/").map((p) => p.trim());
+            if (parts.length >= 3) {
+              building.bedrooms = parts[0] || null;
+              building.full_bath = parts[1] || null;
+              building.half_bath = parts[2] || null;
+            }
+          }
+        } else if (key === "percent complete") {
+          building.percent_complete = value;
+        } else if (key === "heating/cooling" || key.includes("heating")) {
+          building.heating_cooling = value;
+        } else if (key === "exterior wall") {
+          building.exterior_wall = value;
+        } else if (key === "roof material") {
+          building.roof_material = value;
+        } else if (key === "fireplace") {
+          building.fireplace = value;
+        } else if (key === "grade") {
+          building.grade = value;
+        } else if (key === "building value") {
+          building.building_value = value;
+        } else if (key === "total room count" || key.includes("total room")) {
+          building.total_room_count = value;
+        }
+      }
+    });
+  }
+}
+
+export function parseResidentialImprovementInformation(
+  section: HTMLElement,
+  _islandCode: string,
+): Record<string, unknown> {
+  const buildings: Record<string, string | null>[] = [];
+
+  // Each building lives in its own .block-row div.
+  // Single-building properties have one block-row; multi-building have many.
+  const blockRows = section.querySelectorAll(".block-row");
+  const containers = blockRows.length > 0 ? Array.from(blockRows) : [section];
+
+  for (const container of containers) {
+    const building = makeEmptyBuilding();
+    extractBuildingFields(container, building);
+
+    // Only include if at least one field was populated
+    if (Object.values(building).some((v) => v !== null)) {
+      buildings.push(building);
+    }
+  }
+
+  // Parse condo table (Maui "Improvement Information" contains a separate
+  // table.tabular-data with Condo Name, Unit Number, Floor Number, etc.)
+  // Condo fields are attached to the first building record.
+  const condoTable =
+    section.querySelector('table[id*="dgCondo"]') ??
+    section.querySelector(
+      "table.tabular-data:not(.tabular-data-two-column)",
+    );
+
+  if (condoTable && buildings.length > 0) {
+    const thead = condoTable.querySelector("thead");
+    if (thead) {
+      const headers = Array.from(thead.querySelectorAll("th")).map((th) =>
+        cleanText(th.textContent).toLowerCase(),
+      );
+
+      // Only process if this looks like a condo table
+      if (headers.some((h) => h.includes("condo name"))) {
+        const columnMap = headers.map((h) => {
+          if (h.includes("condo name")) return "condo_name";
+          if (h.includes("unit number")) return "condo_unit_number";
+          if (h.includes("floor number")) return "condo_floor_number";
+          if (h.includes("condo type")) return "condo_type";
+          if (h.includes("condo view")) return "condo_view";
+          return null;
+        });
+
+        const dataRow = condoTable.querySelector("tbody tr");
+        if (dataRow) {
+          const cells = dataRow.querySelectorAll("th, td");
+          cells.forEach((cell, index) => {
+            const fieldName = columnMap[index];
+            if (fieldName) {
+              const value = cleanText(cell.textContent) || null;
+              buildings[0][fieldName] = value;
+            }
+          });
+        }
+      }
+    }
+  }
+
+  return { buildings };
+}
+
+// ─── Commercial Improvement Information ─────────────────────────────
+
+interface CommercialBuilding {
+  building_number: string | null;
+  building_card: string | null;
+  property_class: string | null;
+  improvement_name: string | null;
+  structure_type: string | null;
+  units: string | null;
+  identical_units: string | null;
+  year_built: string | null;
+  effective_year_built: string | null;
+  gross_building_description: string | null;
+  building_type: string | null;
+  building_square_footage: string | null;
+  percent_complete: string | null;
+  value: string | null;
+  floor_details: Record<string, string | null>[];
+}
+
+function makeEmptyCommercialBuilding(): CommercialBuilding {
+  return {
+    building_number: null,
+    building_card: null,
+    property_class: null,
+    improvement_name: null,
+    structure_type: null,
+    units: null,
+    identical_units: null,
+    year_built: null,
+    effective_year_built: null,
+    gross_building_description: null,
+    building_type: null,
+    building_square_footage: null,
+    percent_complete: null,
+    value: null,
+    floor_details: [],
+  };
+}
+
+function extractCommercialBuildingFields(
+  container: HTMLElement,
+  building: CommercialBuilding,
+): void {
+  const tables = container.querySelectorAll("table.tabular-data-two-column");
+  for (const table of tables) {
+    const rows = table.querySelectorAll("tr");
+
+    rows.forEach((row) => {
+      const th = row.querySelector("th");
+      const tds = row.querySelectorAll("td");
+
+      let key: string | null = null;
+      let value: string | null = null;
+
+      if (th && tds.length >= 1) {
+        key = cleanText(th.textContent).toLowerCase().replace(/:$/, "");
+        value = cleanText(tds[0].textContent) || null;
+      } else if (tds.length >= 2) {
+        key = cleanText(tds[0].textContent).toLowerCase().replace(/:$/, "");
+        value = cleanText(tds[1].textContent) || null;
+      }
+
+      if (key) {
+        if (key.includes("building number") || key === "building #") {
+          building.building_number = value;
+        } else if (key === "building card") {
+          building.building_card = value;
+        } else if (key.includes("property class")) {
+          building.property_class = value;
+        } else if (key === "improvement name") {
+          building.improvement_name = value;
+        } else if (key === "structure type") {
+          building.structure_type = value;
+        } else if (key === "units") {
+          building.units = value;
+        } else if (key === "identical units") {
+          building.identical_units = value;
+        } else if (key.includes("year built") && !key.includes("eff")) {
+          building.year_built = value;
+        } else if (
+          key.includes("eff year built") ||
+          key.includes("effective year")
+        ) {
+          building.effective_year_built = value;
+        } else if (key.includes("gross building")) {
+          building.gross_building_description = value;
+        } else if (key === "building type") {
+          building.building_type = value;
+        } else if (key.includes("building square footage")) {
+          building.building_square_footage = value;
+        } else if (
+          key === "% complete" ||
+          key === "percent complete"
+        ) {
+          building.percent_complete = value;
+        } else if (key === "value") {
+          building.value = value;
+        }
+      }
+    });
+  }
+}
+
+function parseFloorDetailTable(
+  table: HTMLElement,
+): Record<string, string | null>[] {
+  const details: Record<string, string | null>[] = [];
+  const thead = table.querySelector("thead");
+  const tbody = table.querySelector("tbody");
+  if (!thead || !tbody) return details;
+
+  const headerCells = thead.querySelectorAll("th");
+  const headers = Array.from(headerCells).map((th) =>
+    cleanText(th.textContent).toLowerCase(),
+  );
+
+  const columnMap = headers.map((header) => {
+    if (header === "card") return "card";
+    if (header === "section") return "section";
+    if (header.includes("floor")) return "floor";
+    if (header === "area") return "area";
+    if (header === "perimeter") return "perimeter";
+    if (header === "usage" || header === "occupancy") return "usage";
+    if (header.includes("wall height")) return "wall_height";
+    if (header.includes("exterior wall")) return "exterior_wall";
+    if (header === "rank") return "rank";
+    if (header.includes("building class")) return "building_class";
+    return null;
+  });
+
+  const dataRows = tbody.querySelectorAll("tr");
+  dataRows.forEach((row) => {
+    const cells = row.querySelectorAll("th, td");
+    const detail: Record<string, string | null> = {};
+
+    cells.forEach((cell, index) => {
+      const fieldName = columnMap[index];
+      if (fieldName) {
+        const val = cleanText(cell.textContent);
+        detail[fieldName] = val || null;
+      }
+    });
+
+    if (Object.values(detail).some((v) => v !== null)) {
+      details.push(detail);
     }
   });
 
-  return result;
+  return details;
+}
+
+export function parseCommercialImprovementInformation(
+  section: HTMLElement,
+  _islandCode: string,
+): Record<string, unknown> {
+  const buildings: CommercialBuilding[] = [];
+
+  const blockRows = section.querySelectorAll(".block-row");
+  // Floor detail tables appear as siblings after each block-row, one per building
+  const floorTables = section.querySelectorAll(
+    'table[id*="dgFloorDetails"]',
+  );
+
+  for (let i = 0; i < blockRows.length; i++) {
+    const building = makeEmptyCommercialBuilding();
+    extractCommercialBuildingFields(blockRows[i], building);
+
+    // Pair with corresponding floor detail table by position
+    if (i < floorTables.length) {
+      building.floor_details = parseFloorDetailTable(floorTables[i]);
+    }
+
+    if (
+      building.building_number !== null ||
+      building.building_type !== null ||
+      building.structure_type !== null
+    ) {
+      buildings.push(building);
+    }
+  }
+
+  return { buildings };
 }
 
 // ─── Section Parser Map ────────────────────────────────────────────
@@ -935,4 +1203,5 @@ export const SECTION_PARSERS: Record<string, SectionParser> = {
   land_information: parseLandInformation,
   residential_improvement_information: parseResidentialImprovementInformation,
   improvement_information: parseResidentialImprovementInformation,
+  commercial_improvement_information: parseCommercialImprovementInformation,
 };

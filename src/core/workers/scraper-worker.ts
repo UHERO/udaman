@@ -6,6 +6,7 @@ import { closeBrowser } from "../crawlers/qpub/browser";
 import { redisConnection } from "./connection";
 import { processQpubLoad } from "./processors/qpub-load";
 import { processQpubParse } from "./processors/qpub-parse";
+import { processQpubReparse } from "./processors/qpub-reparse";
 import { processQpubScrape } from "./processors/qpub-scrape";
 import { processQpubSeed } from "./processors/qpub-seed";
 import { JobName } from "./queues";
@@ -19,6 +20,7 @@ const handlers: Record<string, (job: Job) => Promise<string>> = {
   [JobName.QPUB_SEED]: processQpubSeed,
   [JobName.QPUB_PARSE]: processQpubParse,
   [JobName.QPUB_LOAD]: processQpubLoad,
+  [JobName.QPUB_REPARSE]: processQpubReparse,
 };
 
 const dispatch = async (job: Job): Promise<string> => {

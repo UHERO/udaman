@@ -3,7 +3,12 @@ import path from "path";
 
 import type { Job } from "bullmq";
 
-import { getIslandCode, getJsonPath } from "@/core/crawlers/qpub/config";
+import {
+  getIslandCode,
+  getJsonPath,
+  getScrapePeriod,
+  PERIOD_WHERE,
+} from "@/core/crawlers/qpub/config";
 import type { ParsedProperty } from "@/core/crawlers/qpub/parse";
 import { parseDollarValue } from "@/core/crawlers/qpub/parse-utils";
 import { rawQuery } from "@/lib/mysql/hhdb";
@@ -15,18 +20,18 @@ import type { QpubLoadJobData } from "../queues";
 /** Parse a date string like "01/15/2024" or "2024-01-15" into a Date-compatible string, or null */
 function parseDateValue(value: string | null | undefined): string | null {
   if (!value) return null;
-  const str = value.trim();
-  if (!str) return null;
+  const s = value.trim();
+  if (!s) return null;
 
   // Try MM/DD/YYYY format
-  const mdyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const mdyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (mdyMatch) {
     return `${mdyMatch[3]}-${mdyMatch[1].padStart(2, "0")}-${mdyMatch[2].padStart(2, "0")}`;
   }
 
   // Try YYYY-MM-DD (already correct)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    return str;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s;
   }
 
   return null;
@@ -55,11 +60,57 @@ function dec(v: unknown): number | null {
 
 type Row = Record<string, unknown>;
 
+/** Extract property_class from the most recent assessment record. */
+function getAssessmentPropertyClass(data: ParsedProperty): string | null {
+  const assessInfo = data.assessment_information as Row | undefined;
+  if (!assessInfo) return null;
+  const current = (assessInfo.current_assessments as Row[] | undefined) ?? [];
+  if (current.length > 0 && current[0].property_class) {
+    return str(current[0].property_class);
+  }
+  const historical =
+    (assessInfo.historical_assessments as Row[] | undefined) ?? [];
+  if (historical.length > 0 && historical[0].property_class) {
+    return str(historical[0].property_class);
+  }
+  return null;
+}
+
+/**
+ * Compute the scrape period for a given date.
+ * For use in SQL period-based dedup. Uses the same logic as PERIOD_WHERE:
+ * months 1–7 → period 1, months 8–12 → period 2.
+ */
+function periodString(date: Date): string {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  return `${year}-${month <= 7 ? "1" : "2"}`;
+}
+
+/** Delete snapshot records matching tmk + scrape period */
+async function deletePeriodSnapshot(
+  tableName: string,
+  tmk: string,
+  scrapedAt: Date,
+): Promise<void> {
+  const period = periodString(scrapedAt);
+  await rawQuery(
+    `DELETE FROM ${tableName} WHERE tmk=? AND ${PERIOD_WHERE} = ?`,
+    [tmk, period],
+  );
+}
+
+/** Format a Date for SQL insertion (YYYY-MM-DD HH:MM:SS) */
+function sqlDate(d: Date): string {
+  return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
 // ─── Section loaders ─────────────────────────────────────────────
 
-async function loadProperties(
+export async function loadProperties(
   tmk: string,
   data: ParsedProperty,
+  _scrapedAt?: Date,
 ): Promise<void> {
   const parcel = data.parcel_information as Row | undefined;
   if (!parcel) return;
@@ -67,6 +118,19 @@ async function loadProperties(
   const islandCode = getIslandCode(tmk);
   const mapSection = data.map as Row | undefined;
   const sketchSection = data.sketch as Row | undefined;
+
+  // For Maui condo units, project_name is in the Improvement Information
+  // section as "Condo Name" rather than in Parcel Information
+  const improvInfo =
+    (data.residential_improvement_information as Row | undefined) ??
+    (data.improvement_information as Row | undefined);
+  const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
+  const projectName =
+    str(parcel.project_name) ?? str(firstBuilding?.condo_name);
+
+  // Maui doesn't list property_class in Parcel Information — pull from assessments
+  const propertyClass =
+    str(parcel.property_class) ?? getAssessmentPropertyClass(data);
 
   await rawQuery(
     `INSERT INTO properties (tmk, island_code,
@@ -95,9 +159,9 @@ async function loadProperties(
       str(parcel.parcel_number),
       str(parcel.location_address),
       str(parcel.address_other),
-      str(parcel.project_name),
+      projectName,
       str(parcel.legal_information),
-      str(parcel.property_class),
+      propertyClass,
       int(parcel.land_area_approximate_sq_ft),
       dec(parcel.land_area_acres),
       str(parcel.neighborhood_code),
@@ -114,30 +178,44 @@ async function loadProperties(
   );
 }
 
-async function loadParcels(tmk: string, data: ParsedProperty): Promise<void> {
+export async function loadParcels(
+  tmk: string,
+  data: ParsedProperty,
+  scrapedAt: Date = new Date(),
+): Promise<void> {
   const parcel = data.parcel_information as Row | undefined;
   if (!parcel) return;
 
-  // Delete same-day records for this TMK
-  await rawQuery(
-    `DELETE FROM parcels WHERE tmk=? AND DATE(scraped_at) = CURDATE()`,
-    [tmk],
-  );
+  // For Maui condo units, project_name is in Improvement Information as "Condo Name"
+  const improvInfo =
+    (data.residential_improvement_information as Row | undefined) ??
+    (data.improvement_information as Row | undefined);
+  const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
+  const projectName =
+    str(parcel.project_name) ?? str(firstBuilding?.condo_name);
+
+  // Maui doesn't list property_class in Parcel Information — pull from assessments
+  const propertyClass =
+    str(parcel.property_class) ?? getAssessmentPropertyClass(data);
+
+  // Delete same-period records for this TMK
+  await deletePeriodSnapshot("parcels", tmk, scrapedAt);
 
   await rawQuery(
     `INSERT INTO parcels (tmk, scraped_at, parcel_number, location_address, address_other,
        project_name, legal_information, property_class, land_area_sqft, land_area_acres,
        neighborhood_code, zoning, parcel_note, damage, reentry_zone, zone_color,
        non_taxable_status, living_units)
-     VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tmk,
+      sqlDate(scrapedAt),
       str(parcel.parcel_number),
       str(parcel.location_address),
       str(parcel.address_other),
-      str(parcel.project_name),
+      projectName,
       str(parcel.legal_information),
-      str(parcel.property_class),
+      propertyClass,
       int(parcel.land_area_approximate_sq_ft),
       dec(parcel.land_area_acres),
       str(parcel.neighborhood_code),
@@ -152,32 +230,34 @@ async function loadParcels(tmk: string, data: ParsedProperty): Promise<void> {
   );
 }
 
-async function loadOwners(tmk: string, data: ParsedProperty): Promise<void> {
+export async function loadOwners(
+  tmk: string,
+  data: ParsedProperty,
+  scrapedAt: Date = new Date(),
+): Promise<void> {
   const ownerInfo = data.owner_information as Row | undefined;
   if (!ownerInfo?.all_owners) return;
 
   const owners = ownerInfo.all_owners as Row[];
   if (owners.length === 0) return;
 
-  // Delete same-day records
-  await rawQuery(
-    `DELETE FROM owners WHERE tmk=? AND DATE(scraped_at) = CURDATE()`,
-    [tmk],
-  );
+  // Delete same-period records
+  await deletePeriodSnapshot("owners", tmk, scrapedAt);
 
   for (let i = 0; i < owners.length; i++) {
     const o = owners[i];
     await rawQuery(
       `INSERT INTO owners (tmk, scraped_at, owner_name, owner_type, owner_address, sequence_order)
-       VALUES (?, NOW(), ?, ?, ?, ?)`,
-      [tmk, str(o.owner_name), str(o.owner_type), str(o.owner_address), i + 1],
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [tmk, sqlDate(scrapedAt), str(o.owner_name), str(o.owner_type), str(o.owner_address), i + 1],
     );
   }
 }
 
-async function loadAssessments(
+export async function loadAssessments(
   tmk: string,
   data: ParsedProperty,
+  _scrapedAt?: Date,
 ): Promise<void> {
   const assessInfo = data.assessment_information as Row | undefined;
   if (!assessInfo) return;
@@ -237,9 +317,10 @@ async function loadAssessments(
   }
 }
 
-async function loadLandClassifications(
+export async function loadLandClassifications(
   tmk: string,
   data: ParsedProperty,
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   const landInfo = data.land_information as Row | undefined;
   if (!landInfo?.land_classifications) return;
@@ -247,17 +328,15 @@ async function loadLandClassifications(
   const classifications = landInfo.land_classifications as Row[];
   if (classifications.length === 0) return;
 
-  await rawQuery(
-    `DELETE FROM land_classifications WHERE tmk=? AND DATE(scraped_at) = CURDATE()`,
-    [tmk],
-  );
+  await deletePeriodSnapshot("land_classifications", tmk, scrapedAt);
 
   for (const c of classifications) {
     await rawQuery(
       `INSERT INTO land_classifications (tmk, scraped_at, land_classification, square_footage, acreage, agricultural_use_indicator)
-       VALUES (?, NOW(), ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         tmk,
+        sqlDate(scrapedAt),
         str(c.land_classification),
         str(c.square_footage),
         str(c.acreage),
@@ -267,9 +346,10 @@ async function loadLandClassifications(
   }
 }
 
-async function loadResidentialImprovements(
+export async function loadResidentialImprovements(
   tmk: string,
   data: ParsedProperty,
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   // Check both section names (Honolulu/Hawaii vs Maui/Kauai)
   const improvInfo =
@@ -277,42 +357,132 @@ async function loadResidentialImprovements(
     (data.improvement_information as Row | undefined);
   if (!improvInfo) return;
 
-  await rawQuery(
-    `DELETE FROM residential_improvements WHERE tmk=? AND DATE(scraped_at) = CURDATE()`,
-    [tmk],
-  );
+  const buildings = (improvInfo.buildings as Row[] | undefined) ?? [];
+  if (buildings.length === 0) return;
 
-  await rawQuery(
-    `INSERT INTO residential_improvements (tmk, scraped_at,
-       building_number, year_built, eff_year_built, living_area,
-       bedrooms, full_bath, half_bath,
-       occupancy, framing, percent_complete, heating_cooling,
-       exterior_wall, roof_material, fireplace, grade, building_value, total_room_count)
-     VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      tmk,
-      str(improvInfo.building_number),
-      str(improvInfo.year_built),
-      str(improvInfo.eff_year_built),
-      str(improvInfo.living_area),
-      str(improvInfo.bedrooms),
-      str(improvInfo.full_bath),
-      str(improvInfo.half_bath),
-      str(improvInfo.occupancy),
-      str(improvInfo.framing),
-      str(improvInfo.percent_complete),
-      str(improvInfo.heating_cooling),
-      str(improvInfo.exterior_wall),
-      str(improvInfo.roof_material),
-      str(improvInfo.fireplace),
-      str(improvInfo.grade),
-      str(improvInfo.building_value),
-      str(improvInfo.total_room_count),
-    ],
-  );
+  await deletePeriodSnapshot("residential_improvements", tmk, scrapedAt);
+
+  for (const b of buildings) {
+    await rawQuery(
+      `INSERT INTO residential_improvements (tmk, scraped_at,
+         building_number, year_built, eff_year_built, living_area,
+         bedrooms, full_bath, half_bath,
+         occupancy, framing, percent_complete, heating_cooling,
+         exterior_wall, roof_material, fireplace, grade, building_value, total_room_count,
+         condo_style, condo_view, floor_level)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tmk,
+        sqlDate(scrapedAt),
+        str(b.building_number),
+        str(b.year_built),
+        str(b.eff_year_built),
+        str(b.living_area),
+        str(b.bedrooms),
+        str(b.full_bath),
+        str(b.half_bath),
+        str(b.occupancy),
+        str(b.framing),
+        str(b.percent_complete),
+        str(b.heating_cooling),
+        str(b.exterior_wall),
+        str(b.roof_material),
+        str(b.fireplace),
+        str(b.grade),
+        str(b.building_value),
+        str(b.total_room_count),
+        str(b.condo_type),
+        str(b.condo_view),
+        str(b.condo_floor_number),
+      ],
+    );
+  }
 }
 
-async function loadSales(tmk: string, data: ParsedProperty): Promise<void> {
+export async function loadCommercialImprovements(
+  tmk: string,
+  data: ParsedProperty,
+  scrapedAt: Date = new Date(),
+): Promise<void> {
+  const ciInfo = data.commercial_improvement_information as Row | undefined;
+  if (!ciInfo) return;
+
+  const buildings = (ciInfo.buildings as Row[] | undefined) ?? [];
+  if (buildings.length === 0) return;
+
+  await deletePeriodSnapshot("commercial_improvement_details", tmk, scrapedAt);
+  await deletePeriodSnapshot("commercial_improvements", tmk, scrapedAt);
+
+  const scrapedAtStr = sqlDate(scrapedAt);
+
+  for (const b of buildings) {
+    await rawQuery(
+      `INSERT INTO commercial_improvements (tmk, scraped_at,
+         building_number, building_card, year_built, effective_year_built,
+         improvement_name, property_class, structure_type, units, identical_units,
+         gross_building_description, building_type, building_square_footage,
+         percent_complete, value)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tmk,
+        scrapedAtStr,
+        str(b.building_number),
+        str(b.building_card),
+        int(b.year_built),
+        int(b.effective_year_built),
+        str(b.improvement_name),
+        str(b.property_class),
+        str(b.structure_type),
+        str(b.units),
+        str(b.identical_units),
+        str(b.gross_building_description),
+        str(b.building_type),
+        str(b.building_square_footage),
+        str(b.percent_complete),
+        int(b.value),
+      ],
+    );
+
+    const floorDetails = (b.floor_details as Row[] | undefined) ?? [];
+
+    if (floorDetails.length > 0) {
+      const [{ id: improvementId }] = await rawQuery<{ id: number }>(
+        `SELECT LAST_INSERT_ID() as id`,
+        [],
+      );
+
+      for (const d of floorDetails) {
+        await rawQuery(
+          `INSERT INTO commercial_improvement_details
+             (commercial_improvement_id, tmk, scraped_at,
+              card, section, floor, \`usage\`, area, perimeter,
+              exterior_wall, wall_height, occupancy)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            improvementId,
+            tmk,
+            scrapedAtStr,
+            str(d.card),
+            str(d.section),
+            str(d.floor),
+            str(d.usage),
+            str(d.area),
+            str(d.perimeter),
+            str(d.exterior_wall),
+            str(d.wall_height),
+            str(d.usage),
+          ],
+        );
+      }
+    }
+  }
+}
+
+export async function loadSales(
+  tmk: string,
+  data: ParsedProperty,
+  _scrapedAt?: Date,
+): Promise<void> {
   const salesInfo =
     (data.sales_information as Row | undefined) ??
     (data.conveyance_information as Row | undefined);
@@ -355,9 +525,10 @@ async function loadSales(tmk: string, data: ParsedProperty): Promise<void> {
   }
 }
 
-async function loadHistoricalTax(
+export async function loadHistoricalTax(
   tmk: string,
   data: ParsedProperty,
+  _scrapedAt?: Date,
 ): Promise<void> {
   const taxInfo = data.historical_tax_information as Row | undefined;
   if (!taxInfo?.tax_summary) return;
@@ -388,7 +559,7 @@ async function loadHistoricalTax(
     const paymentTotals = (summary.tax_payments_totals ?? {}) as Row;
     const creditTotals = (summary.tax_credits_totals ?? {}) as Row;
 
-    const result = await rawQuery<{ insertId: number }>(
+    await rawQuery(
       `INSERT INTO historical_tax_summary (tmk, year, tax, payments_and_credits,
          penalty, interest, other, amount_due,
          tax_details_total_tax, tax_details_total_payments_credits,
@@ -479,7 +650,11 @@ async function loadHistoricalTax(
   }
 }
 
-async function loadPermits(tmk: string, data: ParsedProperty): Promise<void> {
+export async function loadPermits(
+  tmk: string,
+  data: ParsedProperty,
+  _scrapedAt?: Date,
+): Promise<void> {
   const permitInfo = data.permit_information as Row | undefined;
   if (!permitInfo) return;
 
@@ -511,9 +686,10 @@ async function loadPermits(tmk: string, data: ParsedProperty): Promise<void> {
   }
 }
 
-async function loadCurrentTaxBills(
+export async function loadCurrentTaxBills(
   tmk: string,
   data: ParsedProperty,
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   const taxBillInfo = data.current_tax_bill_information as Row | undefined;
   if (!taxBillInfo) return;
@@ -521,10 +697,9 @@ async function loadCurrentTaxBills(
   const bills = (taxBillInfo.table_data ?? []) as Row[];
   if (bills.length === 0) return;
 
-  await rawQuery(
-    `DELETE FROM current_tax_bills WHERE tmk=? AND DATE(scraped_at) = CURDATE()`,
-    [tmk],
-  );
+  await deletePeriodSnapshot("current_tax_bills", tmk, scrapedAt);
+
+  const scrapedAtStr = sqlDate(scrapedAt);
 
   for (const b of bills) {
     await rawQuery(
@@ -532,9 +707,10 @@ async function loadCurrentTaxBills(
          tax_period, description, original_due_date,
          taxes_assessment, tax_credits, net_tax,
          penalty, interest, other, amount_due)
-       VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         tmk,
+        scrapedAtStr,
         str(b.tax_period),
         str(b.description),
         parseDateValue(str(b.original_due_date)),
@@ -560,9 +736,10 @@ function unitParcelToTmk(parentTmk: string, unitParcel: string): string {
   return parts.join("-");
 }
 
-async function loadCondoProject(
+export async function loadCondoProject(
   tmk: string,
   data: ParsedProperty,
+  _scrapedAt?: Date,
 ): Promise<void> {
   if (data.status !== "condo_project") return;
 
@@ -578,7 +755,13 @@ async function loadCondoProject(
     [tmk],
   );
 
-  const projectName = str(parcel?.project_name);
+  // For Maui, project_name may be in Improvement Information as "Condo Name"
+  const improvInfo =
+    (data.residential_improvement_information as Row | undefined) ??
+    (data.improvement_information as Row | undefined);
+  const firstBuilding = ((improvInfo?.buildings as Row[] | undefined) ?? [])[0];
+  const projectName =
+    str(parcel?.project_name) ?? str(firstBuilding?.condo_name);
   const unitCount = units.length || null;
 
   if (existing.length === 0) {
@@ -646,6 +829,7 @@ async function loadGenericSnapshot(
   tmk: string,
   tableName: string,
   rows: Row[],
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   if (rows.length === 0) return;
 
@@ -656,19 +840,18 @@ async function loadGenericSnapshot(
   );
   const columnNames = new Set(columns.map((c) => c.Field));
 
-  // Delete same-day records
+  // Delete same-period records
   if (columnNames.has("scraped_at")) {
-    await rawQuery(
-      `DELETE FROM ${tableName} WHERE tmk=? AND DATE(scraped_at) = CURDATE()`,
-      [tmk],
-    );
+    await deletePeriodSnapshot(tableName, tmk, scrapedAt);
   }
+
+  const scrapedAtStr = sqlDate(scrapedAt);
 
   for (const row of rows) {
     // Match row fields to DB columns
     const matched: Record<string, unknown> = { tmk };
     if (columnNames.has("scraped_at")) {
-      matched.scraped_at = new Date();
+      matched.scraped_at = scrapedAtStr;
     }
 
     for (const [key, value] of Object.entries(row)) {
@@ -705,7 +888,6 @@ async function loadGenericSnapshot(
 
 // Section name → DB table mapping for generic loading
 const GENERIC_SECTION_MAP: Record<string, string> = {
-  commercial_improvement_information: "commercial_improvements",
   yard_improvement_information: "yard_improvements",
   residential_addition_information: "residential_additions",
   agricultural_assessment_information: "agricultural_assessments",
@@ -717,6 +899,7 @@ const GENERIC_SECTION_MAP: Record<string, string> = {
 async function loadGenericSections(
   tmk: string,
   data: ParsedProperty,
+  scrapedAt: Date = new Date(),
 ): Promise<void> {
   for (const [sectionName, tableName] of Object.entries(GENERIC_SECTION_MAP)) {
     const sectionData = data[sectionName] as Row | undefined;
@@ -728,12 +911,69 @@ async function loadGenericSections(
       (Array.isArray(sectionData) ? sectionData : [sectionData]);
 
     try {
-      await loadGenericSnapshot(tmk, tableName, rows);
+      await loadGenericSnapshot(tmk, tableName, rows, scrapedAt);
     } catch {
       // Skip sections that fail to load generically — not all sections map cleanly
     }
   }
 }
+
+/**
+ * Load a single generic section by section name and table name.
+ * Used by TABLE_LOADERS for individual table reparse.
+ */
+export async function loadGenericForTable(
+  tmk: string,
+  data: ParsedProperty,
+  sectionName: string,
+  tableName: string,
+  scrapedAt: Date = new Date(),
+): Promise<void> {
+  const sectionData = data[sectionName] as Row | undefined;
+  if (!sectionData) return;
+
+  const rows =
+    (sectionData.table_data as Row[] | undefined) ??
+    (Array.isArray(sectionData) ? sectionData : [sectionData]);
+
+  await loadGenericSnapshot(tmk, tableName, rows, scrapedAt);
+}
+
+// ─── TABLE_LOADERS map ──────────────────────────────────────────
+
+export type TableLoaderFn = (
+  tmk: string,
+  data: ParsedProperty,
+  scrapedAt?: Date,
+) => Promise<void>;
+
+/** Map of table name → load function, used by reparse processor */
+export const TABLE_LOADERS: Record<string, TableLoaderFn> = {
+  properties: loadProperties,
+  parcels: loadParcels,
+  owners: loadOwners,
+  assessments: loadAssessments,
+  land_classifications: loadLandClassifications,
+  residential_improvements: loadResidentialImprovements,
+  commercial_improvements: loadCommercialImprovements,
+  sales: loadSales,
+  permits: loadPermits,
+  historical_tax: loadHistoricalTax,
+  current_tax_bills: loadCurrentTaxBills,
+  condominium: loadCondoProject,
+  yard_improvements: (tmk, data, s) =>
+    loadGenericForTable(tmk, data, "yard_improvement_information", "yard_improvements", s),
+  residential_additions: (tmk, data, s) =>
+    loadGenericForTable(tmk, data, "residential_addition_information", "residential_additions", s),
+  agricultural_assessments: (tmk, data, s) =>
+    loadGenericForTable(tmk, data, "agricultural_assessment_information", "agricultural_assessments", s),
+  accessory_structures: (tmk, data, s) =>
+    loadGenericForTable(tmk, data, "accessory_structure_information", "accessory_structures", s),
+  appeals: (tmk, data, s) =>
+    loadGenericForTable(tmk, data, "appeal_information", "appeals", s),
+  dedications: (tmk, data, s) =>
+    loadGenericForTable(tmk, data, "dedication_information", "dedications", s),
+};
 
 // ─── Main load processor ─────────────────────────────────────────
 
@@ -756,20 +996,22 @@ export async function processQpubLoad(
     }
 
     const data = JSON.parse(readFileSync(jsonFile, "utf-8")) as ParsedProperty;
+    const scrapedAt = new Date();
 
     // Load in order (respects FK constraints)
-    await loadProperties(tmk, data);
-    await loadParcels(tmk, data);
-    await loadOwners(tmk, data);
-    await loadCondoProject(tmk, data);
-    await loadAssessments(tmk, data);
-    await loadLandClassifications(tmk, data);
-    await loadResidentialImprovements(tmk, data);
-    await loadSales(tmk, data);
-    await loadPermits(tmk, data);
-    await loadHistoricalTax(tmk, data);
-    await loadCurrentTaxBills(tmk, data);
-    await loadGenericSections(tmk, data);
+    await loadProperties(tmk, data, scrapedAt);
+    await loadParcels(tmk, data, scrapedAt);
+    await loadOwners(tmk, data, scrapedAt);
+    await loadCondoProject(tmk, data, scrapedAt);
+    await loadAssessments(tmk, data, scrapedAt);
+    await loadLandClassifications(tmk, data, scrapedAt);
+    await loadResidentialImprovements(tmk, data, scrapedAt);
+    await loadCommercialImprovements(tmk, data, scrapedAt);
+    await loadSales(tmk, data, scrapedAt);
+    await loadPermits(tmk, data, scrapedAt);
+    await loadHistoricalTax(tmk, data, scrapedAt);
+    await loadCurrentTaxBills(tmk, data, scrapedAt);
+    await loadGenericSections(tmk, data, scrapedAt);
 
     // Update status
     await rawQuery(

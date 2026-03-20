@@ -8,6 +8,7 @@ import {
 import {
   getIslandCode,
   isBlockedTime,
+  isScrapePeriodActive,
   msUntilUnblocked,
 } from "@/core/crawlers/qpub/config";
 import { scrapeTmk } from "@/core/crawlers/qpub/scrape";
@@ -20,6 +21,14 @@ export async function processQpubScrape(
   job: Job<QpubScrapeJobData>,
 ): Promise<string> {
   const { tmk, url } = job.data;
+
+  // Reject scrape jobs outside active scrape periods (Jan, Feb, Aug blocked)
+  if (!isScrapePeriodActive()) {
+    throw new Error(
+      "Scraping is not allowed during county update months (Jan, Feb, Aug). " +
+      "Active periods: Mar–Jul (period 1) and Sep–Dec (period 2).",
+    );
+  }
 
   // Pause during blocked hours (backup / night)
   if (isBlockedTime()) {
