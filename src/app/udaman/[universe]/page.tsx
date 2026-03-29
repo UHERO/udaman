@@ -5,8 +5,8 @@ import { getVisibleRoutes } from "@/lib/auth/route-access";
 
 /** Supplementary descriptions for homepage cards (route-access only has labels). */
 const CARD_DESCRIPTIONS: Record<string, string> = {
-  "Time Series": "Browse, search, and manage time series data",
-  Catalog: "View and edit the data portal catalog tree",
+  "Time Series": "Browse and manage time series data",
+  "Data Portal Catalog": "View and edit the Data Portal catalog tree",
   "CSV-to-TSD": "Convert CSV files to TSD format",
   Downloads: "Manage and run data downloads",
   Exports: "Manage data export configurations",
@@ -55,7 +55,8 @@ export default async function UniversePage({
     <div className="flex flex-1 flex-col p-8">
       <h1 className="text-3xl font-bold">{name}</h1>
       <p className="text-muted-foreground mt-1 text-sm">
-        Select a section to get started.
+        UHERO Data Manager (UDAMAN) is a collection of data management tools.
+        Select one to get started.
       </p>
 
       {cards.length > 0 ? (
