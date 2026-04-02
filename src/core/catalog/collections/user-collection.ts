@@ -1,5 +1,6 @@
 import { compare, hash } from "bcryptjs";
 
+import { DEVISE_PEPPER } from "@/lib/auth/pepper";
 import { mysql } from "@/lib/mysql/db";
 
 import User from "../models/user";
@@ -59,10 +60,10 @@ class UserCollection {
       );
     }
 
-    const valid = await compare(currentPassword, stored);
+    const valid = await compare(currentPassword + DEVISE_PEPPER, stored);
     if (!valid) throw new Error("Current password is incorrect");
 
-    const hashed = await hash(newPassword, BCRYPT_ROUNDS);
+    const hashed = await hash(newPassword + DEVISE_PEPPER, BCRYPT_ROUNDS);
     await mysql`
       UPDATE users SET encrypted_password = ${hashed}, updated_at = NOW()
       WHERE id = ${id}

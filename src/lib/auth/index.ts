@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import { mysql } from "@database/mysql";
 import { compare } from "bcryptjs";
 
+import { DEVISE_PEPPER } from "@/lib/auth/pepper";
 import { isEmailAllowed } from "./auth-whitelist";
 import { MySqlAdapter } from "./mysql-adapter";
 
@@ -50,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const hash = user.encrypted_password;
         if (!hash || !hash.startsWith("$2")) return null;
 
-        const valid = await compare(password, hash);
+        const valid = await compare(password + DEVISE_PEPPER, hash);
         if (!valid) return null;
 
         return {
