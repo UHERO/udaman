@@ -1406,20 +1406,20 @@ class SeriesCollection {
         if (current && current.priority > loaderPriority) {
           continue;
         }
-        // Current is held by a lower/equal-priority loader — reclaim it
-        // by pointing current to this loader's existing data point (no new insert)
+        // Current is held by a lower/equal-priority loader, or no current
+        // data point exists at all — promote this loader's existing row
         if (current) {
           await mysql`
             UPDATE data_points SET current = 0
             WHERE xseries_id = ${xseriesId} AND date = ${dateStr} AND current = 1
           `;
-          await mysql`
-            UPDATE data_points SET current = 1
-            WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
-              AND data_source_id = ${dataSourceId}
-            ORDER BY created_at DESC LIMIT 1
-          `;
         }
+        await mysql`
+          UPDATE data_points SET current = 1
+          WHERE xseries_id = ${xseriesId} AND date = ${dateStr}
+            AND data_source_id = ${dataSourceId}
+          ORDER BY created_at DESC LIMIT 1
+        `;
         continue;
       }
 
