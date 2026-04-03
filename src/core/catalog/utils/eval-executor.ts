@@ -41,6 +41,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   // Aggregation
   "aggregate",
   // Interpolation
+  "addMissingDp",
   "fillMissingMonthsLinear",
   "interpolate",
   "linearInterpolate",

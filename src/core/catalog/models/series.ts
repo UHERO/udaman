@@ -968,6 +968,41 @@ class Series {
   }
 
   /**
+   * Insert a missing data point by interpolating from adjacent observations.
+   * Usage in eval: "SERIES".ts.add_missing_dp("2023-07-01", :average)
+   */
+  addMissingDp(dateStr: string, operation: string = "average"): Series {
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const prevEntry = sorted.filter(([d]) => d < dateStr).pop();
+    const nextEntry = sorted.find(([d]) => d > dateStr);
+
+    if (!prevEntry) throw new Error(`No data point found before ${dateStr}`);
+    if (!nextEntry) throw new Error(`No data point found after ${dateStr}`);
+
+    let newValue: number;
+    if (operation === "average") {
+      newValue = (prevEntry[1] + nextEntry[1]) / 2;
+    } else {
+      throw new Error(
+        `Operation ${operation} is not supported. Use "average"`,
+      );
+    }
+
+    const newData = new Map(this.data);
+    newData.set(dateStr, newValue);
+
+    const s = new Series({
+      name: `Added missing dp at ${dateStr} (${operation}) from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
    * AREMOS-style interpolation to a higher frequency.
    * method: "average" (default) or "sum"
    */
