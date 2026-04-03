@@ -52,11 +52,13 @@ export function UniverseSwitcher({
 
   const setActiveUniverse = React.useCallback(
     (universe: typeof defaultU) => {
-      const segments = pathname.split("/");
-      segments[2] = universe.name.toLowerCase(); // /udaman/[universe]/...
-      router.replace(segments.join("/"));
+      const currentUniverse = (params.universe as string) || "uhero";
+      const rest = pathname.slice(
+        pathname.indexOf(`/${currentUniverse}`) + currentUniverse.length + 1,
+      );
+      router.replace(`/udaman/${universe.name.toLowerCase()}${rest}`);
     },
-    [pathname, router],
+    [pathname, params.universe, router],
   );
 
   return (
