@@ -982,22 +982,18 @@ class Series {
     if (!prevEntry) throw new Error(`No data point found before ${dateStr}`);
     if (!nextEntry) throw new Error(`No data point found after ${dateStr}`);
 
-    let newValue: number;
-    if (operation === "average") {
-      newValue = (prevEntry[1] + nextEntry[1]) / 2;
-    } else {
+    if (operation !== "average") {
       throw new Error(
         `Operation ${operation} is not supported. Use "average"`,
       );
     }
 
-    const newData = new Map(this.data);
-    newData.set(dateStr, newValue);
+    const newValue = (prevEntry[1] + nextEntry[1]) / 2;
 
     const s = new Series({
-      name: `Added missing dp at ${dateStr} (${operation}) from ${this}`,
+      name: `Added missing data point at ${dateStr} (${operation}) from ${this}`,
     });
-    s.data = newData;
+    s.data = new Map([[dateStr, newValue]]);
     s.frequency = this.frequency;
     return s;
   }
