@@ -32,7 +32,7 @@ import type { TsdFrequency, TsdSeriesInput } from "./tsd-generator";
 const log = createLogger("catalog.tsd-export");
 const execAsync = promisify(exec);
 
-const DATA_PATH = process.env.DATA_PATH ?? "/mnt/data";
+const DATA_DIR = process.env.DATA_DIR ?? "/mnt/data";
 const NAS_PATH = "udaman@128.171.200.230:/volume1/UHEROroot/work/udamandata";
 
 const FREQ_MAP: Record<string, TsdFrequency> = {
@@ -104,8 +104,8 @@ export async function runTsdExport(): Promise<{
   success: boolean;
   message: string;
 }> {
-  const outPath = join(DATA_PATH, "udaman_tsd");
-  const inPath = join(DATA_PATH, "BnkLists");
+  const outPath = join(DATA_DIR, "udaman_tsd");
+  const inPath = join(DATA_DIR, "BnkLists");
 
   log.info({ outPath, inPath }, "runTsdExport: starting");
 
