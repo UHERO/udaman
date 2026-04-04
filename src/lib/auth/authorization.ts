@@ -37,7 +37,7 @@ export function isFsonly(role: string): boolean {
 
 /** Resolve the landing page path for a given universe after login. */
 export function getLandingPath(universe: string): string {
-  return `/udaman/${universe.toLowerCase()}`;
+  return `/udaman/${universe.toLowerCase()}/series`;
 }
 
 /**

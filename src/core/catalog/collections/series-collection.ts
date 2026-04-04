@@ -1344,7 +1344,7 @@ class SeriesCollection {
           ? row.date.toISOString().slice(0, 10)
           : String(row.date);
       if (!ownLatestByDate.has(dateStr)) {
-        ownLatestByDate.set(dateStr, row.value);
+        ownLatestByDate.set(dateStr, row.value != null ? Number(row.value) : null);
       }
     }
 
