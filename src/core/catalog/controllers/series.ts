@@ -296,12 +296,12 @@ export async function transformSeries({
 }): Promise<AnalyzeResult> {
   log.info({ evalStr }, "transforming series expression");
 
-  // Preprocess: pad spaces around operators, wrap valid series names as "NAME".ts
-  const padded = evalStr.replace(/([+*/()-])/g, " $1 ").trim();
-  const tokens = padded.split(/\s+/).filter(Boolean);
-  const evalStatement = tokens
-    .map((t) => (Series.isValidName(t) ? `"${t}".ts` : t))
-    .join(" ");
+  // Preprocess: find bare series names (PREFIX@GEO.FREQ) and wrap as "NAME".ts.
+  // Uses regex so names followed by method calls (e.g. E_NF@HI.M.shift_by(12))
+  // are correctly split into "E_NF@HI.M".ts.shift_by(12).
+  const SERIES_NAME_RE =
+    /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/gi;
+  const evalStatement = evalStr.replace(SERIES_NAME_RE, '"$1".ts');
 
   const result = await EvalExecutor.run(evalStatement);
 
@@ -310,7 +310,9 @@ export async function transformSeries({
   const ytdSeries = result.ytd();
 
   // Extract series names from the original expression for linking
-  const seriesNames = tokens.filter((t) => Series.isValidName(t));
+  const seriesNames = [
+    ...new Set([...evalStr.matchAll(SERIES_NAME_RE)].map((m) => m[1])),
+  ];
   const seriesLinks =
     seriesNames.length > 0
       ? await SeriesCollection.getIdsByNames(seriesNames)

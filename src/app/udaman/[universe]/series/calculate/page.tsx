@@ -4,16 +4,12 @@ import { CalculateForm } from "@/components/series/calculate-form";
 import { LinkedExpression } from "@/components/series/linked-expression";
 import { RecentSeriesList } from "@/components/series/recent-series-list";
 
-const NAME_REGEX =
-  /^(([%$\w]+?)(&([0-9Q]+)([FH])(\d+|F))?)@(\w+?)\.([ASQMWD])$/i;
-
 /** Extract the first valid series name from an expression */
 function extractFirstName(expr: string): string | null {
-  const tokens = expr
-    .replace(/([+*/(),-])/g, " $1 ")
-    .split(/\s+/)
-    .filter(Boolean);
-  return tokens.find((t) => NAME_REGEX.test(t)) ?? null;
+  const SERIES_NAME_RE =
+    /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])/i;
+  const match = expr.match(SERIES_NAME_RE);
+  return match ? match[1] : null;
 }
 
 export default async function CalculatePage({

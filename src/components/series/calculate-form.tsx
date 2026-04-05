@@ -17,8 +17,17 @@ interface CalculateFormProps {
   initialExpression?: string;
 }
 
+/** Separate series names from chained method calls so they tokenize independently.
+ *  e.g. E_NF@HI.M.shift_by(12) → E_NF@HI.M .shift_by(12) */
+function separateMethodCalls(expr: string): string {
+  return expr.replace(
+    /([%$\w]+(?:&[0-9Q]+[FH](?:\d+|F))?@\w+\.[ASQMWD])(?=\.)/gi,
+    "$1 ",
+  );
+}
+
 function validateExpression(expr: string): string | null {
-  const tokens = expr
+  const tokens = separateMethodCalls(expr)
     .replace(/([+*\/(),-])/g, " $1 ")
     .split(/\s+/)
     .filter(Boolean);

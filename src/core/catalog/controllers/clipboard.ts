@@ -2,6 +2,7 @@ import "server-only";
 
 import ClipboardCollection from "@catalog/collections/clipboard-collection";
 import type { ClipboardSeriesRow } from "@catalog/collections/clipboard-collection";
+import LoaderCollection from "@catalog/collections/loader-collection";
 import SeriesCollection from "@catalog/collections/series-collection";
 import type { UpdateSeriesPayload } from "@catalog/collections/series-collection";
 
@@ -167,23 +168,65 @@ export async function doClipboardAction({
   }
 
   switch (action) {
-    case "reload":
-      // TODO: Create ReloadJob, associate all clipboard series, queue
+    case "reload": {
+      log.info(
+        { userId, count: seriesIds.length },
+        "reloading clipboard series",
+      );
+      await SeriesCollection.batchReload({
+        seriesIds,
+        suffix: "clipboard",
+        nightly: false,
+      });
       return {
-        message: `Reload not yet implemented (${seriesIds.length} series)`,
+        message: `Reload started for ${seriesIds.length} series`,
       };
+    }
 
-    case "reset":
-      // TODO: Reset data sources for clipboard series
+    case "reset": {
+      let resetCount = 0;
+      for (const sid of seriesIds) {
+        try {
+          const loaders = await LoaderCollection.getBySeriesId(sid);
+          for (const loader of loaders) {
+            await LoaderCollection.reset(loader.id!);
+            resetCount++;
+          }
+        } catch (e) {
+          log.warn(
+            { id: sid, error: e instanceof Error ? e.message : String(e) },
+            "reset failed for series loader",
+          );
+        }
+      }
       return {
-        message: `Reset not yet implemented (${seriesIds.length} series)`,
+        message: `Reset ${resetCount} loaders across ${seriesIds.length} series`,
       };
+    }
 
-    case "clear_data":
-      // TODO: Delete all data points for clipboard series
+    case "clear_data": {
+      let cleared = 0;
+      for (const sid of seriesIds) {
+        try {
+          const series = await SeriesCollection.getById(sid);
+          if (series.xseriesId) {
+            await SeriesCollection.deleteAllDataPoints({
+              id: series.xseriesId,
+              u: series.universe,
+            });
+          }
+          cleared++;
+        } catch (e) {
+          log.warn(
+            { id: sid, error: e instanceof Error ? e.message : String(e) },
+            "clear data failed for series",
+          );
+        }
+      }
       return {
-        message: `Clear data not yet implemented (${seriesIds.length} series)`,
+        message: `Cleared data points for ${cleared} of ${seriesIds.length} series`,
       };
+    }
 
     case "restrict":
     case "unrestrict": {
@@ -204,29 +247,46 @@ export async function doClipboardAction({
       return { message: `${label} ${updated} of ${seriesIds.length} series` };
     }
 
-    case "destroy":
-      // TODO: Destroy all clipboard series
-      return {
-        message: `Destroy not yet implemented (${seriesIds.length} series)`,
-      };
+    case "destroy": {
+      const failed: number[] = [];
+      // Two-pass: first attempt, then retry failures (mirrors Rails approach)
+      for (const sid of seriesIds) {
+        try {
+          await SeriesCollection.delete(sid);
+        } catch {
+          failed.push(sid);
+        }
+      }
+      // Second pass for failures (dependency ordering may resolve after first pass)
+      const stillFailed: number[] = [];
+      for (const sid of failed) {
+        try {
+          await SeriesCollection.delete(sid);
+        } catch (e) {
+          stillFailed.push(sid);
+          log.warn(
+            { id: sid, error: e instanceof Error ? e.message : String(e) },
+            "destroy failed for series on second pass",
+          );
+        }
+      }
+      await ClipboardCollection.clear(userId);
+      const destroyed = seriesIds.length - stillFailed.length;
+      return stillFailed.length > 0
+        ? {
+            message: `Destroyed ${destroyed} of ${seriesIds.length} series (${stillFailed.length} failed)`,
+          }
+        : { message: `Destroyed ${destroyed} series` };
+    }
 
     case "meta_update":
-      // TODO: Bulk metadata update form
-      return {
-        message: `Meta update not yet implemented (${seriesIds.length} series)`,
-      };
+      return { message: "Use the Bulk Metadata Update dialog" };
 
     case "export_csv":
-      // TODO: Export clipboard series to CSV
-      return {
-        message: `CSV export not yet implemented (${seriesIds.length} series)`,
-      };
+      return { message: "CSV export is handled via download" };
 
     case "export_tsd":
-      // TODO: Export clipboard series to TSD
-      return {
-        message: `TSD export not yet implemented (${seriesIds.length} series)`,
-      };
+      return { message: "TSD export is handled via download" };
 
     default:
       return { message: `Unknown action: ${action}` };

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Universe } from "@catalog/types/shared";
-import { ClipboardCopy, ClipboardPlus, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { getSeries, searchSeriesAction } from "@/actions/series-actions";
 import { CalculateForm } from "@/components/series/calculate-form";
+import { ClipboardButtons } from "@/components/series/clipboard-buttons";
 import { SeriesListTable } from "@/components/series/series-list-table";
 import { Button } from "@/components/ui/button";
 import { isDbedt, isFsonly } from "@/lib/auth/authorization";
@@ -69,20 +70,7 @@ export default async function Page({
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <Button asChild variant="ghost">
-            <Link href="#">
-              <ClipboardPlus className="mr-2 h-4 w-4" />
-              Add to Clipboard
-            </Link>
-          </Button>
-          <Button asChild variant="ghost">
-            <Link href="#">
-              <ClipboardCopy className="mr-2 h-4 w-4" />
-              Replace Clipboard
-            </Link>
-          </Button>
-        </div>
+        <ClipboardButtons seriesIds={data.map((s) => s.id)} />
         <CalculateForm />
         <Button className="cursor-pointer" asChild>
           <Link href={`/udaman/${universe}/series/create`}>
