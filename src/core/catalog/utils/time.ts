@@ -160,6 +160,11 @@ function isValidDate(dateString: string, dateArr?: string[]) {
   return dateArr ? dateArr.includes(dateString) : true;
 }
 
+/** Add n months to a YYYY-MM-DD date string using date-fns. */
+function addMonthsStr(dateStr: string, n: number): string {
+  return format(addMonths(parseISO(dateStr), n), "yyyy-MM-dd");
+}
+
 export {
   generateDates,
   uheroDate,
@@ -167,4 +172,5 @@ export {
   formatRuntime,
   dateTimestamp,
   isValidDate,
+  addMonthsStr,
 };

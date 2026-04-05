@@ -3,6 +3,7 @@ import type {
   SeasonalAdjustment,
   Universe,
 } from "../types/shared";
+import { addMonthsStr } from "../utils/time";
 
 // ─── Name parsing ────────────────────────────────────────────────────
 // Series names follow the pattern: PREFIX@GEO.FREQ
@@ -110,13 +111,6 @@ function periodStart(dateStr: string, freq: string): string {
   }
 }
 
-/** Add n months to a YYYY-MM-DD date string. */
-function addMonths(dateStr: string, n: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setMonth(d.getMonth() + n);
-  // Clamp day to end of month (e.g. Jan 31 + 1 month → Feb 28)
-  return d.toISOString().slice(0, 10);
-}
 
 /** Format YYYY-MM-DD from components. */
 function fmtDate(y: number, m: number, d = 1): string {
@@ -512,11 +506,24 @@ class Series {
     return dates[0] ?? null;
   }
 
+  /** Alias for firstObservation (mirrors Rails first_value_date). */
+  get firstValueDate(): string | null {
+    return this.firstObservation;
+  }
+
   get lastObservation(): string | null {
     const dates = [...this.data.keys()]
       .filter((k) => this.data.get(k) != null)
       .sort();
     return dates.at(-1) ?? null;
+  }
+
+  /** Returns the last complete December date in the data. */
+  getLastCompleteDecember(): string | null {
+    const last = this.lastObservation;
+    if (!last) return null;
+    const { year, month } = parseYM(last);
+    return month === 12 ? last : `${year - 1}-12-01`;
   }
 
   get observationCount(): number {
@@ -698,7 +705,7 @@ class Series {
   yoy(): Series {
     const newData = new Map<string, number>();
     for (const [dateStr, value] of this.data) {
-      const prevDate = addMonths(dateStr, -12);
+      const prevDate = addMonthsStr(dateStr, -12);
       const prevVal = this.data.get(prevDate);
       if (prevVal == null) continue;
       if (prevVal === 0 && value !== 0) continue;
@@ -864,7 +871,7 @@ class Series {
   yoyDiff(): Series {
     const newData = new Map<string, number>();
     for (const [dateStr, value] of this.data) {
-      const prevDate = addMonths(dateStr, -12);
+      const prevDate = addMonthsStr(dateStr, -12);
       const prevVal = this.data.get(prevDate);
       if (prevVal == null) continue;
       newData.set(dateStr, value - prevVal);
@@ -954,7 +961,7 @@ class Series {
       const step = (val2 - val1) / (gap + 1);
 
       for (let m = 1; m <= gap; m++) {
-        newData.set(addMonths(dateStr1, m), val1 + step * m);
+        newData.set(addMonthsStr(dateStr1, m), val1 + step * m);
       }
     }
 
@@ -1048,7 +1055,7 @@ class Series {
         let values = factors.map((f) => lastVal! + f * increment);
         if (method === "sum") values = values.map((v) => v / howMany);
         for (let t = 0; t < howMany; t++) {
-          newData.set(addMonths(lastDate, t * targetMonths), values[t]);
+          newData.set(addMonthsStr(lastDate, t * targetMonths), values[t]);
         }
       }
       lastDate = thisDate;
@@ -1060,7 +1067,7 @@ class Series {
       let values = factors.map((f) => lastVal! + f * increment);
       if (method === "sum") values = values.map((v) => v / howMany);
       for (let t = 0; t < howMany; t++) {
-        newData.set(addMonths(lastDate, t * targetMonths), values[t]);
+        newData.set(addMonthsStr(lastDate, t * targetMonths), values[t]);
       }
     }
 
@@ -1094,13 +1101,13 @@ class Series {
     const [firstDate, firstVal] = sorted[0];
     if (src === "year" && target === "quarter") {
       newData.set(firstDate, firstVal);
-      newData.set(addMonths(firstDate, 3), firstVal);
-      newData.set(addMonths(firstDate, 6), firstVal);
-      newData.set(addMonths(firstDate, 9), firstVal);
+      newData.set(addMonthsStr(firstDate, 3), firstVal);
+      newData.set(addMonthsStr(firstDate, 6), firstVal);
+      newData.set(addMonthsStr(firstDate, 9), firstVal);
     } else {
       newData.set(firstDate, firstVal);
-      newData.set(addMonths(firstDate, 1), firstVal);
-      newData.set(addMonths(firstDate, 2), firstVal);
+      newData.set(addMonthsStr(firstDate, 1), firstVal);
+      newData.set(addMonthsStr(firstDate, 2), firstVal);
     }
 
     for (let i = 1; i < sorted.length; i++) {
@@ -1109,14 +1116,14 @@ class Series {
 
       if (src === "year" && target === "quarter") {
         newData.set(date, val - (diff / 4) * 3);
-        newData.set(addMonths(date, 3), val - (diff / 4) * 2);
-        newData.set(addMonths(date, 6), val - diff / 4);
-        newData.set(addMonths(date, 9), val);
+        newData.set(addMonthsStr(date, 3), val - (diff / 4) * 2);
+        newData.set(addMonthsStr(date, 6), val - diff / 4);
+        newData.set(addMonthsStr(date, 9), val);
       } else {
         // quarter → month
         newData.set(date, val - (diff / 3) * 2);
-        newData.set(addMonths(date, 1), val - diff / 3);
-        newData.set(addMonths(date, 2), val);
+        newData.set(addMonthsStr(date, 1), val - diff / 3);
+        newData.set(addMonthsStr(date, 2), val);
       }
     }
 
@@ -1270,6 +1277,58 @@ class Series {
     return s;
   }
 
+  /**
+   * Strict centered moving average with annual-average edge padding.
+   * Computes a centered MA that skips points where the window extends
+   * beyond data bounds, then fills edge gaps with annual average values.
+   */
+  movingAverageAnnavgPadded(startDate?: string, endDate?: string): Series {
+    const start = startDate ?? this.firstObservation ?? undefined;
+    const end = endDate ?? undefined;
+
+    // Annual average data for edge padding
+    const annAvgData = this.annualAverage().trim(start, end).data;
+
+    // Strict centered MA on trimmed data
+    const trimmed = this.trim(start, end);
+    const periods = trimmed.standardWindowSize;
+    const half = Math.floor(periods / 2);
+    const sorted = [...trimmed.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const cmaData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const winStart = i - half;
+      const winEnd = i + half;
+      // strict: skip if window extends beyond data bounds
+      if (winStart < 0 || winEnd > last) continue;
+
+      // Centered MA with halved endpoints (window width = periods + 1)
+      let sum = 0;
+      for (let j = winStart; j <= winEnd; j++) {
+        let val = sorted[j][1];
+        if (j === winStart || j === winEnd) val *= 0.5;
+        sum += val;
+      }
+      cmaData.set(sorted[i][0], sum / periods);
+    }
+
+    // Merge: start with annual avg, overwrite with CMA data
+    const mergedData = new Map(annAvgData);
+    for (const [date, value] of cmaData) {
+      mergedData.set(date, value);
+    }
+
+    const s = new Series({
+      name: `Moving Average of ${this} edge-padded with Annual Average`,
+    });
+    s.data = mergedData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
   /** Get data for the last incomplete year (current year if not finished). */
   getLastIncompleteYear(): Series {
     const lastObs = this.lastObservation;
@@ -1311,12 +1370,87 @@ class Series {
   shiftBy(months: number): Series {
     const newData = new Map<string, number>();
     for (const [dateStr, value] of this.data) {
-      newData.set(addMonths(dateStr, months), value);
+      newData.set(addMonthsStr(dateStr, months), value);
     }
     const s = new Series({ name: `${this} shifted by ${months} months` });
     s.data = newData;
     s.frequency = this.frequency;
     return s;
+  }
+
+  /**
+   * Returns a Series where each value is the number of days in that
+   * observation's period (month, quarter, semi, or year).
+   */
+  daysInPeriod(): Series {
+    const freq = normalizeFreq(this.frequency ?? "");
+    const newData = new Map<string, number>();
+
+    for (const [dateStr] of this.data) {
+      const d = new Date(dateStr + "T00:00:00");
+      const y = d.getFullYear();
+      const m = d.getMonth(); // 0-based
+      let days: number;
+
+      switch (freq) {
+        case "month": {
+          // Days in this month: day 0 of next month = last day of this month
+          days = new Date(y, m + 1, 0).getDate();
+          break;
+        }
+        case "quarter": {
+          const qStart = new Date(y, Math.floor(m / 3) * 3, 1);
+          const qEnd = new Date(y, Math.floor(m / 3) * 3 + 3, 1);
+          days = (qEnd.getTime() - qStart.getTime()) / (1000 * 60 * 60 * 24);
+          break;
+        }
+        case "semi": {
+          const hStart = new Date(y, m < 6 ? 0 : 6, 1);
+          const hEnd = new Date(y, m < 6 ? 6 : 12, 1);
+          days = (hEnd.getTime() - hStart.getTime()) / (1000 * 60 * 60 * 24);
+          break;
+        }
+        case "year": {
+          const isLeap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+          days = isLeap ? 366 : 365;
+          break;
+        }
+        case "week":
+          days = 7;
+          break;
+        default:
+          days = 1;
+      }
+
+      newData.set(dateStr, days);
+    }
+
+    const s = new Series({
+      name: `number of days in each ${freq}`,
+    });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Average daily census: divide by days in period.
+   * SA series use a constant denominator (365 / periods-per-year).
+   * NS series use actual days in each period.
+   */
+  dailyCensus(): Series {
+    if (this.isSA) {
+      const freq = normalizeFreq(this.frequency ?? "");
+      const fpf = freqPerFreq(freq, "year");
+      if (!fpf) {
+        throw new Error(
+          `Cannot compute daily census on SA series of frequency ${freq}`,
+        );
+      }
+      const denom = Math.round((365 / fpf) * 100) / 100;
+      return this.divide(denom);
+    }
+    return this.divide(this.daysInPeriod());
   }
 
   // ─── File loading ───────────────────────────────────────────────────
