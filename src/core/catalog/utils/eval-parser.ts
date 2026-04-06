@@ -357,6 +357,21 @@ class EvalParser {
       return this.parseSeriesRef();
     }
 
+    // Unary minus: -expr
+    if (tok.type === "OP" && tok.value === "-") {
+      this.advance();
+      const operand = this.parsePrimary();
+      if (operand.type === "scalar") {
+        return { type: "scalar", value: -operand.value };
+      }
+      return {
+        type: "arithmetic",
+        op: "*",
+        left: { type: "scalar", value: -1 },
+        right: operand,
+      };
+    }
+
     // Number literal
     if (tok.type === "NUMBER") {
       this.advance();
@@ -443,7 +458,27 @@ class EvalParser {
     if (this.current()?.type === "LPAREN") {
       this.advance(); // skip (
       while (this.current() && this.current()!.type !== "RPAREN") {
-        args.push(this.parseOneArg());
+        const tok = this.current()!;
+        // Tokens that can start an expression — parse as full expression
+        // to support arithmetic in args (e.g. "A".ts + "B".ts)
+        if (
+          tok.type === "QUOTED_STRING" ||
+          tok.type === "NUMBER" ||
+          tok.type === "LPAREN" ||
+          tok.type === "SERIES_CLASS" ||
+          (tok.type === "OP" && (tok.value === "-" || tok.value === "+"))
+        ) {
+          const node = this.parseExpression();
+          if (node.type === "scalar") {
+            args.push({ type: "number", value: node.value });
+          } else if (node.type === "series_ref") {
+            args.push({ type: "series_ref", name: node.name, nullable: node.nullable });
+          } else {
+            args.push({ type: "expression", node });
+          }
+        } else {
+          args.push(this.parseOneArg());
+        }
         if (this.current()?.type === "COMMA") this.advance();
       }
       if (this.current()?.type === "RPAREN") this.advance();

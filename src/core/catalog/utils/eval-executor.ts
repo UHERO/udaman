@@ -40,6 +40,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "yoyDiff",
   "scaledData",
   // Aggregation
+  "average",
   "aggregate",
   // Interpolation
   "addMissingDp",
@@ -50,6 +51,7 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   // Moving averages & sharing
   "movingAverage",
   "movingAverageOffsetEarly",
+  "offsetForwardLookingMovingAverage",
   "backwardLookingMovingAverage",
   "forwardLookingMovingAverage",
   "shareUsing",

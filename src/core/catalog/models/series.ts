@@ -772,6 +772,16 @@ class Series {
     return s;
   }
 
+  /** Scalar average of all data points. Returns a scalar-wrapped Series for use in arithmetic. */
+  average(): Series {
+    const values = [...this.data.values()];
+    const count = values.length;
+    const avg = count > 0 ? values.reduce((s, v) => s + v, 0) / count : 0;
+    const s = new Series({ name: `__scalar_${avg}` });
+    s.data = new Map([["scalar", avg]]);
+    return s;
+  }
+
   /**
    * Annual sum: aggregate to annual sum, then map back to each observation date.
    * Each data point gets the annual sum for its year.
@@ -1327,6 +1337,35 @@ class Series {
     }
 
     const s = new Series({ name: `Moving Average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Forward-looking moving average offset by +1 position.
+   * Always forward-looking (no edge adaptation), window shifted right by 1.
+   */
+  offsetForwardLookingMovingAverage(): Series {
+    const periods = this.standardWindowSize;
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const start = i + 1;
+      const end = i + periods;
+      if (start < 0 || end > last) continue;
+      let sum = 0;
+      for (let j = start; j <= end; j++) sum += sorted[j][1];
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({
+      name: `Offset Forward Looking Moving Average of ${this}`,
+    });
     s.data = newData;
     s.frequency = this.frequency;
     return s;
