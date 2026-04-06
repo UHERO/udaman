@@ -115,6 +115,8 @@ async function resolveArg(
       return arg.value;
     case "number":
       return arg.value;
+    case "nil":
+      return null as unknown as string;
     case "symbol":
       return arg.value;
     case "series_ref": {

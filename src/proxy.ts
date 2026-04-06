@@ -77,7 +77,7 @@ export async function proxy(request: NextRequest) {
   // ── Subdomain access ──────────────────────────────────────────────
   if (app) {
     // Let NextAuth & static assets pass through untouched
-    if (pathname.startsWith("/api/auth") || pathname.startsWith("/_next")) {
+    if ((pathname.startsWith("/api/") && app !== "api") || pathname.startsWith("/_next")) {
       return NextResponse.next();
     }
 

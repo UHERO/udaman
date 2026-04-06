@@ -20,6 +20,7 @@ export type EvalNode =
 export type EvalArg =
   | { type: "string"; value: string }
   | { type: "number"; value: number }
+  | { type: "nil" }
   | { type: "symbol"; value: string }
   | { type: "series_ref"; name: string; nullable: boolean }
   | { type: "options"; value: Record<string, string | number | boolean> }
@@ -505,6 +506,12 @@ class EvalParser {
     const tok = this.current();
     if (!tok)
       throw new EvalParseError("Unexpected end of input in argument list");
+
+    // Ruby nil literal
+    if (tok.type === "DOT_IDENT" && tok.value === "nil") {
+      this.advance();
+      return { type: "nil" };
+    }
 
     // Ruby symbol :word
     if (tok.type === "SYMBOL") {

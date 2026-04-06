@@ -1469,15 +1469,63 @@ class Series {
     return this;
   }
 
-  /** Trim data to a date window. Either or both bounds may be omitted. */
+  /**
+   * January 1 of the year containing the last observation.
+   * Ports get_last_incomplete_january from Rails.
+   */
+  getLastIncompleteJanuary(): string | null {
+    const lastObs = this.lastObservation;
+    if (!lastObs) return null;
+    const { year } = parseYM(lastObs);
+    return fmtDate(year, 1);
+  }
+
+  /**
+   * Trim data to a date window. Matches Rails trim() defaults:
+   *  - startDate defaults to trimPeriodStart ?? getLastIncompleteJanuary
+   *  - endDate   defaults to trimPeriodEnd   ?? today
+   * If startDate is still null after defaults, returns data unchanged.
+   */
   trim(startDate?: string | null, endDate?: string | null): Series {
+    const start =
+      startDate ??
+      (this.trimPeriodStart
+        ? fmtDate(
+            this.trimPeriodStart.getFullYear(),
+            this.trimPeriodStart.getMonth() + 1,
+            this.trimPeriodStart.getDate(),
+          )
+        : null) ??
+      this.getLastIncompleteJanuary();
+
+    const end =
+      endDate ??
+      (this.trimPeriodEnd
+        ? fmtDate(
+            this.trimPeriodEnd.getFullYear(),
+            this.trimPeriodEnd.getMonth() + 1,
+            this.trimPeriodEnd.getDate(),
+          )
+        : null) ??
+      fmtDate(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate());
+
+    if (!start) {
+      // No start date even after defaults — return data as-is
+      const s = new Series({ name: `${this} trimmed` });
+      s.data = new Map(this.data);
+      s.frequency = this.frequency;
+      return s;
+    }
+
     const newData = new Map<string, number>();
     for (const [dateStr, value] of this.data) {
-      if (startDate && dateStr < startDate) continue;
-      if (endDate && dateStr > endDate) continue;
+      if (dateStr < start) continue;
+      if (end && dateStr > end) continue;
       newData.set(dateStr, value);
     }
-    const s = new Series({ name: `${this} trimmed` });
+    const label =
+      start === "1000-01-01" ? this.name : `Trimmed ${this} starting ${start}`;
+    const s = new Series({ name: label });
     s.data = newData;
     s.frequency = this.frequency;
     return s;
