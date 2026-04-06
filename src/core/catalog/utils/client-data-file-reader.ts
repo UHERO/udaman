@@ -173,6 +173,32 @@ class ClientDataFileReader {
     return this._dates;
   }
 
+  /** Return up to `n` raw cell values from the date column/row that cellToDate couldn't parse. */
+  private unparsedDateSamples(n: number): string[] {
+    const samples: string[] = [];
+    if (this.headerLayout === "columns") {
+      const dateCol = this.cell(1, 2) === "Year Month" ? 2 : 1;
+      for (let row = 2; row <= this.lastRow && samples.length < n; row++) {
+        const raw = this.cell(row, dateCol);
+        if (raw && !this.cellToDate(row, dateCol)) {
+          samples.push(JSON.stringify(raw));
+        }
+      }
+    } else {
+      for (
+        let col = 2;
+        col <= this.lastColumn && samples.length < n;
+        col++
+      ) {
+        const raw = this.cell(1, col);
+        if (raw && !this.cellToDate(1, col)) {
+          samples.push(JSON.stringify(raw));
+        }
+      }
+    }
+    return samples;
+  }
+
   // ─── Frequency detection ──────────────────────────────────────────
 
   get frequency(): string {
@@ -180,7 +206,14 @@ class ClientDataFileReader {
 
     const sortedDates = [...this.dates.keys()].sort();
     if (sortedDates.length < 2) {
-      throw new Error("Not enough dates to determine frequency");
+      // Collect sample unparsed values from the date column/row for diagnostics
+      const samples = this.unparsedDateSamples(5);
+      const detail = samples.length
+        ? ` Unparsed values in date column: [${samples.join(", ")}]. Dates must be yyyy-mm-dd, mm/dd/yyyy, YYYYMM, or year (e.g. 2024).`
+        : "";
+      throw new Error(
+        `Not enough dates to determine frequency (found ${sortedDates.length}).${detail}`,
+      );
     }
 
     const d0 = new Date(sortedDates[0]);
@@ -272,8 +305,11 @@ class ClientDataFileReader {
     if (ClientDataFileReader.METADATA_HEADERS.has(raw)) return null;
 
     // Try as number first (year, year.quarter, YYYYMM)
-    const num = parseFloat(raw.replace(/,/g, ""));
-    if (!isNaN(num)) {
+    // Use Number() instead of parseFloat() to avoid partial parsing
+    // (parseFloat("1/1/71") returns 1, but Number("1/1/71") returns NaN)
+    const cleaned = raw.replace(/,/g, "");
+    const num = Number(cleaned);
+    if (!isNaN(num) && cleaned !== "") {
       return ClientDataFileReader.numericToDate(num);
     }
 
