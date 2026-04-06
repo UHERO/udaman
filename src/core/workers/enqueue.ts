@@ -6,6 +6,7 @@ import {
   type AdminActionJobData,
   type ApiDvwReloadJobData,
   type BatchReloadJobData,
+  type ClipboardActionJobData,
   type DbedtUploadJobData,
   type DownloadJobData,
   type DvwUploadJobData,
@@ -102,6 +103,10 @@ export function enqueueQpubLoad(data: QpubLoadJobData) {
   return scraperQueue.add(JobName.QPUB_LOAD, data, {
     jobId: `qpub-load-${data.tmk}`,
   });
+}
+
+export function enqueueClipboardAction(data: ClipboardActionJobData) {
+  return defaultQueue.add(JobName.CLIPBOARD_ACTION, data, { priority: 1 });
 }
 
 export function enqueueQpubReparse(data: QpubReparseJobData) {

@@ -1266,13 +1266,79 @@ class Series {
         end = i + half;
       }
       if (start < 0 || end >= sorted.length) continue;
+      const halveEndpoints = end - start === periods;
       let sum = 0;
-      for (let j = start; j <= end; j++) sum += sorted[j][1];
-      newData.set(sorted[i][0], sum / (end - start + 1));
+      for (let j = start; j <= end; j++) {
+        let val = sorted[j][1];
+        if (halveEndpoints && (j === start || j === end)) val *= 0.5;
+        sum += val;
+      }
+      newData.set(sorted[i][0], sum / periods);
     }
 
     const s = new Series({ name: `Moving average of ${this}` });
     s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Centered moving average with offset at the left edge.
+   * Like movingAverage(), but the forward-looking window at the left edge
+   * is shifted right by 1 position (offset_ma in Rails).
+   */
+  movingAverageOffsetEarly(): Series {
+    const periods = this.standardWindowSize;
+    const half = Math.floor(periods / 2);
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const last = sorted.length - 1;
+    const newData = new Map<string, number>();
+
+    for (let i = 0; i < sorted.length; i++) {
+      const atLeftEdge = i < half;
+      const atRightEdge = i > last - half;
+
+      let start: number, end: number;
+      if (atLeftEdge) {
+        // forward-looking with +1 offset
+        start = i + 1;
+        end = i + periods;
+      } else if (atRightEdge) {
+        // backward-looking
+        start = i - periods + 1;
+        end = i;
+      } else {
+        // centered
+        start = i - half;
+        end = i + half;
+      }
+      if (start < 0 || end > last) continue;
+
+      const halveEndpoints = end - start === periods;
+      let sum = 0;
+      for (let j = start; j <= end; j++) {
+        let val = sorted[j][1];
+        if (halveEndpoints && (j === start || j === end)) val *= 0.5;
+        sum += val;
+      }
+      newData.set(sorted[i][0], sum / periods);
+    }
+
+    const s = new Series({ name: `Moving Average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /** Compute share: (ratioTop / ratioBottom) * self. */
+  shareUsing(ratioTop: Series, ratioBottom: Series): Series {
+    const shared = ratioTop.divide(ratioBottom).multiply(this);
+    const s = new Series({
+      name: `Share of ${this} using ratio of ${ratioTop} over ${ratioBottom}`,
+    });
+    s.data = shared.data;
     s.frequency = this.frequency;
     return s;
   }
@@ -1351,6 +1417,18 @@ class Series {
   }
 
   // ─── Data adjustment (series_data_adjustment.rb) ──────────────────
+
+  /** Set trim start to far past so trim() won't clip early data. Chainable, mutates self. */
+  noTrimPast(): this {
+    this.trimPeriodStart = new Date("1000-01-01");
+    return this;
+  }
+
+  /** Set trim end to far future so trim() won't clip future data. Chainable, mutates self. */
+  noTrimFuture(): this {
+    this.trimPeriodEnd = new Date("2999-12-31");
+    return this;
+  }
 
   /** Trim data to a date window. Either or both bounds may be omitted. */
   trim(startDate?: string | null, endDate?: string | null): Series {

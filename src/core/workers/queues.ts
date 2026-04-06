@@ -24,6 +24,7 @@ export const JobName = {
   QPUB_PARSE: "scraper.qpub-parse",
   QPUB_LOAD: "scraper.qpub-load",
   QPUB_REPARSE: "scraper.qpub-reparse",
+  CLIPBOARD_ACTION: "clipboard.action",
 } as const;
 
 export type JobNameValue = (typeof JobName)[keyof typeof JobName];
@@ -104,6 +105,18 @@ export type QpubParseJobData = {
 export type QpubLoadJobData = {
   tmk: string;
   island: string;
+};
+
+export type ClipboardActionJobData = {
+  reloadJobId: number;
+  action:
+    | "reload"
+    | "reset"
+    | "clear_data"
+    | "restrict"
+    | "unrestrict"
+    | "destroy";
+  seriesIds: number[];
 };
 
 export type QpubReparseJobData = {

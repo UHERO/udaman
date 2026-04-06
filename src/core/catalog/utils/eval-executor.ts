@@ -47,12 +47,16 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "interpolate",
   "linearInterpolate",
   "fillInterpolateTo",
-  // Moving averages
+  // Moving averages & sharing
   "movingAverage",
+  "movingAverageOffsetEarly",
   "backwardLookingMovingAverage",
   "forwardLookingMovingAverage",
+  "shareUsing",
   // Data adjustment
   "trim",
+  "noTrimPast",
+  "noTrimFuture",
   "shiftBy",
   "getLastIncompleteYear",
   // File loading
@@ -126,6 +130,8 @@ async function resolveArg(
       return Object.fromEntries(
         Object.entries(arg.value).map(([k, v]) => [k, String(v)]),
       );
+    case "expression":
+      return EvalExecutor.execute(arg.node);
   }
 }
 

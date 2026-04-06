@@ -22,7 +22,8 @@ export type EvalArg =
   | { type: "number"; value: number }
   | { type: "symbol"; value: string }
   | { type: "series_ref"; name: string; nullable: boolean }
-  | { type: "options"; value: Record<string, string | number | boolean> };
+  | { type: "options"; value: Record<string, string | number | boolean> }
+  | { type: "expression"; node: EvalNode };
 
 // ─── Token Types ────────────────────────────────────────────────────
 
@@ -488,13 +489,25 @@ class EvalParser {
       return { type: "string", value: tok.value };
     }
 
-    // Series name as argument: "NAME".ts
+    // Series name as argument: "NAME".ts or "NAME".ts.method_chain(...)
     if (tok.type === "QUOTED_STRING") {
       const name = this.advance().value;
       const resolver = this.current();
       if (resolver?.type === "DOT_TS" || resolver?.type === "DOT_TSN") {
         const nullable = this.advance().type === "DOT_TSN";
-        return { type: "series_ref", name, nullable };
+        let node: EvalNode = { type: "series_ref", name, nullable };
+
+        // Parse chained methods (e.g. "SERIES".ts.method1.method2(args))
+        while (this.current()?.type === "DOT_IDENT") {
+          const method = this.advance().value;
+          const methodArgs = this.parseMethodArgs();
+          node = { type: "instance_method", target: node, method, args: methodArgs };
+        }
+
+        if (node.type === "series_ref") {
+          return { type: "series_ref", name, nullable };
+        }
+        return { type: "expression", node };
       }
       // Bare quoted string that happened to match series pattern — treat as string
       return { type: "string", value: name };
