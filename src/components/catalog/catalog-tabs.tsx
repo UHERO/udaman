@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   FolderTree,
   Globe,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useAppPathname } from "@/hooks/use-app-pathname";
 import { useFullWidth } from "@/hooks/use-full-width";
 import { getVisibleChildren } from "@/lib/auth/route-access";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,7 @@ export function CatalogTabs({
   universe: string;
 }) {
   const { universe } = useParams();
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const base = `/udaman/${universe}/catalog`;
 
   const visibleChildren = getVisibleChildren(role, userUniverse, "/catalog");

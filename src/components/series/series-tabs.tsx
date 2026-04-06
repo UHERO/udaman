@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   AlertTriangle,
   Calculator,
@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { useAppPathname } from "@/hooks/use-app-pathname";
 import { Button } from "@/components/ui/button";
 import { useFullWidth } from "@/hooks/use-full-width";
 import { getVisibleChildren } from "@/lib/auth/route-access";
@@ -61,7 +62,7 @@ export function SeriesTabs({
   badgeCounts,
 }: SeriesTabsProps) {
   const { universe } = useParams();
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const base = `/udaman/${universe}/series`;
 
   const visibleChildren = getVisibleChildren(role, userUniverse, "/series");

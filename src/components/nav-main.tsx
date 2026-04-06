@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ChevronRight, type LucideIcon } from "lucide-react";
+
+import { useAppPathname } from "@/hooks/use-app-pathname";
 
 import {
   Collapsible,
@@ -34,7 +35,7 @@ export function NavMain({
     }[];
   }[];
 }) {
-  const pathname = usePathname();
+  const pathname = useAppPathname();
 
   return (
     <SidebarGroup>

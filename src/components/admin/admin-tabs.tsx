@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useAppPathname } from "@/hooks/use-app-pathname";
 import {
   Activity,
   Calendar,
@@ -37,7 +37,7 @@ export function AdminTabs({
   role: string;
   universe: string;
 }) {
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const base = "/udaman/admin";
 
   const visibleChildren = getVisibleChildren(role, universe, "/udaman/admin");

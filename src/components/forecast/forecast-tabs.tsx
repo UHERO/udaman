@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Camera, Maximize2, Minimize2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useAppPathname } from "@/hooks/use-app-pathname";
 import { useFullWidth } from "@/hooks/use-full-width";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,7 @@ const TABS = [
 
 export function ForecastTabs() {
   const { universe } = useParams();
-  const pathname = usePathname();
+  const pathname = useAppPathname();
   const base = `/udaman/${universe}/forecast`;
 
   const { fullWidth, toggleWidth } = useFullWidth();
