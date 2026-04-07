@@ -305,29 +305,47 @@ export function AnalyzeDataTable({
   ]);
 
   const copyAsCsv = useCallback(() => {
-    const headers = columns.map((c) => {
+    const headerCols = columns.map((c) => {
       const key =
         (c as { accessorKey?: string }).accessorKey ??
         (c as { id?: string }).id ??
         "";
-      return key;
+      let label = key;
+      if (isCompareMode && seriesNames) {
+        const seriesMatch = key.match(/^series_(\d+)$/);
+        if (seriesMatch) {
+          label = seriesNames[Number(seriesMatch[1])] ?? key;
+        } else {
+          const transformMatch = key.match(/^transformed_(\d+)$/);
+          if (transformMatch && activeTransformation) {
+            const transformLabel = TRANSFORMATION_LABELS[activeTransformation];
+            const name = seriesNames[Number(transformMatch[1])] ?? "";
+            label = `${transformLabel} (${name})`;
+          }
+        }
+      }
+      return { key, label };
     });
-    const csvHeader = headers.join(",");
     const raw = (v: unknown) => {
       if (v == null) return "";
       if (typeof v === "number") return isNaN(v) ? "" : String(v);
       if (typeof v === "string") return v;
       return "";
     };
+    const csvEscape = (s: string) =>
+      /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    const csvHeader = headerCols.map((h) => csvEscape(h.label)).join(",");
     const csvRows = rows.map((r) =>
-      headers
-        .map((h) => raw((r as unknown as Record<string, unknown>)[h]))
+      headerCols
+        .map((h) =>
+          csvEscape(raw((r as unknown as Record<string, unknown>)[h.key])),
+        )
         .join(","),
     );
     navigator.clipboard.writeText([csvHeader, ...csvRows].join("\n"));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [rows, columns]);
+  }, [rows, columns, isCompareMode, seriesNames, activeTransformation]);
 
   const table = useReactTable({
     data: rows,
