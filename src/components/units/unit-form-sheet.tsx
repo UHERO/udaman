@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Universe } from "@catalog/types/shared";
-import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { createUnit, updateUnit } from "@/actions/units";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -45,7 +45,7 @@ interface UnitData {
 const formSchema = z.object({
   shortLabel: z.string(),
   longLabel: z.string(),
-  universe: z.enum(universes as [Universe, ...Universe[]]),
+  universe: z.string().min(1),
 });
 
 interface UnitFormSheetProps {
@@ -64,6 +64,7 @@ export function UnitFormSheet({
   defaultUniverse,
 }: UnitFormSheetProps) {
   const router = useRouter();
+  const universes = useUniverseNames();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

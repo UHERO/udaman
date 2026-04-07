@@ -1,6 +1,6 @@
-const allowedEmails: string[] = ["wood2@hawaii.edu"];
+const allowedEmails: string[] = ["wood2@hawaii.edu", "yang-seon.kim@hawaii.gov"];
 
-const allowedDomains: string[] = ["hawaii.edu"];
+const allowedDomains: string[] = ["hawaii.edu", "hawaii.gov"];
 
 /** When true, only allowedEmails is checked. When false, both lists are checked. */
 const strictMode = false;

@@ -13,7 +13,14 @@ export type SeasonalAdjustment =
   | "seasonally_adjusted"
   | "not_applicable";
 
-export type Universe = "UHERO" | "FC" | "DBEDT" | "NTA" | "COH" | "CCOM";
+export type Universe =
+  | "UHERO"
+  | "FC"
+  | "DBEDT"
+  | "NTA"
+  | "COH"
+  | "CCOM"
+  | "HHF";
 export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";
 
 export interface Category {

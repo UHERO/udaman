@@ -8,6 +8,8 @@ generator client {
 
 model universe {
   name             String             @id @db.VarChar(10)
+  description      String?            @db.Text
+  data_portal_url  String?            @db.VarChar(255)
   api_applications api_applications[]
   categories       categories[]
   data_lists       data_lists[]

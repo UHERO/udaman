@@ -30,6 +30,14 @@ export function isDbedt(role: string, universe: string): boolean {
   return universe === "DBEDT" && role === "external";
 }
 
+/** HHF internal/admin/dev user (Hawaii Housing Factbook universe) */
+export function isHhf(role: string, universe: string): boolean {
+  return (
+    universe === "HHF" &&
+    (role === "internal" || role === "admin" || role === "dev")
+  );
+}
+
 /** Forecast-only user (any universe) */
 export function isFsonly(role: string): boolean {
   return role === "fsonly";
@@ -58,6 +66,10 @@ export function enforceAccessPolicy(
     if (isDbedt(role, universe)) return; // allowed
     // Otherwise fall through to general check
   }
+
+  // HHF internal+ users manage their own universe via the factbook upload
+  // pipeline, same as UHERO internal+ users do for UHERO.
+  if (isHhf(role, universe)) return;
 
   // Forecast snapshots: fsonly can read; admin+ can delete
   if (resource === "forecast-snapshot") {

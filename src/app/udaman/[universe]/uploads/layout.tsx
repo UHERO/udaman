@@ -1,6 +1,6 @@
 import { UploadLayout } from "@/components/uploads/upload-layout";
 import { UploadTabs } from "@/components/uploads/upload-tabs";
-import { isDbedt, isInternalUser } from "@/lib/auth/authorization";
+import { isDbedt, isHhf, isInternalUser } from "@/lib/auth/authorization";
 import { getCurrentUserContext } from "@/lib/auth/dal";
 
 export default async function Layout({
@@ -10,7 +10,13 @@ export default async function Layout({
 }) {
   const { role, universe } = await getCurrentUserContext();
 
-  if (!isDbedt(role, universe) && !isInternalUser(role, universe)) {
+  if (
+    !isDbedt(role, universe) &&
+    !isInternalUser(role, universe) &&
+    !isHhf(role, universe) &&
+    role !== "admin" &&
+    role !== "dev"
+  ) {
     return (
       <div className="p-8">
         <h1 className="text-3xl font-bold">Uploads</h1>
@@ -23,7 +29,7 @@ export default async function Layout({
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <UploadTabs role={role} universe={universe} />
+      <UploadTabs role={role} />
       <UploadLayout>{children}</UploadLayout>
     </div>
   );

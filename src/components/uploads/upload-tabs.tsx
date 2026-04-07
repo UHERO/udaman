@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowUpToLine,
+  Building2,
   FileSpreadsheet,
   Maximize2,
   Minimize2,
@@ -20,20 +21,20 @@ const TABS = [
   { label: "Econ", icon: FileSpreadsheet, segment: "econ" },
   { label: "Tour", icon: Palmtree, segment: "tour" },
   { label: "Forecast", icon: ArrowUpToLine, segment: "forecast" },
+  { label: "Factbook", icon: Building2, segment: "factbook" },
 ] as const;
 
-export function UploadTabs({
-  role,
-  universe: userUniverse,
-}: {
-  role: string;
-  universe: string;
-}) {
+export function UploadTabs({ role }: { role: string }) {
   const { universe } = useParams();
   const pathname = useAppPathname();
   const base = `/udaman/${universe}/uploads`;
 
-  const visibleChildren = getVisibleChildren(role, userUniverse, "/uploads");
+  // Filter by the URL universe (current context), not the session universe.
+  const visibleChildren = getVisibleChildren(
+    role,
+    String(universe).toUpperCase(),
+    "/uploads",
+  );
   const visibleTabs = TABS.filter((tab) =>
     visibleChildren.some((child) => child.path === `/uploads/${tab.segment}`),
   );

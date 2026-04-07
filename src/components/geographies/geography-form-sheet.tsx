@@ -5,12 +5,12 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Universe } from "@catalog/types/shared";
 import type { Geography } from "@catalog/types/shared";
-import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { createGeography, updateGeography } from "@/actions/geographies";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -43,7 +43,7 @@ const formSchema = z.object({
   fips: z.string(),
   listOrder: z.number().nullable(),
   geotype: z.string(),
-  universe: z.enum(universes as [Universe, ...Universe[]]),
+  universe: z.string().min(1),
 });
 
 interface GeographyFormSheetProps {
@@ -62,6 +62,7 @@ export function GeographyFormSheet({
   defaultUniverse,
 }: GeographyFormSheetProps) {
   const router = useRouter();
+  const universes = useUniverseNames();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

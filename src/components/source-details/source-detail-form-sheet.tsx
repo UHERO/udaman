@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Universe } from "@catalog/types/shared";
-import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -13,6 +12,7 @@ import {
   createSourceDetail,
   updateSourceDetail,
 } from "@/actions/source-details";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -46,7 +46,7 @@ interface SourceDetailData {
 
 const formSchema = z.object({
   description: z.string(),
-  universe: z.enum(universes as [Universe, ...Universe[]]),
+  universe: z.string().min(1),
 });
 
 interface SourceDetailFormSheetProps {
@@ -65,6 +65,7 @@ export function SourceDetailFormSheet({
   defaultUniverse,
 }: SourceDetailFormSheetProps) {
   const router = useRouter();
+  const universes = useUniverseNames();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

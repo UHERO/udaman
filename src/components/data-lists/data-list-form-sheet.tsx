@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Universe } from "@catalog/types/shared";
-import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -34,6 +33,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 
 interface DataListData {
   id: number;
@@ -43,7 +43,7 @@ interface DataListData {
 
 const formSchema = z.object({
   name: z.string(),
-  universe: z.enum(universes as [Universe, ...Universe[]]),
+  universe: z.string().min(1),
 });
 
 interface DataListFormSheetProps {
@@ -62,6 +62,7 @@ export function DataListFormSheet({
   defaultUniverse,
 }: DataListFormSheetProps) {
   const router = useRouter();
+  const universes = useUniverseNames();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,13 +87,13 @@ export function DataListFormSheet({
       if (mode === "create") {
         const result = await createDataList({
           name: values.name || null,
-          universe: values.universe,
+          universe: values.universe as Universe,
         });
         toast.success(result.message);
       } else if (dataList) {
         const result = await updateDataList(dataList.id, {
           name: values.name || null,
-          universe: values.universe,
+          universe: values.universe as Universe,
         });
         toast.success(result.message);
       }
@@ -148,8 +149,8 @@ export function DataListFormSheet({
                     <SelectValue placeholder="Select universe" />
                   </SelectTrigger>
                   <SelectContent>
-                    {universes.map((u) => (
-                      <SelectItem key={u} value={u}>
+                    {universes.map((u, i) => (
+                      <SelectItem key={`${i}-${u}`} value={u}>
                         {u}
                       </SelectItem>
                     ))}

@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { SeasonalAdjustment, Universe } from "@catalog/types/shared";
-import { universes } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { createMeasurement, updateMeasurement } from "@/actions/measurements";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -83,7 +83,7 @@ const formSchema = z.object({
   frequencyTransform: z.string(),
   sourceLink: z.string(),
   notes: z.string(),
-  universe: z.enum(universes as [Universe, ...Universe[]]),
+  universe: z.string().min(1),
 });
 
 interface MeasurementFormSheetProps {
@@ -111,6 +111,7 @@ export function MeasurementFormSheet({
   onCreated,
 }: MeasurementFormSheetProps) {
   const router = useRouter();
+  const universes = useUniverseNames();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

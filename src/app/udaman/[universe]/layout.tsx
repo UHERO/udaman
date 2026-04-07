@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import GeographyCollection from "@catalog/collections/geography-collection";
+import UniverseCollection from "@catalog/collections/universe-collection";
 import type { Universe } from "@catalog/types/shared";
-import { isValidUniverse } from "@catalog/utils/validators";
 import { mysql } from "@database/mysql";
 
 import { AppSidebar } from "@/components/app-sidebar";
@@ -26,7 +26,12 @@ export default async function UniverseLayout({
 }) {
   const { universe } = await params;
 
-  if (!isValidUniverse(universe)) {
+  // Validate universe against the DB (not a hardcoded list).
+  const allUniverses = await UniverseCollection.list();
+  const matched = allUniverses.find(
+    (u) => u.name.toUpperCase() === universe.toUpperCase(),
+  );
+  if (!matched) {
     notFound();
   }
 
@@ -64,9 +69,14 @@ export default async function UniverseLayout({
     .map((g) => g.handle)
     .filter((h): h is string => h !== null);
 
+  const universeOptions = allUniverses.map((u) => ({
+    name: u.name,
+    description: u.description,
+  }));
+
   return (
     <SidebarProvider data-universe={universe.toUpperCase()}>
-      <AppSidebar user={user} />
+      <AppSidebar user={user} universes={universeOptions} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex w-full items-center justify-start gap-2 px-4">

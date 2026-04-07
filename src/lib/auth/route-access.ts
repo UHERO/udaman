@@ -164,6 +164,12 @@ export const ROUTES: RouteEntry[] = [
         path: "/uploads/forecast",
         roles: ["internal", "admin", "dev"],
       },
+      {
+        label: "Factbook",
+        path: "/uploads/factbook",
+        roles: ["internal", "admin", "dev"],
+        universes: ["HHF"],
+      },
     ],
   },
   {
@@ -249,16 +255,21 @@ export function getVisibleChildren(
  * Used by middleware for route enforcement.
  *
  * `pathname` is the full URL path, e.g. `/udaman/uhero/series` or `/udaman/admin/investigations`.
+ *
+ * The `universes` scoping on routes is checked against the universe segment of
+ * the URL (current context), not the user's session universe. This lets a
+ * UHERO dev user who has switched to HHF see HHF-scoped routes.
  */
 export function isRouteAllowed(
   userRole: string,
-  userUniverse: string,
+  _userUniverse: string,
   pathname: string,
 ): boolean {
   // Strip the /udaman/{universe} prefix to get the route-relative path
   const uniPrefixMatch = pathname.match(/^\/udaman\/([^/]+)(\/.*)?$/);
   if (!uniPrefixMatch) return true; // Not a udaman route — allow
 
+  const urlUniverse = uniPrefixMatch[1].toUpperCase();
   const routePath = uniPrefixMatch[2] ?? "/"; // e.g. "/series", "/uploads/econ"
 
   // The universe homepage is always allowed
@@ -279,7 +290,7 @@ export function isRouteAllowed(
               pathname === childPath ||
               pathname.startsWith(childPath + "/")
             ) {
-              const childAccess = canAccess(userRole, userUniverse, {
+              const childAccess = canAccess(userRole, urlUniverse, {
                 roles: child.roles ?? entry.roles,
                 universes: child.universes ?? entry.universes,
               });
@@ -288,7 +299,7 @@ export function isRouteAllowed(
             }
           }
         }
-        if (canAccess(userRole, userUniverse, entry)) return true;
+        if (canAccess(userRole, urlUniverse, entry)) return true;
       }
       continue;
     }
@@ -302,7 +313,7 @@ export function isRouteAllowed(
             routePath === child.path ||
             routePath.startsWith(child.path + "/")
           ) {
-            const childAccess = canAccess(userRole, userUniverse, {
+            const childAccess = canAccess(userRole, urlUniverse, {
               roles: child.roles ?? entry.roles,
               universes: child.universes ?? entry.universes,
             });
@@ -313,7 +324,7 @@ export function isRouteAllowed(
         }
       }
 
-      if (canAccess(userRole, userUniverse, entry)) return true;
+      if (canAccess(userRole, urlUniverse, entry)) return true;
     }
   }
 

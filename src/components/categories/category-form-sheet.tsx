@@ -9,12 +9,13 @@ import {
   Geography,
   Universe,
 } from "@catalog/types/shared";
-import { frequencies, universes } from "@catalog/utils/validators";
+import { frequencies } from "@catalog/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { createCategory, updateCategory } from "@/actions/categories";
+import { useUniverseNames } from "@/hooks/use-universe-names";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -44,7 +45,7 @@ import {
 const formSchema = z.object({
   name: z.string(),
   description: z.string(),
-  universe: z.enum(universes as [Universe, ...Universe[]]),
+  universe: z.string().min(1),
   defaultFreq: z.enum(["", ...frequencies] as ["", ...Frequency[]]),
   defaultGeoId: z.number().nullable(),
   hidden: z.boolean(),
@@ -74,6 +75,7 @@ export function CategoryFormSheet({
   geographies,
 }: CategoryFormSheetProps) {
   const router = useRouter();
+  const universes = useUniverseNames();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -112,7 +114,7 @@ export function CategoryFormSheet({
           parentId: parentId ?? null,
           name: values.name || null,
           description: values.description || null,
-          universe: values.universe,
+          universe: values.universe as Universe,
           defaultFreq: values.defaultFreq || null,
           defaultGeoId: values.defaultGeoId,
           hidden: values.hidden,
@@ -125,7 +127,7 @@ export function CategoryFormSheet({
         const result = await updateCategory(category.id, {
           name: values.name || null,
           description: values.description || null,
-          universe: values.universe,
+          universe: values.universe as Universe,
           defaultFreq: values.defaultFreq || null,
           defaultGeoId: values.defaultGeoId,
           hidden: values.hidden,

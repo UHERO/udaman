@@ -17,38 +17,15 @@ import {
 import { UniverseSwitcher } from "@/components/universe-switcher";
 import { getVisibleRoutes } from "@/lib/auth/route-access";
 
-const ALL_UNIVERSES = [
-  {
-    name: "UHERO",
-    logo: GalleryVerticalEnd,
-    description: "UHERO",
-  },
-  {
-    name: "NTA",
-    logo: AudioWaveform,
-    description: "National Trade Accounts",
-  },
-  {
-    name: "FC",
-    logo: Command,
-    description: "Forecast",
-  },
-  {
-    name: "CCOM",
-    logo: Command,
-    description: "Chamber of Commerce",
-  },
-  {
-    name: "DBEDT",
-    logo: Command,
-    description: "Dept. of Economic Development & Tourism",
-  },
-  {
-    name: "COH",
-    logo: Command,
-    description: "County of Hawaii",
-  },
-];
+/** Per-universe icon overrides. Anything missing falls back to GalleryVerticalEnd. */
+const UNIVERSE_ICONS: Record<string, React.ElementType> = {
+  UHERO: GalleryVerticalEnd,
+  NTA: AudioWaveform,
+  FC: Command,
+  CCOM: Command,
+  DBEDT: Command,
+  COH: Command,
+};
 
 function prefixUrl(url: string, universe: string): string {
   if (url.startsWith("/udaman/")) return url;
@@ -58,6 +35,7 @@ function prefixUrl(url: string, universe: string): string {
 
 export function AppSidebar({
   user,
+  universes: allUniverses,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: {
@@ -69,13 +47,16 @@ export function AppSidebar({
     role: string;
     universe: string;
   };
+  universes: { name: string; description: string | null }[];
 }) {
   const params = useParams();
   const universe = (params.universe as string) || "uhero";
 
+  // Filter by the URL universe (current context) so a UHERO user who has
+  // switched to another universe sees routes scoped to that universe.
   const routes = React.useMemo(
-    () => getVisibleRoutes(user.role, user.universe),
-    [user.role, user.universe],
+    () => getVisibleRoutes(user.role, universe.toUpperCase()),
+    [user.role, universe],
   );
 
   // Separate "Web Crawlers" section from main nav
@@ -124,9 +105,16 @@ export function AppSidebar({
 
   // UHERO users can switch to any universe; others see only their own
   const universes = React.useMemo(() => {
-    if (user.universe.toUpperCase() === "UHERO") return ALL_UNIVERSES;
-    return ALL_UNIVERSES.filter((u) => u.name === user.universe.toUpperCase());
-  }, [user.universe]);
+    const decorated = allUniverses.map((u) => ({
+      name: u.name,
+      logo: UNIVERSE_ICONS[u.name.toUpperCase()] ?? GalleryVerticalEnd,
+      description: u.description ?? u.name,
+    }));
+    if (user.universe.toUpperCase() === "UHERO") return decorated;
+    return decorated.filter(
+      (u) => u.name === user.universe.toUpperCase(),
+    );
+  }, [allUniverses, user.universe]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
