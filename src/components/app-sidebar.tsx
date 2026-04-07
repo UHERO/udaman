@@ -47,7 +47,7 @@ export function AppSidebar({
     role: string;
     universe: string;
   };
-  universes: { name: string; description: string | null }[];
+  universes?: { name: string; description: string | null }[];
 }) {
   const params = useParams();
   const universe = (params.universe as string) || "uhero";
@@ -105,15 +105,13 @@ export function AppSidebar({
 
   // UHERO users can switch to any universe; others see only their own
   const universes = React.useMemo(() => {
-    const decorated = allUniverses.map((u) => ({
+    const decorated = (allUniverses ?? []).map((u) => ({
       name: u.name,
       logo: UNIVERSE_ICONS[u.name.toUpperCase()] ?? GalleryVerticalEnd,
       description: u.description ?? u.name,
     }));
     if (user.universe.toUpperCase() === "UHERO") return decorated;
-    return decorated.filter(
-      (u) => u.name === user.universe.toUpperCase(),
-    );
+    return decorated.filter((u) => u.name === user.universe.toUpperCase());
   }, [allUniverses, user.universe]);
 
   return (

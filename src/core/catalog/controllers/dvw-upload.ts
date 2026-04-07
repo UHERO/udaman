@@ -360,6 +360,7 @@ export const dvwUploadConfig: UploadConfig = {
   fileSubdir: "dvw_files",
   uploadCollection: DvwUploadCollection,
   skipPublicDataPoints: true,
+  uploadLabel: "DBEDT Tour",
 };
 
 export const dvwUploadHandlers: UploadHandlers = {

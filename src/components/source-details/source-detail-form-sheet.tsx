@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { Universe } from "@catalog/types/shared";
+import { Universe, UNIVERSES } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -46,7 +46,7 @@ interface SourceDetailData {
 
 const formSchema = z.object({
   description: z.string(),
-  universe: z.string().min(1),
+  universe: z.enum(UNIVERSES),
 });
 
 interface SourceDetailFormSheetProps {

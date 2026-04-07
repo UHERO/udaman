@@ -431,6 +431,7 @@ export const dbedtUploadConfig: UploadConfig = {
   universe: "DBEDT",
   fileSubdir: "dbedt_files",
   uploadCollection: DbedtUploadCollection,
+  uploadLabel: "DBEDT Econ",
 };
 
 export const dbedtUploadHandlers: UploadHandlers = {

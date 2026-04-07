@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { SeasonalAdjustment, Universe } from "@catalog/types/shared";
+import { SeasonalAdjustment, Universe, UNIVERSES } from "@catalog/types/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -83,7 +83,7 @@ const formSchema = z.object({
   frequencyTransform: z.string(),
   sourceLink: z.string(),
   notes: z.string(),
-  universe: z.string().min(1),
+  universe: z.enum(UNIVERSES),
 });
 
 interface MeasurementFormSheetProps {

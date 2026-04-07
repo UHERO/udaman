@@ -1,6 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import {
+  sendDbedtUploadCompleted,
+  sendDbedtUploadStarted,
+} from "@/core/mailers/dbedt-upload-mailer";
 import { createLogger } from "@/core/observability/logger";
 import { getDataDir } from "@/lib/data-dir";
 
@@ -29,6 +33,14 @@ export type UploadConfig = {
   fileSubdir: string;
   uploadCollection: typeof UniverseUploadCollection;
   skipPublicDataPoints?: boolean;
+  /**
+   * Human-readable label used in notification emails (e.g. "DBEDT Econ",
+   * "DBEDT Tour"). Defaults to `universe` if not set. Decoupled from
+   * `universe` so that the DVW (tour) upload — which writes to a separate
+   * DB but is conceptually part of the DBEDT product — can present as DBEDT
+   * in user-facing notifications.
+   */
+  uploadLabel?: string;
 };
 
 /**
@@ -63,6 +75,16 @@ export async function prepareUpload(
     "Created upload record",
   );
 
+  // Notify subscribers that an upload has started. Mailer failures must
+  // never break the upload itself.
+  await sendDbedtUploadStarted({
+    label: config.uploadLabel ?? universe,
+    uploadId: upload.id,
+    filename: storedFilename,
+  }).catch((e) =>
+    log.error({ err: e }, "upload-started email failed"),
+  );
+
   return { uploadId: upload.id, filePath };
 }
 
@@ -77,6 +99,10 @@ export async function executeUpload(
   handlers: UploadHandlers,
 ): Promise<UploadResult> {
   const { universe, uploadCollection } = config;
+
+  // Resolve the stored filename from the path so completion emails can
+  // reference it without another DB lookup.
+  const filename = filePath.split("/").pop() ?? filePath;
 
   try {
     // Parse
@@ -119,12 +145,33 @@ export async function executeUpload(
       log.warn({ err: msg }, "Cache clear failed (non-fatal)");
     }
 
+    await sendDbedtUploadCompleted({
+      label: config.uploadLabel ?? universe,
+      uploadId,
+      filename,
+      status: "ok",
+      dataPointCount,
+    }).catch((e) =>
+      log.error({ err: e }, "upload-completed email failed"),
+    );
+
     const message = `${universe} upload complete: ${dataPointCount} data points loaded`;
     return { uploadId, dataPointCount, message };
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
     log.error({ uploadId, err: errMsg }, "Upload failed");
     await uploadCollection.updateStatus(uploadId, "fail", errMsg);
+
+    await sendDbedtUploadCompleted({
+      label: config.uploadLabel ?? universe,
+      uploadId,
+      filename,
+      status: "failed",
+      error: errMsg,
+    }).catch((mailErr) =>
+      log.error({ err: mailErr }, "upload-failed email failed"),
+    );
+
     throw e;
   }
 }

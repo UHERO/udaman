@@ -13,14 +13,16 @@ export type SeasonalAdjustment =
   | "seasonally_adjusted"
   | "not_applicable";
 
-export type Universe =
-  | "UHERO"
-  | "FC"
-  | "DBEDT"
-  | "NTA"
-  | "COH"
-  | "CCOM"
-  | "HHF";
+export const UNIVERSES = [
+  "UHERO",
+  "FC",
+  "DBEDT",
+  "NTA",
+  "COH",
+  "CCOM",
+  "HHF",
+] as const;
+export type Universe = (typeof UNIVERSES)[number];
 export type Frequency = "A" | "S" | "Q" | "M" | "W" | "D";
 
 export interface Category {
