@@ -102,8 +102,10 @@ class LoaderCollection {
   static async getEnabledBySeriesId(seriesId: number): Promise<Loader[]> {
     const rows = await mysql<LoaderAttrs>`
       SELECT
-        id, description, last_run_in_seconds, priority,
-        disabled, eval, dependencies
+        id, series_id, universe, eval, description, dependencies, color,
+        priority, scale, disabled, pseudo_history, clear_before_load,
+        reload_nightly, presave_hook, last_run_at, last_run_in_seconds,
+        last_error, last_error_at, runtime, created_at, updated_at
       FROM data_sources
       WHERE series_id = ${seriesId}
         AND disabled = 0
