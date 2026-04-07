@@ -17,9 +17,10 @@ const SUBDOMAIN_MAP: Record<string, string> = {
 
 /**
  * Per-app default landing pages for bare-root (`/`) requests via subdomain.
+ * The udaman app picks its landing path dynamically from the session token
+ * (see the `pathname === "/"` branch below).
  */
 const APP_DEFAULTS: Record<string, string> = {
-  udaman: "/uhero/series",
   data: "/",
   analytics: "/",
 };
@@ -91,11 +92,21 @@ export async function proxy(request: NextRequest) {
 
     // ── App-specific logic (udaman: auth + universe normalization) ──
     if (app === "udaman") {
-      // Root → redirect to default landing page, or login if no session
+      // Root → redirect to a role+universe-aware landing page, or login if no session
       if (pathname === "/") {
         if (hasSessionCookie(request)) {
-          const defaultPath = APP_DEFAULTS[app] ?? "/";
-          return NextResponse.redirect(new URL(defaultPath, request.url));
+          const token = await getToken({
+            req: request,
+            secret: process.env.AUTH_SECRET,
+          });
+          const role = (token?.role as string) ?? "external";
+          const universe = (
+            (token?.universe as string) ?? "uhero"
+          ).toLowerCase();
+          // External users (e.g. DBEDT) → universe homepage; internal+ → /series
+          const landingPath =
+            role === "external" ? `/${universe}` : `/${universe}/series`;
+          return NextResponse.redirect(new URL(landingPath, request.url));
         }
         // No session — fall through to rewrite (serves login page)
       } else {

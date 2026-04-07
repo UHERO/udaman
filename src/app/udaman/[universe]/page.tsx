@@ -15,6 +15,10 @@ const CARD_DESCRIPTIONS: Record<string, string> = {
   "Forecast Snapshots": "View and compare published forecast snapshots",
   Uploads: "Upload economic and tourism data files",
   Settings: "Configure data portal settings",
+  Econ: "Upload DBEDT economic indicators (XLSX)",
+  Tour: "Upload DBEDT tourism indicators (XLSX)",
+  Forecast: "Upload forecast XLSX files",
+  Factbook: "Upload Hawaii Housing Factbook XLSX files",
 };
 
 const universeNames: Record<string, string> = {
@@ -44,12 +48,24 @@ export default async function UniversePage({
   const { role, universe: userUniverse } = await getCurrentUserContext();
   const routes = getVisibleRoutes(role, userUniverse);
 
-  const cards = routes.map((entry) => ({
-    title: entry.label,
-    description: CARD_DESCRIPTIONS[entry.label] ?? "",
-    href: prefixUrl(entry.path, universe),
-    icon: entry.icon,
-  }));
+  // If the user has access to exactly one top-level entry that has children,
+  // expand its children as the cards. This gives narrowly-scoped users
+  // (e.g. DBEDT external uploaders) direct links to the pages they can use,
+  // instead of a single parent card they have to click into.
+  const cards =
+    routes.length === 1 && routes[0].children?.length
+      ? routes[0].children.map((child) => ({
+          title: child.label,
+          description: CARD_DESCRIPTIONS[child.label] ?? "",
+          href: prefixUrl(child.path, universe),
+          icon: routes[0].icon,
+        }))
+      : routes.map((entry) => ({
+          title: entry.label,
+          description: CARD_DESCRIPTIONS[entry.label] ?? "",
+          href: prefixUrl(entry.path, universe),
+          icon: entry.icon,
+        }));
 
   return (
     <div className="flex flex-1 flex-col p-8">

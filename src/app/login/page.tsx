@@ -16,7 +16,8 @@ export default async function LoginPage({
   // Already logged in — redirect to callback or default
   if (session?.user) {
     const universe = session.user.universe ?? "UHERO";
-    redirect(callbackUrl ?? getLandingPath(universe));
+    const role = session.user.role ?? "external";
+    redirect(callbackUrl ?? getLandingPath(role, universe));
   }
 
   return (

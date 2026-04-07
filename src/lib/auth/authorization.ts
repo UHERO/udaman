@@ -43,9 +43,17 @@ export function isFsonly(role: string): boolean {
   return role === "fsonly";
 }
 
-/** Resolve the landing page path for a given universe after login. */
-export function getLandingPath(universe: string): string {
-  return `/udaman/${universe.toLowerCase()}/series`;
+/**
+ * Resolve the landing page path for a given role+universe after login.
+ *
+ * External users (e.g. DBEDT uploaders) don't have access to /series, so we
+ * route them to the universe homepage which renders cards filtered by their
+ * role. Internal/admin/dev users land directly on /series as before.
+ */
+export function getLandingPath(role: string, universe: string): string {
+  const u = universe.toLowerCase();
+  if (role === "external") return `/udaman/${u}`;
+  return `/udaman/${u}/series`;
 }
 
 /**

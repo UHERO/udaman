@@ -13,7 +13,8 @@ export default async function LoginPage() {
 
   if (session?.user) {
     const universe = session.user.universe ?? "UHERO";
-    redirect(getLandingPath(universe));
+    const role = session.user.role ?? "external";
+    redirect(getLandingPath(role, universe));
   }
 
   return (
