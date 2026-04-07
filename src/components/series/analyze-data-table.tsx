@@ -313,8 +313,12 @@ export function AnalyzeDataTable({
       return key;
     });
     const csvHeader = headers.join(",");
-    const raw = (v: unknown) =>
-      v != null && typeof v === "number" && !isNaN(v) ? String(v) : "";
+    const raw = (v: unknown) => {
+      if (v == null) return "";
+      if (typeof v === "number") return isNaN(v) ? "" : String(v);
+      if (typeof v === "string") return v;
+      return "";
+    };
     const csvRows = rows.map((r) =>
       headers
         .map((h) => raw((r as unknown as Record<string, unknown>)[h]))
