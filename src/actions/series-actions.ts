@@ -17,6 +17,7 @@ import {
   getSeries as fetchSeries,
   getSeriesById as fetchSeriesById,
   getSeriesWithNullField as fetchSeriesWithNullField,
+  getSeriesDependents as fetchSeriesDependents,
   getSourceMap as fetchSourceMap,
   getCompareAllGeos as getCompareAllGeosCtrl,
   getCompareMeasurement as getCompareMeasurementCtrl,
@@ -81,6 +82,27 @@ export async function getSourceMap(
   log.info({ name }, "getSourceMap action called");
   const result = await fetchSourceMap({ name });
   return result.data as SourceMapNode[];
+}
+
+/**
+ * First-order dependents of a series — the list of series whose load
+ * definitions reference this series. Backs the "Who depends on me" block
+ * on the series show page.
+ */
+export async function getSeriesDependents(params: {
+  name: string | null;
+  universe: Universe;
+}): Promise<Array<{ id: number; name: string }>> {
+  await requirePermission("series", "read");
+  const { name, universe } = params;
+  if (!name) return [];
+  log.info({ name, universe }, "getSeriesDependents action called");
+  const result = await fetchSeriesDependents({ name, universe });
+  log.info(
+    { name, universe, count: result.data.length },
+    "getSeriesDependents action completed",
+  );
+  return result.data;
 }
 
 export async function deleteSeriesDataPoints(

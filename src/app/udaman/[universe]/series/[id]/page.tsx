@@ -3,9 +3,11 @@ import type { Universe } from "@catalog/types/shared";
 import {
   getFormOptions,
   getSeriesById,
+  getSeriesDependents,
   getSourceMap,
 } from "@/actions/series-actions";
 import { LoaderSection } from "@/components/series/data-loader";
+import { DependentsList } from "@/components/series/dependents-list";
 import { MetaDataTable } from "@/components/series/meta-data-table";
 import { RecordSeriesView } from "@/components/series/record-series-view";
 import { SeriesActionsBar } from "@/components/series/series-actions-bar";
@@ -30,9 +32,10 @@ export default async function SeriesPage({
   const { dataPoints, metadata, measurement, aliases, loaders } = series;
   const isDev = role === "dev";
 
-  const [sourceMap, formOptions] = await Promise.all([
+  const [sourceMap, formOptions, dependents] = await Promise.all([
     getSourceMap(id, { name: metadata.s_name }),
     getFormOptions({ universe: u }),
+    getSeriesDependents({ name: metadata.s_name, universe: u }),
   ]);
 
   return (
@@ -76,6 +79,7 @@ export default async function SeriesPage({
               formOptions={formOptions}
             />
             <SeriesChart data={dataPoints} />
+            <DependentsList dependents={dependents} universe={universe} />
           </div>
         </div>
       </SeriesHoverProvider>

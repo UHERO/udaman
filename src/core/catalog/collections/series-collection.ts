@@ -1745,6 +1745,43 @@ class SeriesCollection {
   }
 
   /**
+   * Find all series that directly depend on the given series name (first
+   * order only). Ports Rails Series.who_depends_on.
+   *
+   * Matches against `data_sources.description` using a word-boundary regex
+   * rather than the structured `dependencies` column. Per the comment at
+   * series_relationship.rb:62-64, some dependencies are implicit — hidden
+   * inside helper method calls like `apply_ns_growth_rate_sa(...)` — so the
+   * human-readable description is the only reliable signal.
+   *
+   * Consequences:
+   *  - Only direct dependents (use `getAllDependencies` for the transitive set).
+   *  - Can produce false positives if the name happens to appear as a word
+   *    in an unrelated description.
+   *  - Depends on descriptions mentioning the series name verbatim.
+   */
+  static async getDirectDependents(
+    seriesName: string,
+    universe: Universe,
+  ): Promise<Array<{ id: number; name: string }>> {
+    if (!seriesName) return [];
+
+    // Escape `%` inside the name to match Rails' gsub('%', '\%') — defensive
+    // even though `%` isn't a regex metacharacter in MariaDB REGEXP.
+    const pattern = `[[:<:]]${seriesName.replace(/%/g, "\\%")}[[:>:]]`;
+
+    const rows = await mysql<{ id: number; name: string }>`
+      SELECT DISTINCT s.id, s.name
+      FROM data_sources ds
+      JOIN series s ON s.id = ds.series_id
+      WHERE ds.universe = ${universe}
+        AND ds.description RLIKE ${pattern}
+      ORDER BY s.name ASC
+    `;
+    return rows.map((r) => ({ id: r.id, name: r.name }));
+  }
+
+  /**
    * Iteratively find all series that depend (transitively) on the given set.
    * Ports Rails Series.get_all_dependencies.
    * Returns the full list of series IDs (base + all dependents).

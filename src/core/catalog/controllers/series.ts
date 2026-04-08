@@ -77,6 +77,28 @@ export async function getSourceMap({ name }: { name: string }) {
   return { data };
 }
 
+/**
+ * First-order dependents of a series — the list rendered in the
+ * "Who depends on me" block on the series show page.
+ * Ports Rails SeriesController@show behavior around @dependencies.
+ */
+export async function getSeriesDependents({
+  name,
+  universe,
+}: {
+  name: string;
+  universe: Universe;
+}) {
+  logControllerCall("series", "getSeriesDependents", { name, universe });
+  log.info({ name, universe }, "fetching direct dependents for series");
+  const data = await SeriesCollection.getDirectDependents(name, universe);
+  log.info(
+    { name, universe, count: data.length },
+    "direct dependents fetched",
+  );
+  return { data };
+}
+
 export async function deleteSeriesDataPoints({
   id,
   u,
