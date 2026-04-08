@@ -374,12 +374,17 @@ export default function UploadPanel({
       const initResult = await initResp.json();
 
       if (!initResult.success) {
-        setError(initResult.message);
+        const msg =
+          initResult.message ??
+          initResult.error ??
+          `Init failed (HTTP ${initResp.status})`;
+        setError(msg);
         setStage("error");
-        setDialogError(initResult.message);
-        reportUploadError("uploading", initResult.message, {
+        setDialogError(msg);
+        reportUploadError("uploading", msg, {
           phase: "init",
           httpStatus: initResp.status,
+          rawBody: initResult,
         });
         return;
       }
@@ -432,15 +437,20 @@ export default function UploadPanel({
         const chunkResult = await chunkResp.json();
 
         if (!chunkResult.success) {
-          setError(chunkResult.message);
+          const msg =
+            chunkResult.message ??
+            chunkResult.error ??
+            `Chunk failed (HTTP ${chunkResp.status})`;
+          setError(msg);
           setStage("error");
-          setDialogError(chunkResult.message);
+          setDialogError(msg);
           setProgress(null);
-          reportUploadError("uploading", chunkResult.message, {
+          reportUploadError("uploading", msg, {
             phase: "chunk",
             chunkIndex,
             uploadId,
             httpStatus: chunkResp.status,
+            rawBody: chunkResult,
           });
           return;
         }
@@ -485,21 +495,26 @@ export default function UploadPanel({
       finalResult = await finalResp.json();
 
       if (!finalResult.success) {
-        setError(finalResult.message ?? "Processing failed");
+        const msg =
+          finalResult.message ??
+          (finalResult as { error?: string }).error ??
+          `Processing failed (HTTP ${finalResp.status})`;
+        setError(msg);
         setStage("error");
-        setDialogError(finalResult.message ?? "Processing failed");
+        setDialogError(msg);
         setUploads((prev) =>
           prev.map((u) =>
             u.id === uploadId
-              ? { ...u, status: "fail", lastError: finalResult.message ?? null }
+              ? { ...u, status: "fail", lastError: msg }
               : u,
           ),
         );
-        reportUploadError(
-          "processing",
-          finalResult.message ?? "Processing failed",
-          { phase: "finalize", uploadId, httpStatus: finalResp.status },
-        );
+        reportUploadError("processing", msg, {
+          phase: "finalize",
+          uploadId,
+          httpStatus: finalResp.status,
+          rawBody: finalResult,
+        });
         return;
       }
     } catch (err) {

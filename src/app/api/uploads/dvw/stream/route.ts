@@ -67,7 +67,13 @@ async function handleInit(body: InitBody) {
   try {
     await requirePermission("upload", "create");
   } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      {
+        success: false,
+        message: "You don't have permission to upload files.",
+      },
+      { status: 403 },
+    );
   }
 
   try {

@@ -8,11 +8,11 @@
  * to 50 requests per 10 seconds).
  */
 
-import { fetchJson, fetchXml, grokDate, type ApiResult } from "./index";
+import { fetchJson, grokDate, type ApiResult } from "./index";
 
 // ─── Shared throttle + key rotation ──────────────────────────────────
 
-const BLS_KEY_ENV_VARS = ["API_KEY_BLS_V2", "API_KEY_2_BLS_V2"] as const;
+const BLS_KEY_ENV_VARS = ["API_KEY_1_BLS_V2", "API_KEY_2_BLS_V2"] as const;
 const BLS_MIN_INTERVAL_MS = 200;
 let blsKeyIndex = 0;
 let blsNextRequestAt = 0;
