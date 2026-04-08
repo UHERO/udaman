@@ -498,6 +498,13 @@ class EvalParser {
       args.push({ type: "string", value: this.advance().value });
     }
 
+    // Continue consuming additional comma-separated args, e.g.
+    //   `Series.load_from_download "handle", { :file_type => "xls" }`
+    while (this.current()?.type === "COMMA") {
+      this.advance(); // skip comma
+      args.push(this.parseOneArg());
+    }
+
     return args;
   }
 

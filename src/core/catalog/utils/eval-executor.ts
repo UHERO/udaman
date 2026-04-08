@@ -10,6 +10,11 @@ import { addMonthsStr } from "./time";
 /** Explicit aliases for Ruby method names that don't follow snake_case conventions. */
 const METHOD_ALIASES: Record<string, string> = {
   load_api_bls_NEW: "loadApiBlsV2",
+  // Rails defines `yoy` as an alias for `annualized_percentage_change`
+  // (series_arithmetic.rb:179-181). Route the longer name to the same impl.
+  annualized_percentage_change: "yoy",
+  // Rails `absolute_change` is just `diff` (series_arithmetic.rb:147-149).
+  absolute_change: "diff",
 };
 
 function snakeToCamel(s: string): string {
@@ -33,6 +38,9 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "yoy",
   "ytd",
   "ytdSum",
+  "mtd",
+  "mtdSum",
+  "mtdAvg",
   "diff",
   "annualSum",
   "annualAverage",
@@ -45,9 +53,15 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   // Interpolation
   "addMissingDp",
   "fillMissingMonthsLinear",
+  "fillAlternateMissingMonths",
   "interpolate",
   "linearInterpolate",
   "fillInterpolateTo",
+  "censusInterpolate",
+  "trmsInterpolateToQuarterly",
+  "pseudoCenteredSplineInterpolation",
+  "distributeDaysInterpolation",
+  "fillDaysInterpolation",
   // Moving averages & sharing
   "movingAverage",
   "movingAverageOffsetEarly",
@@ -67,9 +81,11 @@ const ALLOWED_INSTANCE_METHODS = new Set([
   "loadMeanCorrectedSaFrom",
   // County share allocation
   "mcMaCountyShareFor",
+  "mcPriceShareFor",
   "aaStateBasedCountyShareFor",
   "movingAverageAnnavgPadded",
   "getLastCompleteDecember",
+  "getLastComplete4thQuarter",
   // Seasonal adjustment
   "applyNsGrowthRateSa",
   // Daily census
@@ -286,6 +302,87 @@ class EvalExecutor {
           return result;
         }
 
+        // Mean-corrected price share: compute a share ratio using the
+        // moving average of an NS sibling at `countyCode` over the moving
+        // average of target's own NS counterpart, mean-correct against
+        // the county annual average, then overwrite the tail with an
+        // "incomplete year" correction computed from backward-looking MAs.
+        //
+        // Ports Series#mc_price_share_for (tmp/lib/series_sharing.rb).
+        if (methodName === "mcPriceShareFor") {
+          const args = await resolveArgs(node.args);
+          const countyCode = String(args[0]);
+          const parsedName = target.parseName();
+
+          // "County" series: target prefix + "NS", at county_code geo,
+          // at target's frequency. (In practice `countyCode` may be a
+          // state-level geo like "HI" — Rails keeps the arg name.)
+          const countyName = Series.buildName(
+            parsedName.prefix + "NS",
+            countyCode.toUpperCase(),
+            parsedName.freq,
+          );
+          const county = await SeriesCollection.getByName(countyName);
+          await SeriesCollection.loadCurrentData(county);
+
+          // target's own NS counterpart — raise if it doesn't exist.
+          const myNsName = target.nsSeriesName;
+          let myNs: Series;
+          try {
+            myNs = await SeriesCollection.getByName(myNsName);
+            await SeriesCollection.loadCurrentData(myNs);
+          } catch {
+            throw new EvalExecuteError(
+              `No NS series corresponds to ${target}`,
+            );
+          }
+
+          const startDate = county.firstValueDate;
+          const endDate = target.getLastComplete4thQuarter();
+          if (!startDate || !endDate) {
+            throw new EvalExecuteError(
+              `mcPriceShareFor: no valid date range (county=${countyName}, target=${target})`,
+            );
+          }
+
+          // shared = (county.trim(s,e).movingAverage / myNs.trim(s,e).movingAverage) * target
+          const countyMA = county.trim(startDate, endDate).movingAverage();
+          const myNsMA = myNs.trim(startDate, endDate).movingAverage();
+          const sharedSeries = countyMA.divide(myNsMA).multiply(target);
+
+          // mean_corrected = (county.annualAverage / shared.annualAverage) * shared
+          const meanCorrected = county
+            .annualAverage()
+            .divide(sharedSeries.annualAverage())
+            .multiply(sharedSeries);
+
+          // incomplete_year =
+          //   (county.backwardLookingMovingAverage.getLastIncompleteYear
+          //    / myNs.backwardLookingMovingAverage.getLastIncompleteYear)
+          //    * target
+          const incompleteYear = county
+            .backwardLookingMovingAverage()
+            .getLastIncompleteYear()
+            .divide(
+              myNs.backwardLookingMovingAverage().getLastIncompleteYear(),
+            )
+            .multiply(target);
+
+          // Merge: start with mean-corrected data, overwrite with the
+          // incomplete-year correction (Rails `series_merge` semantics).
+          const merged = new Map<string, number>(meanCorrected.data);
+          for (const [date, value] of incompleteYear.data) {
+            merged.set(date, value);
+          }
+
+          const result = new Series({
+            name: `Share of ${target} using ratio of the moving average ${county} over the moving average of ${myNs}, mean corrected for the year`,
+          });
+          result.data = merged;
+          result.frequency = target.frequency;
+          return result;
+        }
+
         // Annual-average county share allocation: needs DB access
         if (methodName === "aaStateBasedCountyShareFor") {
           const args = await resolveArgs(node.args);
@@ -315,6 +412,123 @@ class EvalExecutor {
             name: `Share of ${target} using ratio of ${county} over ${state} using annual averages, only for full years`,
           });
           result.data = historical.data;
+          result.frequency = target.frequency;
+          return result;
+        }
+
+        // Interpolate alternate missing months: for a monthly series that
+        // only has data every other month, fill the gaps by averaging the
+        // adjacent months. When a semi-annual sibling exists, use its
+        // value to "mean-correct" each 6-month block so the interpolated
+        // values sum to match the semi-annual total.
+        //
+        // Ports Series#fill_alternate_missing_months (tmp/lib/series_interpolation.rb).
+        // Returns a new series containing ONLY the interpolated points.
+        if (methodName === "fillAlternateMissingMonths") {
+          if (target.frequencyCode !== "M") {
+            throw new EvalExecuteError(
+              `Cannot fillAlternateMissingMonths on a series of frequency ${target.frequency}`,
+            );
+          }
+
+          // Parse args: positional (rangeStart, rangeEnd) and/or kwargs (from:, to:)
+          const args = await resolveArgs(node.args);
+          let rangeStart: string | undefined;
+          let rangeEnd: string | undefined;
+          let kwargs: Record<string, string> = {};
+          for (const a of args) {
+            if (typeof a === "string") {
+              if (rangeStart === undefined) rangeStart = a;
+              else if (rangeEnd === undefined) rangeEnd = a;
+            } else if (a && typeof a === "object" && !(a instanceof Series)) {
+              kwargs = { ...kwargs, ...(a as Record<string, string>) };
+            }
+          }
+
+          // Find the semi-annual sibling (nil-safe — Rails `find_sibling_for_freq`).
+          let semi: Series | null = null;
+          try {
+            const semiName = target.buildName({ freq: "S" });
+            semi = await SeriesCollection.getByName(semiName);
+            await SeriesCollection.loadCurrentData(semi);
+          } catch {
+            semi = null;
+          }
+
+          const startDate =
+            kwargs.from ?? rangeStart ?? target.firstObservation ?? undefined;
+          const endDate =
+            kwargs.to ?? rangeEnd ?? target.lastObservation ?? undefined;
+          if (!startDate || !endDate) {
+            throw new EvalExecuteError(
+              `fillAlternateMissingMonths: no valid date range for ${target}`,
+            );
+          }
+
+          // Rails `redistribute_semi`: pulls 6 consecutive months of data
+          // (from newDp if already interpolated, else from the source),
+          // computes the diff between the semi-annual observation and the
+          // 6-month average, then adds 2× that diff to the three
+          // interpolated months in the block (offsets +1, +3, +5).
+          const redistributeSemi = (
+            semiVal: number,
+            startMonth: string,
+            newDp: Map<string, number>,
+          ): void => {
+            const sixMonth: number[] = [];
+            for (let offset = 0; offset <= 5; offset++) {
+              const d = addMonthsStr(startMonth, offset);
+              const v = newDp.get(d) ?? target.data.get(d);
+              if (v === undefined) return; // cannot redistribute — bail quietly
+              sixMonth.push(v);
+            }
+            const avg =
+              sixMonth.reduce((s, x) => s + x, 0) / sixMonth.length;
+            const diff = (semiVal - avg) * 2;
+            for (const off of [1, 3, 5]) {
+              const d = addMonthsStr(startMonth, off);
+              const cur = newDp.get(d);
+              if (cur === undefined) {
+                throw new EvalExecuteError(
+                  `redistributeSemi: cannot redistribute because data missing at ${d}`,
+                );
+              }
+              newDp.set(d, cur + diff);
+            }
+          };
+
+          // Main loop: for each "missing" month between adjacent data,
+          // average the neighbors. Step by 2 months so we only touch
+          // the gaps.
+          const newDp = new Map<string, number>();
+          let date = addMonthsStr(startDate, 1);
+          while (date < endDate) {
+            const prevm = addMonthsStr(date, -1);
+            const nextm = addMonthsStr(date, 1);
+            const prevv = target.data.get(prevm);
+            const nextv = target.data.get(nextm);
+            if (prevv !== undefined && nextv !== undefined) {
+              newDp.set(date, (prevv + nextv) / 2);
+
+              // When we land on June or December and a semi sibling
+              // exists, pull that period's semi-annual value and
+              // mean-correct the block of 6 months ending at `date`.
+              const month = Number(date.slice(5, 7));
+              if (semi && month % 6 === 0) {
+                const semiDate = addMonthsStr(date, -5);
+                const semiVal = semi.data.get(semiDate);
+                if (semiVal !== undefined) {
+                  redistributeSemi(semiVal, semiDate, newDp);
+                }
+              }
+            }
+            date = addMonthsStr(date, 2);
+          }
+
+          const result = new Series({
+            name: `Interpolation of alternate missing months from ${target}`,
+          });
+          result.data = newDp;
           result.frequency = target.frequency;
           return result;
         }

@@ -3,7 +3,7 @@ import type {
   SeasonalAdjustment,
   Universe,
 } from "../types/shared";
-import { addMonthsStr } from "../utils/time";
+import { addDaysStr, addMonthsStr, daysBetweenStr } from "../utils/time";
 
 // ─── Name parsing ────────────────────────────────────────────────────
 // Series names follow the pattern: PREFIX@GEO.FREQ
@@ -526,6 +526,18 @@ class Series {
     return month === 12 ? last : `${year - 1}-12-01`;
   }
 
+  /**
+   * Returns the last complete 4th-quarter date (month 10 = Oct, which
+   * represents Q4 in this codebase's first-month-of-period convention)
+   * in the data.
+   */
+  getLastComplete4thQuarter(): string | null {
+    const last = this.lastObservation;
+    if (!last) return null;
+    const { year, month } = parseYM(last);
+    return month === 10 ? last : `${year - 1}-10-01`;
+  }
+
   get observationCount(): number {
     return [...this.data.values()].filter((v) => v != null).length;
   }
@@ -724,6 +736,92 @@ class Series {
   /** Year-to-date: YTD cumulative sum, then YOY of that. */
   ytd(): Series {
     return this.ytdSum().yoy();
+  }
+
+  /**
+   * Month-to-date cumulative sum (daily series only). For each day, the
+   * value is the running sum of all observations from the 1st of the month
+   * up to and including that day. Resets at the start of each month. Raises
+   * if there is a gap (>1 day) between consecutive observations within a
+   * month.
+   *
+   * Ports Series#mtd_sum (tmp/lib/series_arithmetic.rb:195).
+   */
+  mtdSum(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "day") {
+      // Rails returns an all-nil series; preserve that behavior.
+      return this.allNil();
+    }
+    const sorted = [...this.data.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    const newData = new Map<string, number>();
+    let trackMonth: number | null = null;
+    let runSum = 0;
+    let lastDay = 0;
+
+    for (const [dateStr, value] of sorted) {
+      const { month } = parseYM(dateStr);
+      const day = Number(dateStr.slice(8, 10));
+      if (month !== trackMonth) {
+        trackMonth = month;
+        runSum = 0;
+        lastDay = 0;
+      }
+      if (day - lastDay > 1 && newData.size > 0) {
+        throw new Error(`mtd_sum: gap in daily data preceding ${dateStr}`);
+      }
+      runSum += value;
+      lastDay = day;
+      newData.set(dateStr, runSum);
+    }
+
+    const s = new Series({ name: `Month-to-date sum of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Month-to-date running average (daily series only): each day's value is
+   * the mtd sum divided by the day-of-month.
+   *
+   * Ports Series#mtd_avg (tmp/lib/series_arithmetic.rb:215).
+   */
+  mtdAvg(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "day") {
+      return this.allNil();
+    }
+    const sums = this.mtdSum();
+    const newData = new Map<string, number>();
+    for (const [dateStr, value] of sums.data) {
+      const day = Number(dateStr.slice(8, 10));
+      newData.set(dateStr, value / day);
+    }
+    const s = new Series({ name: `Month-to-date average of ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
+  }
+
+  /**
+   * Year-over-year change of the month-to-date running average. Daily series only.
+   *
+   * Ports Series#mtd (tmp/lib/series_arithmetic.rb:224).
+   */
+  mtd(): Series {
+    return this.mtdAvg().yoy();
+  }
+
+  /** Return a same-shape series with every value set to nil (Rails `all_nil`). */
+  private allNil(): Series {
+    const newData = new Map<string, number>();
+    // Rails sets explicit nil entries; in TS we just leave the map empty
+    // for the same effect downstream (no observations).
+    const s = new Series({ name: `All nil for dates in ${this}` });
+    s.data = newData;
+    s.frequency = this.frequency;
+    return s;
   }
 
   /** Year-to-date cumulative sum. */
@@ -1142,6 +1240,276 @@ class Series {
     });
     s.data = newData;
     s.frequency = target;
+    return s;
+  }
+
+  /**
+   * Census-method interpolation from annual to quarterly. Each year's value
+   * is treated as the Q3 (Jul) of that year, with the prior three quarters
+   * back-filled by stepping toward the previous year's Q3 value (step =
+   * (this - last) / 4). The first year in the input also seeds Q4 of two
+   * years prior + Q1/Q2/Q3 of the previous year.
+   *
+   * Ports Series#census_interpolate (tmp/lib/series_interpolation.rb:234).
+   */
+  censusInterpolate(frequency: string): Series {
+    const target = normalizeFreq(frequency);
+    if (target !== "quarter" || normalizeFreq(this.frequency ?? "") !== "year") {
+      throw new Error(
+        `census_interpolate only supports year → quarter (got ${this.frequency} → ${target})`,
+      );
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const newData = new Map<string, number>();
+    let last: number | null = null;
+    let started = false;
+
+    for (const [dateStr, value] of sorted) {
+      if (last !== null) {
+        const { year } = parseYM(dateStr);
+        const step = (value - last) / 4;
+        newData.set(fmtDate(year - 1, 10), value - 3 * step);
+        newData.set(fmtDate(year, 1), value - 2 * step);
+        newData.set(fmtDate(year, 4), value - 1 * step);
+        newData.set(fmtDate(year, 7), value);
+        if (!started) {
+          newData.set(fmtDate(year - 2, 10), last - 3 * step);
+          newData.set(fmtDate(year - 1, 1), last - 2 * step);
+          newData.set(fmtDate(year - 1, 4), last - 1 * step);
+          newData.set(fmtDate(year - 1, 7), last);
+          started = true;
+        }
+      }
+      last = value;
+    }
+
+    const s = new Series({
+      name: `Interpolated with Census method from ${this}`,
+    });
+    s.data = newData;
+    s.frequency = target;
+    return s;
+  }
+
+  /**
+   * Interpolate an annual series to quarterly using the TRMS method.
+   *
+   * For each consecutive pair of annual observations (prev → curr) we lay
+   * down 4 quarters anchored on `prev`'s year:
+   *   Q1 = prev - 1.5 * step
+   *   Q2 = prev - 0.5 * step
+   *   Q3 = prev + 0.5 * step
+   *   Q4 = prev + 1.5 * step
+   * where step = (curr - prev) / 4. The final year reuses the most recent
+   * `step` (Rails `last_diff / 4`) to extend the pattern through its 4 Qs.
+   *
+   * After the per-year fill, we smooth pairwise by averaging each quarter
+   * with its predecessor (a 2-point backward MA), dropping the first quarter.
+   *
+   * Ports Series#trms_interpolate_to_quarterly (tmp/lib/series_interpolation.rb:304).
+   */
+  trmsInterpolateToQuarterly(): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "year") {
+      throw new Error(
+        `trms_interpolate_to_quarterly requires an annual series (got ${this.frequency})`,
+      );
+    }
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    if (sorted.length < 2) {
+      throw new Error(
+        "trms_interpolate_to_quarterly requires at least 2 annual observations",
+      );
+    }
+
+    const newSeriesData = new Map<string, number>();
+    let previousVal: number | null = null;
+    let previousYear: number | null = null;
+    let lastDiff = 0;
+
+    for (const [dateStr, val] of sorted) {
+      const { year } = parseYM(dateStr);
+      if (previousVal === null) {
+        previousVal = val;
+        previousYear = year;
+        continue;
+      }
+      const py = previousYear!;
+      const step = (val - previousVal) / 4;
+      newSeriesData.set(fmtDate(py, 1), previousVal - step * 1.5);
+      newSeriesData.set(fmtDate(py, 4), previousVal - step * 0.5);
+      newSeriesData.set(fmtDate(py, 7), previousVal + step * 0.5);
+      newSeriesData.set(fmtDate(py, 10), previousVal + step * 1.5);
+      lastDiff = val - previousVal;
+      previousVal = val;
+      previousYear = year;
+    }
+
+    // Tail year: reuse the most recent diff to fill the final 4 quarters.
+    const ty = previousYear!;
+    const tailStep = lastDiff / 4;
+    newSeriesData.set(fmtDate(ty, 1), previousVal! - tailStep * 1.5);
+    newSeriesData.set(fmtDate(ty, 4), previousVal! - tailStep * 0.5);
+    newSeriesData.set(fmtDate(ty, 7), previousVal! + tailStep * 0.5);
+    newSeriesData.set(fmtDate(ty, 10), previousVal! + tailStep * 1.5);
+
+    // Pairwise backward-looking 2-point average over the quarterly fill.
+    const blma = new Map<string, number>();
+    let prev: number | null = null;
+    const sortedNew = [...newSeriesData.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    for (const [key, val] of sortedNew) {
+      if (prev === null) {
+        prev = val;
+        continue;
+      }
+      blma.set(key, (val + prev) / 2);
+      prev = val;
+    }
+
+    const s = new Series({
+      name: `TRMS style interpolation of ${this.name}`,
+    });
+    s.data = blma;
+    s.frequency = "quarter";
+    return s;
+  }
+
+  /**
+   * Two-pass interpolation that first "stretches" each source observation
+   * away from the previous one, then runs `linearInterpolate` on the result.
+   *
+   * Pass 1 (at source frequency):
+   *   temp[date] = val + (val - temp[prev]) * ((d - 1) / (d + 1))
+   *   where d is the period multiplier (year→quarter = 4, quarter→month = 3,
+   *   month→day = 30.4375). The first observation is copied as-is.
+   *
+   * Pass 2: run linear match-last interpolation on `temp` at the target freq.
+   *
+   * Ports Series#pseudo_centered_spline_interpolation (tmp/lib/series_interpolation.rb:142).
+   */
+  pseudoCenteredSplineInterpolation(frequency: string): Series {
+    const target = normalizeFreq(frequency);
+    const src = normalizeFreq(this.frequency ?? "");
+
+    let divisor: number;
+    if (target === "quarter" && src === "year") divisor = 4;
+    else if (target === "month" && src === "quarter") divisor = 3;
+    else if (target === "day" && src === "month") divisor = 30.4375;
+    else
+      throw new Error(
+        `pseudo_centered_spline_interpolation from ${src} to ${target} not supported`,
+      );
+
+    const factor = (divisor - 1) / (divisor + 1);
+
+    const sorted = [...this.data.entries()]
+      .filter(([, v]) => v != null)
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    const tempData = new Map<string, number>();
+    let lastDate: string | null = null;
+    for (const [date, val] of sorted) {
+      if (lastDate === null) {
+        tempData.set(date, val);
+        lastDate = date;
+        continue;
+      }
+      const lastTemp = tempData.get(lastDate)!;
+      tempData.set(date, val + (val - lastTemp) * factor);
+      lastDate = date;
+    }
+
+    const temp = new Series({ name: `Temp series from ${this}` });
+    temp.data = tempData;
+    temp.frequency = src;
+
+    const interpolated = temp.linearInterpolate(target);
+
+    const s = new Series({
+      name: `Pseudo Centered Spline Interpolation of ${this}`,
+    });
+    s.data = interpolated.data;
+    s.frequency = target;
+    return s;
+  }
+
+  /**
+   * Distribute each weekly observation across the days it spans (value/days).
+   * Wraps `interpolateWeekToDay("distribute")`.
+   *
+   * Ports Series#distribute_days_interpolation (tmp/lib/series_interpolation.rb:119).
+   */
+  distributeDaysInterpolation(): Series {
+    return this.interpolateWeekToDay("distribute");
+  }
+
+  /**
+   * Fill each day in a week with that week's observation (no division).
+   * Wraps `interpolateWeekToDay("fill")`.
+   *
+   * Ports Series#fill_days_interpolation (tmp/lib/series_interpolation.rb:115).
+   */
+  fillDaysInterpolation(): Series {
+    return this.interpolateWeekToDay("fill");
+  }
+
+  /**
+   * Convert a weekly series to a daily series. Each weekly observation is
+   * assumed to fall at the END of the week it represents. The fill length
+   * for each week is the gap (in days) to the previous observation; for the
+   * earliest observation it defaults to 7. Gaps outside [5, 9] days raise.
+   *
+   * - "fill"      → each day gets the weekly value as-is
+   * - "distribute" → each day gets value / fillLength
+   *
+   * Ports Series#interpolate_week_to_day (tmp/lib/series_interpolation.rb:125).
+   */
+  private interpolateWeekToDay(method: "fill" | "distribute"): Series {
+    if (normalizeFreq(this.frequency ?? "") !== "week") {
+      throw new Error("original series not weekly");
+    }
+
+    const sortedKeys = [...this.data.keys()]
+      .filter((k) => this.data.get(k) != null)
+      .sort();
+    const newData = new Map<string, number>();
+
+    // Walk from latest → earliest, mirroring Rails `weekly_keys.pop` loop.
+    while (sortedKeys.length > 0) {
+      const date = sortedKeys.pop()!;
+      const prev = sortedKeys[sortedKeys.length - 1];
+      const fillLength = prev !== undefined ? daysBetweenStr(date, prev) : 7;
+      if (fillLength < 5 || fillLength > 9) {
+        throw new Error(
+          `observation gap of ${fillLength} days too long or short near ${date}`,
+        );
+      }
+      const raw = this.data.get(date)!;
+      const value = method === "fill" ? raw : raw / fillLength;
+      for (let offset = 0; offset < fillLength; offset++) {
+        newData.set(addDaysStr(date, -offset), value);
+      }
+    }
+
+    // Sort the result chronologically (Rails calls `dailyseries.sort`).
+    const sorted = new Map<string, number>(
+      [...newData.entries()].sort(([a], [b]) => a.localeCompare(b)),
+    );
+
+    const s = new Series({
+      name: `Interpolated days (${method}) from ${this}`,
+    });
+    s.data = sorted;
+    s.frequency = "day";
     return s;
   }
 

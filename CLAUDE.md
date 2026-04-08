@@ -58,12 +58,6 @@ The original app is a Rails application. Reference Rails code (models, controlle
 - Collection class names: `MeasurementCollection`, `LoaderCollection`
 - File names are kebab-case: `loader-collection.ts`, `source-detail.ts`
 
-### Porting status
-
-Ported models (have both model + collection): `category`, `data-list`, `geography`, `loader` (was `data_source`), `measurement`, `series`, `source`, `source-detail`, `unit`, `universe`
-
-Not yet ported (exist in Rails `tmp/models/` but not yet in TS): `data_point` (partial — has a model but no collection), `data_source_action`, `data_source_download`, `download`, `export`, `forecast_snapshot`, `geo_tree`, `reload_job`, `user`, `xseries`, and others.
-
 ## UI Stack
 
 - shadcn/ui components in `src/components/ui/`

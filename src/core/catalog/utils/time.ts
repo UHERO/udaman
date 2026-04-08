@@ -165,6 +165,20 @@ function addMonthsStr(dateStr: string, n: number): string {
   return format(addMonths(parseISO(dateStr), n), "yyyy-MM-dd");
 }
 
+/** Add n days to a YYYY-MM-DD date string. */
+function addDaysStr(dateStr: string, n: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Calendar days from `b` to `a` (a - b), as an integer. */
+function daysBetweenStr(a: string, b: string): number {
+  const da = new Date(a + "T00:00:00");
+  const db = new Date(b + "T00:00:00");
+  return Math.round((da.getTime() - db.getTime()) / 86400000);
+}
+
 export {
   generateDates,
   uheroDate,
@@ -173,4 +187,6 @@ export {
   dateTimestamp,
   isValidDate,
   addMonthsStr,
+  addDaysStr,
+  daysBetweenStr,
 };

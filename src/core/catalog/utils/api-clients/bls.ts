@@ -17,7 +17,7 @@ import { fetchJson, grokDate, type ApiResult } from "./index";
 
 // ─── Shared throttle + sticky key with failover ──────────────────────
 
-const BLS_KEY_ENV_VARS = ["API_KEY_1_BLS_V2", "API_KEY_2_BLS_V2"] as const;
+const BLS_KEY_ENV_VARS = ["API_KEY_1_BLS_V2", "API_KEY_2_BLS_V2", "API_KEY_3_BLS_V2", "API_KEY_4_BLS_V2"] as const;
 const BLS_MIN_INTERVAL_MS = 200;
 /** Sticky index of the currently-active BLS key. Only advances on failure. */
 let blsKeyIndex = 0;
