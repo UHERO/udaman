@@ -12,6 +12,7 @@ export async function reportClientError(payload: {
   message: string;
   digest?: string;
   pathname?: string;
+  metadata?: Record<string, unknown>;
 }) {
   await AppLogCollection.log({
     level: "error",
@@ -20,6 +21,7 @@ export async function reportClientError(payload: {
     metadata: {
       message: payload.message,
       digest: payload.digest,
+      ...payload.metadata,
     },
   });
 }

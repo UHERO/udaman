@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { reportClientError } from "@/actions/app-log";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -258,6 +259,33 @@ export default function UploadPanel({
     setProgress(null);
     setDialogError(null);
 
+    // Capture file info up-front so the reporter has stable values even if
+    // `file` state changes later.
+    const fileInfo = { name: file.name, size: file.size };
+
+    // Fire-and-forget: send a client error to app_logs so failures that
+    // would otherwise only appear in the dialog become visible server-side.
+    function reportUploadError(
+      stage: Stage,
+      message: string,
+      extra?: Record<string, unknown>,
+    ) {
+      void reportClientError({
+        message: `[upload:${stage}] ${message}`,
+        pathname:
+          typeof window !== "undefined" ? window.location.pathname : undefined,
+        metadata: {
+          uploadStage: stage,
+          filename: fileInfo.name,
+          fileSize: fileInfo.size,
+          apiEndpoint,
+          ...extra,
+        },
+      }).catch(() => {
+        // Never let logging break the UI.
+      });
+    }
+
     // Open dialog and start pipeline
     setStage("validating");
     setDialogOpen(true);
@@ -274,7 +302,10 @@ export default function UploadPanel({
           worker.terminate();
         };
         worker.onerror = (e) => {
-          resolve({ success: false, error: e.message });
+          resolve({
+            success: false,
+            error: e.message || "Worker crashed without a message",
+          });
           worker.terminate();
         };
         worker.postMessage({ arrayBuffer }, [arrayBuffer]);
@@ -290,8 +321,18 @@ export default function UploadPanel({
       if (!parseResult.success) {
         if ("errors" in parseResult) {
           setValidationErrors(parseResult.errors);
+          reportUploadError(
+            "validating",
+            `${parseResult.errors.length} validation error(s)`,
+            {
+              validationErrorCount: parseResult.errors.length,
+              // Cap the sample so a huge error list doesn't blow up the log row.
+              validationErrorsSample: parseResult.errors.slice(0, 5),
+            },
+          );
         } else {
           setError(parseResult.error);
+          reportUploadError("validating", parseResult.error);
         }
         setStage("error");
         setDialogError(
@@ -306,6 +347,9 @@ export default function UploadPanel({
       setError(msg);
       setStage("error");
       setDialogError(msg);
+      reportUploadError("validating", msg, {
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       return;
     }
 
@@ -333,6 +377,10 @@ export default function UploadPanel({
         setError(initResult.message);
         setStage("error");
         setDialogError(initResult.message);
+        reportUploadError("uploading", initResult.message, {
+          phase: "init",
+          httpStatus: initResp.status,
+        });
         return;
       }
 
@@ -355,6 +403,10 @@ export default function UploadPanel({
       setError(msg);
       setStage("error");
       setDialogError(msg);
+      reportUploadError("uploading", msg, {
+        phase: "init",
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       return;
     }
 
@@ -384,6 +436,12 @@ export default function UploadPanel({
           setStage("error");
           setDialogError(chunkResult.message);
           setProgress(null);
+          reportUploadError("uploading", chunkResult.message, {
+            phase: "chunk",
+            chunkIndex,
+            uploadId,
+            httpStatus: chunkResp.status,
+          });
           return;
         }
 
@@ -398,6 +456,11 @@ export default function UploadPanel({
       setStage("error");
       setDialogError(msg);
       setProgress(null);
+      reportUploadError("uploading", msg, {
+        phase: "chunk",
+        uploadId,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       return;
     }
 
@@ -432,6 +495,11 @@ export default function UploadPanel({
               : u,
           ),
         );
+        reportUploadError(
+          "processing",
+          finalResult.message ?? "Processing failed",
+          { phase: "finalize", uploadId, httpStatus: finalResp.status },
+        );
         return;
       }
     } catch (err) {
@@ -439,6 +507,11 @@ export default function UploadPanel({
       setError(msg);
       setStage("error");
       setDialogError(msg);
+      reportUploadError("processing", msg, {
+        phase: "finalize",
+        uploadId,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       return;
     }
 
@@ -451,8 +524,14 @@ export default function UploadPanel({
         body: file,
         headers: { "x-upload-id": String(uploadId) },
       });
-    } catch {
-      // Non-critical — data is already loaded
+    } catch (err) {
+      // Non-critical — data is already loaded. Still log so we can see if
+      // archive failures are common.
+      const msg = err instanceof Error ? err.message : "Archive failed";
+      reportUploadError("archiving", msg, {
+        uploadId,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
     }
 
     // --- Done ---
